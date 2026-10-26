@@ -1,19 +1,49 @@
 import type { Character } from '@/features/characters/types'
-import { Avatar } from '@/shared/ui/Avatar'
+import { Link } from 'react-router'
+import { useDemo } from '@/features/demo/demo-context'
+import { getCharacterArtwork } from '@/features/characters/artwork'
+import { relationship } from '@/features/demo/selectors'
+import { duration } from '@/shared/lib/format'
+import { Icon } from '@/shared/ui/Icon'
+import { RoomArtwork } from '@/features/rooms/components/RoomArtwork'
+import { characterRoom } from '@/features/rooms/artwork'
 
 export function CharacterCard({ character }: { character: Character }) {
+  const { state } = useDemo()
+  const relation = relationship(state, character.id)
+  const art = getCharacterArtwork(character.id)
   return (
-    <article className="rounded-card border border-line p-[18px]">
-      <div className="flex items-center gap-3.5">
-        <Avatar src={character.avatarUrl} size="lg" />
-        <div className="min-w-0">
-          <h3 className="text-[19px] leading-7 font-bold">{character.name}</h3>
-          <p className="mt-1 text-sm leading-6 text-muted">{character.description}</p>
-        </div>
+    <article className="friend-card">
+      <div className="friend-card-portrait">
+        {character.id === 'doyun' || character.id === 'moru' ? (
+          <RoomArtwork roomId={characterRoom[character.id]!} />
+        ) : (
+          <img
+            src={art.study}
+            alt={`${character.name}의 공부하는 모습`}
+            loading="lazy"
+            style={{ objectPosition: art.position }}
+          />
+        )}
+        <span className="friend-card-level">
+          <Icon name="heart" size={13} /> Lv.{relation.level}{' '}
+          {relation.level > 1 ? '친구' : '아는 사이'}
+        </span>
       </div>
-      <div className="mt-3.5 rounded-control bg-surface px-3.5 py-3">
-        <p className="text-[15px] leading-6 font-bold">아직 안 만났어요</p>
-        <p className="mt-0.5 text-sm leading-5 text-muted">처음 만나면 인사부터 해요</p>
+      <div className="p-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold">
+            <Link to={`/characters/${character.id}`} className="after:absolute after:inset-0">
+              {character.name}
+            </Link>
+          </h3>
+          <Icon name="arrow" size={18} className="text-subtle" />
+        </div>
+        <p className="mt-1.5 text-xs text-muted">{character.description}</p>
+        <p className="mt-4 border-t border-line pt-3 text-xs text-subtle">
+          함께 {duration(relation.minutes * 60)}{' '}
+          <span className="float-right text-brand-strong">다음 만남을 기다려요</span>
+        </p>
       </div>
     </article>
   )

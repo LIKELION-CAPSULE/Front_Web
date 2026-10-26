@@ -1,48 +1,129 @@
-import { NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import { useState } from 'react'
 import { PageNavigation } from '@/app/PageNavigation'
 import { cn } from '@/shared/lib/cn'
 import { Avatar } from '@/shared/ui/Avatar'
+import { useDemo } from '@/features/demo/demo-context'
+import { todaySeconds } from '@/features/demo/selectors'
+import { duration, number } from '@/shared/lib/format'
+import { Badge } from '@/shared/ui/Badge'
+import { Button } from '@/shared/ui/Button'
+import { Dialog } from '@/shared/ui/Dialog'
+import { Brand } from '@/shared/ui/Brand'
+import { Icon, type IconName } from '@/shared/ui/Icon'
 
 const navigation = [
-  { to: '/', label: '홈', end: true },
-  { to: '/records', label: '내 기록', end: false },
-  { to: '/characters', label: '캐릭터', end: false },
+  { to: '/', label: '홈', end: true, icon: 'home' },
+  { to: '/records', label: '내 기록', end: false, icon: 'chart' },
+  { to: '/characters', label: '캐릭터', end: false, icon: 'heart' },
 ]
 
 export function AppLayout() {
+  const { state, dispatch, storageAvailable } = useDemo()
+  const { pathname } = useLocation()
+  const [resetOpen, setResetOpen] = useState(false)
   return (
-    <div className="min-h-dvh bg-canvas">
+    <div className="app-shell min-h-dvh bg-canvas">
       <PageNavigation />
-      <a href="#main-content" className="skip-link">본문으로 건너뛰기</a>
-      <header className="border-b border-divider">
-        <div className="page-container flex min-h-16 flex-wrap items-center gap-x-7 gap-y-3 py-3 sm:gap-x-8 sm:py-0">
-          <NavLink to="/" aria-label="CAPSULE 홈" className="font-mono text-lg leading-6 font-bold tracking-[3px]">
-            CAPSULE
+      <a href="#main-content" className="skip-link">
+        본문으로 건너뛰기
+      </a>
+      <header className="app-header">
+        <div className="page-container app-header-inner">
+          <NavLink to="/" aria-label="CAPSULE 홈" className="shrink-0">
+            <Brand />
           </NavLink>
-          <nav aria-label="주요 메뉴" className="order-3 flex w-full gap-5 sm:order-none sm:w-auto sm:gap-[22px]">
+          <nav aria-label="주요 메뉴" className="app-navigation">
             {navigation.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.end}
-                className={({ isActive }) => cn('py-2 text-base leading-6 transition-colors hover:text-ink', isActive ? 'font-bold text-ink' : 'text-subtle')}
+                className={({ isActive }) => cn('app-nav-item', isActive && 'is-active')}
               >
+                <Icon name={item.icon as IconName} size={17} />
                 {item.label}
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-4 sm:gap-8">
-            <NavLink to="/credits" className="flex items-center gap-1.5 rounded-full border border-brand-line bg-brand-soft px-3 py-1 text-[13px] text-muted hover:border-brand">
-              크레딧 <span className="font-mono text-sm font-bold text-ink">0</span>
+          <div className="ml-auto flex items-center gap-3 sm:gap-5">
+            <NavLink to="/credits" className="credit-chip">
+              <Icon name="coin" size={16} />
+              <span className="sr-only">크레딧</span>
+              <span className="font-mono text-sm font-bold text-ink">{number(state.credits)}</span>
             </NavLink>
-            <span className="hidden min-w-[122px] rounded-full bg-surface px-3.5 py-1.5 text-sm leading-5 sm:inline-block">오늘 0분</span>
-            <Avatar size="md" />
+            {pathname === '/' && (
+              <span className="hidden items-center gap-2 text-xs text-muted xl:flex">
+                <Icon name="clock" size={15} />
+                오늘 {duration(todaySeconds(state))}
+              </span>
+            )}
+            <details className="relative z-30">
+              <summary
+                aria-label="내 프로필 메뉴"
+                className="flex cursor-pointer list-none items-center gap-2 rounded-full"
+              >
+                <Badge className="hidden px-2 py-0.5 text-[10px] sm:inline-flex">PREVIEW</Badge>
+                <Avatar size="md" />
+              </summary>
+              <div className="absolute top-12 right-0 w-60 rounded-card border border-line bg-panel p-3 shadow-xl">
+                <p className="border-b border-line px-3 py-2 text-sm font-bold">
+                  {state.profile.name} · 더미 계정
+                </p>
+                <Link to="/onboarding" className="menu-item">
+                  내 아바타 바꾸기
+                </Link>
+                <button
+                  onClick={() => dispatch({ type: 'FIRST_VISIT', value: !state.firstVisit })}
+                  className="menu-item"
+                >
+                  {state.firstVisit ? '이어하기 홈 보기' : '첫 방문 홈 보기'}
+                </button>
+                <button onClick={() => dispatch({ type: 'LOGOUT' })} className="menu-item">
+                  로그아웃
+                </button>
+                <button onClick={() => setResetOpen(true)} className="menu-item">
+                  데모 초기화
+                </button>
+                <p className="px-3 py-2 text-[11px] leading-5 text-subtle">
+                  이 브라우저에만 저장돼요.
+                  <br />
+                  실제 촬영·결제는 진행하지 않아요.
+                </p>
+              </div>
+            </details>
           </div>
         </div>
       </header>
-      <main id="main-content" tabIndex={-1} className="page-container py-7 focus:outline-none">
+      <main id="main-content" tabIndex={-1} className="page-container app-main focus:outline-none">
+        {!storageAvailable && (
+          <p role="status" className="mb-4 rounded-control bg-surface p-3 text-sm">
+            브라우저 저장 공간을 사용할 수 없어 이번 방문 동안만 체험 내용이 유지돼요.
+          </p>
+        )}
         <Outlet />
       </main>
+      <footer className="app-footer page-container">
+        <span>
+          CAPSULE <span className="mx-2 text-line">/</span> 같이 공부하는 시간의 힘.
+        </span>
+        <span>
+          작은 집중이 쌓이는 곳 <span className="ml-3 text-brand">✦</span>
+        </span>
+      </footer>
+      <Dialog
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        title="데모를 처음으로 돌릴까요?"
+      >
+        <p className="mb-5 text-sm leading-6 text-muted">
+          이 브라우저에서 추가한 공부 기록·약속·크레딧 사용 내역을 지우고, 처음의 샘플 데이터로
+          돌아가요.
+        </p>
+        <Button onClick={() => dispatch({ type: 'RESET', now: Date.now() })} className="w-full">
+          초기화하기
+        </Button>
+      </Dialog>
     </div>
   )
 }

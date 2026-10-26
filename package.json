@@ -11,14 +11,15 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "lint": "eslint . --max-warnings 0",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
-    "@fontsource-variable/noto-sans-kr": "^5.2.10",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router": "^8.5.0"
+    "react-router": "^8.5.0",
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

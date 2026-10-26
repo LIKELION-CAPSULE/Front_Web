@@ -1,36 +1,60 @@
 import type { StudyRoom } from '@/features/rooms/types'
 
-/** Local wireframe fixtures. Replace through the room service when an API is agreed. */
+/** Local demo content, paired with the existing CAPSULE landing artwork. */
 export const studyRooms: readonly StudyRoom[] = [
   {
     id: 'dawn-library',
-    name: '새벽 도서관',
-    description: '새벽 4시, 창가 자리. 조용히 집중하고 싶을 때',
-    introduction: '새벽 4시, 아무도 없는 도서관 창가 자리. 말없이 같이 집중하고 싶은 날을 위한 룸이에요.',
+    name: '방과 후, 너와 나',
+    description: '아무도 없는 교실, 나를 기다리는 세 친구.',
+    introduction:
+      '노을이 내려앉은 교실, 오늘도 네 옆자리는 비워 뒀어. 채린, 수아, 다희와 각자의 목표를 향해 한 장씩 넘겨 봐요.',
     contentStatus: 'preview',
     characters: [
-      { id: 'chaerin', name: '채린', description: '츤데레 · 같은 반 친구' },
-      { id: 'sua', name: '수아', description: '어떤 친구일지 곧 소개할게요' },
-      { id: 'dahee', name: '다희', description: '어떤 친구일지 곧 소개할게요' },
+      {
+        id: 'chaerin',
+        name: '채린',
+        description: '츤데레 · 같은 반 친구',
+      },
+      {
+        id: 'sua',
+        name: '수아',
+        description: '다정한 선배 · 조용한 응원',
+      },
+      {
+        id: 'dahee',
+        name: '다희',
+        description: '차분한 친구 · 꾸준한 공부 메이트',
+      },
     ],
   },
   {
     id: 'room-2',
-    name: '새로운 스터디룸',
-    description: '새로운 분위기의 공부 공간을 준비하고 있어요',
-    introduction: '함께 공부할 새로운 친구들을 준비하고 있어요.',
-    contentStatus: 'coming-soon',
+    name: '전교 1등을 이겨라',
+    description: '조용한 승부욕이 필요한 밤, 오늘의 라이벌과.',
+    introduction:
+      '모두가 돌아간 늦은 밤, 아직 불이 켜진 자리 하나. 도윤과 함께 어제의 나를 한 걸음 넘어 봐요.',
+    contentStatus: 'preview',
     characters: [
-      { id: 'room-2-friend-1', name: '친구 1', description: '곧 만나요' },
-      { id: 'room-2-friend-2', name: '친구 2', description: '곧 만나요' },
+      {
+        id: 'doyun',
+        name: '도윤',
+        description: '차분한 선배 · 나의 공부 라이벌',
+      },
     ],
   },
   {
     id: 'room-3',
-    name: '쉬어가는 스터디룸',
-    description: '편안한 분위기의 공부 공간을 준비하고 있어요',
-    introduction: '차분하게 공부에 몰입할 수 있는 공간을 준비하고 있어요.',
-    contentStatus: 'coming-soon',
-    characters: [{ id: 'room-3-friend-1', name: '친구 1', description: '곧 만나요' }],
+    name: '냥냥 독서실',
+    description: '책 한 권, 고양이 한 마리. 이만하면 완벽한 오후.',
+    introduction:
+      '햇살 좋은 창가, 책 사이에 자리를 잡은 모루. 서두르지 않아도 괜찮아요. 오늘은 포근하게 집중해 봐요.',
+    contentStatus: 'preview',
+    characters: [
+      {
+        id: 'moru',
+        name: '모루',
+        description: '느긋한 고양이 · 책상 위 공부 메이트',
+      },
+    ],
   },
 ]

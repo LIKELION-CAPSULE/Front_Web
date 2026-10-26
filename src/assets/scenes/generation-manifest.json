@@ -1,0 +1,55 @@
+{
+  "mode": "built-in image_gen",
+  "generatedAt": "2026-10-26",
+  "assets": [
+    {
+      "id": "classroom-subject",
+      "sourcePoster": "classroom.webp",
+      "master": "classroom-subject-v1.png",
+      "prompt": "Use case: background-extraction. Asset type: reusable transparent character foreground layer for the CAPSULE study web app. Image 1 is the edit target. Extract ONLY the central blonde student character from this poster. Preserve her face, original long light blonde hair, grey-pink eyes, natural reserved expression, cheek resting on her left hand, white shirt, black necktie and original anime painterly rendering. Keep the entire visible silhouette, including complete top of hair, shoulders, both elbows and arms. Cleanly reconstruct only the lower shirt/forearm areas that were covered by the large Korean title. Remove the other two characters, background, laptop, desk, books, all lettering including the nametag, all title graphics and light effects. Center the isolated seated waist-up character on a generous transparent canvas with a small safe margin on every side. Real alpha transparency around and through loose hair strands; no opaque or checkerboard backdrop, no fake transparency. Do not change identity or clothing, do not add props or characters. This is a standalone foreground PNG to layer over a separately generated classroom. No text, logo, watermark or frame.",
+      "web": "classroom-subject-v1.webp",
+      "sha256": "35a55d0817869493fe1e0b4df00670968b92c21512b6be885da46f830825a419"
+    },
+    {
+      "id": "night-subject",
+      "sourcePoster": "night-study.webp",
+      "master": "night-subject-v1.png",
+      "prompt": "Use case: background-extraction. Asset type: transparent character foreground for a layered responsive study-room banner. Image 1 is the edit target. Isolate only the long black-haired student from the supplied poster. Preserve precisely the original face, eyes, hair texture, gentle serious expression, cheek resting in hand, black cardigan, white collar and striped dark necktie, original cool blue/lilac rim lighting and detailed anime painterly style. Keep the entire visible waist-up silhouette, complete top of hair and both shoulders/elbows. Cleanly reconstruct the lower clothing where the title covered it. Remove all background, flying papers, desk, laptop, books, glowing marks, crown, titles and all writing. Center on a transparent canvas with small safe margins around the silhouette. Real alpha transparency and fine hair edges, not a painted checkerboard or opaque background. Do not change identity, gender, pose or outfit. No extra people, no text, no watermark. This will be positioned over a separate nighttime study background.",
+      "web": "night-subject-v1.webp",
+      "sha256": "ef651e2e542b6ee98687563fd210818cffa87bea7d0520be597c28ddc02a4671"
+    },
+    {
+      "id": "cat-subject",
+      "sourcePoster": "cat-library.webp",
+      "master": "cat-subject-v1.png",
+      "prompt": "Use case: background-extraction. Asset type: transparent mascot layer for a responsive layered study-room banner. Image 1 is the edit target. Recreate and isolate only the adorable small black cat visible in the original poster, preserving the exact recognizable character: very large round golden-yellow eyes, small triangular ears with pink interiors, tiny nose, round dark-furred face resting its chin and front paws on the surface, curled upright tail at the left. Keep the entire cat visible and uncropped with generous transparent margin. Match the soft, clean anime storybook rendering and warm light of the reference; upscale crisply. Remove the whole classroom/study background, books, papers, desk, and absolutely all Korean writing, titles and annotations. Keep whiskers and detailed soft edges. Real alpha transparency with no opaque or checkerboard background. No new props, extra animals or text.",
+      "web": "cat-subject-v1.webp",
+      "sha256": "f1af8afe07f17bae676cc83b01359b084d010508ad102e1e9cf8b3301564703b"
+    },
+    {
+      "id": "classroom-background",
+      "sourcePoster": "classroom.webp",
+      "master": "classroom-background-v1.png",
+      "prompt": "Use case: precise-object-edit. Asset type: background-only wide environment layer for a responsive CAPSULE study room. Image 1 is the environment/style reference and edit target. Remove all three students, all poster lettering, annotations, labels and graphic effects, then reconstruct and expand the classroom into a clean wide 16:9 landscape, ideally 2048x1152. Preserve the original polished anime illustration aesthetic, Korean classroom architecture and intimate desk-level viewpoint. Show a softly lit empty classroom with pale wooden desks, stacked plain study books, dark chalkboard toward the left, large windows toward the right, and warm afternoon sunlight. Foreground desk edge runs continuously along the bottom quarter so a separate seated character can be layered in front, but keep the center clear of tall objects. Extend the setting naturally horizontally instead of stretching the portrait. Background-only: no humans, silhouettes, animals, lettering, readable book labels, watermarks or logos. Refined depth, restrained detail, soft warm daylight that matches the original blonde student's lighting. Do not bake any title or UI into the image.",
+      "web": "classroom-background-v1.webp",
+      "sha256": "69132c091ffb0366964fa129795fcfd3565b374202b2923919fa9e6162145bcd"
+    },
+    {
+      "id": "night-background",
+      "sourcePoster": "night-study.webp",
+      "master": "night-background-v1.png",
+      "prompt": "Use case: precise-object-edit. Asset type: background-only wide environment layer for a layered study banner. Image 1 is the edit target/style reference. Remove the central student and ALL titles, lettering, crown, symbols and flying papers. Reconstruct the empty study room and expand naturally to a clean 16:9 landscape, ideally 2048x1152. Preserve the original detailed anime painterly rendering, midnight navy and muted lavender-blue lighting, tall windows with a softly glowing distant city at night, bookshelves, piles of plain books at the far edges, a modern desk lamp with soft light. An uninterrupted dark wooden desk surface and plain open notebook may occupy the bottom quarter, while the middle and upper-right contain no tall foreground obstructions so a separate seated character can be layered there. No person, silhouette, animal, title, text, readable book spines, branded laptop, logo or watermark. Do not stretch the existing portrait. Wide quiet study atmosphere with believable perspective and subtle depth.",
+      "web": "night-background-v1.webp",
+      "sha256": "e637efcc6caacbf2e2bc2d3b1985450a04e0bacf0a741e63ceddb5f44bbaf2f9"
+    },
+    {
+      "id": "cat-background",
+      "sourcePoster": "cat-library.webp",
+      "master": "cat-background-v1.png",
+      "prompt": "Use case: precise-object-edit. Asset type: clean wide background layer for the CAPSULE cozy cat study room. Image 1 is the edit target/style reference. Remove the black cat and all Korean handwriting, titles, notes, readable book labels, logos and text, then reconstruct the hidden setting and expand it horizontally to a naturally composed 16:9 landscape, ideally 2048x1152. Keep the same soft anime storybook illustration style: warm cream walls, big sunlit window, gently glowing afternoon light, a pale study desk across the bottom third, plain open notebook and pencil, a few pastel textbooks at the far left, cozy shelf at the far right. Leave the center desk open for placing a separately cut-out small cat. Desk-level camera, pleasing depth and gentle sunlight, original warm gentle mood. No cat, animal, person, silhouette, text, title, label, watermark or interface. Do not stretch portrait artwork or create a finished poster. This is a reusable empty environment only.",
+      "web": "cat-background-v1.webp",
+      "sha256": "f59bbc59d5f559e8a3429b5dad5155b8373c966fd27ae900abf0aa2d7a63904d"
+    }
+  ],
+  "encoding": "cwebp -q 88 -alpha_q 100 -m 6; no resizing or compositing baked into the image"
+}
