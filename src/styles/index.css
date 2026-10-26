@@ -1,0 +1,105 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'JetBrains Mono Variable';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2') format('woff2');
+}
+
+/* Values read from the wireframe, not a published Figma variable collection. */
+@theme {
+  --font-sans: 'Noto Sans KR Variable', 'Apple SD Gothic Neo', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', monospace;
+
+  --color-canvas: #ffffff;
+  --color-ink: #17171c;
+  --color-muted: #5e5e68;
+  --color-subtle: #73737c;
+  --color-line: #e2ddee;
+  --color-divider: #e6e0f3;
+  --color-placeholder: #e6e0f3;
+  --color-surface: #f2edfc;
+  --color-surface-soft: #f7f7f9;
+  --color-brand: #7e50f2;
+  --color-brand-strong: #6a3fd6;
+  --color-brand-soft: #f5f0ff;
+  --color-brand-line: #d8c5ff;
+
+  --radius-control: 12px;
+  --radius-card: 18px;
+  --radius-panel: 20px;
+}
+
+@layer base {
+  html {
+    color: var(--color-ink);
+    background: var(--color-canvas);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-width: 320px;
+    margin: 0;
+  }
+
+  button:not(:disabled), a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 4px;
+  }
+
+  h1, h2, h3, p {
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+  }
+}
+
+@layer components {
+  .page-container {
+    width: 100%;
+    max-width: 1440px;
+    margin-inline: auto;
+    padding-inline: 32px;
+  }
+
+  .skip-link {
+    position: fixed;
+    z-index: 50;
+    top: 8px;
+    left: 8px;
+    transform: translateY(-160%);
+    border-radius: var(--radius-control);
+    background: var(--color-ink);
+    padding: 12px 20px;
+    color: white;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 639px) {
+  .page-container {
+    padding-inline: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
