@@ -5,13 +5,13 @@ import { cn } from '@/shared/lib/cn'
 type Variant = 'primary' | 'secondary'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-ink text-white enabled:hover:bg-ink/90',
-  secondary: 'border border-line bg-canvas text-ink enabled:hover:bg-surface',
+  primary: 'button-primary text-white',
+  secondary: 'button-secondary border border-line bg-panel text-ink enabled:hover:bg-surface',
 }
 
 function controlClasses(variant: Variant, className?: string) {
   return cn(
-    'inline-flex min-h-14 items-center justify-center rounded-control px-7 py-3.5 text-[17px] leading-6 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45',
+    'inline-flex min-h-12 items-center justify-center gap-2.5 rounded-control px-6 py-3 text-[15px] leading-6 font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-45',
     variants[variant],
     className,
   )

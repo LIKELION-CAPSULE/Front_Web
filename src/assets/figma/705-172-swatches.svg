@@ -1,0 +1,15 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="150" height="30" viewBox="0 0 150 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="swatches">
+<g clip-path="url(#clip0_0_4)">
+<path id="swatch 9a6cfa" d="M28.5 15C28.5 22.4558 22.4558 28.5 15 28.5C7.54416 28.5 1.5 22.4558 1.5 15C1.5 7.54416 7.54416 1.5 15 1.5C22.4558 1.5 28.5 7.54416 28.5 15Z" fill="#9A6CFA" stroke-width="3" stroke="#17171C"/>
+<path id="swatch 17171c" d="M69.5 15C69.5 23.0081 63.0081 29.5 55 29.5C46.9919 29.5 40.5 23.0081 40.5 15C40.5 6.99187 46.9919 0.5 55 0.5C63.0081 0.5 69.5 6.99187 69.5 15Z" fill="#17171C" stroke="#D2CCE3"/>
+<path id="swatch f5f0ff" d="M109.5 15C109.5 23.0081 103.008 29.5 95 29.5C86.9919 29.5 80.5 23.0081 80.5 15C80.5 6.99187 86.9919 0.5 95 0.5C103.008 0.5 109.5 6.99187 109.5 15Z" fill="#F5F0FF" stroke="#D2CCE3"/>
+<path id="swatch d8c5ff" d="M149.5 15C149.5 23.0081 143.008 29.5 135 29.5C126.992 29.5 120.5 23.0081 120.5 15C120.5 6.99187 126.992 0.5 135 0.5C143.008 0.5 149.5 6.99187 149.5 15Z" fill="#D8C5FF" stroke="#D2CCE3"/>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_4">
+<rect width="150" height="30" rx="15" fill="white"/>
+</clipPath>
+</defs>
+</svg>

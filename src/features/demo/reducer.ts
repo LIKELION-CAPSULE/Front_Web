@@ -1,0 +1,354 @@
+import { chargeProducts, products, tierById } from './catalog.ts'
+import { createDemoState } from './seed.ts'
+import { businessDay } from '../../shared/lib/format.ts'
+import type { AvatarSettings, DemoState, LedgerEntry, Memory, TierId } from './types.ts'
+
+export const STUDY_SECONDS = 50 * 60
+export const BREAK_SECONDS = 10 * 60
+
+export type DemoAction =
+  | { type: 'LOGIN'; preview?: boolean }
+  | { type: 'PROFILE'; name: string; avatar: AvatarSettings }
+  | { type: 'LOGOUT' }
+  | { type: 'RESET'; now: number }
+  | { type: 'FIRST_VISIT'; value: boolean }
+  | { type: 'CAMERA'; enabled: boolean }
+  | { type: 'EXAM_PROMPTED'; roomId: string }
+  | { type: 'SAVE_ROOM'; roomId: string }
+  | {
+      type: 'START'
+      now: number
+      roomId: string
+      characterIds: string[]
+      tier: TierId
+      camera: boolean
+    }
+  | { type: 'TICK'; now: number }
+  | { type: 'PAUSE'; now: number }
+  | { type: 'SKIP_TO_BREAK'; now: number }
+  | { type: 'FINISH'; now: number }
+  | { type: 'UPGRADE'; tier: TierId; now: number }
+  | {
+      type: 'MESSAGE'
+      characterId: string
+      name: string
+      text: string
+      voice?: boolean
+      now: number
+    }
+  | { type: 'PURCHASE'; productId: string; method: string; now: number }
+  | { type: 'GIFT'; characterId: string; characterName: string; productId: string; now: number }
+  | { type: 'MEMORY'; memory: Memory }
+  | { type: 'DELETE_MEMORY'; id: string }
+
+export function sessionElapsed(state: DemoState['activeSession'], now: number) {
+  return state
+    ? Math.max(
+        0,
+        (state.elapsedMs +
+          (state.runningSince === null ? 0 : Math.max(0, now - state.runningSince))) /
+          1000,
+      )
+    : 0
+}
+
+export function tierCost(state: DemoState, tier: TierId, now: number) {
+  if (state.pass && state.pass.expiresAt > now) {
+    if (tier === 'standard' || (tier === 'premium' && state.pass.premiumDay !== businessDay(now)))
+      return 0
+  }
+  return tierById(tier).price
+}
+
+function transaction(state: DemoState, entry: Omit<LedgerEntry, 'balance'>): DemoState {
+  const balance = state.credits + entry.change
+  if (balance < 0) return state
+  return { ...state, credits: balance, ledger: [{ ...entry, balance }, ...state.ledger] }
+}
+
+export function demoReducer(state: DemoState, action: DemoAction): DemoState {
+  switch (action.type) {
+    case 'LOGIN':
+      return {
+        ...state,
+        profile: {
+          ...state.profile,
+          loggedIn: true,
+          onboarded: action.preview || state.profile.onboarded,
+        },
+      }
+    case 'PROFILE':
+      return {
+        ...state,
+        profile: {
+          ...state.profile,
+          name: action.name.trim() || '승희',
+          avatar: action.avatar,
+          onboarded: true,
+        },
+      }
+    case 'LOGOUT':
+      return { ...state, profile: { ...state.profile, loggedIn: false } }
+    case 'RESET':
+      return createDemoState(action.now)
+    case 'FIRST_VISIT':
+      return { ...state, firstVisit: action.value }
+    case 'CAMERA':
+      return {
+        ...state,
+        cameraChecked: true,
+        cameraEnabled: action.enabled,
+        activeSession: state.activeSession
+          ? { ...state.activeSession, camera: action.enabled }
+          : null,
+      }
+    case 'EXAM_PROMPTED':
+      return {
+        ...state,
+        examPromptedRooms: [...new Set([...state.examPromptedRooms, action.roomId])],
+      }
+    case 'SAVE_ROOM':
+      return {
+        ...state,
+        savedRooms: state.savedRooms.includes(action.roomId)
+          ? state.savedRooms.filter((id) => id !== action.roomId)
+          : [...state.savedRooms, action.roomId],
+      }
+    case 'START': {
+      if (state.activeSession) return state
+      const cost = tierCost(state, action.tier, action.now)
+      if (cost > state.credits) return state
+      const next = cost
+        ? transaction(state, {
+            id: `start-${action.now}`,
+            at: action.now,
+            kind: 'use',
+            description: `세트 등급 · ${tierById(action.tier).name}`,
+            change: -cost,
+          })
+        : state
+      return {
+        ...next,
+        firstVisit: false,
+        pass:
+          state.pass && action.tier === 'premium' && !cost
+            ? { ...state.pass, premiumDay: businessDay(action.now) }
+            : state.pass,
+        activeSession: {
+          id: `session-${action.now}`,
+          roomId: action.roomId,
+          characterIds: action.characterIds,
+          tier: action.tier,
+          paidCredits: cost,
+          phase: 'study',
+          elapsedMs: 168000,
+          runningSince: action.now,
+          studySeconds: 0,
+          startedAt: action.now - 168000,
+          camera: action.camera,
+        },
+      }
+    }
+    case 'TICK': {
+      const active = state.activeSession
+      if (!active || active.runningSince === null) return state
+      const elapsed = sessionElapsed(active, action.now)
+      if (active.phase === 'study' && elapsed >= STUDY_SECONDS) {
+        return {
+          ...state,
+          activeSession: {
+            ...active,
+            phase: 'break',
+            studySeconds: STUDY_SECONDS,
+            elapsedMs: Math.min((elapsed - STUDY_SECONDS) * 1000, BREAK_SECONDS * 1000),
+            runningSince: elapsed >= STUDY_SECONDS + BREAK_SECONDS ? null : action.now,
+          },
+        }
+      }
+      if (active.phase === 'break' && elapsed >= BREAK_SECONDS)
+        return {
+          ...state,
+          activeSession: { ...active, elapsedMs: BREAK_SECONDS * 1000, runningSince: null },
+        }
+      return state
+    }
+    case 'PAUSE':
+      return state.activeSession
+        ? {
+            ...state,
+            activeSession: {
+              ...state.activeSession,
+              elapsedMs: sessionElapsed(state.activeSession, action.now) * 1000,
+              runningSince: state.activeSession.runningSince === null ? action.now : null,
+            },
+          }
+        : state
+    case 'SKIP_TO_BREAK':
+      return state.activeSession
+        ? {
+            ...state,
+            activeSession: {
+              ...state.activeSession,
+              phase: 'break',
+              studySeconds: STUDY_SECONDS,
+              elapsedMs: 138000,
+              runningSince: action.now,
+            },
+          }
+        : state
+    case 'FINISH': {
+      const active = state.activeSession
+      if (!active) return state
+      const total =
+        active.phase === 'break'
+          ? active.studySeconds
+          : Math.min(STUDY_SECONDS, Math.floor(sessionElapsed(active, action.now)))
+      const away = Math.round(total * 0.08)
+      const record = {
+        id: active.id,
+        roomId: active.roomId,
+        characterIds: active.characterIds,
+        tier: active.tier,
+        startedAt: active.startedAt,
+        endedAt: action.now,
+        studySeconds: total,
+        focusSeconds: total - away,
+        awaySeconds: away,
+        returns: total >= 120 ? 3 : 0,
+        completed: active.phase === 'break',
+        automatic: false,
+      }
+      return {
+        ...state,
+        activeSession: null,
+        latestRecordId: record.id,
+        records: [record, ...state.records],
+      }
+    }
+    case 'UPGRADE': {
+      const active = state.activeSession
+      if (!active || tierById(action.tier).price <= tierById(active.tier).price) return state
+      const cost = Math.max(0, tierCost(state, action.tier, action.now) - active.paidCredits)
+      if (cost > state.credits) return state
+      const next = cost
+        ? transaction(state, {
+            id: `upgrade-${action.now}`,
+            at: action.now,
+            kind: 'use',
+            description: `등급 올리기 · ${tierById(active.tier).name} → ${tierById(action.tier).name} (차액)`,
+            change: -cost,
+          })
+        : state
+      return {
+        ...next,
+        pass:
+          state.pass && action.tier === 'premium' && cost === 0
+            ? { ...state.pass, premiumDay: businessDay(action.now) }
+            : state.pass,
+        activeSession: { ...active, tier: action.tier, paidCredits: active.paidCredits + cost },
+      }
+    }
+    case 'MESSAGE': {
+      const active = state.activeSession
+      if (!active || !action.text.trim() || !active.characterIds.includes(action.characterId))
+        return state
+      const used = state.chatUsage.day === businessDay(action.now) ? state.chatUsage.used : 0
+      if (active.tier === 'basic' && used >= 3) return state
+      const reply = /졸|피곤/.test(action.text)
+        ? '나도 졸려. 5분만 더 버티고 쉬자.'
+        : /시험|긴장/.test(action.text)
+          ? '그동안 준비한 거 내가 봤잖아. 너무 걱정하지 마. 같이 조금만 더 해 보자.'
+          : /어려|모르/.test(action.text)
+            ? '어려운 부분은 잠깐 표시해 두고, 할 수 있는 것부터 같이 해 보자.'
+            : `${state.profile.name}야, 잘하고 있어. 나도 여기서 같이 할게.`
+      const common = { sessionId: active.id, characterId: action.characterId }
+      return {
+        ...state,
+        chatUsage: {
+          day: businessDay(action.now),
+          used: active.tier === 'basic' ? used + 1 : used,
+        },
+        messages: [
+          ...state.messages,
+          {
+            ...common,
+            id: `user-${action.now}-${state.messages.length}`,
+            sender: 'user',
+            text: action.text.trim().slice(0, 500),
+            voice: !!action.voice,
+          },
+          {
+            ...common,
+            id: `reply-${action.now}-${state.messages.length}`,
+            sender: 'character',
+            text: reply,
+            voice: false,
+          },
+        ],
+      }
+    }
+    case 'PURCHASE': {
+      const product = chargeProducts.find((p) => p.id === action.productId)
+      if (!product) return state
+      const entry = {
+        id: `purchase-${action.now}`,
+        at: action.now,
+        kind: product.days ? ('payment' as const) : ('charge' as const),
+        change: product.credits + product.bonus,
+        description: `${product.name} · ${action.method}${product.bonus ? ` (+보너스 ${product.bonus})` : ''}`,
+        amount: product.amount,
+      }
+      if (state.ledger.some((row) => row.id === entry.id)) return state
+      const next = transaction(state, entry)
+      return product.days
+        ? {
+            ...next,
+            pass: {
+              name: product.name,
+              expiresAt: Math.max(action.now, state.pass?.expiresAt ?? 0) + product.days * 86400000,
+              premiumDay: state.pass?.premiumDay ?? null,
+            },
+          }
+        : next
+    }
+    case 'GIFT': {
+      const product = products.find((p) => p.id === action.productId)
+      if (!product || product.price > state.credits) return state
+      const id = `gift-${action.now}-${action.productId}`
+      if (state.gifts.some((gift) => gift.id === id)) return state
+      const next = transaction(state, {
+        id,
+        at: action.now,
+        kind: 'use',
+        description: `${product.kind} · ${action.characterName} · ${product.name}`,
+        change: -product.price,
+      })
+      return {
+        ...next,
+        gifts: [
+          {
+            id,
+            characterId: action.characterId,
+            productId: product.id,
+            name: product.name,
+            at: action.now,
+            reply: product.reply,
+            voice: product.kind === '보이스',
+          },
+          ...state.gifts,
+        ],
+      }
+    }
+    case 'MEMORY':
+      return {
+        ...state,
+        memories: state.memories.some((memory) => memory.id === action.memory.id)
+          ? state.memories.map((memory) =>
+              memory.id === action.memory.id ? action.memory : memory,
+            )
+          : [...state.memories, action.memory],
+      }
+    case 'DELETE_MEMORY':
+      return { ...state, memories: state.memories.filter((memory) => memory.id !== action.id) }
+  }
+}
