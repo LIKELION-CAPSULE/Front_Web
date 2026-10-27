@@ -106,7 +106,22 @@ React + TypeScript(strict) + Vite + Tailwind CSS v4를 사용합니다. 공통 U
 
 피그마는 읽기 전용으로 확인했습니다. 원본 프레임의 번호 핀과 메모는 기획 주석이므로 웹 UI에 포함하지 않았습니다. 화면 흐름은 유지하면서 `Landing_Page`의 로고·Pretendard 폰트·WebP 포스터·캐릭터 일러스트를 재사용해 네이비와 라벤더 중심의 디자인을 적용했습니다. Figma 원본과 랜딩페이지 파일은 수정하지 않았습니다. 에셋 출처와 매핑은 [에셋 문서](src/assets/README.md)에 정리했습니다.
 
-BrowserRouter를 사용하므로 배포 서버에서는 `/rooms/dawn-library` 같은 URL도 `index.html`로 연결하는 SPA fallback이 필요합니다. 실제 배포는 수행하지 않았습니다.
+BrowserRouter를 사용하므로 배포 서버에서는 `/rooms/dawn-library` 같은 URL도 `index.html`로 연결하는 SPA fallback이 필요합니다. Cloudflare Workers용 `wrangler.jsonc`에 이 동작과 빌드 결과 경로를 설정했습니다.
+
+### Cloudflare Workers 배포
+
+Git 저장소 루트가 이 디렉터리인 Workers 프로젝트의 설정입니다. 배포할 브랜치에도 `wrangler.jsonc`가 포함되어 있어야 합니다.
+
+| 항목 | Production | Preview |
+| --- | --- | --- |
+| 브랜치 | `main` | `dev` 등 Production 외 브랜치 |
+| Build command | `npm run build` | `npm run build` |
+| Deployment / Preview command | `npx wrangler deploy` | `npx wrangler preview` |
+| Root directory | `/` | `/` |
+
+`wrangler.jsonc`는 `dist`의 정적 파일을 배포하며, `previews` 설정을 선언해 브랜치별 Preview를 지원합니다. Preview 이름은 현재 Git 브랜치에서 정해지므로 `--name dev`를 공통 Preview 명령에 고정하지 않습니다. 기존 Production 명령의 `--assets ./dist --name capsule-front-web --compatibility-date 2026-10-23` 옵션도 파일의 설정과 같아 유지할 수 있습니다.
+
+`dev`의 **Tracking branch**와 **Preview builds**를 확인한 뒤 변경 사항을 `dev`에 push합니다. 해당 Preview의 **Deployments**에서 최신 커밋의 성공 여부와 실제 URL을 확인하세요. Preview 토글을 켜거나 URL을 활성화한 것만으로 배포가 성공한 것은 아닙니다. 공개 배포에는 Cloudflare Access 설정이 필요하지 않습니다.
 
 설정 참고: [Vite](https://vite.dev/guide/), [Tailwind Vite 설치](https://tailwindcss.com/docs/installation/using-vite), [React Router 설치](https://reactrouter.com/start/declarative/installation).
 
