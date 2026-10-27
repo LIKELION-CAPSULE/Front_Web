@@ -2,14 +2,12 @@ import { useState } from 'react'
 import { useDemo } from '@/features/demo/demo-context'
 import { recordSeconds } from '@/features/demo/selectors'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
-import { SessionList } from '@/features/reports/components/SessionList'
+import { StudyHistoryPanel } from '@/features/reports/components/StudyHistoryPanel'
 import { CompanionTimeChart } from '@/features/reports/components/CompanionTimeChart'
 import { StudyActivityPanel } from '@/features/reports/components/StudyActivityPanel'
-import { FocusSummary } from '@/features/reports/components/FocusSummary'
 import {
   getRecordRange,
   recordsInRange,
-  recordSummary,
   recordPeriods,
   type RecordPeriod,
 } from '@/features/reports/record-period'
@@ -24,29 +22,31 @@ export default function RecordsPage() {
   const { state } = useDemo()
   const [view, setView] = useState('all')
   const [period, setPeriod] = useState<RecordPeriod>('week')
+  const [offset, setOffset] = useState(0)
+  const [now] = useState(Date.now)
   const [roomId, setRoomId] = useState('dawn-library')
   const rooms = getStudyRooms()
   const room = rooms.find((item) => item.id === roomId) ?? rooms[0]!
-  const range = getRecordRange(period)
+  const range = getRecordRange(period, now, offset)
   const periodRecords = recordsInRange(state.records, range)
   const records =
     view === 'room' ? periodRecords.filter((record) => record.roomId === room.id) : periodRecords
-  const summary = recordSummary(records)
   const characters = view === 'all' ? rooms.flatMap((item) => item.characters) : room.characters
   const content = (
     <>
       <div className="records-overview-grid">
-        <StudyActivityPanel records={records} range={range} />
-        <div className="records-overview-side">
-          <FocusSummary value={summary.focusRate} label={range.label} />
-          <Panel title="최근 스터디" className="records-recent-panel min-w-0">
-            <SessionList records={records.slice(0, 5)} />
-          </Panel>
-        </div>
+        <StudyHistoryPanel records={records} range={range} />
+        <StudyActivityPanel
+          records={records}
+          range={range}
+          isCurrentPeriod={offset === 0}
+          onShiftPeriod={(direction) => setOffset((value) => value + direction)}
+          onResetPeriod={() => setOffset(0)}
+        />
       </div>
-      <Panel title="캐릭터별 함께한 시간" className="records-companion-panel min-w-0">
+      <Panel className="records-companion-panel min-w-0">
         <CompanionTimeChart
-          key={`${period}-${view}-${room.id}`}
+          key={`${view}-${room.id}`}
           records={records}
           characters={characters}
           range={range}
@@ -70,7 +70,10 @@ export default function RecordsPage() {
         <Tabs
           label="기록 기간"
           value={period}
-          onChange={(value) => setPeriod(value as RecordPeriod)}
+          onChange={(value) => {
+            setPeriod(value as RecordPeriod)
+            setOffset(0)
+          }}
           options={recordPeriods}
         />
       </div>

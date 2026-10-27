@@ -5,6 +5,7 @@ import { relationship } from '@/features/demo/selectors'
 import { duration } from '@/shared/lib/format'
 import { Icon } from '@/shared/ui/Icon'
 import { CharacterArtwork } from './CharacterArtwork'
+import { characterTags } from '../character-tags'
 
 export function CharacterCard({ character }: { character: Character }) {
   const { state } = useDemo()
@@ -13,6 +14,9 @@ export function CharacterCard({ character }: { character: Character }) {
     <article className="friend-card">
       <div className="friend-card-portrait">
         <CharacterArtwork characterId={character.id} variant="card" />
+        <span className="friend-card-time">
+          <Icon name="clock" size={12} /> 함께 {duration(relation.minutes * 60)}
+        </span>
         <span className="friend-card-level">
           <Icon name="heart" size={13} /> Lv.{relation.level}{' '}
           {relation.level > 1 ? '친구' : '아는 사이'}
@@ -27,10 +31,9 @@ export function CharacterCard({ character }: { character: Character }) {
           </h3>
           <Icon name="arrow" size={18} className="text-subtle" />
         </div>
-        <p className="mt-1.5 text-xs text-muted">{character.description}</p>
-        <p className="mt-4 border-t border-line pt-3 text-xs text-subtle">
-          함께 {duration(relation.minutes * 60)}
-        </p>
+        <ul className="friend-card-tags" aria-label={`${character.name} 소개`}>
+          {characterTags(character.description).map((tag) => <li key={tag}>{tag}</li>)}
+        </ul>
       </div>
     </article>
   )

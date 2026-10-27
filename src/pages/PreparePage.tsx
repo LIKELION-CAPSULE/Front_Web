@@ -10,7 +10,7 @@ import { TierSelector } from '@/features/session/components/TierSelector'
 import { useNow } from '@/features/session/use-now'
 import { StudyGoalPicker } from '@/features/session/components/StudyGoalPicker'
 import { normalizeGoalMinutes } from '@/features/session/study-goal'
-import { number } from '@/shared/lib/format'
+import { dayKey, number } from '@/shared/lib/format'
 import { Button } from '@/shared/ui/Button'
 import { Badge } from '@/shared/ui/Badge'
 import { OverlayPage } from '@/shared/ui/OverlayPage'
@@ -40,7 +40,9 @@ export default function PreparePage() {
   const goalStep = params.get('step') === 'goal' || params.get('step') === 'set'
   const cost = tierCost(state, tier, now)
   const returnTo = `/rooms/${room.id}/prepare?step=goal&tier=${tier}&goal=${goalMinutes}`
-  const hasExamPrompt = !state.examPromptedRooms.includes(room.id)
+  const hasExamPrompt =
+    !state.memories.some((memory) => memory.kind === '시험' && memory.date >= dayKey(now)) &&
+    !state.examPromptedRooms.includes(room.id)
   function cameraNext(enabled: boolean) {
     dispatch({ type: 'CAMERA', enabled })
     setParams({ step: 'goal', goal: String(goalMinutes), tier })
@@ -116,10 +118,10 @@ export default function PreparePage() {
             <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[14px] border border-brand-line px-4 py-2">
               <strong className="text-[15px]">시험이 있나요?</strong>
               <span className="flex-1 text-xs text-muted">
-                기억해서 응원해 줘요 · 이 룸 첫 시작 때만
+                모든 캐릭터가 함께 기억하고 응원해 줘요
               </span>
               <Link
-                to={`/mypage?character=${room.characters[0]!.id}&add=1&fromRoom=${room.id}&next=${encodeURIComponent(returnTo)}#schedule`}
+                to={`/mypage?add=1&fromRoom=${room.id}&next=${encodeURIComponent(returnTo)}#schedule`}
                 className="rounded-full bg-surface px-3 py-1.5 text-xs font-bold text-brand-strong"
               >
                 + 일정 추가

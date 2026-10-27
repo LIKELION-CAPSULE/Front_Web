@@ -74,46 +74,6 @@
     padding: 44px 20px;
     text-align: center;
   }
-  .toast-region {
-    position: fixed;
-    z-index: 80;
-    right: 24px;
-    bottom: 24px;
-    max-width: calc(100% - 48px);
-  }
-  .toast-message {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border: 1px solid var(--color-brand-line);
-    border-radius: 15px;
-    background: #211d30f5;
-    padding: 15px 17px;
-    color: var(--color-ink);
-    box-shadow: 0 16px 50px #0005;
-    backdrop-filter: blur(16px);
-    animation: toast-enter 0.25s ease-out;
-  }
-  .toast-message > p {
-    font-size: 12px;
-    line-height: 1.7;
-  }
-  .toast-action {
-    flex: none;
-    border-left: 1px solid var(--color-brand-line);
-    padding-left: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--color-brand-strong);
-  }
-  .toast-close {
-    display: flex;
-    min-width: 24px;
-    min-height: 28px;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-subtle);
-  }
   .progress-ring {
     position: relative;
     display: inline-flex;
@@ -157,9 +117,9 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    border: 1px solid var(--color-brand-line);
+    border: 0;
     border-radius: 999px;
-    background: var(--color-brand-soft);
+    background: transparent;
     padding: 6px 10px;
     color: var(--color-brand-strong);
     font-size: 10px;
@@ -355,16 +315,6 @@
     outline-offset: 2px;
   }
 }
-@keyframes toast-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 @keyframes dialog-enter {
   from {
     opacity: 0;
@@ -412,23 +362,6 @@
   .activity-panel {
     padding: 20px;
   }
-  .toast-region {
-    right: 16px;
-    bottom: 18px;
-    left: 16px;
-    max-width: 100%;
-  }
-  .toast-message {
-    padding: 12px 13px;
-    gap: 9px;
-  }
-  .toast-message > p {
-    font-size: 11px;
-  }
-  .toast-action {
-    padding-left: 9px;
-    font-size: 10px;
-  }
 }
 @media (max-width: 479px) {
   .study-topbar .quiet-mode-toggle {
@@ -444,7 +377,6 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .toast-message,
   .app-dialog[open],
   .skeleton-line::after {
     animation: none;

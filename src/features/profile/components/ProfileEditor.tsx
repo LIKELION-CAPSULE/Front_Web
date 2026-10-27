@@ -27,7 +27,6 @@ export function ProfileEditor() {
         <div className="mypage-avatar-figure">
           <AvatarIllustration settings={avatar} />
         </div>
-        <p className="text-xs text-muted">카메라를 끄면 이 모습이 보여요</p>
       </div>
       <form
         className="mypage-profile-form"

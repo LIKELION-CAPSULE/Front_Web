@@ -3,110 +3,132 @@ import { Link, useParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { relationship } from '@/features/demo/selectors'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
-import { dateLabel } from '@/shared/lib/format'
+import { dateLabel, dayKey } from '@/shared/lib/format'
 import { ButtonLink } from '@/shared/ui/Button'
 import { Panel } from '@/shared/ui/Panel'
 import { cn } from '@/shared/lib/cn'
 import NotFoundPage from './NotFoundPage'
 import { CharacterAvatar } from '@/features/characters/components/CharacterAvatar'
 import { CharacterArtwork } from '@/features/characters/components/CharacterArtwork'
+import { RelationshipProgress } from '@/features/characters/components/RelationshipProgress'
+import { PageHeading } from '@/shared/ui/PageHeading'
 import { Icon } from '@/shared/ui/Icon'
+import { characterTags } from '@/features/characters/character-tags'
 
 export default function CharactersPage() {
   const { characterId = 'chaerin' } = useParams()
   const { state } = useDemo()
   const [now] = useState(Date.now)
-  const [content, setContent] = useState('')
+  const [query, setQuery] = useState('')
   const rooms = getStudyRooms()
+  const search = query.trim().replace(/\s+/g, '').toLocaleLowerCase('ko-KR')
+  const characters = rooms.flatMap((item) => item.characters)
+  const filteredCharacters = characters.filter((item) =>
+    item.name.replace(/\s+/g, '').toLocaleLowerCase('ko-KR').includes(search),
+  )
   const room = rooms.find((item) =>
     item.characters.some((character) => character.id === characterId),
   )
   const character = room?.characters.find((item) => item.id === characterId)
   if (!room || !character) return <NotFoundPage />
   const relation = relationship(state, character.id)
-  const memories = state.memories.filter((memory) => memory.characterId === character.id)
   const allRecords = state.records.filter((record) => record.characterIds.includes(character.id))
   const recent = allRecords.slice(0, 3)
+  const firstMet = allRecords.at(-1)?.startedAt ?? now
+  const hashtags = characterTags(`${room.name} · ${character.description}`)
   return (
-    <>
-      <div className="mb-7">
-        <p className="eyebrow mb-3">OUR LITTLE STORY</p>
-        <h1 className="text-[30px] font-bold">함께한 만큼, 가까이.</h1>
-        <p className="mt-2 text-sm text-muted">조금씩 쌓인 공부 시간이 우리만의 이야기가 돼요.</p>
-      </div>
-      <div aria-label="캐릭터 고르기" className="character-picker mb-6 flex flex-wrap gap-2">
-        {rooms
-          .flatMap((item) => item.characters)
-          .map((item) => (
+    <div className="characters-page">
+      <PageHeading title="함께한 만큼, 가까이." eyebrow={null} />
+      <section className="character-browser" aria-label="캐릭터 찾기">
+        <div className="character-browser-header">
+          <h2 className="text-sm font-semibold">캐릭터</h2>
+          <label className="character-search">
+            <Icon name="search" size={17} />
+            <input
+              type="search"
+              aria-label="캐릭터 이름 검색"
+              placeholder="캐릭터 이름 검색"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            {query && (
+              <button type="button" aria-label="캐릭터 검색어 지우기" onClick={() => setQuery('')}>
+                <Icon name="close" size={15} />
+              </button>
+            )}
+          </label>
+        </div>
+        <div
+          aria-label="캐릭터 고르기"
+          className="character-picker flex flex-wrap gap-2 [&_.profile-avatar]:ring-0"
+        >
+          {filteredCharacters.map((item) => (
             <Link
               key={item.id}
               to={`/characters/${item.id}`}
               className={cn(
-                'inline-flex items-center gap-2 rounded-full border py-1.5 pr-4 pl-1.5 text-xs',
-                item.id === character.id
-                  ? 'border-brand bg-brand-solid text-white'
-                  : 'border-line text-muted',
+                'character-picker-item inline-flex items-center gap-2 rounded-full py-1.5 pr-4 pl-1.5 text-xs',
+                item.id === character.id && 'is-selected',
               )}
+              aria-current={item.id === character.id ? 'page' : undefined}
             >
               <CharacterAvatar characterId={item.id} />
               {item.name}
             </Link>
           ))}
-      </div>
+        </div>
+        {search && (
+          <p className="mt-3 text-xs text-subtle" role="status">
+            {filteredCharacters.length
+              ? `${filteredCharacters.length}명의 캐릭터를 찾았어요.`
+              : '검색한 이름의 캐릭터가 없어요.'}
+          </p>
+        )}
+      </section>
       <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <section className="character-profile flex min-h-[640px] flex-col rounded-panel border border-line bg-panel p-[22px]">
+        <section className="character-profile flex min-h-[640px] flex-col rounded-panel bg-panel p-[22px]">
           <div className="character-profile-portrait">
             <CharacterArtwork characterId={character.id} pose="affection" variant="portrait" />
-            <span className="scene-chip">
-              <Icon name="heart" size={13} /> 우리의 이야기
-            </span>
           </div>
-          <h2 className="mt-4 text-[26px] font-bold">{character.name}</h2>
-          <p className="mt-2 text-sm text-muted">
-            {room.name} · {character.description}
-          </p>
-          <div className="mt-4 flex gap-1">
-            {[1, 2, 3, 4, 5].map((level) => (
-              <span
-                key={level}
-                className={cn(
-                  'h-3 flex-1 rounded-full',
-                  relation.level >= level ? 'bg-brand-solid' : 'bg-line',
-                )}
-              />
-            ))}
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <h2 className="text-[26px] font-bold">{character.name}</h2>
+            <p className="shrink-0 text-right text-[10px] text-subtle">
+              처음 만난 날
+              <time dateTime={dayKey(firstMet)} className="mt-1 block text-xs text-muted">
+                {dayKey(firstMet).replaceAll('-', '.')}
+              </time>
+            </p>
           </div>
+          <ul aria-label="캐릭터 소개" className="character-profile-tags">
+            {hashtags.map((tag) => <li key={tag}>{tag}</li>)}
+          </ul>
+          <RelationshipProgress key={character.id} level={relation.level} next={relation.next} />
           <p className="mt-2 text-[17px] font-bold">Lv.{relation.level} 친구</p>
-          <p className="mt-3 text-sm leading-6 text-muted">
-            다음 단계까지 함께 {relation.next}분<br />
-            처음 만난 날 {dateLabel(allRecords.at(-1)?.startedAt ?? now)}
-          </p>
-          <div className="mt-auto space-y-3 pt-12">
-            <ButtonLink
-              to={`/characters/${character.id}/shop`}
-              variant="secondary"
-              className="min-h-12 w-full border-brand-line py-3 text-sm text-brand-strong"
-            >
-              선물 · 보이스 보내기
-            </ButtonLink>
+          <div className="character-profile-actions mt-auto pt-8">
             <ButtonLink
               to={
                 state.activeSession
                   ? `/study/${state.activeSession.id}`
                   : `/rooms/${room.id}/prepare${state.cameraChecked ? '?step=set' : ''}`
               }
-              className="min-h-12 w-full py-3 text-sm"
+              className="min-h-12 w-full border-0 py-3 text-sm"
             >
               {character.name}이랑 공부하기
             </ButtonLink>
+            <Link
+              to={`/characters/${character.id}/shop`}
+              className="mx-auto mt-4 block w-fit py-1 text-sm text-brand-strong underline underline-offset-4 hover:text-ink"
+            >
+              선물 · 보이스 보내기
+            </Link>
           </div>
         </section>
         <div className="space-y-5">
-          <Panel title="관계가 바뀐 이유">
+          <Panel title="관계가 바뀐 이유" className="character-reasons-panel border-0">
             {recent.map((record) => (
               <div
                 key={record.id}
-                className="flex items-center justify-between gap-3 border-t border-divider py-3 text-sm"
+                className="flex items-center justify-between gap-3 py-3 text-sm"
               >
                 <span className="text-xs text-subtle">{dateLabel(record.endedAt)}</span>
                 <span className="flex-1">
@@ -118,7 +140,7 @@ export default function CharactersPage() {
               </div>
             ))}
           </Panel>
-          <section>
+          <section className="character-unlocks">
             <h2 className="mb-3 font-bold">
               해금 콘텐츠 <span className="font-normal text-subtle">2 / 6</span>
             </h2>
@@ -156,24 +178,13 @@ export default function CharactersPage() {
                   description: '이벤트 기간에만',
                 },
               ].map((item) => (
-                <button
+                <article
                   key={item.kind}
-                  type="button"
-                  onClick={() =>
-                    setContent(
-                      item.unlocked
-                        ? item.kind === '대사'
-                          ? '“내일도 와라. 네 자리 비워 둘게.”'
-                          : '손을 흔들며 인사해요. 모션은 데모 안내로 보여 드려요.'
-                        : item.description,
-                    )
-                  }
                   className={cn(
-                    'min-h-24 rounded-[14px] border p-3 text-left',
-                    item.unlocked
-                      ? 'border-line bg-panel'
-                      : 'border-dashed border-subtle/50 bg-surface',
+                    'character-unlock-card min-h-24 rounded-[14px] p-3 text-left',
+                    item.unlocked ? 'bg-panel' : 'bg-surface',
                   )}
+                  data-kind={item.kind}
                 >
                   <span className="block text-xs text-muted">{item.kind}</span>
                   <strong className="mt-2 block text-sm">{item.name}</strong>
@@ -185,31 +196,12 @@ export default function CharactersPage() {
                   >
                     {item.description}
                   </span>
-                </button>
+                </article>
               ))}
             </div>
-            {content && (
-              <p role="status" className="mt-3 rounded-control bg-surface p-3 text-sm">
-                {content}
-              </p>
-            )}
           </section>
-          <Panel>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-semibold">
-                함께 기억하는 일정{' '}
-                <span className="ml-2 text-sm font-normal text-muted">{memories.length}</span>
-              </h2>
-              <Link
-                to={`/mypage?character=${character.id}#schedule`}
-                className="py-2 text-sm text-brand-strong"
-              >
-                일정 관리
-              </Link>
-            </div>
-          </Panel>
         </div>
       </div>
-    </>
+    </div>
   )
 }

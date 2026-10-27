@@ -1,7 +1,6 @@
 import { useDemo } from '@/features/demo/demo-context'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { CompanionGreeting } from '@/features/characters/components/CompanionGreeting'
-import { CharacterAvatar } from '@/features/characters/components/CharacterAvatar'
 import { HoverScratchCarousel } from '@/shared/ui/hover-scratch/HoverScratchCarousel'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
@@ -29,7 +28,7 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
         </>
       )}
     >
-      {({ index, select }) => (
+      {() => (
         <>
           <div className="welcome-copy">
             <h1 id="welcome-title">
@@ -50,7 +49,7 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
                       : `/rooms/${room.id}/prepare?step=goal${latest?.targetSeconds ? `&goal=${latest.targetSeconds / 60}` : ''}${latest?.tier ? `&tier=${latest.tier}` : ''}`
                   }
                 >
-                  <Icon name="play" size={17} /> 이어서 공부하기
+                  <Icon name="play" size={17} motion="pulse" /> 이어서 공부하기
                 </ButtonLink>
               ) : (
                 <Button onClick={onExplore}>
@@ -58,25 +57,6 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
                 </Button>
               )}
             </div>
-          </div>
-          <div
-            className="welcome-banner-picker"
-            role="group"
-            aria-label="배너 캐릭터 선택"
-            data-scratch-ignore
-          >
-            {welcomeBanners.map((banner, i) => (
-              <button
-                key={banner.id}
-                type="button"
-                aria-pressed={index === i}
-                aria-label={`${banner.name} 배너 보기`}
-                onClick={() => select(i)}
-              >
-                <CharacterAvatar characterId={banner.id} />
-                <span>{banner.name}</span>
-              </button>
-            ))}
           </div>
         </>
       )}

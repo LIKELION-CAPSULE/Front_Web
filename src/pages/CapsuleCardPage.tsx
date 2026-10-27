@@ -10,6 +10,7 @@ import { Button } from '@/shared/ui/Button'
 import { Badge } from '@/shared/ui/Badge'
 import { cn } from '@/shared/lib/cn'
 import { OverlayPage } from '@/shared/ui/OverlayPage'
+import { DateTimeWheelField } from '@/shared/ui/DateTimeWheelField'
 import NotFoundPage from './NotFoundPage'
 
 const colors = ['#8051cc', '#17171c', '#f5f0ff', '#d8c5ff']
@@ -23,6 +24,7 @@ export default function CapsuleCardPage() {
   const [color, setColor] = useState(0)
   const [date, setDate] = useState(() => dayKey(Date.now() + 86400000))
   const [time, setTime] = useState('20:00')
+  const [openField, setOpenField] = useState<'date' | 'time' | null>(null)
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [copyFallback, setCopyFallback] = useState(false)
@@ -85,8 +87,7 @@ export default function CapsuleCardPage() {
     dispatch({
       type: 'MEMORY',
       memory: {
-        id: `promise-${character.id}`,
-        characterId: character.id,
+        id: `promise-${record!.id}`,
         kind: '약속',
         title: '같이 공부하기',
         date,
@@ -185,7 +186,7 @@ export default function CapsuleCardPage() {
         <hr className="my-4 border-line" />
         <h2 className="text-lg font-bold">다음 공부 약속</h2>
         <p className="mt-2 text-sm text-muted">
-          약속한 시간에 들어오면 {character.name}이 마중 나와요
+          등록한 약속은 모든 캐릭터가 함께 기억해요
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {['오늘', '내일', '모레'].map((label, index) => {
@@ -204,27 +205,25 @@ export default function CapsuleCardPage() {
             )
           })}
         </div>
-        <label className="mt-3 block text-xs text-muted">
-          날짜 선택
-          <input
-            type="date"
-            required
+        <div className="mt-3 space-y-3">
+          <DateTimeWheelField
+            label="날짜 선택"
+            mode="date"
             value={date}
             min={dayKey(todayTimestamp)}
-            onChange={(event) => setDate(event.target.value)}
-            className="form-input mt-1.5"
+            onChange={setDate}
+            open={openField === 'date'}
+            onOpenChange={(open) => setOpenField(open ? 'date' : null)}
           />
-        </label>
-        <label className="mt-3 flex items-center justify-between rounded-control border border-brand-line bg-brand-soft px-4 py-2 text-sm text-muted">
-          시간
-          <input
-            type="time"
-            required
+          <DateTimeWheelField
+            label="시간"
+            mode="time"
             value={time}
-            onChange={(event) => setTime(event.target.value)}
-            className="bg-transparent py-1 font-mono font-bold text-ink"
+            onChange={setTime}
+            open={openField === 'time'}
+            onOpenChange={(open) => setOpenField(open ? 'time' : null)}
           />
-        </label>
+        </div>
         <Button
           disabled={!date || !time}
           onClick={promise}
