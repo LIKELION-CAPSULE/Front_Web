@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import type { LedgerEntry } from '@/features/demo/types'
 import { dateLabel, number } from '@/shared/lib/format'
@@ -15,37 +14,37 @@ export default function CreditsPage() {
   const [receipt, setReceipt] = useState<LedgerEntry | null>(null)
   const labels = { charge: '충전', use: '사용', bonus: '보너스', payment: '결제' }
   const rows = state.ledger.filter((entry) =>
-    filter === 'all' || filter === 'receipts'
-      ? filter !== 'receipts' || entry.kind === 'charge' || entry.kind === 'payment'
-      : entry.kind === filter,
+    filter === 'all' ||
+    (filter === 'charge'
+      ? entry.kind === 'charge' || entry.kind === 'payment'
+      : entry.kind === filter),
   )
   const used = state.ledger
     .filter((entry) => entry.kind === 'use')
     .reduce((sum, entry) => sum - entry.change, 0)
   return (
     <>
-      <PageHeading title="내 크레딧" />
+      <div className="credits-page-header mb-8 flex flex-wrap items-center justify-between gap-4 [&_.page-heading]:mb-0">
+        <PageHeading title="내 크레딧" eyebrow={null} />
+        <ButtonLink to="/credits/charge" className="min-h-11 px-5 py-2.5 text-sm">
+          충전하기
+        </ButtonLink>
+      </div>
       <div className="grid gap-4 md:grid-cols-3">
-        <section className="relative rounded-card bg-brand-solid p-[22px] text-white">
+        <section className="rounded-card bg-brand-solid p-[22px] text-white">
           <p className="text-sm text-white/70">보유 크레딧</p>
           <p className="mt-2 font-mono text-[34px] font-bold">{number(state.credits)}</p>
-          <ButtonLink
-            to="/credits/charge"
-            className="absolute right-5 bottom-5 min-h-9 rounded-full bg-[#9a6cfa] px-4 py-2 text-xs"
-          >
-            충전하기
-          </ButtonLink>
         </section>
-        <section className="rounded-card border border-brand-line bg-brand-soft p-[22px]">
+        <section className="rounded-card bg-brand-soft p-[22px]">
           <p className="text-sm text-muted">이용 중인 패스</p>
           <h2 className="mt-2 text-xl font-bold">
             {state.pass ? state.pass.name : '아직 이용 중인 패스가 없어요'}
           </h2>
-          <p className="mt-2 text-xs text-muted">
-            {state.pass
-              ? `${dateLabel(state.pass.expiresAt)}까지 · 자동 갱신 없음`
-              : '원하는 기간만큼 골라 이용해요'}
-          </p>
+          {state.pass && (
+            <p className="mt-2 text-xs text-muted">
+              {dateLabel(state.pass.expiresAt)}까지 · 자동 갱신 없음
+            </p>
+          )}
         </section>
         <section className="rounded-card bg-surface p-[22px]">
           <p className="text-sm text-muted">누적 쓴 크레딧</p>
@@ -66,7 +65,6 @@ export default function CreditsPage() {
             { id: 'charge', label: '충전' },
             { id: 'use', label: '사용' },
             { id: 'bonus', label: '보너스' },
-            { id: 'receipts', label: '결제 · 영수증' },
           ]}
         />
       </div>
@@ -120,12 +118,6 @@ export default function CreditsPage() {
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs leading-5 text-subtle">
-        더미 크레딧과 사용 내역이에요. 실제 청구는 발생하지 않아요.{' '}
-        <Link to="/credits/charge" className="text-brand-strong underline">
-          충전·패스 둘러보기
-        </Link>
-      </p>
       <Dialog open={!!receipt} onClose={() => setReceipt(null)} title="결제 내역 · 데모">
         {receipt && (
           <div className="space-y-3 text-sm">

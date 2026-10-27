@@ -1,8 +1,0 @@
-{
-  "source": "https://github.com/DavidHDev/react-bits/blob/main/src/ts-tailwind/Animations/HalftoneReveal/HalftoneReveal.tsx",
-  "blobSha": "0de3e00fbdb52790427a206a6f285b7df6b4602a",
-  "license": "https://github.com/DavidHDev/react-bits/blob/main/LICENSE.md",
-  "licenseBlobSha": "4069ce9d0ef1a712c93d6ce48ade5d5667e0f5ee",
-  "reviewedAt": "2026-10-27",
-  "use": "Application-only background effect; not a standalone component product"
-}

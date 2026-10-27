@@ -18,8 +18,8 @@ export function CharacterArtwork({
 }) {
   const clipId = useId()
   const art = getCharacterArtwork(characterId)
-  // Card portraits have their own window, separate from avatars and study scenes.
-  const cardPortrait = variant === 'card' && !avatar ? art.cardPortrait : undefined
+  // Cards and profiles share the face crop; avatars and study scenes keep their own frames.
+  const cardPortrait = variant !== 'scene' && !avatar ? art.cardPortrait : undefined
   let frame = cardPortrait?.crop ?? (avatar ? (art.avatarCrop ?? art.crop) : art.crop)
   const sourceSize = cardPortrait?.sourceSize ?? art.sourceSize
   if (frame && avatar && !art.avatarCrop) {

@@ -1,4 +1,5 @@
 import type { SVGProps } from 'react'
+import './icon-motion.css'
 
 const paths = {
   search: 'm21 21-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z',
@@ -8,9 +9,11 @@ const paths = {
     'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z',
   arrow: 'M4 12h16m-6-6 6 6-6 6',
   chevron: 'm9 5 7 7-7 7',
+  chevronsVertical: 'm8 9 4-4 4 4m-8 6 4 4 4-4',
   bookmark: 'M6 3h12v18l-6-4-6 4Z',
   book: 'M12 5C8 2 3 4 3 4v15s5-2 9 1c4-3 9-1 9-1V4s-5-2-9 1Zm0 0v15',
   clock: 'M12 8v5l3 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
+  calendar: 'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z',
   sparkle: 'm12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5Z',
   coin: 'M15 8h-4a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4H9m3-10v12M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
   play: 'm9 5 11 7-11 7Z',
@@ -31,8 +34,9 @@ export type IconName = keyof typeof paths
 export function Icon({
   name,
   size = 20,
+  motion,
   ...props
-}: SVGProps<SVGSVGElement> & { name: IconName; size?: number }) {
+}: SVGProps<SVGSVGElement> & { name: IconName; size?: number; motion?: 'draw' | 'nudge' | 'pulse' }) {
   return (
     <svg
       width={size}
@@ -44,9 +48,10 @@ export function Icon({
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
+      data-icon-motion={motion}
       {...props}
     >
-      <path d={paths[name]} />
+      <path d={paths[name]} pathLength={motion === 'draw' ? 1 : undefined} />
     </svg>
   )
 }

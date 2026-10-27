@@ -40,7 +40,7 @@ export function AppLayout() {
                 end={item.end}
                 className={({ isActive }) => cn('app-nav-item', isActive && 'is-active')}
               >
-                <Icon name={item.icon as IconName} size={17} />
+                <Icon name={item.icon as IconName} size={17} motion={item.icon === 'heart' ? 'pulse' : 'draw'} />
                 {item.label}
               </NavLink>
             ))}
@@ -64,9 +64,9 @@ export function AppLayout() {
               >
                 <Avatar size="md" />
               </summary>
-              <div className="absolute top-12 right-0 w-60 rounded-card border border-line bg-panel p-3 shadow-xl">
+              <div className="absolute top-12 right-0 w-60 rounded-card bg-panel p-3 shadow-xl">
                 <p className="border-b border-line px-3 py-2 text-sm font-bold">
-                  {state.profile.name} · 더미 계정
+                  {state.profile.name}
                 </p>
                 <Link
                   to="/mypage"
@@ -89,11 +89,6 @@ export function AppLayout() {
                 <button onClick={() => setResetOpen(true)} className="menu-item">
                   데모 초기화
                 </button>
-                <p className="px-3 py-2 text-[11px] leading-5 text-subtle">
-                  이 브라우저에만 저장돼요.
-                  <br />
-                  실제 촬영·결제는 진행하지 않아요.
-                </p>
               </div>
             </details>
           </div>

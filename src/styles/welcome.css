@@ -94,42 +94,6 @@
     padding: 10px 18px;
     font-size: 13px;
   }
-  .welcome-banner-picker {
-    position: absolute;
-    z-index: 3;
-    top: 18px;
-    right: 20px;
-    display: flex;
-    gap: 4px;
-    padding: 4px;
-    border: 1px solid #ffffff26;
-    border-radius: 999px;
-    background: #111320b8;
-  }
-  .welcome-banner-picker button {
-    display: flex;
-    min-height: 36px;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px 4px 5px;
-    border-radius: 999px;
-    color: #ddd6ee;
-    font-size: 12px;
-    transition:
-      background 0.16s,
-      color 0.16s;
-  }
-  .welcome-banner-picker button:hover {
-    background: #ffffff15;
-  }
-  .welcome-banner-picker button[aria-pressed='true'] {
-    background: #e9ddff;
-    color: #30233f;
-  }
-  .welcome-banner-picker .profile-avatar {
-    width: 27px;
-    height: 27px;
-  }
 }
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -201,14 +165,6 @@
   .welcome-actions {
     margin-top: 20px;
   }
-  .welcome-banner-picker {
-    position: relative;
-    top: auto;
-    right: auto;
-    order: 1;
-    align-self: flex-start;
-    margin: 0 22px 14px;
-  }
 }
 @media (max-width: 479px) {
   .welcome-copy {
@@ -223,10 +179,5 @@
   }
   .welcome-speech {
     padding: 14px 16px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .welcome-banner-picker button {
-    transition: none;
   }
 }

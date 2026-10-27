@@ -106,8 +106,8 @@ export const products = [
 export const chargeProducts = [
   { id: 'charge-1000', name: '1,000 크레딧', amount: 1000, credits: 1000, bonus: 0, days: 0 },
   { id: 'charge-4900', name: '4,900 크레딧', amount: 4900, credits: 4900, bonus: 0, days: 0 },
-  { id: 'charge-9900', name: '9,900 크레딧', amount: 9900, credits: 9900, bonus: 495, days: 0 },
-  { id: 'charge-19900', name: '19,900 크레딧', amount: 19900, credits: 19900, bonus: 995, days: 0 },
+  { id: 'charge-9900', name: '10,395 크레딧', amount: 9900, credits: 9900, bonus: 495, days: 0 },
+  { id: 'charge-19900', name: '20,895 크레딧', amount: 19900, credits: 19900, bonus: 995, days: 0 },
   { id: 'exam-pass', name: '시험기간 응원 패스', amount: 6900, credits: 0, bonus: 0, days: 14 },
   { id: 'character-pass', name: '캐릭터 패스', amount: 9900, credits: 0, bonus: 0, days: 30 },
 ] as const

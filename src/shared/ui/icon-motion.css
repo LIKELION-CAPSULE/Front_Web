@@ -1,0 +1,21 @@
+@media (prefers-reduced-motion: no-preference) {
+  :is(a, button, label):is(:hover, :focus-visible, :focus-within) svg[data-icon-motion='draw'] > path {
+    animation: capsule-icon-draw 0.55s ease both;
+  }
+  :is(a, button):is(:hover, :focus-visible) svg[data-icon-motion='nudge'] {
+    animation: capsule-icon-nudge 0.4s ease both;
+  }
+  :is(a, button):is(:hover, :focus-visible) svg[data-icon-motion='pulse'] {
+    animation: capsule-icon-pulse 0.5s ease both;
+  }
+}
+@keyframes capsule-icon-draw {
+  from { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  to { stroke-dasharray: 1; stroke-dashoffset: 0; }
+}
+@keyframes capsule-icon-nudge {
+  45% { transform: translateX(3px); }
+}
+@keyframes capsule-icon-pulse {
+  40% { transform: scale(1.16); }
+}
