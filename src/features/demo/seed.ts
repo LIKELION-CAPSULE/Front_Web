@@ -1,42 +1,11 @@
-import { studyRooms } from '../rooms/data/rooms.ts'
 import { businessDay, dayKey } from '../../shared/lib/format.ts'
-import type { DemoState, LedgerEntry, StudyRecord } from './types.ts'
+import type { DemoState, LedgerEntry } from './types.ts'
+import { DEFAULT_PROFILE_NAME } from './profile.ts'
+import { createSampleRecords } from './sample-records.ts'
 
 export function createDemoState(now = Date.now()): DemoState {
   const today = new Date(`${dayKey(now)}T12:00:00+09:00`).getTime()
-  const records: StudyRecord[] = []
-  const roomTotals = [1860, 720, 300]
-  const counts = [24, 9, 4]
-  studyRooms.forEach((room, roomIndex) => {
-    let remaining = roomTotals[roomIndex]!
-    const count = counts[roomIndex]!
-    for (let i = 0; i < count; i++) {
-      const minutes =
-        i === 0 && roomIndex === 0
-          ? 90
-          : i === count - 1
-            ? remaining
-            : Math.floor(remaining / (count - i))
-      remaining -= minutes
-      const offset = roomIndex === 0 ? i : i * 3 + roomIndex * 2
-      const end = today - offset * 86400000 - roomIndex * 3600000
-      records.push({
-        id: `sample-${roomIndex}-${i}`,
-        roomId: room.id,
-        characterIds: room.characters.map((c) => c.id),
-        tier: 'standard',
-        startedAt: end - minutes * 60000,
-        endedAt: end,
-        studySeconds: minutes * 60,
-        focusSeconds: Math.round(minutes * 60 * 0.92),
-        awaySeconds: Math.round(minutes * 60 * 0.08),
-        returns: 3,
-        completed: true,
-        automatic: roomIndex === 0 && i === 1,
-      })
-    }
-  })
-  records.sort((a, b) => b.endedAt - a.endedAt)
+  const records = createSampleRecords(now)
   let balance = 0
   const ledger: LedgerEntry[] = [
     {
@@ -51,7 +20,7 @@ export function createDemoState(now = Date.now()): DemoState {
     {
       id: 'seed-previous',
       at: today - 6 * 86400000,
-      description: '이전 공부 세트 이용',
+      description: '이전 공부 이용',
       kind: 'use',
       change: -8655,
       balance: 0,
@@ -59,7 +28,7 @@ export function createDemoState(now = Date.now()): DemoState {
     {
       id: 'seed-study',
       at: today - 86400000 + 1000,
-      description: '세트 등급 · 스탠다드 (새벽 도서관)',
+      description: '공부 옵션 · 스탠다드 (새벽 도서관)',
       kind: 'use',
       change: -200,
       balance: 0,
@@ -97,7 +66,7 @@ export function createDemoState(now = Date.now()): DemoState {
   return {
     version: 1,
     profile: {
-      name: '승희',
+      name: DEFAULT_PROFILE_NAME,
       loggedIn: false,
       onboarded: false,
       avatar: { hair: 1, outfit: 0, appearance: 0, background: 0 },
@@ -111,7 +80,7 @@ export function createDemoState(now = Date.now()): DemoState {
     examPromptedRooms: [],
     records,
     activeSession: null,
-    latestRecordId: records[0]!.id,
+    latestRecordId: records[0]?.id ?? null,
     memories: [
       {
         id: 'memory-exam',

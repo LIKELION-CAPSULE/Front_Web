@@ -1,0 +1,49 @@
+.hover-scratch-carousel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.scratch-media,
+.scratch-slides,
+.scratch-slide,
+.scratch-image,
+.scratch-mask {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scratch-media {
+  z-index: 0;
+  overflow: hidden;
+}
+.scratch-slides {
+  z-index: 0;
+  pointer-events: none;
+}
+.scratch-image {
+  object-fit: cover;
+  object-position: var(--banner-position, 50% 50%);
+}
+.scratch-slide {
+  isolation: isolate;
+  visibility: hidden;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  mask-mode: alpha;
+  /* The mask and stacking roles change together, including in reduced-motion styles. */
+  transition-property: none;
+}
+.scratch-slide[data-layer='current'] {
+  z-index: 1;
+  visibility: visible;
+}
+.scratch-mask {
+  display: none;
+  pointer-events: none;
+}
+.scratch-media[data-scratch='ready'] .scratch-slide[data-layer='next'] {
+  visibility: visible;
+}

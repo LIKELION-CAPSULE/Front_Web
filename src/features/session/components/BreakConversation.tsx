@@ -65,7 +65,7 @@ export function BreakConversation({
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm font-bold">
               {tierById(active.tier).name} ·{' '}
-              {active.tier === 'basic' ? `오늘 무료 대화 ${used}/3턴` : '이번 세트 자유 대화'}
+              {active.tier === 'basic' ? `오늘 무료 대화 ${used}/3턴` : '이번 공부 자유 대화'}
             </p>
             {exhausted ? (
               <span className="flex gap-1">
@@ -86,7 +86,7 @@ export function BreakConversation({
           </div>
           <p className="mt-2 text-[11px] leading-4 text-muted">
             {active.tier === 'basic'
-              ? '새벽 5시에 다시 3턴 · 올리면 이번 세트 자유 대화'
+              ? '새벽 5시에 다시 3턴 · 올리면 이번 공부 자유 대화'
               : '오늘 공부 내용 반영 · 쉬는 시간 끝까지'}
           </p>
         </div>
@@ -99,7 +99,7 @@ export function BreakConversation({
       >
         <div className="message-bubble">
           <p className="text-[11px] font-bold text-brand">{selected.name}</p>
-          <p className="mt-1 text-sm">50분 버텼네. 생각보다 오래 앉아 있던데?</p>
+          <p className="mt-1 text-sm">목표까지 잘 왔네. 잠깐 쉬었다 가자.</p>
         </div>
         {messages.map((message) => (
           <div

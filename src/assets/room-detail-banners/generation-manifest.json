@@ -1,0 +1,122 @@
+{
+  "generatedAt": "2026-10-27",
+  "tool": "built-in image_gen.imagegen",
+  "useCase": "illustration-story / identity-preserve",
+  "intent": "Complete opaque panoramic room-detail banners; HTML text remains separate.",
+  "assets": [
+    {
+      "id": "classroom",
+      "path": "/Users/jeongin/.codex/generated_images/01a17692-23e3-7572-a9af-4fc8cb61fab4/exec-732de6ac-25fe-4e1a-b116-db6b2b81a08d.png",
+      "ref": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/scenes/layered-v2/classroom-fullbody-v3.png",
+      "prompt": "Use case: illustration-story with identity-preserve. Asset type: COMPLETE ILLUSTRATED WEB DETAIL BANNER, not an isolated character layer. Make ONE panoramic horizontal 3:1 wide image (around 2304 x 768) showing a single coherent room with physically natural seated characters. The provided image is a character identity/style reference only; do not reproduce its floating isolated full-body layout. Keep recognizable faces, hairstyles, character count, clothes and polished Korean manhwa/anime rendering.\nComposition: LEFT 43% is quiet dim navy room atmosphere with minimal detail and NO people, reserved for HTML heading and intro text. Place ALL characters and their real seats in RIGHT 50%, with comfortable safety margins around every face and outermost character. Use a cinematic eye-level medium-wide composition, heads/upper bodies large enough to recognize in a short web banner, seating support/armrest/cushion visible. People interact naturally with their environment; correct shared perspective, consistent lighting, natural contact shadows. The image must read as one complete environment, not a collage or pasted cutout.\nNO TEXT anywhere, no title, no captions, no logo, no watermark, no UI. No large desk or table in front of or covering any character. No hovering hips or feet, no disconnected chair, no extra limbs, no duplicated people, no overtly crossed/tangled legs. Character actions may change to comfortable natural reading poses. Background must fill the entire wide canvas, opaque, beautifully finished.\nScene and subjects: A warm sunset school reading lounge. Exactly the same three school friends as the reference, close together on one real wooden bench with a backrest by the classroom windows. Their feet and hips naturally supported, notebooks on laps. Short dark bob on left, blonde long hair in middle, brown ponytail on right.",
+      "master": "classroom-detail-banner-v1.png",
+      "web": "classroom-detail-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "webBytes": 224326,
+      "sha256": "3f04af37a9b268a3a46fef2f90c4970f576f23778c9da6571f509e5cf96be35b"
+    },
+    {
+      "id": "night",
+      "path": "/Users/jeongin/.codex/generated_images/01a17692-23e3-7572-a9af-4fc8cb61fab4/exec-b088bff3-7c7e-4d8b-a737-e518a5d43a1c.png",
+      "ref": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/scenes/layered-v2/night-fullbody-v2.png",
+      "prompt": "Use case: illustration-story with identity-preserve. Asset type: COMPLETE ILLUSTRATED WEB DETAIL BANNER, not an isolated character layer. Make ONE panoramic horizontal 3:1 wide image (around 2304 x 768) showing a single coherent room with physically natural seated characters. The provided image is a character identity/style reference only; do not reproduce its floating isolated full-body layout. Keep recognizable faces, hairstyles, character count, clothes and polished Korean manhwa/anime rendering.\nComposition: LEFT 43% is quiet dim navy room atmosphere with minimal detail and NO people, reserved for HTML heading and intro text. Place ALL characters and their real seats in RIGHT 50%, with comfortable safety margins around every face and outermost character. Use a cinematic eye-level medium-wide composition, heads/upper bodies large enough to recognize in a short web banner, seating support/armrest/cushion visible. People interact naturally with their environment; correct shared perspective, consistent lighting, natural contact shadows. The image must read as one complete environment, not a collage or pasted cutout.\nNO TEXT anywhere, no title, no captions, no logo, no watermark, no UI. No large desk or table in front of or covering any character. No hovering hips or feet, no disconnected chair, no extra limbs, no duplicated people, no overtly crossed/tangled legs. Character actions may change to comfortable natural reading poses. Background must fill the entire wide canvas, opaque, beautifully finished.\nScene and subjects: A quiet modern library at night with blue-purple city lights, bookshelves and a softly lit reading corner. The exact black-haired student in the reference sits in a real dark navy reading armchair, visible armrest/backrest and cushion compression, holding a book on lap.",
+      "master": "night-detail-banner-v1.png",
+      "web": "night-detail-banner-v1.webp",
+      "width": 2167,
+      "height": 726,
+      "webBytes": 213488,
+      "sha256": "fb06f2b5c2d260fc0fee91675275b09d9b56fe5411cfa011ec4ba1f392fed12c"
+    },
+    {
+      "id": "cat",
+      "path": "/Users/jeongin/.codex/generated_images/01a17692-23e3-7572-a9af-4fc8cb61fab4/exec-836d9751-745b-42d4-8a96-1c3e8b7df7a7.png",
+      "ref": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/scenes/layered-v2/cat-fullbody-v2.png",
+      "prompt": "Use case: illustration-story with identity-preserve. Asset type: COMPLETE ILLUSTRATED WEB DETAIL BANNER, not an isolated character layer. Make ONE panoramic horizontal 3:1 wide image (around 2304 x 768) showing a single coherent room with physically natural seated characters. The provided image is a character identity/style reference only; do not reproduce its floating isolated full-body layout. Keep recognizable faces, hairstyles, character count, clothes and polished Korean manhwa/anime rendering.\nComposition: LEFT 43% is quiet dim navy room atmosphere with minimal detail and NO people, reserved for HTML heading and intro text. Place ALL characters and their real seats in RIGHT 50%, with comfortable safety margins around every face and outermost character. Use a cinematic eye-level medium-wide composition, heads/upper bodies large enough to recognize in a short web banner, seating support/armrest/cushion visible. People interact naturally with their environment; correct shared perspective, consistent lighting, natural contact shadows. The image must read as one complete environment, not a collage or pasted cutout.\nNO TEXT anywhere, no title, no captions, no logo, no watermark, no UI. No large desk or table in front of or covering any character. No hovering hips or feet, no disconnected chair, no extra limbs, no duplicated people, no overtly crossed/tangled legs. Character actions may change to comfortable natural reading poses. Background must fill the entire wide canvas, opaque, beautifully finished.\nScene and subjects: A sunlit cozy library window seat with bookshelves, gentle cream and sage tones. The same black kitten with giant golden eyes rests with its chin on its paws in a soft round cream cat bed on a built-in window bench. Entire head, ears, paws and cozy supporting bed visible.",
+      "master": "cat-detail-banner-v1.png",
+      "web": "cat-detail-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "webBytes": 202382,
+      "sha256": "d0e5db4c567edadcb0c42ee678661efa84be6506d0429e3d39f86bb0b270172a"
+    },
+    {
+      "id": "fantasy",
+      "path": "/Users/jeongin/.codex/generated_images/01a17692-23e3-7572-a9af-4fc8cb61fab4/exec-c8402d02-d94e-4f66-88b8-4fee1046c955.png",
+      "ref": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/scenes/layered-v2/fantasy-fullbody-v2.png",
+      "prompt": "Use case: illustration-story with identity-preserve. Asset type: COMPLETE ILLUSTRATED WEB DETAIL BANNER, not an isolated character layer. Make ONE panoramic horizontal 3:1 wide image (around 2304 x 768) showing a single coherent room with physically natural seated characters. The provided image is a character identity/style reference only; do not reproduce its floating isolated full-body layout. Keep recognizable faces, hairstyles, character count, clothes and polished Korean manhwa/anime rendering.\nComposition: LEFT 43% is quiet dim navy room atmosphere with minimal detail and NO people, reserved for HTML heading and intro text. Place ALL characters and their real seats in RIGHT 50%, with comfortable safety margins around every face and outermost character. Use a cinematic eye-level medium-wide composition, heads/upper bodies large enough to recognize in a short web banner, seating support/armrest/cushion visible. People interact naturally with their environment; correct shared perspective, consistent lighting, natural contact shadows. The image must read as one complete environment, not a collage or pasted cutout.\nNO TEXT anywhere, no title, no captions, no logo, no watermark, no UI. No large desk or table in front of or covering any character. No hovering hips or feet, no disconnected chair, no extra limbs, no duplicated people, no overtly crossed/tangled legs. Character actions may change to comfortable natural reading poses. Background must fill the entire wide canvas, opaque, beautifully finished.\nScene and subjects: An enchanted academy library with rich bookshelves, candles and arched windows, deep emerald and antique gold. The same three companions from the reference sit comfortably on an elegant velvet settee: burgundy-haired red/gold-robed man, teal-gowned woman, blonde ivory/gold-robed man. Books in laps, clearly supported by the settee.",
+      "master": "fantasy-detail-banner-v1.png",
+      "web": "fantasy-detail-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "webBytes": 411680,
+      "sha256": "a6180942cc20027efceb89d95b889fa391a81e1656e8c9e4491083624034d0aa"
+    },
+    {
+      "id": "iljin",
+      "path": "/Users/jeongin/.codex/generated_images/01a17692-23e3-7572-a9af-4fc8cb61fab4/exec-d9052d5a-dc8a-4dfc-936d-14fdd849673f.png",
+      "ref": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/scenes/layered-v2/iljin-fullbody-v3.png",
+      "prompt": "Use case: illustration-story with identity-preserve. Asset type: COMPLETE ILLUSTRATED WEB DETAIL BANNER, not an isolated character layer. Make ONE panoramic horizontal 3:1 wide image (around 2304 x 768) showing a single coherent room with physically natural seated characters. The provided image is a character identity/style reference only; do not reproduce its floating isolated full-body layout. Keep recognizable faces, hairstyles, character count, clothes and polished Korean manhwa/anime rendering.\nComposition: LEFT 43% is quiet dim navy room atmosphere with minimal detail and NO people, reserved for HTML heading and intro text. Place ALL characters and their real seats in RIGHT 50%, with comfortable safety margins around every face and outermost character. Use a cinematic eye-level medium-wide composition, heads/upper bodies large enough to recognize in a short web banner, seating support/armrest/cushion visible. People interact naturally with their environment; correct shared perspective, consistent lighting, natural contact shadows. The image must read as one complete environment, not a collage or pasted cutout.\nNO TEXT anywhere, no title, no captions, no logo, no watermark, no UI. No large desk or table in front of or covering any character. No hovering hips or feet, no disconnected chair, no extra limbs, no duplicated people, no overtly crossed/tangled legs. Character actions may change to comfortable natural reading poses. Background must fill the entire wide canvas, opaque, beautifully finished.\nScene and subjects: A quiet afternoon school reading lounge with warm window light and a wooden reading chair. The same black-haired male student from the reference in dark school blazer, loose tie and gray trousers sits comfortably, holding a notebook, supported by the chair back/seat with a relaxed friendly expression.",
+      "master": "iljin-detail-banner-v1.png",
+      "web": "iljin-detail-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "webBytes": 146202,
+      "sha256": "b6acfc30fb51850f573711a6f5bd8716dbf3197be1ee580c4f18b981d0b56463",
+      "replacement": {
+        "metadata": "iljin-detail-banner-v2-generation.json",
+        "master": "iljin-detail-banner-v2.png",
+        "web": "iljin-detail-banner-v2.webp",
+        "reason": "Natural seated hip/thigh anatomy"
+      }
+    },
+    {
+      "id": "lantern",
+      "path": "/Users/jeongin/.codex/generated_images/01a17692-23e3-7572-a9af-4fc8cb61fab4/exec-71ce701b-646b-4864-bf63-5f7b91ea3c31.png",
+      "ref": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/scenes/layered-v2/lantern-fullbody-v2.png",
+      "prompt": "Use case: illustration-story with identity-preserve. Asset type: COMPLETE ILLUSTRATED WEB DETAIL BANNER, not an isolated character layer. Make ONE panoramic horizontal 3:1 wide image (around 2304 x 768) showing a single coherent room with physically natural seated characters. The provided image is a character identity/style reference only; do not reproduce its floating isolated full-body layout. Keep recognizable faces, hairstyles, character count, clothes and polished Korean manhwa/anime rendering.\nComposition: LEFT 43% is quiet dim navy room atmosphere with minimal detail and NO people, reserved for HTML heading and intro text. Place ALL characters and their real seats in RIGHT 50%, with comfortable safety margins around every face and outermost character. Use a cinematic eye-level medium-wide composition, heads/upper bodies large enough to recognize in a short web banner, seating support/armrest/cushion visible. People interact naturally with their environment; correct shared perspective, consistent lighting, natural contact shadows. The image must read as one complete environment, not a collage or pasted cutout.\nNO TEXT anywhere, no title, no captions, no logo, no watermark, no UI. No large desk or table in front of or covering any character. No hovering hips or feet, no disconnected chair, no extra limbs, no duplicated people, no overtly crossed/tangled legs. Character actions may change to comfortable natural reading poses. Background must fill the entire wide canvas, opaque, beautifully finished.\nScene and subjects: A softly lit late-night barracks reading lounge, dark olive and warm amber tones. The same three military/medical companions as reference sit naturally side by side on a solid olive upholstered bench with backrest, chatting quietly over notebooks on their laps. Preserve all three uniforms and hairstyles.",
+      "master": "lantern-detail-banner-v1.png",
+      "web": "lantern-detail-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "webBytes": 240388,
+      "sha256": "28cea7619d19933870f2059e86e88113b670215725610d8905c87bd25e403f25"
+    },
+    {
+      "id": "jurassic",
+      "path": "/Users/jeongin/.codex/generated_images/01a17692-23e3-7572-a9af-4fc8cb61fab4/exec-fba16754-3ce1-4318-8c3b-49b691cf1331.png",
+      "ref": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/scenes/layered-v2/jurassic-fullbody-v2.png",
+      "prompt": "Use case: illustration-story with identity-preserve. Asset type: COMPLETE ILLUSTRATED WEB DETAIL BANNER, not an isolated character layer. Make ONE panoramic horizontal 3:1 wide image (around 2304 x 768) showing a single coherent room with physically natural seated characters. The provided image is a character identity/style reference only; do not reproduce its floating isolated full-body layout. Keep recognizable faces, hairstyles, character count, clothes and polished Korean manhwa/anime rendering.\nComposition: LEFT 43% is quiet dim navy room atmosphere with minimal detail and NO people, reserved for HTML heading and intro text. Place ALL characters and their real seats in RIGHT 50%, with comfortable safety margins around every face and outermost character. Use a cinematic eye-level medium-wide composition, heads/upper bodies large enough to recognize in a short web banner, seating support/armrest/cushion visible. People interact naturally with their environment; correct shared perspective, consistent lighting, natural contact shadows. The image must read as one complete environment, not a collage or pasted cutout.\nNO TEXT anywhere, no title, no captions, no logo, no watermark, no UI. No large desk or table in front of or covering any character. No hovering hips or feet, no disconnected chair, no extra limbs, no duplicated people, no overtly crossed/tangled legs. Character actions may change to comfortable natural reading poses. Background must fill the entire wide canvas, opaque, beautifully finished.\nScene and subjects: A cozy botanical reading corner with large sunlit windows and floor cushions. The same brown-haired girl with loose bun in a light hoodie reads on a large soft floor cushion, surrounded by exactly the same four friendly dinosaurs: green with headphones, yellow long-neck, small blue triceratops, small pink pterosaur. Everyone has natural contact with cushions and rug.",
+      "master": "jurassic-detail-banner-v1.png",
+      "web": "jurassic-detail-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "webBytes": 305334,
+      "sha256": "92079fcb598c8fc2ff176d4d662dcf793a729b2233f6c5bb60612c8738614025"
+    },
+    {
+      "id": "lab",
+      "path": "/Users/jeongin/.codex/generated_images/01a17692-23e3-7572-a9af-4fc8cb61fab4/exec-c1dfe705-8c7a-4868-be50-8bb76171b6d6.png",
+      "ref": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/scenes/layered-v2/lab-fullbody-v2.png",
+      "prompt": "Use case: illustration-story with identity-preserve. Asset type: COMPLETE ILLUSTRATED WEB DETAIL BANNER, not an isolated character layer. Make ONE panoramic horizontal 3:1 wide image (around 2304 x 768) showing a single coherent room with physically natural seated characters. The provided image is a character identity/style reference only; do not reproduce its floating isolated full-body layout. Keep recognizable faces, hairstyles, character count, clothes and polished Korean manhwa/anime rendering.\nComposition: LEFT 43% is quiet dim navy room atmosphere with minimal detail and NO people, reserved for HTML heading and intro text. Place ALL characters and their real seats in RIGHT 50%, with comfortable safety margins around every face and outermost character. Use a cinematic eye-level medium-wide composition, heads/upper bodies large enough to recognize in a short web banner, seating support/armrest/cushion visible. People interact naturally with their environment; correct shared perspective, consistent lighting, natural contact shadows. The image must read as one complete environment, not a collage or pasted cutout.\nNO TEXT anywhere, no title, no captions, no logo, no watermark, no UI. No large desk or table in front of or covering any character. No hovering hips or feet, no disconnected chair, no extra limbs, no duplicated people, no overtly crossed/tangled legs. Character actions may change to comfortable natural reading poses. Background must fill the entire wide canvas, opaque, beautifully finished.\nScene and subjects: A playful pastel workshop reading corner with shelves of harmless rounded inventions in the background. The exact cream plush bunny, large pink goggle-wearing bunny, and lime antenna plush companion from the reference sit on a low lilac cushioned bench with visible backrest, looking at notebooks. Soft lavender/cyan lighting.",
+      "master": "lab-detail-banner-v1.png",
+      "web": "lab-detail-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "webBytes": 291504,
+      "sha256": "5373b94a62ea6ce4b99de2dc9bc20d11f2983d99cc5cddfc0fe909600245b69d"
+    },
+    {
+      "id": "joseon",
+      "path": "/Users/jeongin/.codex/generated_images/01a17692-23e3-7572-a9af-4fc8cb61fab4/exec-e91dc020-b606-4097-89c0-ed9f24c86e4f.png",
+      "ref": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/scenes/layered-v2/joseon-fullbody-v2.png",
+      "prompt": "Use case: illustration-story with identity-preserve. Asset type: COMPLETE ILLUSTRATED WEB DETAIL BANNER, not an isolated character layer. Make ONE panoramic horizontal 3:1 wide image (around 2304 x 768) showing a single coherent room with physically natural seated characters. The provided image is a character identity/style reference only; do not reproduce its floating isolated full-body layout. Keep recognizable faces, hairstyles, character count, clothes and polished Korean manhwa/anime rendering.\nComposition: LEFT 43% is quiet dim navy room atmosphere with minimal detail and NO people, reserved for HTML heading and intro text. Place ALL characters and their real seats in RIGHT 50%, with comfortable safety margins around every face and outermost character. Use a cinematic eye-level medium-wide composition, heads/upper bodies large enough to recognize in a short web banner, seating support/armrest/cushion visible. People interact naturally with their environment; correct shared perspective, consistent lighting, natural contact shadows. The image must read as one complete environment, not a collage or pasted cutout.\nNO TEXT anywhere, no title, no captions, no logo, no watermark, no UI. No large desk or table in front of or covering any character. No hovering hips or feet, no disconnected chair, no extra limbs, no duplicated people, no overtly crossed/tangled legs. Character actions may change to comfortable natural reading poses. Background must fill the entire wide canvas, opaque, beautifully finished.\nScene and subjects: A serene Korean palace reading room at night with wooden lattice windows, moonlight and warm lanterns. The same three women in pale lavender, ornate red/gold and pale pink hanbok sit naturally on embroidered floor cushions upon a low wooden platform. Beautiful draping skirts, no floating bodies, visible supporting cushions.",
+      "master": "joseon-detail-banner-v1.png",
+      "web": "joseon-detail-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "webBytes": 317278,
+      "sha256": "f703fc7d7082ba1bc11c97aefde31eb088b27a028cd2bef4c7c7af8feb30ce39"
+    }
+  ]
+}

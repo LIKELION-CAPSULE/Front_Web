@@ -51,7 +51,7 @@ export default function CreditsPage() {
           <p className="text-sm text-muted">누적 쓴 크레딧</p>
           <p className="mt-2 font-mono text-[30px] font-bold">{number(used)}</p>
           <p className="mt-2 text-xs text-muted">
-            세트 등급 · 보이스 · 선물 {state.ledger.filter((entry) => entry.kind === 'use').length}
+            공부 옵션 · 보이스 · 선물 {state.ledger.filter((entry) => entry.kind === 'use').length}
             회
           </p>
         </section>

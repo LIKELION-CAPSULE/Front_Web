@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-10-27",
+  "mode": "built-in imagegen",
+  "tool": "image_gen.imagegen",
+  "transparentBackground": false,
+  "references": [
+    {
+      "role": "composition only",
+      "source": "user-attached wide CAPSULE banner, no local path"
+    },
+    {
+      "role": "Chaerin identity",
+      "source": "src/assets/characters/kang-study.webp"
+    },
+    {
+      "role": "Sua identity",
+      "source": "src/assets/characters/han-study.webp"
+    },
+    {
+      "role": "Dahee identity",
+      "source": "src/assets/characters/ryu-study.webp"
+    }
+  ],
+  "assets": [
+    {
+      "id": "chaerin",
+      "master": "chaerin-banner-v1.png",
+      "web": "chaerin-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "masterSha256": "b56ca0d651d94c3fec6807dfb83cc27f0bbfbd37f62cab963c5ed9beabe91b27",
+      "webBytes": 160170,
+      "prompt": "Create a finished text-free panoramic anime illustration for the CAPSULE study-companion web app main welcome banner. Output an ultra-wide 3:1 image, ideally 3072x1024. Reference image 1 is the user's sample banner: use its cinematic study-at-a-desk feeling and composition intent ONLY; reference images 2, 3, 4 show the exact identities of Chaerin, Sua, Dahee. Produce ONLY the single character requested below, never all three together. Preserve that character's recognizable face, hairstyle, and outfit. Polished Korean webtoon/anime illustration, detailed delicate line art, luminous eyes, beautiful atmospheric lighting, restrained mature navy/lavender-compatible color grading. Character seated at a study desk, upper torso, hands and natural notebook visible, desk naturally occludes lower body. Very wide purpose-designed composition: LEFT 40 percent is calm dark navy low-detail negative space for HTML copy; character's face around 71 percent of width and 35 percent of height; entire head including hair fully inside frame with generous top breathing room; desk along lower edge, spacious cinematic background on right. Subject sufficiently large to feel personal yet comfortable in the panoramic crop. NO text of any kind, NO letters, NO Korean, NO captions, NO logos, NO watermarks, NO signatures, NO badges, NO name-tag lettering, NO readable writing in notebooks, NO interface or webcam people inside screens. This is artwork only; website copy and buttons will be added separately. Avoid crowded details in left half.\nCharacter: CHAERIN, reference image 2, long pale blonde hair with straight bangs, grey-lilac eyes, white rolled-sleeve blouse and loose black tie. Reserved affectionate expression, head gently resting on one hand, other hand holding a pen, quietly looking toward viewer. Scene: golden late-afternoon classroom after school, peach-gold sunlight from tall right windows, subtle glowing dust and warm wood surfaces; deep navy shadows left. Warm wistful sunset mood, very different from rain or night. No other characters.",
+      "generationReferenceCount": 4
+    },
+    {
+      "id": "sua",
+      "master": "sua-banner-v1.png",
+      "web": "sua-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "masterSha256": "a7d7b40e1f989074beec9b40113cca8fcb5ddffcef202afd17ed03b7fb803cc4",
+      "webBytes": 172042,
+      "prompt": "Create a finished text-free panoramic anime illustration for the CAPSULE study-companion web app main welcome banner. Output an ultra-wide 3:1 image, ideally 3072x1024. Reference image 1 is the user's sample banner: use its cinematic study-at-a-desk feeling and composition intent ONLY; reference images 2, 3, 4 show the exact identities of Chaerin, Sua, Dahee. Produce ONLY the single character requested below, never all three together. Preserve that character's recognizable face, hairstyle, and outfit. Polished Korean webtoon/anime illustration, detailed delicate line art, luminous eyes, beautiful atmospheric lighting, restrained mature navy/lavender-compatible color grading. Character seated at a study desk, upper torso, hands and natural notebook visible, desk naturally occludes lower body. Very wide purpose-designed composition: LEFT 40 percent is calm dark navy low-detail negative space for HTML copy; character's face around 71 percent of width and 35 percent of height; entire head including hair fully inside frame with generous top breathing room; desk along lower edge, spacious cinematic background on right. Subject sufficiently large to feel personal yet comfortable in the panoramic crop. NO text of any kind, NO letters, NO Korean, NO captions, NO logos, NO watermarks, NO signatures, NO badges, NO name-tag lettering, NO readable writing in notebooks, NO interface or webcam people inside screens. This is artwork only; website copy and buttons will be added separately. Avoid crowded details in left half.\nCharacter: SUA, reference image 3, short charcoal-black bob haircut with straight bangs, warm brown eyes, white blouse with charcoal grey knitted sweater vest and dark tie. Gentle small smile, holding an open blank-paged book with one hand, other hand lightly touching a page, looking toward viewer. Scene: intimate quiet library nook beside a rain-streaked window, cool teal-blue overcast light, soft sage reflections, distant blurred bookshelves and delicate rain bokeh on right, one modest warm reading lamp. Deep navy low-detail left. Serene rainy reading mood, cool and refreshing, clearly distinct from sunset classroom or violet citynight. No other characters.",
+      "generationReferenceCount": 4
+    },
+    {
+      "id": "dahee",
+      "master": "dahee-banner-v1.png",
+      "web": "dahee-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "masterSha256": "98f4fe7aaad07a96f07faf55cd7acec1f03b304f80ea19415db4bb10aaf45c4b",
+      "webBytes": 162118,
+      "prompt": "Create a finished text-free panoramic anime illustration for the CAPSULE study-companion web app main welcome banner. Output an ultra-wide 3:1 image, ideally 3072x1024. Reference image 1 is the user's sample banner: use its cinematic study-at-a-desk feeling and composition intent ONLY; reference images 2, 3, 4 show the exact identities of Chaerin, Sua, Dahee. Produce ONLY the single character requested below, never all three together. Preserve that character's recognizable face, hairstyle, and outfit. Polished Korean webtoon/anime illustration, detailed delicate line art, luminous eyes, beautiful atmospheric lighting, restrained mature navy/lavender-compatible color grading. Character seated at a study desk, upper torso, hands and natural notebook visible, desk naturally occludes lower body. Very wide purpose-designed composition: LEFT 40 percent is calm dark navy low-detail negative space for HTML copy; character's face around 71 percent of width and 35 percent of height; entire head including hair fully inside frame with generous top breathing room; desk along lower edge, spacious cinematic background on right. Subject sufficiently large to feel personal yet comfortable in the panoramic crop. NO text of any kind, NO letters, NO Korean, NO captions, NO logos, NO watermarks, NO signatures, NO badges, NO name-tag lettering, NO readable writing in notebooks, NO interface or webcam people inside screens. This is artwork only; website copy and buttons will be added separately. Avoid crowded details in left half.\nCharacter: DAHEE, reference image 4, long warm brown hair in a high half-up ponytail with braided crown detail and soft bangs, amber-brown eyes, white school athletic jacket with three charcoal sleeve stripes over white blouse and loose dark tie. Bright friendly smile toward viewer, one hand with pen over blank notebook, other hand supporting cheek. Scene: cozy indigo-violet night study room, right-side window opening onto softly glowing violet city windows, warm desk lamp, faint purple accent lights and a slim computer monitor at far right with an abstract dark reflection only, absolutely no screen interface or lettering. Deep navy low-detail left. Intimate energetic late-night study mood closest to the user's example, but entirely newly composed. No other characters.",
+      "generationReferenceCount": 4
+    }
+  ]
+}

@@ -1,31 +1,50 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { moveScene, resetScene } from '@/features/rooms/scene-motion'
 import { getRoomArtwork } from '@/features/rooms/artwork'
 import { cn } from '@/shared/lib/cn'
+import { RoomTitle } from './RoomTitle'
+import {
+  getSceneBackground,
+  getSceneSettings,
+  hasSceneDesk,
+  type SceneVariant,
+} from '../composition'
 
-type Variant = 'card' | 'hero' | 'scene' | 'portrait' | 'thumb'
 export function RoomArtwork({
   roomId,
   variant = 'card',
   showTitle = false,
+  showDesk = true,
   interactive = false,
   eager = false,
   className,
   children,
 }: {
   roomId: string
-  variant?: Variant
+  variant?: SceneVariant
   showTitle?: boolean
+  showDesk?: boolean
   interactive?: boolean
   eager?: boolean
   className?: string
   children?: ReactNode
 }) {
   const art = getRoomArtwork(roomId)
+  const placement = getSceneSettings(art, variant)
+  const style = {
+    '--subject-width': `${placement.width * 100}%`,
+    '--subject-center': `${placement.center * 100}%`,
+    '--subject-offset': `${-placement.anchor * 100}%`,
+    '--subject-max-height': placement.maxHeight * 100,
+    '--subject-aspect': placement.aspect,
+    '--scene-surface': `${placement.surfaceY * 100}%`,
+    '--desk-factor': placement.deskFactor,
+  } as CSSProperties
   return (
     <div
       aria-hidden="true"
       data-scene={art.tone}
+      style={style}
       className={cn(
         'layered-scene',
         `layered-scene--${variant}`,
@@ -37,7 +56,7 @@ export function RoomArtwork({
       onPointerLeave={interactive ? resetScene : undefined}
     >
       <img
-        src={art.background}
+        src={getSceneBackground(art, variant)}
         alt=""
         className="scene-background"
         loading={eager ? 'eager' : 'lazy'}
@@ -47,14 +66,24 @@ export function RoomArtwork({
         src={art.subject}
         alt=""
         className="scene-subject"
+        width={art.subjectSize[0]}
+        height={art.subjectSize[1]}
         loading={eager ? 'eager' : 'lazy'}
         decoding="async"
       />
+      {showDesk && hasSceneDesk(variant) && (
+        <img
+          src={art.desk}
+          alt=""
+          className="scene-desk"
+          loading={eager ? 'eager' : 'lazy'}
+          decoding="async"
+        />
+      )}
       <div className="scene-shade" />
       {showTitle && (
         <div className="scene-title">
-          <span>{art.subtitle}</span>
-          <strong>{art.title}</strong>
+          <RoomTitle roomId={roomId} eager={eager} />
         </div>
       )}
       {children}

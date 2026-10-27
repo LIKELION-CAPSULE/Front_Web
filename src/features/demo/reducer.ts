@@ -1,9 +1,14 @@
 import { chargeProducts, products, tierById } from './catalog.ts'
 import { createDemoState } from './seed.ts'
+import { sampleFocusBasisPoints } from './sample-records.ts'
+import {
+  DEFAULT_GOAL_MINUTES,
+  normalizeGoalMinutes,
+  studyGoalSeconds,
+} from '../session/study-goal.ts'
 import { businessDay } from '../../shared/lib/format.ts'
 import type { AvatarSettings, DemoState, LedgerEntry, Memory, TierId } from './types.ts'
 
-export const STUDY_SECONDS = 50 * 60
 export const BREAK_SECONDS = 10 * 60
 
 export type DemoAction =
@@ -22,6 +27,7 @@ export type DemoAction =
       characterIds: string[]
       tier: TierId
       camera: boolean
+      targetMinutes?: number
     }
   | { type: 'TICK'; now: number }
   | { type: 'PAUSE'; now: number }
@@ -82,7 +88,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
         ...state,
         profile: {
           ...state.profile,
-          name: action.name.trim() || '승희',
+          name: resolveProfileName(action.name),
           avatar: action.avatar,
           onboarded: true,
         },
@@ -123,7 +129,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
             id: `start-${action.now}`,
             at: action.now,
             kind: 'use',
-            description: `세트 등급 · ${tierById(action.tier).name}`,
+            description: `공부 옵션 · ${tierById(action.tier).name}`,
             change: -cost,
           })
         : state
@@ -141,10 +147,11 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
           tier: action.tier,
           paidCredits: cost,
           phase: 'study',
-          elapsedMs: 168000,
+          targetSeconds: normalizeGoalMinutes(action.targetMinutes ?? DEFAULT_GOAL_MINUTES) * 60,
+          elapsedMs: 0,
           runningSince: action.now,
           studySeconds: 0,
-          startedAt: action.now - 168000,
+          startedAt: action.now,
           camera: action.camera,
         },
       }
@@ -153,15 +160,16 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       const active = state.activeSession
       if (!active || active.runningSince === null) return state
       const elapsed = sessionElapsed(active, action.now)
-      if (active.phase === 'study' && elapsed >= STUDY_SECONDS) {
+      const goal = studyGoalSeconds(active)
+      if (active.phase === 'study' && elapsed >= goal) {
         return {
           ...state,
           activeSession: {
             ...active,
             phase: 'break',
-            studySeconds: STUDY_SECONDS,
-            elapsedMs: Math.min((elapsed - STUDY_SECONDS) * 1000, BREAK_SECONDS * 1000),
-            runningSince: elapsed >= STUDY_SECONDS + BREAK_SECONDS ? null : action.now,
+            studySeconds: goal,
+            elapsedMs: Math.min((elapsed - goal) * 1000, BREAK_SECONDS * 1000),
+            runningSince: elapsed >= goal + BREAK_SECONDS ? null : action.now,
           },
         }
       }
@@ -190,7 +198,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
             activeSession: {
               ...state.activeSession,
               phase: 'break',
-              studySeconds: STUDY_SECONDS,
+              studySeconds: studyGoalSeconds(state.activeSession),
               elapsedMs: 138000,
               runningSince: action.now,
             },
@@ -202,20 +210,30 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       const total =
         active.phase === 'break'
           ? active.studySeconds
-          : Math.min(STUDY_SECONDS, Math.floor(sessionElapsed(active, action.now)))
-      const away = Math.round(total * 0.08)
+          : Math.min(studyGoalSeconds(active), Math.floor(sessionElapsed(active, action.now)))
+      const focus = Math.round(
+        (total *
+          sampleFocusBasisPoints(
+            active.characterIds[0] ?? '',
+            action.now,
+            Math.floor(total / 60),
+          )) /
+          10000,
+      )
+      const away = total - focus
       const record = {
         id: active.id,
         roomId: active.roomId,
         characterIds: active.characterIds,
         tier: active.tier,
+        targetSeconds: studyGoalSeconds(active),
         startedAt: active.startedAt,
         endedAt: action.now,
         studySeconds: total,
         focusSeconds: total - away,
         awaySeconds: away,
         returns: total >= 120 ? 3 : 0,
-        completed: active.phase === 'break',
+        completed: total >= studyGoalSeconds(active),
         automatic: false,
       }
       return {
@@ -260,7 +278,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
           ? '그동안 준비한 거 내가 봤잖아. 너무 걱정하지 마. 같이 조금만 더 해 보자.'
           : /어려|모르/.test(action.text)
             ? '어려운 부분은 잠깐 표시해 두고, 할 수 있는 것부터 같이 해 보자.'
-            : `${state.profile.name}야, 잘하고 있어. 나도 여기서 같이 할게.`
+            : `${state.profile.name}, 잘하고 있어. 나도 여기서 같이 할게.`
       const common = { sessionId: active.id, characterId: action.characterId }
       return {
         ...state,
@@ -352,3 +370,4 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       return { ...state, memories: state.memories.filter((memory) => memory.id !== action.id) }
   }
 }
+import { resolveProfileName } from './profile.ts'

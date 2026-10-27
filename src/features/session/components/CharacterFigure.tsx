@@ -1,4 +1,5 @@
 import { getCharacterArtwork, type CharacterPose } from '@/features/characters/artwork'
+import { CharacterArtwork } from '@/features/characters/components/CharacterArtwork'
 import { cn } from '@/shared/lib/cn'
 import { RoomArtwork } from '@/features/rooms/components/RoomArtwork'
 import { characterRoom } from '@/features/rooms/artwork'
@@ -15,21 +16,18 @@ export function CharacterFigure({
   pose?: CharacterPose
   className?: string
 }) {
-  const art = getCharacterArtwork(characterId)
-  const useLayers =
-    characterId === 'doyun' ||
-    characterId === 'moru' ||
-    ((variant === 'report' || variant === 'share') && characterId === 'chaerin')
+  const portrait = variant === 'report' || variant === 'share'
   return (
     <div aria-hidden="true" className={cn('character-figure', `figure-${variant}`, className)}>
-      {useLayers ? (
-        <RoomArtwork
-          roomId={characterRoom[characterId]!}
-          variant={variant === 'report' || variant === 'share' ? 'portrait' : 'scene'}
+      {portrait && (characterId === 'chaerin' || getCharacterArtwork(characterId).sceneId) ? (
+        <RoomArtwork roomId={characterRoom[characterId]!} variant="portrait" eager />
+      ) : (
+        <CharacterArtwork
+          characterId={characterId}
+          pose={pose}
+          variant={portrait ? 'portrait' : 'scene'}
           eager
         />
-      ) : (
-        <img src={art[pose]} alt="" style={{ objectPosition: art.position }} />
       )}
     </div>
   )

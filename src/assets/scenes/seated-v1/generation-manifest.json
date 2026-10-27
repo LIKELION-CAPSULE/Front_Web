@@ -1,0 +1,115 @@
+{
+  "mode": "built-in image_gen",
+  "generatedAt": "2026-10-27",
+  "purpose": "Main room cards: seated figures on an open floor, no foreground desk",
+  "assets": [
+    {
+      "id": "classroom",
+      "source": "../classroom-background-v1.webp",
+      "master": "classroom-seated-background-v1.png",
+      "web": "classroom-seated-background-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "prompt": "Use case: precise-object-edit. Asset type: background-only main study-room card for full-body seated characters. Image 1 is the existing environment to preserve. Remove ALL near foreground DESKS/TABLETOPS, chairs, floor-height obstacles and large props that would cover a seated character. Reconstruct the floor naturally. Keep the original room identity, architecture, illustration style and light palette. Eye-level view from a low seated camera, clear floor or a very low flat rug occupies the bottom 50–55% of the composition, wall/floor transition around mid-height. Foreground must be open continuously from left to right and down to the bottom edge, with believable floor perspective and soft ambient light. Main figures will be added as a separate layer with shoes/paws near the bottom, so do not paint any people, animals, silhouettes or character shadows here. Landscape 16:9, ideally 1672x941. No new title, lettering, logo, watermark, interface, floating effects, solid foreground panel or desk. Do not merely blur or cover the old desk: actually replace its entire shape with floor. Keep the Korean classroom, warm afternoon windows and chalkboard. Move any study desks to the far background or side walls. In front create a generous empty honey-wood classroom floor with a simple pale taupe rug where the three students can sit. No furniture between the camera and their future floor seats.",
+      "masterSha256": "4cafd7ef07fe0fa9325d0f8c1a30867135b85cb1655ceebcc560da9630c02a58",
+      "webSha256": "0dd1a6eb9c62038e3b9db71186724e52f31fba2faa35070219d78abfc17ed84a",
+      "webBytes": 196386
+    },
+    {
+      "id": "night",
+      "source": "../night-background-v1.webp",
+      "master": "night-seated-background-v1.png",
+      "web": "night-seated-background-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "prompt": "Use case: precise-object-edit. Asset type: background-only main study-room card for full-body seated characters. Image 1 is the existing environment to preserve. Remove ALL near foreground DESKS/TABLETOPS, chairs, floor-height obstacles and large props that would cover a seated character. Reconstruct the floor naturally. Keep the original room identity, architecture, illustration style and light palette. Eye-level view from a low seated camera, clear floor or a very low flat rug occupies the bottom 50–55% of the composition, wall/floor transition around mid-height. Foreground must be open continuously from left to right and down to the bottom edge, with believable floor perspective and soft ambient light. Main figures will be added as a separate layer with shoes/paws near the bottom, so do not paint any people, animals, silhouettes or character shadows here. Landscape 16:9, ideally 1672x941. No new title, lettering, logo, watermark, interface, floating effects, solid foreground panel or desk. Do not merely blur or cover the old desk: actually replace its entire shape with floor. Keep the midnight navy library/study, city window and cool lilac light. Remove the entire near desk, lamp, open notebook and tall foreground book piles. Reveal a broad empty dark wooden floor with a plain muted navy rug; distant shelves and a small far-wall work area can remain.",
+      "masterSha256": "7e18af71a86c0538753d46b5787fadae0540d63728efd459df83ca56e70f32f9",
+      "webSha256": "5a4d08ac73e109894ee094895294e974d421944ca15bb49adcf1e11078e706a5",
+      "webBytes": 265876
+    },
+    {
+      "id": "cat",
+      "source": "../cat-background-v1.webp",
+      "master": "cat-seated-background-v1.png",
+      "web": "cat-seated-background-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "prompt": "Use case: precise-object-edit. Asset type: background-only main study-room card for full-body seated characters. Image 1 is the existing environment to preserve. Remove ALL near foreground DESKS/TABLETOPS, chairs, floor-height obstacles and large props that would cover a seated character. Reconstruct the floor naturally. Keep the original room identity, architecture, illustration style and light palette. Eye-level view from a low seated camera, clear floor or a very low flat rug occupies the bottom 50–55% of the composition, wall/floor transition around mid-height. Foreground must be open continuously from left to right and down to the bottom edge, with believable floor perspective and soft ambient light. Main figures will be added as a separate layer with shoes/paws near the bottom, so do not paint any people, animals, silhouettes or character shadows here. Landscape 16:9, ideally 1672x941. No new title, lettering, logo, watermark, interface, floating effects, solid foreground panel or desk. Do not merely blur or cover the old desk: actually replace its entire shape with floor. Keep the cozy sunlit reading room, pale walls, shelves and soft golden window light. Remove the near tabletop, papers and foreground books. Reveal clean warm wooden floor with a very simple low cream rug or mat for a cat to lie on. No cat bed walls or front objects hiding paws.",
+      "masterSha256": "7169993615ed589dd46cb9ad7fc0e0af8478611029eea15b36983b012b99ad3e",
+      "webSha256": "7b72d9b723c8e8e7791cf23fc6868fa576b4b2251301990a60bdfc278dbe7cbd",
+      "webBytes": 138802
+    },
+    {
+      "id": "lantern",
+      "source": "../lantern-background-v1.webp",
+      "master": "lantern-seated-background-v1.png",
+      "web": "lantern-seated-background-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "prompt": "Use case: precise-object-edit. Asset type: background-only main study-room card for full-body seated characters. Image 1 is the existing environment to preserve. Remove ALL near foreground DESKS/TABLETOPS, chairs, floor-height obstacles and large props that would cover a seated character. Reconstruct the floor naturally. Keep the original room identity, architecture, illustration style and light palette. Eye-level view from a low seated camera, clear floor or a very low flat rug occupies the bottom 50–55% of the composition, wall/floor transition around mid-height. Foreground must be open continuously from left to right and down to the bottom edge, with believable floor perspective and soft ambient light. Main figures will be added as a separate layer with shoes/paws near the bottom, so do not paint any people, animals, silhouettes or character shadows here. Landscape 16:9, ideally 1672x941. No new title, lettering, logo, watermark, interface, floating effects, solid foreground panel or desk. Do not merely blur or cover the old desk: actually replace its entire shape with floor. Keep the quiet warm-lamplit military study-room architecture and night mood. Remove the large near desk and all large foreground props. Reveal empty wooden floor with a restrained olive-beige woven rug, suitable for three fully clothed uniformed friends sitting side by side. Furniture may remain only distant along the back wall.",
+      "masterSha256": "dfbc2ae5f0768df8ff94783084e4bea818eac00764972c6c94de8af108758da2",
+      "webSha256": "e2f0943d27d232da82e29a7bc21b2799960ddf09f63ba0fb1e80a1add8546621",
+      "webBytes": 242168
+    },
+    {
+      "id": "fantasy",
+      "source": "../fantasy-background-v1.webp",
+      "master": "fantasy-seated-background-v1.png",
+      "web": "fantasy-seated-background-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "prompt": "Use case: precise-object-edit. Asset type: background-only main study-room card for full-body seated characters. Image 1 is the existing environment to preserve. Remove ALL near foreground DESKS/TABLETOPS, chairs, floor-height obstacles and large props that would cover a seated character. Reconstruct the floor naturally. Keep the original room identity, architecture, illustration style and light palette. Eye-level view from a low seated camera, clear floor or a very low flat rug occupies the bottom 50–55% of the composition, wall/floor transition around mid-height. Foreground must be open continuously from left to right and down to the bottom edge, with believable floor perspective and soft ambient light. Main figures will be added as a separate layer with shoes/paws near the bottom, so do not paint any people, animals, silhouettes or character shadows here. Landscape 16:9, ideally 1672x941. No new title, lettering, logo, watermark, interface, floating effects, solid foreground panel or desk. Do not merely blur or cover the old desk: actually replace its entire shape with floor. Keep the magnificent magical academy library, tall bookshelves, arched stained-glass windows and warm candlelight. Remove the entire near writing table and all foreground books, globes or instruments. Reveal an expansive empty polished wood/stone floor with a subtle dark green antique rug, no readable symbols or writing, for three robed students to sit on.",
+      "masterSha256": "eaba7bbae55c5c42f5ff4af50841ee262d65879fd128bea76830b4603a4f507a",
+      "webSha256": "09a75544a8e6f7c551c5b50dee8ddc51204aee564edfcfe34491b25bd66c9d89",
+      "webBytes": 518154
+    },
+    {
+      "id": "iljin",
+      "source": "../iljin-background-v1.webp",
+      "master": "iljin-seated-background-v1.png",
+      "web": "iljin-seated-background-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "prompt": "Use case: precise-object-edit. Asset type: background-only main study-room card for full-body seated characters. Image 1 is the existing environment to preserve. Remove ALL near foreground DESKS/TABLETOPS, chairs, floor-height obstacles and large props that would cover a seated character. Reconstruct the floor naturally. Keep the original room identity, architecture, illustration style and light palette. Eye-level view from a low seated camera, clear floor or a very low flat rug occupies the bottom 50–55% of the composition, wall/floor transition around mid-height. Foreground must be open continuously from left to right and down to the bottom edge, with believable floor perspective and soft ambient light. Main figures will be added as a separate layer with shoes/paws near the bottom, so do not paint any people, animals, silhouettes or character shadows here. Landscape 16:9, ideally 1672x941. No new title, lettering, logo, watermark, interface, floating effects, solid foreground panel or desk. Do not merely blur or cover the old desk: actually replace its entire shape with floor. Keep the warm late-afternoon classroom, windows, board and architectural style. Remove the large near study desk and foreground textbook piles. Show an open wood-floored study lounge corner with a plain muted beige rug, while rows of desks sit only far back or at the sides. Leave clear floor for one seated black-uniform student.",
+      "masterSha256": "c5e50cc63e18a0fab0811d8dcfa915b5fccd3476cf27aef8372ea7bf974d1efb",
+      "webSha256": "8b1f7f8d516d5759ac6719f027cfc2f73e2946aab04249281546a4123ae3c5e6",
+      "webBytes": 202802
+    },
+    {
+      "id": "jurassic",
+      "source": "../jurassic-background-v1.webp",
+      "master": "jurassic-seated-background-v1.png",
+      "web": "jurassic-seated-background-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "prompt": "Use case: precise-object-edit. Asset type: background-only main study-room card for full-body seated characters. Image 1 is the existing environment to preserve. Remove ALL near foreground DESKS/TABLETOPS, chairs, floor-height obstacles and large props that would cover a seated character. Reconstruct the floor naturally. Keep the original room identity, architecture, illustration style and light palette. Eye-level view from a low seated camera, clear floor or a very low flat rug occupies the bottom 50–55% of the composition, wall/floor transition around mid-height. Foreground must be open continuously from left to right and down to the bottom edge, with believable floor perspective and soft ambient light. Main figures will be added as a separate layer with shoes/paws near the bottom, so do not paint any people, animals, silhouettes or character shadows here. Landscape 16:9, ideally 1672x941. No new title, lettering, logo, watermark, interface, floating effects, solid foreground panel or desk. Do not merely blur or cover the old desk: actually replace its entire shape with floor. Keep the gentle sunlit reading-room architecture, warm wood, shelves and soft green daylight. Remove the near desk, notebook, cup and foreground books. Show an empty warm wooden floor with a subdued pale sage rug, enough open space for a student and four friendly dinosaur companions. No people, animals, dinosaur silhouettes or extra toys in this background.",
+      "masterSha256": "7cbc894d652601689facb0e5c5eff7f7076c8739f371918075829f7624b2b232",
+      "webSha256": "5ac0b0b976ecf896ec22a43014d29c5e9bdd4857806e3c5dccba1690ba2bdcf5",
+      "webBytes": 333266
+    },
+    {
+      "id": "lab",
+      "source": "../lab-background-v1.webp",
+      "master": "lab-seated-background-v1.png",
+      "web": "lab-seated-background-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "prompt": "Use case: precise-object-edit. Asset type: background-only main study-room card for full-body seated characters. Image 1 is the existing environment to preserve. Remove ALL near foreground DESKS/TABLETOPS, chairs, floor-height obstacles and large props that would cover a seated character. Reconstruct the floor naturally. Keep the original room identity, architecture, illustration style and light palette. Eye-level view from a low seated camera, clear floor or a very low flat rug occupies the bottom 50–55% of the composition, wall/floor transition around mid-height. Foreground must be open continuously from left to right and down to the bottom edge, with believable floor perspective and soft ambient light. Main figures will be added as a separate layer with shoes/paws near the bottom, so do not paint any people, animals, silhouettes or character shadows here. Landscape 16:9, ideally 1672x941. No new title, lettering, logo, watermark, interface, floating effects, solid foreground panel or desk. Do not merely blur or cover the old desk: actually replace its entire shape with floor. Keep the cozy softly glowing maker laboratory, back-wall workbenches, lamps and blue/violet/cyan reflections. Remove the entire near workbench and foreground tools. Show a broad empty wood workshop floor with a simple muted lavender-grey floor mat for three plush mascots to sit on. All machinery and tools stay well in the back, no mascots or characters.",
+      "masterSha256": "c0fd96dd92d2783d8e15ddaa02a68471754f15e926ae8297fa796dfadb1e3ce2",
+      "webSha256": "6e961d277a06be3019c6fe2ea8fa037186c57e3d7f887c6df827077130979700",
+      "webBytes": 322568
+    },
+    {
+      "id": "joseon",
+      "source": "../joseon-background-v1.webp",
+      "master": "joseon-seated-background-v1.png",
+      "web": "joseon-seated-background-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "prompt": "Use case: precise-object-edit. Asset type: background-only main study-room card for full-body seated characters. Image 1 is the existing environment to preserve. Remove ALL near foreground DESKS/TABLETOPS, chairs, floor-height obstacles and large props that would cover a seated character. Reconstruct the floor naturally. Keep the original room identity, architecture, illustration style and light palette. Eye-level view from a low seated camera, clear floor or a very low flat rug occupies the bottom 50–55% of the composition, wall/floor transition around mid-height. Foreground must be open continuously from left to right and down to the bottom edge, with believable floor perspective and soft ambient light. Main figures will be added as a separate layer with shoes/paws near the bottom, so do not paint any people, animals, silhouettes or character shadows here. Landscape 16:9, ideally 1672x941. No new title, lettering, logo, watermark, interface, floating effects, solid foreground panel or desk. Do not merely blur or cover the old desk: actually replace its entire shape with floor. Keep the moonlit Korean palace study, paper lattice doors, lanterns and distant tiled roofs. Remove all low writing tables and foreground books. Reveal clean warm wooden maru floor with a simple low woven Korean sitting mat, suitable for three women in full hanbok to sit. Do not add Japanese tatami, screens or foreground objects blocking garment hems.",
+      "masterSha256": "6a73b57e7a2d458acf1bf8af7c49a33c91f61f7f3851160b231f4e1604fd96f0",
+      "webSha256": "f42d3ba66fc4bf15466b8b2c0f729bd95a20418d5cc9fa60ed3d094bf1972bac",
+      "webBytes": 415694
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "validatedAt": "2026-10-27",
+  "scope": "Combined study summary/calendar with controlled date detail, stacked right focus/history, full-width companion chart",
+  "unitTests": 33,
+  "browserChecks": 39,
+  "checks": {
+    "lint": "passed",
+    "typecheckAndProductionBuild": "passed"
+  },
+  "browser": "isolated Chromium with 1440px, 1280px, 1024px, 768px, 390px and 320px viewport emulation",
+  "results": {
+    "passed": 39,
+    "checks": [
+      "Period summary and calendar share one panel",
+      "Selected date information is separated by a vertical rule",
+      "Calendar no longer has a duplicate detail area",
+      "주: focus and recent studies form the right column",
+      "주: companion chart spans the full width below both columns",
+      "주: combined calendar retains all dates",
+      "주: calendar selection updates the summary header date",
+      "주: selecting one day preserves the period focus rate",
+      "주: date tooltip stays borderless",
+      "월: focus and recent studies form the right column",
+      "월: companion chart spans the full width below both columns",
+      "월: combined calendar retains all dates",
+      "월: calendar selection updates the summary header date",
+      "월: selecting one day preserves the period focus rate",
+      "월: date tooltip stays borderless",
+      "년: focus and recent studies form the right column",
+      "년: companion chart spans the full width below both columns",
+      "년: combined calendar retains all dates",
+      "년: calendar selection updates the summary header date",
+      "년: selecting one day preserves the period focus rate",
+      "년: date tooltip stays borderless",
+      "A date outside the new period falls back to today",
+      "Keyboard date selection remains connected to the shared summary",
+      "1280px: overview and wide chart fit the viewport",
+      "1280px: recent studies stay below focus and before the chart",
+      "1024px: overview and wide chart fit the viewport",
+      "1024px: recent studies stay below focus and before the chart",
+      "768px: overview and wide chart fit the viewport",
+      "768px: recent studies stay below focus and before the chart",
+      "768px: smaller screens stack the combined panel first",
+      "390px: overview and wide chart fit the viewport",
+      "390px: recent studies stay below focus and before the chart",
+      "390px: smaller screens stack the combined panel first",
+      "320px: overview and wide chart fit the viewport",
+      "320px: recent studies stay below focus and before the chart",
+      "320px: smaller screens stack the combined panel first",
+      "Room filtering scopes the combined calendar and full-width chart together",
+      "320px: room view remains within the viewport",
+      "No runtime or console errors"
+    ],
+    "metrics": {},
+    "errors": []
+  },
+  "limitations": [
+    "Physical mobile devices and other browser engines were not exercised.",
+    "Focus measurements remain frontend demo data."
+  ],
+  "artifacts": "Development-only screenshots and runner in /private/tmp/capsule-records-overview and /private/tmp/capsule-wireframe-browser/records-overview-qa.mjs."
+}

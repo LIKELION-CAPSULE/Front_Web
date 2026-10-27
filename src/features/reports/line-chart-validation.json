@@ -1,0 +1,71 @@
+{
+  "validatedAt": "2026-10-27",
+  "scope": "Bookmark without toast, companion line chart, varied seeded history, borderless record panels and heatmap tooltips",
+  "unitTests": 32,
+  "browserChecks": 30,
+  "checks": {
+    "lint": "passed",
+    "typecheckAndProductionBuild": "passed"
+  },
+  "browser": "isolated Chromium with 1440px, 768px, 390px and 320px viewport emulation",
+  "results": {
+    "passed": 30,
+    "checks": [
+      "Bookmark still saves immediately",
+      "Bookmark retains its short icon motion",
+      "Saving does not display a bottom-right notification",
+      "Removing a bookmark does not display a notification",
+      "Character time is shown as three initially selected line series",
+      "The current week has its own smaller group of study companions",
+      "Summary, calendar and record panels have no outer borders",
+      "1440px: chart and records stay inside the page",
+      "주: ring displays the same focus rate as its semantic value",
+      "주: date tooltip has no outer border",
+      "월: ring displays the same focus rate as its semantic value",
+      "월: date tooltip has no outer border",
+      "년: ring displays the same focus rate as its semantic value",
+      "년: date tooltip has no outer border",
+      "Weekly, monthly and yearly focus rates are distinct",
+      "Annual heatmap includes study in every elapsed month",
+      "Annual comparison includes all nineteen characters",
+      "Keyboard Home reveals the first month and character measurements",
+      "Arrow keys update the chart date",
+      "Character legend toggles its own series",
+      "A character at the end of the scrollable selector can be compared",
+      "Reduced motion removes line entrance animation",
+      "768px: records fit the viewport",
+      "768px: chart uses real pixel dimensions for readable labels",
+      "390px: records fit the viewport",
+      "390px: chart uses real pixel dimensions for readable labels",
+      "320px: records fit the viewport",
+      "320px: chart uses real pixel dimensions for readable labels",
+      "Room filter scopes chart data to that room’s characters",
+      "No runtime or console errors"
+    ],
+    "metrics": {
+      "focusRates": [
+        "79",
+        "81.4",
+        "82.8"
+      ],
+      "annualMonths": [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08",
+        "2026-09",
+        "2026-10"
+      ]
+    },
+    "errors": []
+  },
+  "limitations": [
+    "Physical mobile devices and other browser engines were not exercised.",
+    "Focus measurements and history remain frontend demo data."
+  ],
+  "artifacts": "Development-only screenshots and runner in /private/tmp/capsule-records-lines and /private/tmp/capsule-wireframe-browser/records-lines-qa.mjs."
+}

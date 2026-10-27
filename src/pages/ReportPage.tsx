@@ -50,9 +50,7 @@ export default function ReportPage() {
           </p>
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-[40px] leading-[1.3] font-black">
-            {record.completed ? '1세트 완료' : '오늘의 공부 완료'}
-          </h1>
+          <h1 className="text-[40px] leading-[1.3] font-black">오늘의 공부 완료</h1>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted">
               오늘의
@@ -68,6 +66,14 @@ export default function ReportPage() {
         <p className="mt-3 text-[15px] leading-6 text-muted">
           {duration(record.studySeconds)}의 공부를 {character.name}과 함께했어요.
         </p>
+        {record.targetSeconds && (
+          <p className="mt-2 text-sm text-brand-strong">
+            목표 {duration(record.targetSeconds)} ·{' '}
+            {record.studySeconds >= record.targetSeconds
+              ? '목표 달성'
+              : `${Math.round((record.studySeconds / record.targetSeconds) * 100)}% 공부했어요`}
+          </p>
+        )}
         <div className="mt-5 grid grid-cols-3 gap-3">
           <StatCard
             label="집중"

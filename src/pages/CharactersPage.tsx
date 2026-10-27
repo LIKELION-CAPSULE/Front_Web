@@ -3,24 +3,19 @@ import { Link, useParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { relationship } from '@/features/demo/selectors'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
-import { MemoryEditor } from '@/features/characters/components/MemoryEditor'
-import type { Memory } from '@/features/demo/types'
 import { dateLabel } from '@/shared/lib/format'
-import { Badge } from '@/shared/ui/Badge'
 import { ButtonLink } from '@/shared/ui/Button'
 import { Panel } from '@/shared/ui/Panel'
 import { cn } from '@/shared/lib/cn'
 import NotFoundPage from './NotFoundPage'
-import { getCharacterArtwork } from '@/features/characters/artwork'
-import { Avatar } from '@/shared/ui/Avatar'
+import { CharacterAvatar } from '@/features/characters/components/CharacterAvatar'
+import { CharacterArtwork } from '@/features/characters/components/CharacterArtwork'
 import { Icon } from '@/shared/ui/Icon'
-import { RoomArtwork } from '@/features/rooms/components/RoomArtwork'
 
 export default function CharactersPage() {
   const { characterId = 'chaerin' } = useParams()
   const { state } = useDemo()
   const [now] = useState(Date.now)
-  const [editor, setEditor] = useState<Memory | 'new' | null>(null)
   const [content, setContent] = useState('')
   const rooms = getStudyRooms()
   const room = rooms.find((item) =>
@@ -53,7 +48,7 @@ export default function CharactersPage() {
                   : 'border-line text-muted',
               )}
             >
-              <Avatar src={item.avatarUrl} />
+              <CharacterAvatar characterId={item.id} />
               {item.name}
             </Link>
           ))}
@@ -61,15 +56,7 @@ export default function CharactersPage() {
       <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
         <section className="character-profile flex min-h-[640px] flex-col rounded-panel border border-line bg-panel p-[22px]">
           <div className="character-profile-portrait">
-            {character.id === 'doyun' || character.id === 'moru' ? (
-              <RoomArtwork roomId={room.id} variant="portrait" />
-            ) : (
-              <img
-                src={getCharacterArtwork(character.id).affection}
-                alt={`${character.name}의 모습`}
-                style={{ objectPosition: getCharacterArtwork(character.id).position }}
-              />
-            )}
+            <CharacterArtwork characterId={character.id} pose="affection" variant="portrait" />
             <span className="scene-chip">
               <Icon name="heart" size={13} /> 우리의 이야기
             </span>
@@ -207,56 +194,22 @@ export default function CharactersPage() {
               </p>
             )}
           </section>
-          <Panel className="border-brand-line bg-brand-soft">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="font-bold">{character.name}이 기억하는 것</h2>
-                <p className="mt-1 text-xs leading-5 text-muted">
-                  시험 · 목표 · 약속을 기억해서 인사와 대화에 써요
-                </p>
-              </div>
-              <button
-                onClick={() => setEditor('new')}
-                className="shrink-0 rounded-full bg-brand-solid px-3 py-2 text-xs font-bold text-white"
+          <Panel>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-semibold">
+                함께 기억하는 일정{' '}
+                <span className="ml-2 text-sm font-normal text-muted">{memories.length}</span>
+              </h2>
+              <Link
+                to={`/mypage?character=${character.id}#schedule`}
+                className="py-2 text-sm text-brand-strong"
               >
-                + 시험 추가
-              </button>
-            </div>
-            <div className="mt-4 space-y-2">
-              {memories.length ? (
-                memories.map((memory) => (
-                  <div
-                    key={memory.id}
-                    className="flex flex-wrap items-center gap-3 rounded-[10px] bg-panel px-3 py-2 text-sm"
-                  >
-                    <Badge>{memory.kind}</Badge>
-                    <span className="min-w-24 flex-1">{memory.title}</span>
-                    <span className="text-xs text-muted">
-                      {memory.date.slice(5)} {memory.time}
-                    </span>
-                    <button
-                      onClick={() => setEditor(memory)}
-                      className="text-xs text-brand underline"
-                    >
-                      고치기
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted">함께 기억할 첫 약속을 추가해 보세요.</p>
-              )}
+                일정 관리
+              </Link>
             </div>
           </Panel>
         </div>
       </div>
-      {editor && (
-        <MemoryEditor
-          key={editor === 'new' ? 'new' : editor.id}
-          characterId={character.id}
-          initial={editor === 'new' ? undefined : editor}
-          onClose={() => setEditor(null)}
-        />
-      )}
     </>
   )
 }

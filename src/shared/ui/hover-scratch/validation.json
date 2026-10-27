@@ -1,0 +1,236 @@
+{
+  "validatedAt": "2026-10-27",
+  "implementation": "Shared CSS alpha mask on native HTML image + glass dialogue per slide",
+  "runtime": "isolated Chromium; desktop/mobile viewport, touch and reduced-motion emulation",
+  "unitTests": 17,
+  "browserChecks": 70,
+  "main": {
+    "passed": 56,
+    "checks": [
+      "Three dedicated banners replace the halftone renderer",
+      "Room cards keep their existing independent artwork",
+      "All three panoramic images decode before scratching",
+      "Chaerin is the first banner",
+      "Readability shade is stacked above both the cover and the destination image",
+      "Speech contains only dialogue, with no portrait or visible author",
+      "Speech has no decorative arrow or tail",
+      "Speech uses a translucent glass surface and backdrop blur",
+      "Hover on the text region erases without any click",
+      "The text region visibly changes under the brush",
+      "Erased text pixels exactly match the next slide including its glass and dialogue",
+      "Hover on the border region erases without any click",
+      "The border region visibly changes under the brush",
+      "Erased border pixels exactly match the next slide including its glass and dialogue",
+      "Mouse hover erases without pressing and stays on the current banner below threshold",
+      "Only the brush path is transparent while untouched cover remains opaque",
+      "Pixels in an erased hole match the next banner, not an empty background or fade",
+      "Retracing the same spot does not inflate the percentage",
+      "Leaving and re-entering creates no unwanted connecting stroke",
+      "Resize preserves the normalized scratch mask",
+      "Only a 512×256 alpha bitmap is encoded while artwork remains native HTML",
+      "Threshold uses measured alpha area before clearing the remainder: sua",
+      "Previous slide mask is cleaned before its next use: sua",
+      "Completed wipe commits a clean next cover with no leftover fragments: sua",
+      "Threshold uses measured alpha area before clearing the remainder: dahee",
+      "Previous slide mask is cleaned before its next use: dahee",
+      "Completed wipe commits a clean next cover with no leftover fragments: dahee",
+      "Threshold uses measured alpha area before clearing the remainder: chaerin",
+      "Previous slide mask is cleaned before its next use: chaerin",
+      "Completed wipe commits a clean next cover with no leftover fragments: chaerin",
+      "The three banners loop back to the first",
+      "An idle cursor does not trigger automatic or repeated cycling",
+      "Image rotation never changes the actual resume destination",
+      "Hovering a character selector does not scratch through controls",
+      "Keyboard selection updates the image, pressed state and speaker together",
+      "Manual selection cancels a pending completion without a stale extra advance",
+      "Small-mask encoding stays below 8ms at the 95th percentile in this browser",
+      "Reduced motion removes every applied mask and keeps static artwork plus greeting",
+      "Reduced motion still allows explicit character selection",
+      "1440px: no horizontal overflow, copy fits and selectors avoid the artwork on mobile",
+      "1024px: no horizontal overflow, copy fits and selectors avoid the artwork on mobile",
+      "768px: no horizontal overflow, copy fits and selectors avoid the artwork on mobile",
+      "390px: no horizontal overflow, copy fits and selectors avoid the artwork on mobile",
+      "320px: no horizontal overflow, copy fits and selectors avoid the artwork on mobile",
+      "Navigating away removes the scratch surface",
+      "Returning mounts exactly one clean scratch renderer",
+      "Context loss restores the whole current slide including its dialogue",
+      "Canvas-unavailable fallback keeps the current decoded image visible",
+      "Canvas-unavailable fallback supports character controls",
+      "Mask-unavailable fallback keeps the static image and its glass greeting",
+      "Mask-unavailable fallback still supports explicit character selection",
+      "Touch devices do not capture scrolling or initialize a scratch surface",
+      "Touch selection shows every prepared banner",
+      "Slow next image keeps a static current banner until all destinations decode",
+      "Scratch becomes available after delayed destinations finish decoding",
+      "No browser runtime or console errors"
+    ],
+    "errors": [],
+    "metrics": {
+      "320": {
+        "width": 284,
+        "height": 648.703125,
+        "frameWidth": 282,
+        "frameHeight": 300,
+        "position": "relative",
+        "noOverflow": true,
+        "copyFits": true,
+        "pickerClear": true
+      },
+      "390": {
+        "width": 354,
+        "height": 624.65625,
+        "frameWidth": 352,
+        "frameHeight": 300,
+        "position": "relative",
+        "noOverflow": true,
+        "copyFits": true,
+        "pickerClear": true
+      },
+      "768": {
+        "width": 704,
+        "height": 380,
+        "frameWidth": 702,
+        "frameHeight": 378,
+        "position": "absolute",
+        "noOverflow": true,
+        "copyFits": true,
+        "pickerClear": true
+      },
+      "1024": {
+        "width": 960,
+        "height": 380,
+        "frameWidth": 958,
+        "frameHeight": 378,
+        "position": "absolute",
+        "noOverflow": true,
+        "copyFits": true,
+        "pickerClear": true
+      },
+      "1440": {
+        "width": 1264,
+        "height": 421.328125,
+        "frameWidth": 1262,
+        "frameHeight": 419.328125,
+        "position": "absolute",
+        "noOverflow": true,
+        "copyFits": true,
+        "pickerClear": true
+      },
+      "text": {
+        "changed": {
+          "changed": 6152,
+          "max": 193
+        },
+        "sameAsNext": {
+          "changed": 0,
+          "max": 0
+        }
+      },
+      "border": {
+        "changed": {
+          "changed": 6302,
+          "max": 209
+        },
+        "sameAsNext": {
+          "changed": 0,
+          "max": 0
+        }
+      },
+      "hole": {
+        "actual": [
+          79,
+          80,
+          114,
+          255
+        ],
+        "expected": [
+          72,
+          74,
+          108,
+          255
+        ],
+        "next": "http://127.0.0.1:5173/src/assets/welcome-banners/sua-banner-v1.webp"
+      },
+      "maskEncoding": {
+        "samples": 256,
+        "median": 0.6000000014901161,
+        "p95": 0.8000000044703484,
+        "max": 0.9000000059604645
+      }
+    }
+  },
+  "fixtures": {
+    "passed": 14,
+    "checks": [
+      "First visit shows the browse action and no resume link",
+      "First visit retains the introductory paragraph in HTML",
+      "First-visit action invokes the actual explore callback",
+      "Returning visit resumes its recent room, independently of the promotional character",
+      "Dahee banner does not redirect a Doyun study history",
+      "Active session wins even when the first-visit flag is set",
+      "An active-session fixture supports the same hover erasure",
+      "Parent state updates do not restart or erase the scratch progress",
+      "채린: dedicated image and matching HTML greeting",
+      "수아: dedicated image and matching HTML greeting",
+      "다희: dedicated image and matching HTML greeting",
+      "Decoded next image and committed cover retain the same shaded brightness without a transition flash",
+      "First-visit mobile banner fits the viewport",
+      "No fixture runtime or console errors"
+    ],
+    "errors": [],
+    "continuity": {
+      "maxMeanDifference": 0.0799999999999983,
+      "means": [
+        [
+          [
+            26.2,
+            29.155555555555555,
+            48.44888888888889
+          ],
+          [
+            64.22666666666667,
+            55.24444444444445,
+            65.02666666666667
+          ],
+          [
+            248.64888888888888,
+            176.18666666666667,
+            110.02222222222223
+          ],
+          [
+            152.64444444444445,
+            110.50222222222222,
+            97.89777777777778
+          ]
+        ],
+        [
+          [
+            26.2,
+            29.155555555555555,
+            48.44888888888889
+          ],
+          [
+            64.22666666666667,
+            55.24444444444445,
+            65.02666666666667
+          ],
+          [
+            248.64888888888888,
+            176.18666666666667,
+            110.01333333333334
+          ],
+          [
+            152.64888888888888,
+            110.51555555555555,
+            97.81777777777778
+          ]
+        ]
+      ]
+    }
+  },
+  "limitations": [
+    "Other browser engines and physical mobile devices were not exercised.",
+    "Mask encoding timings measure encoding only, not the total browser frame time."
+  ],
+  "artifacts": "Development-only screenshots and runners in /private/tmp/capsule-glass-banner and /private/tmp/capsule-wireframe-browser."
+}

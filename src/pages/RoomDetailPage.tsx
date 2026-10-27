@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router'
 import { CharacterCard } from '@/features/characters/components/CharacterCard'
-import { RoomArtwork } from '@/features/rooms/components/RoomArtwork'
+import { RoomDetailBanner } from '@/features/rooms/components/RoomDetailBanner'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { ButtonLink } from '@/shared/ui/Button'
 import { Brand } from '@/shared/ui/Brand'
@@ -27,7 +27,7 @@ export default function RoomDetailPage() {
           </Link>
           <span className="h-5 w-px bg-line" />
           <Link to="/" className="text-sm text-muted hover:text-ink">
-            ← 홈
+            홈
           </Link>
           <Icon name="chevron" size={14} className="text-subtle" />
           <span aria-current="page" className="text-sm font-semibold">
@@ -36,19 +36,17 @@ export default function RoomDetailPage() {
         </nav>
       </header>
       <div className="page-container py-8 sm:py-10">
-        <section className="room-detail-hero" aria-labelledby="room-title">
-          <div className="room-detail-backdrop">
-            <RoomArtwork roomId={room.id} variant="hero" eager />
-          </div>
+        <section
+          className="room-detail-hero room-detail-hero--illustrated"
+          aria-labelledby="room-title"
+        >
+          <RoomDetailBanner roomId={room.id} />
           <div className="room-detail-copy">
-            <p className="eyebrow mb-5">
-              <span className="live-dot" /> YOUR NEXT CHAPTER
-            </p>
             <h1 id="room-title">{room.name}</h1>
             <p className="mt-4 max-w-md text-sm leading-7 text-white/75">{room.introduction}</p>
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="scene-chip">
-                <Icon name="clock" size={13} /> 50분 공부 · 10분 휴식
+                <Icon name="clock" size={13} /> 목표 시간 직접 설정
               </span>
               <span className="scene-chip">
                 <Icon name="heart" size={13} /> {room.characters.length}명의 공부 메이트
@@ -56,19 +54,12 @@ export default function RoomDetailPage() {
               <span className="scene-chip">기본 공부 무료</span>
             </div>
           </div>
-          {room.coverUrl && (
-            <img src={room.coverUrl} alt={`${room.name} 포스터`} className="room-detail-poster" />
-          )}
         </section>
         <section className="mt-10" aria-labelledby="room-characters">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="eyebrow mb-2">MEET YOUR COMPANIONS</p>
-              <h2 id="room-characters" className="text-2xl font-bold">
-                네 옆자리를 지킬 친구들
-              </h2>
-            </div>
-            <p className="text-xs text-subtle">공부할 때 각자 자기 칸에 앉아요</p>
+            <h2 id="room-characters" className="text-2xl font-bold">
+              네 옆자리를 지킬 친구들
+            </h2>
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
             {room.characters.map((character) => (
@@ -84,7 +75,7 @@ export default function RoomDetailPage() {
             <div>
               <p className="text-sm font-semibold">오늘의 한 페이지, 함께 시작할까요?</p>
               <p className="mt-1 text-xs leading-5 text-muted">
-                {room.characters.map((c) => c.name).join(' · ')}와 50분의 집중 · 기본 공부는
+                {room.characters.map((c) => c.name).join(' · ')}와 나만의 목표 시간 · 기본 공부는
                 무료예요
               </p>
             </div>
@@ -93,7 +84,7 @@ export default function RoomDetailPage() {
             to={
               state.activeSession
                 ? `/study/${state.activeSession.id}`
-                : `/rooms/${room.id}/prepare${state.cameraChecked ? '?step=set' : ''}`
+                : `/rooms/${room.id}/prepare${state.cameraChecked ? '?step=goal' : ''}`
             }
             className="shrink-0"
           >

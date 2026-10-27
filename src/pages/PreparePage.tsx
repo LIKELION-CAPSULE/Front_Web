@@ -8,7 +8,8 @@ import { tierCost } from '@/features/demo/reducer'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { TierSelector } from '@/features/session/components/TierSelector'
 import { useNow } from '@/features/session/use-now'
-import { MemoryEditor } from '@/features/characters/components/MemoryEditor'
+import { StudyGoalPicker } from '@/features/session/components/StudyGoalPicker'
+import { normalizeGoalMinutes } from '@/features/session/study-goal'
 import { number } from '@/shared/lib/format'
 import { Button } from '@/shared/ui/Button'
 import { Badge } from '@/shared/ui/Badge'
@@ -23,7 +24,9 @@ export default function PreparePage() {
   const navigate = useNavigate()
   const initialTier = params.get('tier')
   const [tier, setTier] = useState(isTier(initialTier) ? initialTier : 'standard')
-  const [memoryOpen, setMemoryOpen] = useState(false)
+  const [goalMinutes, setGoalMinutes] = useState(() =>
+    normalizeGoalMinutes(Number(params.get('goal') ?? 50)),
+  )
   const [error, setError] = useState('')
   const now = useNow()
   const room = getStudyRoom(roomId ?? '')
@@ -34,13 +37,13 @@ export default function PreparePage() {
       </OverlayPage>
     )
   if (state.activeSession) return <Navigate to={`/study/${state.activeSession.id}`} replace />
-  const setStep = params.get('step') === 'set'
+  const goalStep = params.get('step') === 'goal' || params.get('step') === 'set'
   const cost = tierCost(state, tier, now)
-  const returnTo = `/rooms/${room.id}/prepare?step=set&tier=${tier}`
+  const returnTo = `/rooms/${room.id}/prepare?step=goal&tier=${tier}&goal=${goalMinutes}`
   const hasExamPrompt = !state.examPromptedRooms.includes(room.id)
   function cameraNext(enabled: boolean) {
     dispatch({ type: 'CAMERA', enabled })
-    setParams({ step: 'set' })
+    setParams({ step: 'goal', goal: String(goalMinutes), tier })
   }
   function start(camera: boolean, startedAt: number) {
     if (cost > state.credits) {
@@ -53,22 +56,23 @@ export default function PreparePage() {
       roomId: room!.id,
       characterIds: room!.characters.map((character) => character.id),
       tier,
+      targetMinutes: goalMinutes,
       camera,
     })
     navigate(`/study/session-${startedAt}`)
   }
   return (
-    <OverlayPage backTo={`/rooms/${room.id}`} className={setStep ? 'sm:py-9' : undefined}>
+    <OverlayPage backTo={`/rooms/${room.id}`} className={goalStep ? 'sm:py-9' : undefined}>
       <p className="text-sm text-muted">
         {room.name} · {room.characters.map((character) => character.name).join(' · ')}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <h1 className="text-[28px] leading-10 font-bold">
-          {setStep ? '이번 세트를 골라요' : '공부 시작 전에 확인해요'}
+          {goalStep ? '목표 시간을 정해요' : '공부 시작 전에 확인해요'}
         </h1>
-        <Badge>{setStep ? '2 / 2 · 매 세트' : '1 / 2 · 처음 한 번만'}</Badge>
+        <Badge>{goalStep ? '2 / 2 · 공부 설정' : '1 / 2 · 처음 한 번만'}</Badge>
       </div>
-      {!setStep ? (
+      {!goalStep ? (
         <>
           <div className="my-7 grid items-center gap-[22px] sm:grid-cols-[240px_1fr]">
             <div className="camera-check-preview flex h-[170px] items-center justify-center overflow-hidden rounded-[16px] bg-placeholder">
@@ -91,7 +95,7 @@ export default function PreparePage() {
             <Button variant="secondary" onClick={() => cameraNext(false)}>
               카메라 없이 다음
             </Button>
-            <Button onClick={() => cameraNext(true)}>다음 · 세트와 등급 고르기</Button>
+            <Button onClick={() => cameraNext(true)}>다음 · 목표 시간 정하기</Button>
           </div>
         </>
       ) : (
@@ -101,7 +105,10 @@ export default function PreparePage() {
             <span>
               카메라 · {state.cameraEnabled ? '지난 설정 그대로 켜요' : '카메라 없이 공부해요'}
             </span>
-            <button onClick={() => setParams({})} className="text-sm text-brand-strong underline">
+            <button
+              onClick={() => setParams({ goal: String(goalMinutes), tier })}
+              className="text-sm text-brand-strong underline"
+            >
               다시 점검
             </button>
           </div>
@@ -111,12 +118,12 @@ export default function PreparePage() {
               <span className="flex-1 text-xs text-muted">
                 기억해서 응원해 줘요 · 이 룸 첫 시작 때만
               </span>
-              <button
-                onClick={() => setMemoryOpen(true)}
+              <Link
+                to={`/mypage?character=${room.characters[0]!.id}&add=1&fromRoom=${room.id}&next=${encodeURIComponent(returnTo)}#schedule`}
                 className="rounded-full bg-surface px-3 py-1.5 text-xs font-bold text-brand-strong"
               >
                 + 일정 추가
-              </button>
+              </Link>
               <button
                 className="text-xs text-subtle"
                 onClick={() => dispatch({ type: 'EXAM_PROMPTED', roomId: room.id })}
@@ -125,18 +132,9 @@ export default function PreparePage() {
               </button>
             </div>
           )}
-          <p className="mt-5 text-[15px]">
-            <strong>공부 세트</strong>
-            <span className="text-muted"> · 50분 공부 + 10분 쉬는 시간</span>
-          </p>
-          <div className="mt-2 flex overflow-hidden rounded-control text-sm font-bold">
-            <div className="flex-1 bg-brand-solid px-4 py-3 text-white">
-              공부 50분 · 캐릭터도 같이 공부
-            </div>
-            <div className="bg-brand-soft px-4 py-3 text-brand-strong">휴식 10분</div>
-          </div>
+          <StudyGoalPicker value={goalMinutes} onChange={setGoalMinutes} />
           <div className="mt-5 mb-2 flex flex-wrap items-baseline gap-3">
-            <h2 className="text-[15px] font-bold">이번 세트 등급</h2>
+            <h2 className="text-[15px] font-bold">함께할 대화 옵션</h2>
             <p className="text-xs text-subtle">
               공부 중 딴짓 반응은 모든 등급 동일 · 보유 {number(state.credits)} 크레딧
             </p>
@@ -152,7 +150,7 @@ export default function PreparePage() {
             <p className="mt-3 text-sm text-brand-strong">
               {state.pass.name} 이용 중 ·{' '}
               {cost === 0 && tier !== 'basic'
-                ? '이번 세트는 패스로 이용해요.'
+                ? '이번 공부는 패스로 이용해요.'
                 : '등급별 이용 조건을 확인해 주세요.'}
             </p>
           )}
@@ -186,14 +184,7 @@ export default function PreparePage() {
           </div>
         </>
       )}
-      {!setStep && <DemoNotice />}
-      {memoryOpen && (
-        <MemoryEditor
-          characterId={room.characters[0]!.id}
-          onClose={() => setMemoryOpen(false)}
-          onSaved={() => dispatch({ type: 'EXAM_PROMPTED', roomId: room.id })}
-        />
-      )}
+      {!goalStep && <DemoNotice />}
     </OverlayPage>
   )
 }
