@@ -1,0 +1,49 @@
+{
+  "validatedAt": "2026-10-27",
+  "scope": "My Page profile/avatar editor and centralized character schedule management",
+  "unitTests": 35,
+  "browserChecks": 27,
+  "checks": {
+    "lint": "passed",
+    "typecheckAndProductionBuild": "passed"
+  },
+  "browser": "isolated Chromium with 1440px, 768px, 390px and 320px viewport emulation",
+  "results": {
+    "passed": 27,
+    "checks": [
+      "Profile menu exposes My Page",
+      "Old avatar-only menu label is removed",
+      "My Page has its own authenticated route and page title",
+      "Previously saved character memories are visible in the central list",
+      "Profile name and avatar save without leaving My Page",
+      "Profile and avatar persist across a normal reload",
+      "Profile draft changes can be reverted",
+      "Empty schedule title cannot be saved",
+      "New schedule stores its character, date and appointment time",
+      "Adding a schedule preserves existing events",
+      "Character filter scopes the shared schedule list",
+      "Reassigning an event moves it out of the previous character filter",
+      "Edited event retains its identity without duplication",
+      "Edited schedule persists across reload with no lost events",
+      "Deleting a schedule removes only that event",
+      "Past event is excluded from upcoming events",
+      "Past events have their own filter",
+      "All events view includes upcoming and historical schedules",
+      "768px: profile and schedule fit the viewport",
+      "390px: profile and schedule fit the viewport",
+      "320px: profile and schedule fit the viewport",
+      "Character page opens My Page filtered to that character",
+      "Study preparation opens the central editor with its room character",
+      "Returning from central schedules restores goal and conversation option",
+      "Saving from preparation marks that room prompt complete",
+      "First-time avatar setup still completes with the shared customizer",
+      "No runtime or console errors"
+    ],
+    "errors": []
+  },
+  "limitations": [
+    "Physical mobile devices and other browser engines were not exercised.",
+    "Data stays in the frontend demo; no calendar sync or reminder service is connected."
+  ],
+  "artifacts": "Development-only screenshots and runner in /private/tmp/capsule-mypage-review and /private/tmp/capsule-wireframe-browser/mypage-qa.mjs."
+}

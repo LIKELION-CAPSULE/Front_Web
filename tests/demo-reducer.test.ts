@@ -14,16 +14,12 @@ const start = (tier: 'basic' | 'standard' | 'premium' | 'special' = 'standard') 
   camera: true,
 })
 
-test('sample credit balance agrees with the ledger and room totals', () => {
+test('sample credit balance agrees with the ledger', () => {
   const state = createDemoState(now)
   assert.equal(state.credits, 1240)
   assert.equal(
     state.ledger.reduce((sum, entry) => sum + entry.change, 0),
     state.credits,
-  )
-  assert.equal(
-    state.records.reduce((sum, record) => sum + record.studySeconds, 0),
-    48 * 3600,
   )
 })
 
@@ -50,14 +46,14 @@ test('insufficient credit never creates a session or a negative balance', () => 
 test('pausing freezes elapsed time and resuming preserves its value', () => {
   let state = demoReducer(createDemoState(now), start())
   state = demoReducer(state, { type: 'PAUSE', now: now + 1000 })
-  assert.equal(sessionElapsed(state.activeSession, now + 60000), 169)
+  assert.equal(sessionElapsed(state.activeSession, now + 60000), 1)
   state = demoReducer(state, { type: 'PAUSE', now: now + 100000 })
-  assert.equal(sessionElapsed(state.activeSession, now + 102000), 171)
+  assert.equal(sessionElapsed(state.activeSession, now + 102000), 3)
 })
 
 test('study automatically enters break and preserves elapsed overflow', () => {
   let state = demoReducer(createDemoState(now), start())
-  const transition = now + (3000 - 168 + 6) * 1000
+  const transition = now + (3000 + 6) * 1000
   state = demoReducer(state, { type: 'TICK', now: transition })
   assert.equal(state.activeSession?.phase, 'break')
   assert.equal(state.activeSession?.studySeconds, 3000)

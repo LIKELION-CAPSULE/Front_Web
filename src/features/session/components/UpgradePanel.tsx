@@ -18,12 +18,12 @@ export function UpgradePanel({ onClose, now }: { onClose: () => void; now: numbe
   return (
     <section
       role="dialog"
-      aria-label="이번 세트 등급 올리기"
+      aria-label="이번 공부 옵션 올리기"
       className={basic ? 'upgrade-sheet' : 'upgrade-popover'}
     >
       <div className="mb-2 flex items-start justify-between gap-3">
         <h2 className="text-base font-bold">
-          {basic ? '등급을 올리고 계속 얘기할까요?' : '이번 세트 등급 올리기'}
+          {basic ? '등급을 올리고 계속 얘기할까요?' : '이번 공부 옵션 올리기'}
         </h2>
         <button onClick={onClose} aria-label="등급 선택 닫기" className="text-subtle">
           ×

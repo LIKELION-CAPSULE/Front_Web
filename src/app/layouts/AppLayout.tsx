@@ -6,7 +6,6 @@ import { Avatar } from '@/shared/ui/Avatar'
 import { useDemo } from '@/features/demo/demo-context'
 import { todaySeconds } from '@/features/demo/selectors'
 import { duration, number } from '@/shared/lib/format'
-import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
 import { Brand } from '@/shared/ui/Brand'
@@ -63,15 +62,20 @@ export function AppLayout() {
                 aria-label="내 프로필 메뉴"
                 className="flex cursor-pointer list-none items-center gap-2 rounded-full"
               >
-                <Badge className="hidden px-2 py-0.5 text-[10px] sm:inline-flex">PREVIEW</Badge>
                 <Avatar size="md" />
               </summary>
               <div className="absolute top-12 right-0 w-60 rounded-card border border-line bg-panel p-3 shadow-xl">
                 <p className="border-b border-line px-3 py-2 text-sm font-bold">
                   {state.profile.name} · 더미 계정
                 </p>
-                <Link to="/onboarding" className="menu-item">
-                  내 아바타 바꾸기
+                <Link
+                  to="/mypage"
+                  className="menu-item"
+                  onClick={(event) => {
+                    event.currentTarget.closest('details')?.removeAttribute('open')
+                  }}
+                >
+                  마이페이지
                 </Link>
                 <button
                   onClick={() => dispatch({ type: 'FIRST_VISIT', value: !state.firstVisit })}

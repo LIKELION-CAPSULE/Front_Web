@@ -1,0 +1,53 @@
+.room-detail-hero--illustrated {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 360px;
+  aspect-ratio: 3 / 1;
+  padding: 40px 44px;
+}
+.room-detail-hero--illustrated .room-detail-copy {
+  max-width: 44%;
+}
+.room-detail-banner-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.room-detail-hero--illustrated .room-detail-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, #0c10175e, #0c10171a 42%, transparent 58%);
+}
+@media (max-width: 1023px) {
+  .room-detail-hero--illustrated {
+    min-height: 0;
+    aspect-ratio: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+  }
+  .room-detail-hero--illustrated .room-detail-backdrop {
+    position: relative;
+    order: 0;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 320px;
+    flex: none;
+  }
+  .room-detail-banner-image {
+    object-position: right center;
+  }
+  .room-detail-hero--illustrated .room-detail-backdrop::after {
+    background: linear-gradient(0deg, #171724, transparent 28%);
+  }
+  .room-detail-hero--illustrated .room-detail-copy {
+    order: 1;
+    max-width: none;
+    padding: 24px;
+  }
+}

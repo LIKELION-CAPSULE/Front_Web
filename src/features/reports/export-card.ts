@@ -16,11 +16,12 @@ export async function exportCard(
   canvas.height = 1200
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('이미지 저장을 지원하지 않는 브라우저예요.')
-  const useLayers = ['chaerin', 'doyun', 'moru'].includes(characterId)
+  const art = getCharacterArtwork(characterId)
+  const useLayers = characterId === 'chaerin' || !!art.sceneId
   const layers = useLayers ? await loadRoomLayers(record.roomId) : null
   const portrait = new Image()
   if (!layers) {
-    portrait.src = getCharacterArtwork(characterId).affection
+    portrait.src = art.affection
     await portrait.decode()
   }
   const foreground = color === '#f5f0ff' || color === '#d8c5ff' ? '#21182c' : '#fff'
@@ -67,7 +68,17 @@ export async function exportCard(
   ctx.textAlign = 'left'
   ctx.fillStyle = foreground
   ctx.font = '500 15px "Pretendard"'
-  ctx.fillText(`${room} · ${character}과`, 28, 370)
+  let roomLine = ''
+  let roomLineY = 366
+  for (const letter of `${room} · ${character}과`) {
+    if (roomLine && ctx.measureText(roomLine + letter).width > 304) {
+      ctx.fillText(roomLine, 28, roomLineY)
+      roomLine = ''
+      roomLineY += 18
+    }
+    roomLine += letter
+  }
+  ctx.fillText(roomLine, 28, roomLineY)
   ctx.font = '800 64px "Pretendard"'
   ctx.fillText(duration(record.studySeconds), 28, 440, 304)
   ctx.font = '700 16px "Pretendard"'

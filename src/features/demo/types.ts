@@ -22,6 +22,7 @@ export type LedgerEntry = {
 }
 export type Pass = { name: string; expiresAt: number; premiumDay: string | null }
 export type StudyRecord = {
+  targetSeconds?: number
   id: string
   roomId: string
   characterIds: string[]
@@ -36,6 +37,7 @@ export type StudyRecord = {
   automatic: boolean
 }
 export type ActiveSession = {
+  targetSeconds?: number
   id: string
   roomId: string
   characterIds: string[]

@@ -9,6 +9,7 @@ const titles: Record<string, string> = {
   '/credits/charge': '크레딧 충전 · 패스',
   '/login': '같이 공부할 친구가 기다리고 있어요',
   '/onboarding': '내 아바타 만들기',
+  '/mypage': '마이페이지',
 }
 
 /** Mount within the layout so a lazy page has committed before moving focus. */

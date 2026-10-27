@@ -1,0 +1,111 @@
+.artwork-preview {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+.artwork-preview-header > p:first-child {
+  color: #b29be6;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.artwork-preview-header h1 {
+  margin-top: 12px;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 800;
+}
+.artwork-preview-header > p:last-child {
+  margin-top: 14px;
+  color: #aaa7ba;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.artwork-preview-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  margin: 24px 0;
+  padding: 18px 0;
+  border-block: 1px solid #ffffff20;
+  font-size: 13px;
+}
+.artwork-preview-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.artwork-preview-controls input {
+  width: 16px;
+  height: 16px;
+  accent-color: #a381ff;
+}
+.artwork-preview-controls select {
+  padding: 8px 12px;
+  border: 1px solid #ffffff25;
+  border-radius: 8px;
+  background: #242130;
+}
+.artwork-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.artwork-preview-card {
+  overflow: hidden;
+  border: 1px solid #ffffff20;
+  border-radius: 16px;
+  background: #17151f;
+}
+.artwork-preview-stage {
+  aspect-ratio: 16 / 9;
+  background: repeating-conic-gradient(#514a60 0% 25%, #2c2835 0% 50%) 0 0 / 20px 20px;
+}
+.artwork-preview-info {
+  padding: 20px;
+}
+.artwork-preview-info h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.artwork-preview-info p {
+  margin-top: 8px;
+  color: #aaa7ba;
+  font-size: 12px;
+}
+.artwork-preview-info nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: #c1a5ff;
+}
+.artwork-preview-info a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.artwork-preview[data-ratio='card'] .artwork-preview-stage {
+  aspect-ratio: 4 / 3;
+}
+.artwork-preview[data-ratio='portrait'] .artwork-preview-stage {
+  aspect-ratio: 3 / 4;
+}
+.artwork-preview[data-background='false'] .layered-scene {
+  background: transparent;
+}
+.artwork-preview[data-background='false'] .scene-background,
+.artwork-preview[data-background='false'] .scene-shade,
+.artwork-preview[data-subject='false'] .scene-subject {
+  visibility: hidden;
+}
+.artwork-preview[data-desk='false'] .scene-desk {
+  visibility: hidden;
+}
+@media (max-width: 767px) {
+  .artwork-preview-grid {
+    grid-template-columns: 1fr;
+  }
+  .artwork-preview {
+    padding-inline: 16px;
+  }
+}

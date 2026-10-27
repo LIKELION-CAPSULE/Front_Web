@@ -13,6 +13,7 @@ const CreditsPage = lazy(() => import('@/pages/CreditsPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
+const MyPage = lazy(() => import('@/pages/MyPage'))
 const PreparePage = lazy(() => import('@/pages/PreparePage'))
 const StudyPage = lazy(() => import('@/pages/StudyPage'))
 const ReportPage = lazy(() => import('@/pages/ReportPage'))
@@ -30,6 +31,7 @@ export function App() {
           <Route element={<AppLayout />}>
             <Route index element={<HomePage />} />
             <Route path="records" element={<RecordsPage />} />
+            <Route path="mypage" element={<MyPage />} />
             <Route path="characters" element={<CharactersPage />} />
             <Route path="characters/:characterId" element={<CharactersPage />} />
             <Route path="characters/:characterId/shop" element={<GiftShopPage />} />

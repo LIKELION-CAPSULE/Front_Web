@@ -1,6 +1,8 @@
 import { createDemoState } from './seed'
 import { isTier } from './catalog'
 import type { DemoState } from './types'
+import { migrateDemoProfile } from './profile'
+import { migrateSampleRecords } from './sample-records'
 
 export const DEMO_STORAGE_KEY = 'capsule-wireframe-demo:v1'
 
@@ -125,7 +127,7 @@ function validState(value: unknown): value is DemoState {
 export function loadDemoState(): DemoState {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) ?? 'null')
-    return validState(saved) ? saved : createDemoState()
+    return validState(saved) ? migrateSampleRecords(migrateDemoProfile(saved)) : createDemoState()
   } catch {
     return createDemoState()
   }

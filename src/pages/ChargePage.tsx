@@ -68,7 +68,7 @@ export default function ChargePage() {
                   </span>
                   <span className="mt-3 block text-xs leading-6">
                     · 스탠다드 무제한
-                    <br />· 프리미엄 하루 1세트
+                    <br />· 프리미엄 하루 1회
                     <br />· {product.days === 14 ? 'D-day 응원 보이스' : '매일 보이스 메시지'}
                   </span>
                   <span
@@ -114,14 +114,14 @@ export default function ChargePage() {
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
             <Badge className="border border-brand bg-panel">
-              세트 등급 · 스탠다드 200 · 프리미엄 500 · 스페셜 1,000
+              공부 옵션 · 스탠다드 200 · 프리미엄 500 · 스페셜 1,000
             </Badge>
             <Badge className="border border-brand bg-panel">
               보이스 메시지 · 선물 100~1,000 크레딧
             </Badge>
           </div>
           <p className="mt-3 text-[11px] leading-5 text-subtle">
-            1세트 = 공부 50분 + 쉬는 시간 10분 · 공부 중 딴짓 반응은 모든 등급 동일 · 결제로
+            목표 시간은 시작할 때 직접 정해요 · 공부 중 딴짓 반응은 모든 등급 동일 · 결제로
             호감도·엔딩은 살 수 없음
           </p>
         </div>

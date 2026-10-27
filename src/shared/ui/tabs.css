@@ -1,0 +1,29 @@
+.segmented-control {
+  position: relative;
+  isolation: isolate;
+}
+.segmented-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  border-radius: 9px;
+  background: var(--color-brand-soft);
+  pointer-events: none;
+}
+.segmented-indicator[data-ready='true'] {
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.segmented-control .segmented-option {
+  position: relative;
+  background: transparent;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .segmented-indicator[data-ready='true'] {
+    transition: none;
+  }
+}

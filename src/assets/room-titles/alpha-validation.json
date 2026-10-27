@@ -1,0 +1,227 @@
+[
+  {
+    "id": "classroom",
+    "width": 1536,
+    "height": 1024,
+    "clearRatio": 0.44890085856119794,
+    "softAlphaRatio": 0.4022992451985677,
+    "solidRatio": 0.14879989624023438,
+    "alphaMismatch": 0,
+    "bounds": {
+      "min": [
+        59,
+        148
+      ],
+      "max": [
+        1505,
+        963
+      ]
+    },
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "id": "night",
+    "width": 1774,
+    "height": 887,
+    "clearRatio": 0.6069074912712626,
+    "softAlphaRatio": 0.23470929840906288,
+    "solidRatio": 0.1583832103196745,
+    "alphaMismatch": 0,
+    "bounds": {
+      "min": [
+        45,
+        83
+      ],
+      "max": [
+        1736,
+        864
+      ]
+    },
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "id": "cat",
+    "width": 1536,
+    "height": 1024,
+    "clearRatio": 0.6420027414957682,
+    "softAlphaRatio": 0.10918744405110677,
+    "solidRatio": 0.248809814453125,
+    "alphaMismatch": 0,
+    "bounds": {
+      "min": [
+        48,
+        134
+      ],
+      "max": [
+        1498,
+        931
+      ]
+    },
+    "corners": [
+      0,
+      0,
+      1,
+      0
+    ]
+  },
+  {
+    "id": "lantern",
+    "width": 1860,
+    "height": 845,
+    "clearRatio": 0.35485016224470317,
+    "softAlphaRatio": 0.06704841890946109,
+    "solidRatio": 0.5781014188458358,
+    "alphaMismatch": 0,
+    "bounds": {
+      "min": [
+        71,
+        93
+      ],
+      "max": [
+        1820,
+        787
+      ]
+    },
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "id": "fantasy",
+    "width": 1536,
+    "height": 1024,
+    "clearRatio": 0.38338597615559894,
+    "softAlphaRatio": 0.4600118001302083,
+    "solidRatio": 0.15660222371419272,
+    "alphaMismatch": 0,
+    "bounds": {
+      "min": [
+        44,
+        159
+      ],
+      "max": [
+        1494,
+        925
+      ]
+    },
+    "corners": [
+      0,
+      0,
+      1,
+      0
+    ]
+  },
+  {
+    "id": "iljin",
+    "width": 1774,
+    "height": 887,
+    "clearRatio": 0.5895231001729859,
+    "softAlphaRatio": 0.28408719713155955,
+    "solidRatio": 0.12638970269545444,
+    "alphaMismatch": 0,
+    "bounds": {
+      "min": [
+        98,
+        91
+      ],
+      "max": [
+        1742,
+        844
+      ]
+    },
+    "corners": [
+      0,
+      0,
+      1,
+      0
+    ]
+  },
+  {
+    "id": "jurassic",
+    "width": 1774,
+    "height": 887,
+    "clearRatio": 0.4921558932799843,
+    "softAlphaRatio": 0.07690821575328972,
+    "solidRatio": 0.43093589096672597,
+    "alphaMismatch": 0,
+    "bounds": {
+      "min": [
+        134,
+        107
+      ],
+      "max": [
+        1690,
+        861
+      ]
+    },
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "id": "lab",
+    "width": 1774,
+    "height": 887,
+    "clearRatio": 0.4107266554732075,
+    "softAlphaRatio": 0.06251453730383379,
+    "solidRatio": 0.5267588072229588,
+    "alphaMismatch": 0,
+    "bounds": {
+      "min": [
+        123,
+        54
+      ],
+      "max": [
+        1720,
+        866
+      ]
+    },
+    "corners": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "id": "joseon",
+    "width": 1774,
+    "height": 887,
+    "clearRatio": 0.4695202785061435,
+    "softAlphaRatio": 0.36947248811277517,
+    "solidRatio": 0.16100723338108136,
+    "alphaMismatch": 0,
+    "bounds": {
+      "min": [
+        147,
+        36
+      ],
+      "max": [
+        1727,
+        870
+      ]
+    },
+    "corners": [
+      0,
+      0,
+      0,
+      1
+    ]
+  }
+]

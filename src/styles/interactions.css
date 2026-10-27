@@ -1,16 +1,21 @@
 @layer components {
-  .room-discovery {
+  .room-toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 16px;
+    justify-content: flex-end;
+    gap: 10px 16px;
+    min-width: 0;
+    max-width: 100%;
+    margin-left: auto;
+  }
+  .rooms-section .section-heading {
+    align-items: center;
   }
   .room-search {
     display: flex;
-    min-height: 46px;
-    width: min(100%, 350px);
+    min-height: 40px;
+    width: clamp(240px, 22vw, 300px);
     align-items: center;
     gap: 10px;
     border: 1px solid var(--color-line);
@@ -29,7 +34,7 @@
   .room-search input {
     width: 100%;
     min-width: 0;
-    height: 44px;
+    height: 38px;
     border: 0;
     background: transparent;
     color: var(--color-ink);
@@ -49,31 +54,6 @@
     align-items: center;
     justify-content: center;
   }
-  .mood-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .mood-filters button {
-    border: 1px solid var(--color-line);
-    border-radius: 999px;
-    background: transparent;
-    padding: 8px 12px;
-    font-size: 11px;
-    color: var(--color-muted);
-    transition:
-      background 0.2s,
-      border-color 0.2s,
-      color 0.2s;
-  }
-  .mood-filters button[aria-pressed='true'] {
-    border-color: var(--color-brand-line);
-    background: var(--color-brand-soft);
-    color: var(--color-brand-strong);
-  }
-  .mood-filters button:hover {
-    border-color: var(--color-brand);
-  }
   .filter-count {
     display: inline-flex;
     min-width: 17px;
@@ -91,9 +71,6 @@
     font-size: 11px;
   }
   .room-empty {
-    border: 1px dashed var(--color-line);
-    border-radius: 20px;
-    background: var(--color-panel);
     padding: 44px 20px;
     text-align: center;
   }
@@ -229,6 +206,22 @@
   .activity-grid button:disabled {
     opacity: 0.35;
     cursor: default;
+  }
+  .activity-grid.activity-grid--year {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .activity-grid.activity-grid--year button {
+    display: flex;
+    height: 66px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+  }
+  .activity-grid--year small {
+    font-size: 10px;
   }
   [data-level='0'] {
     background: #1b2130;
@@ -388,18 +381,17 @@
   }
 }
 @media (max-width: 767px) {
-  .room-discovery {
-    gap: 12px;
+  .activity-grid.activity-grid--year button {
+    height: 64px;
+  }
+  .room-toolbar {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
   }
   .room-search {
     width: 100%;
-  }
-  .mood-filters {
-    gap: 6px;
-  }
-  .mood-filters button {
-    padding: 7px 10px;
-    font-size: 10px;
+    flex-basis: 100%;
   }
   .activity-layout {
     gap: 24px;

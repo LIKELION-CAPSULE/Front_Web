@@ -13,9 +13,7 @@ import { Tabs } from '@/shared/ui/Tabs'
 import { cn } from '@/shared/lib/cn'
 import NotFoundPage from './NotFoundPage'
 import { Icon } from '@/shared/ui/Icon'
-import { getCharacterArtwork } from '@/features/characters/artwork'
-import { RoomArtwork } from '@/features/rooms/components/RoomArtwork'
-import { characterRoom } from '@/features/rooms/artwork'
+import { CharacterArtwork } from '@/features/characters/components/CharacterArtwork'
 
 export default function GiftShopPage() {
   const { characterId } = useParams()
@@ -110,11 +108,7 @@ export default function GiftShopPage() {
         </div>
         <aside className="rounded-card bg-brand-soft p-5">
           <div className="gift-recipient">
-            {character.id === 'doyun' || character.id === 'moru' ? (
-              <RoomArtwork roomId={characterRoom[character.id]!} />
-            ) : (
-              <img src={getCharacterArtwork(character.id).affection} alt="" />
-            )}
+            <CharacterArtwork characterId={character.id} pose="affection" variant="card" />
             <span>{character.name}에게 전하는 작은 마음</span>
           </div>
           <h2 className="text-[17px] font-bold">

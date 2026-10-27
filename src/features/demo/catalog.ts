@@ -90,7 +90,7 @@ export const products = [
     name: '디저트',
     kind: '선물',
     price: 400,
-    description: '다음 세트 시작 때 같이 먹기',
+    description: '다음 공부를 시작할 때 같이 먹기',
     reply: '이거 내가 좋아하는 거잖아. 다음 공부할 때 같이 먹자.',
   },
   {
