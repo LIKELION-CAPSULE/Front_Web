@@ -2,9 +2,8 @@ import { Link } from 'react-router'
 import type { StudyRecord } from '@/features/demo/types'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { dateLabel, duration } from '@/shared/lib/format'
-import { Badge } from '@/shared/ui/Badge'
 
-export function SessionList({ records }: { records: StudyRecord[] }) {
+export function SessionList({ records }: { records: readonly StudyRecord[] }) {
   if (!records.length) return <p className="text-sm text-muted">이 기간에는 공부 기록이 없어요.</p>
   return (
     <div>
@@ -17,22 +16,11 @@ export function SessionList({ records }: { records: StudyRecord[] }) {
           <span>
             {dateLabel(record.endedAt)} · {getStudyRoom(record.roomId)?.name ?? '스터디룸'}
           </span>
-          <span className="flex items-center gap-3">
-            <span className="font-mono text-xs">
-              {duration(record.studySeconds)}
-              {record.targetSeconds && (
-                <small className="ml-2 text-subtle">/ 목표 {duration(record.targetSeconds)}</small>
-              )}
-            </span>
-            <Badge
-              className={
-                record.automatic
-                  ? 'border border-dashed border-brand bg-panel'
-                  : 'border border-line bg-panel text-muted'
-              }
-            >
-              {record.automatic ? '자동 마감' : record.completed ? '정상 종료' : '직접 종료'}
-            </Badge>
+          <span className="font-mono text-xs">
+            {duration(record.studySeconds)}
+            {record.targetSeconds && (
+              <small className="ml-2 text-subtle">/ 목표 {duration(record.targetSeconds)}</small>
+            )}
           </span>
         </Link>
       ))}

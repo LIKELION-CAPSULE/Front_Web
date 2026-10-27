@@ -48,6 +48,33 @@ test('month and year ranges include leap days and exclude the next local midnigh
   assert.equal(year.endDay, '2024-12-31')
 })
 
+test('week navigation shifts full Seoul weeks and keeps the real today', () => {
+  const now = Date.parse('2026-01-01T08:00:00+09:00')
+  const previous = getRecordRange('week', now, -1)
+  assert.equal(previous.startDay, '2025-12-22')
+  assert.equal(previous.endDay, '2025-12-28')
+  assert.equal(previous.today, '2026-01-01')
+  assert.equal(previous.label, '지난 주')
+  const next = getRecordRange('week', now, 1)
+  assert.equal(next.startDay, '2026-01-05')
+  assert.equal(next.endDay, '2026-01-11')
+  assert.equal(periodDays(next).length, 7)
+})
+
+test('month navigation handles short months and crosses year boundaries without day overflow', () => {
+  const now = Date.parse('2024-01-31T23:30:00+09:00')
+  const next = getRecordRange('month', now, 1)
+  assert.equal(next.startDay, '2024-02-01')
+  assert.equal(next.endDay, '2024-02-29')
+  assert.equal(next.dateLabel, '2024년 2월')
+  assert.equal(next.today, '2024-01-31')
+  const previous = getRecordRange('month', now, -1)
+  assert.equal(previous.startDay, '2023-12-01')
+  assert.equal(previous.endDay, '2023-12-31')
+  assert.equal(previous.dateLabel, '2023년 12월')
+  assert.equal(getRecordRange('month', now, 13).startDay, '2025-02-01')
+})
+
 test('record filtering includes start, excludes end and orders recent sessions first', () => {
   const range = getRecordRange('month', Date.parse('2026-10-27T10:00:00+09:00'))
   const source = [

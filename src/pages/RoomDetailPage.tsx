@@ -44,15 +44,17 @@ export default function RoomDetailPage() {
           <div className="room-detail-copy">
             <h1 id="room-title">{room.name}</h1>
             <p className="mt-4 max-w-md text-sm leading-7 text-white/75">{room.introduction}</p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <span className="scene-chip">
-                <Icon name="clock" size={13} /> 목표 시간 직접 설정
-              </span>
-              <span className="scene-chip">
-                <Icon name="heart" size={13} /> {room.characters.length}명의 공부 메이트
-              </span>
-              <span className="scene-chip">기본 공부 무료</span>
-            </div>
+            <ButtonLink
+              to={
+                state.activeSession
+                  ? `/study/${state.activeSession.id}`
+                  : `/rooms/${room.id}/prepare${state.cameraChecked ? '?step=goal' : ''}`
+              }
+              className="mt-6 max-w-full"
+            >
+              {state.activeSession ? '진행 중인 공부로 돌아가기' : '이 룸에서 공부 시작'}
+              <Icon name="arrow" size={18} motion="nudge" className="shrink-0" />
+            </ButtonLink>
           </div>
         </section>
         <section className="mt-10" aria-labelledby="room-characters">
@@ -67,31 +69,6 @@ export default function RoomDetailPage() {
             ))}
           </div>
         </section>
-        <div className="room-start-bar">
-          <div className="flex items-center gap-4">
-            <span className="hidden rounded-2xl bg-brand-soft p-3 text-brand sm:block">
-              <Icon name="book" size={23} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold">오늘의 한 페이지, 함께 시작할까요?</p>
-              <p className="mt-1 text-xs leading-5 text-muted">
-                {room.characters.map((c) => c.name).join(' · ')}와 나만의 목표 시간 · 기본 공부는
-                무료예요
-              </p>
-            </div>
-          </div>
-          <ButtonLink
-            to={
-              state.activeSession
-                ? `/study/${state.activeSession.id}`
-                : `/rooms/${room.id}/prepare${state.cameraChecked ? '?step=goal' : ''}`
-            }
-            className="shrink-0"
-          >
-            {state.activeSession ? '진행 중인 공부로 돌아가기' : '이 룸에서 공부 시작'}
-            <Icon name="arrow" size={18} />
-          </ButtonLink>
-        </div>
       </div>
     </>
   )

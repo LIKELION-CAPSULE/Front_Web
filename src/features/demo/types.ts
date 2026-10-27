@@ -52,7 +52,6 @@ export type ActiveSession = {
 }
 export type Memory = {
   id: string
-  characterId: string
   kind: '시험' | '목표' | '약속'
   title: string
   date: string
@@ -89,6 +88,7 @@ export type DemoState = {
   activeSession: ActiveSession | null
   latestRecordId: string | null
   memories: Memory[]
+  scheduleSampleVersion?: number
   messages: Message[]
   gifts: Gift[]
   chatUsage: { day: string; used: number }

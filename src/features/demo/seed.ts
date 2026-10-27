@@ -2,6 +2,7 @@ import { businessDay, dayKey } from '../../shared/lib/format.ts'
 import type { DemoState, LedgerEntry } from './types.ts'
 import { DEFAULT_PROFILE_NAME } from './profile.ts'
 import { createSampleRecords } from './sample-records.ts'
+import { createPastScheduleSamples, SCHEDULE_SAMPLE_VERSION } from './sample-schedule.ts'
 
 export function createDemoState(now = Date.now()): DemoState {
   const today = new Date(`${dayKey(now)}T12:00:00+09:00`).getTime()
@@ -81,10 +82,10 @@ export function createDemoState(now = Date.now()): DemoState {
     records,
     activeSession: null,
     latestRecordId: records[0]?.id ?? null,
+    scheduleSampleVersion: SCHEDULE_SAMPLE_VERSION,
     memories: [
       {
         id: 'memory-exam',
-        characterId: 'chaerin',
         kind: '시험',
         title: '영어 시험',
         date: dayKey(today + 86400000),
@@ -92,7 +93,6 @@ export function createDemoState(now = Date.now()): DemoState {
       },
       {
         id: 'memory-midterm',
-        characterId: 'chaerin',
         kind: '시험',
         title: '중간고사',
         date: dayKey(today + 5 * 86400000),
@@ -100,12 +100,12 @@ export function createDemoState(now = Date.now()): DemoState {
       },
       {
         id: 'memory-promise',
-        characterId: 'chaerin',
         kind: '약속',
         title: '내일 같이 공부',
         date: dayKey(today + 86400000),
         time: '20:00',
       },
+      ...createPastScheduleSamples(now),
     ],
     messages: [],
     chatUsage: { day: businessDay(now), used: 0 },

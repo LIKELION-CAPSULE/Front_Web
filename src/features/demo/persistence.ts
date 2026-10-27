@@ -1,8 +1,10 @@
-import { createDemoState } from './seed'
-import { isTier } from './catalog'
-import type { DemoState } from './types'
-import { migrateDemoProfile } from './profile'
-import { migrateSampleRecords } from './sample-records'
+import { createDemoState } from './seed.ts'
+import { isTier } from './catalog.ts'
+import type { DemoState } from './types.ts'
+import { migrateDemoProfile } from './profile.ts'
+import { migrateSampleRecords } from './sample-records.ts'
+import { migrateSharedSchedule } from '../schedule/migrate-schedule.ts'
+import { migrateScheduleSamples } from './sample-schedule.ts'
 
 export const DEMO_STORAGE_KEY = 'capsule-wireframe-demo:v1'
 
@@ -65,7 +67,7 @@ function validState(value: unknown): value is DemoState {
     !value.memories.every(
       (memory) =>
         object(memory) &&
-        ['id', 'characterId', 'kind', 'title', 'date', 'time'].every(
+        ['id', 'kind', 'title', 'date', 'time'].every(
           (key) => typeof memory[key] === 'string',
         ),
     )
@@ -112,6 +114,7 @@ function validState(value: unknown): value is DemoState {
   }
   return (
     typeof value.firstVisit === 'boolean' &&
+    (value.scheduleSampleVersion === undefined || finite(value.scheduleSampleVersion)) &&
     typeof value.cameraChecked === 'boolean' &&
     typeof value.cameraEnabled === 'boolean' &&
     strings(value.examPromptedRooms) &&
@@ -127,7 +130,9 @@ function validState(value: unknown): value is DemoState {
 export function loadDemoState(): DemoState {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) ?? 'null')
-    return validState(saved) ? migrateSampleRecords(migrateDemoProfile(saved)) : createDemoState()
+    return validState(saved)
+      ? migrateScheduleSamples(migrateSharedSchedule(migrateSampleRecords(migrateDemoProfile(saved))))
+      : createDemoState()
   } catch {
     return createDemoState()
   }

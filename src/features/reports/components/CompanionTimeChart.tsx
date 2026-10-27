@@ -51,10 +51,33 @@ export function CompanionTimeChart({
   const current = active === null ? null : Math.min(active, lastAvailable)
   const tickStep = Math.max(1, Math.ceil((buckets.length - 1) / (width < 360 ? 3 : 5)))
   const color = (id: string) => colors[series.findIndex((item) => item.id === id) % colors.length]!
-  if (!series.length) return <p className="text-sm text-muted">아직 함께한 시간이 없어요.</p>
-
   return (
     <div className="companion-chart" ref={chartRef}>
+      <div className="companion-chart-toolbar">
+        <h2>캐릭터별 함께한 시간</h2>
+        <div className="companion-chart-actions" role="group" aria-label="캐릭터 일괄 선택">
+          <button
+            type="button"
+            disabled={visible.length === series.length}
+            onClick={() => {
+              setSelection(series.map((item) => item.id))
+              setActive(null)
+            }}
+          >
+            모두 선택
+          </button>
+          <button
+            type="button"
+            disabled={!visible.length}
+            onClick={() => {
+              setSelection([])
+              setActive(null)
+            }}
+          >
+            모두 해제
+          </button>
+        </div>
+      </div>
       <div className="companion-chart-legend" role="group" aria-label="비교할 캐릭터">
         {series.map((item) => (
           <button
@@ -213,13 +236,14 @@ export function CompanionTimeChart({
           )}
         </div>
       ) : (
-        <p className="companion-chart-empty">비교할 캐릭터를 골라 주세요.</p>
+        <p className="companion-chart-empty">
+          {series.length ? '비교할 캐릭터를 골라 주세요.' : '아직 함께한 시간이 없어요.'}
+        </p>
       )}
       <p id={description} className="sr-only">
         {range.label} 시작부터 각 날짜까지 쌓인 공부 시간이에요. 캐릭터 버튼으로 비교할 선을
         선택하고, 방향키 또는 Home과 End로 날짜를 이동할 수 있어요.
       </p>
-      <p className="companion-chart-caption">{range.label} 누적</p>
     </div>
   )
 }

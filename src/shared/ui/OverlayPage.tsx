@@ -26,7 +26,7 @@ export function OverlayPage({
       )}
       <div
         className={cn(
-          'overlay-content w-full max-w-[720px] rounded-3xl border border-line bg-panel p-6 shadow-2xl sm:p-10',
+          'overlay-content w-full max-w-[720px] rounded-3xl bg-panel p-6 shadow-2xl sm:p-10',
           className,
         )}
       >

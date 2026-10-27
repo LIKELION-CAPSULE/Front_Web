@@ -105,18 +105,20 @@ test('finishing records the session once and keeps focus plus away equal to tota
 
 test('credit charging includes the selected bonus and records the running balance', () => {
   const initial = createDemoState(now)
-  const next = demoReducer(initial, {
-    type: 'PURCHASE',
-    productId: 'charge-9900',
-    method: '카드',
-    now,
-  })
-  assert.equal(next.credits, initial.credits + 10395)
-  assert.equal(next.ledger[0]?.balance, next.credits)
-  assert.equal(
-    demoReducer(next, { type: 'PURCHASE', productId: 'charge-9900', method: '카드', now }),
-    next,
-  )
+  for (const [productId, received, amount] of [
+    ['charge-9900', 10395, 9900],
+    ['charge-19900', 20895, 19900],
+  ] as const) {
+    const next = demoReducer(initial, { type: 'PURCHASE', productId, method: '카드', now })
+    assert.equal(next.credits, initial.credits + received)
+    assert.equal(next.ledger[0]?.change, received)
+    assert.equal(next.ledger[0]?.amount, amount)
+    assert.equal(next.ledger[0]?.balance, next.credits)
+    assert.equal(
+      demoReducer(next, { type: 'PURCHASE', productId, method: '카드', now }),
+      next,
+    )
+  }
 })
 
 test('a pass covers standard and one premium set per business day', () => {

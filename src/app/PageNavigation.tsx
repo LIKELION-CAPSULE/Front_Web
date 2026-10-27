@@ -6,7 +6,7 @@ const titles: Record<string, string> = {
   '/records': '내 공부 기록',
   '/characters': '캐릭터',
   '/credits': '내 크레딧',
-  '/credits/charge': '크레딧 충전 · 패스',
+  '/credits/charge': '크레딧 · 패스',
   '/login': '같이 공부할 친구가 기다리고 있어요',
   '/onboarding': '내 아바타 만들기',
   '/mypage': '마이페이지',
