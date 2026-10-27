@@ -1,0 +1,84 @@
+{
+  "validatedAt": "2026-10-27",
+  "scope": "Home browse scrolling, visit-aware copy, profile nickname migration and weekly/monthly/yearly records",
+  "unitTests": 23,
+  "browserChecks": 50,
+  "browser": "isolated Chromium with desktop/mobile viewport emulation",
+  "results": {
+    "passed": 50,
+    "checks": [
+      "Default profile UI uses the new nickname",
+      "First-visit home has its own headline",
+      "Browse action uses a downward arrow",
+      "1440px: first-visit headline fits in two lines",
+      "1440px: browse puts the room heading at the top and hides the banner",
+      "1440px: browse restores all rooms before measuring the scroll destination",
+      "390px: first-visit headline fits in two lines",
+      "390px: browse puts the room heading at the top and hides the banner",
+      "390px: browse restores all rooms before measuring the scroll destination",
+      "320px: first-visit headline fits in two lines",
+      "320px: browse puts the room heading at the top and hides the banner",
+      "320px: browse restores all rooms before measuring the scroll destination",
+      "Returning home uses its own headline and the new nickname",
+      "Records page removes all requested copy, attendance card and ranking placeholder",
+      "week: summary uses only records inside the Seoul calendar period",
+      "week: calendar changes to the matching day/month granularity",
+      "week: recent sessions use the same selected period",
+      "month: summary uses only records inside the Seoul calendar period",
+      "month: calendar changes to the matching day/month granularity",
+      "month: recent sessions use the same selected period",
+      "year: summary uses only records inside the Seoul calendar period",
+      "year: calendar changes to the matching day/month granularity",
+      "year: recent sessions use the same selected period",
+      "Yearly companion chart includes the cat room, not only the first three characters",
+      "Selecting a year-view month shows that month’s own time and focus",
+      "Selecting a day shows its own time and focus",
+      "Future calendar dates remain disabled",
+      "Room view scopes the selected year without leaking last-year records",
+      "Changing rooms updates summary with the same year filter",
+      "A room without records in the chosen week has consistent zero totals, chart and history",
+      "Empty period has an explicit history state",
+      "Mobile room selector keeps the chosen period and updates all values",
+      "390px: room records fit the viewport",
+      "390px: annual month labels and durations have enough vertical room",
+      "320px: room records fit the viewport",
+      "320px: annual month labels and durations have enough vertical room",
+      "768px: room records fit the viewport",
+      "768px: annual month labels and durations have enough vertical room",
+      "fresh: correct headline",
+      "fresh 390px: headline remains two lines",
+      "fresh 320px: headline remains two lines",
+      "returning: correct headline",
+      "returning: resume destination still follows real session/history",
+      "returning 390px: headline remains two lines",
+      "returning 320px: headline remains two lines",
+      "active: correct headline",
+      "active: resume destination still follows real session/history",
+      "active 390px: headline remains two lines",
+      "active 320px: headline remains two lines",
+      "No browser runtime or console errors"
+    ],
+    "errors": [],
+    "metrics": {
+      "scroll-1440": {
+        "headingTop": 24.421875,
+        "bannerBottom": -21.671875,
+        "focused": "rooms-heading"
+      },
+      "scroll-390": {
+        "headingTop": 24.6875,
+        "bannerBottom": -7.3125,
+        "focused": "rooms-heading"
+      },
+      "scroll-320": {
+        "headingTop": 24.6875,
+        "bannerBottom": -7.3125,
+        "focused": "rooms-heading"
+      }
+    }
+  },
+  "limitations": [
+    "Other browser engines and physical mobile devices were not exercised."
+  ],
+  "artifacts": "Development-only screenshots and runners in /private/tmp/capsule-records-period and /private/tmp/capsule-wireframe-browser."
+}

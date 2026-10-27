@@ -1,0 +1,244 @@
+{
+  "checkedAt": "2026-10-26",
+  "foregroundChecks": [
+    {
+      "scene": "classroom",
+      "width": 1093,
+      "height": 1439,
+      "clearRatio": 0.28324857088541844,
+      "softAlphaRatio": 0.07978690599792602,
+      "solidRatio": 0.6369645231166555,
+      "maxAlpha": 255,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          5,
+          5
+        ],
+        "max": [
+          1092,
+          1420
+        ]
+      },
+      "corners": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "scene": "night",
+      "width": 1094,
+      "height": 1437,
+      "clearRatio": 0.2570527671018868,
+      "softAlphaRatio": 0.1119238358402064,
+      "solidRatio": 0.6310233970579068,
+      "maxAlpha": 255,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          9,
+          53
+        ],
+        "max": [
+          1089,
+          1412
+        ]
+      },
+      "corners": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "scene": "cat",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.484988530476888,
+      "softAlphaRatio": 0.058016459147135414,
+      "solidRatio": 0.45699501037597656,
+      "maxAlpha": 254,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          85,
+          48
+        ],
+        "max": [
+          1460,
+          974
+        ]
+      },
+      "corners": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "scene": "lantern",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.27530161539713544,
+      "softAlphaRatio": 0.04302787780761719,
+      "solidRatio": 0.6816705067952474,
+      "maxAlpha": 254,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          0,
+          92
+        ],
+        "max": [
+          1535,
+          1023
+        ]
+      },
+      "corners": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "scene": "fantasy",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.15865071614583334,
+      "softAlphaRatio": 0.07503318786621094,
+      "solidRatio": 0.7663160959879557,
+      "maxAlpha": 254,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          0,
+          9
+        ],
+        "max": [
+          1535,
+          1023
+        ]
+      },
+      "corners": [
+        0,
+        0,
+        236,
+        241
+      ]
+    },
+    {
+      "scene": "iljin",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.37961896260579425,
+      "softAlphaRatio": 0.0505975087483724,
+      "solidRatio": 0.5697835286458334,
+      "maxAlpha": 254,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          59,
+          2
+        ],
+        "max": [
+          1498,
+          1011
+        ]
+      },
+      "corners": [
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "scene": "jurassic",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.32695960998535156,
+      "softAlphaRatio": 0.04688199361165365,
+      "solidRatio": 0.6261583964029948,
+      "maxAlpha": 254,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          14,
+          26
+        ],
+        "max": [
+          1535,
+          1007
+        ]
+      },
+      "corners": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "scene": "lab",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.3315289815266927,
+      "softAlphaRatio": 0.07044792175292969,
+      "solidRatio": 0.5980230967203776,
+      "maxAlpha": 254,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          34,
+          11
+        ],
+        "max": [
+          1509,
+          1006
+        ]
+      },
+      "corners": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "scene": "joseon",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.2995738983154297,
+      "softAlphaRatio": 0.03935114542643229,
+      "solidRatio": 0.6610749562581381,
+      "maxAlpha": 254,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          0,
+          14
+        ],
+        "max": [
+          1535,
+          1023
+        ]
+      },
+      "corners": [
+        0,
+        0,
+        250,
+        247
+      ]
+    }
+  ],
+  "alphaPreserved": true,
+  "masterCount": 18,
+  "webCount": 18,
+  "newWebBytes": 3844708,
+  "totalWebBytes": 5330892
+}

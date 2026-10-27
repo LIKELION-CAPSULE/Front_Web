@@ -1,0 +1,67 @@
+{
+  "validatedAt": "2026-10-27",
+  "scope": "Bookmark feedback, saved-room empty state, animated native agreements, contribution heatmap, synchronized progress ring and configurable study goals",
+  "unitTests": 29,
+  "browserChecks": 41,
+  "checks": {
+    "lint": "passed",
+    "typecheckAndProductionBuild": "passed",
+    "distributedLicenseNotices": 11
+  },
+  "browser": "isolated Chromium with desktop/mobile viewport emulation",
+  "results": {
+    "passed": 41,
+    "checks": [
+      "Resume action keeps only its play icon, without a right arrow",
+      "Bookmark saves immediately",
+      "Bookmark icon plays a short pop after saving",
+      "Saving adds a small burst without changing card layout",
+      "Saved filter displays the bookmarked room",
+      "Saved empty state has no result count or reset button",
+      "Saved empty state has no border or background",
+      "Keyboard Space also saves a room",
+      "Reduced motion skips bookmark transforms",
+      "Progress arc and counter stay synchronized during animation, not only at the end",
+      "Progress ring label settles at its semantic value",
+      "Progress arc and count use the same value",
+      "주: contribution grid has one cell per date",
+      "월: contribution grid has one cell per date",
+      "년: contribution grid has one cell per date",
+      "Cell hover reveals the date and recorded time",
+      "Heatmap selection updates the detail panel",
+      "Arrow keys navigate contribution dates",
+      "Legend hover highlights matching contribution levels",
+      "768px: annual chart scroll stays inside its panel",
+      "390px: annual chart scroll stays inside its panel",
+      "320px: annual chart scroll stays inside its panel",
+      "Terms remain a native required checkbox",
+      "Checkbox checkmark draws along its stroke",
+      "Space toggles the checkbox without a custom keyboard handler",
+      "Native form reset clears both animated checkboxes",
+      "Reduced motion removes checkmark animation",
+      "Signup cannot continue without privacy agreement",
+      "Valid agreements preserve the signup flow",
+      "Goal quick selection changes the chosen duration",
+      "Goal slider changes in five-minute steps",
+      "Study timer uses the chosen goal",
+      "New study starts at zero elapsed time",
+      "Pause does not consume goal time",
+      "Reload restores the chosen goal and paused elapsed time",
+      "Reaching a custom goal enters the break phase",
+      "Goal completion stores and displays the actual target",
+      "Returning from the home banner restores the previous chosen goal",
+      "Returning from home also preserves the chosen conversation option",
+      "Early finish stores actual minutes separately from the longer goal",
+      "No application runtime or console errors"
+    ],
+    "errors": [],
+    "metrics": {
+      "checkboxMidOffset": 0.937994
+    }
+  },
+  "limitations": [
+    "Other browser engines and physical mobile devices were not exercised.",
+    "Authentication, payment, camera analysis and focus measurements remain frontend demo behavior."
+  ],
+  "artifacts": "Development-only screenshots and browser runner in /private/tmp/capsule-refinement-review and /private/tmp/capsule-wireframe-browser/refinement-qa.mjs."
+}

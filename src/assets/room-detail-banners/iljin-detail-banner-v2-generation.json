@@ -1,0 +1,15 @@
+{
+  "id": "iljin",
+  "generatedAt": "2026-10-27",
+  "tool": "built-in image_gen.imagegen",
+  "intent": "Correct seated lower-body anatomy; preserve face, lighting, environment and text-safe layout.",
+  "reference": "iljin-detail-banner-v1.png",
+  "original": "/Users/jeongin/.codex/generated_images/01a17692-23e3-7572-a9af-4fc8cb61fab4/exec-bd9bfe17-0c47-45e8-b1be-f8e0842b47cd.png",
+  "prompt": "Use case: precise-object-edit / identity-preserve. Edit the supplied COMPLETE 3:1 web banner, preserving its exact wide dimensions and overall composition. Main request: correct the male student's distorted seated lower-body anatomy. Keep the SAME recognizable face, black hair, school blazer, white shirt, loosened tie, warm afternoon window light, dark navy left 43% text-safe negative space, wooden reading chair, bookshelves and overall Korean manhwa illustration finish. Change his lower-body pose to a simple anatomically natural chair sitting position: hips genuinely rest on the horizontal chair seat, torso upright relaxed, TWO normal-proportioned thighs slope gently forward/down from the pelvis, knees stay low and directly below the hips rather than raised toward the chest, lower legs hang naturally downward with feet on the floor below the frame. No legs tucked onto the chair, no crossed legs, no giant bent knees, no V-shaped disconnected thighs, no extra limbs. A closed notebook rests comfortably flat on his lap and one hand gently holds it; the other hand may still support his cheek as before. Frame the seated man from head to upper thighs, with lower thighs/knees exiting naturally through the bottom edge; this is a short banner, do not force the entire legs into it. Keep the real chair backrest and armrests visibly supporting the body. Correct hip/seat perspective, natural clothing folds. No foreground desk or table, no text, no logos, no UI, no watermark. Preserve the left background and character identity as faithfully as possible; change only what is needed for a believable seated posture.",
+  "master": "iljin-detail-banner-v2.png",
+  "web": "iljin-detail-banner-v2.webp",
+  "width": 2172,
+  "height": 724,
+  "webBytes": 148352,
+  "sha256": "b21b9328ffa9234df7c3a7d4e1657819c1e9c258aa5b5894d6c9794035d2407a"
+}

@@ -5,6 +5,7 @@ import { dateLabel, duration } from '@/shared/lib/format'
 import { Badge } from '@/shared/ui/Badge'
 
 export function SessionList({ records }: { records: StudyRecord[] }) {
+  if (!records.length) return <p className="text-sm text-muted">이 기간에는 공부 기록이 없어요.</p>
   return (
     <div>
       {records.map((record) => (
@@ -17,7 +18,12 @@ export function SessionList({ records }: { records: StudyRecord[] }) {
             {dateLabel(record.endedAt)} · {getStudyRoom(record.roomId)?.name ?? '스터디룸'}
           </span>
           <span className="flex items-center gap-3">
-            <span className="font-mono text-xs">{duration(record.studySeconds)}</span>
+            <span className="font-mono text-xs">
+              {duration(record.studySeconds)}
+              {record.targetSeconds && (
+                <small className="ml-2 text-subtle">/ 목표 {duration(record.targetSeconds)}</small>
+              )}
+            </span>
             <Badge
               className={
                 record.automatic

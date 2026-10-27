@@ -1,0 +1,269 @@
+{
+  "checkedAt": "2026-10-27",
+  "assets": [
+    {
+      "id": "classroom",
+      "kind": "subject",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.3659807840983073,
+      "solidRatio": 0.5892982482910156,
+      "edgePixels": 0,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          37,
+          23
+        ],
+        "max": [
+          1503,
+          996
+        ]
+      },
+      "surfaceRatio": -0.0009765625,
+      "bottomCoverage": 0
+    },
+    {
+      "id": "night",
+      "kind": "subject",
+      "width": 1024,
+      "height": 1536,
+      "clearRatio": 0.4107627868652344,
+      "solidRatio": 0.5258579254150391,
+      "edgePixels": 0,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          41,
+          28
+        ],
+        "max": [
+          1005,
+          1509
+        ]
+      },
+      "surfaceRatio": -0.0006510416666666666,
+      "bottomCoverage": 0
+    },
+    {
+      "id": "lantern",
+      "kind": "subject",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.4197915395100911,
+      "solidRatio": 0.5410715738932291,
+      "edgePixels": 0,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          78,
+          25
+        ],
+        "max": [
+          1461,
+          1017
+        ]
+      },
+      "surfaceRatio": -0.0009765625,
+      "bottomCoverage": 0
+    },
+    {
+      "id": "fantasy",
+      "kind": "subject",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.3037859598795573,
+      "solidRatio": 0.6660118103027344,
+      "edgePixels": 0,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          9,
+          49
+        ],
+        "max": [
+          1528,
+          984
+        ]
+      },
+      "surfaceRatio": -0.0009765625,
+      "bottomCoverage": 0
+    },
+    {
+      "id": "iljin",
+      "kind": "subject",
+      "width": 1024,
+      "height": 1536,
+      "clearRatio": 0.5463269551595052,
+      "solidRatio": 0.43611780802408856,
+      "edgePixels": 0,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          76,
+          122
+        ],
+        "max": [
+          966,
+          1429
+        ]
+      },
+      "surfaceRatio": -0.0006510416666666666,
+      "bottomCoverage": 0
+    },
+    {
+      "id": "joseon",
+      "kind": "subject",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.3565375010172526,
+      "solidRatio": 0.6192913055419922,
+      "edgePixels": 0,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          4,
+          17
+        ],
+        "max": [
+          1530,
+          995
+        ]
+      },
+      "surfaceRatio": 0.6630859375,
+      "bottomCoverage": 0
+    },
+    {
+      "id": "jurassic",
+      "kind": "subject",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.37343788146972656,
+      "solidRatio": 0.5985132853190104,
+      "edgePixels": 0,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          11,
+          18
+        ],
+        "max": [
+          1523,
+          989
+        ]
+      },
+      "surfaceRatio": 0.5595703125,
+      "bottomCoverage": 0
+    },
+    {
+      "id": "lab",
+      "kind": "subject",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.43117332458496094,
+      "solidRatio": 0.5192527770996094,
+      "edgePixels": 0,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          25,
+          146
+        ],
+        "max": [
+          1518,
+          914
+        ]
+      },
+      "surfaceRatio": -0.0009765625,
+      "bottomCoverage": 0
+    },
+    {
+      "id": "cat",
+      "kind": "subject",
+      "width": 1536,
+      "height": 1024,
+      "clearRatio": 0.5525468190511068,
+      "solidRatio": 0.4130058288574219,
+      "edgePixels": 0,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          122,
+          85
+        ],
+        "max": [
+          1456,
+          948
+        ]
+      },
+      "surfaceRatio": -0.0009765625,
+      "bottomCoverage": 0
+    },
+    {
+      "id": "desk-light",
+      "kind": "desk",
+      "width": 2172,
+      "height": 724,
+      "clearRatio": 0.271492145131915,
+      "solidRatio": 0.7113259668508287,
+      "edgePixels": 3200,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          0,
+          209
+        ],
+        "max": [
+          2171,
+          723
+        ]
+      },
+      "surfaceRatio": 0.2886740331491713,
+      "bottomCoverage": 1
+    },
+    {
+      "id": "desk-dark",
+      "kind": "desk",
+      "width": 2172,
+      "height": 724,
+      "clearRatio": 0.4235072443861095,
+      "solidRatio": 0.5643053732588545,
+      "edgePixels": 2984,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          0,
+          315
+        ],
+        "max": [
+          2171,
+          723
+        ]
+      },
+      "surfaceRatio": 0.43784530386740333,
+      "bottomCoverage": 1
+    },
+    {
+      "id": "desk-workshop",
+      "kind": "desk",
+      "width": 2172,
+      "height": 724,
+      "clearRatio": 0.3562944507188425,
+      "solidRatio": 0.6077348066298343,
+      "edgePixels": 3050,
+      "alphaMismatch": 0,
+      "bounds": {
+        "min": [
+          0,
+          284
+        ],
+        "max": [
+          2171,
+          723
+        ]
+      },
+      "surfaceRatio": 0.39226519337016574,
+      "bottomCoverage": 1
+    }
+  ]
+}

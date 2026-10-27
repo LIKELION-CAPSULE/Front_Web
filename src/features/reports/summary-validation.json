@@ -1,0 +1,53 @@
+{
+  "validatedAt": "2026-10-27",
+  "scope": "Period-cumulative companion time, grouped left metrics, large right focus ring and sliding segmented controls",
+  "unitTests": 33,
+  "browserChecks": 30,
+  "checks": {
+    "lint": "passed",
+    "typecheckAndProductionBuild": "passed"
+  },
+  "browser": "isolated Chromium with 1440px, 768px, 390px and 320px viewport emulation",
+  "results": {
+    "passed": 30,
+    "checks": [
+      "Time, session count and companion count share one left summary panel",
+      "Focus panel sits to the right of the grouped metrics",
+      "Focus ring is substantially larger on desktop",
+      "Removed calendar footer copy is absent",
+      "Time chart no longer mixes focus percentages with time",
+      "Period toggle slides the shared selection background",
+      "Sliding indicator settles exactly under the selected button",
+      "주: chart explicitly identifies its cumulative period",
+      "주: all displayed time lines are nondecreasing",
+      "주: latest cumulative values equal each character’s period total",
+      "주: tooltip distinguishes bucket time from accumulated time",
+      "월: chart explicitly identifies its cumulative period",
+      "월: all displayed time lines are nondecreasing",
+      "월: latest cumulative values equal each character’s period total",
+      "월: tooltip distinguishes bucket time from accumulated time",
+      "년: chart explicitly identifies its cumulative period",
+      "년: all displayed time lines are nondecreasing",
+      "년: latest cumulative values equal each character’s period total",
+      "년: tooltip distinguishes bucket time from accumulated time",
+      "Rapid selection changes finish at the latest toggle",
+      "Reduced motion disables sliding",
+      "768px: summary and charts stay inside the viewport",
+      "768px: grouped metrics stay on the left and focus stays on the right",
+      "390px: summary and charts stay inside the viewport",
+      "390px: grouped metrics stay on the left and focus stays on the right",
+      "320px: summary and charts stay inside the viewport",
+      "320px: grouped metrics stay on the left and focus stays on the right",
+      "Room filter retains the same grouped summary and focus panel",
+      "Native keyboard selection still works with sliding tabs",
+      "No runtime or console errors"
+    ],
+    "metrics": {},
+    "errors": []
+  },
+  "limitations": [
+    "Physical mobile devices and other browser engines were not exercised.",
+    "Focus measurements remain frontend demo data."
+  ],
+  "artifacts": "Development-only screenshots and runner in /private/tmp/capsule-records-summary and /private/tmp/capsule-wireframe-browser/records-summary-qa.mjs."
+}

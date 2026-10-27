@@ -1,0 +1,9 @@
+{
+  "docs": "https://uibeats.com/docs/component/scratch-to-reveal",
+  "source": "https://github.com/nikhils4/ui-beats/blob/main/components/demo/component/scratch-to-reveal.tsx",
+  "sourceBlob": "4b68be1f6d74daa874675f33358d53156b2d38d1",
+  "licenseSource": "https://github.com/nikhils4/ui-beats/blob/main/LICENSE.md",
+  "licenseBlob": "a432d9f19af11c74f0f63dc81f91bd6fa60d9574",
+  "license": "MIT",
+  "adaptation": "Canvas destination-out and alpha-area completion adapted for hover-driven looping. A shared CSS alpha mask now clips each complete HTML slide, including its image and glass dialogue. Native requestAnimationFrame; no Motion dependency."
+}

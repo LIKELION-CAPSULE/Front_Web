@@ -1,0 +1,12 @@
+{
+  "mode": "built-in image_gen",
+  "generatedAt": "2026-10-27",
+  "purpose": "Correct Chaerin's fused crossed-leg anatomy with an uncrossed seated pose, preserving the three-character group",
+  "sourceImages": [
+    "classroom-fullbody-v2.png",
+    "../../rooms/classroom.webp"
+  ],
+  "master": "classroom-fullbody-v3.png",
+  "web": "classroom-fullbody-v3.webp",
+  "prompt": "Use case: precise-object-edit / identity-preserve. Asset type: corrected transparent three-character sprite for the CAPSULE study-room UI. Input image 1 is the EDIT TARGET: existing full-body three-person group. Input image 2 is ONLY the original poster reference for faces, hair, clothing and illustration style; do not copy its background, text, desk or layout. Correct ONLY the anatomy and seated lower-body pose of the CENTER BLONDE character, Chaerin. Her current crossed legs have a fused/extra bent-leg appearance. Replace her crossed legs with a very simple natural UN-CROSSED seated-floor pose: both knees bent side by side, both thighs connected to the hips under the modest pleated skirt, exactly two knees, two distinct lower legs angled down naturally, exactly two ankles and two matching black loafers resting in front on the same implied floor. Make every thigh-knee-shin-foot connection anatomically unambiguous, no overlapping or twisted shins, no third leg, no fused calves. Keep opaque dark tights and skirt coverage consistent with the current outfit. Keep the center character's cheek-in-hand upper body and both arms/hands unchanged. Preserve the left short-black-bob character Sua and right brown-haired character Dahee, their complete poses, outfits, notebook and pen, and keep all three faces, hair, expressions and the existing warm softly shaded illustration style as close as possible to image 1. Keep all three people together in the same left-center-right order and at the same scale. Canvas landscape 1536x1024; no cropped hair, hands, clothes or shoes, keep a transparent safety margin all around. Genuine ALPHA transparency outside and between characters, no background, gradient, haze, floor plane, chairs, table, shadows on a floor, text, labels, title, logos or watermarks. The output is only the corrected three-person character cutout."
+}

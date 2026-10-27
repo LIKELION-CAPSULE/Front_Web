@@ -3,8 +3,9 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
 import { useDemo } from '@/features/demo/demo-context'
 import { tierById } from '@/features/demo/catalog'
-import { BREAK_SECONDS, sessionElapsed, STUDY_SECONDS } from '@/features/demo/reducer'
+import { BREAK_SECONDS, sessionElapsed } from '@/features/demo/reducer'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
+import { studyGoalSeconds } from '@/features/session/study-goal'
 import { useNow } from '@/features/session/use-now'
 import { CharacterTile } from '@/features/session/components/CharacterTile'
 import { getCharacterArtwork } from '@/features/characters/artwork'
@@ -52,10 +53,8 @@ export default function StudyPage() {
   const focused = characters.find((character) => character.id === focusId)
   const chatOpen = params.get('chat') === '1'
   const elapsed = sessionElapsed(active, now)
-  const remaining = Math.max(
-    0,
-    (active.phase === 'study' ? STUDY_SECONDS : BREAK_SECONDS) - elapsed,
-  )
+  const goal = studyGoalSeconds(active)
+  const remaining = Math.max(0, (active.phase === 'study' ? goal : BREAK_SECONDS) - elapsed)
   const used = state.chatUsage.day === businessDay(now) ? state.chatUsage.used : 0
   const messages = state.messages.filter(
     (message) => message.sessionId === active.id && message.characterId === selected.id,
@@ -86,12 +85,18 @@ export default function StudyPage() {
   }
   function finish(another = false) {
     dispatch({ type: 'FINISH', now: Date.now() })
-    navigate(another ? `/rooms/${room!.id}/prepare?step=set` : `/reports/${active!.id}`)
+    navigate(
+      another
+        ? `/rooms/${room!.id}/prepare?step=goal&goal=${Math.round(studyGoalSeconds(active!) / 60)}`
+        : `/reports/${active!.id}`,
+    )
   }
   const timer = (
     <div className="session-timer">
       <strong className="font-mono text-[21px]">{clock(remaining)}</strong>
-      <span className="text-[10px] text-white/75">공부 50분 → 쉬는 시간 10분</span>
+      <span className="text-[10px] text-white/75">
+        목표 {Math.round(goal / 60)}분 · 이후 10분 휴식
+      </span>
       <Badge className="bg-brand-soft text-brand-strong">{tierById(active.tier).name}</Badge>
     </div>
   )
@@ -304,7 +309,7 @@ export default function StudyPage() {
               <div className="break-timer">
                 <span className="font-bold text-brand-strong">쉬는 시간</span>
                 <strong className="font-mono text-[21px]">{clock(remaining).slice(3)}</strong>
-                <span className="text-xs text-muted">남음 · 끝나면 다시 공부</span>
+                <span className="text-xs text-muted">남음 · 이후에 다음 목표 정하기</span>
               </div>
               <div className="break-thumbnails">
                 {characters
@@ -331,7 +336,7 @@ export default function StudyPage() {
               </div>
               <div className="break-actions">
                 <button className="bg-brand-solid text-white" onClick={() => finish(true)}>
-                  한 세트 더 · 공부 50분
+                  목표 정하고 공부 이어가기
                 </button>
                 <button className="bg-panel" onClick={() => finish()}>
                   오늘은 여기까지
@@ -340,7 +345,7 @@ export default function StudyPage() {
               {remaining === 0 && (
                 <div className="break-finished">
                   <h2 className="text-2xl font-bold">잘 쉬었나요?</h2>
-                  <p className="mt-2 text-sm text-muted">한 세트 더 할까요, 오늘은 마칠까요?</p>
+                  <p className="mt-2 text-sm text-muted">목표를 새로 정할까요, 오늘은 마칠까요?</p>
                 </div>
               )}
             </CharacterTile>

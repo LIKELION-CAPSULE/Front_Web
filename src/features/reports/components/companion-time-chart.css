@@ -1,0 +1,206 @@
+.companion-chart {
+  min-width: 0;
+}
+.companion-chart-legend {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 0 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #514362 transparent;
+}
+.companion-chart-legend button {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+  opacity: 0.5;
+  transition:
+    opacity 0.2s,
+    background 0.2s;
+}
+.companion-chart-legend button[aria-pressed='true'] {
+  background: #ffffff08;
+  opacity: 1;
+}
+.companion-chart-legend button:hover {
+  opacity: 1;
+}
+.companion-chart-person {
+  min-width: 54px;
+}
+.companion-chart-legend strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+.companion-chart-legend small {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  color: #9499ad;
+  white-space: nowrap;
+}
+.companion-chart-legend i,
+.companion-chart-tooltip i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--series-color);
+}
+.companion-chart-plot {
+  position: relative;
+  margin-top: 12px;
+  border-radius: 12px;
+  touch-action: pan-y;
+}
+.companion-chart-plot:focus-visible {
+  outline: 2px solid #ba94f1;
+  outline-offset: 4px;
+}
+.companion-chart-plot > svg {
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  overflow: visible;
+}
+.companion-chart-grid line {
+  stroke: #ffffff09;
+  stroke-dasharray: 3 5;
+}
+.companion-chart-grid text,
+.companion-chart-tick {
+  fill: #8c92a5;
+  font-size: 10px;
+}
+.companion-chart-line {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  animation: companion-line-reveal 0.65s ease-out backwards;
+}
+.companion-chart-crosshair line {
+  stroke: #c4b3dd66;
+  stroke-dasharray: 3 4;
+}
+.companion-chart-crosshair circle {
+  stroke: #151923;
+  stroke-width: 2;
+}
+.companion-chart-tooltip {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  width: min(288px, calc(100% - 16px));
+  max-height: 180px;
+  overflow-y: auto;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #22202fed;
+  box-shadow: 0 10px 28px #0004;
+  backdrop-filter: blur(12px);
+  font-size: 11px;
+  scrollbar-width: thin;
+}
+.companion-chart-tooltip > strong {
+  display: block;
+  margin-bottom: 9px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #aaa3ba;
+}
+.companion-chart-tooltip p,
+.companion-chart-tooltip-head {
+  display: grid;
+  grid-template-columns: minmax(40px, 0.85fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+}
+.companion-chart-tooltip p > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 48px;
+}
+.companion-chart-tooltip b {
+  font-weight: 500;
+  white-space: nowrap;
+  text-align: right;
+}
+.companion-chart-tooltip small {
+  color: #aaa3ba;
+  font-size: 9px;
+  white-space: nowrap;
+  text-align: right;
+}
+.companion-chart-tooltip-head {
+  margin-top: 12px;
+  font-size: 9px;
+  color: #9d95af;
+}
+.companion-chart-tooltip-head > :not(:first-child) {
+  text-align: right;
+}
+.companion-chart-caption {
+  margin-top: 12px;
+  text-align: right;
+  font-size: 10px;
+  color: #9499ad;
+}
+.companion-chart-empty {
+  display: grid;
+  min-height: 220px;
+  place-content: center;
+  color: #9499ad;
+  font-size: 12px;
+}
+.records-surface :is(.stat-card, .ui-panel, .activity-panel) {
+  border: 0;
+}
+@keyframes companion-line-reveal {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    opacity: 0.3;
+  }
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+@media (max-width: 767px) {
+  .companion-chart-plot > svg {
+    min-height: 150px;
+  }
+  .companion-chart-tooltip {
+    padding: 10px;
+  }
+  .companion-chart-tooltip small {
+    font-size: 8px;
+  }
+  .companion-chart-tooltip p {
+    gap: 8px;
+  }
+  .companion-chart-tooltip p > span {
+    min-width: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .companion-chart-line {
+    animation: none;
+  }
+  .companion-chart-legend button {
+    transition: none;
+  }
+}

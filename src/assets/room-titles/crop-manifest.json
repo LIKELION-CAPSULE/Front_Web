@@ -1,0 +1,224 @@
+{
+  "method": "Alpha bounds, deterministic crop; no regeneration or aspect-ratio distortion",
+  "alphaThreshold": 8,
+  "padding": 4,
+  "assets": [
+    {
+      "id": "classroom",
+      "master": "classroom-title-v3.png",
+      "sourceWeb": "classroom-title-v3.webp",
+      "output": "classroom-title-v3-trimmed.webp",
+      "sourceWidth": 1536,
+      "sourceHeight": 1024,
+      "crop": {
+        "x": 40,
+        "y": 128,
+        "width": 1482,
+        "height": 852
+      },
+      "removed": {
+        "left": 40,
+        "top": 128,
+        "right": 14,
+        "bottom": 44
+      },
+      "masterSha256": "73e525ee966b42386ddb4682073e87db25988110014365686f22d2b3c769be22",
+      "outputSha256": "ea4124e87fb388a3753623be5c89f5c34dd0dee0a28ec272c62199402e001260",
+      "outputBytes": 417610
+    },
+    {
+      "id": "night",
+      "master": "night-title-v1.png",
+      "sourceWeb": "night-title-v1.webp",
+      "output": "night-title-v1-compact-trimmed.webp",
+      "sourceWidth": 1774,
+      "sourceHeight": 887,
+      "crop": {
+        "x": 290,
+        "y": 74,
+        "width": 1462,
+        "height": 801
+      },
+      "decorationCrop": {
+        "left": 290,
+        "reason": "Shorten the left ornamental lightning tail before 전교"
+      },
+      "alphaBoundsCrop": {
+        "x": 30,
+        "y": 74,
+        "width": 1722,
+        "height": 801
+      },
+      "removed": {
+        "left": 290,
+        "top": 74,
+        "right": 22,
+        "bottom": 12
+      },
+      "masterSha256": "aa6d6c30bd709db2e9a8363b29f24e0077180988822b2fd5055ebc5f6ba0d3a3",
+      "outputSha256": "b8c6760a30e934f59e4176bbc7914be97aa6623244875a9c7a9f62eff6a6b757",
+      "outputBytes": 435854
+    },
+    {
+      "id": "cat",
+      "master": "cat-title-v1.png",
+      "sourceWeb": "cat-title-v1.webp",
+      "output": "cat-title-v1-trimmed.webp",
+      "sourceWidth": 1536,
+      "sourceHeight": 1024,
+      "crop": {
+        "x": 42,
+        "y": 128,
+        "width": 1462,
+        "height": 809
+      },
+      "removed": {
+        "left": 42,
+        "top": 128,
+        "right": 32,
+        "bottom": 87
+      },
+      "masterSha256": "53073aba0ce0495eb8b5d4d90800fe58786a2876f4c3c50a39b9ae10b7adb1c3",
+      "outputSha256": "40c93e26901cffc75983cc2920ec9c70c2bd004d48f2cd0560d744b9a409b896",
+      "outputBytes": 279958
+    },
+    {
+      "id": "lantern",
+      "master": "lantern-title-v1.png",
+      "sourceWeb": "lantern-title-v1.webp",
+      "output": "lantern-title-v1-trimmed.webp",
+      "sourceWidth": 1860,
+      "sourceHeight": 845,
+      "crop": {
+        "x": 54,
+        "y": 88,
+        "width": 1782,
+        "height": 717
+      },
+      "removed": {
+        "left": 54,
+        "top": 88,
+        "right": 24,
+        "bottom": 40
+      },
+      "masterSha256": "8ed6e0c8f75dbe2dd6a81b7c0cab36f2b45a663c21f6121c52dc098c923ef551",
+      "outputSha256": "649e742196b771b71818e4eeba5eab0ba3d7ee1071eb6404fa7b37673a2218d8",
+      "outputBytes": 328628
+    },
+    {
+      "id": "fantasy",
+      "master": "fantasy-title-v1.png",
+      "sourceWeb": "fantasy-title-v1.webp",
+      "output": "fantasy-title-v1-trimmed.webp",
+      "sourceWidth": 1536,
+      "sourceHeight": 1024,
+      "crop": {
+        "x": 32,
+        "y": 138,
+        "width": 1475,
+        "height": 797
+      },
+      "removed": {
+        "left": 32,
+        "top": 138,
+        "right": 29,
+        "bottom": 89
+      },
+      "masterSha256": "a8c31b544266819a737f1ab3eca0cf753660ecf04c222d7d16632c3bad200434",
+      "outputSha256": "3442917a37dc2722168361db31096ef3872a75fecd9e606346af6c98ca90bd08",
+      "outputBytes": 499380
+    },
+    {
+      "id": "iljin",
+      "master": "iljin-title-v1.png",
+      "sourceWeb": "iljin-title-v1.webp",
+      "output": "iljin-title-v1-trimmed.webp",
+      "sourceWidth": 1774,
+      "sourceHeight": 887,
+      "crop": {
+        "x": 90,
+        "y": 80,
+        "width": 1666,
+        "height": 777
+      },
+      "removed": {
+        "left": 90,
+        "top": 80,
+        "right": 18,
+        "bottom": 30
+      },
+      "masterSha256": "e71c7522913b46c965ce13a9417469a10b394d3fa836afe6d6cbe8f7a5fc816d",
+      "outputSha256": "d7b024f212ce88a0ed6f346df70cd6b2991694b6661d5be685bfeedb10e5c730",
+      "outputBytes": 439260
+    },
+    {
+      "id": "jurassic",
+      "master": "jurassic-title-v1.png",
+      "sourceWeb": "jurassic-title-v1.webp",
+      "output": "jurassic-title-v1-trimmed.webp",
+      "sourceWidth": 1774,
+      "sourceHeight": 887,
+      "crop": {
+        "x": 128,
+        "y": 102,
+        "width": 1568,
+        "height": 764
+      },
+      "removed": {
+        "left": 128,
+        "top": 102,
+        "right": 78,
+        "bottom": 21
+      },
+      "masterSha256": "a78825cff2bd3aa72f358d5cba5e23bdee79703aee425447083d1009e5e7c6d5",
+      "outputSha256": "e383ec0d76a299d3f63a15d17b1c1ad1a4dafc83f2f5f414a1c2f7ea44446332",
+      "outputBytes": 340684
+    },
+    {
+      "id": "lab",
+      "master": "lab-title-v1.png",
+      "sourceWeb": "lab-title-v1.webp",
+      "output": "lab-title-v1-trimmed.webp",
+      "sourceWidth": 1774,
+      "sourceHeight": 887,
+      "crop": {
+        "x": 114,
+        "y": 44,
+        "width": 1616,
+        "height": 832
+      },
+      "removed": {
+        "left": 114,
+        "top": 44,
+        "right": 44,
+        "bottom": 11
+      },
+      "masterSha256": "3084407bf3685f9e307e7459db24148a2c093cf68465058dfd8059ebfb9cde7c",
+      "outputSha256": "a4d312ecb5c3e65056fcedb51ba995223734d62ee8881e44f04c9f91be29e0cf",
+      "outputBytes": 277708
+    },
+    {
+      "id": "joseon",
+      "master": "joseon-title-v1.png",
+      "sourceWeb": "joseon-title-v1.webp",
+      "output": "joseon-title-v1-trimmed.webp",
+      "sourceWidth": 1774,
+      "sourceHeight": 887,
+      "crop": {
+        "x": 140,
+        "y": 26,
+        "width": 1602,
+        "height": 854
+      },
+      "removed": {
+        "left": 140,
+        "top": 26,
+        "right": 32,
+        "bottom": 7
+      },
+      "masterSha256": "401096f489a3bfc439c5f90812dc57860ffb7206bb57f75f72f280e9dda785ad",
+      "outputSha256": "59a992e5c3f239e69584e671b8c1425cc67b84097fdd60d0ef47a71f31ca577e",
+      "outputBytes": 601280
+    }
+  ]
+}

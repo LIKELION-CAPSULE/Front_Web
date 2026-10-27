@@ -4,7 +4,7 @@
   "assets": [
     {
       "id": "classroom-subject",
-      "sourcePoster": "classroom.webp",
+      "sourcePoster": "../rooms/classroom.webp",
       "master": "classroom-subject-v1.png",
       "prompt": "Use case: background-extraction. Asset type: reusable transparent character foreground layer for the CAPSULE study web app. Image 1 is the edit target. Extract ONLY the central blonde student character from this poster. Preserve her face, original long light blonde hair, grey-pink eyes, natural reserved expression, cheek resting on her left hand, white shirt, black necktie and original anime painterly rendering. Keep the entire visible silhouette, including complete top of hair, shoulders, both elbows and arms. Cleanly reconstruct only the lower shirt/forearm areas that were covered by the large Korean title. Remove the other two characters, background, laptop, desk, books, all lettering including the nametag, all title graphics and light effects. Center the isolated seated waist-up character on a generous transparent canvas with a small safe margin on every side. Real alpha transparency around and through loose hair strands; no opaque or checkerboard backdrop, no fake transparency. Do not change identity or clothing, do not add props or characters. This is a standalone foreground PNG to layer over a separately generated classroom. No text, logo, watermark or frame.",
       "web": "classroom-subject-v1.webp",
@@ -12,7 +12,7 @@
     },
     {
       "id": "night-subject",
-      "sourcePoster": "night-study.webp",
+      "sourcePoster": "../rooms/night-study.webp",
       "master": "night-subject-v1.png",
       "prompt": "Use case: background-extraction. Asset type: transparent character foreground for a layered responsive study-room banner. Image 1 is the edit target. Isolate only the long black-haired student from the supplied poster. Preserve precisely the original face, eyes, hair texture, gentle serious expression, cheek resting in hand, black cardigan, white collar and striped dark necktie, original cool blue/lilac rim lighting and detailed anime painterly style. Keep the entire visible waist-up silhouette, complete top of hair and both shoulders/elbows. Cleanly reconstruct the lower clothing where the title covered it. Remove all background, flying papers, desk, laptop, books, glowing marks, crown, titles and all writing. Center on a transparent canvas with small safe margins around the silhouette. Real alpha transparency and fine hair edges, not a painted checkerboard or opaque background. Do not change identity, gender, pose or outfit. No extra people, no text, no watermark. This will be positioned over a separate nighttime study background.",
       "web": "night-subject-v1.webp",
@@ -20,7 +20,7 @@
     },
     {
       "id": "cat-subject",
-      "sourcePoster": "cat-library.webp",
+      "sourcePoster": "../rooms/cat-library.webp",
       "master": "cat-subject-v1.png",
       "prompt": "Use case: background-extraction. Asset type: transparent mascot layer for a responsive layered study-room banner. Image 1 is the edit target. Recreate and isolate only the adorable small black cat visible in the original poster, preserving the exact recognizable character: very large round golden-yellow eyes, small triangular ears with pink interiors, tiny nose, round dark-furred face resting its chin and front paws on the surface, curled upright tail at the left. Keep the entire cat visible and uncropped with generous transparent margin. Match the soft, clean anime storybook rendering and warm light of the reference; upscale crisply. Remove the whole classroom/study background, books, papers, desk, and absolutely all Korean writing, titles and annotations. Keep whiskers and detailed soft edges. Real alpha transparency with no opaque or checkerboard background. No new props, extra animals or text.",
       "web": "cat-subject-v1.webp",
@@ -28,7 +28,7 @@
     },
     {
       "id": "classroom-background",
-      "sourcePoster": "classroom.webp",
+      "sourcePoster": "../rooms/classroom.webp",
       "master": "classroom-background-v1.png",
       "prompt": "Use case: precise-object-edit. Asset type: background-only wide environment layer for a responsive CAPSULE study room. Image 1 is the environment/style reference and edit target. Remove all three students, all poster lettering, annotations, labels and graphic effects, then reconstruct and expand the classroom into a clean wide 16:9 landscape, ideally 2048x1152. Preserve the original polished anime illustration aesthetic, Korean classroom architecture and intimate desk-level viewpoint. Show a softly lit empty classroom with pale wooden desks, stacked plain study books, dark chalkboard toward the left, large windows toward the right, and warm afternoon sunlight. Foreground desk edge runs continuously along the bottom quarter so a separate seated character can be layered in front, but keep the center clear of tall objects. Extend the setting naturally horizontally instead of stretching the portrait. Background-only: no humans, silhouettes, animals, lettering, readable book labels, watermarks or logos. Refined depth, restrained detail, soft warm daylight that matches the original blonde student's lighting. Do not bake any title or UI into the image.",
       "web": "classroom-background-v1.webp",
@@ -36,7 +36,7 @@
     },
     {
       "id": "night-background",
-      "sourcePoster": "night-study.webp",
+      "sourcePoster": "../rooms/night-study.webp",
       "master": "night-background-v1.png",
       "prompt": "Use case: precise-object-edit. Asset type: background-only wide environment layer for a layered study banner. Image 1 is the edit target/style reference. Remove the central student and ALL titles, lettering, crown, symbols and flying papers. Reconstruct the empty study room and expand naturally to a clean 16:9 landscape, ideally 2048x1152. Preserve the original detailed anime painterly rendering, midnight navy and muted lavender-blue lighting, tall windows with a softly glowing distant city at night, bookshelves, piles of plain books at the far edges, a modern desk lamp with soft light. An uninterrupted dark wooden desk surface and plain open notebook may occupy the bottom quarter, while the middle and upper-right contain no tall foreground obstructions so a separate seated character can be layered there. No person, silhouette, animal, title, text, readable book spines, branded laptop, logo or watermark. Do not stretch the existing portrait. Wide quiet study atmosphere with believable perspective and subtle depth.",
       "web": "night-background-v1.webp",
@@ -44,12 +44,343 @@
     },
     {
       "id": "cat-background",
-      "sourcePoster": "cat-library.webp",
+      "sourcePoster": "../rooms/cat-library.webp",
       "master": "cat-background-v1.png",
       "prompt": "Use case: precise-object-edit. Asset type: clean wide background layer for the CAPSULE cozy cat study room. Image 1 is the edit target/style reference. Remove the black cat and all Korean handwriting, titles, notes, readable book labels, logos and text, then reconstruct the hidden setting and expand it horizontally to a naturally composed 16:9 landscape, ideally 2048x1152. Keep the same soft anime storybook illustration style: warm cream walls, big sunlit window, gently glowing afternoon light, a pale study desk across the bottom third, plain open notebook and pencil, a few pastel textbooks at the far left, cozy shelf at the far right. Leave the center desk open for placing a separately cut-out small cat. Desk-level camera, pleasing depth and gentle sunlight, original warm gentle mood. No cat, animal, person, silhouette, text, title, label, watermark or interface. Do not stretch portrait artwork or create a finished poster. This is a reusable empty environment only.",
       "web": "cat-background-v1.webp",
       "sha256": "f59bbc59d5f559e8a3429b5dad5155b8373c966fd27ae900abf0aa2d7a63904d"
+    },
+    {
+      "id": "lantern-subject",
+      "sourcePoster": "../auth-posters/lantern.webp",
+      "master": "lantern-subject-v1.png",
+      "web": "lantern-subject-v1.webp",
+      "prompt": "Use case: background-extraction. Asset type: reusable transparent foreground layer for the CAPSULE study web app. Image 1 is the edit target, not a loose style suggestion. Preserve ALL THREE adult women from the reference as one coherent waist-up foreground group: the short dark bob-haired woman at left in Korean camouflage holding a plain notebook; the composed dark-haired woman in the middle in a dark green officer dress uniform, chin resting in her hand; and the long brown-haired woman at right in camouflage with a stethoscope and medical armband. Preserve their recognizable faces, eyes, hairstyles, clothing, relative left/middle/right order and soft warm desk-lamp lighting. Reconstruct their complete shoulders, elbows, hands and clothing where cropped or covered by the title. Keep held notebook and stethoscope, but remove the desk, lamps, laptop, loose books and the back of the man's head at the bottom. Match the original rendering and character identities; do not redesign. Create a clean standalone foreground PNG, preferably landscape 1536x1024, on GENUINE alpha transparency. Keep every head, ear, ornament, elbow and extremity safely inside the canvas with a small transparent margin on all sides; no arbitrary hard crops. No opaque background, checkerboard pattern, text, title graphics, watermark or new characters. The foreground will sit over a separately generated environment, with the editable title added in DOM.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "sha256": "8b013471dee3fee8753ec504661d0c6209e750fee1f319f344b2b4db12bd8fbf",
+      "webSha256": "ec909a7005ba9f5a1c3b41ce97950339a5a6968181d48278badd09468c7e570d",
+      "alphaValidation": {
+        "scene": "lantern",
+        "width": 1536,
+        "height": 1024,
+        "clearRatio": 0.27530161539713544,
+        "softAlphaRatio": 0.04302787780761719,
+        "solidRatio": 0.6816705067952474,
+        "maxAlpha": 254,
+        "alphaMismatch": 0,
+        "bounds": {
+          "min": [
+            0,
+            92
+          ],
+          "max": [
+            1535,
+            1023
+          ]
+        },
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "lantern-background",
+      "sourcePoster": "../auth-posters/lantern.webp",
+      "master": "lantern-background-v1.png",
+      "web": "lantern-background-v1.webp",
+      "prompt": "Use case: precise-object-edit. Asset type: background-only environment layer for a responsive CAPSULE study-room banner. Image 1 is the edit target and style/environment reference. An EMPTY Korean military office used as a quiet nighttime study room, matching the reference: blue evening windows with distant lit apartment windows and trees, book-filled shelves along the sides, softly glowing warm desk lamps, and an uninterrupted wooden study desk across the lower quarter with a few plain notebooks at the far edges. Remove all three women and the foreground man's head, reconstruct the concealed room, and naturally extend the office horizontally. Output a clean WIDE 16:9 landscape, ideally 2048x1152, not a portrait or collage. Expand and reconstruct the setting naturally; never stretch the source. Preserve its original lighting, palette and high-quality anime/storybook/painterly rendering as appropriate to this reference. Leave enough open midground for a separately layered foreground. Background ONLY: no characters, animals, silhouettes, title lettering, readable labels, logos or watermark. Do not bake a title or UI into the image.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1672,
+      "height": 941,
+      "transparent": false,
+      "sha256": "ef46b2dddbd546df6d357ece23a87412de728138edabcd3a2f48275e357cc63f",
+      "webSha256": "98a304b1aefde7c70c43a677346febedd2675f01d04e39c6f53524919448a1fe"
+    },
+    {
+      "id": "fantasy-subject",
+      "sourcePoster": "../auth-posters/fantasy.webp",
+      "master": "fantasy-subject-v1.png",
+      "web": "fantasy-subject-v1.webp",
+      "prompt": "Use case: background-extraction. Asset type: reusable transparent foreground layer for the CAPSULE study web app. Image 1 is the edit target, not a loose style suggestion. Preserve ALL THREE adult mage characters shown in the three panels of the reference, and arrange them as one natural side-by-side waist-up foreground group rather than stacked panels: the red-black-haired man in elaborate burgundy-and-gold robes at left, the brunette woman with teal feather details and embroidered teal robes in the middle, and the blonde man in ivory-and-gold robes at right. Preserve their distinct faces, eyes, hair, costume detail, necklaces and confident expressions. Keep complete hands and their small handheld wand where visible; reconstruct only cropped shoulders, torsos and elbows. Keep restrained colored magical glows near hands on transparent alpha but remove large magic circles, floating written formulae, candle fixtures, books and scenery. No panel borders. Match the original rendering and character identities; do not redesign. Create a clean standalone foreground PNG, preferably landscape 1536x1024, on GENUINE alpha transparency. Keep every head, ear, ornament, elbow and extremity safely inside the canvas with a small transparent margin on all sides; no arbitrary hard crops. No opaque background, checkerboard pattern, text, title graphics, watermark or new characters. The foreground will sit over a separately generated environment, with the editable title added in DOM.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "sha256": "9438131415b40c3554ce0aeb5657b2a5b855d6a52698a74b74ee40cc0914a340",
+      "webSha256": "e34f22acc986cedfea68e8717ac6ca618db0ed5beef4abe581caeaa36cec2e12",
+      "alphaValidation": {
+        "scene": "fantasy",
+        "width": 1536,
+        "height": 1024,
+        "clearRatio": 0.15865071614583334,
+        "softAlphaRatio": 0.07503318786621094,
+        "solidRatio": 0.7663160959879557,
+        "maxAlpha": 254,
+        "alphaMismatch": 0,
+        "bounds": {
+          "min": [
+            0,
+            9
+          ],
+          "max": [
+            1535,
+            1023
+          ]
+        },
+        "corners": [
+          0,
+          0,
+          236,
+          241
+        ]
+      }
+    },
+    {
+      "id": "fantasy-background",
+      "sourcePoster": "../auth-posters/fantasy.webp",
+      "master": "fantasy-background-v1.png",
+      "web": "fantasy-background-v1.webp",
+      "prompt": "Use case: precise-object-edit. Asset type: background-only environment layer for a responsive CAPSULE study-room banner. Image 1 is the edit target and style/environment reference. An EMPTY magnificent magic-school library matching the reference: tall Gothic stained-glass windows with violet-blue moonlight, warm candle chandeliers, dark polished wood shelves filled with unlettered old volumes, antique brass astronomical instruments at the far edges, and an unobstructed reading desk across the bottom quarter. Merge the reference's three related rooms into a single coherent wide environment. Remove all three mages, floating magical symbols, panel dividers and decorative title plaque. Output a clean WIDE 16:9 landscape, ideally 2048x1152, not a portrait or collage. Expand and reconstruct the setting naturally; never stretch the source. Preserve its original lighting, palette and high-quality anime/storybook/painterly rendering as appropriate to this reference. Leave enough open midground for a separately layered foreground. Background ONLY: no characters, animals, silhouettes, title lettering, readable labels, logos or watermark. Do not bake a title or UI into the image.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1672,
+      "height": 941,
+      "transparent": false,
+      "sha256": "ef31ef5afe1634b1b999f8fcd7b3ccfd9c08eaf7a2519ad8e0c2befa3a3a9270",
+      "webSha256": "0b93993f69c15abe41fb5b08f232659043708b74a0a545a7a88ffb46c85fc046"
+    },
+    {
+      "id": "iljin-subject",
+      "sourcePoster": "../auth-posters/iljin.webp",
+      "master": "iljin-subject-v1.png",
+      "web": "iljin-subject-v1.webp",
+      "prompt": "Use case: background-extraction. Asset type: reusable transparent foreground layer for the CAPSULE study web app. Image 1 is the edit target, not a loose style suggestion. Isolate ONLY the central black-haired male student from the reference, preserving the exact recognizable face, swept tousled black hair, grey-brown eyes, relaxed reserved expression, cheek resting on his hand, black school blazer, open white collar and loose black necktie. Preserve the original warm window rim light and detailed polished anime illustration. Reconstruct the complete top of hair, both shoulders, forearms, elbows and lower jacket hidden by the title. Keep his natural seated waist-up pose. Remove desk, books, classroom and all handwritten notes and lettering. Match the original rendering and character identities; do not redesign. Create a clean standalone foreground PNG, preferably landscape 1536x1024, on GENUINE alpha transparency. Keep every head, ear, ornament, elbow and extremity safely inside the canvas with a small transparent margin on all sides; no arbitrary hard crops. No opaque background, checkerboard pattern, text, title graphics, watermark or new characters. The foreground will sit over a separately generated environment, with the editable title added in DOM.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "sha256": "185ae28b4e471557c202e515b1a844ebf6a346dec7a8604e3bd254ed38532a35",
+      "webSha256": "9010a05cf3ca2ce944310b6cf1c9c9a000dd8182523db0480b8805415320afdd",
+      "alphaValidation": {
+        "scene": "iljin",
+        "width": 1536,
+        "height": 1024,
+        "clearRatio": 0.37961896260579425,
+        "softAlphaRatio": 0.0505975087483724,
+        "solidRatio": 0.5697835286458334,
+        "maxAlpha": 254,
+        "alphaMismatch": 0,
+        "bounds": {
+          "min": [
+            59,
+            2
+          ],
+          "max": [
+            1498,
+            1011
+          ]
+        },
+        "corners": [
+          1,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "iljin-background",
+      "sourcePoster": "../auth-posters/iljin.webp",
+      "master": "iljin-background-v1.png",
+      "web": "iljin-background-v1.webp",
+      "prompt": "Use case: precise-object-edit. Asset type: background-only environment layer for a responsive CAPSULE study-room banner. Image 1 is the edit target and style/environment reference. An EMPTY sunny Korean classroom from the reference, with a dark green chalkboard at left, tall bright windows at right, subtle warm golden afternoon rays and pale wooden desks. Extend the portrait naturally into a coherent wide landscape. A continuous desk edge spans the lower quarter with a few plain books confined to the far left; the center is open for a separately layered seated student. Remove the student, all handwriting on the chalkboard, poster lettering and graphic annotations. Output a clean WIDE 16:9 landscape, ideally 2048x1152, not a portrait or collage. Expand and reconstruct the setting naturally; never stretch the source. Preserve its original lighting, palette and high-quality anime/storybook/painterly rendering as appropriate to this reference. Leave enough open midground for a separately layered foreground. Background ONLY: no characters, animals, silhouettes, title lettering, readable labels, logos or watermark. Do not bake a title or UI into the image.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1672,
+      "height": 941,
+      "transparent": false,
+      "sha256": "701d76ed246eb714cb5dea63e8c57d65117df0fa1c56d1cb5d600cab4b35bfd3",
+      "webSha256": "6250a29d6be88b446b4705a2ec0afba582d7b1a222c0bb6bdc011b853774cf99"
+    },
+    {
+      "id": "jurassic-subject",
+      "sourcePoster": "../auth-posters/jurassic.webp",
+      "master": "jurassic-subject-v1.png",
+      "web": "jurassic-subject-v1.webp",
+      "prompt": "Use case: background-extraction. Asset type: reusable transparent foreground layer for the CAPSULE study web app. Image 1 is the edit target, not a loose style suggestion. Preserve the central brown-haired student with a loose messy bun, soft white hoodie, cheek resting on her hand, writing hand and recognizable gentle expression; include her FOUR original dinosaur companions as a coherent foreground group: the large rounded green dinosaur wearing white headphones behind the left shoulder, the small blue horned dinosaur at lower left, the tall friendly yellow long-neck dinosaur at right, and the small pink pterosaur at lower right. Preserve their round eyes, proportions, soft painterly textures, original colors and warm daylight. Keep the whole group uncropped including headphone band, horns, long neck and complete wing tips; reconstruct only areas hidden by the title or desk. Remove the study desk, laptop, books, notebooks, drinks, snack props, all background and all text. Match the original rendering and character identities; do not redesign. Create a clean standalone foreground PNG, preferably landscape 1536x1024, on GENUINE alpha transparency. Keep every head, ear, ornament, elbow and extremity safely inside the canvas with a small transparent margin on all sides; no arbitrary hard crops. No opaque background, checkerboard pattern, text, title graphics, watermark or new characters. The foreground will sit over a separately generated environment, with the editable title added in DOM.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "sha256": "85a669d78b6b87bdb60fe892d68f49005f7f873cc691c740d10173ac7d2d5f65",
+      "webSha256": "07a43ba8dd91770c2e869c40d672d20723803ce623423610d9cb69a9100131b7",
+      "alphaValidation": {
+        "scene": "jurassic",
+        "width": 1536,
+        "height": 1024,
+        "clearRatio": 0.32695960998535156,
+        "softAlphaRatio": 0.04688199361165365,
+        "solidRatio": 0.6261583964029948,
+        "maxAlpha": 254,
+        "alphaMismatch": 0,
+        "bounds": {
+          "min": [
+            14,
+            26
+          ],
+          "max": [
+            1535,
+            1007
+          ]
+        },
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "jurassic-background",
+      "sourcePoster": "../auth-posters/jurassic.webp",
+      "master": "jurassic-background-v1.png",
+      "web": "jurassic-background-v1.webp",
+      "prompt": "Use case: precise-object-edit. Asset type: background-only environment layer for a responsive CAPSULE study-room banner. Image 1 is the edit target and style/environment reference. An EMPTY cozy sunny reading room inspired by the reference: warm wood bookshelves, a large open window looking onto blue sky and green trees, hanging plants, a warm desk lamp at a far edge, and a pale wood study desk across the lower quarter. Reconstruct the room where the student and dinosaurs were, and extend horizontally with consistent desk-level perspective. Remove the person, EVERY dinosaur, dinosaur ornaments, character stickers, hanging title paper, writing and all poster annotations. Keep only quiet study furniture and unlettered notebooks at the edges. Output a clean WIDE 16:9 landscape, ideally 2048x1152, not a portrait or collage. Expand and reconstruct the setting naturally; never stretch the source. Preserve its original lighting, palette and high-quality anime/storybook/painterly rendering as appropriate to this reference. Leave enough open midground for a separately layered foreground. Background ONLY: no characters, animals, silhouettes, title lettering, readable labels, logos or watermark. Do not bake a title or UI into the image.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1672,
+      "height": 941,
+      "transparent": false,
+      "sha256": "bc02574ba935add228849590dc27ddc17aa640e04196d52a666f3dd2729cadd4",
+      "webSha256": "78be1aa051e122b862a179090c9e04dfd115a74a6fdf00d4b4fa7ab5c788da30"
+    },
+    {
+      "id": "lab-subject",
+      "sourcePoster": "../auth-posters/lab.webp",
+      "master": "lab-subject-v1.png",
+      "web": "lab-subject-v1.webp",
+      "prompt": "Use case: background-extraction. Asset type: reusable transparent foreground layer for the CAPSULE study web app. Image 1 is the edit target, not a loose style suggestion. Preserve THREE main original plush-like laboratory mascots as one coherent foreground group: the large PINK long-eared fluffy creature in front with oversized glossy eyes and purple engineering goggles on its head, the small CREAM rabbit assistant at left with round head-mounted details and a plain dark clipboard, and the LIME-GREEN round furry creature at right with two fuzzy antennae and brass goggles. Preserve each character's recognizable face, ears, antennae, fur texture, proportions, accessories and friendly expressions. Keep their complete silhouettes, hands and paws; reconstruct the portions hidden by the tabletop and title. Remove the oversized sci-fi tool, loose tools, furniture, miniature duplicates at the edges, scenery and ALL lettering. Do not add new mascots. Match the original rendering and character identities; do not redesign. Create a clean standalone foreground PNG, preferably landscape 1536x1024, on GENUINE alpha transparency. Keep every head, ear, ornament, elbow and extremity safely inside the canvas with a small transparent margin on all sides; no arbitrary hard crops. No opaque background, checkerboard pattern, text, title graphics, watermark or new characters. The foreground will sit over a separately generated environment, with the editable title added in DOM.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "sha256": "3aa8f0ec91fc7ed317b3462609ba3eb9c96d3db133a2c4efb9389851c2df0fa6",
+      "webSha256": "94e626b7cd1e514295b0708f09c462b61d94c9a00a6fddbdbae0911137386801",
+      "alphaValidation": {
+        "scene": "lab",
+        "width": 1536,
+        "height": 1024,
+        "clearRatio": 0.3315289815266927,
+        "softAlphaRatio": 0.07044792175292969,
+        "solidRatio": 0.5980230967203776,
+        "maxAlpha": 254,
+        "alphaMismatch": 0,
+        "bounds": {
+          "min": [
+            34,
+            11
+          ],
+          "max": [
+            1509,
+            1006
+          ]
+        },
+        "corners": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "lab-background",
+      "sourcePoster": "../auth-posters/lab.webp",
+      "master": "lab-background-v1.png",
+      "web": "lab-background-v1.webp",
+      "prompt": "Use case: precise-object-edit. Asset type: background-only environment layer for a responsive CAPSULE study-room banner. Image 1 is the edit target and style/environment reference. An EMPTY playful science workshop inspired by the reference, in soft blue, violet and warm amber light: industrial ceiling beams and neatly routed cables, hanging desk lamps, a large window with starry blue night beyond, a clean dark blue schematic board containing simple geometric lines without text, tidy shelves of unlabelled jars and small instruments, and a clear wooden workbench spanning the lower quarter. Reconstruct the space behind the furry mascots and naturally expand horizontally. Remove ALL creatures and miniature toys, the large sci-fi prop, oversized title sticker, handwriting and readable blueprints. Keep the central bench clear for a separately composited mascot layer. Output a clean WIDE 16:9 landscape, ideally 2048x1152, not a portrait or collage. Expand and reconstruct the setting naturally; never stretch the source. Preserve its original lighting, palette and high-quality anime/storybook/painterly rendering as appropriate to this reference. Leave enough open midground for a separately layered foreground. Background ONLY: no characters, animals, silhouettes, title lettering, readable labels, logos or watermark. Do not bake a title or UI into the image.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1672,
+      "height": 941,
+      "transparent": false,
+      "sha256": "1041cab42879a512c4cc69f1f1dd462f3190a9b8a3abbcd1284eb1e302c254c0",
+      "webSha256": "08d92f4c2436cda868d62b4df2ef2a89ec72d145beb8c7db2ab7f317858ccede"
+    },
+    {
+      "id": "joseon-subject",
+      "sourcePoster": "../auth-posters/joseon.webp",
+      "master": "joseon-subject-v1.png",
+      "web": "joseon-subject-v1.webp",
+      "prompt": "Use case: background-extraction. Asset type: reusable transparent foreground layer for the CAPSULE study web app. Image 1 is the edit target, not a loose style suggestion. Preserve ALL THREE adult women in the reference as one coherent seated waist-up group: the modest dark-haired woman at left in pale grey/white hanbok with a dark bow, the central dignified woman in ornate crimson-and-gold royal hanbok with elaborate gold-and-flower hair ornaments, and the smiling winking woman at right in pink floral hanbok with blossoms in her hair. Preserve their recognizable faces, hair, expressions, original left/middle/right order, clothing patterns and warm lantern rim light. Keep their complete heads and hair ornaments, shoulders, sleeves, forearms and hands resting near their chins, reconstructing only cropped areas or areas behind the title. Remove furniture, books, brushes, lanterns, cherry-blossom scenery, all text and graphic annotations. Match the original rendering and character identities; do not redesign. Create a clean standalone foreground PNG, preferably landscape 1536x1024, on GENUINE alpha transparency. Keep every head, ear, ornament, elbow and extremity safely inside the canvas with a small transparent margin on all sides; no arbitrary hard crops. No opaque background, checkerboard pattern, text, title graphics, watermark or new characters. The foreground will sit over a separately generated environment, with the editable title added in DOM.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1536,
+      "height": 1024,
+      "transparent": true,
+      "sha256": "e2a148fb047be8f28d87f6a7025ac0558f1e56edab6be45017ff877bff03b2b5",
+      "webSha256": "79fc7849dd06ea13cc96e7ff370d99eeb0926591e4e0e23e0d6029e5039d5938",
+      "alphaValidation": {
+        "scene": "joseon",
+        "width": 1536,
+        "height": 1024,
+        "clearRatio": 0.2995738983154297,
+        "softAlphaRatio": 0.03935114542643229,
+        "solidRatio": 0.6610749562581381,
+        "maxAlpha": 254,
+        "alphaMismatch": 0,
+        "bounds": {
+          "min": [
+            0,
+            14
+          ],
+          "max": [
+            1535,
+            1023
+          ]
+        },
+        "corners": [
+          0,
+          0,
+          250,
+          247
+        ]
+      }
+    },
+    {
+      "id": "joseon-background",
+      "sourcePoster": "../auth-posters/joseon.webp",
+      "master": "joseon-background-v1.png",
+      "web": "joseon-background-v1.webp",
+      "prompt": "Use case: precise-object-edit. Asset type: background-only environment layer for a responsive CAPSULE study-room banner. Image 1 is the edit target and style/environment reference. An EMPTY traditional Korean Joseon palace study at night matching the reference: warm wooden pillars and lattice-paper doors, softly lit paper lanterns near the edges, a distant tiled palace courtyard visible through an open central wall, a full moon in a navy sky, and delicate cherry blossoms framing the distant garden. A low dark wooden reading desk spans the bottom quarter with a few plain bound books and an inkstone at the far edges. Remove all three women and reconstruct the hidden room while naturally extending horizontally. No people, silhouettes, titles, seal stamps, handwriting, labels or graphic annotations. Output a clean WIDE 16:9 landscape, ideally 2048x1152, not a portrait or collage. Expand and reconstruct the setting naturally; never stretch the source. Preserve its original lighting, palette and high-quality anime/storybook/painterly rendering as appropriate to this reference. Leave enough open midground for a separately layered foreground. Background ONLY: no characters, animals, silhouettes, title lettering, readable labels, logos or watermark. Do not bake a title or UI into the image.",
+      "generatedAt": "2026-10-26",
+      "tool": "built-in image_gen",
+      "width": 1672,
+      "height": 941,
+      "transparent": false,
+      "sha256": "d5e9112f93762b3040c62476e66f4f46ca181eda47fd5d23d97f9023b940df84",
+      "webSha256": "699e079696fefcdb58000e2b3616524646ee2376988f26a3b24663905ea4640c"
     }
   ],
-  "encoding": "cwebp -q 88 -alpha_q 100 -m 6; no resizing or compositing baked into the image"
+  "encoding": "cwebp -q 88 -alpha_q 100 -m 6; no resizing or compositing baked into the image",
+  "sceneCount": 9,
+  "layerOrder": [
+    "background image",
+    "transparent subject image",
+    "optional CSS shade",
+    "editable DOM title"
+  ]
 }

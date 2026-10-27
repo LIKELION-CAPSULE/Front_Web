@@ -1,0 +1,13 @@
+/*!
+ * GSAP 3.15.0
+ * https://gsap.com
+ *
+ * @license Copyright 2008-2026, GreenSock. All rights reserved.
+ * Subject to the terms at https://gsap.com/standard-license
+ * @author: Jack Doyle, jack@greensock.com
+*/
+
+GSAP 3.15.0 uses the Standard No Charge license.
+Official terms: https://gsap.com/standard-license/
+Commercial use in applications is permitted. Visual animation builders competing with Webflow require prior consent; see the full official terms.
+Reviewed 2026-10-27.

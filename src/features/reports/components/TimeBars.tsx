@@ -1,6 +1,5 @@
 import { duration } from '@/shared/lib/format'
-import { getCharacterArtwork } from '@/features/characters/artwork'
-import { Avatar } from '@/shared/ui/Avatar'
+import { CharacterAvatar } from '@/features/characters/components/CharacterAvatar'
 
 export function TimeBars({ values }: { values: { id: string; name: string; seconds: number }[] }) {
   const max = Math.max(1, ...values.map((value) => value.seconds))
@@ -9,7 +8,7 @@ export function TimeBars({ values }: { values: { id: string; name: string; secon
       {values.map((value, index) => (
         <div key={value.id} className="flex items-center gap-3 text-sm">
           <span className="hidden sm:block">
-            <Avatar src={getCharacterArtwork(value.id).study} />
+            <CharacterAvatar characterId={value.id} />
           </span>
           <strong className="w-12 shrink-0">{value.name}</strong>
           <span

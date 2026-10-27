@@ -1,15 +1,13 @@
 import { studyRooms } from '@/features/rooms/data/rooms'
 import type { StudyRoom } from '@/features/rooms/types'
-import classroom from '@/assets/rooms/classroom.webp'
-import night from '@/assets/rooms/night-study.webp'
-import cat from '@/assets/rooms/cat-library.webp'
 import { getCharacterArtwork } from '@/features/characters/artwork'
+import { getRoomArtwork } from '@/features/rooms/artwork'
+import { roomPosters } from '@/features/rooms/posters'
 
-const covers: Record<string, string> = { 'dawn-library': classroom, 'room-2': night, 'room-3': cat }
 // Keep image imports out of the domain data used by the reducer and its tests.
 const rooms: readonly StudyRoom[] = studyRooms.map((room) => ({
   ...room,
-  coverUrl: covers[room.id],
+  coverUrl: roomPosters[getRoomArtwork(room.id).tone],
   characters: room.characters.map((character) => ({
     ...character,
     avatarUrl: getCharacterArtwork(character.id).study,

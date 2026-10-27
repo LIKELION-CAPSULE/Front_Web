@@ -1,0 +1,141 @@
+[
+  {
+    "id": "classroom",
+    "width": 1482,
+    "height": 852,
+    "omittedSignificant": 0,
+    "omittedMaxAlpha": 4,
+    "alphaMismatch": 0,
+    "clearRatio": 0.3185613908371507,
+    "inkBounds": {
+      "left": 19,
+      "right": 1465,
+      "top": 20,
+      "bottom": 835
+    }
+  },
+  {
+    "id": "night",
+    "decorationCrop": {
+      "left": 290,
+      "reason": "Shorten the left ornamental lightning tail before 전교"
+    },
+    "width": 1462,
+    "height": 801,
+    "omittedSignificant": 7340,
+    "omittedMaxAlpha": 251,
+    "alphaMismatch": 0,
+    "clearRatio": 0.4863961088311293,
+    "inkBounds": {
+      "left": 0,
+      "right": 1446,
+      "top": 9,
+      "bottom": 790
+    }
+  },
+  {
+    "id": "cat",
+    "width": 1462,
+    "height": 809,
+    "omittedSignificant": 0,
+    "omittedMaxAlpha": 1,
+    "alphaMismatch": 0,
+    "clearRatio": 0.5240370388532566,
+    "inkBounds": {
+      "left": 6,
+      "right": 1456,
+      "top": 6,
+      "bottom": 803
+    }
+  },
+  {
+    "id": "lantern",
+    "width": 1782,
+    "height": 717,
+    "omittedSignificant": 0,
+    "omittedMaxAlpha": 2,
+    "alphaMismatch": 0,
+    "clearRatio": 0.2068453009875604,
+    "inkBounds": {
+      "left": 17,
+      "right": 1766,
+      "top": 5,
+      "bottom": 699
+    }
+  },
+  {
+    "id": "fantasy",
+    "width": 1475,
+    "height": 797,
+    "omittedSignificant": 0,
+    "omittedMaxAlpha": 4,
+    "alphaMismatch": 0,
+    "clearRatio": 0.18947748973906386,
+    "inkBounds": {
+      "left": 12,
+      "right": 1462,
+      "top": 21,
+      "bottom": 787
+    }
+  },
+  {
+    "id": "iljin",
+    "width": 1666,
+    "height": 777,
+    "omittedSignificant": 0,
+    "omittedMaxAlpha": 3,
+    "alphaMismatch": 0,
+    "clearRatio": 0.5019011465590097,
+    "inkBounds": {
+      "left": 8,
+      "right": 1652,
+      "top": 11,
+      "bottom": 764
+    }
+  },
+  {
+    "id": "jurassic",
+    "width": 1568,
+    "height": 764,
+    "omittedSignificant": 0,
+    "omittedMaxAlpha": 2,
+    "alphaMismatch": 0,
+    "clearRatio": 0.3333313855646971,
+    "inkBounds": {
+      "left": 6,
+      "right": 1562,
+      "top": 5,
+      "bottom": 759
+    }
+  },
+  {
+    "id": "lab",
+    "width": 1616,
+    "height": 832,
+    "omittedSignificant": 0,
+    "omittedMaxAlpha": 2,
+    "alphaMismatch": 0,
+    "clearRatio": 0.31141782297220105,
+    "inkBounds": {
+      "left": 9,
+      "right": 1606,
+      "top": 10,
+      "bottom": 822
+    }
+  },
+  {
+    "id": "joseon",
+    "width": 1602,
+    "height": 854,
+    "omittedSignificant": 0,
+    "omittedMaxAlpha": 4,
+    "alphaMismatch": 0,
+    "clearRatio": 0.3912892841793192,
+    "inkBounds": {
+      "left": 7,
+      "right": 1587,
+      "top": 10,
+      "bottom": 844
+    }
+  }
+]
