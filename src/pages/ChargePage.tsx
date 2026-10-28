@@ -48,7 +48,7 @@ export default function ChargePage() {
         ← 내 크레딧
       </Link>
       <div className="charge-page-heading">
-        <PageHeading title="크레딧 · 패스" eyebrow={null} />
+        <PageHeading title="함께할 시간을 더해요" eyebrow={null} />
       </div>
       <ChargeProductPicker
         kind={kind}

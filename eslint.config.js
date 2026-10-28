@@ -5,7 +5,7 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'node_modules/**'] },
+  { ignores: ['dist/**', 'node_modules/**', 'public/runtime/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -17,5 +17,5 @@ export default tseslint.config(
       'react-refresh/only-export-components': ['error', { allowConstantExport: true }],
     },
   },
-  { files: ['*.{js,ts}'], languageOptions: { globals: globals.node } },
+  { files: ['*.{js,ts}', 'scripts/**/*.mjs'], languageOptions: { globals: globals.node } },
 )

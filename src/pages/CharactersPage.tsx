@@ -15,6 +15,7 @@ import { PageHeading } from '@/shared/ui/PageHeading'
 import { characterTags } from '@/features/characters/character-tags'
 import { SearchField } from '@/shared/ui/SearchField'
 import { withParticle } from '@/shared/lib/korean'
+import { characterUnlocks } from '@/features/characters/unlocks'
 
 export default function CharactersPage() {
   const { characterId = 'chaerin' } = useParams()
@@ -37,6 +38,7 @@ export default function CharactersPage() {
   const recent = allRecords.slice(0, 3)
   const firstMet = allRecords.at(-1)?.startedAt ?? now
   const hashtags = characterTags(`${room.name} · ${character.description}`)
+  const unlocks = characterUnlocks(allRecords, character.id)
   return (
     <div className="characters-page">
       <section className="character-browser" aria-label="친구 찾기">
@@ -95,14 +97,13 @@ export default function CharactersPage() {
           <ul aria-label="친구 소개" className="character-profile-tags">
             {hashtags.map((tag) => <li key={tag}>{tag}</li>)}
           </ul>
-          <RelationshipProgress key={character.id} level={relation.level} next={relation.next} />
-          <p className="mt-2 text-[17px] font-bold">Lv.{relation.level} 친구</p>
+          <RelationshipProgress key={character.id} level={relation.level} next={relation.next} progress={relation.progress} />
           <div className="character-profile-actions mt-auto pt-8">
             <ButtonLink
               to={
                 state.activeSession
                   ? `/study/${state.activeSession.id}`
-                  : `/rooms/${room.id}/prepare${state.cameraChecked ? '?step=set' : ''}`
+                  : `/rooms/${room.id}/prepare`
               }
               className="w-full border-0"
             >
@@ -137,47 +138,15 @@ export default function CharactersPage() {
           </Panel>
           <section className="character-unlocks">
             <h2 className="mb-4 text-card-title font-semibold">
-              함께 여는 콘텐츠 <span className="font-normal text-subtle">2 / 6</span>
+              함께 여는 콘텐츠 <span className="font-normal text-subtle">{unlocks.filter((item) => item.unlockedAt !== null).length} / {unlocks.length}</span>
             </h2>
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              {[
-                {
-                  kind: '대사',
-                  name: '“내일도 와라”',
-                  unlocked: true,
-                  description: '열림 · 함께한 공부 시간',
-                },
-                {
-                  kind: '모션',
-                  name: '손 흔들기',
-                  unlocked: true,
-                  description: '열림 · 첫 공부 완료',
-                },
-                {
-                  kind: '스토리',
-                  name: '1화 · 창가 자리',
-                  unlocked: false,
-                  description: '다음 관계 단계에서 열림',
-                },
-                {
-                  kind: '보이스',
-                  name: '특별 응원 보이스',
-                  unlocked: false,
-                  description: 'Lv.4에서 열림',
-                },
-                { kind: '배경', name: '밤 교실', unlocked: false, description: '추후 공개' },
-                {
-                  kind: '이벤트',
-                  name: '시험 기간 응원',
-                  unlocked: false,
-                  description: '이벤트 기간에 열림',
-                },
-              ].map((item) => (
+              {unlocks.map((item) => (
                 <article
                   key={item.kind}
                   className={cn(
                     'character-unlock-card min-h-24 rounded-[14px] p-3 text-left',
-                    item.unlocked ? 'bg-panel' : 'bg-surface',
+                    item.unlockedAt !== null ? 'bg-panel' : 'bg-surface',
                   )}
                   data-kind={item.kind}
                 >
@@ -186,9 +155,12 @@ export default function CharactersPage() {
                   <span
                     className={cn(
                       'mt-2 block text-[11px]',
-                      item.unlocked ? 'text-emerald-300' : 'text-muted',
+                      item.unlockedAt !== null ? 'text-emerald-300' : 'text-muted',
                     )}
                   >
+                    {item.unlockedAt !== null && (
+                      <><time dateTime={dayKey(item.unlockedAt)}>{dayKey(item.unlockedAt).slice(2).replaceAll('-', '.')}</time> 열림 · </>
+                    )}
                     {item.description}
                   </span>
                 </article>

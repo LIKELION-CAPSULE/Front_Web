@@ -37,19 +37,6 @@ export function StudyGoalPicker({
         <span>5분</span>
         <span>3시간</span>
       </div>
-      <div className="mt-4 flex gap-2" role="group" aria-label="목표 시간 빠르게 선택">
-        {[25, 50, 90].map((minutes) => (
-          <button
-            key={minutes}
-            type="button"
-            aria-pressed={value === minutes}
-            onClick={() => onChange(minutes)}
-            className={`min-h-11 flex-1 rounded-control border px-3 py-2 text-sm ${value === minutes ? 'border-brand-line bg-brand-soft text-brand-strong' : 'button-subtle border-transparent text-muted'}`}
-          >
-            {minutes}분
-          </button>
-        ))}
-      </div>
     </fieldset>
   )
 }

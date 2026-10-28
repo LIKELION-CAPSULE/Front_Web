@@ -1,0 +1,64 @@
+@layer components {
+  .device-check { display: grid; gap: 16px; }
+  .device-check-preview { position: relative; display: grid; gap: 12px; }
+  .device-check-preview > .device-camera-preview { order: 1; width: 100%; }
+  .device-check-start { justify-self: end; }
+  .device-check .device-camera-preview > svg { width: 76%; max-height: 92%; }
+  .device-check-controls { display: grid; min-width: 0; gap: 12px; }
+  .device-check-item { min-width: 0; padding: 16px; border-radius: 16px; background: var(--color-surface); }
+  .device-check-item-header { display: flex; min-width: 0; align-items: center; gap: 12px; }
+  .device-check-item-header > h2 { flex-shrink: 0; font-size: 15px; font-weight: 700; line-height: 24px; }
+  .device-check-item-header > .device-check-status { flex-shrink: 0; white-space: nowrap; }
+  .device-check-item-header > button { margin-left: auto; flex-shrink: 0; }
+  .device-check-item-content { flex: 1; min-width: 24px; }
+  .device-check-item-details { margin-top: 12px; }
+  .device-check-status { display: inline-flex; min-width: 0; align-items: center; gap: 8px; color: var(--color-muted); font-size: 13px; line-height: 20px; }
+  .device-check-status-icon { display: inline-flex; width: 22px; height: 22px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: var(--color-button-subtle); }
+  .device-check-status-dash { width: 8px; height: 2px; border-radius: 2px; background: currentColor; }
+  .device-check-status[data-state='success'] { color: #86efac; }
+  .device-check-status[data-state='success'] .device-check-status-icon { background: #86efac16; }
+  .device-check-status[data-state='error'] { color: #fda4af; }
+  .device-check-status[data-state='error'] .device-check-status-icon { background: #fda4af16; }
+  .device-check-status[data-state='pending'] { color: #e9d4a3; }
+  .device-check-status[data-state='pending'] .device-check-status-icon { background: #e9d4a316; }
+  .device-check-error { color: #fda4af; font-size: 13px; line-height: 22px; overflow-wrap: anywhere; }
+  .device-privacy-info { position: relative; display: flex; flex-shrink: 0; }
+  .device-privacy-tooltip { position: absolute; z-index: 40; top: 100%; right: 0; width: min(340px, calc(100vw - 80px)); padding-top: 10px; }
+  .device-check .microphone-check { margin-top: 0; }
+  .device-check .microphone-meter { height: 8px; margin-top: 0; }
+  .device-camera-preview { position: relative; display: flex; aspect-ratio: 4 / 3; align-items: center; justify-content: center; overflow: hidden; border-radius: 16px; background: radial-gradient(ellipse at center, #4f4266, #202532); }
+  .device-camera-preview > svg { width: 65%; max-height: 85%; align-self: flex-end; }
+  .device-camera-frame { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+  .device-camera-frame > video { width: 100%; height: 100%; object-fit: cover; }
+  .device-detection-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .device-detection-overlay rect { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .face-detection-box { stroke: #c4b5fd; }
+  .detection-status { margin-top: 16px; font-size: 13px; line-height: 1.6; }
+  .detection-status.is-compact { margin-top: 0; font-size: 11px; }
+  .device-status-dot { display: inline-block; flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--color-muted); }
+  .device-status-dot[data-ready="true"] { background: #86efac; }
+  .microphone-check { margin-top: 16px; }
+  .microphone-meter { --mic-level: 0; height: 6px; margin-top: 10px; overflow: hidden; background: var(--color-line); border-radius: 999px; }
+  .microphone-meter > span { display: block; width: 100%; height: 100%; background: var(--color-brand-solid); transform: scaleX(var(--mic-level)); transform-origin: left; transition: transform 80ms linear; }
+  .study-self-footer { position: absolute; z-index: 12; right: 12px; bottom: 12px; left: 12px; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+  .study-device-controls { min-width: 0; max-width: 100%; display: grid; gap: 8px; color: white; }
+  .study-device-controls > p { max-width: 260px; padding: 6px; background: #171b28dc; font-size: 11px; line-height: 1.5; border-radius: 8px; }
+  .study-device-controls .detection-status { width: fit-content; padding: 3px 8px; border-radius: 8px; background: #171b28bd; }
+  .study-focus-status { width: fit-content; padding: 3px 8px; border-radius: 8px; background: #171b28bd; font-size: 11px; line-height: 20px; }
+  .study-device-controls > div > button { border-radius: 999px; padding: 4px 10px; background: #171b28dc; font-size: 11px; line-height: 1.6; }
+  @media (min-width: 640px) {
+    .device-check-preview > .device-camera-preview { aspect-ratio: 16 / 9; max-height: min(52dvh, 540px); }
+    .device-check-start { position: absolute; z-index: 2; top: 16px; right: 16px; }
+  }
+  @media (min-width: 768px) { .device-check-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
+  @media (max-width: 639px) {
+    .device-check-item { padding: 12px; }
+    .device-check-item-header { gap: 8px; }
+    .device-check-item-header > h2 { font-size: 13px; }
+    .device-check-item-header > button { min-height: 36px; padding: 6px 10px; font-size: 12px; }
+    .device-check-status { gap: 6px; font-size: 12px; }
+    .device-check-status-icon { width: 18px; height: 18px; }
+    .device-check-error { font-size: 12px; line-height: 20px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .microphone-meter > span { transition: none; } }
+}

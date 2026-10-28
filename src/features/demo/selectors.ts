@@ -1,4 +1,4 @@
-import { dayKey } from '@/shared/lib/format'
+import { dayKey } from '../../shared/lib/format.ts'
 import type { DemoState, StudyRecord } from './types'
 
 export function todaySeconds(state: DemoState, now = Date.now()) {
@@ -23,10 +23,11 @@ export function characterStudySeconds(state: DemoState, characterId: string) {
 
 export function relationship(state: DemoState, characterId: string) {
   const minutes = Math.floor(characterStudySeconds(state, characterId) / 60)
+  const level = Math.min(5, 1 + Math.floor(minutes / 600))
   return {
-    level: Math.min(5, 1 + Math.floor(minutes / 600)),
+    level,
     minutes,
-    next: 600 - (minutes % 600),
-    progress: ((minutes % 600) / 600) * 100,
+    next: level === 5 ? 0 : 600 - (minutes % 600),
+    progress: level === 5 ? 100 : ((minutes % 600) / 600) * 100,
   }
 }

@@ -5,7 +5,7 @@ import { tierById } from '@/features/demo/catalog'
 import { relationship } from '@/features/demo/selectors'
 import { CharacterFigure } from '@/features/session/components/CharacterFigure'
 import { FocusTimeline } from '@/features/reports/components/FocusTimeline'
-import { dateLabel, duration } from '@/shared/lib/format'
+import { dateLabel, duration, measuredDuration } from '@/shared/lib/format'
 import { Badge } from '@/shared/ui/Badge'
 import { ButtonLink } from '@/shared/ui/Button'
 import { OverlayPage } from '@/shared/ui/OverlayPage'
@@ -13,6 +13,7 @@ import { StatCard } from '@/shared/ui/Panel'
 import NotFoundPage from './NotFoundPage'
 import { ProgressRing } from '@/shared/ui/ProgressRing'
 import { withParticle } from '@/shared/lib/korean'
+import { focusMeasuredSeconds, recordFocusPercent } from '@/features/session/focus'
 
 export default function ReportPage() {
   const { recordId } = useParams()
@@ -27,6 +28,7 @@ export default function ReportPage() {
     )
   const character = room.characters[0]!
   const relation = relationship(state, character.id)
+  const formatMeasuredTime = record.observedSeconds === undefined ? duration : measuredDuration
   return (
     <OverlayPage className="grid max-w-[1088px] gap-7 p-6 sm:p-9 lg:grid-cols-[300px_minmax(0,1fr)]">
       <section className="report-character">
@@ -59,13 +61,13 @@ export default function ReportPage() {
               집중률
             </span>
             <ProgressRing
-              value={record.studySeconds ? (record.focusSeconds / record.studySeconds) * 100 : 0}
+              value={recordFocusPercent(record)}
               label="이번 공부 집중률"
             />
           </div>
         </div>
         <p className="mt-3 text-[15px] leading-6 text-muted">
-          {withParticle(character.name, '과', '와')} {duration(record.studySeconds)} 공부했어요.
+          {withParticle(character.name, '과', '와')} {formatMeasuredTime(record.studySeconds)} 공부했어요.
         </p>
         {record.targetSeconds && (
           <p className="mt-2 text-sm text-brand-strong">
@@ -78,13 +80,13 @@ export default function ReportPage() {
         <div className="mt-5 grid grid-cols-3 gap-3">
           <StatCard
             label="집중"
-            value={duration(record.focusSeconds)}
+            value={formatMeasuredTime(record.focusSeconds)}
             dark
             size="compact"
           />
           <StatCard
-            label="딴짓"
-            value={duration(record.awaySeconds)}
+            label={record.observedSeconds === undefined ? '딴짓' : '얼굴 미감지'}
+            value={formatMeasuredTime(record.awaySeconds)}
             size="compact"
           />
           <StatCard
@@ -93,7 +95,12 @@ export default function ReportPage() {
             size="compact"
           />
         </div>
-        <FocusTimeline seconds={record.studySeconds} />
+        {record.observedSeconds === undefined ? <FocusTimeline seconds={record.studySeconds} /> : (
+          <p className="my-4 text-xs leading-6 text-muted">
+            얼굴 감지로 측정한 {measuredDuration(focusMeasuredSeconds(record))} 기준
+            {record.studySeconds > focusMeasuredSeconds(record) && ` · 측정하지 않은 시간 ${measuredDuration(record.studySeconds - focusMeasuredSeconds(record))}`}
+          </p>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-[16px] bg-brand-soft px-[18px] py-3">
           <div>
             <p className="text-sm font-bold">
@@ -112,7 +119,7 @@ export default function ReportPage() {
           </div>
           <Badge className="bg-panel">새 대사 1개 열림</Badge>
         </div>
-        <p className="mt-2 text-[10px] text-subtle">데모 집중 흐름·관계 변화 예시예요.</p>
+        {record.observedSeconds === undefined && <p className="mt-2 text-[10px] text-subtle">데모 집중 흐름·관계 변화 예시예요.</p>}
         <div className="mt-5 grid gap-3 sm:grid-cols-[2fr_4.7fr]">
           <ButtonLink to="/" variant="secondary">
             홈으로

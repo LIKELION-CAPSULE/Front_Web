@@ -1,5 +1,6 @@
 import type { StudyRecord } from '../demo/types.ts'
 import { dayKey } from '../../shared/lib/format.ts'
+import { focusMeasuredSeconds, focusPercent } from '../session/focus.ts'
 
 export const recordPeriods = [
   { id: 'week', label: '주' },
@@ -56,9 +57,10 @@ export function recordsInRange(records: readonly StudyRecord[], range: RecordRan
 export function recordSummary(records: readonly StudyRecord[]) {
   const seconds = records.reduce((total, record) => total + record.studySeconds, 0)
   const focus = records.reduce((total, record) => total + record.focusSeconds, 0)
+  const observed = records.reduce((total, record) => total + focusMeasuredSeconds(record), 0)
   return {
     seconds,
-    focusRate: seconds ? Math.min(100, Math.round((focus / seconds) * 1000) / 10) : 0,
+    focusRate: focusPercent(focus, observed) ?? (records.length ? null : 0),
     sessions: records.length,
     companions: new Set(records.flatMap((record) => record.characterIds)).size,
   }

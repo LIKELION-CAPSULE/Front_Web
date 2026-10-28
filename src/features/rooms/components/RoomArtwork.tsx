@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { moveScene, resetScene } from '@/features/rooms/scene-motion'
-import { getRoomArtwork } from '@/features/rooms/artwork'
+import { getRoomArtwork, type RoomArtwork as RoomArtworkData } from '@/features/rooms/artwork'
 import { cn } from '@/shared/lib/cn'
 import { RoomTitle } from './RoomTitle'
 import {
@@ -12,6 +12,7 @@ import {
 
 export function RoomArtwork({
   roomId,
+  artwork,
   variant = 'card',
   showTitle = false,
   showDesk = true,
@@ -21,6 +22,7 @@ export function RoomArtwork({
   children,
 }: {
   roomId: string
+  artwork?: RoomArtworkData
   variant?: SceneVariant
   showTitle?: boolean
   showDesk?: boolean
@@ -29,7 +31,7 @@ export function RoomArtwork({
   className?: string
   children?: ReactNode
 }) {
-  const art = getRoomArtwork(roomId)
+  const art = artwork ?? getRoomArtwork(roomId)
   const placement = getSceneSettings(art, variant)
   const style = {
     '--subject-width': `${placement.width * 100}%`,

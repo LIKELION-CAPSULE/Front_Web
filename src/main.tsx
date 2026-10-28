@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import { App } from '@/app/App'
 import { DemoProvider } from '@/features/demo/DemoProvider'
+import { MediaProvider } from '@/features/media/MediaProvider'
 import '@/styles/index.css'
+import '@/features/media/media.css'
 
 const root = document.getElementById('root')
 
@@ -13,7 +15,7 @@ createRoot(root).render(
   <StrictMode>
     <BrowserRouter>
       <DemoProvider>
-        <App />
+        <MediaProvider><App /></MediaProvider>
       </DemoProvider>
     </BrowserRouter>
   </StrictMode>,

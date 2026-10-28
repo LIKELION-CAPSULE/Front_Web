@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  worker: { format: 'es' },
   build: {
     rolldownOptions: {
       output: { comments: { legal: true } },

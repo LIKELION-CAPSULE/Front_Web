@@ -59,7 +59,7 @@ export function StudyActivityPanel({
             <div>
               <dt>집중률</dt>
               <dd>
-                {selectedSummary.focusRate}<small>%</small>
+                {selectedSummary.focusRate === null ? '—' : <>{selectedSummary.focusRate}<small>%</small></>}
               </dd>
             </div>
           </dl>

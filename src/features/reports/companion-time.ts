@@ -1,14 +1,15 @@
 import type { StudyRecord } from '../demo/types.ts'
 import { dayKey } from '../../shared/lib/format.ts'
 import { periodDays, recordsInRange, type RecordRange } from './record-period.ts'
+import { focusMeasuredSeconds, focusPercent } from '../session/focus.ts'
 
 export type TimeBucket = { key: string; label: string; tick: string; future: boolean }
 export type CompanionSeries = {
   id: string
   name: string
   seconds: number
-  focusRate: number
-  points: { seconds: number | null; cumulativeSeconds: number | null; focusRate: number }[]
+  focusRate: number | null
+  points: { seconds: number | null; cumulativeSeconds: number | null; focusRate: number | null }[]
 }
 
 export function companionTimeSeries(
@@ -34,7 +35,7 @@ export function companionTimeSeries(
   const included = recordsInRange(records, range)
   const unique = [...new Map(characters.map((character) => [character.id, character])).values()]
   const series: CompanionSeries[] = unique.map((character) => {
-    const totals = keys.map(() => ({ seconds: 0, focus: 0 }))
+    const totals = keys.map(() => ({ seconds: 0, focus: 0, observed: 0 }))
     for (const record of included) {
       if (!record.characterIds.includes(character.id)) continue
       const key = dayKey(record.endedAt).slice(0, annual ? 7 : 10)
@@ -44,20 +45,22 @@ export function companionTimeSeries(
       const share = Math.max(1, record.characterIds.length)
       totals[index]!.seconds += record.studySeconds / share
       totals[index]!.focus += record.focusSeconds / share
+      totals[index]!.observed += focusMeasuredSeconds(record) / share
     }
     const seconds = totals.reduce((sum, total) => sum + total.seconds, 0)
     const focus = totals.reduce((sum, total) => sum + total.focus, 0)
+    const observed = totals.reduce((sum, total) => sum + total.observed, 0)
     let cumulative = 0
     return {
       ...character,
       seconds,
-      focusRate: seconds ? Math.round((focus / seconds) * 1000) / 10 : 0,
+      focusRate: focusPercent(focus, observed) ?? (seconds ? null : 0),
       points: totals.map((total, index) => {
         cumulative += total.seconds
         return {
           seconds: buckets[index]!.future ? null : total.seconds,
           cumulativeSeconds: buckets[index]!.future ? null : cumulative,
-          focusRate: total.seconds ? Math.round((total.focus / total.seconds) * 1000) / 10 : 0,
+          focusRate: focusPercent(total.focus, total.observed) ?? (total.seconds ? null : 0),
         }
       }),
     }
