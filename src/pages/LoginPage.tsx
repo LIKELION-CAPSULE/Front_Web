@@ -82,7 +82,7 @@ export default function LoginPage() {
               <button
                 onClick={() => login(true)}
                 type="button"
-                className="mt-4 w-full rounded-control border border-line px-4 py-3 text-sm text-muted hover:bg-surface"
+                className="button-subtle mt-4 w-full rounded-control border border-transparent px-4 py-3 text-sm text-muted"
               >
                 더미 계정으로 바로 둘러보기
               </button>

@@ -117,7 +117,7 @@ export default function ChargePage() {
               <Button
                 type="submit"
                 disabled={!agreed}
-                className="mt-4 min-h-12 w-full px-3 py-3 text-sm"
+                className="mt-4 w-full"
               >
                 {number(selected.amount)}원 결제하기
               </Button>

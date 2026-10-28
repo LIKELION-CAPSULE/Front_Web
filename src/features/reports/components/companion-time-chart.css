@@ -10,7 +10,7 @@
 }
 .companion-chart-toolbar h2 {
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--text-card-title-compact);
   font-weight: 600;
 }
 .companion-chart-actions {
@@ -22,11 +22,12 @@
   min-height: 32px;
   padding: 6px 10px;
   border-radius: 8px;
+  background: var(--color-button-subtle);
   color: var(--color-muted);
   font-size: 11px;
 }
 .companion-chart-actions button:enabled:hover {
-  background: #ffffff08;
+  background: var(--color-button-subtle-hover);
   color: var(--color-ink);
 }
 .companion-chart-actions button:focus-visible {
@@ -193,9 +194,6 @@
   place-content: center;
   color: #9499ad;
   font-size: 12px;
-}
-.records-surface :is(.stat-card, .ui-panel, .activity-panel) {
-  border: 0;
 }
 @keyframes companion-line-reveal {
   from {

@@ -1,6 +1,7 @@
 import { Button } from '@/shared/ui/Button'
 import { TermsConsent } from './TermsConsent'
 import type { LegalDocumentId } from '../data/legal-documents'
+import { FormField } from '@/shared/ui/FormField'
 
 export type EmailAuthMode = 'login' | 'signup'
 
@@ -17,7 +18,7 @@ export function EmailAuthForm({
 
   return (
     <form
-      className="mt-6 space-y-5"
+      className="mt-6 space-y-5 [--form-input-border:var(--color-line)]"
       onSubmit={(event) => {
         event.preventDefault()
         const form = event.currentTarget
@@ -35,19 +36,17 @@ export function EmailAuthForm({
         onSubmit()
       }}
     >
-      <label className="block text-sm text-muted">
-        이메일
+      <FormField label="이메일">
         <input
           name="email"
           type="email"
           autoComplete="email"
           required
           placeholder="hello@example.com"
-          className="form-input mt-2"
+          className="form-input"
         />
-      </label>
-      <label className="block text-sm text-muted">
-        비밀번호
+      </FormField>
+      <FormField label="비밀번호">
         <input
           name="password"
           type="password"
@@ -59,12 +58,11 @@ export function EmailAuthForm({
             const confirmation = event.currentTarget.form?.elements.namedItem('confirmPassword')
             if (confirmation instanceof HTMLInputElement) confirmation.setCustomValidity('')
           }}
-          className="form-input mt-2"
+          className="form-input"
         />
-      </label>
+      </FormField>
       {signup && (
-        <label className="block text-sm text-muted">
-          비밀번호 확인
+        <FormField label="비밀번호 확인">
           <input
             name="confirmPassword"
             type="password"
@@ -73,9 +71,9 @@ export function EmailAuthForm({
             minLength={8}
             placeholder="비밀번호를 한 번 더 입력해 주세요"
             onInput={(event) => event.currentTarget.setCustomValidity('')}
-            className="form-input mt-2"
+            className="form-input"
           />
-        </label>
+        </FormField>
       )}
       {signup && <TermsConsent onOpenDocument={onOpenDocument} />}
       <Button type="submit" className="w-full">

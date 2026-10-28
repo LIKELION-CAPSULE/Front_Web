@@ -46,7 +46,7 @@ export function BreakConversation({
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-[17px] font-bold">쉬는 시간 대화</h1>
           <Link to="/credits">
-            <Badge className="border border-brand-line bg-brand-soft">
+            <Badge className="bg-brand-soft">
               크레딧 <strong className="ml-1 font-mono text-ink">{number(state.credits)}</strong>
             </Badge>
           </Link>
@@ -77,7 +77,7 @@ export function BreakConversation({
               active.tier !== 'special' && (
                 <button
                   onClick={() => setUpgradeOpen(!upgradeOpen)}
-                  className="rounded-full border border-brand bg-panel px-2.5 py-0.5 text-[11px] text-brand-strong"
+                  className="button-subtle rounded-full border border-transparent px-2.5 py-0.5 text-[11px] text-brand-strong"
                 >
                   올리기
                 </button>
@@ -124,7 +124,7 @@ export function BreakConversation({
           </div>
         ))}
       </div>
-      {exhausted && !upgradeOpen && (
+      {exhausted && (
         <button
           onClick={() => setUpgradeOpen(true)}
           className="mx-5 mb-3 rounded-control bg-surface px-4 py-3 text-sm font-bold text-brand-strong"

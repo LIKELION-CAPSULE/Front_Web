@@ -68,7 +68,7 @@ export function CharacterTile({
             <button
               type="button"
               onClick={onDismiss}
-              className="shrink-0 rounded-full border border-line px-2.5 py-1 text-xs text-muted"
+              className="button-subtle shrink-0 rounded-full border border-transparent px-2.5 py-1 text-xs text-muted"
             >
               아니야
             </button>

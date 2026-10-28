@@ -33,18 +33,19 @@
   color: var(--color-muted);
 }
 .records-period-navigation > button:hover {
-  background: var(--color-surface);
+  background: var(--color-button-subtle-hover);
   color: var(--color-ink);
 }
 .records-period-navigation > .records-period-reset {
   min-height: 36px;
   padding: 6px 10px;
   border-radius: 10px;
+  background: var(--color-button-subtle);
   color: var(--color-brand-strong);
   font-size: 11px;
 }
 .records-period-reset:hover {
-  background: var(--color-surface);
+  background: var(--color-button-subtle-hover);
 }
 .records-surface {
   container-type: inline-size;
@@ -52,7 +53,7 @@
 .records-overview-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
-  gap: 20px;
+  gap: var(--spacing-content);
   align-items: start;
 }
 .records-history-overview {
@@ -62,16 +63,13 @@
   gap: 20px;
 }
 .records-recent-sessions {
-  margin-top: 28px;
+  margin-top: var(--spacing-content);
 }
 .records-history-panel,
 .study-activity-panel {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 28px;
-  border-radius: 20px;
-  background: var(--color-panel);
   container-type: inline-size;
 }
 .records-summary-main {
@@ -278,11 +276,5 @@
   }
   .records-history-overview .records-summary-ring > span {
     font-size: 20px;
-  }
-}
-@media (max-width: 767px) {
-  .records-history-panel,
-  .study-activity-panel {
-    padding: 22px 20px;
   }
 }

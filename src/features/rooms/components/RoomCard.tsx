@@ -1,18 +1,14 @@
 import { Link } from 'react-router'
 import type { StudyRoom } from '@/features/rooms/types'
-import { CharacterAvatar } from '@/features/characters/components/CharacterAvatar'
 import { BookmarkButton } from '@/shared/ui/BookmarkButton'
 import { useDemo } from '@/features/demo/demo-context'
 import { RoomArtwork } from './RoomArtwork'
 import { RoomTitle } from './RoomTitle'
+import { RoomCompanions } from './RoomCompanions'
 import { moveScene, resetScene } from '@/features/rooms/scene-motion'
 
 export function RoomCard({ room }: { room: StudyRoom }) {
   const { state, dispatch } = useDemo()
-  const companions = room.characters.map((character) => character.name).join(' · ')
-  const lastCode = companions.charCodeAt(companions.length - 1)
-  const particle =
-    lastCode >= 0xac00 && lastCode <= 0xd7a3 && (lastCode - 0xac00) % 28 !== 0 ? '과' : '와'
   const comingSoon = room.contentStatus === 'coming-soon'
   const saved = state.savedRooms.includes(room.id)
   function save() {
@@ -22,17 +18,7 @@ export function RoomCard({ room }: { room: StudyRoom }) {
     <article className="room-card" onPointerMove={moveScene} onPointerLeave={resetScene}>
       <div className="room-card-art">
         <RoomArtwork roomId={room.id} variant="seated" interactive className="has-title" />
-        <div className="room-card-companions">
-          <span className="room-card-avatars flex shrink-0 -space-x-2">
-            {room.characters.map((character) => (
-              <CharacterAvatar key={character.id} characterId={character.id} />
-            ))}
-          </span>
-          <p>
-            {companions}
-            {particle} 함께
-          </p>
-        </div>
+        <RoomCompanions characters={room.characters} className="room-card-companions" />
         <h3>
           {comingSoon ? (
             <span className="room-card-title">

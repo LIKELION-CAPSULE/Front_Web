@@ -6,6 +6,7 @@ import { useDemo } from '@/features/demo/demo-context'
 import { isTier } from '@/features/demo/catalog'
 import { tierCost } from '@/features/demo/reducer'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
+import { RoomCompanions } from '@/features/rooms/components/RoomCompanions'
 import { TierSelector } from '@/features/session/components/TierSelector'
 import { useNow } from '@/features/session/use-now'
 import { StudyGoalPicker } from '@/features/session/components/StudyGoalPicker'
@@ -14,7 +15,6 @@ import { dayKey, number } from '@/shared/lib/format'
 import { Button } from '@/shared/ui/Button'
 import { Badge } from '@/shared/ui/Badge'
 import { OverlayPage } from '@/shared/ui/OverlayPage'
-import { DemoNotice } from '@/shared/ui/DemoNotice'
 import NotFoundPage from './NotFoundPage'
 
 export default function PreparePage() {
@@ -65,15 +65,18 @@ export default function PreparePage() {
   }
   return (
     <OverlayPage backTo={`/rooms/${room.id}`} className={goalStep ? 'sm:py-9' : undefined}>
-      <p className="text-sm text-muted">
-        {room.name} · {room.characters.map((character) => character.name).join(' · ')}
-      </p>
-      <div className="mt-2 flex flex-wrap items-center gap-3">
-        <h1 className="text-[28px] leading-10 font-bold">
-          {goalStep ? '목표 시간을 정해요' : '공부 시작 전에 확인해요'}
-        </h1>
-        <Badge>{goalStep ? '2 / 2 · 공부 설정' : '1 / 2 · 처음 한 번만'}</Badge>
-      </div>
+      <header className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="min-w-0">
+          <p className="text-sm text-muted">{room.name}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <h1 className="text-[28px] leading-10 font-bold">
+              {goalStep ? '목표 시간을 정해요' : '공부 시작 전에 확인해요'}
+            </h1>
+            <Badge>{goalStep ? '2 / 2 · 공부 설정' : '1 / 2 · 처음 한 번만'}</Badge>
+          </div>
+        </div>
+        <RoomCompanions characters={room.characters} className="order-first justify-self-end sm:order-none" />
+      </header>
       {!goalStep ? (
         <>
           <div className="my-7 grid items-center gap-[22px] sm:grid-cols-[240px_1fr]">
@@ -88,9 +91,6 @@ export default function PreparePage() {
               <p className="mt-3 text-[15px] leading-6 text-muted">
                 카메라 영상은 저장하지 않아요. 내 캠은 화면 속 내 칸에만 보여요.
               </p>
-              <p className="mt-2 text-xs leading-5 text-subtle">
-                지금은 샘플 화면이에요. 실제 카메라 권한을 요청하거나 촬영하지 않아요.
-              </p>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-[2fr_3fr]">
@@ -104,9 +104,7 @@ export default function PreparePage() {
         <>
           <div className="mt-5 flex flex-wrap items-center gap-2.5 rounded-[14px] bg-surface px-4 py-3 text-[15px]">
             <Icon name="camera" size={18} className="text-brand" />
-            <span>
-              카메라 · {state.cameraEnabled ? '지난 설정 그대로 켜요' : '카메라 없이 공부해요'}
-            </span>
+            <span>카메라</span>
             <button
               onClick={() => setParams({ goal: String(goalMinutes), tier })}
               className="text-sm text-brand-strong underline"
@@ -115,7 +113,7 @@ export default function PreparePage() {
             </button>
           </div>
           {hasExamPrompt && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[14px] border border-brand-line px-4 py-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[14px] border border-transparent px-4 py-2">
               <strong className="text-[15px]">시험이 있나요?</strong>
               <span className="flex-1 text-xs text-muted">
                 모든 캐릭터가 함께 기억하고 응원해 줘요
@@ -135,10 +133,17 @@ export default function PreparePage() {
             </div>
           )}
           <StudyGoalPicker value={goalMinutes} onChange={setGoalMinutes} />
-          <div className="mt-5 mb-2 flex flex-wrap items-baseline gap-3">
-            <h2 className="text-[15px] font-bold">함께할 대화 옵션</h2>
-            <p className="text-xs text-subtle">
-              공부 중 딴짓 반응은 모든 등급 동일 · 보유 {number(state.credits)} 크레딧
+          <div className="mt-5 mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+              <h2 className="text-[15px] leading-6 font-bold">함께할 대화 옵션</h2>
+              {state.pass && (
+                <span className="text-xs leading-6 text-brand-strong">
+                  {state.pass.name} 이용 중
+                </span>
+              )}
+            </div>
+            <p className="text-xs leading-6 whitespace-nowrap text-muted">
+              {number(state.credits)} 크레딧
             </p>
           </div>
           <TierSelector
@@ -148,14 +153,6 @@ export default function PreparePage() {
               setError('')
             }}
           />
-          {state.pass && (
-            <p className="mt-3 text-sm text-brand-strong">
-              {state.pass.name} 이용 중 ·{' '}
-              {cost === 0 && tier !== 'basic'
-                ? '이번 공부는 패스로 이용해요.'
-                : '등급별 이용 조건을 확인해 주세요.'}
-            </p>
-          )}
           {error && (
             <p role="alert" className="mt-3 text-sm text-brand-strong">
               {error}{' '}
@@ -175,8 +172,7 @@ export default function PreparePage() {
               시작하기 · {number(cost)} 크레딧
             </Button>
           </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <DemoNotice compact />
+          <div className="mt-3 flex justify-end">
             <Link
               to={`/credits/charge?returnTo=${encodeURIComponent(returnTo)}`}
               className="text-xs text-brand-strong underline"
@@ -186,7 +182,6 @@ export default function PreparePage() {
           </div>
         </>
       )}
-      {!goalStep && <DemoNotice />}
     </OverlayPage>
   )
 }

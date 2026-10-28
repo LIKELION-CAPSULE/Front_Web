@@ -4,6 +4,7 @@ import { AvatarIllustration } from '@/shared/ui/AvatarIllustration'
 import { Button } from '@/shared/ui/Button'
 import { avatarShades } from '../avatar-options'
 import { AvatarCustomizer } from './AvatarCustomizer'
+import { FormField } from '@/shared/ui/FormField'
 
 export function ProfileEditor() {
   const { state, dispatch } = useDemo()
@@ -37,24 +38,24 @@ export function ProfileEditor() {
           setSaved(true)
         }}
       >
-        <h2 id="profile-heading" className="text-lg font-semibold">
+        <h2 id="profile-heading" className="text-section-title font-semibold">
           프로필
         </h2>
-        <label className="mt-5 block text-sm text-muted">
-          닉네임
+        <FormField label="닉네임" className="mt-5">
           <input
             required
             maxLength={20}
             value={name}
-            className="form-input mt-2"
+            className="form-input"
             onChange={(event) => {
               setName(event.target.value)
               setSaved(false)
             }}
           />
-        </label>
+        </FormField>
         <div className="mt-5">
           <AvatarCustomizer
+            size="sm"
             value={avatar}
             onChange={(value) => {
               setAvatar(value)

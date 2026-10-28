@@ -103,7 +103,6 @@ export function PaymentReceipt({
         </article>
       </div>
       <div className="receipt-toolbar">
-        {phase === 'detached' && <p role="status">영수증을 떼었어요.</p>}
         <div>
           <button type="button" disabled={phase !== 'ready'} onClick={detach}>영수증 떼기</button>
           <button

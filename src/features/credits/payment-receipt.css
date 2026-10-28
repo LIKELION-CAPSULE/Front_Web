@@ -6,7 +6,7 @@
   position: relative;
   z-index: 1;
   height: 38px;
-  border: 1px solid #343143;
+  border: 1px solid transparent;
   border-radius: 14px 14px 8px 8px;
   background: linear-gradient(#343041, #211e2c);
   box-shadow: 0 6px 16px #0004;

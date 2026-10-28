@@ -2,6 +2,7 @@ import type { PointerEvent } from 'react'
 import { chargeProducts } from '@/features/demo/catalog'
 import { number } from '@/shared/lib/format'
 import { Icon } from '@/shared/ui/Icon'
+import { Button } from '@/shared/ui/Button'
 
 export type ChargeProductKind = 'pass' | 'credits'
 
@@ -92,15 +93,16 @@ export function ChargeProductPicker({
               <p className="charge-product-price">
                 <strong>{number(product.amount)}</strong><span>원</span>
               </p>
-              <button
-                type="button"
+              <Button
+                variant="soft"
+                size="md"
                 className="charge-product-pay"
                 aria-label={`${product.name} 결제하기`}
                 aria-haspopup="dialog"
                 onClick={() => onCheckout(product.id)}
               >
                 결제하기
-              </button>
+              </Button>
               {features.length > 0 && (
                 <ul className="charge-product-features">
                   {features.map((feature) => (

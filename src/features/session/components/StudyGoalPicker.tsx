@@ -10,7 +10,7 @@ export function StudyGoalPicker({
 }) {
   const id = useId()
   return (
-    <fieldset className="mt-5 rounded-card border border-line bg-panel p-5">
+    <fieldset className="mt-5 rounded-card border border-transparent bg-panel p-5">
       <legend className="sr-only">공부 목표 시간</legend>
       <div className="flex items-baseline justify-between gap-3">
         <label htmlFor={id} className="text-sm font-semibold">
@@ -44,7 +44,7 @@ export function StudyGoalPicker({
             type="button"
             aria-pressed={value === minutes}
             onClick={() => onChange(minutes)}
-            className={`min-h-11 flex-1 rounded-control border px-3 py-2 text-sm ${value === minutes ? 'border-brand-line bg-brand-soft text-brand-strong' : 'border-line text-muted'}`}
+            className={`min-h-11 flex-1 rounded-control border px-3 py-2 text-sm ${value === minutes ? 'border-brand-line bg-brand-soft text-brand-strong' : 'button-subtle border-transparent text-muted'}`}
           >
             {minutes}분
           </button>

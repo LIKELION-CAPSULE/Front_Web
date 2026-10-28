@@ -79,17 +79,17 @@ export default function ReportPage() {
             label="집중"
             value={duration(record.focusSeconds)}
             dark
-            className="px-3 sm:px-5 [&>p:last-child]:text-[22px] sm:[&>p:last-child]:text-[25px]"
+            size="compact"
           />
           <StatCard
             label="딴짓"
             value={duration(record.awaySeconds)}
-            className="px-3 sm:px-5 [&>p:last-child]:text-[22px] sm:[&>p:last-child]:text-[25px]"
+            size="compact"
           />
           <StatCard
             label="복귀"
             value={`${record.returns}회`}
-            className="px-3 sm:px-5 [&>p:last-child]:text-[22px] sm:[&>p:last-child]:text-[25px]"
+            size="compact"
           />
         </div>
         <FocusTimeline seconds={record.studySeconds} />
@@ -109,14 +109,14 @@ export default function ReportPage() {
               style={{ width: `${Math.max(10, relation.progress)}%` }}
             />
           </div>
-          <Badge className="border border-brand bg-panel">새 대사 1개 열림</Badge>
+          <Badge className="bg-panel">새 대사 1개 열림</Badge>
         </div>
         <p className="mt-2 text-[10px] text-subtle">데모 집중 흐름·관계 변화 예시예요.</p>
         <div className="mt-5 grid gap-3 sm:grid-cols-[2fr_4.7fr]">
-          <ButtonLink to="/" variant="secondary" className="min-h-12 py-3 text-base">
+          <ButtonLink to="/" variant="secondary">
             홈으로
           </ButtonLink>
-          <ButtonLink to={`/capsules/${record.id}`} className="min-h-12 py-3 text-base">
+          <ButtonLink to={`/capsules/${record.id}`}>
             캡슐 카드 받기 →
           </ButtonLink>
         </div>

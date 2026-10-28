@@ -3,6 +3,7 @@ import type { StudyRecord } from '@/features/demo/types'
 import { dayKey, duration } from '@/shared/lib/format'
 import { recordSummary, type RecordRange } from '../record-period'
 import { ActivityHeatmap } from './ActivityHeatmap'
+import { Panel } from '@/shared/ui/Panel'
 import './record-summary.css'
 
 export function StudyActivityPanel({
@@ -29,7 +30,7 @@ export function StudyActivityPanel({
   const selectedSummary = recordSummary(selectedRecords)
   const selectedLabel = `${Number(selected.slice(5, 7))}월 ${Number(selected.slice(8))}일${selected === range.today ? ' · 오늘' : ''}`
   return (
-    <section className="study-activity-panel" aria-label="달력과 선택한 날짜 기록">
+    <Panel bordered={false} className="study-activity-panel" aria-label="달력과 선택한 날짜 기록">
       <ActivityHeatmap
         records={records}
         range={range}
@@ -68,6 +69,6 @@ export function StudyActivityPanel({
           </p>
         )}
       </div>
-    </section>
+    </Panel>
   )
 }

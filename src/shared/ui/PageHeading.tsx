@@ -12,7 +12,7 @@ export function PageHeading({
   return (
     <div className="page-heading mb-8">
       {eyebrow && <p className="eyebrow mb-3">{eyebrow}</p>}
-      <h1 className="text-[30px] leading-10 font-bold tracking-tight">{title}</h1>
+      <h1 className="text-page-title font-bold tracking-tight">{title}</h1>
       {children && <p className="mt-2 text-sm leading-6 text-muted">{children}</p>}
     </div>
   )
