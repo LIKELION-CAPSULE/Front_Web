@@ -19,6 +19,8 @@ import { getCharacterArtwork } from '@/features/characters/artwork'
 import { DetectionStatus } from '@/features/media/components/DetectionStatus'
 import { useMedia } from '@/features/media/media-context'
 import { Brand } from '@/shared/ui/Brand'
+import { Button } from '@/shared/ui/Button'
+import { Dialog } from '@/shared/ui/Dialog'
 import { Icon } from '@/shared/ui/Icon'
 import { SessionChatPanel } from '@/features/session/components/SessionChatPanel'
 import { businessDay } from '@/shared/lib/format'
@@ -36,6 +38,7 @@ export default function StudyPage() {
   const [customSpeech, setCustomSpeech] = useState('')
   const [quietMode, setQuietMode] = useState(false)
   const [showCamera, setShowCamera] = useState(false)
+  const [leaveOpen, setLeaveOpen] = useState(false)
   const [interactionMode, setInteractionMode] = useState<StudyInteractionMode>(() => params.get('chat') === '1' ? 'talk' : 'focus')
   const { devices, controller, flushFocus } = useMedia()
   const now = useNow()
@@ -201,7 +204,17 @@ export default function StudyPage() {
         {room.name} · {active.phase === 'study' ? '공부 중' : '쉬는 시간'}
       </h1>
       <header className="study-topbar">
-        <Link to="/" aria-label="CAPSULE 홈">
+        <Link
+          to="/"
+          aria-label="CAPSULE 홈"
+          aria-haspopup="dialog"
+          onClick={(event) => {
+            // Leaving mid-session asks first; modified clicks still open home in a new tab.
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+            event.preventDefault()
+            setLeaveOpen(true)
+          }}
+        >
           <Brand />
         </Link>
         <div className="study-room-heading">
@@ -380,6 +393,17 @@ export default function StudyPage() {
             now={now}
           />
       </div>
+      <Dialog open={leaveOpen} onClose={() => setLeaveOpen(false)} title="공부를 마치시겠습니까?">
+        <p className="mb-5 text-sm leading-6 text-muted">
+          지금까지 공부한 기록을 저장하고 리포트로 이동해요.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button onClick={() => { setLeaveOpen(false); finish() }}>응, 여기까지 할게</Button>
+          <Button variant="secondary" onClick={() => setLeaveOpen(false)}>
+            아니, 더 할거야
+          </Button>
+        </div>
+      </Dialog>
     </main>
   )
 }
