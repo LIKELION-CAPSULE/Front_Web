@@ -63,6 +63,7 @@ export type Memory = {
 }
 export type Message = {
   id: string
+  createdAt?: number
   sessionId: string
   characterId: string
   sender: 'user' | 'character'

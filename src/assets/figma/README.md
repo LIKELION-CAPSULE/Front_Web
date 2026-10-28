@@ -17,4 +17,4 @@ The 25 SVG/PNG files here are downloaded exports returned by Figma design contex
 | `682-610` | Report head and speech-bubble tail |
 | `705-172` | Share-card head and color palette |
 
-Consumers: `features/session/assets.ts`, `CharacterFigure`, `ChatComposer`, `TierSelector`, `PreparePage`, `ReportPage`, `CapsuleCardPage`, and `shared/ui/RadioOption`. Avatar/room thumbnails and CSS body shapes are placeholders from the wireframe; finished character artwork is not supplied.
+Consumers include `CharacterFigure`, `TierSelector`, `PreparePage`, `ReportPage`, `CapsuleCardPage`, and `shared/ui/RadioOption`. Session chat now uses the shared `Icon` component; the former session icon mapping has been removed. Avatar/room thumbnails and CSS body shapes are placeholders from the wireframe; finished character artwork is not supplied.

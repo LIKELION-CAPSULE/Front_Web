@@ -4,6 +4,7 @@ import { cn } from '@/shared/lib/cn'
 import { Icon } from '@/shared/ui/Icon'
 import { CharacterFigure } from './CharacterFigure'
 import type { FigureVariant } from './CharacterFigure'
+import type { StudyInteractionMode } from '../study-interaction'
 
 export function CharacterTile({
   character,
@@ -12,8 +13,9 @@ export function CharacterTile({
   active,
   status = '공부 중',
   speech,
-  onFocus,
-  onReact,
+  interactionMode = 'focus',
+  chatting = false,
+  onActivate,
   onDismiss,
   children,
 }: {
@@ -23,8 +25,9 @@ export function CharacterTile({
   active?: boolean
   status?: string
   speech?: string
-  onFocus?: () => void
-  onReact?: () => void
+  interactionMode?: StudyInteractionMode
+  chatting?: boolean
+  onActivate?: () => void
   onDismiss?: () => void
   children?: ReactNode
 }) {
@@ -33,28 +36,32 @@ export function CharacterTile({
       aria-label={`${character.name}의 자리`}
       className={cn('character-tile', active && 'is-reacting', focus && 'focus-tile')}
     >
-      <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
+      <div className="pointer-events-none absolute top-3 left-3 z-10 flex items-center gap-2">
         <span className="tile-label">
           {character.name} · {status}
         </span>
-        {focus && <span className="text-xs font-bold text-brand">확대</span>}
       </div>
-      {onFocus && (
-        <button
-          type="button"
-          onClick={onFocus}
-          aria-label={focus ? '모든 자리 보기' : `${character.name} 크게 보기`}
-          className="tile-focus"
-        >
-          <Icon name={focus ? 'shrink' : 'expand'} size={17} />
-        </button>
-      )}
       <CharacterFigure
         variant={variant}
         characterId={character.id}
         pose={variant === 'rest' ? 'affection' : active ? 'reaction' : 'study'}
       />
       <div className="tile-image-shade" />
+      {onActivate && (
+        <button
+          type="button"
+          onClick={onActivate}
+          className="tile-interaction"
+          aria-label={interactionMode === 'talk'
+            ? `${character.name}에게 말 걸기`
+            : focus ? `${character.name} 확대 닫기` : `${character.name} 크게 보기`}
+          aria-expanded={interactionMode === 'talk' ? chatting : !!focus}
+        >
+          <span className="tile-action-symbol" aria-hidden="true">
+            <Icon name={interactionMode === 'talk' ? 'chat' : focus ? 'shrink' : 'zoomIn'} size={28} motion="pulse" />
+          </span>
+        </button>
+      )}
       {speech && (
         <div
           className={cn(
@@ -74,11 +81,6 @@ export function CharacterTile({
             </button>
           )}
         </div>
-      )}
-      {onReact && (
-        <button type="button" onClick={onReact} className="tile-react-button">
-          말 걸기
-        </button>
       )}
       {children}
     </article>

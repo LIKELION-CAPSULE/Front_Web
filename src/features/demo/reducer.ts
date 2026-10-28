@@ -288,7 +288,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
           : /어려|모르/.test(action.text)
             ? '어려운 부분은 잠깐 표시해 두고, 할 수 있는 것부터 같이 해 보자.'
             : `${state.profile.name}, 잘하고 있어. 나도 여기서 같이 할게.`
-      const common = { sessionId: active.id, characterId: action.characterId }
+      const common = { sessionId: active.id, characterId: action.characterId, createdAt: action.now }
       return {
         ...state,
         chatUsage: {
