@@ -32,7 +32,9 @@ export function HoverScratchCarousel<T extends ScratchSlide>({
   labelledBy,
   brushSize = 56,
   threshold = 0.4,
-  completionDuration = 460,
+  completionDuration = 1400,
+  restoreDelay = 1600,
+  restoreDuration = 1100,
 }: {
   slides: readonly T[]
   children: (state: RenderState<T>) => ReactNode
@@ -43,6 +45,8 @@ export function HoverScratchCarousel<T extends ScratchSlide>({
   brushSize?: number
   threshold?: number
   completionDuration?: number
+  restoreDelay?: number
+  restoreDuration?: number
 }) {
   const [{ index: requestedIndex, revision }, setPosition] = useState({ index: 0, revision: 0 })
   const index = requestedIndex % Math.max(1, slides.length)
@@ -77,8 +81,21 @@ export function HoverScratchCarousel<T extends ScratchSlide>({
       brushSize: Math.max(16, Math.min(160, brushSize)),
       threshold: Math.max(0.05, Math.min(0.95, threshold)),
       completionDuration: Math.max(150, completionDuration),
+      restoreDelay: Math.max(200, restoreDelay),
+      restoreDuration: Math.max(150, restoreDuration),
     })
-  }, [enabled, index, revision, slides, advance, brushSize, threshold, completionDuration])
+  }, [
+    enabled,
+    index,
+    revision,
+    slides,
+    advance,
+    brushSize,
+    threshold,
+    completionDuration,
+    restoreDelay,
+    restoreDuration,
+  ])
 
   const slide = slides[index]
   if (!slide) return null
