@@ -28,7 +28,7 @@ export function getRecordRange(period: RecordPeriod, now = Date.now(), offset = 
   const startDay = dayKey(start)
   const endDay = dayKey(end - 1)
   const labels = period === 'week'
-    ? ['지난 주', '이번 주', '다음 주', '해당 주']
+    ? ['지난주', '이번 주', '다음 주', '해당 주']
     : period === 'month' ? ['지난달', '이번 달', '다음 달', '해당 월'] : ['작년', '올해', '내년', '해당 연도']
   const label = labels[offset === -1 ? 0 : offset === 0 ? 1 : offset === 1 ? 2 : 3]!
   const showYear = startDay.slice(0, 4) !== today.slice(0, 4) || endDay.slice(0, 4) !== today.slice(0, 4)

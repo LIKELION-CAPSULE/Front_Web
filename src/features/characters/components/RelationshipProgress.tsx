@@ -14,7 +14,7 @@ export function RelationshipProgress({ level, next }: { level: number; next: num
       <div
         className="relationship-progress-track"
         role="progressbar"
-        aria-label="캐릭터와의 관계 단계"
+        aria-label="친구와의 관계 단계"
         aria-valuemin={1}
         aria-valuemax={5}
         aria-valuenow={level}

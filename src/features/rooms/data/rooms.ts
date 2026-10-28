@@ -5,9 +5,9 @@ export const studyRooms: readonly StudyRoom[] = [
   {
     id: 'dawn-library',
     name: '쌀쌀맞은 갸루짝꿍이 나에게만 친절하다!',
-    description: '아무도 없는 교실, 나를 기다리는 세 친구.',
+    description: '노을빛 교실, 세 친구와 함께하는 방과 후.',
     introduction:
-      '노을이 내려앉은 교실, 오늘도 네 옆자리는 비워 뒀어. 채린, 수아, 다희와 각자의 목표를 향해 한 장씩 넘겨 봐요.',
+      '노을이 드는 교실에 채린, 수아, 다희가 먼저 와 있어요. 친구들의 옆자리에서 오늘의 책을 펼쳐 봐요.',
     contentStatus: 'preview',
     characters: [
       {
@@ -23,16 +23,16 @@ export const studyRooms: readonly StudyRoom[] = [
       {
         id: 'dahee',
         name: '다희',
-        description: '차분한 친구 · 꾸준한 공부 메이트',
+        description: '차분한 성격 · 꾸준한 공부 친구',
       },
     ],
   },
   {
     id: 'room-2',
     name: '전교 1등을 이겨라',
-    description: '조용한 승부욕이 필요한 밤, 오늘의 라이벌과.',
+    description: '불 켜진 도서관, 도윤과 한 문제 더.',
     introduction:
-      '모두가 돌아간 늦은 밤, 아직 불이 켜진 자리 하나. 도윤과 함께 어제의 나를 한 걸음 넘어 봐요.',
+      '밤이 깊어진 도서관, 도윤도 아직 책을 덮지 않았어요. 스탠드 불빛 아래에서 오늘 정한 공부를 함께 마쳐 봐요.',
     contentStatus: 'preview',
     characters: [
       {
@@ -45,27 +45,27 @@ export const studyRooms: readonly StudyRoom[] = [
   {
     id: 'room-3',
     name: '냥냥이가 날 그렇게 쳐다보면 집중할 수가 없잖아!!',
-    description: '책 한 권, 고양이 한 마리. 이만하면 완벽한 오후.',
+    description: '햇살 드는 창가, 모루와 느긋하게.',
     introduction:
-      '햇살 좋은 창가, 책 사이에 자리를 잡은 모루. 서두르지 않아도 괜찮아요. 오늘은 포근하게 집중해 봐요.',
+      '햇살 드는 창가에서 모루가 쿠션에 기대어 기다려요. 조용히 눈을 맞추고, 내 속도로 책을 읽어 봐요.',
     contentStatus: 'preview',
     characters: [
       {
         id: 'moru',
         name: '모루',
-        description: '느긋한 고양이 · 책상 위 공부 메이트',
+        description: '느긋한 고양이 · 책상 위 공부 친구',
       },
     ],
   },
   {
     id: 'lantern',
     name: '김상병의 두근두근 비밀연등',
-    description: '불이 꺼진 뒤에도, 함께 지켜 주는 공부 시간.',
+    description: '조용해진 생활관, 동료들과 이어 가는 공부.',
     introduction:
-      '조용해진 생활관 옆 자습실, 책상 위 스탠드는 아직 켜져 있어요. 김상병과 동료들이 오늘의 마지막 한 페이지를 함께해요.',
+      '조용해진 생활관에서 김상병과 동료들이 책을 펼쳤어요. 하루를 마무리하며 남은 공부를 차근차근 이어 가요.',
     contentStatus: 'preview',
     characters: [
-      { id: 'kim-sergeant', name: '김상병', description: '든든한 선임 · 야간 자습 메이트' },
+      { id: 'kim-sergeant', name: '김상병', description: '든든한 선임 · 야간 자습 친구' },
       { id: 'yoon-private', name: '윤일병', description: '성실한 동료 · 노트 정리 담당' },
       { id: 'lee-medic', name: '이하사', description: '다정한 의무관 · 따뜻한 응원' },
     ],
@@ -73,22 +73,22 @@ export const studyRooms: readonly StudyRoom[] = [
   {
     id: 'fantasy',
     name: '페보니우스 마법학교',
-    description: '주문 대신 문제집, 마법학교 친구들과 함께.',
+    description: '촛불 밝힌 도서관, 마법학교 친구들과 함께.',
     introduction:
-      '촛불이 반짝이는 마법학교 도서관에서 각자의 책을 펼쳐요. 에이든, 엘리아, 레온과 오늘의 공부도 작은 마법처럼 쌓아 가요.',
+      '촛불이 반짝이는 마법학교 도서관에 세 친구가 모였어요. 에이든, 엘리아, 레온과 두꺼운 책도 한 장씩 읽어 가요.',
     contentStatus: 'preview',
     characters: [
       { id: 'aiden', name: '에이든', description: '당당한 마법사 · 도전을 즐기는 친구' },
-      { id: 'elia', name: '엘리아', description: '차분한 연구자 · 꼼꼼한 공부 메이트' },
+      { id: 'elia', name: '엘리아', description: '차분한 연구자 · 꼼꼼한 공부 친구' },
       { id: 'leon', name: '레온', description: '여유로운 선배 · 조용한 격려' },
     ],
   },
   {
     id: 'iljin',
     name: '모르는 일진이 나한테 말을 건다',
-    description: '무심한 듯 옆자리를 지키는 뜻밖의 공부 친구.',
+    description: '말없이 비워 둔 옆자리, 민하준과 함께.',
     introduction:
-      '햇살이 들어오는 교실, 민하준이 말없이 옆자리를 내줘요. 처음엔 조금 어색해도 한 문제씩 함께 풀다 보면 금세 익숙해질 거예요.',
+      '노을이 드는 서가 앞, 민하준이 노트를 들고 기다려요. 말없이 비워 둔 옆자리에서 오늘의 공부를 시작해 봐요.',
     contentStatus: 'preview',
     characters: [
       { id: 'hajun', name: '민하준', description: '무심한 같은 반 친구 · 뜻밖의 다정함' },
@@ -97,18 +97,18 @@ export const studyRooms: readonly StudyRoom[] = [
   {
     id: 'jurassic',
     name: '쥬라기 독서실',
-    description: '작은 공룡들과 느긋하게, 오늘도 한 장씩.',
+    description: '유리와 공룡 친구들, 쿠션 위에서 포근하게.',
     introduction:
-      '창가의 햇살, 펼쳐 둔 노트, 곁을 지키는 공룡 친구들. 유리와 함께 서두르지 않고 나만의 공부 속도를 찾아봐요.',
+      '햇살 드는 창가에 유리와 공룡 친구들이 모였어요. 푹신한 쿠션 곁에서 서두르지 않고 한 장씩 읽어 봐요.',
     contentStatus: 'preview',
     characters: [{ id: 'yuri', name: '유리', description: '포근한 독서실 친구 · 공룡들과 함께' }],
   },
   {
     id: 'lab',
     name: '뚝딱뚝딱 실험실',
-    description: '호기심 많은 작은 연구원들과 집중 실험 시작!',
+    description: '호기심 많은 세 친구와 함께하는 공부 실험.',
     introduction:
-      '반짝이는 작업대에 오늘의 목표를 올려 둬요. 핑키, 코튼, 라임과 문제를 풀고 아이디어를 모으며 나만의 성취를 만들어 봐요.',
+      '별빛 드는 실험실에서 핑키, 코튼, 라임이 노트를 펼쳤어요. 친구들과 머리를 맞대고 궁금했던 문제를 풀어 봐요.',
     contentStatus: 'preview',
     characters: [
       { id: 'pinky', name: '핑키', description: '분홍빛 발명가 · 호기심 많은 친구' },
@@ -119,12 +119,12 @@ export const studyRooms: readonly StudyRoom[] = [
   {
     id: 'joseon',
     name: '조선시대 야간 학습',
-    description: '등불과 달빛 아래, 궁궐의 밤 공부.',
+    description: '등불 밝힌 궁궐 서재, 세 친구와 밤 공부.',
     introduction:
-      '달이 뜬 궁궐 서재에서 조용히 책장을 넘겨요. 연화, 설아, 봄이와 은은한 등불 곁에 앉아 오늘의 목표를 마무리해요.',
+      '고요한 궁궐 서재에 등불이 켜졌어요. 연화, 설아, 봄이와 나란히 앉아 차분하게 밤 공부를 시작해 봐요.',
     contentStatus: 'preview',
     characters: [
-      { id: 'yeonhwa', name: '연화', description: '기품 있는 세자빈 · 차분한 공부 메이트' },
+      { id: 'yeonhwa', name: '연화', description: '기품 있는 세자빈 · 차분한 공부 친구' },
       { id: 'seola', name: '설아', description: '성실한 궁녀 · 말없이 지키는 옆자리' },
       { id: 'bomi', name: '봄이', description: '밝은 궁궐 친구 · 다정한 격려' },
     ],

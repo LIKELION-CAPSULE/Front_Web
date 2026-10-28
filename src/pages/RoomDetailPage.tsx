@@ -52,7 +52,7 @@ export default function RoomDetailPage() {
               }
               className="mt-6 max-w-full"
             >
-              {state.activeSession ? '진행 중인 공부로 돌아가기' : '이 룸에서 공부 시작'}
+              {state.activeSession ? '진행 중인 공부로 돌아가기' : '이곳에서 공부하기'}
               <Icon name="arrow" size={18} motion="nudge" className="shrink-0" />
             </ButtonLink>
           </div>
@@ -60,7 +60,7 @@ export default function RoomDetailPage() {
         <section className="mt-10" aria-labelledby="room-characters">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
             <h2 id="room-characters" className="text-2xl font-bold">
-              네 옆자리를 지킬 친구들
+              이곳에서 함께할 {room.characters.length === 1 ? '친구' : '친구들'}
             </h2>
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">

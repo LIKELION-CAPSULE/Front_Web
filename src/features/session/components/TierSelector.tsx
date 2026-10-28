@@ -13,7 +13,7 @@ export function TierSelector({
 }) {
   return (
     <fieldset className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-      <legend className="sr-only">이번 공부 옵션</legend>
+      <legend className="sr-only">대화 옵션</legend>
       {tiers.map((tier, index) => (
         <label
           key={tier.id}
@@ -42,7 +42,7 @@ export function TierSelector({
               tier.id === 'special' ? 'text-white/80' : 'text-muted',
             )}
           >
-            {tier.price ? '크레딧 / 공부 시작' : '무료 · 무제한'}
+            {tier.price ? '크레딧 / 공부 1회' : '크레딧 차감 없음'}
           </span>
           <span className="my-3 block h-px bg-line/70" />
           {tier.features.map((feature) => (

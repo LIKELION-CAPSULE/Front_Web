@@ -2,9 +2,9 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router'
 
 const titles: Record<string, string> = {
-  '/': '같이 하는 공부',
-  '/records': '내 공부 기록',
-  '/characters': '캐릭터',
+  '/': '함께 공부하기',
+  '/records': '내 기록',
+  '/characters': '친구',
   '/credits': '내 크레딧',
   '/credits/charge': '크레딧 · 패스',
   '/login': '같이 공부할 친구가 기다리고 있어요',
@@ -22,12 +22,12 @@ export function PageNavigation() {
       : pathname.startsWith('/study/')
         ? '함께 공부하기'
         : pathname.startsWith('/reports/')
-          ? '오늘의 캡슐'
+          ? '공부 기록'
           : pathname.startsWith('/capsules/')
             ? '캡슐 카드'
             : pathname.startsWith('/characters/')
-              ? '캐릭터 관계'
-              : '페이지 찾기'
+              ? '친구와의 관계'
+              : '페이지를 찾을 수 없어요'
     document.title = `CAPSULE · ${titles[pathname] ?? fallback}`
     window.scrollTo(0, 0)
     document.getElementById('main-content')?.focus({ preventScroll: true })

@@ -12,6 +12,7 @@ import { OverlayPage } from '@/shared/ui/OverlayPage'
 import { StatCard } from '@/shared/ui/Panel'
 import NotFoundPage from './NotFoundPage'
 import { ProgressRing } from '@/shared/ui/ProgressRing'
+import { withParticle } from '@/shared/lib/korean'
 
 export default function ReportPage() {
   const { recordId } = useParams()
@@ -44,27 +45,27 @@ export default function ReportPage() {
       </section>
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="font-mono text-[13px] tracking-[2px] text-brand">TODAY&apos;S CAPSULE</p>
+          <p className="font-mono text-[13px] tracking-[2px] text-brand">CAPSULE</p>
           <p className="text-xs text-muted">
             {room.name} · {dateLabel(record.endedAt, true)} · {tierById(record.tier).name}
           </p>
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-[40px] leading-[1.3] font-black">오늘의 공부 완료</h1>
+          <h1 className="text-[40px] leading-[1.3] font-black">공부를 마쳤어요</h1>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted">
-              오늘의
+              이번 공부
               <br />
               집중률
             </span>
             <ProgressRing
               value={record.studySeconds ? (record.focusSeconds / record.studySeconds) * 100 : 0}
-              label="오늘의 집중률"
+              label="이번 공부 집중률"
             />
           </div>
         </div>
         <p className="mt-3 text-[15px] leading-6 text-muted">
-          {duration(record.studySeconds)}의 공부를 {character.name}과 함께했어요.
+          {withParticle(character.name, '과', '와')} {duration(record.studySeconds)} 공부했어요.
         </p>
         {record.targetSeconds && (
           <p className="mt-2 text-sm text-brand-strong">
@@ -96,11 +97,11 @@ export default function ReportPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-[16px] bg-brand-soft px-[18px] py-3">
           <div>
             <p className="text-sm font-bold">
-              {character.name}과 호감도 +
+              {withParticle(character.name, '과의', '와의')} 호감도 +
               {Math.floor(record.studySeconds / 60 / record.characterIds.length)}
             </p>
             <p className="mt-1 text-xs text-muted">
-              Lv.{relation.level} 친구 · 다음 단계까지 {relation.next}분
+              Lv.{relation.level} 친구 · {relation.level >= 5 ? '가장 가까운 친구가 되었어요' : `Lv.${relation.level + 1}까지 ${relation.next}분`}
             </p>
           </div>
           <div className="h-2.5 min-w-24 flex-1 overflow-hidden rounded-full bg-line">
@@ -117,7 +118,7 @@ export default function ReportPage() {
             홈으로
           </ButtonLink>
           <ButtonLink to={`/capsules/${record.id}`}>
-            캡슐 카드 받기 →
+            캡슐 카드 만들기
           </ButtonLink>
         </div>
       </div>

@@ -129,7 +129,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
             id: `start-${action.now}`,
             at: action.now,
             kind: 'use',
-            description: `공부 옵션 · ${tierById(action.tier).name}`,
+            description: `대화 옵션 · ${tierById(action.tier).name}`,
             change: -cost,
           })
         : state
@@ -253,7 +253,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
             id: `upgrade-${action.now}`,
             at: action.now,
             kind: 'use',
-            description: `등급 올리기 · ${tierById(active.tier).name} → ${tierById(action.tier).name} (차액)`,
+            description: `대화 옵션 변경 · ${tierById(active.tier).name} → ${tierById(action.tier).name} (차액)`,
             change: -cost,
           })
         : state

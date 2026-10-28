@@ -12,6 +12,8 @@ import { cn } from '@/shared/lib/cn'
 import { OverlayPage } from '@/shared/ui/OverlayPage'
 import { DateTimeWheelField } from '@/shared/ui/DateTimeWheelField'
 import NotFoundPage from './NotFoundPage'
+import { withParticle } from '@/shared/lib/korean'
+import { capsuleCardCopy } from '@/features/reports/card-copy'
 
 const colors = ['#8051cc', '#17171c', '#f5f0ff', '#d8c5ff']
 const names = ['보라', '검정', '연보라', '라벤더']
@@ -52,7 +54,7 @@ export default function CapsuleCardPage() {
       if (share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: '오늘의 캡슐',
+          title: '캡슐 카드',
           text: '오늘도 캡슐에서 같이 공부했어요.',
         })
         setStatus('공유 화면을 열었어요.')
@@ -110,24 +112,24 @@ export default function CapsuleCardPage() {
         <div className="share-portrait">
           <CharacterFigure variant="share" characterId={character.id} pose="affection" />
           <span className="absolute top-3.5 left-1/2 -translate-x-1/2 rounded-[14px] bg-panel/90 px-3 py-2 text-sm whitespace-nowrap text-white">
-            다음엔 더 오래 버텨 봐.
+            {capsuleCardCopy.quote}
           </span>
         </div>
         <p className="mt-4 text-[15px]">
-          {room.name} · {character.name}과
+          {room.name} · {withParticle(character.name, '과', '와')} 함께
         </p>
         <p className="mt-1 text-[64px] leading-[1.3] font-black">{duration(record.studySeconds)}</p>
         <p className="mt-2 font-bold">
           집중 {duration(record.focusSeconds)} · 복귀 {record.returns}회
         </p>
         <Badge dark className="mt-5 self-start">
-          연속 5일째
+          {capsuleCardCopy.badge}
         </Badge>
         <p className="mt-auto pt-6 text-xs">캡슐에서 같이 공부해요 · CAPSULE</p>
       </div>
       <section className="w-full max-w-[440px] rounded-3xl bg-panel p-7">
-        <h1 className="text-[22px] font-bold">오늘의 캡슐 카드</h1>
-        <p className="mt-2 text-sm text-muted">사진처럼 저장하거나 스토리에 올려 보세요</p>
+        <h1 className="text-[22px] font-bold">캡슐 카드</h1>
+        <p className="mt-2 text-sm text-muted">이미지로 저장하거나 스토리에 공유해 보세요.</p>
         <p className="mt-4 text-[13px] font-bold text-muted">카드 색 · {names[color]}</p>
         <div className="relative mt-2 h-[30px] w-[150px]">
           {colors.map((_, index) => (
@@ -171,7 +173,7 @@ export default function CapsuleCardPage() {
         </div>
         {(busy || status) && (
           <p role="status" className="mt-3 text-xs leading-5 text-brand-strong">
-            {busy ? '캐릭터와 배경을 합쳐 이미지를 만들고 있어요…' : status}
+            {busy ? '캡슐 카드를 만들고 있어요…' : status}
           </p>
         )}
         {copyFallback && (
@@ -186,7 +188,7 @@ export default function CapsuleCardPage() {
         <hr className="my-4 border-line" />
         <h2 className="text-section-title font-semibold">다음 공부 약속</h2>
         <p className="mt-2 text-sm text-muted">
-          등록한 약속은 모든 캐릭터가 함께 기억해요
+          공부 약속은 모든 친구가 함께 기억해요.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {['오늘', '내일', '모레'].map((label, index) => {
@@ -229,10 +231,10 @@ export default function CapsuleCardPage() {
           onClick={promise}
           className="mt-4 w-full"
         >
-          {date.slice(5)} {time} 약속하고 마치기
+          {date.slice(5)} {time} 약속 저장하기
         </Button>
         <Link to="/" className="mt-3 inline-block text-sm text-muted underline">
-          약속 없이 홈으로
+          저장하지 않고 홈으로
         </Link>
       </section>
     </main>

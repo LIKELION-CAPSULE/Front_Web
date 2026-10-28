@@ -10,6 +10,7 @@ import { cn } from '@/shared/lib/cn'
 import { ChatComposer } from './ChatComposer'
 import { UpgradePanel } from './UpgradePanel'
 import { sessionAssets } from '../assets'
+import { withParticle } from '@/shared/lib/korean'
 
 export function BreakConversation({
   characters,
@@ -65,7 +66,7 @@ export function BreakConversation({
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm font-bold">
               {tierById(active.tier).name} ·{' '}
-              {active.tier === 'basic' ? `오늘 무료 대화 ${used}/3턴` : '이번 공부 자유 대화'}
+              {active.tier === 'basic' ? `오늘 무료 대화 ${used}/3회` : '이번 공부 중 자유 대화'}
             </p>
             {exhausted ? (
               <span className="flex gap-1">
@@ -86,7 +87,7 @@ export function BreakConversation({
           </div>
           <p className="mt-2 text-[11px] leading-4 text-muted">
             {active.tier === 'basic'
-              ? '새벽 5시에 다시 3턴 · 올리면 이번 공부 자유 대화'
+              ? '매일 오전 5시에 무료 대화 3회 제공 · 옵션을 올리면 자유 대화'
               : '오늘 공부 내용 반영 · 쉬는 시간 끝까지'}
           </p>
         </div>
@@ -94,7 +95,7 @@ export function BreakConversation({
       <div
         ref={list}
         role="log"
-        aria-label={`${selected.name}과의 대화`}
+        aria-label={`${withParticle(selected.name, '과의', '와의')} 대화`}
         className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4"
       >
         <div className="message-bubble">
@@ -129,7 +130,7 @@ export function BreakConversation({
           onClick={() => setUpgradeOpen(true)}
           className="mx-5 mb-3 rounded-control bg-surface px-4 py-3 text-sm font-bold text-brand-strong"
         >
-          무료 대화를 모두 사용했어요 · 등급 올리기
+          무료 대화를 모두 사용했어요 · 옵션 올리기
         </button>
       )}
       <ChatComposer name={selected.name} onSend={onSend} disabled={exhausted} />
