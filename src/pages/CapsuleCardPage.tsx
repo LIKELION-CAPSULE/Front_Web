@@ -5,7 +5,7 @@ import { useDemo } from '@/features/demo/demo-context'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { CharacterFigure } from '@/features/session/components/CharacterFigure'
 import { downloadCard, exportCard } from '@/features/reports/export-card'
-import { dateLabel, dayKey, duration } from '@/shared/lib/format'
+import { dateLabel, dayKey, duration, measuredDuration } from '@/shared/lib/format'
 import { Button } from '@/shared/ui/Button'
 import { Badge } from '@/shared/ui/Badge'
 import { cn } from '@/shared/lib/cn'
@@ -13,7 +13,7 @@ import { OverlayPage } from '@/shared/ui/OverlayPage'
 import { DateTimeWheelField } from '@/shared/ui/DateTimeWheelField'
 import NotFoundPage from './NotFoundPage'
 import { withParticle } from '@/shared/lib/korean'
-import { capsuleCardCopy } from '@/features/reports/card-copy'
+import { capsuleCardCopy, capsuleFocusCopy } from '@/features/reports/card-copy'
 
 const colors = ['#8051cc', '#17171c', '#f5f0ff', '#d8c5ff']
 const names = ['보라', '검정', '연보라', '라벤더']
@@ -118,9 +118,9 @@ export default function CapsuleCardPage() {
         <p className="mt-4 text-[15px]">
           {room.name} · {withParticle(character.name, '과', '와')} 함께
         </p>
-        <p className="mt-1 text-[64px] leading-[1.3] font-black">{duration(record.studySeconds)}</p>
+        <p className="mt-1 text-[64px] leading-[1.3] font-black">{(record.observedSeconds === undefined ? duration : measuredDuration)(record.studySeconds)}</p>
         <p className="mt-2 font-bold">
-          집중 {duration(record.focusSeconds)} · 복귀 {record.returns}회
+          {capsuleFocusCopy(record)}
         </p>
         <Badge dark className="mt-5 self-start">
           {capsuleCardCopy.badge}

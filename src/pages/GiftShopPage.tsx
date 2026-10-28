@@ -46,9 +46,7 @@ export default function GiftShopPage() {
       <Link to={`/characters/${character.id}`} className="mb-3 inline-block text-sm text-muted">
         ← {character.name}
       </Link>
-      <PageHeading title={`${character.name}에게 선물 · 보이스`}>
-        선물은 크레딧으로 보내요. 호감도는 함께 공부한 시간으로만 올라요.
-      </PageHeading>
+      <PageHeading title={`${character.name}에게 선물 · 보이스`} eyebrow={null} />
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,784fr)_minmax(300px,400fr)]">
         <div>
           <Tabs
@@ -110,15 +108,13 @@ export default function GiftShopPage() {
         <aside className="rounded-card bg-brand-soft p-5">
           <div className="gift-recipient">
             <CharacterArtwork characterId={character.id} pose="affection" variant="card" />
-            <span>{character.name}에게 전하는 작은 마음</span>
           </div>
-          <h2 className="text-[17px] font-bold">
-            {selected.name} · {selected.kind}
-          </h2>
-          <p className="mt-3 flex justify-between gap-3 text-sm">
-            <strong className="font-mono">{number(selected.price)} 크레딧</strong>
-            <span className="text-xs text-muted">보유 {number(state.credits)}</span>
-          </p>
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="min-w-0 text-[17px] font-bold">
+              {selected.name} · {selected.kind}
+            </h2>
+            <span className="shrink-0 text-xs whitespace-nowrap text-muted">보유 {number(state.credits)}</span>
+          </div>
           <Button
             disabled={state.credits < selected.price || !!sent}
             onClick={() => sendGift(now)}
@@ -133,7 +129,7 @@ export default function GiftShopPage() {
                 to={`/credits/charge?returnTo=${encodeURIComponent(`/characters/${character.id}/shop`)}`}
                 className="underline"
               >
-                충전하기 →
+                충전하기
               </Link>
             </p>
           )}

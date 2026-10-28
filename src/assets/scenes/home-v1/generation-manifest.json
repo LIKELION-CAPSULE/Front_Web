@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-10-28",
+  "mode": "built-in image_gen",
+  "purpose": "Home-only modest character variants for the classroom and night study room cards",
+  "scope": "Only RoomCard requests getHomeRoomArtwork. Shared scene artwork, detail banners, friend portraits, study/report artwork, and welcome banners keep their existing assets.",
+  "webEncoding": {
+    "tool": "cwebp",
+    "quality": 88,
+    "alphaQuality": 100,
+    "method": 6
+  },
+  "assets": [
+    {
+      "scene": "classroom",
+      "roomId": "dawn-library",
+      "master": "classroom-home-subject-v1.png",
+      "web": "classroom-home-subject-v1.webp",
+      "size": [
+        1536,
+        1024
+      ],
+      "reference": "../layered-v2/classroom-fullbody-v3.webp",
+      "generatedSource": "/Users/jeongin/.codex/generated_images/01a17d9b-a9c0-7200-94c3-59f7be7b41c8/exec-d221752f-ee20-4d65-9756-76173f20c30f.png",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent character foreground for the HOME PAGE room card of an anime study companion website.\nInput image 1: existing character group, used as the identity and illustration-style reference and edit target.\nPrimary request: Regenerate this same three-person group as a wholesome, modest, friendly study scene. Preserve the distinctive three faces, hair colors and hairstyles, and left-to-right identities: short dark bob-haired Sua on the left, very long blonde-haired Chaerin in the center, brown ponytail-haired Dahee on the right. Preserve the detailed softly painted anime illustration style, warm sunset highlights and dark gray school-uniform palette. Sua is gentle, Chaerin has a reserved slightly aloof expression, Dahee has a cheerful small smile.\nChange clothing and pose: wear loose, fully buttoned white collared shirts with tidy ties and modest dark vests or cardigans; calf-length pleated charcoal skirts and opaque dark leggings, simple loafers. All three sit upright next to one another on simple understated study chairs, naturally reading or holding their notebooks and pen. Their hands and books are relaxed near their laps or midriff, shoulders level. Their knees stay together BELOW the waist, lower legs point down and feet rest naturally on the same implied floor; there are no raised knees, crossed legs, low-angle camera views or foreshortened legs. Eye-level viewpoint. Keep faces prominent, proportions natural, all three heads approximately level. Head-to-foot full bodies in landscape 1536x1024 with a small transparent margin around all hair, shoes and outer edges. Keep the group compact enough to read clearly in a room thumbnail.\nConstraints: EXACTLY three people, anatomically clear hands and exactly two legs per person. Clothing covers torso and upper legs fully, regular relaxed tailoring with no exaggerated anatomy or body emphasis. Genuine transparent alpha outside and between the figures and any simple chair silhouettes. Only the people, their notebooks/pen, and minimal chairs; no room, floor plane, tabletop, background texture, gradients, colored haze, ground shadows, text, UI, lettering, logo or watermark. The existing environment and title are separate website layers and must not be generated into this image.",
+      "masterBytes": 2555304,
+      "masterSha256": "0de93a201ed39f280243757e1346e4fbf294b62bb2ae86a1be869a6104b014e8",
+      "webBytes": 368546,
+      "webSha256": "0f3c8e06762d87567bbf77f672c994660f728eb1ada0fa5be8b4d8745dddf46f",
+      "alphaPreserved": true,
+      "transparentPixels": 663782
+    },
+    {
+      "scene": "night",
+      "roomId": "room-2",
+      "master": "night-home-subject-v1.png",
+      "web": "night-home-subject-v1.webp",
+      "size": [
+        1024,
+        1536
+      ],
+      "reference": "../layered-v2/night-fullbody-v2.webp",
+      "generatedSource": "/Users/jeongin/.codex/generated_images/01a17d9b-a9c0-7200-94c3-59f7be7b41c8/exec-f240181c-f7a1-4edc-9822-f34da116584d.png",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent character foreground for the HOME PAGE room card of an anime study companion website.\nInput image 1: the existing black-haired Doyun character, used as identity and illustration-style reference and edit target.\nPrimary request: Regenerate the same character in a wholesome, modest, calm academic pose. Preserve the recognizable face, very long black hair, dark eyes, soft expression, detailed softly painted anime style, and cool violet nighttime edge lighting. Preserve the black cardigan, white collared shirt and dark striped tie identity.\nChange clothing and pose: neat fully buttoned white shirt, tidy tie, a comfortably loose black cardigan closed across the torso, a calf-length dark pleated skirt, opaque dark leggings and simple black loafers. Sit upright on one simple understated study chair, head resting lightly on one hand and a pen in the other near a closed notebook resting flat on the lap. Both knees are together BELOW the waist and feet rest naturally on the same implied floor. Eye-level camera, normal perspective, no legs raised toward the torso, no crossed legs, no dramatic foreshortening and no oversized feet. Friendly focus on the face and studying. Preserve a relaxed everyday silhouette rather than emphasizing body shape.\nComposition: one complete head-to-foot person, portrait 1024x1536, character centered with small transparent margins around hair and shoes, clean readable silhouette for a room thumbnail.\nConstraints: EXACTLY one person, natural anatomy and hands, exactly two legs and two feet. Clothing fully covers torso and upper legs. Genuine transparent alpha outside the subject and chair silhouette. Only character, pen, notebook and minimal chair; no room, floor plane, tabletop, background texture, gradients, colored haze, ground shadows, text, UI, lettering, logo or watermark. Existing website environment and title are separate layers.",
+      "masterBytes": 2267360,
+      "masterSha256": "d0935e5840ce33e0dbaae826b15e4cd55a86cc6ca47d082125837fa12c449e57",
+      "webBytes": 304360,
+      "webSha256": "2ea63f4cf0f1be85372339676b21fefe93b03a9a151dd4d7b1a4a3b383b5e93b",
+      "alphaPreserved": true,
+      "transparentPixels": 798702
+    }
+  ]
+}

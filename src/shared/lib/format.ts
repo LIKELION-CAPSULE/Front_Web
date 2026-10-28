@@ -7,6 +7,11 @@ export function duration(seconds: number) {
     : `${minutes}분`
 }
 
+export function measuredDuration(seconds: number) {
+  const safe = Number.isFinite(seconds) ? Math.max(0, seconds) : 0
+  return safe < 60 ? `${Math.round(safe * 10) / 10}초` : duration(safe)
+}
+
 export function clock(seconds: number) {
   const safe = Math.max(0, Math.floor(seconds))
   return [Math.floor(safe / 3600), Math.floor(safe / 60) % 60, safe % 60]

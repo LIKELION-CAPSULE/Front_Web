@@ -91,14 +91,17 @@ test('basic chat shares the daily limit across characters and resets at 05:00 Se
   assert.equal(state.chatUsage.used, 1)
 })
 
-test('finishing records the session once and keeps focus plus away equal to total', () => {
+test('finishing records the session once without inventing focus measurements', () => {
   let state = demoReducer(createDemoState(now), start())
   state = demoReducer(state, { type: 'SKIP_TO_BREAK', now: now + 1 })
   const count = state.records.length
   state = demoReducer(state, { type: 'FINISH', now: now + 2 })
   assert.equal(state.records.length, count + 1)
   const record = state.records[0]!
-  assert.equal(record.focusSeconds + record.awaySeconds, 3000)
+  assert.equal(record.studySeconds, 3000)
+  assert.equal(record.observedSeconds, 0)
+  assert.equal(record.focusSeconds + record.awaySeconds, 0)
+  assert.equal(record.returns, 0)
   assert.equal(state.activeSession, null)
   assert.equal(demoReducer(state, { type: 'FINISH', now: now + 3 }), state)
 })

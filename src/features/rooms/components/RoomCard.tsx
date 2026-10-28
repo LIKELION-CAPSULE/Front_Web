@@ -6,6 +6,7 @@ import { RoomArtwork } from './RoomArtwork'
 import { RoomTitle } from './RoomTitle'
 import { RoomCompanions } from './RoomCompanions'
 import { moveScene, resetScene } from '@/features/rooms/scene-motion'
+import { getHomeRoomArtwork } from '@/features/rooms/home-artwork'
 
 export function RoomCard({ room }: { room: StudyRoom }) {
   const { state, dispatch } = useDemo()
@@ -17,7 +18,13 @@ export function RoomCard({ room }: { room: StudyRoom }) {
   return (
     <article className="room-card" onPointerMove={moveScene} onPointerLeave={resetScene}>
       <div className="room-card-art">
-        <RoomArtwork roomId={room.id} variant="seated" interactive className="has-title" />
+        <RoomArtwork
+          roomId={room.id}
+          artwork={getHomeRoomArtwork(room.id)}
+          variant="seated"
+          interactive
+          className="has-title"
+        />
         <RoomCompanions characters={room.characters} className="room-card-companions" />
         <h3>
           {comingSoon ? (

@@ -6,10 +6,13 @@ import { tierById } from '@/features/demo/catalog'
 import { BREAK_SECONDS, sessionElapsed } from '@/features/demo/reducer'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { studyGoalSeconds } from '@/features/session/study-goal'
+import { focusPercent, normalizeFocusTotals } from '@/features/session/focus'
 import { useNow } from '@/features/session/use-now'
 import { CharacterTile } from '@/features/session/components/CharacterTile'
 import { getCharacterArtwork } from '@/features/characters/artwork'
 import { AvatarIllustration } from '@/shared/ui/AvatarIllustration'
+import { DetectionStatus } from '@/features/media/components/DetectionStatus'
+import { useMedia } from '@/features/media/media-context'
 import { Brand } from '@/shared/ui/Brand'
 import { Icon } from '@/shared/ui/Icon'
 import { ChatComposer } from '@/features/session/components/ChatComposer'
@@ -22,7 +25,7 @@ import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
 import { EmptyState } from '@/shared/ui/EmptyState'
 
-const reactions = ['', '…', '야, 폰 보는 거 다 보여.', '…나랑 공부하기 싫어?']
+const reactions = ['', '…', '잠깐 자리 비운 거야?', '…나랑 공부하기 싫어?']
 
 export default function StudyPage() {
   const { state, dispatch } = useDemo()
@@ -30,10 +33,11 @@ export default function StudyPage() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [selectedId, setSelectedId] = useState('')
-  const [reaction, setReaction] = useState(2)
+  const [reaction, setReaction] = useState(0)
   const [customSpeech, setCustomSpeech] = useState('')
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [quietMode, setQuietMode] = useState(false)
+  const { devices, controller, flushFocus } = useMedia()
   const now = useNow()
   const active = state.activeSession
   const room = active && getStudyRoom(active.roomId)
@@ -55,6 +59,8 @@ export default function StudyPage() {
   const chatOpen = params.get('chat') === '1'
   const elapsed = sessionElapsed(active, now)
   const goal = studyGoalSeconds(active)
+  const focusTotals = normalizeFocusTotals(active.focus)
+  const focusRate = focusPercent(focusTotals.focusedMs, focusTotals.observedMs)
   const remaining = Math.max(0, (active.phase === 'study' ? goal : BREAK_SECONDS) - elapsed)
   const used = state.chatUsage.day === businessDay(now) ? state.chatUsage.used : 0
   const messages = state.messages.filter(
@@ -85,12 +91,24 @@ export default function StudyPage() {
     setCustomSpeech('')
   }
   function finish(another = false) {
+    flushFocus()
+    controller.stop()
     dispatch({ type: 'FINISH', now: Date.now() })
     navigate(
       another
-        ? `/rooms/${room!.id}/prepare?step=goal&goal=${Math.round(studyGoalSeconds(active!) / 60)}`
+        ? `/rooms/${room!.id}/prepare?goal=${Math.round(studyGoalSeconds(active!) / 60)}`
         : `/reports/${active!.id}`,
     )
+  }
+  async function toggleCamera() {
+    if (devices.camera.stream) {
+      flushFocus()
+      controller.stop('camera')
+      dispatch({ type: 'CAMERA', enabled: false })
+    } else {
+      const enabled = await controller.request('camera')
+      dispatch({ type: 'CAMERA', enabled })
+    }
   }
   const timer = (
     <div className="session-timer">
@@ -107,27 +125,34 @@ export default function StudyPage() {
         {!focused && active!.phase === 'study' && timer}
         <div className="self-status">
           <img src={reaction > 0 ? sessionAssets.purpleDot : sessionAssets.greenDot} alt="" />
-          <span>{active!.camera ? '카메라 켜짐' : '카메라 꺼짐'}</span>
+          <span>{devices.camera.stream ? '카메라 켜짐' : '카메라 꺼짐'}</span>
         </div>
         <div
           className={cn(
             'self-avatar-scene',
             small && 'is-small',
-            active!.camera && 'camera-enabled',
           )}
         >
           <AvatarIllustration settings={state.profile.avatar} />
-          <p>{active!.camera ? '카메라 미리보기' : '이곳이 나의 자리'}</p>
+          <p>이곳이 나의 자리</p>
         </div>
-        <button
-          onClick={() => dispatch({ type: 'CAMERA', enabled: !active!.camera })}
-          className="absolute bottom-3 left-3 rounded-full bg-brand/85 px-3 py-1 text-xs text-white"
-        >
-          카메라 {active!.camera ? '끄기' : '켜기'}
-        </button>
-        <span className="absolute right-3 bottom-3 rounded-full bg-brand/85 px-3 py-1 text-xs text-white">
+        <div className="study-self-footer">
+        <div className="study-device-controls">
+          <DetectionStatus />
+          <span role="status" aria-label="현재 공부 집중률" className="study-focus-status">
+            집중률 <strong>{focusRate === null ? '—' : `${focusRate}%`}</strong>
+          </span>
+          {devices.camera.error && <p role="alert">{devices.camera.error}</p>}
+          {devices.microphone.error && <p role="alert">{devices.microphone.error}</p>}
+          <div className="flex flex-wrap gap-2">
+            <button disabled={devices.camera.status === 'requesting'} onClick={() => { void toggleCamera() }}>카메라 {devices.camera.stream ? '끄기' : '켜기'}</button>
+            <button disabled={devices.microphone.status === 'requesting'} onClick={() => devices.microphone.stream ? controller.stop('microphone') : void controller.request('microphone')}>마이크 {devices.microphone.stream ? '끄기' : '켜기'}</button>
+          </div>
+        </div>
+        <span className="ml-auto rounded-full bg-brand/85 px-3 py-1 text-xs text-white">
           나 · {state.profile.name}
         </span>
+        </div>
       </article>
     )
   }
@@ -248,7 +273,7 @@ export default function StudyPage() {
             {selfTile(!!focused)}
           </div>
           <nav aria-label="공부 컨트롤" className="study-dock">
-            <button onClick={() => dispatch({ type: 'PAUSE', now: Date.now() })}>
+            <button onClick={() => { flushFocus(); dispatch({ type: 'PAUSE', now: Date.now() }) }}>
               <Icon name={active.runningSince === null ? 'play' : 'pause'} size={16} />
               {active.runningSince === null ? '계속하기' : '일시정지'}
             </button>
@@ -322,7 +347,8 @@ export default function StudyPage() {
                       <span className="tile-label">{character.name} · 쉬는 중</span>
                     </button>
                   ))}
-                <div className="break-thumbnail bg-[#26242e]">
+                <div className="break-thumbnail bg-[#26242e]" aria-label="내 아바타">
+                  <AvatarIllustration settings={state.profile.avatar} />
                   <span className="tile-label bg-brand-solid text-white">
                     나 · {state.profile.name}
                   </span>
@@ -358,7 +384,7 @@ export default function StudyPage() {
       )}
       <details className={cn('demo-controls', active.phase === 'break' && 'demo-controls-break')}>
         <summary>데모 조작</summary>
-        <p className="mb-2 text-[11px] text-muted">실제 감지·촬영은 하지 않아요.</p>
+        <p className="mb-2 text-[11px] text-muted">친구 반응과 쉬는 시간을 미리 확인할 수 있어요.</p>
         <div className="flex flex-wrap gap-1.5">
           {active.phase === 'study' && (
             <>
