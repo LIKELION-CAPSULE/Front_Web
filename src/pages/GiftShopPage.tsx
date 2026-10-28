@@ -63,8 +63,8 @@ export default function GiftShopPage() {
                 <article
                   key={product.id}
                   className={cn(
-                    'relative min-h-[170px] rounded-[16px] border p-3.5',
-                    selected.id === product.id ? 'border-2 border-brand' : 'border-line',
+                    'relative min-h-[170px] rounded-[16px] border bg-panel p-3.5',
+                    selected.id === product.id ? 'border-2 border-brand' : 'border-transparent',
                   )}
                 >
                   <button
@@ -96,7 +96,7 @@ export default function GiftShopPage() {
                     {product.kind === '보이스' && (
                       <button
                         onClick={() => setPreview(product.reply)}
-                        className="relative z-10 rounded-full border border-line px-2 py-1 text-[10px]"
+                        className="button-subtle relative z-10 rounded-full border border-transparent px-2 py-1 text-[10px]"
                       >
                         ▶ 미리 듣기
                       </button>
@@ -121,7 +121,7 @@ export default function GiftShopPage() {
           <Button
             disabled={state.credits < selected.price || !!sent}
             onClick={() => sendGift(now)}
-            className="mt-3 min-h-11 w-full px-3 py-2 text-sm"
+            className="mt-3 w-full"
           >
             {number(selected.price)} 크레딧으로 보내기
           </Button>

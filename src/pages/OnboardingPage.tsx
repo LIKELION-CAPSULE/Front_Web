@@ -10,6 +10,7 @@ import { AvatarIllustration } from '@/shared/ui/AvatarIllustration'
 import { Icon } from '@/shared/ui/Icon'
 import { AvatarCustomizer } from '@/features/profile/components/AvatarCustomizer'
 import { avatarShades } from '@/features/profile/avatar-options'
+import { FormField } from '@/shared/ui/FormField'
 
 export default function OnboardingPage() {
   const { state, dispatch } = useDemo()
@@ -53,23 +54,22 @@ export default function OnboardingPage() {
           </span>
         </section>
         <form
-          className="flex flex-col px-5 py-8 sm:px-12 lg:py-10"
+          className="flex flex-col px-5 py-8 [--form-input-border:var(--color-line)] sm:px-12 lg:py-10"
           onSubmit={(event) => {
             event.preventDefault()
             finish()
           }}
         >
           <h1 className="text-[28px] font-bold">내 아바타 만들기</h1>
-          <label className="mt-6 block max-w-[520px] text-sm text-muted">
-            이름
+          <FormField label="이름" className="mt-6 max-w-[520px]">
             <input
               required
               maxLength={20}
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="form-input mt-2"
+              className="form-input"
             />
-          </label>
+          </FormField>
           <div className="mt-5 max-w-[520px]">
             <AvatarCustomizer value={avatar} onChange={setAvatar} />
           </div>

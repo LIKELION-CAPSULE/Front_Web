@@ -41,7 +41,7 @@
 }
 .artwork-preview-controls select {
   padding: 8px 12px;
-  border: 1px solid #ffffff25;
+  border: 1px solid transparent;
   border-radius: 8px;
   background: #242130;
 }
@@ -52,7 +52,7 @@
 }
 .artwork-preview-card {
   overflow: hidden;
-  border: 1px solid #ffffff20;
+  border: 1px solid transparent;
   border-radius: 16px;
   background: #17151f;
 }

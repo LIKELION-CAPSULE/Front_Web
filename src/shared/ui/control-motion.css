@@ -39,9 +39,9 @@
   position: relative;
   display: grid;
   place-items: center;
-  border: 1px solid #777187;
+  border: 1px solid transparent;
   border-radius: 5px;
-  background: #111620;
+  background: var(--color-surface);
   pointer-events: none;
 }
 .animated-checkbox-face::before {

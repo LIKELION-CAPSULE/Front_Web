@@ -163,3 +163,4 @@ Desktop.ini
 docs/*
 !docs/REFERENCE_COMMERCIAL_USE.md
 !docs/THIRD_PARTY_NOTICES.md
+!docs/DESIGN_CODE_AUDIT.md

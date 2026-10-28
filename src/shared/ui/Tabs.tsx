@@ -3,16 +3,19 @@ import { cn } from '@/shared/lib/cn'
 import './tabs.css'
 
 type Tab = { id: string; label: string }
+export type TabSize = 'sm' | 'md'
 export function Tabs({
   options,
   value,
   onChange,
   label,
+  size = 'md',
 }: {
   options: readonly Tab[]
   value: string
   onChange: (value: string) => void
   label: string
+  size?: TabSize
 }) {
   const controlRef = useRef<HTMLDivElement>(null)
   const indicatorRef = useRef<HTMLSpanElement>(null)
@@ -43,7 +46,7 @@ export function Tabs({
       cancelAnimationFrame(frame)
       observer.disconnect()
     }
-  }, [value, options])
+  }, [value, options, size])
   return (
     <div
       ref={controlRef}
@@ -59,7 +62,8 @@ export function Tabs({
           aria-pressed={value === option.id}
           onClick={() => onChange(option.id)}
           className={cn(
-            'segmented-option rounded-[9px] px-4 py-2 text-sm leading-5 transition-colors',
+            'segmented-option rounded-[9px] py-2 leading-5 transition-colors',
+            size === 'sm' ? 'px-3 text-xs' : 'px-4 text-sm',
             value === option.id ? 'font-bold text-brand-strong' : 'text-subtle hover:text-ink',
           )}
         >

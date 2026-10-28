@@ -44,7 +44,7 @@ export default function RecordsPage() {
           onResetPeriod={() => setOffset(0)}
         />
       </div>
-      <Panel className="records-companion-panel min-w-0">
+      <Panel bordered={false} className="records-companion-panel min-w-0">
         <CompanionTimeChart
           key={`${view}-${room.id}`}
           records={records}
@@ -78,9 +78,9 @@ export default function RecordsPage() {
         />
       </div>
       {view === 'all' ? (
-        <div className="records-surface mt-6 space-y-5">{content}</div>
+        <div className="records-surface mt-content space-y-content">{content}</div>
       ) : (
-        <div className="mt-6 grid gap-7 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="mt-content grid gap-content lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="hidden lg:block" aria-label="내 스터디룸">
             <div className="space-y-3">
               {rooms.map((item) => {
@@ -109,12 +109,12 @@ export default function RecordsPage() {
               })}
             </div>
           </aside>
-          <div className="records-surface min-w-0 space-y-5">
+          <div className="records-surface min-w-0 space-y-content">
             <label className="block text-sm text-muted lg:hidden">
               스터디룸
               <select
                 aria-label="스터디룸 선택"
-                className="mt-2 block w-full rounded-control border border-line bg-panel px-3 py-3 text-ink"
+                className="mt-2 block w-full rounded-control border border-transparent bg-panel px-3 py-3 text-ink"
                 value={room.id}
                 onChange={(event) => setRoomId(event.target.value)}
               >

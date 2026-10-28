@@ -2,6 +2,7 @@ import type { Memory } from '@/features/demo/types'
 import { Button } from '@/shared/ui/Button'
 import { Tabs } from '@/shared/ui/Tabs'
 import { Icon } from '@/shared/ui/Icon'
+import { Panel } from '@/shared/ui/Panel'
 import { scheduleCountdown, type SchedulePeriod } from '../schedule-data'
 
 export function ScheduleListPanel({
@@ -24,12 +25,12 @@ export function ScheduleListPanel({
   onEdit: (memory: Memory) => void
 }) {
   return (
-    <section className="schedule-details" aria-labelledby="schedule-heading">
+    <Panel bordered={false} density="roomy" className="schedule-details" aria-labelledby="schedule-heading">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 id="schedule-heading" className="text-lg font-semibold">
+        <h2 id="schedule-heading" className="text-section-title font-semibold">
           일정
         </h2>
-        <Button className="min-h-10 px-4 py-2 text-sm" onClick={onAdd}>
+        <Button size="sm" onClick={onAdd}>
           <Icon name="calendar" size={16} motion="draw" />
           일정 추가
         </Button>
@@ -88,6 +89,6 @@ export function ScheduleListPanel({
             : period === 'past' ? '지난 일정이 없어요.' : '등록된 일정이 없어요.'}
         </p>
       )}
-    </section>
+    </Panel>
   )
 }

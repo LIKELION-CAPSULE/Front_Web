@@ -21,7 +21,7 @@ export function LegalDocumentDialog({
     <Dialog open={!!content} onClose={onClose} title={content?.title ?? ''} className="max-w-3xl">
       {content && (
         <>
-          <p className="mb-6 rounded-control border border-line bg-surface px-4 py-3 text-xs leading-5 text-muted">
+          <p className="mb-6 rounded-control border border-transparent bg-surface px-4 py-3 text-xs leading-5 text-muted">
             사전예약 랜딩페이지 기준 · 2026년 10월 10일 시행
           </p>
           <article
@@ -51,7 +51,7 @@ export function LegalDocumentDialog({
               }
               if (block.type === 'table')
                 return (
-                  <div key={index} className="overflow-x-auto rounded-control border border-line">
+                  <div key={index} className="overflow-x-auto rounded-control border border-transparent">
                     <table className="w-full min-w-[440px] text-left text-xs leading-6">
                       <thead className="bg-surface text-ink">
                         <tr>

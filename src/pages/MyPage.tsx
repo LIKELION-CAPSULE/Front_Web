@@ -24,7 +24,7 @@ export default function MyPage() {
         <ScheduleManager />
         {next && !next.startsWith('/mypage') && (
           <div className="flex justify-end">
-            <ButtonLink to={next} variant="secondary" className="text-sm">
+            <ButtonLink to={next} variant="secondary" size="md">
               {next.startsWith('/rooms/') && next.includes('/prepare')
                 ? '공부 설정으로 돌아가기'
                 : '이전 화면으로 돌아가기'}

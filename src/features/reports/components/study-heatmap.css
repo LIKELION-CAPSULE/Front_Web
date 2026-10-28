@@ -30,7 +30,7 @@
 }
 .heatmap-cell {
   position: relative;
-  border: 1px solid #ffffff0d;
+  border: 1px solid transparent;
   border-radius: 7px;
   color: #e8dff9;
   font-size: 10px;
@@ -105,7 +105,7 @@
 .heatmap-scale button {
   width: 12px;
   height: 12px;
-  border: 1px solid #ffffff14;
+  border: 1px solid transparent;
   border-radius: 3px;
 }
 .heatmap-scale button[aria-pressed='true'] {

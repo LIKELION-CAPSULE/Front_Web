@@ -7,7 +7,7 @@
     min-height: 380px;
     aspect-ratio: 3 / 1;
     overflow: hidden;
-    border: 1px solid #343042;
+    border: 1px solid transparent;
     border-radius: 24px;
     background: #171925;
   }
@@ -51,14 +51,12 @@
     width: fit-content;
     max-width: 100%;
     margin: 0;
-    border: 1px solid #ffffff36;
+    border: 1px solid transparent;
     border-radius: 18px;
     background: #182032ed;
     padding: 16px 22px;
     color: #faf7ff;
-    box-shadow:
-      0 10px 30px #080e231f,
-      inset 0 1px 0 #ffffff1a;
+    box-shadow: 0 10px 30px #080e231f;
     pointer-events: none;
   }
   .companion-greeting p {

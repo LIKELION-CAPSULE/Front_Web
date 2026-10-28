@@ -7,6 +7,7 @@ import { Badge } from '@/shared/ui/Badge'
 import { ButtonLink } from '@/shared/ui/Button'
 import { Tabs } from '@/shared/ui/Tabs'
 import { Dialog } from '@/shared/ui/Dialog'
+import { Panel } from '@/shared/ui/Panel'
 
 export default function CreditsPage() {
   const { state } = useDemo()
@@ -26,16 +27,16 @@ export default function CreditsPage() {
     <>
       <div className="credits-page-header mb-8 flex flex-wrap items-center justify-between gap-4 [&_.page-heading]:mb-0">
         <PageHeading title="내 크레딧" eyebrow={null} />
-        <ButtonLink to="/credits/charge" className="min-h-11 px-5 py-2.5 text-sm">
+        <ButtonLink to="/credits/charge" size="md">
           충전하기
         </ButtonLink>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
-        <section className="rounded-card bg-brand-solid p-[22px] text-white">
+        <Panel bordered={false} className="bg-brand-solid text-white">
           <p className="text-sm text-white/70">보유 크레딧</p>
           <p className="mt-2 font-mono text-[34px] font-bold">{number(state.credits)}</p>
-        </section>
-        <section className="rounded-card bg-brand-soft p-[22px]">
+        </Panel>
+        <Panel bordered={false} className="bg-brand-soft">
           <p className="text-sm text-muted">이용 중인 패스</p>
           <h2 className="mt-2 text-xl font-bold">
             {state.pass ? state.pass.name : '아직 이용 중인 패스가 없어요'}
@@ -45,15 +46,15 @@ export default function CreditsPage() {
               {dateLabel(state.pass.expiresAt)}까지 · 자동 갱신 없음
             </p>
           )}
-        </section>
-        <section className="rounded-card bg-surface p-[22px]">
+        </Panel>
+        <Panel bordered={false} className="bg-surface">
           <p className="text-sm text-muted">누적 쓴 크레딧</p>
           <p className="mt-2 font-mono text-[30px] font-bold">{number(used)}</p>
           <p className="mt-2 text-xs text-muted">
             공부 옵션 · 보이스 · 선물 {state.ledger.filter((entry) => entry.kind === 'use').length}
             회
           </p>
-        </section>
+        </Panel>
       </div>
       <div className="mt-6">
         <Tabs
@@ -68,7 +69,7 @@ export default function CreditsPage() {
           ]}
         />
       </div>
-      <div className="mt-4 overflow-x-auto rounded-[16px] border border-line">
+      <div className="mt-4 overflow-x-auto rounded-[16px] border border-transparent">
         <table className="w-full min-w-[700px] text-left text-sm">
           <thead className="text-xs font-normal text-subtle">
             <tr>
