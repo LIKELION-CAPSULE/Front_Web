@@ -42,7 +42,7 @@ export default function StudyPage() {
       <main id="main-content" className="page-container py-10">
         <PageNavigation />
         <EmptyState title="진행 중인 공부가 없어요" headingLevel="h1">
-          스터디룸을 고르고 새 캡슐을 시작해 볼까요?
+          스터디룸을 골라 친구와 공부를 시작해 보세요.
         </EmptyState>
       </main>
     )
@@ -96,7 +96,7 @@ export default function StudyPage() {
     <div className="session-timer">
       <strong className="font-mono text-[21px]">{clock(remaining)}</strong>
       <span className="text-[10px] text-white/75">
-        목표 {Math.round(goal / 60)}분 · 이후 10분 휴식
+        목표 {Math.round(goal / 60)}분 · 끝나면 10분 휴식
       </span>
       <Badge className="bg-brand-soft text-brand-strong">{tierById(active.tier).name}</Badge>
     </div>
@@ -107,7 +107,7 @@ export default function StudyPage() {
         {!focused && active!.phase === 'study' && timer}
         <div className="self-status">
           <img src={reaction > 0 ? sessionAssets.purpleDot : sessionAssets.greenDot} alt="" />
-          <span>{active!.camera ? '캠 미리보기' : '카메라 없음'} · 샘플</span>
+          <span>{active!.camera ? '카메라 켜짐' : '카메라 꺼짐'}</span>
         </div>
         <div
           className={cn(
@@ -117,13 +117,13 @@ export default function StudyPage() {
           )}
         >
           <AvatarIllustration settings={state.profile.avatar} />
-          <p>{active!.camera ? '캠 미리보기 · 샘플 화면' : '이곳이 나의 자리'}</p>
+          <p>{active!.camera ? '카메라 미리보기' : '이곳이 나의 자리'}</p>
         </div>
         <button
           onClick={() => dispatch({ type: 'CAMERA', enabled: !active!.camera })}
           className="absolute bottom-3 left-3 rounded-full bg-brand/85 px-3 py-1 text-xs text-white"
         >
-          캠 {active!.camera ? '끄기' : '켜기'}
+          카메라 {active!.camera ? '끄기' : '켜기'}
         </button>
         <span className="absolute right-3 bottom-3 rounded-full bg-brand/85 px-3 py-1 text-xs text-white">
           나 · {state.profile.name}
@@ -250,7 +250,7 @@ export default function StudyPage() {
           <nav aria-label="공부 컨트롤" className="study-dock">
             <button onClick={() => dispatch({ type: 'PAUSE', now: Date.now() })}>
               <Icon name={active.runningSince === null ? 'play' : 'pause'} size={16} />
-              {active.runningSince === null ? '다시 시작' : '일시정지'}
+              {active.runningSince === null ? '계속하기' : '일시정지'}
             </button>
             <button
               className={cn('text-brand-strong', chatOpen && 'bg-brand-solid text-white')}
@@ -272,7 +272,7 @@ export default function StudyPage() {
           {upgradeOpen && (
             <Dialog open onClose={() => setUpgradeOpen(false)} title="오늘 무료 대화를 모두 사용했어요" className="max-w-sm">
               <p className="text-sm leading-6 text-muted">
-                쉬는 시간으로 이동해 등급을 올리거나, 조용히 공부를 이어갈 수 있어요.
+                쉬는 시간에 대화 옵션을 올리거나, 그대로 공부를 이어갈 수 있어요.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button

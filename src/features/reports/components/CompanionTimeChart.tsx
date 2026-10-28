@@ -54,8 +54,8 @@ export function CompanionTimeChart({
   return (
     <div className="companion-chart" ref={chartRef}>
       <div className="companion-chart-toolbar">
-        <h2>캐릭터별 함께한 시간</h2>
-        <div className="companion-chart-actions" role="group" aria-label="캐릭터 일괄 선택">
+        <h2>친구별 함께한 시간</h2>
+        <div className="companion-chart-actions" role="group" aria-label="친구 일괄 선택">
           <button
             type="button"
             disabled={visible.length === series.length}
@@ -78,7 +78,7 @@ export function CompanionTimeChart({
           </button>
         </div>
       </div>
-      <div className="companion-chart-legend" role="group" aria-label="비교할 캐릭터">
+      <div className="companion-chart-legend" role="group" aria-label="비교할 친구">
         {series.map((item) => (
           <button
             type="button"
@@ -108,7 +108,7 @@ export function CompanionTimeChart({
         <div
           className="companion-chart-plot"
           role="group"
-          aria-label="캐릭터별 누적 공부 시간 추이"
+          aria-label="친구별 누적 공부 시간 추이"
           aria-describedby={description}
           tabIndex={0}
           onFocus={() => setActive(Math.max(0, lastAvailable))}
@@ -146,7 +146,7 @@ export function CompanionTimeChart({
           <svg
             viewBox={`0 0 ${width} ${height}`}
             role="img"
-            aria-label={`${range.dateLabel} 캐릭터별 누적 공부 시간 라인차트`}
+            aria-label={`${range.dateLabel} 친구별 누적 공부 시간 라인차트`}
           >
             {[0, 0.5, 1].map((ratio) => (
               <g key={ratio} className="companion-chart-grid">
@@ -218,7 +218,7 @@ export function CompanionTimeChart({
             >
               <strong>{buckets[current]?.label}</strong>
               <div className="companion-chart-tooltip-head" aria-hidden="true">
-                <span>캐릭터</span>
+                <span>친구</span>
                 <span>{range.period === 'year' ? '해당 월' : '당일'}</span>
                 <span>누적</span>
               </div>
@@ -237,11 +237,11 @@ export function CompanionTimeChart({
         </div>
       ) : (
         <p className="companion-chart-empty">
-          {series.length ? '비교할 캐릭터를 골라 주세요.' : '아직 함께한 시간이 없어요.'}
+          {series.length ? '비교할 친구를 골라 주세요.' : '아직 함께한 시간이 없어요.'}
         </p>
       )}
       <p id={description} className="sr-only">
-        {range.label} 시작부터 각 날짜까지 쌓인 공부 시간이에요. 캐릭터 버튼으로 비교할 선을
+        {range.label} 시작부터 각 날짜까지 쌓인 공부 시간이에요. 친구 버튼으로 비교할 선을
         선택하고, 방향키 또는 Home과 End로 날짜를 이동할 수 있어요.
       </p>
     </div>

@@ -51,7 +51,7 @@ export default function HomePage() {
               id="rooms-heading"
               className="scroll-mt-6 text-[26px] font-bold tracking-tight"
             >
-              오늘은 누구와 공부할까요?{' '}
+              오늘은 어디서 공부할까요?{' '}
               <span className="ml-1 text-base font-normal text-subtle">{rooms.length}</span>
             </h2>
           </div>
@@ -59,7 +59,7 @@ export default function HomePage() {
             <div role="group" aria-label="스터디룸 필터" className="room-filters">
               {[
                 { id: 'all', label: '모든 스터디룸', icon: 'book' as const },
-                { id: 'saved', label: '저장한 룸', icon: 'bookmark' as const },
+                { id: 'saved', label: '저장한 스터디룸', icon: 'bookmark' as const },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -77,12 +77,12 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
-            <SearchField label="스터디룸 검색" placeholder="룸·친구 이름으로 검색" value={query} onChange={setQuery} className="room-search" />
+            <SearchField label="스터디룸 검색" placeholder="스터디룸·친구 이름 검색" value={query} onChange={setQuery} className="room-search" />
           </div>
         </div>
         {search && filter !== 'saved' && (
           <p role="status" className="search-result-count">
-            {visible.length}개의 공부 공간을 찾았어요
+            스터디룸 {visible.length}개를 찾았어요.
           </p>
         )}
         <div className="rooms-grid">
@@ -99,20 +99,20 @@ export default function HomePage() {
             />
             <h3 className="text-lg font-semibold">
               {filter === 'saved' && !search
-                ? '아직 저장한 룸이 없어요'
-                : '아직 딱 맞는 자리를 찾지 못했어요'}
+                ? '아직 저장한 스터디룸이 없어요'
+                : '검색 결과가 없어요'}
             </h3>
             <p className="mt-2 text-sm text-muted">
               {filter === 'saved' && !search
-                ? '마음에 드는 룸의 저장 버튼을 눌러 모아 보세요.'
-                : '검색어를 바꾸면 새로운 친구를 만날 수 있어요.'}
+                ? '마음에 드는 스터디룸을 저장해 보세요.'
+                : '스터디룸이나 친구 이름으로 다시 검색해 보세요.'}
             </p>
             {filter !== 'saved' && (
               <button
                 onClick={resetFilters}
                 className="mt-5 rounded-full border border-transparent bg-brand-soft px-5 py-2 text-sm text-brand-strong"
               >
-                모든 룸 다시 보기
+                모든 스터디룸 보기
               </button>
             )}
           </div>

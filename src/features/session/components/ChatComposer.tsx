@@ -31,7 +31,7 @@ export function ChatComposer({
     >
       {compact && (
         <div className="mb-2 flex flex-wrap gap-1.5">
-          {['화이팅', '졸려', '5분만 집중할게', '이거 어려워', '쉬고 싶다'].map((reply) => (
+          {['파이팅', '졸려', '5분만 집중할게', '이거 어려워', '쉬고 싶다'].map((reply) => (
             <button
               key={reply}
               type="button"
@@ -55,7 +55,7 @@ export function ChatComposer({
           placeholder={compact ? `${name}에게 조용히 한마디…` : '메시지 입력…'}
         />
         {remaining !== undefined && compact && (
-          <span className="text-[10px] whitespace-nowrap text-subtle">{remaining}/3턴</span>
+          <span className="text-[10px] whitespace-nowrap text-subtle">대화 {remaining}/3회</span>
         )}
         {!compact && (
           <button
@@ -71,7 +71,7 @@ export function ChatComposer({
         <button
           type="submit"
           disabled={disabled || !text.trim()}
-          aria-label="보내기"
+          aria-label="메시지 보내기"
           className={cn(
             'flex shrink-0 items-center justify-center rounded-full bg-brand-solid disabled:opacity-40',
             compact ? 'size-[38px]' : 'size-[52px]',
@@ -82,9 +82,9 @@ export function ChatComposer({
       </div>
       {!compact && (
         <p className="mt-3 text-[10px] leading-4 text-subtle">
-          도서관 · 직장에선 텍스트로, 집에선 음성으로
+          글이나 음성 메시지로 이야기해 보세요.
           <br />
-          데모 음성은 샘플 메시지로 전송돼요.
+          체험 중에는 음성 대신 샘플 메시지를 보내요.
         </p>
       )}
     </form>

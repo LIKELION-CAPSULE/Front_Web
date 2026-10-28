@@ -43,7 +43,7 @@ export function ScheduleListPanel({
           options={[
             { id: 'upcoming', label: '예정' },
             { id: 'all', label: '전체' },
-            { id: 'past', label: '지난' },
+            { id: 'past', label: '지난 일정' },
           ]}
         />
       </div>

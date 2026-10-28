@@ -44,13 +44,13 @@ export default function OnboardingPage() {
         >
           <span className="absolute top-6 left-6 flex items-center gap-2 rounded-full bg-panel/80 px-3.5 py-2 text-xs text-muted">
             <Icon name="sparkle" size={14} />
-            나의 작은 공부 메이트
+            공부하는 나의 모습
           </span>
           <div className="onboarding-figure">
             <AvatarIllustration settings={avatar} />
           </div>
           <span className="relative z-10 rounded-full bg-panel px-4 py-2 text-sm">
-            내 아바타 · 캠을 끄면 이 모습이 보여요
+            카메라를 끄면 이 아바타가 보여요
           </span>
         </section>
         <form
@@ -61,7 +61,7 @@ export default function OnboardingPage() {
           }}
         >
           <h1 className="text-[28px] font-bold">내 아바타 만들기</h1>
-          <FormField label="이름" className="mt-6 max-w-[520px]">
+          <FormField label="닉네임" className="mt-6 max-w-[520px]">
             <input
               required
               maxLength={20}
@@ -85,7 +85,7 @@ export default function OnboardingPage() {
               나중에 바꿀게요
             </Button>
             <Button type="submit" disabled={!name.trim()}>
-              이 모습으로 시작
+              이 모습으로 시작하기
             </Button>
           </div>
         </form>

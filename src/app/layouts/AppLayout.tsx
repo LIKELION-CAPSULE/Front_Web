@@ -14,7 +14,7 @@ import { Icon, type IconName } from '@/shared/ui/Icon'
 const navigation = [
   { to: '/', label: '홈', end: true, icon: 'home' },
   { to: '/records', label: '내 기록', end: false, icon: 'chart' },
-  { to: '/characters', label: '캐릭터', end: false, icon: 'heart' },
+  { to: '/characters', label: '친구', end: false, icon: 'heart' },
 ]
 
 export function AppLayout() {
@@ -81,13 +81,13 @@ export function AppLayout() {
                   onClick={() => dispatch({ type: 'FIRST_VISIT', value: !state.firstVisit })}
                   className="menu-item"
                 >
-                  {state.firstVisit ? '이어하기 홈 보기' : '첫 방문 홈 보기'}
+                  {state.firstVisit ? '재방문 화면 보기' : '첫 방문 화면 보기'}
                 </button>
                 <button onClick={() => dispatch({ type: 'LOGOUT' })} className="menu-item">
                   로그아웃
                 </button>
                 <button onClick={() => setResetOpen(true)} className="menu-item">
-                  데모 초기화
+                  체험 기록 초기화
                 </button>
               </div>
             </details>
@@ -113,11 +113,10 @@ export function AppLayout() {
       <Dialog
         open={resetOpen}
         onClose={() => setResetOpen(false)}
-        title="데모를 처음으로 돌릴까요?"
+        title="체험 기록을 초기화할까요?"
       >
         <p className="mb-5 text-sm leading-6 text-muted">
-          이 브라우저에서 추가한 공부 기록·약속·크레딧 사용 내역을 지우고, 처음의 샘플 데이터로
-          돌아가요.
+          이 브라우저의 체험 데이터를 모두 지우고, 처음 제공된 샘플 데이터로 돌아가요.
         </p>
         <Button onClick={() => dispatch({ type: 'RESET', now: Date.now() })} className="w-full">
           초기화하기

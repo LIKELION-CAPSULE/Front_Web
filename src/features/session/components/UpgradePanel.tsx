@@ -20,14 +20,14 @@ export function UpgradePanel({ onClose, now }: { onClose: () => void; now: numbe
     <Dialog
       open
       onClose={onClose}
-      label="이번 공부 옵션 올리기"
-      title={basic ? '등급을 올리고 계속 얘기할까요?' : '이번 공부 옵션 올리기'}
-      closeLabel="등급 선택 닫기"
+      label="대화 옵션 올리기"
+      title={basic ? '대화 옵션을 올리고 계속 이야기할까요?' : '대화 옵션 올리기'}
+      closeLabel="대화 옵션 선택 닫기"
       presentation={basic ? 'sheet' : 'popover'}
       className={basic ? 'upgrade-sheet' : 'upgrade-popover'}
     >
       <p className="mb-3 text-[11px] leading-4 text-muted">
-        지금 {tierById(active.tier).name} · 이미 낸 크레딧을 제외한 차액만 적용해요.
+        현재 {tierById(active.tier).name} · 이미 사용한 크레딧을 제외한 차액만 사용해요.
       </p>
       <div className="space-y-2">
         {choices.map((tier) => (
@@ -72,13 +72,13 @@ export function UpgradePanel({ onClose, now }: { onClose: () => void; now: numbe
       </Button>
       <div className="mt-3 flex justify-between gap-3 text-xs">
         <button onClick={onClose} className="text-muted underline">
-          그냥 쉴게요
+          닫고 쉬기
         </button>
         <Link
           to={`/credits/charge?returnTo=${encodeURIComponent(`/study/${active.id}`)}`}
           className="text-brand-strong underline"
         >
-          충전 · 패스 보기 →
+          크레딧 · 패스 보기
         </Link>
       </div>
     </Dialog>
