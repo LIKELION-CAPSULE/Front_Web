@@ -141,30 +141,30 @@ export default function CapsuleCardPage() {
                 'absolute top-0 size-[30px] rounded-full',
                 color === index && 'outline-2 outline-offset-2 outline-brand',
               )}
-              style={{ left: index * 40, background: colors[index], border: '1px solid #ffffff33' }}
+              style={{ left: index * 40, background: colors[index] }}
             />
           ))}
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2">
           <Button
             variant="secondary"
+            size="sm"
             disabled={busy}
             onClick={() => void save()}
-            className="min-h-10 px-2 py-2 text-[13px] font-normal"
           >
             이미지 저장
           </Button>
           <Button
+            size="sm"
             disabled={busy}
             onClick={() => void save(true)}
-            className="min-h-10 px-2 py-2 text-[13px]"
           >
             스토리 공유
           </Button>
           <Button
             variant="secondary"
+            size="sm"
             onClick={() => void copy()}
-            className="min-h-10 px-2 py-2 text-[13px] font-normal"
           >
             링크 복사
           </Button>
@@ -184,7 +184,7 @@ export default function CapsuleCardPage() {
           />
         )}
         <hr className="my-4 border-line" />
-        <h2 className="text-lg font-bold">다음 공부 약속</h2>
+        <h2 className="text-section-title font-semibold">다음 공부 약속</h2>
         <p className="mt-2 text-sm text-muted">
           등록한 약속은 모든 캐릭터가 함께 기억해요
         </p>
@@ -197,7 +197,7 @@ export default function CapsuleCardPage() {
                 onClick={() => setDate(value)}
                 className={cn(
                   'rounded-full border px-3.5 py-2 text-sm',
-                  date === value ? 'border-brand bg-brand-solid text-white' : 'border-line',
+                  date === value ? 'border-brand bg-brand-solid text-white' : 'button-subtle border-transparent',
                 )}
               >
                 {label}
@@ -227,7 +227,7 @@ export default function CapsuleCardPage() {
         <Button
           disabled={!date || !time}
           onClick={promise}
-          className="mt-4 min-h-12 w-full px-3 py-3 text-sm"
+          className="mt-4 w-full"
         >
           {date.slice(5)} {time} 약속하고 마치기
         </Button>

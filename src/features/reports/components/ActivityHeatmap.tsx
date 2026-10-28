@@ -28,7 +28,7 @@ export function ActivityHeatmap({
   return (
     <div className="activity-calendar" aria-labelledby={heading} data-period={period}>
       <div className="activity-calendar-heading">
-        <h2 id={heading} className="text-sm font-semibold">
+        <h2 id={heading} className="text-card-title-compact font-semibold">
           집중이 쌓이는 달력
         </h2>
         <div className="activity-calendar-tools">

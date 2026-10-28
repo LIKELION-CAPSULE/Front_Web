@@ -1,12 +1,12 @@
 .mypage-content {
   display: grid;
-  gap: 24px;
+  gap: var(--spacing-content);
 }
 .mypage-profile {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr);
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: var(--radius-panel);
   background: var(--color-panel);
 }
 .mypage-avatar-preview {
@@ -15,7 +15,7 @@
   align-items: center;
   justify-content: center;
   min-width: 0;
-  padding: 32px;
+  padding: var(--spacing-panel-roomy);
 }
 .mypage-avatar-figure {
   width: min(290px, 90%);
@@ -27,42 +27,32 @@
 }
 .mypage-profile-form {
   min-width: 0;
-  padding: 32px;
+  padding: var(--spacing-panel-roomy);
   max-width: 600px;
 }
 .mypage-profile-form .avatar-part {
   max-height: 76px;
 }
-.avatar-customizer .segmented-option {
-  padding-inline: 12px;
-  font-size: 12px;
-}
 .mypage-schedule {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr);
   align-items: start;
-  gap: 24px;
+  gap: var(--spacing-content);
   min-width: 0;
   scroll-margin-top: 110px;
 }
 .schedule-calendar,
 .schedule-details {
   min-width: 0;
-  border-radius: 24px;
-  background: var(--color-panel);
 }
 .schedule-calendar {
   display: grid;
   width: 100%;
-  padding: 28px 24px;
 }
 .schedule-calendar > div {
   width: 100%;
   max-width: 400px;
   justify-self: center;
-}
-.schedule-details {
-  padding: 28px 32px;
 }
 .schedule-calendar-heading {
   display: flex;
@@ -93,7 +83,7 @@
   color: var(--color-muted);
 }
 .schedule-calendar-navigation > button:hover {
-  background: var(--color-surface);
+  background: var(--color-button-subtle-hover);
   color: var(--color-ink);
 }
 .schedule-calendar-selects {
@@ -118,7 +108,7 @@
   width: 100%;
   min-width: 0;
   border-radius: 8px;
-  border: 1px solid #ffffff20;
+  border: 1px solid transparent;
   background: transparent;
   padding: 8px 26px 8px 10px;
   color: var(--color-ink);
@@ -275,10 +265,6 @@
   }
   .mypage-profile-form {
     max-width: none;
-    padding: 24px;
-  }
-  .schedule-calendar,
-  .schedule-details {
     padding: 24px;
   }
   .schedule-calendar-navigation {

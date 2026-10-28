@@ -37,7 +37,7 @@ export function ChatComposer({
               type="button"
               disabled={disabled}
               onClick={() => onSend(reply)}
-              className="rounded-full border border-line bg-brand-soft px-2.5 py-1 text-[11px] disabled:opacity-40"
+              className="rounded-full border border-transparent bg-brand-soft px-2.5 py-1 text-[11px] disabled:opacity-40"
             >
               {reply}
             </button>
@@ -51,7 +51,7 @@ export function ChatComposer({
           onChange={(event) => setText(event.target.value)}
           maxLength={500}
           disabled={disabled}
-          className="min-w-0 flex-1 rounded-full border border-line bg-panel px-3.5 py-3 text-sm placeholder:text-subtle disabled:bg-surface"
+          className="min-w-0 flex-1 rounded-full border border-transparent bg-panel px-3.5 py-3 text-sm placeholder:text-subtle disabled:bg-surface"
           placeholder={compact ? `${name}에게 조용히 한마디…` : '메시지 입력…'}
         />
         {remaining !== undefined && compact && (

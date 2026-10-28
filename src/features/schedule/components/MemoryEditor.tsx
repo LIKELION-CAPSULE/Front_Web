@@ -6,6 +6,7 @@ import { Dialog } from '@/shared/ui/Dialog'
 import { Button } from '@/shared/ui/Button'
 import { DateTimeWheelField } from '@/shared/ui/DateTimeWheelField'
 import { WheelSelectField } from '@/shared/ui/WheelSelectField'
+import { FormField } from '@/shared/ui/FormField'
 
 const kindOptions = (['시험', '목표', '약속'] as const).map((value) => ({ value, label: value }))
 
@@ -42,7 +43,7 @@ export function MemoryEditor({
           onSaved?.(memory)
           onClose()
         }}
-        className="space-y-4"
+        className="space-y-4 [--form-input-border:var(--color-line)]"
       >
         <WheelSelectField
           label="종류"
@@ -52,17 +53,16 @@ export function MemoryEditor({
           open={openField === 'kind'}
           onOpenChange={(open) => setOpenField(open ? 'kind' : null)}
         />
-        <label className="block text-sm">
-          이름
+        <FormField label="이름">
           <input
             required
             maxLength={60}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            className="form-input mt-2"
+            className="form-input"
             placeholder="예: 영어 시험"
           />
-        </label>
+        </FormField>
         <DateTimeWheelField
           label="날짜"
           mode="date"

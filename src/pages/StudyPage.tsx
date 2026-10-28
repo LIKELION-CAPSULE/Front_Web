@@ -18,7 +18,8 @@ import { sessionAssets } from '@/features/session/assets'
 import { businessDay, clock } from '@/shared/lib/format'
 import { cn } from '@/shared/lib/cn'
 import { Badge } from '@/shared/ui/Badge'
-import { ButtonLink } from '@/shared/ui/Button'
+import { Button, ButtonLink } from '@/shared/ui/Button'
+import { Dialog } from '@/shared/ui/Dialog'
 import { EmptyState } from '@/shared/ui/EmptyState'
 
 const reactions = ['', '…', '야, 폰 보는 거 다 보여.', '…나랑 공부하기 싫어?']
@@ -115,7 +116,6 @@ export default function StudyPage() {
             active!.camera && 'camera-enabled',
           )}
         >
-          <div className="self-avatar-orbit" />
           <AvatarIllustration settings={state.profile.avatar} />
           <p>{active!.camera ? '캠 미리보기 · 샘플 화면' : '이곳이 나의 자리'}</p>
         </div>
@@ -270,31 +270,25 @@ export default function StudyPage() {
             </div>
           )}
           {upgradeOpen && (
-            <div className="study-upgrade">
-              <button
-                className="absolute inset-0"
-                aria-label="등급 안내 닫기"
-                onClick={() => setUpgradeOpen(false)}
-              />
-              <div className="relative w-full max-w-sm rounded-card bg-panel p-6 shadow-xl">
-                <h2 className="text-lg font-bold">오늘 무료 대화를 모두 사용했어요</h2>
-                <p className="mt-3 text-sm leading-6 text-muted">
-                  쉬는 시간으로 이동해 등급을 올리거나, 조용히 공부를 이어갈 수 있어요.
-                </p>
-                <button
+            <Dialog open onClose={() => setUpgradeOpen(false)} title="오늘 무료 대화를 모두 사용했어요" className="max-w-sm">
+              <p className="text-sm leading-6 text-muted">
+                쉬는 시간으로 이동해 등급을 올리거나, 조용히 공부를 이어갈 수 있어요.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button
+                  size="md"
                   onClick={() => {
                     dispatch({ type: 'SKIP_TO_BREAK', now: Date.now() })
                     setUpgradeOpen(true)
                   }}
-                  className="mt-4 rounded-control bg-brand-solid px-4 py-3 text-sm text-white"
                 >
                   쉬는 시간으로 이동
-                </button>
-                <button onClick={() => setUpgradeOpen(false)} className="ml-3 text-sm text-muted">
+                </Button>
+                <Button size="md" variant="secondary" onClick={() => setUpgradeOpen(false)}>
                   계속 공부하기
-                </button>
+                </Button>
               </div>
-            </div>
+            </Dialog>
           )}
         </>
       ) : (
@@ -396,7 +390,7 @@ export default function StudyPage() {
           <ButtonLink
             to="/credits"
             variant="secondary"
-            className="min-h-0 rounded px-2 py-1 text-[11px] font-normal"
+            size="xs"
           >
             내 크레딧
           </ButtonLink>

@@ -5,6 +5,7 @@ import { getStudyRooms } from '@/features/rooms/services/room-service'
 import { useDemo } from '@/features/demo/demo-context'
 import { Icon } from '@/shared/ui/Icon'
 import { cn } from '@/shared/lib/cn'
+import { SearchField } from '@/shared/ui/SearchField'
 
 export default function HomePage() {
   const rooms = getStudyRooms()
@@ -76,21 +77,7 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
-            <label className="room-search">
-              <Icon name="search" size={18} />
-              <input
-                aria-label="스터디룸 검색"
-                type="search"
-                placeholder="룸·친구 이름으로 검색"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-              {query && (
-                <button aria-label="검색어 지우기" onClick={() => setQuery('')}>
-                  <Icon name="close" size={15} />
-                </button>
-              )}
-            </label>
+            <SearchField label="스터디룸 검색" placeholder="룸·친구 이름으로 검색" value={query} onChange={setQuery} className="room-search" />
           </div>
         </div>
         {search && filter !== 'saved' && (
@@ -123,7 +110,7 @@ export default function HomePage() {
             {filter !== 'saved' && (
               <button
                 onClick={resetFilters}
-                className="mt-5 rounded-full border border-brand-line bg-brand-soft px-5 py-2 text-sm text-brand-strong"
+                className="mt-5 rounded-full border border-transparent bg-brand-soft px-5 py-2 text-sm text-brand-strong"
               >
                 모든 룸 다시 보기
               </button>

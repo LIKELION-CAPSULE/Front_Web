@@ -12,8 +12,8 @@ import { CharacterAvatar } from '@/features/characters/components/CharacterAvata
 import { CharacterArtwork } from '@/features/characters/components/CharacterArtwork'
 import { RelationshipProgress } from '@/features/characters/components/RelationshipProgress'
 import { PageHeading } from '@/shared/ui/PageHeading'
-import { Icon } from '@/shared/ui/Icon'
 import { characterTags } from '@/features/characters/character-tags'
+import { SearchField } from '@/shared/ui/SearchField'
 
 export default function CharactersPage() {
   const { characterId = 'chaerin' } = useParams()
@@ -42,25 +42,11 @@ export default function CharactersPage() {
       <section className="character-browser" aria-label="캐릭터 찾기">
         <div className="character-browser-header">
           <h2 className="text-sm font-semibold">캐릭터</h2>
-          <label className="character-search">
-            <Icon name="search" size={17} />
-            <input
-              type="search"
-              aria-label="캐릭터 이름 검색"
-              placeholder="캐릭터 이름 검색"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            {query && (
-              <button type="button" aria-label="캐릭터 검색어 지우기" onClick={() => setQuery('')}>
-                <Icon name="close" size={15} />
-              </button>
-            )}
-          </label>
+          <SearchField label="캐릭터 이름 검색" placeholder="캐릭터 이름 검색" value={query} onChange={setQuery} clearLabel="캐릭터 검색어 지우기" />
         </div>
         <div
           aria-label="캐릭터 고르기"
-          className="character-picker flex flex-wrap gap-2 [&_.profile-avatar]:ring-0"
+          className="character-picker flex flex-wrap gap-2"
         >
           {filteredCharacters.map((item) => (
             <Link
@@ -86,7 +72,7 @@ export default function CharactersPage() {
         )}
       </section>
       <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <section className="character-profile flex min-h-[640px] flex-col rounded-panel bg-panel p-[22px]">
+        <Panel bordered={false} className="character-profile flex min-h-[640px] flex-col rounded-panel">
           <div className="character-profile-portrait">
             <CharacterArtwork characterId={character.id} pose="affection" variant="portrait" />
           </div>
@@ -111,7 +97,7 @@ export default function CharactersPage() {
                   ? `/study/${state.activeSession.id}`
                   : `/rooms/${room.id}/prepare${state.cameraChecked ? '?step=set' : ''}`
               }
-              className="min-h-12 w-full border-0 py-3 text-sm"
+              className="w-full border-0"
             >
               {character.name}이랑 공부하기
             </ButtonLink>
@@ -122,9 +108,9 @@ export default function CharactersPage() {
               선물 · 보이스 보내기
             </Link>
           </div>
-        </section>
-        <div className="space-y-5">
-          <Panel title="관계가 바뀐 이유" className="character-reasons-panel border-0">
+        </Panel>
+        <div className="space-y-content">
+          <Panel title="관계가 바뀐 이유" bordered={false} className="character-reasons-panel">
             {recent.map((record) => (
               <div
                 key={record.id}
@@ -141,7 +127,7 @@ export default function CharactersPage() {
             ))}
           </Panel>
           <section className="character-unlocks">
-            <h2 className="mb-3 font-bold">
+            <h2 className="mb-4 text-card-title font-semibold">
               해금 콘텐츠 <span className="font-normal text-subtle">2 / 6</span>
             </h2>
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">

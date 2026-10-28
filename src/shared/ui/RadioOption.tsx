@@ -18,7 +18,7 @@ export function RadioOption({
     <label
       className={cn(
         'relative flex cursor-pointer items-center gap-2.5 rounded-control border px-3.5 py-3 text-sm',
-        checked ? 'border-brand bg-brand-soft' : 'border-line bg-canvas',
+        checked ? 'border-brand bg-brand-soft' : 'border-transparent bg-canvas',
       )}
     >
       <input
@@ -33,7 +33,7 @@ export function RadioOption({
         aria-hidden="true"
         className={cn(
           'flex size-5 shrink-0 items-center justify-center rounded-full border-2',
-          checked ? 'border-brand' : 'border-subtle',
+          checked ? 'border-brand' : 'border-transparent bg-surface',
         )}
       >
         {checked && <span className="size-2 rounded-full bg-brand-solid" />}

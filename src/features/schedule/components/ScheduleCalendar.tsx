@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { Memory } from '@/features/demo/types'
 import { Icon } from '@/shared/ui/Icon'
+import { Panel } from '@/shared/ui/Panel'
 import { scheduleMonthDays, shiftScheduleMonth } from '../schedule-data'
 
 export function ScheduleCalendar({
@@ -39,7 +40,7 @@ export function ScheduleCalendar({
     return result
   }, [memories])
   return (
-    <div className="schedule-calendar" role="region" aria-label="일정 달력">
+    <Panel bordered={false} className="schedule-calendar" role="region" aria-label="일정 달력">
       <div className="schedule-calendar-heading">
         <button
           type="button"
@@ -137,6 +138,6 @@ export function ScheduleCalendar({
           )
         })}
       </div>
-    </div>
+    </Panel>
   )
 }

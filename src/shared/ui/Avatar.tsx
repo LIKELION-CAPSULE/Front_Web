@@ -20,7 +20,7 @@ export function Avatar({ src, size = 'sm', settings, children }: AvatarProps) {
     <span
       aria-hidden="true"
       className={cn(
-        'profile-avatar inline-block shrink-0 overflow-hidden rounded-full bg-placeholder ring-2 ring-panel',
+        'profile-avatar inline-block shrink-0 overflow-hidden rounded-full bg-placeholder',
         sizes[size],
       )}
     >

@@ -15,7 +15,7 @@ export function EmptyState({
   headingLevel: Heading = 'h2',
 }: EmptyStateProps) {
   return (
-    <section className="flex min-h-72 flex-col items-center justify-center gap-4 rounded-panel border border-dashed border-line px-6 py-12 text-center">
+    <section className="flex min-h-72 flex-col items-center justify-center gap-4 rounded-panel px-6 py-12 text-center">
       <Heading className="text-xl font-bold">{title}</Heading>
       <div className="max-w-md text-sm leading-7 text-muted">{children}</div>
       {action && (
