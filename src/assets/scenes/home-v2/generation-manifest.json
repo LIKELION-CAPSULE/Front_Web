@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-10-28",
+  "mode": "built-in image_gen",
+  "purpose": "Home-only chairless character cutouts, restoring original poster outfits and lighting while keeping modest seated-floor poses",
+  "scope": "Only the two home room-card foregrounds are replaced. Shared scene artwork, detail banners, friend portraits, study/report illustrations, and welcome banners keep their existing assets.",
+  "webEncoding": {
+    "tool": "cwebp",
+    "quality": 88,
+    "alphaQuality": 100,
+    "method": 6
+  },
+  "assets": [
+    {
+      "scene": "classroom",
+      "roomId": "dawn-library",
+      "master": "classroom-home-subject-v2.png",
+      "web": "classroom-home-subject-v2.webp",
+      "size": [
+        1536,
+        1024
+      ],
+      "reference": "../../rooms/classroom.webp",
+      "generatedSource": "/Users/jeongin/.codex/generated_images/01a17d9b-a9c0-7200-94c3-59f7be7b41c8/exec-340e9e81-3c66-4ec6-913e-4fb471e80a22.png",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent foreground character group for an existing HOME room card.\nInput image 1 is the original poster, the PRIMARY and ONLY reference for the exact character identities, clothes, facial expressions, hair rendering, colors and illustration atmosphere. Regenerate ONLY the three characters as a complete clean cutout. The website already has a separate classroom background and title.\nKeep the left-to-right identities: Sua with the short dark bob, Chaerin with very long pale blonde hair in the middle, Dahee with the high brown ponytail on the right. Faithfully match the poster's delicate, detailed anime painting, faces, reflective hair and bright gently warm classroom lighting. Sua is softly friendly, Chaerin looks reserved and rests her cheek lightly on one hand, Dahee has a cheerful smile and holds her pen.\nIMPORTANT CLOTHING MATCH: Sua wears the original white long-sleeved collared shirt under her dark gray plaid V-neck vest, with the original black tie. Chaerin wears the original WHITE long-sleeved shirt and relaxed BLACK tie, with NO cardigan, no sweater and no vest added. Dahee wears the original WHITE collared outfit with the distinctive BLACK STRIPES along the shoulders and sleeves and black tie, with NO plain black cardigan replacing it. Match the poster's collar styling and natural loose fabric, without increasing the collar opening. Use normal school-uniform plaid skirts with opaque dark tights and loafers where visible, not the calf-length skirts or buttoned black cardigans of a redesign.\nPose: modest, relaxed, eye-level seated-floor composition. All three sit directly on an IMPLIED flat floor in natural kneeling/seiza poses: hips resting above tucked heels, knees together low on the floor, shins folded underneath and ankles behind. Skirts drape naturally over the lap and cover the upper legs; legs are not lifted toward the camera, not crossed in front and not emphasized. Small notebooks rest naturally in their laps. Keep upright friendly upper bodies, faces prominent and heads at similar heights. Exactly two anatomically natural arms and legs for each person, no extra or fused limbs.\nLandscape 1536x1024, the whole group and all hair/clothing/body silhouettes fit within a small transparent safety margin.\nSTRICT EXCLUSIONS: NO chair, stool, seat, bench, cushion, furniture, table, desk, floor plane, room, scenery, background haze, colored glow behind the silhouettes, ground shadow, title, name labels, logos, readable text, watermark or UI. Genuine alpha transparency outside and between the three people. Only the three character cutouts with their small notebooks and pen. Preserve the poster clothing and atmosphere while keeping the pose calm and modest.",
+      "masterBytes": 2681259,
+      "masterSha256": "f1d6fc28f22fc61244c60f91ace080a3d363a6982a56c5d1d5fd82081a3ee71f",
+      "webBytes": 345394,
+      "webSha256": "184083d4aadd71341217a1adda80234cd055956786a85caea5b094029d4ae61f",
+      "alphaPreserved": true,
+      "transparentPixels": 424693
+    },
+    {
+      "scene": "night",
+      "roomId": "room-2",
+      "master": "night-home-subject-v2.png",
+      "web": "night-home-subject-v2.webp",
+      "size": [
+        1024,
+        1536
+      ],
+      "reference": "../../rooms/night-study.webp",
+      "generatedSource": "/Users/jeongin/.codex/generated_images/01a17d9b-a9c0-7200-94c3-59f7be7b41c8/exec-19df20fa-d6fa-483f-b282-5fa31fdc7e77.png",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent foreground character for an existing HOME room card.\nInput image 1 is the original poster and the PRIMARY and ONLY reference for exact identity, outfit, facial expression, hair rendering and nighttime atmosphere. Regenerate ONLY this recognizable long-black-haired Doyun character, with the same face, dark eyes, cheek resting on one hand, relaxed expression and detailed softly painted anime style. The existing website supplies the room background and title.\nPreserve the ORIGINAL poster clothes: loose textured BLACK cardigan worn open over a WHITE collared shirt, the original loosely knotted dark striped tie, and the original relaxed collar opening. No additional buttoned vest or fully closed cardigan, no costume redesign. Use a normal dark plaid school-uniform skirt with opaque dark tights, not the long calf-length skirt of a redesign. Preserve the original dark cool palette, fine glossy black hair highlights and subtle violet-blue NIGHTTIME rim lighting, without painting any background or glow cloud.\nPose: calm, modest seated-floor/kneeling pose, seated directly on an IMPLIED flat floor with both knees together and lower legs folded underneath the body, feet tucked behind naturally. Upright relaxed upper body, one hand supporting the cheek as in the poster, the other holding a pen near a small notebook resting on the lap. Clothing drapes over the lap and covers the upper legs completely. No raised knees, no legs projected toward the camera, no crossed legs, no low-angle viewpoint or exaggerated proportions. Focus attention on the face and quiet studying.\nPortrait 1024x1536, complete character silhouette with all hair, clothing and any visible shoes kept inside transparent margins.\nSTRICT EXCLUSIONS: NO chair, stool, seat, bench, cushion, furniture, desk, table, floor plane, room, background, background haze, colored glow cloud, ground shadow, title, name label, logos, readable text, watermark or UI. Exactly one character, anatomically natural limbs. Genuine alpha transparency outside the person and between their limbs. Only this character and the small pen/notebook, matching the original poster's clothes and mood.",
+      "masterBytes": 2672683,
+      "masterSha256": "71b7344b6668f7a511a1c0afc993ab3e27713a7fe35554d3f79ea1e1e331e074",
+      "webBytes": 380302,
+      "webSha256": "92dd86759bf7c03d9d9b2e956db98218c2bdcfcbcdc256b92b7c352bf27ce4e2",
+      "alphaPreserved": true,
+      "transparentPixels": 492657
+    }
+  ]
+}

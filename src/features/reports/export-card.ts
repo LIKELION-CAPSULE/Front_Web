@@ -1,9 +1,9 @@
 import { getCharacterArtwork } from '@/features/characters/artwork'
 import { loadRoomLayers, drawRoomLayers } from '@/features/rooms/draw-artwork'
-import { dateLabel, duration } from '@/shared/lib/format'
+import { dateLabel, duration, measuredDuration } from '@/shared/lib/format'
 import type { StudyRecord } from '@/features/demo/types'
 import { withParticle } from '@/shared/lib/korean'
-import { capsuleCardCopy } from './card-copy'
+import { capsuleCardCopy, capsuleFocusCopy } from './card-copy'
 
 export async function exportCard(
   record: StudyRecord,
@@ -82,9 +82,9 @@ export async function exportCard(
   }
   ctx.fillText(roomLine, 28, roomLineY)
   ctx.font = '800 64px "Pretendard"'
-  ctx.fillText(duration(record.studySeconds), 28, 440, 304)
+  ctx.fillText((record.observedSeconds === undefined ? duration : measuredDuration)(record.studySeconds), 28, 440, 304)
   ctx.font = '700 16px "Pretendard"'
-  ctx.fillText(`집중 ${duration(record.focusSeconds)} · 복귀 ${record.returns}회`, 28, 482)
+  ctx.fillText(capsuleFocusCopy(record), 28, 482)
   ctx.font = '700 12px "Pretendard"'
   rect(28, 500, ctx.measureText(capsuleCardCopy.badge).width + 24, 28, 14, '#17171c')
   ctx.fillStyle = '#fff'

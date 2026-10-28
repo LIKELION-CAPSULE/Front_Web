@@ -22,6 +22,7 @@ const paths = {
   gift: 'M3 8h18v4H3Zm2 4v9h14v-9M12 8v13m0-13H7a3 3 0 1 1 3-3Zm0 0h5a3 3 0 1 0-3-3Z',
   headphones: 'M3 15v-3a9 9 0 0 1 18 0v3M3 13h4v8H4a1 1 0 0 1-1-1Zm18 0h-4v8h3a1 1 0 0 0 1-1Z',
   check: 'm5 12 4 4L19 6',
+  help: 'M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3m.08 4h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
   camera: 'M8 6 9 3h6l1 3h5v14H3V6Zm8 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
   expand: 'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5',
   shrink: 'M3 8h5V3m8 0v5h5M3 16h5v5m8 0v-5h5',

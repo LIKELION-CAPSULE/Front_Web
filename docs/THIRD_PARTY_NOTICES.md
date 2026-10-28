@@ -13,3 +13,9 @@ React, React DOM, React Router, scheduler, Tailwind CSS and tailwind-merge use M
 GSAP's license requires preservation of proprietary notices. A separate public-facing “Powered by GSAP” label is not added; the original library comments and distributed notice remain intact.
 
 User-supplied and generated illustration assets retain their existing provenance manifests.
+
+## Local camera inference
+
+- **MediaPipe Tasks Vision 1.2.0 and official Face Landmarker float16 v1** — Apache-2.0. [Original license](../public/licenses/vision/MediaPipe-LICENSE.txt). The official bundle contains BlazeFace, FaceMesh V2 and Blendshape V2; model card sources and the unchanged weights are listed in the [model manifest](../public/models/README.md).
+
+Runtime JS/WASM comes from the pinned MediaPipe package without altering library source. YOLO/ONNX models and runtimes are deferred until after MVP and are not distributed.

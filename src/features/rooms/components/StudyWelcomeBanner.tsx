@@ -14,6 +14,10 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
   const active = state.activeSession
   const returning = !!active || (!state.firstVisit && !!latest)
   const copy = active ? welcomeCopy.active : returning ? welcomeCopy.returning : welcomeCopy.fresh
+  const preparationSearch = new URLSearchParams()
+  if (latest?.targetSeconds) preparationSearch.set('goal', String(latest.targetSeconds / 60))
+  if (latest?.tier) preparationSearch.set('tier', latest.tier)
+  const preparationPath = `/rooms/${room.id}/prepare${preparationSearch.size ? `?${preparationSearch}` : ''}`
   return (
     <HoverScratchCarousel
       className="welcome-hero"
@@ -46,7 +50,7 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
                   to={
                     active
                       ? `/study/${active.id}`
-                      : `/rooms/${room.id}/prepare?step=goal${latest?.targetSeconds ? `&goal=${latest.targetSeconds / 60}` : ''}${latest?.tier ? `&tier=${latest.tier}` : ''}`
+                      : preparationPath
                   }
                 >
                   <Icon name="play" size={17} motion="pulse" /> 이어서 공부하기

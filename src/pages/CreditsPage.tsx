@@ -50,10 +50,6 @@ export default function CreditsPage() {
         <Panel bordered={false} className="bg-surface">
           <p className="text-sm text-muted">사용한 크레딧</p>
           <p className="mt-2 font-mono text-[30px] font-bold">{number(used)}</p>
-          <p className="mt-2 text-xs text-muted">
-            대화 옵션 · 보이스 · 선물 {state.ledger.filter((entry) => entry.kind === 'use').length}
-            회
-          </p>
         </Panel>
       </div>
       <div className="mt-6">

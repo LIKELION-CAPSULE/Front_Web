@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router'
+import { HeaderAccount } from '@/app/components/HeaderAccount'
 import { CharacterCard } from '@/features/characters/components/CharacterCard'
 import { RoomDetailBanner } from '@/features/rooms/components/RoomDetailBanner'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
@@ -21,19 +22,32 @@ export default function RoomDetailPage() {
   return (
     <>
       <header className="detail-header">
-        <nav aria-label="현재 위치" className="page-container flex min-h-20 items-center gap-6">
-          <Link to="/" aria-label="CAPSULE 홈">
+        <div className="page-container detail-header-inner">
+          <Link to="/" aria-label="CAPSULE 홈" className="shrink-0">
             <Brand />
           </Link>
-          <span className="h-5 w-px bg-line" />
-          <Link to="/" className="text-sm text-muted hover:text-ink">
-            홈
-          </Link>
-          <Icon name="chevron" size={14} className="text-subtle" />
-          <span aria-current="page" className="text-sm font-semibold">
-            {room.name}
-          </span>
-        </nav>
+          <nav aria-label="현재 위치" className="detail-breadcrumb">
+            <span aria-hidden="true" className="hidden h-5 w-px shrink-0 bg-line sm:block" />
+            <Link to="/" className="shrink-0 text-sm text-muted hover:text-ink">
+              홈
+            </Link>
+            <Icon name="chevron" size={14} className="shrink-0 text-subtle" />
+            <span aria-current="page" className="truncate text-sm font-semibold">
+              {room.name}
+            </span>
+          </nav>
+          {state.profile.loggedIn ? (
+            <HeaderAccount studyTime="always" />
+          ) : (
+            <ButtonLink
+              to={`/login?next=${encodeURIComponent(`/rooms/${room.id}`)}`}
+              variant="secondary"
+              className="ml-auto"
+            >
+              로그인
+            </ButtonLink>
+          )}
+        </div>
       </header>
       <div className="page-container py-8 sm:py-10">
         <section
@@ -48,7 +62,7 @@ export default function RoomDetailPage() {
               to={
                 state.activeSession
                   ? `/study/${state.activeSession.id}`
-                  : `/rooms/${room.id}/prepare${state.cameraChecked ? '?step=goal' : ''}`
+                  : `/rooms/${room.id}/prepare`
               }
               className="mt-6 max-w-full"
             >

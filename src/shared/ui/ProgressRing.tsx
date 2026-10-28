@@ -7,13 +7,14 @@ export function ProgressRing({
   children,
   className,
 }: {
-  value: number
+  value: number | null
   label: string
   size?: number | string
   children?: ReactNode
   className?: string
 }) {
-  const percent = Number.isFinite(value)
+  const measured = value !== null
+  const percent = value !== null && Number.isFinite(value)
     ? Math.max(0, Math.min(100, Math.round(value * 10) / 10))
     : 0
   const length = 2 * Math.PI * 26
@@ -28,7 +29,7 @@ export function ProgressRing({
     function paint(next: number) {
       displayed.current = next
       arcRef.current?.setAttribute('stroke-dashoffset', String(length * (1 - next / 100)))
-      if (numberRef.current) numberRef.current.textContent = String(Math.round(next * 10) / 10)
+      if (numberRef.current) numberRef.current.textContent = measured ? String(Math.round(next * 10) / 10) : '—'
     }
     function settle() {
       cancelAnimationFrame(frame)
@@ -50,15 +51,15 @@ export function ProgressRing({
       cancelAnimationFrame(frame)
       media.removeEventListener('change', settle)
     }
-  }, [percent, length])
+  }, [percent, length, measured])
   return (
     <span
-      role="meter"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={percent}
-      aria-valuetext={`${percent}%`}
+      role={measured ? 'meter' : 'img'}
+      aria-label={measured ? label : `${label}: 측정 기록 없음`}
+      aria-valuemin={measured ? 0 : undefined}
+      aria-valuemax={measured ? 100 : undefined}
+      aria-valuenow={measured ? percent : undefined}
+      aria-valuetext={measured ? `${percent}%` : undefined}
       className={cn('progress-ring', className)}
       style={{ width: size, height: size }}
     >
@@ -84,8 +85,8 @@ export function ProgressRing({
       <span aria-hidden="true">
         {children ?? (
           <strong>
-            <span ref={numberRef}>{percent}</span>
-            <small>%</small>
+            <span ref={numberRef}>{measured ? percent : '—'}</span>
+            {measured && <small>%</small>}
           </strong>
         )}
       </span>

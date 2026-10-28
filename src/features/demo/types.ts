@@ -21,7 +21,10 @@ export type LedgerEntry = {
   amount?: number
 }
 export type Pass = { name: string; expiresAt: number; premiumDay: string | null }
+export type FocusTotals = { observedMs: number; focusedMs: number; returns: number }
 export type StudyRecord = {
+  /** Absent on legacy/sample records. Zero means no valid camera measurement. */
+  observedSeconds?: number
   targetSeconds?: number
   id: string
   roomId: string
@@ -37,6 +40,7 @@ export type StudyRecord = {
   automatic: boolean
 }
 export type ActiveSession = {
+  focus?: FocusTotals
   targetSeconds?: number
   id: string
   roomId: string

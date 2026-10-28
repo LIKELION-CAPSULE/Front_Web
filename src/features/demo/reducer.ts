@@ -1,13 +1,13 @@
 import { chargeProducts, products, tierById } from './catalog.ts'
 import { createDemoState } from './seed.ts'
-import { sampleFocusBasisPoints } from './sample-records.ts'
+import { normalizeFocusTotals } from '../session/focus.ts'
 import {
   DEFAULT_GOAL_MINUTES,
   normalizeGoalMinutes,
   studyGoalSeconds,
 } from '../session/study-goal.ts'
 import { businessDay } from '../../shared/lib/format.ts'
-import type { AvatarSettings, DemoState, LedgerEntry, Memory, TierId } from './types.ts'
+import type { AvatarSettings, DemoState, FocusTotals, LedgerEntry, Memory, TierId } from './types.ts'
 
 export const BREAK_SECONDS = 10 * 60
 
@@ -18,6 +18,7 @@ export type DemoAction =
   | { type: 'RESET'; now: number }
   | { type: 'FIRST_VISIT'; value: boolean }
   | { type: 'CAMERA'; enabled: boolean }
+  | { type: 'FACE_FOCUS'; sessionId: string; totals: FocusTotals; now: number }
   | { type: 'EXAM_PROMPTED'; roomId: string }
   | { type: 'SAVE_ROOM'; roomId: string }
   | {
@@ -153,8 +154,22 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
           studySeconds: 0,
           startedAt: action.now,
           camera: action.camera,
+          focus: { observedMs: 0, focusedMs: 0, returns: 0 },
         },
       }
+    }
+    case 'FACE_FOCUS': {
+      const active = state.activeSession
+      if (!active || active.id !== action.sessionId || !Number.isFinite(action.now) || action.now < active.startedAt) return state
+      const previous = normalizeFocusTotals(active.focus)
+      const next = normalizeFocusTotals(action.totals)
+      if (next.observedMs < previous.observedMs || next.focusedMs < previous.focusedMs || next.returns < previous.returns) return state
+      const studyMs = (active.phase === 'study'
+        ? Math.min(studyGoalSeconds(active), sessionElapsed(active, action.now)) : active.studySeconds) * 1000
+      const observedMs = Math.min(next.observedMs, Math.max(previous.observedMs, studyMs))
+      const focus = { observedMs, focusedMs: Math.min(observedMs, next.focusedMs), returns: next.returns }
+      if (previous.observedMs === focus.observedMs && previous.focusedMs === focus.focusedMs && previous.returns === focus.returns) return state
+      return { ...state, activeSession: { ...active, focus } }
     }
     case 'TICK': {
       const active = state.activeSession
@@ -210,17 +225,10 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       const total =
         active.phase === 'break'
           ? active.studySeconds
-          : Math.min(studyGoalSeconds(active), Math.floor(sessionElapsed(active, action.now)))
-      const focus = Math.round(
-        (total *
-          sampleFocusBasisPoints(
-            active.characterIds[0] ?? '',
-            action.now,
-            Math.floor(total / 60),
-          )) /
-          10000,
-      )
-      const away = total - focus
+          : Math.min(studyGoalSeconds(active), sessionElapsed(active, action.now))
+      const focus = normalizeFocusTotals(active.focus)
+      const observedMs = Math.min(Math.round(total * 1000), Math.round(focus.observedMs))
+      const focusedMs = Math.min(observedMs, Math.round(focus.focusedMs))
       const record = {
         id: active.id,
         roomId: active.roomId,
@@ -230,9 +238,10 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
         startedAt: active.startedAt,
         endedAt: action.now,
         studySeconds: total,
-        focusSeconds: total - away,
-        awaySeconds: away,
-        returns: total >= 120 ? 3 : 0,
+        observedSeconds: observedMs / 1000,
+        focusSeconds: focusedMs / 1000,
+        awaySeconds: (observedMs - focusedMs) / 1000,
+        returns: focus.returns,
         completed: total >= studyGoalSeconds(active),
         automatic: false,
       }
