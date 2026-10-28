@@ -40,12 +40,9 @@
   .microphone-check { margin-top: 16px; }
   .microphone-meter { --mic-level: 0; height: 6px; margin-top: 10px; overflow: hidden; background: var(--color-line); border-radius: 999px; }
   .microphone-meter > span { display: block; width: 100%; height: 100%; background: var(--color-brand-solid); transform: scaleX(var(--mic-level)); transform-origin: left; transition: transform 80ms linear; }
-  .study-self-footer { position: absolute; z-index: 12; right: 12px; bottom: 12px; left: 12px; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
-  .study-device-controls { min-width: 0; max-width: 100%; display: grid; gap: 8px; color: white; }
-  .study-device-controls > p { max-width: 260px; padding: 6px; background: #171b28dc; font-size: 11px; line-height: 1.5; border-radius: 8px; }
-  .study-device-controls .detection-status { width: fit-content; padding: 3px 8px; border-radius: 8px; background: #171b28bd; }
-  .study-focus-status { width: fit-content; padding: 3px 8px; border-radius: 8px; background: #171b28bd; font-size: 11px; line-height: 20px; }
-  .study-device-controls > div > button { border-radius: 999px; padding: 4px 10px; background: #171b28dc; font-size: 11px; line-height: 1.6; }
+  .study-self-feedback { position: absolute; z-index: 12; top: 12px; right: 12px; left: 12px; display: grid; justify-items: start; gap: 8px; color: white; }
+  .study-self-feedback > p, .break-device-error { max-width: 280px; padding: 6px 8px; background: #171b28dc; font-size: 11px; line-height: 1.5; border-radius: 8px; }
+  .study-self-feedback .detection-status { width: fit-content; padding: 3px 8px; border-radius: 8px; background: #171b28bd; }
   @media (min-width: 640px) {
     .device-check-preview > .device-camera-preview { aspect-ratio: 16 / 9; max-height: min(52dvh, 540px); }
     .device-check-start { position: absolute; z-index: 2; top: 16px; right: 16px; }

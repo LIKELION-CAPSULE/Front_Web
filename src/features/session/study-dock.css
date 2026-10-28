@@ -1,0 +1,104 @@
+@layer components {
+  .study-dock {
+    --dock-size: 44px;
+    --dock-spread: 16px;
+    position: absolute;
+    z-index: 25;
+    bottom: 20px;
+    left: 50%;
+    display: flex;
+    width: max-content;
+    max-width: calc(100% - 24px);
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ffffff30, #e7e1ff0d), #2625328c;
+    box-shadow: 0 8px 30px #0005, inset 0 1px 0 #ffffff45, inset 0 -1px 0 #ffffff0a;
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    backdrop-filter: blur(24px) saturate(140%);
+  }
+  .study-dock-item {
+    --dock-weight: 0;
+    position: relative;
+    display: flex;
+    width: calc(var(--dock-size) + var(--dock-weight) * var(--dock-spread));
+    height: var(--dock-size);
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    transition: width 180ms cubic-bezier(.2,.8,.2,1);
+  }
+  .study-dock-item > button {
+    position: relative;
+    display: flex;
+    width: var(--dock-size);
+    height: var(--dock-size);
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: #f2edffcc;
+    color: #242132;
+    box-shadow: inset 0 1px 0 #ffffff73, 0 2px 8px #00000014;
+    transform: translateY(calc(var(--dock-weight) * -5px)) scale(calc(1 + var(--dock-weight) * .32));
+    transition: transform 180ms cubic-bezier(.2,.8,.2,1), background 160ms, color 160ms;
+  }
+  .study-dock-item > button:hover:not(:disabled) { background: #fff; color: #1b1726; }
+  .study-dock-item > button[aria-pressed='true']:not([data-device]) { background: #b993f5e6; color: #25173d; }
+  .study-dock-item > button[aria-pressed='true']:not([data-device])::after { position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: currentColor; content: ''; }
+  .study-dock-item > button[data-device][aria-pressed='false'] { background: #eed7e2b8; color: #89364e; }
+  .study-dock-item > button[data-action='finish'] { background: #f04e66e8; color: #fff; box-shadow: inset 0 1px 0 #ffffff30, 0 2px 8px #9a15292b; }
+  .study-dock-item > button[data-action='finish']:hover { background: #ff6278; color: #fff; }
+  .study-dock-item > button:disabled { cursor: wait; opacity: .5; }
+  .study-dock-item > button[data-action='pause']:disabled { cursor: default; }
+  .study-dock-item > button:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 4px; }
+  .study-dock-divider { width: 1px; height: 24px; flex: none; margin-inline: 2px; background: #ffffff29; }
+  .study-dock-tooltip {
+    position: absolute;
+    bottom: calc(100% + 22px);
+    left: 50%;
+    visibility: hidden;
+    width: max-content;
+    padding: 7px 11px;
+    translate: -50% 0;
+    transform: translateY(4px);
+    border-radius: 10px;
+    background: #272636f5;
+    color: #f7f3ff;
+    box-shadow: 0 6px 22px #0004;
+    font-size: 11px;
+    line-height: 18px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms, transform 120ms, visibility 120ms;
+  }
+  .study-dock-item:hover .study-dock-tooltip,
+  .study-dock-item:has(button:focus-visible) .study-dock-tooltip { visibility: visible; opacity: 1; transform: translateY(0); }
+  .study-dock-item:first-child .study-dock-tooltip { left: 0; translate: 0 0; }
+  .study-dock-item:last-child .study-dock-tooltip { right: 0; left: auto; translate: 0 0; }
+  .study-dock[data-tooltip-dismissed='true'] .study-dock-item .study-dock-tooltip { visibility: hidden; opacity: 0; }
+  @media (max-width: 1023px) {
+    .study-stage > .study-dock { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  }
+  @media (max-width: 699px) {
+    .study-dock { --dock-spread: 0px; gap: 4px; padding: 8px; }
+  }
+  @media (max-width: 479px) {
+    .study-dock { --dock-size: 40px; gap: 3px; }
+    .study-dock-item > button > svg { width: 20px; height: 20px; }
+  }
+  @media (max-width: 359px) {
+    .study-dock { --dock-size: 36px; gap: 2px; padding: 6px; }
+    .study-dock-divider { margin-inline: 1px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .study-dock-item, .study-dock-item > button, .study-dock-tooltip { transition: none; }
+    .study-dock-item { width: var(--dock-size); }
+    .study-dock-item > button { transform: none; }
+    .tile-action-symbol { transition: none; }
+  }
+}

@@ -11,7 +11,10 @@ export function recordSeconds(records: StudyRecord[]) {
   return records.reduce((sum, record) => sum + record.studySeconds, 0)
 }
 
-export function characterStudySeconds(state: DemoState, characterId: string) {
+export const RELATIONSHIP_LEVEL_MINUTES = 600
+export const MAX_RELATIONSHIP_LEVEL = 5
+
+export function characterStudySeconds(state: Pick<DemoState, 'records'>, characterId: string) {
   return state.records
     .filter((record) => record.characterIds.includes(characterId))
     .reduce(
@@ -23,11 +26,11 @@ export function characterStudySeconds(state: DemoState, characterId: string) {
 
 export function relationship(state: DemoState, characterId: string) {
   const minutes = Math.floor(characterStudySeconds(state, characterId) / 60)
-  const level = Math.min(5, 1 + Math.floor(minutes / 600))
+  const level = Math.min(MAX_RELATIONSHIP_LEVEL, 1 + Math.floor(minutes / RELATIONSHIP_LEVEL_MINUTES))
   return {
     level,
     minutes,
-    next: level === 5 ? 0 : 600 - (minutes % 600),
-    progress: level === 5 ? 100 : ((minutes % 600) / 600) * 100,
+    next: level === MAX_RELATIONSHIP_LEVEL ? 0 : RELATIONSHIP_LEVEL_MINUTES - (minutes % RELATIONSHIP_LEVEL_MINUTES),
+    progress: level === MAX_RELATIONSHIP_LEVEL ? 100 : ((minutes % RELATIONSHIP_LEVEL_MINUTES) / RELATIONSHIP_LEVEL_MINUTES) * 100,
   }
 }

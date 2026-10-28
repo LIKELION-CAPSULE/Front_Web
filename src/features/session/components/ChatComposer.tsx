@@ -1,92 +1,68 @@
-import { useState } from 'react'
-import { cn } from '@/shared/lib/cn'
-import { sessionAssets } from '../assets'
+import { useLayoutEffect, useRef } from 'react'
+import { Icon } from '@/shared/ui/Icon'
 
-export function ChatComposer({
-  onSend,
-  disabled,
-  compact = false,
-  name,
-  remaining,
-}: {
-  onSend: (text: string, voice?: boolean) => void
-  disabled?: boolean
-  compact?: boolean
+function resizeInput(field: HTMLTextAreaElement) {
+  if (field.clientWidth === 0) return
+  field.style.height = 'auto'
+  field.style.height = `${Math.min(120, Math.max(24, field.scrollHeight))}px`
+}
+
+export function ChatComposer({ name, text, onChange, onSend, disabled }: {
   name: string
-  remaining?: number
+  text: string
+  onChange: (text: string) => void
+  onSend: (text: string, voice?: boolean) => void
+  disabled: boolean
 }) {
-  const [text, setText] = useState('')
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const field = ref.current
+    if (!field) return
+    resizeInput(field)
+  }, [text, name])
+  useLayoutEffect(() => {
+    const field = ref.current
+    if (!field) return
+    let width = -1
+    // The dialog opens after its children mount, and its width then animates.
+    // Re-measure only width changes so height updates cannot cause an observer loop.
+    const observer = new ResizeObserver(() => {
+      const next = field.clientWidth
+      if (next === width) return
+      width = next
+      resizeInput(field)
+    })
+    observer.observe(field)
+    return () => observer.disconnect()
+  }, [])
   function submit() {
-    if (!text.trim() || disabled) return
+    if (disabled || !text.trim()) return
     onSend(text)
-    setText('')
+    onChange('')
   }
   return (
-    <form
-      className={cn(compact ? 'mini-chat' : 'chat-composer')}
-      onSubmit={(event) => {
-        event.preventDefault()
-        submit()
-      }}
-    >
-      {compact && (
-        <div className="mb-2 flex flex-wrap gap-1.5">
-          {['파이팅', '졸려', '5분만 집중할게', '이거 어려워', '쉬고 싶다'].map((reply) => (
-            <button
-              key={reply}
-              type="button"
-              disabled={disabled}
-              onClick={() => onSend(reply)}
-              className="rounded-full border border-transparent bg-brand-soft px-2.5 py-1 text-[11px] disabled:opacity-40"
-            >
-              {reply}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="flex items-center gap-2">
-        <input
-          aria-label={compact ? `${name}에게 조용히 한마디` : '메시지 입력'}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          maxLength={500}
-          disabled={disabled}
-          className="min-w-0 flex-1 rounded-full border border-transparent bg-panel px-3.5 py-3 text-sm placeholder:text-subtle disabled:bg-surface"
-          placeholder={compact ? `${name}에게 조용히 한마디…` : '메시지 입력…'}
-        />
-        {remaining !== undefined && compact && (
-          <span className="text-[10px] whitespace-nowrap text-subtle">대화 {remaining}/3회</span>
-        )}
-        {!compact && (
-          <button
-            type="button"
-            disabled={disabled}
-            aria-label="샘플 음성 메시지 보내기"
-            onClick={() => onSend('내일 영어 시험이라 좀 긴장돼', true)}
-            className="flex size-[52px] shrink-0 items-center justify-center rounded-full bg-brand-solid disabled:opacity-40"
-          >
-            <img src={sessionAssets.microphone} alt="" />
-          </button>
-        )}
-        <button
-          type="submit"
-          disabled={disabled || !text.trim()}
-          aria-label="메시지 보내기"
-          className={cn(
-            'flex shrink-0 items-center justify-center rounded-full bg-brand-solid disabled:opacity-40',
-            compact ? 'size-[38px]' : 'size-[52px]',
-          )}
-        >
-          <img src={compact ? sessionAssets.miniSend : sessionAssets.send} alt="" />
+    <form className="session-chat-composer" data-has-text={!!text || undefined} onSubmit={(event) => { event.preventDefault(); submit() }}>
+      <textarea
+        ref={ref}
+        rows={1}
+        aria-label={`${name}에게 메시지`}
+        value={text}
+        onChange={event => onChange(event.target.value)}
+        onKeyDown={event => {
+          if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) { event.preventDefault(); submit() }
+        }}
+        maxLength={500}
+        disabled={disabled}
+        placeholder={`${name}에게 한마디…`}
+      />
+      <div className="session-chat-composer-tools">
+        <button type="button" aria-label="샘플 음성 메시지 보내기" title="음성 메시지 체험" disabled={disabled} onClick={() => onSend('내일 영어 시험이라 좀 긴장돼', true)}>
+          <Icon name="microphone" size={18} />
+        </button>
+        <button type="submit" className="session-chat-send" aria-label="메시지 보내기" disabled={disabled || !text.trim()}>
+          <Icon name="arrow" size={18} />
         </button>
       </div>
-      {!compact && (
-        <p className="mt-3 text-[10px] leading-4 text-subtle">
-          글이나 음성 메시지로 이야기해 보세요.
-          <br />
-          체험 중에는 음성 대신 샘플 메시지를 보내요.
-        </p>
-      )}
     </form>
   )
 }

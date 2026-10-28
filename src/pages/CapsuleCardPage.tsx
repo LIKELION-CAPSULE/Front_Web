@@ -1,9 +1,13 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
 import { useDemo } from '@/features/demo/demo-context'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
-import { CharacterFigure } from '@/features/session/components/CharacterFigure'
+import { CompletionPortrait } from '@/features/reports/components/CompletionPortrait'
+import { CapsuleCardSurface } from '@/features/reports/components/CapsuleCardSurface'
+import { RoomTitle } from '@/features/rooms/components/RoomTitle'
+import { CapsuleCardBrand } from '@/features/reports/components/CapsuleCardBrand'
+import { Tabs } from '@/shared/ui/Tabs'
 import { downloadCard, exportCard } from '@/features/reports/export-card'
 import { dateLabel, dayKey, duration, measuredDuration } from '@/shared/lib/format'
 import { Button } from '@/shared/ui/Button'
@@ -20,6 +24,7 @@ const names = ['보라', '검정', '연보라', '라벤더']
 
 export default function CapsuleCardPage() {
   const { recordId } = useParams()
+  const [params, setParams] = useSearchParams()
   const { state, dispatch } = useDemo()
   const navigate = useNavigate()
   const [todayTimestamp] = useState(Date.now)
@@ -38,14 +43,15 @@ export default function CapsuleCardPage() {
         <NotFoundPage />
       </OverlayPage>
     )
-  const character = room.characters[0]!
+  const participants = room.characters.filter(character => record.characterIds.includes(character.id))
+  const friends = participants.length ? participants : [room.characters[0]!]
+  const character = friends.find(friend => friend.id === params.get('friend')) ?? friends[0]!
   async function save(share = false) {
     if (busy) return
     setBusy(true)
     try {
       const blob = await exportCard(
         record!,
-        room!.name,
         character.name,
         colors[color]!,
         character.id,
@@ -101,35 +107,30 @@ export default function CapsuleCardPage() {
   return (
     <main id="main-content" tabIndex={-1} className="capsule-share-page">
       <PageNavigation />
-      <div
-        className={cn('capsule-share-card', color > 1 && 'share-light')}
-        style={{ background: colors[color] }}
-      >
-        <div className="flex items-center justify-between font-mono text-[13px]">
-          <span className="font-bold tracking-[3px]">CAPSULE</span>
+      <CapsuleCardSurface color={colors[color]!} light={color > 1}>
+        <div className="capsule-card-header">
+          <CapsuleCardBrand />
           <span>{dateLabel(record.endedAt)}</span>
         </div>
         <div className="share-portrait">
-          <CharacterFigure variant="share" characterId={character.id} pose="affection" />
-          <span className="absolute top-3.5 left-1/2 -translate-x-1/2 rounded-[14px] bg-panel/90 px-3 py-2 text-sm whitespace-nowrap text-white">
-            {capsuleCardCopy.quote}
-          </span>
+          <CompletionPortrait characterId={character.id} name={character.name} variant="share" />
+          <div className="capsule-room-title"><RoomTitle roomId={room.id} eager /></div>
         </div>
         <p className="mt-4 text-[15px]">
-          {room.name} · {withParticle(character.name, '과', '와')} 함께
+          {withParticle(character.name, '과', '와')} 함께한 공부
         </p>
-        <p className="mt-1 text-[64px] leading-[1.3] font-black">{(record.observedSeconds === undefined ? duration : measuredDuration)(record.studySeconds)}</p>
+        <p className="capsule-study-amount">{(record.observedSeconds === undefined ? duration : measuredDuration)(record.studySeconds)}</p>
         <p className="mt-2 font-bold">
           {capsuleFocusCopy(record)}
         </p>
-        <Badge dark className="mt-5 self-start">
+        <Badge dark className="mt-5 self-start bg-[#17171c]">
           {capsuleCardCopy.badge}
         </Badge>
-        <p className="mt-auto pt-6 text-xs">캡슐에서 같이 공부해요 · CAPSULE</p>
-      </div>
+        <p className="mt-auto pt-6 text-xs">{capsuleCardCopy.quote}</p>
+      </CapsuleCardSurface>
       <section className="w-full max-w-[440px] rounded-3xl bg-panel p-7">
         <h1 className="text-[22px] font-bold">캡슐 카드</h1>
-        <p className="mt-2 text-sm text-muted">이미지로 저장하거나 스토리에 공유해 보세요.</p>
+        {friends.length > 1 && <div className="mt-4"><Tabs label="카드의 친구" options={friends.map(friend => ({ id: friend.id, label: friend.name }))} value={character.id} onChange={id => { const next = new URLSearchParams(params); next.set('friend', id); setParams(next, { replace: true }) }} size="sm" /></div>}
         <p className="mt-4 text-[13px] font-bold text-muted">카드 색 · {names[color]}</p>
         <div className="relative mt-2 h-[30px] w-[150px]">
           {colors.map((_, index) => (
@@ -187,26 +188,6 @@ export default function CapsuleCardPage() {
         )}
         <hr className="my-4 border-line" />
         <h2 className="text-section-title font-semibold">다음 공부 약속</h2>
-        <p className="mt-2 text-sm text-muted">
-          공부 약속은 모든 친구가 함께 기억해요.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {['오늘', '내일', '모레'].map((label, index) => {
-            const value = dayKey(todayTimestamp + index * 86400000)
-            return (
-              <button
-                key={label}
-                onClick={() => setDate(value)}
-                className={cn(
-                  'rounded-full border px-3.5 py-2 text-sm',
-                  date === value ? 'border-brand bg-brand-solid text-white' : 'button-subtle border-transparent',
-                )}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
         <div className="mt-3 space-y-3">
           <DateTimeWheelField
             label="날짜 선택"

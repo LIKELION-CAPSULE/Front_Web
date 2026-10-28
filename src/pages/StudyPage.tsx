@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
 import { useDemo } from '@/features/demo/demo-context'
@@ -6,23 +6,23 @@ import { tierById } from '@/features/demo/catalog'
 import { BREAK_SECONDS, sessionElapsed } from '@/features/demo/reducer'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { studyGoalSeconds } from '@/features/session/study-goal'
+import { activateStudyFriend, type StudyInteractionMode } from '@/features/session/study-interaction'
 import { focusPercent, normalizeFocusTotals } from '@/features/session/focus'
 import { useNow } from '@/features/session/use-now'
 import { CharacterTile } from '@/features/session/components/CharacterTile'
+import { StudyDock } from '@/features/session/components/StudyDock'
+import { StudySelfView } from '@/features/session/components/StudySelfView'
+import { StudyDemoControls } from '@/features/session/components/StudyDemoControls'
+import { SessionTimer } from '@/features/session/components/SessionTimer'
+import { SessionFocus } from '@/features/session/components/SessionFocus'
 import { getCharacterArtwork } from '@/features/characters/artwork'
-import { AvatarIllustration } from '@/shared/ui/AvatarIllustration'
 import { DetectionStatus } from '@/features/media/components/DetectionStatus'
 import { useMedia } from '@/features/media/media-context'
 import { Brand } from '@/shared/ui/Brand'
 import { Icon } from '@/shared/ui/Icon'
-import { ChatComposer } from '@/features/session/components/ChatComposer'
-import { BreakConversation } from '@/features/session/components/BreakConversation'
-import { sessionAssets } from '@/features/session/assets'
-import { businessDay, clock } from '@/shared/lib/format'
+import { SessionChatPanel } from '@/features/session/components/SessionChatPanel'
+import { businessDay } from '@/shared/lib/format'
 import { cn } from '@/shared/lib/cn'
-import { Badge } from '@/shared/ui/Badge'
-import { Button, ButtonLink } from '@/shared/ui/Button'
-import { Dialog } from '@/shared/ui/Dialog'
 import { EmptyState } from '@/shared/ui/EmptyState'
 
 const reactions = ['', '…', '잠깐 자리 비운 거야?', '…나랑 공부하기 싫어?']
@@ -32,14 +32,48 @@ export default function StudyPage() {
   const { sessionId } = useParams()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const [selectedId, setSelectedId] = useState('')
   const [reaction, setReaction] = useState(0)
   const [customSpeech, setCustomSpeech] = useState('')
-  const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [quietMode, setQuietMode] = useState(false)
+  const [showCamera, setShowCamera] = useState(false)
+  const [interactionMode, setInteractionMode] = useState<StudyInteractionMode>(() => params.get('chat') === '1' ? 'talk' : 'focus')
   const { devices, controller, flushFocus } = useMedia()
   const now = useNow()
   const active = state.activeSession
+  const inSession = active?.id === sessionId
+  const resting = active?.phase === 'break'
+  useEffect(() => {
+    if (!inSession) return
+    const handleKey = (event: KeyboardEvent) => {
+      const target = event.target
+      if (event.metaKey || event.ctrlKey || event.altKey || document.querySelector('dialog:modal')) return
+      const editing = target instanceof HTMLElement &&
+        (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+      if (editing && event.isComposing) return
+      const key = event.code === 'KeyV' ? 'v' : event.code === 'KeyC' ? 'c' : event.key.toLowerCase()
+      if (!editing && (key === 'v' || key === 'c')) {
+        event.preventDefault()
+        setInteractionMode(key === 'v' ? 'focus' : 'talk')
+        if (key === 'c') {
+          setQuietMode(false)
+          const next = new URLSearchParams(window.location.search)
+          next.set('chat', '1')
+          setParams(next)
+        }
+      } else if (event.key === 'Escape' && !event.isComposing) {
+        // Read the latest location so successive Escape presses close one layer each.
+        const next = new URLSearchParams(window.location.search)
+        const chatting = next.get('chat') === '1' || (resting && !next.has('chat'))
+        if (!chatting && !next.has('focus')) return
+        event.preventDefault()
+        if (chatting) next.set('chat', '0')
+        else next.delete('focus')
+        setParams(next)
+      }
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [inSession, resting, setParams])
   const room = active && getStudyRoom(active.roomId)
   if (!active || active.id !== sessionId || !room)
     return (
@@ -53,41 +87,50 @@ export default function StudyPage() {
   const characters = room.characters.filter((character) =>
     active.characterIds.includes(character.id),
   )
-  const selected = characters.find((character) => character.id === selectedId) ?? characters[0]!
   const focusId = params.get('focus')
   const focused = characters.find((character) => character.id === focusId)
-  const chatOpen = params.get('chat') === '1'
+  const selected = characters.find((character) => character.id === params.get('friend')) ?? focused ?? characters[0]!
+  const chatOpen = params.get('chat') === '1' || (active.phase === 'break' && !params.has('chat'))
   const elapsed = sessionElapsed(active, now)
   const goal = studyGoalSeconds(active)
   const focusTotals = normalizeFocusTotals(active.focus)
   const focusRate = focusPercent(focusTotals.focusedMs, focusTotals.observedMs)
+  const cameraVisible = showCamera && !!devices.camera.stream
   const remaining = Math.max(0, (active.phase === 'study' ? goal : BREAK_SECONDS) - elapsed)
   const used = state.chatUsage.day === businessDay(now) ? state.chatUsage.used : 0
   const messages = state.messages.filter(
     (message) => message.sessionId === active.id && message.characterId === selected.id,
   )
   const lastReply = messages.filter((message) => message.sender === 'character').at(-1)
-  function focus(id?: string) {
-    if (id) setSelectedId(id)
+  function closeChat() {
     const next = new URLSearchParams(params)
-    if (id) next.set('focus', id)
-    else next.delete('focus')
+    next.set('chat', '0')
     setParams(next)
   }
-  function toggleChat() {
-    if (!chatOpen) setQuietMode(false)
-    const next = new URLSearchParams(params)
-    if (chatOpen) next.delete('chat')
-    else next.set('chat', '1')
-    setParams(next)
+  function selectMode(mode: StudyInteractionMode) {
+    setInteractionMode(mode)
+    if (mode === 'talk') {
+      setQuietMode(false)
+      setParams(activateStudyFriend(params, 'talk', selected.id))
+    }
+  }
+  function selectFriend(id: string) {
+    setQuietMode(false)
+    setParams(activateStudyFriend(params, 'talk', id))
+  }
+  function activateFriend(id: string) {
+    if (interactionMode === 'talk') {
+      setQuietMode(false)
+      setReaction(0)
+      setCustomSpeech('')
+    }
+    setParams(activateStudyFriend(params, interactionMode, id))
   }
   function send(text: string, voice = false) {
     if (active!.tier === 'basic' && used >= 3) {
-      setUpgradeOpen(true)
       return
     }
     dispatch({ type: 'MESSAGE', characterId: selected.id, name: selected.name, text, voice, now })
-    if (active!.tier === 'basic' && used >= 2) setUpgradeOpen(true)
     setCustomSpeech('')
   }
   function finish(another = false) {
@@ -104,54 +147,49 @@ export default function StudyPage() {
     if (devices.camera.stream) {
       flushFocus()
       controller.stop('camera')
+      setShowCamera(false)
       dispatch({ type: 'CAMERA', enabled: false })
     } else {
       const enabled = await controller.request('camera')
       dispatch({ type: 'CAMERA', enabled })
     }
   }
-  const timer = (
-    <div className="session-timer">
-      <strong className="font-mono text-[21px]">{clock(remaining)}</strong>
-      <span className="text-[10px] text-white/75">
-        목표 {Math.round(goal / 60)}분 · 끝나면 10분 휴식
-      </span>
-      <Badge className="bg-brand-soft text-brand-strong">{tierById(active.tier).name}</Badge>
-    </div>
-  )
+  async function toggleSelfView() {
+    if (cameraVisible) {
+      setShowCamera(false)
+      return
+    }
+    const enabled = await controller.request('camera')
+    dispatch({ type: 'CAMERA', enabled })
+    setShowCamera(enabled)
+  }
+  function dock(resting = false) {
+    return (
+      <StudyDock
+        mode={interactionMode}
+        onModeChange={selectMode}
+        paused={active!.runningSince === null}
+        onPause={() => { flushFocus(); dispatch({ type: 'PAUSE', now: Date.now() }) }}
+        onFinish={() => finish()}
+        camera={devices.camera}
+        microphone={devices.microphone}
+        showCamera={cameraVisible}
+        onCamera={() => { void toggleCamera() }}
+        onMicrophone={() => devices.microphone.stream ? controller.stop('microphone') : void controller.request('microphone')}
+        onViewChange={() => { void toggleSelfView() }}
+        resting={resting}
+        restFinished={resting && remaining === 0}
+      />
+    )
+  }
   function selfTile(small = false) {
     return (
       <article aria-label="내 칸" className="self-tile">
-        {!focused && active!.phase === 'study' && timer}
-        <div className="self-status">
-          <img src={reaction > 0 ? sessionAssets.purpleDot : sessionAssets.greenDot} alt="" />
-          <span>{devices.camera.stream ? '카메라 켜짐' : '카메라 꺼짐'}</span>
-        </div>
-        <div
-          className={cn(
-            'self-avatar-scene',
-            small && 'is-small',
-          )}
-        >
-          <AvatarIllustration settings={state.profile.avatar} />
-          <p>이곳이 나의 자리</p>
-        </div>
-        <div className="study-self-footer">
-        <div className="study-device-controls">
+        <StudySelfView stream={devices.camera.stream} showCamera={cameraVisible} avatar={state.profile.avatar} small={small} />
+        <div className="study-self-feedback">
           <DetectionStatus />
-          <span role="status" aria-label="현재 공부 집중률" className="study-focus-status">
-            집중률 <strong>{focusRate === null ? '—' : `${focusRate}%`}</strong>
-          </span>
           {devices.camera.error && <p role="alert">{devices.camera.error}</p>}
           {devices.microphone.error && <p role="alert">{devices.microphone.error}</p>}
-          <div className="flex flex-wrap gap-2">
-            <button disabled={devices.camera.status === 'requesting'} onClick={() => { void toggleCamera() }}>카메라 {devices.camera.stream ? '끄기' : '켜기'}</button>
-            <button disabled={devices.microphone.status === 'requesting'} onClick={() => devices.microphone.stream ? controller.stop('microphone') : void controller.request('microphone')}>마이크 {devices.microphone.stream ? '끄기' : '켜기'}</button>
-          </div>
-        </div>
-        <span className="ml-auto rounded-full bg-brand/85 px-3 py-1 text-xs text-white">
-          나 · {state.profile.name}
-        </span>
         </div>
       </article>
     )
@@ -166,37 +204,56 @@ export default function StudyPage() {
         <Link to="/" aria-label="CAPSULE 홈">
           <Brand />
         </Link>
-        <span className="study-room-name">{room.name}</span>
-        <span className="study-phase-label">
-          <span className="live-dot" />
-          {active.phase === 'study' ? '지금은 집중하는 시간' : '잠깐, 쉬어가는 시간'}
-        </span>
+        <div className="study-room-heading">
+          <span className="study-room-name">{room.name}</span>
+          <StudyDemoControls
+            studying={active.phase === 'study'}
+            onBreak={() => dispatch({ type: 'SKIP_TO_BREAK', now: Date.now() })}
+            onReaction={(level) => { setReaction(level); setCustomSpeech('') }}
+            onReturn={() => { setReaction(0); setCustomSpeech('오, 돌아왔네. 계속 가자.') }}
+          />
+        </div>
+        <div className="study-header-actions">
         {active.phase === 'study' && (
           <button
             type="button"
             aria-pressed={quietMode}
             onClick={() => {
               setQuietMode(!quietMode)
-              if (!quietMode && chatOpen) toggleChat()
+              if (!quietMode) {
+                setInteractionMode('focus')
+                if (chatOpen) closeChat()
+              }
             }}
             className="quiet-mode-toggle"
+            aria-label="조용히 집중"
           >
             <Icon name="moon" size={14} />
-            조용히 집중
+            <span>조용히 집중</span>
           </button>
         )}
-        <span className="ml-auto hidden items-center gap-2 text-xs text-muted sm:flex">
-          <Icon name="headphones" size={15} />
-          각자의 목표, 같은 시간
-        </span>
+        <button type="button" className="study-chat-trigger" aria-label={chatOpen ? '대화 닫기' : '대화 열기'} aria-expanded={chatOpen} aria-controls="session-chat" onClick={() => chatOpen ? closeChat() : selectMode('talk')} title="친구와 대화"><Icon name="chat" size={16} /></button>
+        </div>
+        <div className="study-session-stats">
+          <SessionFocus rate={focusRate} />
+          <SessionTimer
+            elapsed={elapsed}
+            duration={active.phase === 'study' ? goal : BREAK_SECONDS}
+            resting={active.phase === 'break'}
+            paused={active.runningSince === null}
+            tier={tierById(active.tier).name}
+          />
+        </div>
       </header>
+      <div className="study-workspace" data-chat-open={chatOpen || undefined}>
       {active.phase === 'study' ? (
-        <>
+        <div className="study-stage">
           <div
+            data-interaction-mode={interactionMode}
             className={cn(
               'study-grid',
               focused && 'is-focus',
-              characters.length === 1 && !focused && 'is-one-to-one',
+              characters.length === 1 && 'is-one-to-one',
             )}
           >
             {(focused
@@ -216,7 +273,7 @@ export default function StudyPage() {
                       : 'quiet'
                 }
                 focus={focused?.id === character.id}
-                active={!quietMode && index === 0 && (reaction > 1 || chatOpen)}
+                active={!quietMode && ((chatOpen && character.id === selected.id) || (index === 0 && reaction > 1))}
                 status={
                   quietMode
                     ? '공부 중'
@@ -232,23 +289,16 @@ export default function StudyPage() {
                   quietMode
                     ? undefined
                     : character.id === selected.id && chatOpen
-                      ? (lastReply?.text ?? '나도 졸려. 5분만 더 버티고 쉬자.')
+                      ? undefined
                       : index === 0
                         ? customSpeech || reactions[reaction]
                         : index === 1 && reaction
                           ? '…'
                           : undefined
                 }
-                onFocus={() => focus(focused?.id === character.id ? undefined : character.id)}
-                onReact={
-                  chatOpen || quietMode
-                    ? undefined
-                    : () => {
-                        setSelectedId(character.id)
-                        setCustomSpeech('왔네? 오늘도 같이 해 보자.')
-                        setReaction(0)
-                      }
-                }
+                interactionMode={interactionMode}
+                chatting={chatOpen && character.id === selected.id}
+                onActivate={() => activateFriend(character.id)}
                 onDismiss={
                   index === 0 && reaction > 1 && !chatOpen && !quietMode
                     ? () => {
@@ -257,86 +307,32 @@ export default function StudyPage() {
                       }
                     : undefined
                 }
-              >
-                {focused?.id === character.id && timer}
-                {chatOpen && character.id === selected.id && (
-                  <ChatComposer
-                    compact
-                    name={selected.name}
-                    onSend={send}
-                    disabled={active.tier === 'basic' && used >= 3}
-                    remaining={active.tier === 'basic' ? used : undefined}
-                  />
-                )}
-              </CharacterTile>
+              />
             ))}
             {selfTile(!!focused)}
           </div>
-          <nav aria-label="공부 컨트롤" className="study-dock">
-            <button onClick={() => { flushFocus(); dispatch({ type: 'PAUSE', now: Date.now() }) }}>
-              <Icon name={active.runningSince === null ? 'play' : 'pause'} size={16} />
-              {active.runningSince === null ? '계속하기' : '일시정지'}
-            </button>
-            <button
-              className={cn('text-brand-strong', chatOpen && 'bg-brand-solid text-white')}
-              onClick={toggleChat}
-            >
-              <Icon name="chat" size={16} />
-              {chatOpen ? '채팅 닫기' : '채팅'}
-            </button>
-            <button className="bg-brand-solid text-white" onClick={() => finish()}>
-              <span className="size-2.5 rounded-sm bg-current" />
-              공부 끝내기
-            </button>
-          </nav>
+          {dock()}
           {active.runningSince === null && (
             <div role="status" className="pause-label">
               잠깐 쉬어도 괜찮아요 · 일시정지 중
             </div>
           )}
-          {upgradeOpen && (
-            <Dialog open onClose={() => setUpgradeOpen(false)} title="오늘 무료 대화를 모두 사용했어요" className="max-w-sm">
-              <p className="text-sm leading-6 text-muted">
-                쉬는 시간에 대화 옵션을 올리거나, 그대로 공부를 이어갈 수 있어요.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Button
-                  size="md"
-                  onClick={() => {
-                    dispatch({ type: 'SKIP_TO_BREAK', now: Date.now() })
-                    setUpgradeOpen(true)
-                  }}
-                >
-                  쉬는 시간으로 이동
-                </Button>
-                <Button size="md" variant="secondary" onClick={() => setUpgradeOpen(false)}>
-                  계속 공부하기
-                </Button>
-              </div>
-            </Dialog>
-          )}
-        </>
+        </div>
       ) : (
-        <div className="break-layout">
-          <div className="relative min-h-0">
+          <div className="break-stage">
             <CharacterTile
               character={selected}
               variant="rest"
               status="쉬는 중"
-              speech={lastReply?.text ?? '그럼 조금만 더 쉬어. 내가 시간 봐 줄게.'}
+              speech={chatOpen ? undefined : lastReply?.text ?? '그럼 조금만 더 쉬어. 내가 시간 봐 줄게.'}
             >
-              <div className="break-timer">
-                <span className="font-bold text-brand-strong">쉬는 시간</span>
-                <strong className="font-mono text-[21px]">{clock(remaining).slice(3)}</strong>
-                <span className="text-xs text-muted">남음 · 이후에 다음 목표 정하기</span>
-              </div>
               <div className="break-thumbnails">
                 {characters
                   .filter((character) => character.id !== selected.id)
                   .map((character) => (
                     <button
                       key={character.id}
-                      onClick={() => setSelectedId(character.id)}
+                      onClick={() => selectFriend(character.id)}
                       className="break-thumbnail"
                     >
                       <img
@@ -347,11 +343,8 @@ export default function StudyPage() {
                       <span className="tile-label">{character.name} · 쉬는 중</span>
                     </button>
                   ))}
-                <div className="break-thumbnail bg-[#26242e]" aria-label="내 아바타">
-                  <AvatarIllustration settings={state.profile.avatar} />
-                  <span className="tile-label bg-brand-solid text-white">
-                    나 · {state.profile.name}
-                  </span>
+                <div className="break-thumbnail bg-[#26242e]" aria-label={cameraVisible ? '내 카메라' : '내 아바타'}>
+                  <StudySelfView stream={devices.camera.stream} showCamera={cameraVisible} avatar={state.profile.avatar} small />
                 </div>
               </div>
               <div className="break-actions">
@@ -369,59 +362,24 @@ export default function StudyPage() {
                 </div>
               )}
             </CharacterTile>
+            {dock(true)}
+            <div className="break-device-feedback">
+              {devices.camera.error && <p role="alert" className="break-device-error">{devices.camera.error}</p>}
+              {devices.microphone.error && <p role="alert" className="break-device-error">{devices.microphone.error}</p>}
+            </div>
           </div>
-          <BreakConversation
+      )}
+          <SessionChatPanel
+            open={chatOpen}
+            onClose={closeChat}
             characters={characters}
             selected={selected}
-            onSelect={setSelectedId}
+            onSelect={selectFriend}
             onSend={send}
             used={used}
-            upgradeOpen={upgradeOpen}
-            setUpgradeOpen={setUpgradeOpen}
             now={now}
           />
-        </div>
-      )}
-      <details className={cn('demo-controls', active.phase === 'break' && 'demo-controls-break')}>
-        <summary>데모 조작</summary>
-        <p className="mb-2 text-[11px] text-muted">친구 반응과 쉬는 시간을 미리 확인할 수 있어요.</p>
-        <div className="flex flex-wrap gap-1.5">
-          {active.phase === 'study' && (
-            <>
-              <button onClick={() => dispatch({ type: 'SKIP_TO_BREAK', now: Date.now() })}>
-                휴식 화면 보기
-              </button>
-              {[1, 2, 3].map((level) => (
-                <button
-                  key={level}
-                  onClick={() => {
-                    setReaction(level)
-                    setCustomSpeech('')
-                  }}
-                >
-                  반응 {level}단계
-                </button>
-              ))}
-              <button
-                onClick={() => {
-                  setReaction(0)
-                  setCustomSpeech('오, 돌아왔네. 계속 가자.')
-                }}
-              >
-                공부 복귀
-              </button>
-            </>
-          )}
-          <Link to="/">홈으로</Link>
-          <ButtonLink
-            to="/credits"
-            variant="secondary"
-            size="xs"
-          >
-            내 크레딧
-          </ButtonLink>
-        </div>
-      </details>
+      </div>
     </main>
   )
 }

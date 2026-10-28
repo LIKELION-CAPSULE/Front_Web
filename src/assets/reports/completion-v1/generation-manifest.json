@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-10-28",
+  "mode": "built-in image_gen",
+  "purpose": "Smiling individual study-completion and capsule-card portraits",
+  "webEncoding": {
+    "tool": "cwebp",
+    "quality": 88,
+    "method": 6
+  },
+  "assets": [
+    {
+      "id": "chaerin",
+      "reference": "../../characters/kang-study.webp",
+      "prompt": "Use case: illustration-story. Asset type: dedicated celebratory portrait for a study-completion report and a shareable study capsule card. Generate a NEW single-character illustration using input image 1 ONLY as an identity, outfit, and rendering-style reference, not as a composition to copy. Match the same recognizable face, hair, detailed soft anime rendering and school outfit. Eye-level, modest waist-up framing, complete head and hair inside the frame. Portrait 1024x1536. The person is slightly right of center, with the smiling face around x=65%, y=40%; keep some quiet softly lit background in the upper-left for a separately overlaid title asset. Face and expression must remain clear when cropped to a landscape card. A genuinely bright, happy post-study smile with smiling eyes. Natural anatomy and relaxed hands. Fully covered torso with a properly worn white collared shirt and dark tie; no revealing clothing or exaggerated body proportions. No other people, no text, name tag lettering, speech bubbles, title, logos, watermark, UI or graphic badges. The output is a finished opaque illustration with its own atmospheric background.\nSubject: Chaerin, the reference's long pale-blonde-haired friend with gray eyes. Preserve her white long-sleeved shirt, dark tie and glossy blonde hair; do not add a sweater. Her reserved personality softens into a radiant, slightly bashful smile showing a little teeth, cheeks lightly warm. She holds a closed notebook naturally against her torso with one arm and gives a small friendly wave with the other. Mood: a private, warm 'we did well today' moment. Background: the familiar classroom bathed in honey-gold sunset, soft peach sky through windows, gentle luminous dust in the light. Warm amber and blush palette, polished softly painted anime art. Keep the smile and affectionate eye contact the focus.",
+      "generatedSource": "/Users/jeongin/.codex/generated_images/01a17d9b-a9c0-7200-94c3-59f7be7b41c8/exec-039d4162-8fd8-4071-9336-0ad06651d4d1.png",
+      "master": "chaerin-completion-v1.png",
+      "web": "chaerin-completion-v1.webp"
+    },
+    {
+      "id": "sua",
+      "reference": "../../characters/han-study.webp",
+      "prompt": "Use case: illustration-story. Asset type: dedicated celebratory portrait for a study-completion report and a shareable study capsule card. Generate a NEW single-character illustration using input image 1 ONLY as an identity, outfit, and rendering-style reference, not as a composition to copy. Match the same recognizable face, hair, detailed soft anime rendering and school outfit. Eye-level, modest waist-up framing, complete head and hair inside the frame. Portrait 1024x1536. The person is slightly right of center, with the smiling face around x=65%, y=40%; keep some quiet softly lit background in the upper-left for a separately overlaid title asset. Face and expression must remain clear when cropped to a landscape card. A genuinely bright, happy post-study smile with smiling eyes. Natural anatomy and relaxed hands. Fully covered torso with a properly worn white collared shirt and dark tie; no revealing clothing or exaggerated body proportions. No other people, no text, name tag lettering, speech bubbles, title, logos, watermark, UI or graphic badges. The output is a finished opaque illustration with its own atmospheric background.\nSubject: Sua, the reference's short dark-brown/black bob-haired friend with brown eyes. Preserve her straight bob and bangs, white shirt, charcoal gray plaid V-neck sweater vest and dark tie. A bright, reassuring smile with warmly curved eyes and a small open-mouth laugh; calm and thoughtful rather than showy. She gently holds a closed study book with both hands at waist level. Mood: quiet pride and encouragement after finishing a study goal. Background: an airy classroom reading corner by a window, spring foliage and pale sky softly blurred, clear fresh daylight and subtle cool blue-green accents. Soft ivory, sky blue and sage palette, same detailed anime rendering as the reference. No readable book labels.",
+      "generatedSource": "/Users/jeongin/.codex/generated_images/01a17d9b-a9c0-7200-94c3-59f7be7b41c8/exec-d216f102-ffd3-4355-aaef-00f7aeedf889.png",
+      "master": "sua-completion-v1.png",
+      "web": "sua-completion-v1.webp"
+    },
+    {
+      "id": "dahee",
+      "reference": "../../characters/ryu-study.webp",
+      "prompt": "Use case: illustration-story. Asset type: dedicated celebratory portrait for a study-completion report and a shareable study capsule card. Generate a NEW single-character illustration using input image 1 ONLY as an identity, outfit, and rendering-style reference, not as a composition to copy. Match the same recognizable face, hair, detailed soft anime rendering and school outfit. Eye-level, modest waist-up framing, complete head and hair inside the frame. Portrait 1024x1536. The person is slightly right of center, with the smiling face around x=65%, y=40%; keep some quiet softly lit background in the upper-left for a separately overlaid title asset. Face and expression must remain clear when cropped to a landscape card. A genuinely bright, happy post-study smile with smiling eyes. Natural anatomy and relaxed hands. Fully covered torso with a properly worn white collared shirt and dark tie; no revealing clothing or exaggerated body proportions. No other people, no text, name tag lettering, speech bubbles, title, logos, watermark, UI or graphic badges. The output is a finished opaque illustration with its own atmospheric background.\nSubject: Dahee, the reference's long light-brown high-ponytail-haired friend with soft brown eyes. Preserve the high ponytail, flyaway strands, white collared top with the distinctive black athletic stripes on the shoulders/sleeves, and dark tie. She beams with an exuberant sunny toothy smile, eyes joyfully curved, giving a relaxed friendly thumbs-up near her shoulder; the other hand holds a slim closed notebook. Mood: cheerful 'we did it!' energy that feels natural and playful. Background: the classroom window beside a sunny green sports field, vivid fresh blue sky and a few soft clouds, playful late-afternoon backlight making the ponytail glow. Fresh mint-green and sky-blue with warm golden highlights, polished anime art consistent with the reference. Keep her gesture away from the face.",
+      "generatedSource": "/Users/jeongin/.codex/generated_images/01a17d9b-a9c0-7200-94c3-59f7be7b41c8/exec-940a366d-77c6-4403-a3b9-5e32e8e70a12.png",
+      "master": "dahee-completion-v1.png",
+      "web": "dahee-completion-v1.webp"
+    }
+  ]
+}

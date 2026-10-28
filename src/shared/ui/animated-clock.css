@@ -1,0 +1,7 @@
+@layer components {
+  .animated-clock, .animated-clock > span { display: inline-flex; vertical-align: bottom; }
+  .clock-digit { position: relative; display: inline-block; width: 1ch; height: 1.35em; overflow: hidden; line-height: 1.35; }
+  .clock-digit > span { display: block; }
+  .clock-digit-outgoing { position: absolute; inset: 0; pointer-events: none; }
+  .clock-separator { line-height: 1.35; }
+}
