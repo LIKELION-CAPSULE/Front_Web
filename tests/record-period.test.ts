@@ -54,7 +54,7 @@ test('week navigation shifts full Seoul weeks and keeps the real today', () => {
   assert.equal(previous.startDay, '2025-12-22')
   assert.equal(previous.endDay, '2025-12-28')
   assert.equal(previous.today, '2026-01-01')
-  assert.equal(previous.label, '지난 주')
+  assert.equal(previous.label, '지난주')
   const next = getRecordRange('week', now, 1)
   assert.equal(next.startDay, '2026-01-05')
   assert.equal(next.endDay, '2026-01-11')

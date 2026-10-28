@@ -14,6 +14,7 @@ import { cn } from '@/shared/lib/cn'
 import NotFoundPage from './NotFoundPage'
 import { Icon } from '@/shared/ui/Icon'
 import { CharacterArtwork } from '@/features/characters/components/CharacterArtwork'
+import { withParticle } from '@/shared/lib/korean'
 
 export default function GiftShopPage() {
   const { characterId } = useParams()
@@ -46,7 +47,7 @@ export default function GiftShopPage() {
         ← {character.name}
       </Link>
       <PageHeading title={`${character.name}에게 선물 · 보이스`}>
-        크레딧으로 보내요 · 선물로 호감도는 오르지 않아요. 호감도는 공부 시간으로만 쌓여요.
+        선물은 크레딧으로 보내요. 호감도는 함께 공부한 시간으로만 올라요.
       </PageHeading>
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,784fr)_minmax(300px,400fr)]">
         <div>
@@ -88,7 +89,7 @@ export default function GiftShopPage() {
                   </div>
                   <p className="pointer-events-none mt-3 min-h-8 text-xs leading-5 text-muted">
                     {product.id === 'name'
-                      ? `“${state.profile.name}야, 같이 하자.”`
+                      ? `“${withParticle(state.profile.name, '아', '야')}, 같이 하자.”`
                       : product.description}
                   </p>
                   <div className="mt-3 flex items-center justify-between gap-2">
@@ -169,7 +170,7 @@ export default function GiftShopPage() {
       <Dialog open={!!preview} onClose={() => setPreview('')} title="보이스 · 답장 미리보기">
         <p className="rounded-[16px] bg-surface p-5 text-lg leading-8">“{preview}”</p>
         <p className="mt-4 text-xs leading-5 text-subtle">
-          데모에서는 대사를 텍스트로 미리 보여 드려요. 실제 보이스와 모션은 추후 연결돼요.
+          지금은 보이스와 답장을 글로 미리 볼 수 있어요.
         </p>
       </Dialog>
     </>

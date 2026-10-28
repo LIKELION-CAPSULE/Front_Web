@@ -53,7 +53,7 @@ export function MemoryEditor({
           open={openField === 'kind'}
           onOpenChange={(open) => setOpenField(open ? 'kind' : null)}
         />
-        <FormField label="이름">
+        <FormField label="일정 이름">
           <input
             required
             maxLength={60}

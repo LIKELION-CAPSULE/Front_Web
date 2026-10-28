@@ -56,7 +56,7 @@ export default function RecordsPage() {
   )
   return (
     <>
-      <PageHeading title="조금씩 쌓인, 나의 집중" eyebrow={null} />
+      <PageHeading title="함께 쌓은 공부 기록" eyebrow={null} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs
           label="기록 보기"

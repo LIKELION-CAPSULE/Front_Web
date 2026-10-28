@@ -75,7 +75,7 @@ export default function LoginPage() {
                 <br />
                 기다리고 있어요
               </h1>
-              <p className="mt-4 text-subtle">3초 만에 시작하기</p>
+              <p className="mt-4 text-subtle">친구와 함께 공부를 시작해요.</p>
               <Button onClick={() => login()} className="kakao-button mt-7 w-full text-[#241f14]">
                 <Icon name="chat" size={18} fill="currentColor" /> 카카오로 계속하기
               </Button>
@@ -84,7 +84,7 @@ export default function LoginPage() {
                 type="button"
                 className="button-subtle mt-4 w-full rounded-control border border-transparent px-4 py-3 text-sm text-muted"
               >
-                더미 계정으로 바로 둘러보기
+                가입 없이 둘러보기
               </button>
               <div className="mt-9 flex items-center gap-3 text-xs text-subtle">
                 <span className="h-px flex-1 bg-line" />

@@ -48,10 +48,10 @@ export default function CreditsPage() {
           )}
         </Panel>
         <Panel bordered={false} className="bg-surface">
-          <p className="text-sm text-muted">누적 쓴 크레딧</p>
+          <p className="text-sm text-muted">사용한 크레딧</p>
           <p className="mt-2 font-mono text-[30px] font-bold">{number(used)}</p>
           <p className="mt-2 text-xs text-muted">
-            공부 옵션 · 보이스 · 선물 {state.ledger.filter((entry) => entry.kind === 'use').length}
+            대화 옵션 · 보이스 · 선물 {state.ledger.filter((entry) => entry.kind === 'use').length}
             회
           </p>
         </Panel>
@@ -112,21 +112,21 @@ export default function CreditsPage() {
             {!rows.length && (
               <tr>
                 <td colSpan={5} className="p-8 text-center text-sm text-muted">
-                  아직 해당 내역이 없어요.
+                  선택한 항목의 내역이 없어요.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-      <Dialog open={!!receipt} onClose={() => setReceipt(null)} title="결제 내역 · 데모">
+      <Dialog open={!!receipt} onClose={() => setReceipt(null)} title="결제 내역">
         {receipt && (
           <div className="space-y-3 text-sm">
             <p>{receipt.description}</p>
             <p className="text-muted">결제 시각 {dateLabel(receipt.at, true)}</p>
             <p className="font-bold">{number(receipt.amount ?? 0)}원</p>
             <p className="rounded-control bg-surface p-3 leading-6 text-muted">
-              샘플 결제 내역이에요. 실제 결제 승인번호나 영수증은 발행되지 않아요.
+              체험용 결제 내역이에요. 실제 결제 영수증은 발급되지 않아요.
             </p>
           </div>
         )}

@@ -5,6 +5,7 @@ import { migrateDemoProfile } from './profile.ts'
 import { migrateSampleRecords } from './sample-records.ts'
 import { migrateSharedSchedule } from '../schedule/migrate-schedule.ts'
 import { migrateScheduleSamples } from './sample-schedule.ts'
+import { migrateDemoCopy } from './copy.ts'
 
 export const DEMO_STORAGE_KEY = 'capsule-wireframe-demo:v1'
 
@@ -131,7 +132,7 @@ export function loadDemoState(): DemoState {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) ?? 'null')
     return validState(saved)
-      ? migrateScheduleSamples(migrateSharedSchedule(migrateSampleRecords(migrateDemoProfile(saved))))
+      ? migrateDemoCopy(migrateScheduleSamples(migrateSharedSchedule(migrateSampleRecords(migrateDemoProfile(saved)))))
       : createDemoState()
   } catch {
     return createDemoState()

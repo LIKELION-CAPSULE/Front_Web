@@ -86,10 +86,10 @@ export default function PreparePage() {
             <div>
               <p className="flex items-center gap-2 text-[17px] font-bold">
                 <Icon name="check" className="text-emerald-300" />
-                얼굴이 잘 보여요 · 샘플
+                카메라 미리보기
               </p>
               <p className="mt-3 text-[15px] leading-6 text-muted">
-                카메라 영상은 저장하지 않아요. 내 캠은 화면 속 내 칸에만 보여요.
+                영상은 저장하지 않으며, 내 자리에만 보여요.
               </p>
             </div>
           </div>
@@ -109,14 +109,14 @@ export default function PreparePage() {
               onClick={() => setParams({ goal: String(goalMinutes), tier })}
               className="text-sm text-brand-strong underline"
             >
-              다시 점검
+              다시 확인
             </button>
           </div>
           {hasExamPrompt && (
             <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[14px] border border-transparent px-4 py-2">
               <strong className="text-[15px]">시험이 있나요?</strong>
               <span className="flex-1 text-xs text-muted">
-                모든 캐릭터가 함께 기억하고 응원해 줘요
+                모든 친구가 함께 기억하고 응원해 줘요
               </span>
               <Link
                 to={`/mypage?add=1&fromRoom=${room.id}&next=${encodeURIComponent(returnTo)}#schedule`}
@@ -135,7 +135,7 @@ export default function PreparePage() {
           <StudyGoalPicker value={goalMinutes} onChange={setGoalMinutes} />
           <div className="mt-5 mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-              <h2 className="text-[15px] leading-6 font-bold">함께할 대화 옵션</h2>
+              <h2 className="text-[15px] leading-6 font-bold">대화 옵션</h2>
               {state.pass && (
                 <span className="text-xs leading-6 text-brand-strong">
                   {state.pass.name} 이용 중
@@ -177,7 +177,7 @@ export default function PreparePage() {
               to={`/credits/charge?returnTo=${encodeURIComponent(returnTo)}`}
               className="text-xs text-brand-strong underline"
             >
-              충전 · 패스 보기 →
+              크레딧 · 패스 보기
             </Link>
           </div>
         </>

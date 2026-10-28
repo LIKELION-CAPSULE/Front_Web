@@ -53,7 +53,7 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
                 </ButtonLink>
               ) : (
                 <Button onClick={onExplore}>
-                  룸 둘러보기 <Icon name="arrow" size={18} className="rotate-90" />
+                  스터디룸 둘러보기 <Icon name="arrow" size={18} className="rotate-90" />
                 </Button>
               )}
             </div>

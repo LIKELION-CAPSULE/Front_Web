@@ -30,20 +30,20 @@ export function CharacterTile({
 }) {
   return (
     <article
-      aria-label={`${character.name}의 칸`}
+      aria-label={`${character.name}의 자리`}
       className={cn('character-tile', active && 'is-reacting', focus && 'focus-tile')}
     >
       <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
         <span className="tile-label">
           {character.name} · {status}
         </span>
-        {focus && <span className="text-xs font-bold text-brand">포커스</span>}
+        {focus && <span className="text-xs font-bold text-brand">확대</span>}
       </div>
       {onFocus && (
         <button
           type="button"
           onClick={onFocus}
-          aria-label={focus ? '그리드로 돌아가기' : `${character.name} 크게 보기`}
+          aria-label={focus ? '모든 자리 보기' : `${character.name} 크게 보기`}
           className="tile-focus"
         >
           <Icon name={focus ? 'shrink' : 'expand'} size={17} />
@@ -77,7 +77,7 @@ export function CharacterTile({
       )}
       {onReact && (
         <button type="button" onClick={onReact} className="tile-react-button">
-          말 걸기 · 반응 보기
+          말 걸기
         </button>
       )}
       {children}

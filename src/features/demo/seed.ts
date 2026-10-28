@@ -29,7 +29,7 @@ export function createDemoState(now = Date.now()): DemoState {
     {
       id: 'seed-study',
       at: today - 86400000 + 1000,
-      description: '공부 옵션 · 스탠다드 (새벽 도서관)',
+      description: '대화 옵션 · 스탠다드 (새벽 도서관)',
       kind: 'use',
       change: -200,
       balance: 0,
@@ -53,7 +53,7 @@ export function createDemoState(now = Date.now()): DemoState {
     {
       id: 'seed-upgrade',
       at: today - 86400000 + 4000,
-      description: '등급 올리기 · 스탠다드 → 프리미엄 (차액)',
+      description: '대화 옵션 변경 · 스탠다드 → 프리미엄 (차액)',
       kind: 'use',
       change: -300,
       balance: 0,

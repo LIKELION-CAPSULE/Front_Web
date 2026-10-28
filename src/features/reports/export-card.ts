@@ -2,6 +2,8 @@ import { getCharacterArtwork } from '@/features/characters/artwork'
 import { loadRoomLayers, drawRoomLayers } from '@/features/rooms/draw-artwork'
 import { dateLabel, duration } from '@/shared/lib/format'
 import type { StudyRecord } from '@/features/demo/types'
+import { withParticle } from '@/shared/lib/korean'
+import { capsuleCardCopy } from './card-copy'
 
 export async function exportCard(
   record: StudyRecord,
@@ -64,13 +66,13 @@ export async function exportCard(
   ctx.fillStyle = '#fff'
   ctx.font = '500 14px "Pretendard"'
   ctx.textAlign = 'center'
-  ctx.fillText('다음엔 더 오래 버텨 봐.', 180, 107)
+  ctx.fillText(capsuleCardCopy.quote, 180, 107)
   ctx.textAlign = 'left'
   ctx.fillStyle = foreground
   ctx.font = '500 15px "Pretendard"'
   let roomLine = ''
   let roomLineY = 366
-  for (const letter of `${room} · ${character}과`) {
+  for (const letter of `${room} · ${withParticle(character, '과', '와')} 함께`) {
     if (roomLine && ctx.measureText(roomLine + letter).width > 304) {
       ctx.fillText(roomLine, 28, roomLineY)
       roomLine = ''
@@ -83,10 +85,10 @@ export async function exportCard(
   ctx.fillText(duration(record.studySeconds), 28, 440, 304)
   ctx.font = '700 16px "Pretendard"'
   ctx.fillText(`집중 ${duration(record.focusSeconds)} · 복귀 ${record.returns}회`, 28, 482)
-  rect(28, 500, 92, 28, 14, '#17171c')
-  ctx.fillStyle = '#fff'
   ctx.font = '700 12px "Pretendard"'
-  ctx.fillText('연속 5일째', 40, 519)
+  rect(28, 500, ctx.measureText(capsuleCardCopy.badge).width + 24, 28, 14, '#17171c')
+  ctx.fillStyle = '#fff'
+  ctx.fillText(capsuleCardCopy.badge, 40, 519)
   ctx.fillStyle = foreground
   ctx.font = '400 12px "Pretendard"'
   ctx.fillText('캡슐에서 같이 공부해요 · CAPSULE', 28, 570)

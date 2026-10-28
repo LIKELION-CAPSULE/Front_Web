@@ -14,6 +14,7 @@ import { RelationshipProgress } from '@/features/characters/components/Relations
 import { PageHeading } from '@/shared/ui/PageHeading'
 import { characterTags } from '@/features/characters/character-tags'
 import { SearchField } from '@/shared/ui/SearchField'
+import { withParticle } from '@/shared/lib/korean'
 
 export default function CharactersPage() {
   const { characterId = 'chaerin' } = useParams()
@@ -38,14 +39,20 @@ export default function CharactersPage() {
   const hashtags = characterTags(`${room.name} · ${character.description}`)
   return (
     <div className="characters-page">
-      <PageHeading title="함께한 만큼, 가까이." eyebrow={null} />
-      <section className="character-browser" aria-label="캐릭터 찾기">
-        <div className="character-browser-header">
-          <h2 className="text-sm font-semibold">캐릭터</h2>
-          <SearchField label="캐릭터 이름 검색" placeholder="캐릭터 이름 검색" value={query} onChange={setQuery} clearLabel="캐릭터 검색어 지우기" />
+      <section className="character-browser" aria-label="친구 찾기">
+        <div className="character-browser-header [&_.page-heading]:mb-0">
+          <PageHeading title="공부로 가까워진 사이" eyebrow={null} />
+          <SearchField
+            label="친구 이름 검색"
+            placeholder="친구 이름 검색"
+            value={query}
+            onChange={setQuery}
+            clearLabel="친구 검색어 지우기"
+            className="[--search-width:100%] sm:[--search-width:280px]"
+          />
         </div>
         <div
-          aria-label="캐릭터 고르기"
+          aria-label="친구 고르기"
           className="character-picker flex flex-wrap gap-2"
         >
           {filteredCharacters.map((item) => (
@@ -66,8 +73,8 @@ export default function CharactersPage() {
         {search && (
           <p className="mt-3 text-xs text-subtle" role="status">
             {filteredCharacters.length
-              ? `${filteredCharacters.length}명의 캐릭터를 찾았어요.`
-              : '검색한 이름의 캐릭터가 없어요.'}
+              ? `${filteredCharacters.length}명의 친구를 찾았어요.`
+              : '검색 결과가 없어요. 이름을 다시 확인해 주세요.'}
           </p>
         )}
       </section>
@@ -85,7 +92,7 @@ export default function CharactersPage() {
               </time>
             </p>
           </div>
-          <ul aria-label="캐릭터 소개" className="character-profile-tags">
+          <ul aria-label="친구 소개" className="character-profile-tags">
             {hashtags.map((tag) => <li key={tag}>{tag}</li>)}
           </ul>
           <RelationshipProgress key={character.id} level={relation.level} next={relation.next} />
@@ -99,7 +106,9 @@ export default function CharactersPage() {
               }
               className="w-full border-0"
             >
-              {character.name}이랑 공부하기
+              {state.activeSession
+                ? '진행 중인 공부로 돌아가기'
+                : `${withParticle(character.name, '이랑', '랑')} 공부하기`}
             </ButtonLink>
             <Link
               to={`/characters/${character.id}/shop`}
@@ -110,7 +119,7 @@ export default function CharactersPage() {
           </div>
         </Panel>
         <div className="space-y-content">
-          <Panel title="관계가 바뀐 이유" bordered={false} className="character-reasons-panel">
+          <Panel title="함께한 공부" bordered={false} className="character-reasons-panel">
             {recent.map((record) => (
               <div
                 key={record.id}
@@ -118,7 +127,7 @@ export default function CharactersPage() {
               >
                 <span className="text-xs text-subtle">{dateLabel(record.endedAt)}</span>
                 <span className="flex-1">
-                  함께 공부 {Math.floor(record.studySeconds / 60 / record.characterIds.length)}분
+                  함께 {Math.floor(record.studySeconds / 60 / record.characterIds.length)}분 공부
                 </span>
                 <strong>
                   +{Math.floor(record.studySeconds / 60 / record.characterIds.length)}
@@ -128,7 +137,7 @@ export default function CharactersPage() {
           </Panel>
           <section className="character-unlocks">
             <h2 className="mb-4 text-card-title font-semibold">
-              해금 콘텐츠 <span className="font-normal text-subtle">2 / 6</span>
+              함께 여는 콘텐츠 <span className="font-normal text-subtle">2 / 6</span>
             </h2>
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               {[
@@ -151,17 +160,17 @@ export default function CharactersPage() {
                   description: '다음 관계 단계에서 열림',
                 },
                 {
-                  kind: '음성',
-                  name: '특별 응원 음성',
+                  kind: '보이스',
+                  name: '특별 응원 보이스',
                   unlocked: false,
                   description: 'Lv.4에서 열림',
                 },
                 { kind: '배경', name: '밤 교실', unlocked: false, description: '추후 공개' },
                 {
                   kind: '이벤트',
-                  name: '시험기간 응원',
+                  name: '시험 기간 응원',
                   unlocked: false,
-                  description: '이벤트 기간에만',
+                  description: '이벤트 기간에 열림',
                 },
               ].map((item) => (
                 <article
