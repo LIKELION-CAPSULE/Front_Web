@@ -23,12 +23,7 @@ export function UpgradePanel({ onClose, now }: { onClose: () => void; now: numbe
       label="대화 옵션 올리기"
       title={basic ? '대화 옵션을 올리고 계속 이야기할까요?' : '대화 옵션 올리기'}
       closeLabel="대화 옵션 선택 닫기"
-      presentation={basic ? 'sheet' : 'popover'}
-      className={basic ? 'upgrade-sheet' : 'upgrade-popover'}
     >
-      <p className="mb-3 text-[11px] leading-4 text-muted">
-        현재 {tierById(active.tier).name} · 이미 사용한 크레딧을 제외한 차액만 사용해요.
-      </p>
       <div className="space-y-2">
         {choices.map((tier) => (
           <RadioOption
@@ -55,7 +50,7 @@ export function UpgradePanel({ onClose, now }: { onClose: () => void; now: numbe
         <strong>{number(state.credits)}</strong>
       </p>
       {state.credits < cost ? (
-        <p role="alert" className="mt-3 text-xs text-brand-strong">
+        <p role="alert" className="mt-3 text-center text-xs text-brand-strong">
           크레딧이 부족해요. 충전 후 돌아와 주세요.
         </p>
       ) : null}
@@ -70,10 +65,7 @@ export function UpgradePanel({ onClose, now }: { onClose: () => void; now: numbe
       >
         차액 {number(cost)} 크레딧으로 올리기
       </Button>
-      <div className="mt-3 flex justify-between gap-3 text-xs">
-        <button onClick={onClose} className="text-muted underline">
-          닫고 쉬기
-        </button>
+      <div className="mt-3 flex justify-center text-xs">
         <Link
           to={`/credits/charge?returnTo=${encodeURIComponent(`/study/${active.id}`)}`}
           className="text-brand-strong underline"

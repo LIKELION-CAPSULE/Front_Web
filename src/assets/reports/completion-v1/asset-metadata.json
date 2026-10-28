@@ -1,0 +1,38 @@
+[
+  {
+    "id": "chaerin",
+    "master": "chaerin-completion-v1.png",
+    "web": "chaerin-completion-v1.webp",
+    "size": [
+      1024,
+      1536
+    ],
+    "webBytes": 226672,
+    "masterSha256": "027f7d56fb709077f851319a6fa35e15c98cf11032bbe00640172b6aae8dce01",
+    "webSha256": "f3bb3a0f828610380c2a5f8eb38262a823bfbd882160f967ce792e8fb69d8af1"
+  },
+  {
+    "id": "sua",
+    "master": "sua-completion-v1.png",
+    "web": "sua-completion-v1.webp",
+    "size": [
+      1024,
+      1536
+    ],
+    "webBytes": 193870,
+    "masterSha256": "8a65bffbc025a7358f5958326dcf064d78b3bb988511a4ca405af4e9e302b87d",
+    "webSha256": "a94391ae522e66d15230316712b0cb40c3b3340ab4ac1cc448442d13ce52ee1c"
+  },
+  {
+    "id": "dahee",
+    "master": "dahee-completion-v1.png",
+    "web": "dahee-completion-v1.webp",
+    "size": [
+      1024,
+      1536
+    ],
+    "webBytes": 252068,
+    "masterSha256": "1be6220cb20fcebd212e80d62bf79b0d449b627aea45243da77f91351817b53b",
+    "webSha256": "c4b79ace58fece68b9b4cacda2cb479d9e537b8a5c3673090e4d6159045e4ede"
+  }
+]
