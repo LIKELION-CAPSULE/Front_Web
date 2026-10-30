@@ -8,6 +8,7 @@ import { number } from '@/shared/lib/format'
 import { withParticle } from '@/shared/lib/korean'
 import { Icon } from '@/shared/ui/Icon'
 import { Tabs } from '@/shared/ui/Tabs'
+import type { ChatReplyMode } from '../llm-chat'
 import { ChatComposer } from './ChatComposer'
 import { UpgradePanel } from './UpgradePanel'
 import { TypingMessage } from './TypingMessage'
@@ -21,13 +22,17 @@ const subscribe = (notify: () => void) => {
 }
 const messageTime = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false })
 
-export function SessionChatPanel({ open, onClose, characters, selected, onSelect, onSend, used, now }: {
+export function SessionChatPanel({ open, onClose, characters, selected, onSelect, onSend, replyMode, onReplyModeChange, replyPending, replyError, used, now }: {
   open: boolean
   onClose: () => void
   characters: readonly Character[]
   selected: Character
   onSelect: (id: string) => void
   onSend: (text: string, voice?: boolean) => void
+  replyMode: ChatReplyMode
+  onReplyModeChange: (mode: ChatReplyMode) => void
+  replyPending: boolean
+  replyError?: string
   used: number
   now: number
 }) {
@@ -65,7 +70,7 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
     wasOpen.current = open
   }, [open, mobile])
   useLayoutEffect(() => { follow.current = true; scrollLatest() }, [selected.id, open, scrollLatest])
-  useLayoutEffect(scrollLatest, [messages.length, scrollLatest])
+  useLayoutEffect(scrollLatest, [messages.length, replyPending, replyError, scrollLatest])
   function dismiss() { setUpgradeOpen(false); onClose() }
   function isBackdrop(event: { target: EventTarget | null; currentTarget: HTMLDialogElement; clientX: number; clientY: number }) {
     if (event.target !== event.currentTarget || !mobile) return false
@@ -92,7 +97,17 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
       >
         {open && <>
           <header className="session-chat-header">
-            <div><h2 id={titleId}>친구와 대화</h2><Link to="/credits" className="session-chat-balance">{number(state.credits)} 크레딧</Link></div>
+            <div>
+              <div className="session-chat-title">
+                <h2 id={titleId}>친구와 대화</h2>
+                {/* Test-only: remove with the scripted replies. */}
+                <div className="session-chat-reply-mode" role="group" aria-label="답장 방식">
+                  {([['scripted', '하드코딩'], ['llm', 'llm']] as const).map(([mode, label]) => (
+                    <button key={mode} type="button" aria-pressed={replyMode === mode} onClick={() => onReplyModeChange(mode)}>{label}</button>
+                  ))}
+                </div>
+              </div>
+              <Link to="/credits" className="session-chat-balance">{number(state.credits)} 크레딧</Link></div>
             <button ref={closeButton} type="button" onClick={dismiss} aria-label="대화창 닫기"><Icon name="close" size={19} /></button>
           </header>
           <div className="session-chat-friends">
@@ -127,6 +142,13 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
                 {message.sender === 'user' && <div className="chat-message-delivery"><Icon name="check" size={12} />보냄{message.createdAt && <time dateTime={new Date(message.createdAt).toISOString()}>{messageTime.format(message.createdAt)}</time>}</div>}
               </article>
             ))}
+            {replyPending && (
+              <article className="chat-message" data-sender="character">
+                <div className="chat-message-meta"><img src={getCharacterArtwork(selected.id).affection} alt="" /><span>{selected.name}</span></div>
+                <p className="chat-message-bubble chat-message-pending">입력 중…</p>
+              </article>
+            )}
+            {replyError && <p role="alert" className="session-chat-error">llm 답장 실패: {replyError}</p>}
           </div>
           <footer className="session-chat-footer">
             {exhausted ? <button type="button" className="session-chat-limit" onPointerDown={event => event.preventDefault()} onClick={() => setUpgradeOpen(true)}>무료 대화를 모두 사용했어요 · 옵션 올리기</button> : <div className="session-chat-suggestions" aria-label="빠른 메시지">{['파이팅', '졸려', '이거 어려워'].map(text => <button key={text} type="button" onPointerDown={event => event.preventDefault()} onClick={() => send(text)}>{text}</button>)}</div>}

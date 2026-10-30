@@ -1,9 +1,13 @@
 {
   "name": "capsule-front-web",
   "compatibility_date": "2026-10-23",
+  // /api/chat calls OpenAI here; set the key with `npx wrangler secret put OPENAI_API_KEY`.
+  "main": "./server/worker.ts",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
   },
   "observability": {
     "logs": {
