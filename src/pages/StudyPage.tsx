@@ -105,6 +105,12 @@ export default function StudyPage() {
     (message) => message.sessionId === active.id && message.characterId === selected.id,
   )
   const lastReply = messages.filter((message) => message.sender === 'character').at(-1)
+  function resumeStudy() {
+    const next = new URLSearchParams(params)
+    next.delete('resume')
+    setParams(next, { replace: true })
+    if (active!.runningSince === null && remaining > 0) dispatch({ type: 'PAUSE', now: Date.now() })
+  }
   function closeChat() {
     const next = new URLSearchParams(params)
     next.set('chat', '0')
@@ -393,6 +399,20 @@ export default function StudyPage() {
             now={now}
           />
       </div>
+      <Dialog
+        open={params.get('resume') === '1'}
+        onClose={() => navigate('/')}
+        closeLabel="홈으로 돌아가기"
+        title="다시 공부를 시작할까요?"
+      >
+        <p className="mb-5 text-sm leading-6 text-muted">
+          {room.name}에서 {active.phase === 'study' ? '하던 공부를' : '쉬는 시간을'} 이어서 진행해요.
+          준비되면 시작해 주세요.
+        </p>
+        <Button className="w-full" onClick={resumeStudy}>
+          <Icon name="play" size={17} /> 이어서 시작할게
+        </Button>
+      </Dialog>
       <Dialog open={leaveOpen} onClose={() => setLeaveOpen(false)} title="공부를 마치시겠습니까?">
         <p className="mb-5 text-sm leading-6 text-muted">
           지금까지 공부한 기록을 저장하고 리포트로 이동해요.

@@ -8,7 +8,7 @@ import { welcomeBanners } from '../welcome-banners'
 import { welcomeCopy } from '../welcome-copy'
 
 export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
-  const { state } = useDemo()
+  const { state, dispatch } = useDemo()
   const latest = state.records[0]
   const room = getStudyRoom(state.activeSession?.roomId ?? latest?.roomId ?? 'dawn-library')!
   const active = state.activeSession
@@ -49,9 +49,13 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
                 <ButtonLink
                   to={
                     active
-                      ? `/study/${active.id}`
+                      ? `/study/${active.id}?resume=1`
                       : preparationPath
                   }
+                  onClick={() => {
+                    // The study room waits for an explicit restart, so the timer holds until then.
+                    if (active && active.runningSince !== null) dispatch({ type: 'PAUSE', now: Date.now() })
+                  }}
                 >
                   <Icon name="play" size={17} motion="pulse" /> 이어서 공부하기
                 </ButtonLink>
