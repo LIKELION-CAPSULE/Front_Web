@@ -41,8 +41,11 @@ export type DemoAction =
       name: string
       text: string
       voice?: boolean
+      /** 'llm' records only the user's message; the reply arrives later as CHARACTER_REPLY. */
+      reply?: 'scripted' | 'llm'
       now: number
     }
+  | { type: 'CHARACTER_REPLY'; sessionId: string; characterId: string; text: string; now: number }
   | { type: 'PURCHASE'; productId: string; method: string; now: number }
   | { type: 'GIFT'; characterId: string; characterName: string; productId: string; now: number }
   | { type: 'MEMORY'; memory: Memory }
@@ -304,16 +307,35 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
             text: action.text.trim().slice(0, 500),
             voice: !!action.voice,
           },
+          ...(action.reply === 'llm'
+            ? []
+            : [{
+                ...common,
+                id: `reply-${action.now}-${state.messages.length}`,
+                sender: 'character' as const,
+                text: reply,
+                voice: false,
+              }]),
+        ],
+      }
+    }
+    case 'CHARACTER_REPLY':
+      if (!action.text.trim()) return state
+      return {
+        ...state,
+        messages: [
+          ...state.messages,
           {
-            ...common,
             id: `reply-${action.now}-${state.messages.length}`,
+            createdAt: action.now,
+            sessionId: action.sessionId,
+            characterId: action.characterId,
             sender: 'character',
-            text: reply,
+            text: action.text.trim().slice(0, 500),
             voice: false,
           },
         ],
       }
-    }
     case 'PURCHASE': {
       const product = chargeProducts.find((p) => p.id === action.productId)
       if (!product) return state

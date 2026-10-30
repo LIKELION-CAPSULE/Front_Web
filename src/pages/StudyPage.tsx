@@ -9,6 +9,7 @@ import { studyGoalSeconds } from '@/features/session/study-goal'
 import { activateStudyFriend, type StudyInteractionMode } from '@/features/session/study-interaction'
 import { focusPercent, normalizeFocusTotals } from '@/features/session/focus'
 import { useNow } from '@/features/session/use-now'
+import { requestCharacterReply, type ChatReplyMode } from '@/features/session/llm-chat'
 import { CharacterTile } from '@/features/session/components/CharacterTile'
 import { StudyDock } from '@/features/session/components/StudyDock'
 import { StudySelfView } from '@/features/session/components/StudySelfView'
@@ -39,6 +40,9 @@ export default function StudyPage() {
   const [quietMode, setQuietMode] = useState(false)
   const [showCamera, setShowCamera] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
+  const [replyMode, setReplyMode] = useState<ChatReplyMode>('scripted')
+  const [pendingReplies, setPendingReplies] = useState<Record<string, boolean>>({})
+  const [replyErrors, setReplyErrors] = useState<Record<string, string>>({})
   const [interactionMode, setInteractionMode] = useState<StudyInteractionMode>(() => params.get('chat') === '1' ? 'talk' : 'focus')
   const { devices, controller, flushFocus } = useMedia()
   const now = useNow()
@@ -139,8 +143,35 @@ export default function StudyPage() {
     if (active!.tier === 'basic' && used >= 3) {
       return
     }
-    dispatch({ type: 'MESSAGE', characterId: selected.id, name: selected.name, text, voice, now })
+    if (replyMode === 'llm' && pendingReplies[selected.id]) return
+    dispatch({ type: 'MESSAGE', characterId: selected.id, name: selected.name, text, voice, now, reply: replyMode })
     setCustomSpeech('')
+    if (replyMode === 'llm') void askCharacter(selected, text)
+  }
+  async function askCharacter(character: (typeof characters)[number], text: string) {
+    const { id: sessionId, phase } = active!
+    const history = state.messages
+      .filter((message) => message.sessionId === sessionId && message.characterId === character.id)
+      .map(({ sender, text }) => ({ sender, text }))
+    setPendingReplies((previous) => ({ ...previous, [character.id]: true }))
+    setReplyErrors((previous) => ({ ...previous, [character.id]: '' }))
+    try {
+      const reply = await requestCharacterReply({
+        userName: state.profile.name,
+        room: { name: room!.name, description: room!.description },
+        character: { name: character.name, description: character.description },
+        phase,
+        elapsedMinutes: (phase === 'study' ? elapsed : goal) / 60,
+        goalMinutes: goal / 60,
+        history,
+        text,
+      })
+      dispatch({ type: 'CHARACTER_REPLY', sessionId, characterId: character.id, text: reply, now: Date.now() })
+    } catch (error) {
+      setReplyErrors((previous) => ({ ...previous, [character.id]: error instanceof Error ? error.message : String(error) }))
+    } finally {
+      setPendingReplies((previous) => ({ ...previous, [character.id]: false }))
+    }
   }
   function finish(another = false) {
     flushFocus()
@@ -395,6 +426,10 @@ export default function StudyPage() {
             selected={selected}
             onSelect={selectFriend}
             onSend={send}
+            replyMode={replyMode}
+            onReplyModeChange={setReplyMode}
+            replyPending={!!pendingReplies[selected.id]}
+            replyError={replyErrors[selected.id]}
             used={used}
             now={now}
           />

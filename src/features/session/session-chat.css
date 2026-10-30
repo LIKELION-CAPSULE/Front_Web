@@ -7,6 +7,13 @@
   .session-chat-panel::backdrop { background: #05070d99; backdrop-filter: blur(3px); }
   .session-chat-header { display: flex; flex: none; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 22px 20px 16px; }
   .session-chat-header h2 { font-size: 17px; font-weight: 700; }
+  .session-chat-title { display: flex; align-items: center; gap: 8px; }
+  .session-chat-reply-mode { display: flex; gap: 2px; border-radius: 999px; background: #202633; padding: 2px; }
+  .session-chat-reply-mode > button { border: 0; border-radius: 999px; background: transparent; padding: 3px 8px; color: var(--color-muted); font-size: 10px; font-weight: 600; }
+  .session-chat-reply-mode > button:hover { color: var(--color-ink); }
+  .session-chat-reply-mode > button[aria-pressed='true'] { background: var(--color-brand-soft); color: var(--color-brand-strong); }
+  .chat-message-pending { color: var(--color-muted); }
+  .session-chat-error { margin-top: 12px; color: #ff8a8a; font-size: 11px; line-height: 1.5; }
   .session-chat-balance { display: inline-block; margin-top: 5px; color: var(--color-muted); font-size: 11px; }
   .session-chat-balance:hover { color: var(--color-brand-strong); }
   .session-chat-header > button { display: grid; width: 30px; height: 30px; flex: none; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--color-muted); }
