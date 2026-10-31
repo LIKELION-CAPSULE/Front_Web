@@ -1,13 +1,17 @@
 import { useState } from 'react'
 import { useMedia } from '../media-context'
 import { CameraPreview } from './CameraPreview'
+import { CameraBackgroundPicker } from './CameraBackgroundPicker'
 import { MicrophoneMeter } from './MicrophoneMeter'
 import { DeviceCheckItem } from './DeviceCheckItem'
 import type { DeviceCheckState } from './DeviceCheckStatus'
 import { Button } from '@/shared/ui/Button'
+import { useDemo } from '@/features/demo/demo-context'
+import { normalizeCameraBackground } from '../camera-backgrounds'
 
 export function DeviceCheck() {
   const { devices, controller, vision, observation, retryVision } = useMedia()
+  const { state, dispatch } = useDemo()
   const [hasRequestedDevices, setHasRequestedDevices] = useState(false)
   const requesting = Object.values(devices).some((device) => device.status === 'requesting')
   const showControls = hasRequestedDevices ||
@@ -80,6 +84,14 @@ export function DeviceCheck() {
               </Button>
             )}
           />
+          {devices.camera.stream && (
+            <div className="device-check-item device-check-background">
+              <CameraBackgroundPicker
+                value={normalizeCameraBackground(state.cameraBackground)}
+                onChange={(background) => dispatch({ type: 'CAMERA_BACKGROUND', background })}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

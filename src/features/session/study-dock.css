@@ -81,6 +81,21 @@
   .study-dock-item:first-child .study-dock-tooltip { left: 0; translate: 0 0; }
   .study-dock-item:last-child .study-dock-tooltip { right: 0; left: auto; translate: 0 0; }
   .study-dock[data-tooltip-dismissed='true'] .study-dock-item .study-dock-tooltip { visibility: hidden; opacity: 0; }
+  .study-dock-item:has(.study-dock-popover) .study-dock-tooltip { visibility: hidden; opacity: 0; }
+  .study-dock-popover {
+    position: absolute;
+    z-index: 2;
+    bottom: calc(100% + 18px);
+    left: 50%;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+    translate: -50% 0;
+    padding: 14px 16px 12px;
+    border-radius: 16px;
+    background: #272636f5;
+    color: #f7f3ff;
+    box-shadow: 0 8px 30px #0005;
+  }
   @media (max-width: 1023px) {
     .study-stage > .study-dock { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
   }

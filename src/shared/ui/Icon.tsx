@@ -37,6 +37,9 @@ const paths = {
   moon: 'M21 13a9 9 0 0 1-10-10 9 9 0 1 0 10 10Z',
   lock: 'M6 10h12v11H6Zm2 0V6a4 4 0 0 1 8 0v4',
   close: 'm6 6 12 12M6 18 18 6',
+  ban: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0ZM4.9 4.9l14.2 14.2',
+  droplet: 'M12 2.7 6.3 8.4a8 8 0 1 0 11.4 0Z',
+  image: 'M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm-2 12 5-5 4 4 3-3 6 6M17 9.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z',
 } as const
 
 export type IconName = keyof typeof paths

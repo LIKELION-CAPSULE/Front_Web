@@ -7,6 +7,7 @@ import {
   studyGoalSeconds,
 } from '../session/study-goal.ts'
 import { businessDay } from '../../shared/lib/format.ts'
+import { normalizeCameraBackground, type CameraBackgroundId } from '../media/camera-backgrounds.ts'
 import type { AvatarSettings, DemoState, FocusTotals, LedgerEntry, Memory, TierId } from './types.ts'
 
 export const BREAK_SECONDS = 10 * 60
@@ -18,6 +19,7 @@ export type DemoAction =
   | { type: 'RESET'; now: number }
   | { type: 'FIRST_VISIT'; value: boolean }
   | { type: 'CAMERA'; enabled: boolean }
+  | { type: 'CAMERA_BACKGROUND'; background: CameraBackgroundId }
   | { type: 'FACE_FOCUS'; sessionId: string; totals: FocusTotals; now: number }
   | { type: 'EXAM_PROMPTED'; roomId: string }
   | { type: 'SAVE_ROOM'; roomId: string }
@@ -103,6 +105,8 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       return createDemoState(action.now)
     case 'FIRST_VISIT':
       return { ...state, firstVisit: action.value }
+    case 'CAMERA_BACKGROUND':
+      return { ...state, cameraBackground: normalizeCameraBackground(action.background) }
     case 'CAMERA':
       return {
         ...state,

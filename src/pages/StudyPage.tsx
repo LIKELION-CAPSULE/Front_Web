@@ -19,6 +19,7 @@ import { SessionFocus } from '@/features/session/components/SessionFocus'
 import { getCharacterArtwork } from '@/features/characters/artwork'
 import { DetectionStatus } from '@/features/media/components/DetectionStatus'
 import { useMedia } from '@/features/media/media-context'
+import { normalizeCameraBackground } from '@/features/media/camera-backgrounds'
 import { Brand } from '@/shared/ui/Brand'
 import { Button } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
@@ -217,6 +218,8 @@ export default function StudyPage() {
         onCamera={() => { void toggleCamera() }}
         onMicrophone={() => devices.microphone.stream ? controller.stop('microphone') : void controller.request('microphone')}
         onViewChange={() => { void toggleSelfView() }}
+        background={normalizeCameraBackground(state.cameraBackground)}
+        onBackgroundChange={(background) => dispatch({ type: 'CAMERA_BACKGROUND', background })}
         resting={resting}
         restFinished={resting && remaining === 0}
       />

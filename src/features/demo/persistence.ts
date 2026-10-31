@@ -6,6 +6,7 @@ import { migrateSampleRecords } from './sample-records.ts'
 import { migrateSharedSchedule } from '../schedule/migrate-schedule.ts'
 import { migrateScheduleSamples } from './sample-schedule.ts'
 import { migrateDemoCopy } from './copy.ts'
+import { normalizeCameraBackground } from '../media/camera-backgrounds.ts'
 
 export const DEMO_STORAGE_KEY = 'capsule-wireframe-demo:v1'
 
@@ -116,6 +117,7 @@ function validState(value: unknown): value is DemoState {
   return (
     typeof value.firstVisit === 'boolean' &&
     (value.scheduleSampleVersion === undefined || finite(value.scheduleSampleVersion)) &&
+    // cameraBackground is deliberately not checked: any stored value is normalized on load, never reset the save.
     typeof value.cameraChecked === 'boolean' &&
     typeof value.cameraEnabled === 'boolean' &&
     strings(value.examPromptedRooms) &&
@@ -128,11 +130,16 @@ function validState(value: unknown): value is DemoState {
   )
 }
 
+function migrateCameraBackground(state: DemoState): DemoState {
+  const cameraBackground = normalizeCameraBackground(state.cameraBackground)
+  return state.cameraBackground === cameraBackground ? state : { ...state, cameraBackground }
+}
+
 export function loadDemoState(): DemoState {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) ?? 'null')
     return validState(saved)
-      ? migrateDemoCopy(migrateScheduleSamples(migrateSharedSchedule(migrateSampleRecords(migrateDemoProfile(saved)))))
+      ? migrateCameraBackground(migrateDemoCopy(migrateScheduleSamples(migrateSharedSchedule(migrateSampleRecords(migrateDemoProfile(saved))))))
       : createDemoState()
   } catch {
     return createDemoState()
