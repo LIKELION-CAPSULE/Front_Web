@@ -24,3 +24,12 @@ export type VisionMessage =
 export type VisionRequest =
   | { type: 'init'; baseUrl: string }
   | { type: 'frame'; frame: ImageBitmap; at: number }
+
+export type SegmenterRequest =
+  | { type: 'init'; baseUrl: string }
+  | { type: 'frame'; id: number; frame: ImageBitmap }
+  | { type: 'close' }
+export type SegmenterMessage =
+  | { type: 'status'; value: 'ready' | 'error' }
+  /** The frame travels back with its mask so both are composited in sync; mask is null if segmentation failed. */
+  | { type: 'result'; id: number; frame: ImageBitmap; mask: ImageBitmap | null }

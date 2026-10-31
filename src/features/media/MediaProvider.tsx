@@ -5,6 +5,7 @@ import { useDemo } from '@/features/demo/demo-context'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { DeviceController } from './device-controller'
 import { MediaContext } from './media-context'
+import { SegmentationClient } from './segmentation-client'
 import type { Observation, VisionMessage, VisionStatus } from './types'
 import { useFaceFocus } from './use-face-focus'
 
@@ -19,6 +20,11 @@ export function MediaProvider({ children }: { children: ReactNode }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const { pathname } = useLocation()
   const { state, dispatch } = useDemo()
+  const [backgroundNotice, setBackgroundNotice] = useState<string | null>(null)
+  const [segmentation] = useState(() => new SegmentationClient(new URL(import.meta.env.BASE_URL, location.href).href, () => {
+    dispatch({ type: 'CAMERA_BACKGROUND', background: 'none' })
+    setBackgroundNotice('배경을 불러오지 못해 기본 화면으로 돌렸어요.')
+  }))
   const prepareRoom = /^\/rooms\/([^/]+)\/prepare$/.exec(pathname)?.[1]
   const allowed = state.profile.loggedIn && ((!!prepareRoom && !!getStudyRoom(prepareRoom)) ||
     (!!state.activeSession && !!getStudyRoom(state.activeSession.roomId) && pathname === `/study/${state.activeSession.id}`))
@@ -36,6 +42,12 @@ export function MediaProvider({ children }: { children: ReactNode }) {
     if (!allowed) controller.stop()
   }, [allowed, controller])
   useEffect(() => () => controller.stop(), [controller])
+  useEffect(() => () => segmentation.close(), [segmentation])
+  useEffect(() => {
+    if (!backgroundNotice) return
+    const timeout = window.setTimeout(() => setBackgroundNotice(null), 4000)
+    return () => clearTimeout(timeout)
+  }, [backgroundNotice])
   useEffect(() => {
     const video = videoRef.current
     if (!stream || !video || !monitoring) return
@@ -99,7 +111,7 @@ export function MediaProvider({ children }: { children: ReactNode }) {
   }, [stream, monitoring, attempt])
   return (
     <MediaContext value={{ devices, controller, vision: availableVision,
-      observation: availableObservation, flushFocus,
+      observation: availableObservation, flushFocus, segmentation, backgroundNotice,
       retryVision: () => setAttempt((value) => value + 1) }}>
       <video ref={videoRef} muted playsInline aria-hidden="true" className="hidden" />
       {children}
