@@ -163,3 +163,12 @@ test('gifts debit the ledger without changing study-based relationships', () => 
     poor,
   )
 })
+
+test('llm replies are recorded separately from the user message', () => {
+  let state = demoReducer(createDemoState(now), start('basic'))
+  state = demoReducer(state, { type: 'MESSAGE', now, characterId: 'chaerin', name: '채린', text: '졸려', reply: 'llm' })
+  assert.deepEqual(state.messages.map((message) => message.sender), ['user'])
+  assert.equal(state.chatUsage.used, 1)
+  state = demoReducer(state, { type: 'CHARACTER_REPLY', sessionId: state.activeSession!.id, characterId: 'chaerin', text: ' 조금만 더 하자. ', now: now + 1 })
+  assert.deepEqual(state.messages.map((message) => [message.sender, message.text]), [['user', '졸려'], ['character', '조금만 더 하자.']])
+})

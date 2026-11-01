@@ -9,6 +9,7 @@ import { studyGoalSeconds } from '@/features/session/study-goal'
 import { activateStudyFriend, type StudyInteractionMode } from '@/features/session/study-interaction'
 import { focusPercent, normalizeFocusTotals } from '@/features/session/focus'
 import { useNow } from '@/features/session/use-now'
+import { requestCharacterReply, type ChatReplyMode } from '@/features/session/llm-chat'
 import { CharacterTile } from '@/features/session/components/CharacterTile'
 import { StudyDock } from '@/features/session/components/StudyDock'
 import { StudySelfView } from '@/features/session/components/StudySelfView'
@@ -18,7 +19,10 @@ import { SessionFocus } from '@/features/session/components/SessionFocus'
 import { getCharacterArtwork } from '@/features/characters/artwork'
 import { DetectionStatus } from '@/features/media/components/DetectionStatus'
 import { useMedia } from '@/features/media/media-context'
+import { normalizeCameraBackground } from '@/features/media/camera-backgrounds'
 import { Brand } from '@/shared/ui/Brand'
+import { Button } from '@/shared/ui/Button'
+import { Dialog } from '@/shared/ui/Dialog'
 import { Icon } from '@/shared/ui/Icon'
 import { SessionChatPanel } from '@/features/session/components/SessionChatPanel'
 import { businessDay } from '@/shared/lib/format'
@@ -36,6 +40,10 @@ export default function StudyPage() {
   const [customSpeech, setCustomSpeech] = useState('')
   const [quietMode, setQuietMode] = useState(false)
   const [showCamera, setShowCamera] = useState(false)
+  const [leaveOpen, setLeaveOpen] = useState(false)
+  const [replyMode, setReplyMode] = useState<ChatReplyMode>('scripted')
+  const [pendingReplies, setPendingReplies] = useState<Record<string, boolean>>({})
+  const [replyErrors, setReplyErrors] = useState<Record<string, string>>({})
   const [interactionMode, setInteractionMode] = useState<StudyInteractionMode>(() => params.get('chat') === '1' ? 'talk' : 'focus')
   const { devices, controller, flushFocus } = useMedia()
   const now = useNow()
@@ -102,6 +110,12 @@ export default function StudyPage() {
     (message) => message.sessionId === active.id && message.characterId === selected.id,
   )
   const lastReply = messages.filter((message) => message.sender === 'character').at(-1)
+  function resumeStudy() {
+    const next = new URLSearchParams(params)
+    next.delete('resume')
+    setParams(next, { replace: true })
+    if (active!.runningSince === null && remaining > 0) dispatch({ type: 'PAUSE', now: Date.now() })
+  }
   function closeChat() {
     const next = new URLSearchParams(params)
     next.set('chat', '0')
@@ -130,8 +144,35 @@ export default function StudyPage() {
     if (active!.tier === 'basic' && used >= 3) {
       return
     }
-    dispatch({ type: 'MESSAGE', characterId: selected.id, name: selected.name, text, voice, now })
+    if (replyMode === 'llm' && pendingReplies[selected.id]) return
+    dispatch({ type: 'MESSAGE', characterId: selected.id, name: selected.name, text, voice, now, reply: replyMode })
     setCustomSpeech('')
+    if (replyMode === 'llm') void askCharacter(selected, text)
+  }
+  async function askCharacter(character: (typeof characters)[number], text: string) {
+    const { id: sessionId, phase } = active!
+    const history = state.messages
+      .filter((message) => message.sessionId === sessionId && message.characterId === character.id)
+      .map(({ sender, text }) => ({ sender, text }))
+    setPendingReplies((previous) => ({ ...previous, [character.id]: true }))
+    setReplyErrors((previous) => ({ ...previous, [character.id]: '' }))
+    try {
+      const reply = await requestCharacterReply({
+        userName: state.profile.name,
+        room: { name: room!.name, description: room!.description },
+        character: { name: character.name, description: character.description },
+        phase,
+        elapsedMinutes: (phase === 'study' ? elapsed : goal) / 60,
+        goalMinutes: goal / 60,
+        history,
+        text,
+      })
+      dispatch({ type: 'CHARACTER_REPLY', sessionId, characterId: character.id, text: reply, now: Date.now() })
+    } catch (error) {
+      setReplyErrors((previous) => ({ ...previous, [character.id]: error instanceof Error ? error.message : String(error) }))
+    } finally {
+      setPendingReplies((previous) => ({ ...previous, [character.id]: false }))
+    }
   }
   function finish(another = false) {
     flushFocus()
@@ -177,6 +218,8 @@ export default function StudyPage() {
         onCamera={() => { void toggleCamera() }}
         onMicrophone={() => devices.microphone.stream ? controller.stop('microphone') : void controller.request('microphone')}
         onViewChange={() => { void toggleSelfView() }}
+        background={normalizeCameraBackground(state.cameraBackground)}
+        onBackgroundChange={(background) => dispatch({ type: 'CAMERA_BACKGROUND', background })}
         resting={resting}
         restFinished={resting && remaining === 0}
       />
@@ -201,7 +244,17 @@ export default function StudyPage() {
         {room.name} · {active.phase === 'study' ? '공부 중' : '쉬는 시간'}
       </h1>
       <header className="study-topbar">
-        <Link to="/" aria-label="CAPSULE 홈">
+        <Link
+          to="/"
+          aria-label="CAPSULE 홈"
+          aria-haspopup="dialog"
+          onClick={(event) => {
+            // Leaving mid-session asks first; modified clicks still open home in a new tab.
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+            event.preventDefault()
+            setLeaveOpen(true)
+          }}
+        >
           <Brand />
         </Link>
         <div className="study-room-heading">
@@ -376,10 +429,39 @@ export default function StudyPage() {
             selected={selected}
             onSelect={selectFriend}
             onSend={send}
+            replyMode={replyMode}
+            onReplyModeChange={setReplyMode}
+            replyPending={!!pendingReplies[selected.id]}
+            replyError={replyErrors[selected.id]}
             used={used}
             now={now}
           />
       </div>
+      <Dialog
+        open={params.get('resume') === '1'}
+        onClose={() => navigate('/')}
+        closeLabel="홈으로 돌아가기"
+        title="다시 공부를 시작할까요?"
+      >
+        <p className="mb-5 text-sm leading-6 text-muted">
+          {room.name}에서 {active.phase === 'study' ? '하던 공부를' : '쉬는 시간을'} 이어서 진행해요.
+          준비되면 시작해 주세요.
+        </p>
+        <Button className="w-full" onClick={resumeStudy}>
+          <Icon name="play" size={17} /> 이어서 시작할게
+        </Button>
+      </Dialog>
+      <Dialog open={leaveOpen} onClose={() => setLeaveOpen(false)} title="공부를 마치시겠습니까?">
+        <p className="mb-5 text-sm leading-6 text-muted">
+          지금까지 공부한 기록을 저장하고 리포트로 이동해요.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button onClick={() => { setLeaveOpen(false); finish() }}>응, 여기까지 할게</Button>
+          <Button variant="secondary" onClick={() => setLeaveOpen(false)}>
+            아니, 더 할거야
+          </Button>
+        </div>
+      </Dialog>
     </main>
   )
 }

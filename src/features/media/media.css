@@ -28,9 +28,26 @@
   .device-check .microphone-meter { height: 8px; margin-top: 0; }
   .device-camera-preview { position: relative; display: flex; aspect-ratio: 4 / 3; align-items: center; justify-content: center; overflow: hidden; border-radius: 16px; background: radial-gradient(ellipse at center, #4f4266, #202532); }
   .device-camera-preview > svg { width: 65%; max-height: 85%; align-self: flex-end; }
-  .device-camera-frame { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); }
-  .device-camera-frame > video { width: 100%; height: 100%; object-fit: cover; }
+  .device-camera-frame { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* Mirroring is display-only: the media and face box flip, the status text does not. */
+  .device-camera-frame .virtual-background-media, .device-detection-overlay { transform: scaleX(-1); }
   .device-detection-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .virtual-background { position: absolute; inset: 0; overflow: hidden; }
+  .virtual-background-media { position: absolute; inset: 0; }
+  .virtual-background-media > :is(video, canvas) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .virtual-background-notice { position: absolute; z-index: 2; bottom: 12px; left: 50%; width: max-content; max-width: calc(100% - 24px); translate: -50% 0; padding: 5px 10px; border-radius: 999px; background: #171b28dc; color: #fff; font-size: 11px; line-height: 1.5; text-align: center; }
+  .camera-background-picker { display: flex; min-width: 0; flex-wrap: wrap; gap: 8px; border: 0; margin: 0; padding: 0; }
+  .camera-background-picker > legend { margin-bottom: 8px; padding: 0; font-size: 13px; font-weight: 700; }
+  .camera-background-option { display: grid; width: 64px; justify-items: center; gap: 4px; cursor: pointer; }
+  .camera-background-thumb { display: grid; width: 64px; height: 48px; place-items: center; overflow: hidden; border: 2px solid transparent; border-radius: 10px; background: #202633; color: var(--color-muted); transition: border-color 120ms; }
+  .camera-background-thumb > img { width: 100%; height: 100%; object-fit: cover; }
+  .camera-background-thumb[data-kind='blur'] { background: radial-gradient(circle at 50% 40%, #8b7bb0, #2b2f40 70%); color: #fff; }
+  .camera-background-option:hover .camera-background-thumb { border-color: var(--color-line); }
+  .camera-background-option:has(input:checked) .camera-background-thumb { border-color: var(--color-brand); }
+  .camera-background-option:has(input:focus-visible) .camera-background-thumb { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+  .camera-background-label { width: 100%; color: var(--color-muted); font-size: 10px; line-height: 1.4; text-align: center; word-break: keep-all; }
+  .camera-background-option:has(input:checked) .camera-background-label { color: var(--color-ink); font-weight: 600; }
+  .device-check-background { grid-column: 1 / -1; }
   .device-detection-overlay rect { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
   .face-detection-box { stroke: #c4b5fd; }
   .detection-status { margin-top: 16px; font-size: 13px; line-height: 1.6; }

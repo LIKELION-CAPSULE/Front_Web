@@ -7,6 +7,7 @@ import {
   studyGoalSeconds,
 } from '../session/study-goal.ts'
 import { businessDay } from '../../shared/lib/format.ts'
+import { normalizeCameraBackground, type CameraBackgroundId } from '../media/camera-backgrounds.ts'
 import type { AvatarSettings, DemoState, FocusTotals, LedgerEntry, Memory, TierId } from './types.ts'
 
 export const BREAK_SECONDS = 10 * 60
@@ -18,6 +19,7 @@ export type DemoAction =
   | { type: 'RESET'; now: number }
   | { type: 'FIRST_VISIT'; value: boolean }
   | { type: 'CAMERA'; enabled: boolean }
+  | { type: 'CAMERA_BACKGROUND'; background: CameraBackgroundId }
   | { type: 'FACE_FOCUS'; sessionId: string; totals: FocusTotals; now: number }
   | { type: 'EXAM_PROMPTED'; roomId: string }
   | { type: 'SAVE_ROOM'; roomId: string }
@@ -41,8 +43,11 @@ export type DemoAction =
       name: string
       text: string
       voice?: boolean
+      /** 'llm' records only the user's message; the reply arrives later as CHARACTER_REPLY. */
+      reply?: 'scripted' | 'llm'
       now: number
     }
+  | { type: 'CHARACTER_REPLY'; sessionId: string; characterId: string; text: string; now: number }
   | { type: 'PURCHASE'; productId: string; method: string; now: number }
   | { type: 'GIFT'; characterId: string; characterName: string; productId: string; now: number }
   | { type: 'MEMORY'; memory: Memory }
@@ -100,6 +105,8 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       return createDemoState(action.now)
     case 'FIRST_VISIT':
       return { ...state, firstVisit: action.value }
+    case 'CAMERA_BACKGROUND':
+      return { ...state, cameraBackground: normalizeCameraBackground(action.background) }
     case 'CAMERA':
       return {
         ...state,
@@ -304,16 +311,35 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
             text: action.text.trim().slice(0, 500),
             voice: !!action.voice,
           },
+          ...(action.reply === 'llm'
+            ? []
+            : [{
+                ...common,
+                id: `reply-${action.now}-${state.messages.length}`,
+                sender: 'character' as const,
+                text: reply,
+                voice: false,
+              }]),
+        ],
+      }
+    }
+    case 'CHARACTER_REPLY':
+      if (!action.text.trim()) return state
+      return {
+        ...state,
+        messages: [
+          ...state.messages,
           {
-            ...common,
             id: `reply-${action.now}-${state.messages.length}`,
+            createdAt: action.now,
+            sessionId: action.sessionId,
+            characterId: action.characterId,
             sender: 'character',
-            text: reply,
+            text: action.text.trim().slice(0, 500),
             voice: false,
           },
         ],
       }
-    }
     case 'PURCHASE': {
       const product = chargeProducts.find((p) => p.id === action.productId)
       if (!product) return state
