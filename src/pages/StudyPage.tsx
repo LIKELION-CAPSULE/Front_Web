@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
 import { useDemo } from '@/features/demo/demo-context'
@@ -10,6 +10,8 @@ import { activateStudyFriend, type StudyInteractionMode } from '@/features/sessi
 import { focusPercent, normalizeFocusTotals } from '@/features/session/focus'
 import { useNow } from '@/features/session/use-now'
 import { requestCharacterReply, type ChatReplyMode } from '@/features/session/llm-chat'
+import { behaviorPromptText, createBehaviorChatState, reactToBehavior, typingEndsAt, withRecentBehavior } from '@/features/session/behavior-chat'
+import type { BehaviorChange } from '@/features/media/behavior-monitor'
 import { CharacterTile } from '@/features/session/components/CharacterTile'
 import { StudyDock } from '@/features/session/components/StudyDock'
 import { StudySelfView } from '@/features/session/components/StudySelfView'
@@ -18,6 +20,7 @@ import { SessionTimer } from '@/features/session/components/SessionTimer'
 import { SessionFocus } from '@/features/session/components/SessionFocus'
 import { getCharacterArtwork } from '@/features/characters/artwork'
 import { DetectionStatus } from '@/features/media/components/DetectionStatus'
+import { BehaviorBadges } from '@/features/media/components/BehaviorBadges'
 import { useMedia } from '@/features/media/media-context'
 import { normalizeCameraBackground } from '@/features/media/camera-backgrounds'
 import { Brand } from '@/shared/ui/Brand'
@@ -45,11 +48,19 @@ export default function StudyPage() {
   const [pendingReplies, setPendingReplies] = useState<Record<string, boolean>>({})
   const [replyErrors, setReplyErrors] = useState<Record<string, string>>({})
   const [interactionMode, setInteractionMode] = useState<StudyInteractionMode>(() => params.get('chat') === '1' ? 'talk' : 'focus')
-  const { devices, controller, flushFocus } = useMedia()
+  const { devices, controller, flushFocus, behavior } = useMedia()
+  const behaviorChat = useRef(createBehaviorChatState())
   const now = useNow()
   const active = state.activeSession
   const inSession = active?.id === sessionId
   const resting = active?.phase === 'break'
+  useEffect(() => { behaviorChat.current = createBehaviorChatState() }, [sessionId])
+  const onBehaviorChange = useEffectEvent((change: BehaviorChange) => {
+    // Same guard as the early return below, so the handler only runs after a full render of this session.
+    const session = state.activeSession
+    if (session && session.id === sessionId && getStudyRoom(session.roomId)) reactToDetection(change)
+  })
+  useEffect(() => behavior.onChange((change) => onBehaviorChange(change)), [behavior])
   useEffect(() => {
     if (!inSession) return
     const handleKey = (event: KeyboardEvent) => {
@@ -147,9 +158,20 @@ export default function StudyPage() {
     if (replyMode === 'llm' && pendingReplies[selected.id]) return
     dispatch({ type: 'MESSAGE', characterId: selected.id, name: selected.name, text, voice, now, reply: replyMode })
     setCustomSpeech('')
-    if (replyMode === 'llm') void askCharacter(selected, text)
+    if (replyMode === 'llm') void askCharacter(selected, withRecentBehavior(text, behaviorChat.current.recent, behavior.getSnapshot(), Date.now()))
   }
-  async function askCharacter(character: (typeof characters)[number], text: string) {
+  /** A new detection may make a friend speak first; requests are dropped while any friend is replying. */
+  function reactToDetection(change: BehaviorChange) {
+    const at = Date.now()
+    const speaking = Object.values(pendingReplies).some(Boolean) || state.messages.some((message) =>
+      message.sessionId === active!.id && message.sender === 'character' && typingEndsAt(message.text, message.createdAt ?? 0) > at)
+    const unavailable = replyMode !== 'llm' || quietMode || active!.phase !== 'study' || active!.runningSince === null
+    const result = reactToBehavior(behaviorChat.current, change, unavailable || speaking)
+    behaviorChat.current = result.state
+    // With the chat closed, the reply shows as the first tile's speech bubble.
+    if (result.prompt) void askCharacter(chatOpen ? selected : focused ?? characters[0]!, behaviorPromptText(result.prompt), !chatOpen)
+  }
+  async function askCharacter(character: (typeof characters)[number], text: string, speakFirst = false) {
     const { id: sessionId, phase } = active!
     const history = state.messages
       .filter((message) => message.sessionId === sessionId && message.characterId === character.id)
@@ -168,6 +190,7 @@ export default function StudyPage() {
         text,
       })
       dispatch({ type: 'CHARACTER_REPLY', sessionId, characterId: character.id, text: reply, now: Date.now() })
+      if (speakFirst) { setReaction(0); setCustomSpeech(reply) }
     } catch (error) {
       setReplyErrors((previous) => ({ ...previous, [character.id]: error instanceof Error ? error.message : String(error) }))
     } finally {
@@ -231,6 +254,7 @@ export default function StudyPage() {
         <StudySelfView stream={devices.camera.stream} showCamera={cameraVisible} avatar={state.profile.avatar} small={small} />
         <div className="study-self-feedback">
           <DetectionStatus />
+          <BehaviorBadges />
           {devices.camera.error && <p role="alert">{devices.camera.error}</p>}
           {devices.microphone.error && <p role="alert">{devices.microphone.error}</p>}
         </div>

@@ -18,5 +18,6 @@ User-supplied and generated illustration assets retain their existing provenance
 
 - **MediaPipe Tasks Vision 1.2.0 and official Face Landmarker float16 v1** — Apache-2.0. [Original license](../public/licenses/vision/MediaPipe-LICENSE.txt). The official bundle contains BlazeFace, FaceMesh V2 and Blendshape V2; model card sources and the unchanged weights are listed in the [model manifest](../public/models/README.md).
 - **Official Selfie Segmenter float16 v1** — Apache-2.0, covered by the same [MediaPipe license](../public/licenses/vision/MediaPipe-LICENSE.txt). Used for the camera virtual background; the model card source and the unchanged weights are listed in the [model manifest](../public/models/README.md).
+- **Official Gesture Recognizer float16 v1 and EfficientDet-Lite2 float16 v1 (MediaPipe Object Detector)** — Apache-2.0, covered by the same [MediaPipe license](../public/licenses/vision/MediaPipe-LICENSE.txt). Used for study-time wave and phone detection; sources and the unchanged weights are listed in the [model manifest](../public/models/README.md).
 
 Runtime JS/WASM comes from the pinned MediaPipe package without altering library source. YOLO/ONNX models and runtimes are deferred until after MVP and are not distributed.

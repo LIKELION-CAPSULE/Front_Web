@@ -1,5 +1,5 @@
 {
-  "reviewedAt": "2026-11-01",
+  "reviewedAt": "2026-11-04",
   "models": [
     {
       "file": "face_landmarker.task",
@@ -16,6 +16,22 @@
       "license": "Apache-2.0",
       "sha256": "191ac9529ae506ee0beefa6b2c945a172dab9d07d1e802a290a4e4038226658b",
       "bytes": 249537
+    },
+    {
+      "file": "gesture_recognizer.task",
+      "name": "MediaPipe Gesture Recognizer float16 v1",
+      "source": "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
+      "license": "Apache-2.0",
+      "sha256": "97952348cf6a6a4915c2ea1496b4b37ebabc50cbbf80571435643c455f2b0482",
+      "bytes": 8373440
+    },
+    {
+      "file": "efficientdet_lite2.tflite",
+      "name": "MediaPipe Object Detector EfficientDet-Lite2 float16 v1",
+      "source": "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/1/efficientdet_lite2.tflite",
+      "license": "Apache-2.0",
+      "sha256": "5d4ebec1029bc9907aeadb9e7b4ac9cb1da6a19d01ad375210a9ae18ba173302",
+      "bytes": 12138859
     }
   ]
 }
