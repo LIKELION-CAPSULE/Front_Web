@@ -1,3 +1,5 @@
+import type { FaceSignal, HandSignal } from './behavior-rules'
+
 export type DeviceKind = 'camera' | 'microphone'
 export type DeviceStatus = 'idle' | 'requesting' | 'ready' | 'error'
 export type DeviceState = {
@@ -18,12 +20,23 @@ export type VisionStatus = {
   faceBackend?: 'GPU' | 'CPU'
   error?: string
 }
+/** Models a frame is run through; gesture and phone load on first use, only during study. */
+export type VisionTask = 'face' | 'gesture' | 'phone'
+/** One reply per frame. Each part is present only when that model ran; inputs are never mirrored. */
+export type FrameResult = {
+  at: number
+  face?: Omit<Observation, 'at'> & { signal: FaceSignal }
+  hand?: HandSignal
+  phoneScore?: number
+}
 export type VisionMessage =
   | { type: 'status'; value: VisionStatus }
-  | { type: 'result'; value: Observation }
+  | { type: 'result'; value: FrameResult }
+  /** A study-only model failed to load; face detection keeps running without it. */
+  | { type: 'task-error'; task: Exclude<VisionTask, 'face'> }
 export type VisionRequest =
   | { type: 'init'; baseUrl: string }
-  | { type: 'frame'; frame: ImageBitmap; at: number }
+  | { type: 'frame'; frame: ImageBitmap; at: number; tasks: VisionTask[] }
 
 export type SegmenterRequest =
   | { type: 'init'; baseUrl: string }
