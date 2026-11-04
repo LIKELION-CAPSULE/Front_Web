@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
-import { useDemo } from '@/features/demo/demo-context'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { CompletionPortrait } from '@/features/reports/components/CompletionPortrait'
 import { CapsuleCardSurface } from '@/features/reports/components/CapsuleCardSurface'
@@ -16,7 +15,9 @@ import { OverlayPage } from '@/shared/ui/OverlayPage'
 import { FeedbackMessage, type FeedbackTone } from '@/shared/ui/FeedbackMessage'
 import { DateTimeWheelField } from '@/shared/ui/DateTimeWheelField'
 import { clampCalendarDate } from '@/shared/lib/date-limits'
-import NotFoundPage from './NotFoundPage'
+import { useBackend } from '@/features/backend/backend-context'
+import { useServerReport } from '@/features/backend/use-server-report'
+import { PageSkeleton } from '@/shared/ui/PageSkeleton'
 import { withParticle } from '@/shared/lib/korean'
 import { capsuleCardCopy, capsuleFocusCopy } from '@/features/reports/card-copy'
 import { capsuleCardColors } from '@/features/reports/capsule-card-layout'
@@ -30,7 +31,7 @@ const names = ['보라', '검정', '연보라', '라벤더']
 export default function CapsuleCardPage() {
   const { recordId } = useParams()
   const [params, setParams] = useSearchParams()
-  const { state, dispatch } = useDemo()
+  const { createMemory } = useBackend()
   const navigate = useNavigate()
   const [todayTimestamp] = useState(Date.now)
   const [color, setColor] = useState(0)
@@ -41,17 +42,12 @@ export default function CapsuleCardPage() {
   const [busy, setBusy] = useState(false)
   const [storyFont, setStoryFont] = useState('Pretendard')
   const [copyFallback, setCopyFallback] = useState(false)
-  const record = state.records.find((item) => item.id === recordId)
+  const { record, error, retry } = useServerReport(recordId)
   const room = record && getStudyRoom(record.roomId)
   useEffect(() => { let alive = true; void loadStoryFont().then(font => { if (alive) setStoryFont(font) }); return () => { alive = false } }, [])
-  if (!record || !room)
-    return (
-      <OverlayPage>
-        <NotFoundPage />
-      </OverlayPage>
-    )
-  if (!isMvpRoom(room.id)) return <OverlayPage><MvpUnavailablePage /></OverlayPage>
-  const participants = room.characters.filter(character => isMvpCharacter(character.id) && record.characterIds.includes(character.id))
+  if (!record || !room) return error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : <PageSkeleton />
+  if (!room.serverRoom && !isMvpRoom(room.id)) return <OverlayPage><MvpUnavailablePage /></OverlayPage>
+  const participants = room.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && record.characterIds.includes(character.id))
   const friends = participants.length ? participants : [room.characters[0]!]
   const character = friends.find(friend => friend.id === params.get('friend')) ?? friends[0]!
   async function save(share = false) {
@@ -62,7 +58,7 @@ export default function CapsuleCardPage() {
         record!,
         character.name,
         colors[color]!,
-        character.id,
+        character.artworkId ?? character.id,
       )
       const file = new File([blob], 'capsule-study-card.png', { type: 'image/png' })
       if (share && navigator.canShare?.({ files: [file] })) {
@@ -96,24 +92,18 @@ export default function CapsuleCardPage() {
   async function copy() {
     try {
       await navigator.clipboard.writeText(window.location.href)
-      setStatus({ tone: 'success', text: '링크를 복사했어요. 데모 기록은 이 브라우저에서만 볼 수 있어요.' })
+      setStatus({ tone: 'success', text: '링크를 복사했어요. 같은 계정으로 로그인하면 이 카드를 다시 볼 수 있어요.' })
     } catch {
       setCopyFallback(true)
       setStatus({ tone: 'warning', text: '아래 주소를 직접 복사해 주세요.' })
     }
   }
-  function promise() {
-    dispatch({
-      type: 'MEMORY',
-      memory: {
-        id: `promise-${record!.id}`,
-        kind: '약속',
-        title: '같이 공부하기',
-        date,
-        time,
-      },
-    })
-    navigate('/')
+  async function promise() {
+    if (busy) return
+    setBusy(true)
+    try { await createMemory({ kind: '약속', title: '같이 공부하기', date, time }); navigate('/') }
+    catch (reason) { setStatus({ tone: 'error', text: reason instanceof Error ? reason.message : '약속을 저장하지 못했어요.' }) }
+    finally { setBusy(false) }
   }
   return (
     <main id="main-content" tabIndex={-1} className="capsule-share-page">
@@ -124,8 +114,8 @@ export default function CapsuleCardPage() {
           <span>{dateLabel(record.endedAt)}</span>
         </div>
         <div className="share-portrait">
-          <CompletionPortrait characterId={character.id} name={character.name} variant="share" />
-          <div className="capsule-room-title"><RoomTitle roomId={room.id} eager /></div>
+          <CompletionPortrait characterId={character.artworkId ?? character.id} name={character.name} variant="share" />
+          <div className="capsule-room-title"><RoomTitle roomId={room.artworkId ?? room.id} eager /></div>
         </div>
         <p className="capsule-card-intro type-body">
           {withParticle(character.name, '과', '와')} 함께한 공부
@@ -137,7 +127,7 @@ export default function CapsuleCardPage() {
         <span className="badge capsule-card-badge inline-flex items-center rounded-full px-2.5 py-1">
           {capsuleCardCopy.badge}
         </span>
-        <p className="capsule-card-quote" style={{ fontFamily: storyFont }}>{capsuleCardCopy.quote}</p>
+        <p className="capsule-card-quote" style={{ fontFamily: storyFont }}>{record.serverReport?.closingLine ?? capsuleCardCopy.quote}</p>
       </CapsuleCardSurface>
       <section className="w-full max-w-[440px] rounded-3xl bg-panel p-7">
         <h1 className="type-page-title">캡슐 카드</h1>
@@ -219,8 +209,8 @@ export default function CapsuleCardPage() {
           />
         </div>
         <Button
-          disabled={!date || !time}
-          onClick={promise}
+          disabled={busy || !date || !time}
+          onClick={() => { void promise() }}
           className="mt-4 w-full"
         >
           {date.slice(5)} {time} 약속 저장하기

@@ -23,5 +23,6 @@ export function focusMeasuredSeconds(record: StudyRecord) {
 }
 
 export function recordFocusPercent(record: StudyRecord) {
+  if (record.serverReport) return focusPercent(record.focusSeconds, record.studySeconds)
   return focusPercent(record.focusSeconds, focusMeasuredSeconds(record))
 }

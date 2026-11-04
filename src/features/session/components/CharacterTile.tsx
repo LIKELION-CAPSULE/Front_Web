@@ -41,7 +41,7 @@ export function CharacterTile({
       </div>
       <CharacterFigure
         variant={variant}
-        characterId={character.id}
+        characterId={character.artworkId ?? character.id}
         pose={variant === 'rest' ? 'affection' : active ? 'reaction' : 'study'}
       />
       <div className="tile-image-shade" />

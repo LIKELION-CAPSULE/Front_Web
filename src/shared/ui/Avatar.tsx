@@ -17,6 +17,7 @@ const sizes = { sm: 'size-7', md: 'size-9', lg: 'size-[68px]' }
 /** Decorative: the adjacent text supplies the person's name. */
 export function Avatar({ src, size = 'sm', settings, className, children }: AvatarProps) {
   const { state } = useDemo()
+  const image = src ?? (settings ? undefined : state.profile.profileImage)
   return (
     <span
       aria-hidden="true"
@@ -27,8 +28,8 @@ export function Avatar({ src, size = 'sm', settings, className, children }: Avat
       )}
     >
       {children ??
-        (src ? (
-          <img src={src} alt="" className="size-full object-cover object-[50%_35%]" />
+        (image ? (
+          <img src={image} alt="" className="size-full object-cover object-[50%_35%]" />
         ) : (
           <AvatarIllustration settings={settings ?? state.profile.avatar} />
         ))}

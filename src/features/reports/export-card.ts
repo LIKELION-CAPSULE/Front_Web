@@ -120,7 +120,7 @@ export async function exportCard(record: StudyRecord, character: string, color: 
   ctx.font = `${quoteType.fontWeight} ${quoteType.fontSizePx}px "${storyFont}"`
   const lines: string[] = []
   let line = ''
-  for (const word of capsuleCardCopy.quote.split(' ')) {
+  for (const word of (record.serverReport?.closingLine ?? capsuleCardCopy.quote).split(' ')) {
     const next = line ? `${line} ${word}` : word
     if (line && ctx.measureText(next).width > layout.contentWidth) { lines.push(line); line = word }
     else line = next

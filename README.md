@@ -1,6 +1,15 @@
 # CAPSULE Web
 
-AI 친구와 함께 공부하는 CAPSULE의 프런트엔드 데모입니다. 백엔드 없이 더미 계정·기록·크레딧으로 전체 화면 흐름을 체험할 수 있습니다. `Front_Web` 안에서 독립적으로 실행하며, 옆의 `Landing_Page`와 의존성·설정을 공유하지 않습니다.
+AI 친구와 함께 공부하는 CAPSULE의 프런트엔드입니다. Railway 백엔드의 인증·홈·프로필·일정·공부 세션 API를 사용합니다. `Front_Web` 안에서 독립적으로 실행하며, 옆의 `Landing_Page`와 의존성·설정을 공유하지 않습니다.
+
+## 현재 API 연동
+
+- 실제 이메일 인증·회원가입·로그인·로그아웃과 쿠키 기반 토큰 갱신을 사용합니다. 기존 localStorage의 더미 계정·기록·크레딧은 앱 상태로 읽지 않습니다.
+- 서버 룸·친구 ID로 3분 MVP 공부를 시작하고, `FOCUS/AWAY/RETURN/BREAK`, 1분 heartbeat, 메시지·리포트·일정을 연결합니다. 자리 비움은 서버 계약의 연속 10초 기준이며, 자리 지킴률은 자리 지킴 시간 ÷ 공부 시간입니다.
+- 카카오 로그인은 `.env.local`의 `VITE_KAKAO_REST_API_KEY`, `VITE_KAKAO_REDIRECT_URI`를 설정하고 같은 URI를 카카오 개발자 콘솔에 등록합니다. 현재 callback 경로는 `/oauth/kakao`입니다. 배포 환경에도 각각 값을 설정합니다.
+- 로컬 개발·미리보기는 `http://localhost:3000`을 사용합니다. 추가 제공 자료의 등록 URI에 맞춰 `VITE_KAKAO_REDIRECT_URI=http://localhost:3000/oauth/kakao`로 설정합니다. [카카오·재설정 후속 반영](docs/KAKAO_LOGIN_REVIEW_2026-11-05.md)을 참고하세요.
+- 브라우저는 동일 출처 `/api/backend/*`를 사용하며 Vite 개발/미리보기 또는 Cloudflare Worker가 Railway의 `/api/*`로 전달합니다. `BACKEND_API_ORIGIN`은 서버 설정입니다.
+- 연결 상태·실제 검증 범위·대기 기능은 [API 연동 기록](docs/API_INTEGRATION_2026-11-05.md)에 정리했습니다. 아래의 기존 시연 안내에는 API 연결 전 데모 동작과 이전 UI 검토 이력이 포함됩니다.
 
 ## 현재 MVP 시연 범위
 
@@ -135,7 +144,7 @@ React + TypeScript(strict) + Vite + Tailwind CSS v4를 사용합니다. 공통 U
 
 ## 문서
 
-로컬의 [문서 목록](docs/README.md)에서 기획 근거와 구조를 확인할 수 있습니다. 기존 `docs/` 제외 규칙은 유지하되 아래의 최신 프로젝트 개요·백엔드 문서·명세 원본은 Git 추적 대상에 포함합니다.
+로컬의 [문서 목록](docs/README.md)에서 기획 근거와 구조를 확인할 수 있습니다. API 연동 문서·검토 기록·OpenAPI 원본과 관련 프로젝트 개요는 사용자 요청에 따라 Git에서 제외하고 로컬에 보관합니다. 아래 링크 중 로컬 문서는 새로 복제한 저장소에 포함되지 않습니다.
 
 - [프로젝트 개요](docs/PROJECT_OVERVIEW.md) — 현재 코드 기준 두 앱의 역할, MVP 동작, 상태·미디어·배포 경계.
 - [백엔드 API 정리](docs/BACKEND_API.md) — [Railway Swagger](https://backendlab-production-3052.up.railway.app/swagger-ui/index.html#/)의 전체 API·스키마와 프런트 연결 시 확인할 차이.

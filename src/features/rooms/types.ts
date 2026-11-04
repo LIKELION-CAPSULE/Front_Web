@@ -1,6 +1,8 @@
 import type { Character } from '@/features/characters/types'
 
 export type StudyRoom = {
+  artworkId?: string
+  serverRoom?: boolean
   id: string
   name: string
   description: string

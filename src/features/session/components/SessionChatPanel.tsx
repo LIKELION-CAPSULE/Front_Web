@@ -2,17 +2,13 @@ import { useCallback, useId, useLayoutEffect, useRef, useState, useSyncExternalS
 import type { Character } from '@/features/characters/types'
 import { getCharacterArtwork } from '@/features/characters/artwork'
 import { useDemo } from '@/features/demo/demo-context'
-import { number } from '@/shared/lib/format'
 import { withParticle } from '@/shared/lib/korean'
 import { Icon } from '@/shared/ui/Icon'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Tabs } from '@/shared/ui/Tabs'
-import type { ChatReplyMode } from '../llm-chat'
-import { studyGoalSeconds } from '../study-goal'
 import { ChatComposer } from './ChatComposer'
 import { TypingMessage } from './TypingMessage'
 import '../session-chat.css'
-import { MvpGate } from '@/features/mvp/MvpGate'
 
 const mobileQuery = '(max-width: 1023px)'
 const subscribe = (notify: () => void) => {
@@ -22,16 +18,14 @@ const subscribe = (notify: () => void) => {
 }
 const messageTime = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false })
 
-export function SessionChatPanel({ open, onClose, characters, selected, onSelect, onSend, onTypingChange, replyMode, onReplyModeChange, replyPending, replyError }: {
+export function SessionChatPanel({ open, onClose, characters, selected, onSelect, onSend, onTypingChange, replyPending, replyError }: {
   open: boolean
   onClose: () => void
   characters: readonly Character[]
   selected: Character
   onSelect: (id: string) => void
-  onSend: (text: string, voice?: boolean) => void
+  onSend: (text: string, inputType?: 'TEXT' | 'QUICK') => Promise<boolean>
   onTypingChange: (characterId: string, messageId: string, typing: boolean) => void
-  replyMode: ChatReplyMode
-  onReplyModeChange: (mode: ChatReplyMode) => void
   replyPending: boolean
   replyError?: string
 }) {
@@ -77,8 +71,7 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
     const bounds = event.currentTarget.getBoundingClientRect()
     return event.clientX < bounds.left || event.clientX >= bounds.right || event.clientY < bounds.top || event.clientY >= bounds.bottom
   }
-  function send(text: string, voice = false) { follow.current = true; onSend(text, voice) }
-  const introId = `${active.id}:${selected.id}:${active.phase}`
+  async function send(text: string, inputType: 'TEXT' | 'QUICK' = 'TEXT') { follow.current = true; return onSend(text, inputType) }
   return (
     <div className="session-chat-slot">
       <dialog
@@ -100,14 +93,8 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
             <div>
               <div className="session-chat-title">
                 <h2 id={titleId}>친구와 대화</h2>
-                {/* Test-only: remove with the scripted replies. */}
-                <div className="session-chat-reply-mode" role="group" aria-label="답장 방식">
-                  {([['scripted', '하드코딩'], ['llm', 'llm']] as const).map(([mode, label]) => (
-                    <button key={mode} type="button" aria-pressed={replyMode === mode} onClick={() => onReplyModeChange(mode)}>{label}</button>
-                  ))}
-                </div>
               </div>
-              <MvpGate label="내 크레딧 · 충전" compact inline><span className="session-chat-balance">{number(state.credits)} 크레딧</span></MvpGate></div>
+            </div>
             <button ref={closeButton} type="button" onClick={dismiss} aria-label="대화창 닫기"><Icon name="close" size={19} /></button>
           </header>
           <div className="session-chat-friends">
@@ -125,15 +112,9 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
             aria-relevant="additions"
             onScroll={() => { const node = list.current; if (node) follow.current = node.scrollHeight - node.scrollTop - node.clientHeight < 64 }}
           >
-            <article className="chat-message" data-sender="character">
-              <div className="chat-message-meta"><img src={getCharacterArtwork(selected.id).affection} alt="" /><span>{selected.name}</span></div>
-              <p className="chat-message-bubble"><TypingMessage key={introId} id={introId} text={active.phase === 'break'
-                ? active.studySeconds >= studyGoalSeconds(active) ? '목표까지 잘 왔네. 잠깐 쉬었다 가자.' : '잠깐 쉬었다 가자. 쉬는 동안 얘기할래?'
-                : '응, 무슨 일이야?'} seen={seen} onProgress={scrollLatest} onTypingChange={reportTyping} /></p>
-            </article>
             {messages.map(message => (
               <article key={message.id} className="chat-message" data-sender={message.sender}>
-                {message.sender === 'character' && <div className="chat-message-meta"><img src={getCharacterArtwork(selected.id).affection} alt="" /><span>{selected.name}</span>{message.createdAt && <time dateTime={new Date(message.createdAt).toISOString()}>{messageTime.format(message.createdAt)}</time>}</div>}
+                {message.sender === 'character' && <div className="chat-message-meta"><img src={selected.avatarUrl ?? getCharacterArtwork(selected.artworkId ?? selected.id).affection} alt="" /><span>{selected.name}</span>{message.createdAt && <time dateTime={new Date(message.createdAt).toISOString()}>{messageTime.format(message.createdAt)}</time>}</div>}
                 <p className="chat-message-bubble">
                   {message.voice && <span className="chat-message-voice"><Icon name="microphone" size={14} />음성 메시지 체험 · 0:04</span>}
                   {message.sender === 'character'
@@ -145,14 +126,14 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
             ))}
             {replyPending && (
               <article className="chat-message" data-sender="character">
-                <div className="chat-message-meta"><img src={getCharacterArtwork(selected.id).affection} alt="" /><span>{selected.name}</span></div>
+                <div className="chat-message-meta"><img src={selected.avatarUrl ?? getCharacterArtwork(selected.artworkId ?? selected.id).affection} alt="" /><span>{selected.name}</span></div>
                 <p className="chat-message-bubble chat-message-pending">입력 중…</p>
               </article>
             )}
             {replyError && <FeedbackMessage tone="error" className="mt-3">답장을 받지 못했어요. {replyError}</FeedbackMessage>}
           </div>
           <footer className="session-chat-footer">
-            <div className="session-chat-suggestions" aria-label="빠른 메시지">{['파이팅', '졸려', '이거 어려워'].map(text => <button key={text} type="button" onPointerDown={event => event.preventDefault()} onClick={() => send(text)}>{text}</button>)}</div>
+            <div className="session-chat-suggestions" aria-label="빠른 메시지">{['파이팅', '졸려', '이거 어려워'].map(text => <button key={text} type="button" onPointerDown={event => event.preventDefault()} disabled={replyPending} onClick={() => { void send(text, 'QUICK') }}>{text}</button>)}</div>
             <ChatComposer name={selected.name} text={drafts[selected.id] ?? ''} onChange={text => setDrafts(previous => ({ ...previous, [selected.id]: text }))} onSend={send} disabled={replyPending} />
           </footer>
         </>}
