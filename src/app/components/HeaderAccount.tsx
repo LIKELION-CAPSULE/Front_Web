@@ -59,7 +59,7 @@ export function HeaderAccount() {
             <Avatar size="md" />
           </summary>
           <FloatingSurface className="absolute top-12 right-0 w-60 rounded-card p-3">
-            <p className="border-b border-floating-hover px-3 py-2 text-body-compact font-bold">
+            <p className="mb-2 border-b border-floating-hover px-3 py-2 text-body-compact font-bold">
               {state.profile.name}
             </p>
             <Link

@@ -469,7 +469,7 @@ export default function StudyPage() {
         title="다시 공부를 시작할까요?"
       >
         <p className="mb-5 text-body-compact leading-6 text-muted">
-          {room.name}에서 {active.phase === 'study' ? '하던 공부를' : '쉬는 시간을'} 이어서 진행해요.
+          「{room.name}」에서 {active.phase === 'study' ? '하던 공부를' : '쉬는 시간을'} 이어서 진행해요.
           준비되면 시작해 주세요.
         </p>
         <Button className="w-full" onClick={resumeStudy}>

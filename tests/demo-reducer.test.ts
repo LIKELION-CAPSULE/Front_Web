@@ -74,23 +74,22 @@ test('resuming a legacy stopped session cannot pause a running session', () => {
   assert.equal(sessionElapsed(state.activeSession, now + 102000), 7)
 })
 
-test('a late manual break caps study time at its goal without adding the delay to rest', () => {
+test('a manual break preserves overtime and starts a fresh rest timer', () => {
   let state = demoReducer(createDemoState(now), start())
   state = demoReducer(state, { type: 'TAKE_BREAK', now: now + 3100000 })
-  assert.equal(state.activeSession?.studySeconds, 3000)
+  assert.equal(state.activeSession?.studySeconds, 3100)
   assert.equal(sessionElapsed(state.activeSession, now + 3100000), 0)
 })
 
-test('study automatically enters break and preserves elapsed overflow', () => {
+test('study never enters a break automatically when the goal is exceeded', () => {
   let state = demoReducer(createDemoState(now), start())
   const transition = now + (3000 + 6) * 1000
   state = demoReducer(state, { type: 'TICK', now: transition })
-  assert.equal(state.activeSession?.phase, 'break')
-  assert.equal(state.activeSession?.studySeconds, 3000)
-  assert.equal(sessionElapsed(state.activeSession, transition), 6)
+  assert.equal(state.activeSession?.phase, 'study')
+  assert.equal(sessionElapsed(state.activeSession, transition), 3006)
   state = demoReducer(state, { type: 'TICK', now: transition + 700000 })
   assert.equal(state.activeSession?.phase, 'study')
-  assert.equal(sessionElapsed(state.activeSession, transition + 800000), 3206)
+  assert.equal(sessionElapsed(state.activeSession, transition + 800000), 3806)
 })
 
 test('free chat remains available after three messages and still tracks daily usage', () => {
@@ -123,7 +122,7 @@ test('finishing records the session once without inventing focus measurements', 
   state = demoReducer(state, { type: 'FINISH', now: now + 3010000 })
   assert.equal(state.records.length, count + 1)
   const record = state.records[0]!
-  assert.equal(record.studySeconds, 3000)
+  assert.equal(record.studySeconds, 3010)
   assert.equal(record.observedSeconds, 0)
   assert.equal(record.focusSeconds + record.awaySeconds, 0)
   assert.equal(record.returns, 0)

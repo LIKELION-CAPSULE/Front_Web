@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import type { Memory } from '@/features/demo/types'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
@@ -12,7 +12,8 @@ import { ScheduleListPanel } from './ScheduleListPanel'
 
 export function ScheduleManager() {
   const { state, dispatch } = useDemo()
-  const [params, setParams] = useSearchParams()
+  const [params] = useSearchParams()
+  const navigate = useNavigate()
   const rooms = getStudyRooms()
   const today = dayKey()
   const [month, setMonth] = useState(() => clampCalendarMonth(dayKey().slice(0, 7)))
@@ -29,7 +30,7 @@ export function ScheduleManager() {
     if (params.has('add')) {
       const next = new URLSearchParams(params)
       next.delete('add')
-      setParams(next, { replace: true, preventScrollReset: true })
+      navigate({ search: next.size ? `?${next}` : '', hash: '#schedule' }, { replace: true, preventScrollReset: true })
     }
   }
   return (

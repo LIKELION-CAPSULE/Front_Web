@@ -16,7 +16,7 @@ test('the MVP exposes exactly one room and Chaerin', () => {
   assert.deepEqual(rooms[0]!.characters.filter(character => isMvpCharacter(character.id)).map(character => character.id), ['chaerin'])
 })
 
-test('MVP starts for free with only Chaerin and reaches its actual three-minute goal', () => {
+test('MVP starts for free with Chaerin and keeps studying past its three-minute goal', () => {
   const source = { ...createDemoState(now), credits: 0 }
   let state = demoReducer(source, { type: 'START_MVP', now })
   assert.equal(state.credits, 0)
@@ -32,11 +32,14 @@ test('MVP starts for free with only Chaerin and reaches its actual three-minute 
   state = demoReducer(state, { type: 'TICK', now: now + 179999 })
   assert.equal(state.activeSession?.phase, 'study')
   state = demoReducer(state, { type: 'TICK', now: now + 180000 })
-  assert.equal(state.activeSession?.phase, 'break')
+  assert.equal(state.activeSession?.phase, 'study')
   assert.equal(sessionStudySeconds(state.activeSession, now + 180000), 180)
+  state = demoReducer(state, { type: 'TICK', now: now + 181000 })
+  assert.equal(state.activeSession?.phase, 'study')
+  assert.equal(sessionStudySeconds(state.activeSession, now + 181000), 181)
   state = demoReducer(state, { type: 'FINISH', now: now + 181000 })
   assert.equal(state.records[0]?.targetSeconds, 180)
-  assert.equal(state.records[0]?.studySeconds, 180)
+  assert.equal(state.records[0]?.studySeconds, 181)
   assert.equal(state.records[0]?.completed, true)
 })
 

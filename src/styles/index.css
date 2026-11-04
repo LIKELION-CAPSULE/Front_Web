@@ -739,12 +739,13 @@
   .study-stage { position: relative; flex: 1; min-height: 0; }
   .character-tile,
   .self-tile {
+    --study-tile-radius: 16px;
     position: relative;
     min-width: 0;
     min-height: 0;
     overflow: hidden;
     border: 1px solid transparent;
-    border-radius: 16px;
+    border-radius: var(--study-tile-radius);
     background: var(--color-surface);
   }
   .character-tile {
@@ -777,7 +778,7 @@
   .tile-label {
     display: inline-block;
     border: 1px solid transparent;
-    border-radius: 999px;
+    border-radius: var(--study-tile-radius, 16px);
     background: color-mix(in srgb, var(--color-panel) 74.12%, transparent);
     padding: 5px 11px;
     color: var(--color-ink);
@@ -944,13 +945,14 @@
     gap: 10px;
   }
   .break-thumbnail {
+    --study-tile-radius: 10px;
     position: relative;
     width: 120px;
     height: 78px;
     flex-shrink: 1;
     overflow: hidden;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: var(--study-tile-radius);
     background: var(--color-surface);
   }
   .break-thumbnail .study-self-view > svg { width: 80%; max-height: 100%; }

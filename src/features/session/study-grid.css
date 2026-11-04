@@ -9,7 +9,7 @@
   .study-grid.is-one-to-one { grid-template-rows: minmax(0, 1fr); }
   .study-grid.is-focus {
     position: relative;
-    grid-template-columns: minmax(0, 1fr) repeat(var(--study-thumbnail-count), minmax(0, 120px));
+    grid-template-columns: minmax(0, 1fr) repeat(var(--study-thumbnail-count), minmax(0, 180px));
     grid-template-rows: minmax(0, 1fr);
     gap: 8px;
     padding: 16px 16px 112px;
@@ -20,18 +20,19 @@
     inset: 0;
   }
   .study-grid.is-focus > :not(.focus-tile) {
+    --study-tile-radius: 12px;
     z-index: 12;
     grid-row: 1;
     align-self: end;
     width: 100%;
     height: auto;
     aspect-ratio: 3 / 2;
-    border-radius: 12px;
+    border-radius: var(--study-tile-radius);
   }
   .study-grid.is-focus > :nth-child(2) { grid-column: 2; }
   .study-grid.is-focus > :nth-child(3) { grid-column: 3; }
   .study-grid.is-focus > :nth-child(4) { grid-column: 4; }
-  .study-grid.is-focus > .focus-tile .tile-speech { bottom: 208px; }
+  .study-grid.is-focus > .focus-tile .tile-speech { bottom: 248px; }
   .study-grid.is-focus > :not(.focus-tile) .tile-speech { display: none; }
   .study-grid.is-focus > :not(.focus-tile) .tile-action-symbol { width: 32px; height: 32px; }
   .study-grid.is-focus > :not(.focus-tile) .tile-action-symbol > .app-icon { width: 20px; height: 20px; }

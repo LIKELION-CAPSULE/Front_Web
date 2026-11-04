@@ -22,16 +22,18 @@ test('goal minutes are bounded, rounded to five minutes and tolerate legacy sess
   assert.equal(normalizeGoalMinutes(NaN), 50)
   assert.equal(studyGoalSeconds({}), 3000)
 })
-test('a new target starts at zero and changes the actual timer transition', () => {
+test('a new target starts at zero and study continues through and beyond it', () => {
   let state = start(25)
   assert.equal(sessionElapsed(state.activeSession, now), 0)
   assert.equal(state.activeSession!.targetSeconds, 1500)
   state = demoReducer(state, { type: 'TICK', now: now + 1499000 })
   assert.equal(state.activeSession!.phase, 'study')
+  state = demoReducer(state, { type: 'TICK', now: now + 1500000 })
+  assert.equal(state.activeSession!.phase, 'study')
+  assert.equal(sessionStudySeconds(state.activeSession, now + 1500000), 1500)
   state = demoReducer(state, { type: 'TICK', now: now + 1504000 })
-  assert.equal(state.activeSession!.phase, 'break')
-  assert.equal(state.activeSession!.studySeconds, 1500)
-  assert.equal(sessionElapsed(state.activeSession, now + 1504000), 4)
+  assert.equal(state.activeSession!.phase, 'study')
+  assert.equal(sessionStudySeconds(state.activeSession, now + 1504000), 1504)
 })
 test('taking a break preserves the chosen goal and early finish stores actual and target separately', () => {
   let state = start(90)
@@ -80,30 +82,32 @@ test('continuing a manual rest preserves the session, options and study total wi
   assert.equal(state.records[0]!.completed, false)
 })
 
-test('continuing before the goal still takes the automatic rest at the cumulative target', () => {
+test('continuing before the goal keeps studying beyond the cumulative target', () => {
   let state = demoReducer(start(5), { type: 'TAKE_BREAK', now: now + 120000 })
   state = demoReducer(state, { type: 'CONTINUE_STUDY', now: now + 180000 })
   state = demoReducer(state, { type: 'TICK', now: now + 359000 })
   assert.equal(state.activeSession!.phase, 'study')
   state = demoReducer(state, { type: 'TICK', now: now + 364000 })
-  assert.equal(state.activeSession!.phase, 'break')
-  assert.equal(state.activeSession!.studySeconds, 300)
-  assert.equal(sessionElapsed(state.activeSession, now + 364000), 4)
+  assert.equal(state.activeSession!.phase, 'study')
+  assert.equal(sessionStudySeconds(state.activeSession, now + 364000), 304)
 })
 
-test('an explicit continuation after goal completion counts overtime and survives reload and further rests', () => {
+test('a manual rest after goal completion preserves overtime across reload and further rests', () => {
   let state = demoReducer(start(5), { type: 'TICK', now: now + 300000 })
+  assert.equal(state.activeSession!.phase, 'study')
+  state = demoReducer(state, { type: 'TAKE_BREAK', now: now + 330000 })
   assert.equal(state.activeSession!.phase, 'break')
+  assert.equal(sessionStudySeconds(state.activeSession, now + 1000000), 330)
   state = demoReducer(state, { type: 'CONTINUE_STUDY', now: now + 1000000 })
   state = demoReducer(state, { type: 'TICK', now: now + 1060000 })
   assert.equal(state.activeSession!.phase, 'study')
-  assert.equal(sessionStudySeconds(state.activeSession, now + 1060000), 360)
+  assert.equal(sessionStudySeconds(state.activeSession, now + 1060000), 390)
   state = demoReducer(state, { type: 'TAKE_BREAK', now: now + 1060000 })
   state = JSON.parse(JSON.stringify(state))
-  assert.equal(sessionStudySeconds(state.activeSession, now + 1120000), 360)
+  assert.equal(sessionStudySeconds(state.activeSession, now + 1120000), 390)
   state = demoReducer(state, { type: 'CONTINUE_STUDY', now: now + 1120000 })
   state = demoReducer(state, { type: 'FINISH', now: now + 1150000 })
-  assert.equal(state.records[0]!.studySeconds, 390)
+  assert.equal(state.records[0]!.studySeconds, 420)
   assert.equal(state.records[0]!.targetSeconds, 300)
   assert.equal(state.records[0]!.completed, true)
   assert.equal(demoReducer(state, { type: 'CONTINUE_STUDY', now: now + 1151000 }), state)
@@ -123,21 +127,31 @@ test('ten minutes of manual rest automatically resumes the same study total and 
   assert.equal(state.ledger, ledger)
 })
 
-test('a delayed tick crosses goal and rest boundaries once and records post-rest study', () => {
+test('a delayed tick never invents a rest or loses overtime before finishing', () => {
   let state = demoReducer(start(5), { type: 'TICK', now: now + 945000 })
   assert.equal(state.activeSession!.phase, 'study')
-  assert.equal(sessionStudySeconds(state.activeSession, now + 945000), 345)
+  assert.equal(sessionStudySeconds(state.activeSession, now + 945000), 945)
   assert.equal(demoReducer(state, { type: 'TICK', now: now + 945000 }), state)
   state = demoReducer(state, { type: 'FINISH', now: now + 960000 })
-  assert.equal(state.records[0]!.studySeconds, 360)
+  assert.equal(state.records[0]!.studySeconds, 960)
   assert.equal(state.records[0]!.completed, true)
 })
 
-test('a late tick can cross manual rest, the remaining goal and its automatic rest', () => {
+test('a late tick resumes a manual rest and keeps all study time beyond the goal', () => {
   let state = demoReducer(start(5), { type: 'TAKE_BREAK', now: now + 120000 })
   state = demoReducer(state, { type: 'TICK', now: now + 1560000 })
   assert.equal(state.activeSession!.phase, 'study')
-  assert.equal(sessionStudySeconds(state.activeSession, now + 1560000), 360)
+  assert.equal(sessionStudySeconds(state.activeSession, now + 1560000), 960)
+})
+
+test('a saved studying session keeps its overtime without requiring a rest first', () => {
+  let state = JSON.parse(JSON.stringify(start(5)))
+  state = demoReducer(state, { type: 'TICK', now: now + 375000 })
+  assert.equal(state.activeSession!.phase, 'study')
+  assert.equal(sessionStudySeconds(state.activeSession, now + 375000), 375)
+  state = demoReducer(state, { type: 'FINISH', now: now + 375000 })
+  assert.equal(state.records[0]!.studySeconds, 375)
+  assert.equal(state.records[0]!.completed, true)
 })
 
 test('old saved completed rests restart study without counting frozen offline time', () => {

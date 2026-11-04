@@ -10,7 +10,7 @@
 | [HOVER_SCRATCH_BANNERS.md](HOVER_SCRATCH_BANNERS.md) | 호버 지우기 전환·가로 배너 3종·설정·수정 지점·검증 |
 | [HOME_AND_RECORDS.md](HOME_AND_RECORDS.md) | 홈 상태별 문구·룸 탐색 스크롤·기간별 기록·닉네임 이전 |
 | [INTERACTIONS_AND_STUDY_GOALS.md](INTERACTIONS_AND_STUDY_GOALS.md) | 북마크·체크박스·공부 히트맵·목표 시간과 타이머 |
-| [MY_PAGE.md](MY_PAGE.md) | 마이페이지의 프로필·아바타 편집과 통합 일정 관리 |
+| [MY_PAGE.md](MY_PAGE.md) | 제목 행의 프로필/일정 아이콘 전환, 프로필·아바타 편집과 통합 일정 관리 |
 | [REFERENCE_LICENSE_AUDIT.md](REFERENCE_LICENSE_AUDIT.md) | 실제 도입/참고 컴포넌트의 상업 이용 조건과 조치 |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | 통합 컬러·폰트 적용 기준과 2026-11-05 종료 리포트 유리 표면 예외. 버튼 상태·외곽선 예외·대비·코드 적용·유지 방법 및 검증 범위 |
 | [DESIGN_TOKENS.json](DESIGN_TOKENS.json) | 같은 기준의 기본 팔레트·용도 색·서체·글자 역할·버튼 상태·대비 계산값 |

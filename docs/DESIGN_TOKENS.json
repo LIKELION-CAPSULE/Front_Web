@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.15",
+  "version": "1.0.18",
   "updatedAt": "2026-11-05",
   "status": "implemented-in-web-code",
   "scope": [
@@ -702,6 +702,17 @@
     "reducedMotion": "static",
     "appliesToDeferredMvpScreens": true
   },
+  "myPage": {
+    "viewControl": "shared-Tabs-iconOnly-in-title-row",
+    "defaultView": "profile",
+    "views": ["profile", "schedule"],
+    "iconNames": ["user", "calendar"],
+    "controlTargetPx": 44,
+    "preserveMountedPanels": true,
+    "hideInactivePanel": true,
+    "scheduleHash": "#schedule",
+    "preserveReturnQuery": true
+  },
   "surfaces": {
     "flatSection": "panel",
     "interactiveCard": "surface",
@@ -764,6 +775,7 @@
       "foreground": "ink",
       "secondaryForeground": "muted",
       "menuItemHover": "floating-hover",
+      "accountMenuSeparatorGapPx": 8,
       "defaultOutline": false,
       "scope": [
         "tooltip",
@@ -818,6 +830,17 @@
       "control": 12,
       "card": 20,
       "dialog": 24
+    },
+    "studyTileRadius": {
+      "defaultPx": 16,
+      "studyThumbnailPx": 12,
+      "breakThumbnailPx": 10,
+      "labelMatchesFrame": true
+    },
+    "studyFocusThumbnail": {
+      "maxWidthPx": 180,
+      "maxHeightPx": 120,
+      "shrinkToAvailableWidth": true
     },
     "ordinaryOutline": false,
     "preserveInteractionOutlines": true,

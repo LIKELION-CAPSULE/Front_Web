@@ -1,27 +1,42 @@
-import { useEffect } from 'react'
-import { useLocation, useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { PageHeading } from '@/shared/ui/PageHeading'
 import { ButtonLink } from '@/shared/ui/Button'
 import { safeReturnPath } from '@/shared/lib/format'
 import { ProfileEditor } from '@/features/profile/components/ProfileEditor'
 import { ScheduleManager } from '@/features/schedule/components/ScheduleManager'
+import { Tabs } from '@/shared/ui/Tabs'
 import '@/features/profile/mypage.css'
+
+const views = [
+  { id: 'profile', label: '프로필·아바타', icon: 'user', controls: 'mypage-profile-panel' },
+  { id: 'schedule', label: '달력·일정', icon: 'calendar', controls: 'mypage-schedule-panel' },
+] as const
 
 export default function MyPage() {
   const [params] = useSearchParams()
-  const { hash } = useLocation()
-  useEffect(() => {
-    if (hash !== '#schedule') return
-    const frame = requestAnimationFrame(() => document.getElementById('schedule')?.scrollIntoView())
-    return () => cancelAnimationFrame(frame)
-  }, [hash])
+  const location = useLocation()
+  const navigate = useNavigate()
+  const view = location.hash === '#schedule' || params.get('add') === '1' ? 'schedule' : 'profile'
   const next = safeReturnPath(params.get('next'), '')
   return (
     <>
-      <PageHeading title="마이페이지" eyebrow={null} />
+      <div className="mypage-heading">
+        <PageHeading title="마이페이지" eyebrow={null} />
+        <Tabs
+          label="마이페이지 보기"
+          options={views}
+          value={view}
+          iconOnly
+          onChange={(value) => navigate({ pathname: location.pathname, search: location.search, hash: value === 'schedule' ? '#schedule' : '' }, { replace: true, preventScrollReset: true })}
+        />
+      </div>
       <div className="mypage-content">
-        <ProfileEditor />
-        <ScheduleManager />
+        <div id="mypage-profile-panel" hidden={view !== 'profile'}>
+          <ProfileEditor />
+        </div>
+        <div id="mypage-schedule-panel" hidden={view !== 'schedule'}>
+          <ScheduleManager />
+        </div>
         {next && !next.startsWith('/mypage') && (
           <div className="flex justify-end">
             <ButtonLink to={next} variant="secondary" size="md">
