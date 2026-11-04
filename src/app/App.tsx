@@ -5,11 +5,9 @@ import { DetailLayout } from '@/app/layouts/DetailLayout'
 import { RequireDemo } from '@/app/layouts/RequireDemo'
 import HomePage from '@/pages/HomePage'
 import { PageSkeleton } from '@/shared/ui/PageSkeleton'
+import MvpUnavailablePage from '@/pages/MvpUnavailablePage'
 
 const RoomDetailPage = lazy(() => import('@/pages/RoomDetailPage'))
-const RecordsPage = lazy(() => import('@/pages/RecordsPage'))
-const CharactersPage = lazy(() => import('@/pages/CharactersPage'))
-const CreditsPage = lazy(() => import('@/pages/CreditsPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
@@ -18,8 +16,6 @@ const PreparePage = lazy(() => import('@/pages/PreparePage'))
 const StudyPage = lazy(() => import('@/pages/StudyPage'))
 const ReportPage = lazy(() => import('@/pages/ReportPage'))
 const CapsuleCardPage = lazy(() => import('@/pages/CapsuleCardPage'))
-const ChargePage = lazy(() => import('@/pages/ChargePage'))
-const GiftShopPage = lazy(() => import('@/pages/GiftShopPage'))
 
 export function App() {
   return (
@@ -30,13 +26,10 @@ export function App() {
           <Route path="onboarding" element={<OnboardingPage />} />
           <Route element={<AppLayout />}>
             <Route index element={<HomePage />} />
-            <Route path="records" element={<RecordsPage />} />
+            <Route path="records" element={<MvpUnavailablePage />} />
             <Route path="mypage" element={<MyPage />} />
-            <Route path="characters" element={<CharactersPage />} />
-            <Route path="characters/:characterId" element={<CharactersPage />} />
-            <Route path="characters/:characterId/shop" element={<GiftShopPage />} />
-            <Route path="credits" element={<CreditsPage />} />
-            <Route path="credits/charge" element={<ChargePage />} />
+            <Route path="characters/*" element={<MvpUnavailablePage />} />
+            <Route path="credits/*" element={<MvpUnavailablePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="rooms/:roomId/prepare" element={<PreparePage />} />

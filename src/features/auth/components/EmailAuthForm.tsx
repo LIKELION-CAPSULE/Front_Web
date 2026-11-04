@@ -13,7 +13,7 @@ export function EmailAuthForm({
   onOpenDocument,
 }: {
   mode: EmailAuthMode
-  onSubmit: (email: string) => void
+  onSubmit: (email: string, nickname: string) => void
   onOpenDocument: (document: LegalDocumentId) => void
 }) {
   const signup = mode === 'signup'
@@ -41,6 +41,7 @@ export function EmailAuthForm({
         const next = validateEmailAuth({
           email: String(data.get('email') ?? ''), password: String(data.get('password') ?? ''),
           confirmPassword: String(data.get('confirmPassword') ?? ''),
+          nickname: String(data.get('nickname') ?? ''),
           agreeTerms: data.has('agreeTerms'), agreePrivacy: data.has('agreePrivacy'),
         }, signup, email.validity.valid)
         setErrors(next)
@@ -53,7 +54,7 @@ export function EmailAuthForm({
         // so going back preserves the draft. Credentials are never persisted or sent.
         const address = String(data.get('email') ?? '').trim()
         if (!signup) form.reset()
-        onSubmit(address)
+        onSubmit(address, String(data.get('nickname') ?? '').trim())
       }}
     >
       <FormField label="이메일" error={errors.email} errorId={errorId('email')}>
@@ -95,6 +96,21 @@ export function EmailAuthForm({
             onInput={() => clearError('confirmPassword')}
             aria-invalid={!!errors.confirmPassword || undefined}
             aria-describedby={errors.confirmPassword ? errorId('confirmPassword') : undefined}
+            className="form-input"
+          />
+        </FormField>
+      )}
+      {signup && (
+        <FormField label="닉네임" error={errors.nickname} errorId={errorId('nickname')}>
+          <input
+            name="nickname"
+            autoComplete="nickname"
+            required
+            maxLength={20}
+            placeholder="닉네임을 입력해 주세요"
+            onInput={() => clearError('nickname')}
+            aria-invalid={!!errors.nickname || undefined}
+            aria-describedby={errors.nickname ? errorId('nickname') : undefined}
             className="form-input"
           />
         </FormField>

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.7",
-  "updatedAt": "2026-11-03",
+  "version": "1.0.18",
+  "updatedAt": "2026-11-05",
   "status": "implemented-in-web-code",
   "scope": [
     "Front_Web"
@@ -690,6 +690,29 @@
     "color": "focus-ring",
     "mustNotClip": true
   },
+  "icons": {
+    "source": "https://animateicons.in/icons/lucide",
+    "implementation": "shared-Icon-with-local-official-sources",
+    "viewBox": 24,
+    "strokeWidth": 2,
+    "triggers": ["control-pointer-enter", "control-keyboard-focus", "input-group-click"],
+    "svgOverflow": "visible",
+    "repeat": false,
+    "repeatExceptions": ["current-affection-heart"],
+    "reducedMotion": "static",
+    "appliesToDeferredMvpScreens": true
+  },
+  "myPage": {
+    "viewControl": "shared-Tabs-iconOnly-in-title-row",
+    "defaultView": "profile",
+    "views": ["profile", "schedule"],
+    "iconNames": ["user", "calendar"],
+    "controlTargetPx": 44,
+    "preserveMountedPanels": true,
+    "hideInactivePanel": true,
+    "scheduleHash": "#schedule",
+    "preserveReturnQuery": true
+  },
   "surfaces": {
     "flatSection": "panel",
     "interactiveCard": "surface",
@@ -707,6 +730,25 @@
       "scope": [
         "image-overlay-caption"
       ],
+      "requiresCompositedContrastCheck": true
+    },
+    "completionReport": {
+      "source": "Full-screen completion scene approved by the user on 2026-11-05",
+      "scope": ["report-dialogue", "report-content"],
+      "characterAndDialogueShareHorizontalCenter": true,
+      "characterBackgroundIsSeparate": true,
+      "quoteMotion": "shared-chat-typing-with-reserved-final-height",
+      "decoration": "animateicons-lucide-heart-and-sparkles",
+      "currentAffectionHeartMotion": { "durationSeconds": 0.8, "repeatDelaySeconds": 0.7, "repeat": "infinite", "trigger": "mount", "restartOnHover": false, "reducedMotion": "static" },
+      "numberMotion": { "source": "tween-ui-number-counter", "durationSeconds": 1.8, "playback": "once-on-viewport-entry", "reducedMotion": "final-value", "reserveFinalWidth": true, "clipRollingDigits": "per-digit-with-outer-guard", "digitDirection": "up", "fixedDigitColumns": true, "baseline": "normal-inline-text", "lineHeight": "inherit", "maskPaddingPx": 0 },
+      "ctaEmphasis": { "durationSeconds": 3.6, "repeat": "infinite", "reducedMotion": "static", "pauseOnInteraction": true },
+      "gradientStart": { "color": "panel", "alpha": 0.88 },
+      "gradientEnd": { "color": "canvas", "alpha": 0.82 },
+      "blurPx": 24,
+      "saturatePercent": 120,
+      "fallback": "panel",
+      "foreground": "ink",
+      "defaultOutline": false,
       "requiresCompositedContrastCheck": true
     },
     "legacyStudyDock": {
@@ -733,6 +775,7 @@
       "foreground": "ink",
       "secondaryForeground": "muted",
       "menuItemHover": "floating-hover",
+      "accountMenuSeparatorGapPx": 8,
       "defaultOutline": false,
       "scope": [
         "tooltip",
@@ -767,6 +810,9 @@
     "colorMustNotBeSoleStateCue": true,
     "globalOpacityOnInteractiveText": false,
     "affectionIsNotAnActionColor": true,
+    "studyLevelIsNotAffection": true,
+    "studyLevelProgressColors": ["primary", "text-accent"],
+    "affectionProgressColor": "affection",
     "meaningfulTextMinPx": 12,
     "storyFontMinPx": 20,
     "smallViewportMaxExclusivePx": 640,
@@ -784,6 +830,17 @@
       "control": 12,
       "card": 20,
       "dialog": 24
+    },
+    "studyTileRadius": {
+      "defaultPx": 16,
+      "studyThumbnailPx": 12,
+      "breakThumbnailPx": 10,
+      "labelMatchesFrame": true
+    },
+    "studyFocusThumbnail": {
+      "maxWidthPx": 180,
+      "maxHeightPx": 120,
+      "shrinkToAvailableWidth": true
     },
     "ordinaryOutline": false,
     "preserveInteractionOutlines": true,

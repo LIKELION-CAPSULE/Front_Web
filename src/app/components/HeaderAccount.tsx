@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink } from 'react-router'
+import { Link } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { number } from '@/shared/lib/format'
 import { Avatar } from '@/shared/ui/Avatar'
@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
 import { Icon } from '@/shared/ui/Icon'
 import { FloatingSurface } from '@/shared/ui/FloatingSurface'
+import { MvpGate } from '@/features/mvp/MvpGate'
 
 export function HeaderAccount() {
   const { state, dispatch } = useDemo()
@@ -27,11 +28,13 @@ export function HeaderAccount() {
   return (
     <>
       <div className="header-account ml-auto flex shrink-0 items-center gap-2 sm:gap-5">
-        <NavLink to="/credits" className="credit-chip">
-          <Icon name="coin" size={16} />
-          <span className="sr-only">크레딧</span>
-          <span className="font-sans tabular-nums text-body-compact font-bold text-ink">{number(state.credits)}</span>
-        </NavLink>
+        <MvpGate label="내 크레딧 · 충전" compact inline>
+          <span className="credit-chip">
+            <Icon name="coin" size={16} />
+            <span className="sr-only">크레딧</span>
+            <span className="font-sans tabular-nums text-body-compact font-bold text-ink">{number(state.credits)}</span>
+          </span>
+        </MvpGate>
         <details
           ref={menuRef}
           className="relative z-30"
@@ -56,7 +59,7 @@ export function HeaderAccount() {
             <Avatar size="md" />
           </summary>
           <FloatingSurface className="absolute top-12 right-0 w-60 rounded-card p-3">
-            <p className="border-b border-floating-hover px-3 py-2 text-body-compact font-bold">
+            <p className="mb-2 border-b border-floating-hover px-3 py-2 text-body-compact font-bold">
               {state.profile.name}
             </p>
             <Link

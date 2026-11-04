@@ -6,18 +6,16 @@ import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
 import { welcomeBanners } from '../welcome-banners'
 import { welcomeCopy } from '../welcome-copy'
+import { MVP_ROOM_ID } from '@/features/mvp/policy'
 
 export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
   const { state } = useDemo()
   const latest = state.records[0]
-  const room = getStudyRoom(state.activeSession?.roomId ?? latest?.roomId ?? 'dawn-library')!
+  const room = getStudyRoom(MVP_ROOM_ID)!
   const active = state.activeSession
   const returning = !!active || (!state.firstVisit && !!latest)
   const copy = active ? welcomeCopy.active : returning ? welcomeCopy.returning : welcomeCopy.fresh
-  const preparationSearch = new URLSearchParams()
-  if (latest?.targetSeconds) preparationSearch.set('goal', String(latest.targetSeconds / 60))
-  if (latest?.tier) preparationSearch.set('tier', latest.tier)
-  const preparationPath = `/rooms/${room.id}/prepare${preparationSearch.size ? `?${preparationSearch}` : ''}`
+  const preparationPath = `/rooms/${room.id}/prepare`
   return (
     <HoverScratchCarousel
       className="welcome-hero"
@@ -53,7 +51,7 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
                       : preparationPath
                   }
                 >
-                  <Icon name="play" size={17} motion="pulse" /> 이어서 공부하기
+                  <Icon name="play" size={17} /> 이어서 공부하기
                 </ButtonLink>
               ) : (
                 <Button onClick={onExplore}>

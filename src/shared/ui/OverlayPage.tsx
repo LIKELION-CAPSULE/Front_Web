@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
 import { cn } from '@/shared/lib/cn'
+import { Icon } from './Icon'
 
 export function OverlayPage({
   children,
@@ -34,9 +35,9 @@ export function OverlayPage({
             {backTo && (
               <Link
                 to={backTo}
-                className="inline-flex min-h-8 shrink-0 items-center text-body-compact text-muted hover:text-ink"
+                className="inline-flex min-h-8 shrink-0 items-center gap-2 text-body-compact text-muted hover:text-ink"
               >
-                ← 돌아가기
+                <Icon name="arrow" size={16} className="rotate-180" /> 돌아가기
               </Link>
             )}
             {headerAside && <div className="ml-auto min-w-0">{headerAside}</div>}

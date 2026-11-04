@@ -3,9 +3,10 @@ import type { ReactNode } from 'react'
 import { DemoContext } from './demo-context'
 import { DEMO_STORAGE_KEY, loadDemoState } from './persistence'
 import { demoReducer } from './reducer'
+import { migrateMvpSession } from '@/features/mvp/session'
 
 export function DemoProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(demoReducer, undefined, loadDemoState)
+  const [state, dispatch] = useReducer(demoReducer, undefined, () => migrateMvpSession(loadDemoState()))
   const [storageAvailable, setStorageAvailable] = useState(true)
   useEffect(() => {
     try {

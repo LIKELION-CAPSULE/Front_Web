@@ -16,6 +16,10 @@ import { Icon } from '@/shared/ui/Icon'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { CharacterArtwork } from '@/features/characters/components/CharacterArtwork'
 import { withParticle } from '@/shared/lib/korean'
+import { studyLevel } from '@/features/demo/selectors'
+import { affectionScore } from '@/features/characters/affection'
+import { AffectionStatus } from '@/features/characters/components/AffectionStatus'
+import { StudyLevelProgress } from '@/features/characters/components/StudyLevelProgress'
 
 export default function GiftShopPage() {
   const { characterId } = useParams()
@@ -29,6 +33,7 @@ export default function GiftShopPage() {
     .flatMap((room) => room.characters)
     .find((item) => item.id === characterId)
   if (!character) return <NotFoundPage />
+  const level = studyLevel(state, character.id)
   const selected = products.find((product) => product.id === selection)!
   const inbox = state.gifts.filter((gift) => gift.characterId === character.id)
   function sendGift(now: number) {
@@ -44,8 +49,8 @@ export default function GiftShopPage() {
   }
   return (
     <>
-      <Link to={`/characters/${character.id}`} className="mb-3 inline-block text-body-compact text-muted">
-        ← {character.name}
+      <Link to={`/characters/${character.id}`} className="mb-3 inline-flex items-center gap-2 text-body-compact text-muted">
+        <Icon name="arrow" size={16} className="rotate-180" /> {character.name}
       </Link>
       <PageHeading title={`${character.name}에게 선물 · 보이스`} eyebrow={null} />
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,784fr)_minmax(300px,400fr)]">
@@ -96,9 +101,9 @@ export default function GiftShopPage() {
                     {product.kind === '보이스' && (
                       <button
                         onClick={() => setPreview(product.reply)}
-                        className="button-subtle relative z-10 rounded-full border border-transparent px-2 py-1 text-caption"
+                        className="button-subtle relative z-10 inline-flex items-center gap-1.5 rounded-full border border-transparent px-2 py-1 text-caption"
                       >
-                        ▶ 미리 듣기
+                        <Icon name="play" size={12} /> 미리 듣기
                       </button>
                     )}
                   </div>
@@ -110,6 +115,11 @@ export default function GiftShopPage() {
           <div className="gift-recipient">
             <CharacterArtwork characterId={character.id} pose="affection" variant="card" />
           </div>
+          <section className="mb-6" aria-label={`${character.name}의 레벨과 호감도`}>
+            <h2 className="type-card-title">{character.name}</h2>
+            <StudyLevelProgress level={level.level} next={level.next} progress={level.progress} />
+            <div className="mt-4"><AffectionStatus name={character.name} score={affectionScore(state, character.id)} /></div>
+          </section>
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="min-w-0 type-card-title">
               {selected.name} · {selected.kind}
@@ -152,9 +162,9 @@ export default function GiftShopPage() {
                   <span className="min-w-20 flex-1 type-body-compact">{gift.name}</span>
                   <button
                     onClick={() => setPreview(gift.reply)}
-                    className="text-caption font-bold text-text-accent"
+                    className="inline-flex items-center gap-1.5 text-caption font-bold text-text-accent"
                   >
-                    {gift.voice ? '▶ 다시 듣기' : '답장 보기'}
+                    {gift.voice ? <><Icon name="play" size={12} /> 다시 듣기</> : '답장 보기'}
                   </button>
                 </div>
               ))

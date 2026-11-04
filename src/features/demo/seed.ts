@@ -73,6 +73,7 @@ export function createDemoState(now = Date.now()): DemoState {
       avatar: { hair: 1, outfit: 0, appearance: 0, background: 0 },
     },
     firstVisit: false,
+    affection: {},
     credits: balance,
     ledger,
     pass: null,

@@ -1,0 +1,264 @@
+{
+  "project": "AnimateIcons Lucide",
+  "catalog": "https://animateicons.in/icons/lucide",
+  "repository": "https://github.com/Avijit07x/animateicons",
+  "revision": "49b3c297b4fa3364e9c24f5208ce6c22aa35bac8",
+  "reviewedOn": "2026-11-05",
+  "changes": [
+    "Root motion.div changed to motion.span for valid inline text and button content.",
+    "cn import points to local helper.",
+    "Mouse event types made strict without any.",
+    "Shared Icon adapter adds whole-control pointer and keyboard focus triggers; disabled/inert controls stay static.",
+    "Shared adapter supports data-icon-trigger input groups and group clicks; SVG overflow stays visible for translated paths.",
+    "Use the shared live reduced-motion subscription so icons mounted with reduced motion can animate after the preference is switched off.",
+    "Heart artwork optionally auto-repeats its original heartbeat (0.8s motion + 0.7s delay). The current-affection Icon opts in and skips interaction triggers; reduced motion sets the normal pose."
+  ],
+  "icons": [
+    {
+      "name": "search",
+      "icon": "search",
+      "path": "icons/lucide/search-icon.tsx",
+      "originalSha256": "725cc96c7610120fa32caebb2265371cf0e5d29647b0d49bb5736e6572fb3874"
+    },
+    {
+      "name": "home",
+      "icon": "house",
+      "path": "icons/lucide/house-icon.tsx",
+      "originalSha256": "e81ba4f2f64dd49f3a512d1200d5b83f40e9c7c2a7ec1f9b9c0f216dc8f74740"
+    },
+    {
+      "name": "chart",
+      "icon": "chart-column",
+      "path": "icons/lucide/chart-column-icon.tsx",
+      "originalSha256": "e20e79983286f3876693c7ac81549bbb47035d3bb295b206aad3c423b9111de4"
+    },
+    {
+      "name": "heart",
+      "icon": "heart",
+      "path": "icons/lucide/heart-icon.tsx",
+      "originalSha256": "214f72a770fbca97d83ef003757630e2839e27b9867bd4cf1643a3bb7ff8b80c"
+    },
+    {
+      "name": "arrow",
+      "icon": "arrow-right",
+      "path": "icons/lucide/arrow-right-icon.tsx",
+      "originalSha256": "86e5f295ba3ba1ca495e17834e955362bb1290d6355a26d82485787d8a3afc09"
+    },
+    {
+      "name": "chevron",
+      "icon": "chevron-right",
+      "path": "icons/lucide/chevron-right-icon.tsx",
+      "originalSha256": "74206a98d5e49cf1b5c61d7dd6aaf4d3b432987189470926fed17c3a76e6809d"
+    },
+    {
+      "name": "chevronsVertical",
+      "icon": "chevrons-up-down",
+      "path": "icons/lucide/chevrons-up-down-icon.tsx",
+      "originalSha256": "bc27af098fb6e6ccf2a3964131e9d38d324bdb1f9326bee3226b87ec16b522d7"
+    },
+    {
+      "name": "bookmark",
+      "icon": "bookmark",
+      "path": "icons/lucide/bookmark-icon.tsx",
+      "originalSha256": "08ba4f21eb5ce10304514047010841e674f08ab56b430e73c8f01b38a76ac9be"
+    },
+    {
+      "name": "book",
+      "icon": "book-open",
+      "path": "icons/lucide/book-open-icon.tsx",
+      "originalSha256": "1f2a1c52bf5b5e428d6f1a203db55e8d59ad3f445a7edbe25276e53447d82543"
+    },
+    {
+      "name": "clock",
+      "icon": "clock",
+      "path": "icons/lucide/clock-icon.tsx",
+      "originalSha256": "b2bce3c964388130b2611f519686c8dd96122291727883d6245dde98d5272993"
+    },
+    {
+      "name": "calendar",
+      "icon": "calendar-days",
+      "path": "icons/lucide/calendar-days-icon.tsx",
+      "originalSha256": "e044508c91e81d28666c261cdda079b476e68ee53ea8e7e248e844b56fd2c361"
+    },
+    {
+      "name": "sparkle",
+      "icon": "sparkles",
+      "path": "icons/lucide/sparkles-icon.tsx",
+      "originalSha256": "1c3588eab664beee4ad473882a7812050df0fc43ad803bad799ab759cce09380"
+    },
+    {
+      "name": "coin",
+      "icon": "coins",
+      "path": "icons/lucide/coins-icon.tsx",
+      "originalSha256": "a117b641879e16dc92896d11d39baccbeb0c69e47dbca168b6d0f0b38a95c307"
+    },
+    {
+      "name": "play",
+      "icon": "play",
+      "path": "icons/lucide/play-icon.tsx",
+      "originalSha256": "417f03cf78bd2fcf1c4d6e4f205204715236170830b7fb74e34638190e8bfdad"
+    },
+    {
+      "name": "pause",
+      "icon": "pause",
+      "path": "icons/lucide/pause-icon.tsx",
+      "originalSha256": "b25ea66472564cada670de6deff8d60c3aa54fdf20424a6d6e86a96bd163c082"
+    },
+    {
+      "name": "stop",
+      "icon": "square",
+      "path": "icons/lucide/square-icon.tsx",
+      "originalSha256": "aada95a1a6ade2763bdaf4fa6937895b49d2340c2f2ffa85eaf5dc22cb472f75"
+    },
+    {
+      "name": "zoomIn",
+      "icon": "zoom-in",
+      "path": "icons/lucide/zoom-in-icon.tsx",
+      "originalSha256": "73b16a312bf3a6925e6aa6d0c48c2a278e539a3a43377afcb393e769fc7d397a"
+    },
+    {
+      "name": "chat",
+      "icon": "message-circle",
+      "path": "icons/lucide/message-circle-icon.tsx",
+      "originalSha256": "dba1464aa26608c7e2156719c686811fa70461a15166802947043edc2f879e28"
+    },
+    {
+      "name": "gift",
+      "icon": "gift",
+      "path": "icons/lucide/gift-icon.tsx",
+      "originalSha256": "597aa11a0536dc1bf89c8a59eda50438b4df97819ad9465ace916974472f9569"
+    },
+    {
+      "name": "headphones",
+      "icon": "headphones",
+      "path": "icons/lucide/headphones-icon.tsx",
+      "originalSha256": "ced5848e648f7656f24d7bda40d85dd2ddf9d6efd99b02dd59e658c8da214573"
+    },
+    {
+      "name": "check",
+      "icon": "check",
+      "path": "icons/lucide/check-icon.tsx",
+      "originalSha256": "98cd5c1a3cbc8150e49837ef1e3e36e5d3b20410f252a8d7022a23250d48c478"
+    },
+    {
+      "name": "warning",
+      "icon": "triangle-alert",
+      "path": "icons/lucide/triangle-alert-icon.tsx",
+      "originalSha256": "63de769c1c6e4aa89efcee80698d56f09ef3bb0ebe20b0c9eb73979596ef891c"
+    },
+    {
+      "name": "info",
+      "icon": "info",
+      "path": "icons/lucide/info-icon.tsx",
+      "originalSha256": "15d0306d4a8911dd3fe6d81d5b8f3694fc56391bb6d806c5203ed5716fbd8141"
+    },
+    {
+      "name": "more",
+      "icon": "ellipsis",
+      "path": "icons/lucide/ellipsis-icon.tsx",
+      "originalSha256": "6600d67ed94866fa1ca8854257a5a4970f38a3761805ec6b0bce50f16aeedc09"
+    },
+    {
+      "name": "help",
+      "icon": "circle-question-mark",
+      "path": "icons/lucide/circle-question-mark-icon.tsx",
+      "originalSha256": "619df4e8b5d69d4bf95d2fb36fec87eb4d4b7cb8f0bf3051c748f1609f34d28c"
+    },
+    {
+      "name": "camera",
+      "icon": "camera",
+      "path": "icons/lucide/camera-icon.tsx",
+      "originalSha256": "9e0eee18a92102b43b17241517d9627bb58c00d8e7d0025ff51812962e0cf81f"
+    },
+    {
+      "name": "video",
+      "icon": "video",
+      "path": "icons/lucide/video-icon.tsx",
+      "originalSha256": "4d1348b6b52798cf88c0cfc480cd02ec9dd217e64c54eb187a932923fae0ccaa"
+    },
+    {
+      "name": "videoOff",
+      "icon": "video-off",
+      "path": "icons/lucide/video-off-icon.tsx",
+      "originalSha256": "ef5b946b7e7f3e270a85f371b84aa48be62747df7a3854b18367820e92bc1996"
+    },
+    {
+      "name": "microphone",
+      "icon": "mic",
+      "path": "icons/lucide/mic-icon.tsx",
+      "originalSha256": "f42104ed7ffb58f739aade78b0aabacd7c4845f79b3ca86f42c70287079a11d5"
+    },
+    {
+      "name": "microphoneOff",
+      "icon": "mic-off",
+      "path": "icons/lucide/mic-off-icon.tsx",
+      "originalSha256": "96f1f3aed8fca9ef1c38e9ad6a9bbc1baf18a7aa63d1d7db1482c45c1f534d39"
+    },
+    {
+      "name": "user",
+      "icon": "user-round",
+      "path": "icons/lucide/user-round-icon.tsx",
+      "originalSha256": "c9d040fe192308b93d5de7d05ab270b51b547ecbc97afcc0defe0c23ed7043e7"
+    },
+    {
+      "name": "sliders",
+      "icon": "sliders-horizontal",
+      "path": "icons/lucide/sliders-horizontal-icon.tsx",
+      "originalSha256": "89be68f6ddeba73e84c0d7c1773ffe54a623479b216bff5c929ad5b4ab780ab7"
+    },
+    {
+      "name": "expand",
+      "icon": "maximize",
+      "path": "icons/lucide/maximize-icon.tsx",
+      "originalSha256": "deafa99cba140a110a7e946b5fcdd5a7815f6b02e535093c0fcef04abc83dbc7"
+    },
+    {
+      "name": "shrink",
+      "icon": "minimize",
+      "path": "icons/lucide/minimize-icon.tsx",
+      "originalSha256": "edcf43ffe5ead628a13939ce72797a8f2eb22acef9e71d3b6b62e9b19a7ba6cf"
+    },
+    {
+      "name": "moon",
+      "icon": "moon",
+      "path": "icons/lucide/moon-icon.tsx",
+      "originalSha256": "dbdf5c5a215704c9f68ae7ae9fac3e99987cdadcdb47d7608e2d70ba5ecd86b2"
+    },
+    {
+      "name": "coffee",
+      "icon": "coffee",
+      "path": "icons/lucide/coffee-icon.tsx",
+      "originalSha256": "e07cccf3ced5b33ac0e4791660c8b6093ee9d5296b7e971443f85bd477943c76"
+    },
+    {
+      "name": "lock",
+      "icon": "lock-keyhole",
+      "path": "icons/lucide/lock-keyhole-icon.tsx",
+      "originalSha256": "fa48fd781e3152cc7696408fb55e3bae64de1276096b6a3c03a9ffaeb8e4ec8e"
+    },
+    {
+      "name": "close",
+      "icon": "x",
+      "path": "icons/lucide/x-icon.tsx",
+      "originalSha256": "8f3e1a231988c558c2f9898196a5e269bf682ad83355144e475b95bd308453d9"
+    },
+    {
+      "name": "ban",
+      "icon": "ban",
+      "path": "icons/lucide/ban-icon.tsx",
+      "originalSha256": "58c38201e73001b188abd5c36555e3baf144cf4ee1c3153b6a3e12329f28449f"
+    },
+    {
+      "name": "droplet",
+      "icon": "droplet",
+      "path": "icons/lucide/droplet-icon.tsx",
+      "originalSha256": "917eb2339d6437458bcd100cb6a4b11616774fdb813b9f4d1c5216468b25d91f"
+    },
+    {
+      "name": "image",
+      "icon": "image",
+      "path": "icons/lucide/image-icon.tsx",
+      "originalSha256": "f65c81ae687505013110f5bdf9a1b40c9a1058beb423e365ad056f826a0296dc"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import type { RefObject } from 'react'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
+import '../typing-message.css'
 
 export function TypingMessage({ id, text, seen, onProgress, onTypingChange }: { id: string; text: string; seen: RefObject<Set<string>>; onProgress: () => void; onTypingChange: (id: string, typing: boolean) => void }) {
   const ref = useRef<HTMLSpanElement>(null)

@@ -1,3 +1,12 @@
+.mypage-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-content-compact);
+  margin-bottom: var(--spacing-panel-roomy);
+}
+.mypage-heading > .page-heading { margin-bottom: 0; }
+.mypage-heading h1 { white-space: nowrap; }
 .mypage-content {
   display: grid;
   gap: var(--spacing-content);
@@ -96,7 +105,7 @@
   position: relative;
   min-width: 0;
 }
-.schedule-calendar-dropdown > svg {
+.schedule-calendar-dropdown > .app-icon {
   position: absolute;
   top: 50%;
   right: 8px;

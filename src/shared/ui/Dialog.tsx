@@ -1,6 +1,7 @@
 import { useId, useLayoutEffect, useRef } from 'react'
 import type { MouseEvent, PointerEvent, ReactNode } from 'react'
 import { cn } from '@/shared/lib/cn'
+import { Icon } from './Icon'
 
 function isBackdrop(event: MouseEvent<HTMLDialogElement> | PointerEvent<HTMLDialogElement>) {
   if (event.target !== event.currentTarget) return false
@@ -114,7 +115,7 @@ export function Dialog({
           aria-label={closeLabel}
           className={cn('-mt-1 flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-subtle transition-colors hover:bg-control-hover', titleAlign === 'center' && 'absolute right-0')}
         >
-          ×
+          <Icon name="close" size={20} />
         </button>}
       </div>
       {children}

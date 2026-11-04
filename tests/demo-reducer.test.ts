@@ -74,41 +74,35 @@ test('resuming a legacy stopped session cannot pause a running session', () => {
   assert.equal(sessionElapsed(state.activeSession, now + 102000), 7)
 })
 
-test('a late manual break caps study time at its goal without adding the delay to rest', () => {
+test('a manual break preserves overtime and starts a fresh rest timer', () => {
   let state = demoReducer(createDemoState(now), start())
   state = demoReducer(state, { type: 'TAKE_BREAK', now: now + 3100000 })
-  assert.equal(state.activeSession?.studySeconds, 3000)
+  assert.equal(state.activeSession?.studySeconds, 3100)
   assert.equal(sessionElapsed(state.activeSession, now + 3100000), 0)
 })
 
-test('study automatically enters break and preserves elapsed overflow', () => {
+test('study never enters a break automatically when the goal is exceeded', () => {
   let state = demoReducer(createDemoState(now), start())
   const transition = now + (3000 + 6) * 1000
   state = demoReducer(state, { type: 'TICK', now: transition })
-  assert.equal(state.activeSession?.phase, 'break')
-  assert.equal(state.activeSession?.studySeconds, 3000)
-  assert.equal(sessionElapsed(state.activeSession, transition), 6)
+  assert.equal(state.activeSession?.phase, 'study')
+  assert.equal(sessionElapsed(state.activeSession, transition), 3006)
   state = demoReducer(state, { type: 'TICK', now: transition + 700000 })
   assert.equal(state.activeSession?.phase, 'study')
-  assert.equal(sessionElapsed(state.activeSession, transition + 800000), 3206)
+  assert.equal(sessionElapsed(state.activeSession, transition + 800000), 3806)
 })
 
-test('basic chat shares the daily limit across characters and resets at 05:00 Seoul', () => {
+test('free chat remains available after three messages and still tracks daily usage', () => {
   let state = demoReducer(createDemoState(now), start('basic'))
   for (const id of ['chaerin', 'sua', 'dahee'])
     state = demoReducer(state, { type: 'MESSAGE', now, characterId: id, name: id, text: '화이팅' })
   assert.equal(state.chatUsage.used, 3)
   assert.equal(new Set(state.messages.map((message) => message.id)).size, 6)
-  assert.equal(
-    demoReducer(state, {
-      type: 'MESSAGE',
-      now,
-      characterId: 'chaerin',
-      name: '채린',
-      text: '한 번 더',
-    }),
-    state,
-  )
+  for (let i = 0; i < 10; i++) {
+    state = demoReducer(state, { type: 'MESSAGE', now: now + i, characterId: 'chaerin', name: '채린', text: `한 번 더 ${i}` })
+  }
+  assert.equal(state.chatUsage.used, 13)
+  assert.equal(state.messages.length, 26)
   const nextDay = new Date('2026-10-27T05:00:00+09:00').getTime()
   assert.notEqual(businessDay(nextDay - 1), businessDay(nextDay))
   state = demoReducer(state, {
@@ -128,7 +122,7 @@ test('finishing records the session once without inventing focus measurements', 
   state = demoReducer(state, { type: 'FINISH', now: now + 3010000 })
   assert.equal(state.records.length, count + 1)
   const record = state.records[0]!
-  assert.equal(record.studySeconds, 3000)
+  assert.equal(record.studySeconds, 3010)
   assert.equal(record.observedSeconds, 0)
   assert.equal(record.focusSeconds + record.awaySeconds, 0)
   assert.equal(record.returns, 0)
@@ -169,7 +163,7 @@ test('a pass covers standard and one premium set per business day', () => {
   assert.equal(tierCost(state, 'premium', now + 86400000), 0)
 })
 
-test('gifts debit the ledger without changing study-based relationships', () => {
+test('gifts debit the ledger without changing study-level history or assigning affection', () => {
   const initial = createDemoState(now)
   const next = demoReducer(initial, {
     type: 'GIFT',
@@ -180,6 +174,7 @@ test('gifts debit the ledger without changing study-based relationships', () => 
   })
   assert.equal(next.credits, 940)
   assert.equal(next.records, initial.records)
+  assert.equal(next.affection, initial.affection)
   assert.equal(next.gifts.length, initial.gifts.length + 1)
   const poor = { ...initial, credits: 50 }
   assert.equal(

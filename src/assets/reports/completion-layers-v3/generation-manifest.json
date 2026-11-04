@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-11-05",
+  "tool": "built-in image_gen",
+  "reference": "../completion-scene-v2/chaerin-completion-scene-v2.webp",
+  "assets": [
+    {
+      "id": "classroom-completion-background-v3",
+      "useCase": "precise-object-edit",
+      "transparentBackground": false,
+      "width": 1672,
+      "height": 941,
+      "master": "classroom-completion-background-v3.png",
+      "web": "classroom-completion-background-v3.webp",
+      "prompt": "Use case: precise-object-edit.\nAsset type: clean background plate for a layered full-screen study-completion scene.\nInput image 1 is the EDIT TARGET. Remove Chaerin completely from the left half: remove her entire body, hair, waving hand, notebook and all person-related shadows or reflections. Seamlessly reconstruct the empty sunset classroom behind her.\nPreserve the same 16:9 landscape composition, camera angle, perspective, classroom walls, chalkboard, bookcase, desks, warm sunset windows, amber/peach palette and polished detailed Korean anime illustration style. Keep the classroom continuous and natural, with open uncluttered space at left where the separately rendered character will be placed. Right half remains a calm classroom background for a real HTML results panel.\nNo people, silhouettes, cutouts, text, UI, overlays, logos, watermark or frames. Fully opaque background. Do not leave a person-shaped patch, blurred person or bright outline. Landscape 16:9, ideally around 2048x1152.",
+      "encoding": {
+        "quality": 88,
+        "method": 6
+      }
+    },
+    {
+      "id": "chaerin-completion-character-v3",
+      "useCase": "background-extraction / identity-preserve",
+      "transparentBackground": true,
+      "width": 1024,
+      "height": 1536,
+      "master": "chaerin-completion-character-v3.png",
+      "web": "chaerin-completion-character-v3.webp",
+      "prompt": "Use case: background-extraction, identity-preserve.\nAsset type: transparent character cutout for a layered full-screen study-completion report.\nInput image 1 is the EDIT TARGET: extract ONLY the exact Chaerin character from the left half. Preserve her recognizable face, long pale-blonde hair with bangs, grey eyes, same warm bashful smile, same gentle waving hand, white rolled-sleeve collared shirt, loose dark tie, dark closed notebook held against her torso, and dark pleated skirt. Preserve the existing warm golden rim lighting and polished detailed Korean anime illustration style. Do not redesign or change her pose, identity, expression, outfit, hand anatomy or illustration style.\nReframe the extracted figure into a PORTRAIT image on a genuinely transparent background, with her visible silhouette horizontally centered. Include the whole head with a small clear margin above it, all outer hair and fingers without cropping, and body through the upper thighs with the skirt naturally continuing to the bottom edge. Her head, torso and waving hand should have a natural coherent scale, with minimal transparent padding around the silhouette so the overall left/right bounds are centered in the canvas.\nRemove the entire classroom, floor, desk, window, ambient scenery, and any background shadows: only the character and notebook remain. No opaque background, checkerboard painted as pixels, ground, pedestal, white halo, new accessories, letters, captions, UI, frames, logos or watermarks. Preserve true alpha transparency including hair edges.",
+      "encoding": {
+        "quality": 90,
+        "alphaQuality": 100,
+        "method": 6
+      }
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { cn } from '@/shared/lib/cn'
 import { useDemo } from '@/features/demo/demo-context'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import { MvpGate } from '@/features/mvp/MvpGate'
 
 const navigation = [
   { to: '/', label: '홈', end: true, icon: 'home' },
@@ -25,15 +26,21 @@ export function AppLayout() {
         navigation={(
           <nav aria-label="주요 메뉴" className="app-navigation">
             {navigation.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) => cn('app-nav-item', isActive && 'is-active')}
-              >
-                <Icon name={item.icon as IconName} size={17} motion={item.icon === 'heart' ? 'pulse' : 'draw'} />
-                {item.label}
-              </NavLink>
+              item.to !== '/' ? (
+                <MvpGate key={item.to} label={item.label} className="mvp-nav" compact>
+                  <span className="app-nav-item"><Icon name={item.icon as IconName} size={17} />{item.label}</span>
+                </MvpGate>
+              ) : (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => cn('app-nav-item', isActive && 'is-active')}
+                >
+                  <Icon name={item.icon as IconName} size={17} />
+                  {item.label}
+                </NavLink>
+              )
             ))}
           </nav>
         )}
@@ -52,7 +59,7 @@ export function AppLayout() {
           CAPSULE <span className="mx-2 text-divider">/</span> 같이 공부하는 시간의 힘.
         </span>
         <span>
-          작은 집중이 쌓이는 곳 <span className="ml-3 text-text-accent">✦</span>
+          작은 집중이 쌓이는 곳 <Icon name="sparkle" size={14} className="ml-3 text-text-accent" />
         </span>
       </footer>
     </div>

@@ -28,7 +28,7 @@ export function useFaceFocus({ session, enabled, observation, dispatch }: {
     if (!session) { trackerRef.current = null; published.current = null; return }
     if (trackerRef.current?.sessionId !== session.id) {
       const initial = normalizeFocusTotals(session.focus)
-      // The session helper bounds the initial goal and allows explicitly resumed overtime.
+      // Measure all actual study time, including overtime; the session helper excludes rests.
       trackerRef.current = new FaceFocusTracker(session.id, Number.POSITIVE_INFINITY, initial)
       published.current = initial
     }

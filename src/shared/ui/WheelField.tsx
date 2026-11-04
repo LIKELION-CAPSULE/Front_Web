@@ -45,7 +45,7 @@ export function WheelField({
         onClick={() => onOpenChange(!open)}
       >
         <span id={`${id}-value`}>{displayValue}</span>
-        <Icon name={icon} size={16} motion={icon === 'chevronsVertical' ? undefined : 'draw'} className="text-subtle" />
+        <Icon name={icon} size={16} className="text-subtle" />
       </button>
       {open && (
         <div id={`${id}-picker`} className={cn('wheel-picker', compact && 'wheel-picker-compact')} role="group" aria-label={label.endsWith('선택') ? label : `${label} 선택`}>

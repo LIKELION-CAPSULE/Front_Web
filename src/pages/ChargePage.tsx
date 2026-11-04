@@ -10,6 +10,7 @@ import { PageHeading } from '@/shared/ui/PageHeading'
 import { RadioOption } from '@/shared/ui/RadioOption'
 import { ChargeProductPicker, type ChargeProductKind } from '@/features/credits/components/ChargeProductPicker'
 import { PaymentReceipt } from '@/features/credits/components/PaymentReceipt'
+import { Icon } from '@/shared/ui/Icon'
 import '@/features/credits/charge-page.css'
 
 type CheckoutStep = 'closed' | 'details' | 'success'
@@ -44,8 +45,8 @@ export default function ChargePage() {
   }
   return (
     <div className="charge-page">
-      <Link to="/credits" className="mb-3 inline-block text-body-compact text-muted">
-        ← 내 크레딧
+      <Link to="/credits" className="mb-3 inline-flex items-center gap-2 text-body-compact text-muted">
+        <Icon name="arrow" size={16} className="rotate-180" /> 내 크레딧
       </Link>
       <div className="charge-page-heading">
         <PageHeading title="함께할 시간을 더해요" eyebrow={null} />

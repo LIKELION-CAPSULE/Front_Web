@@ -10,20 +10,24 @@ import { businessDay } from '../../shared/lib/format.ts'
 import { MIN_CALENDAR_DATE } from '../../shared/lib/date-limits.ts'
 import { normalizeCameraBackground, type CameraBackgroundId } from '../media/camera-backgrounds.ts'
 import type { AvatarSettings, DemoState, FocusTotals, LedgerEntry, Memory, TierId } from './types.ts'
+import { MVP_CHARACTER_ID, MVP_GOAL_MINUTES, MVP_ROOM_ID } from '../mvp/policy.ts'
+import { normalizeAffectionScore } from '../characters/affection.ts'
 
 export const BREAK_SECONDS = 10 * 60
 
 export type DemoAction =
-  | { type: 'LOGIN'; preview?: boolean }
+  | { type: 'LOGIN'; preview?: boolean; nickname?: string }
   | { type: 'PROFILE'; name: string; avatar: AvatarSettings }
   | { type: 'LOGOUT' }
   | { type: 'RESET'; now: number }
   | { type: 'FIRST_VISIT'; value: boolean }
+  | { type: 'SET_AFFECTION'; characterId: string; score: number }
   | { type: 'CAMERA'; enabled: boolean }
   | { type: 'CAMERA_BACKGROUND'; background: CameraBackgroundId }
   | { type: 'FACE_FOCUS'; sessionId: string; totals: FocusTotals; now: number }
   | { type: 'EXAM_PROMPTED'; roomId: string }
   | { type: 'SAVE_ROOM'; roomId: string }
+  | { type: 'START_MVP'; now: number }
   | {
       type: 'START'
       now: number
@@ -66,13 +70,10 @@ export function sessionElapsed(state: DemoState['activeSession'], now: number) {
     : 0
 }
 
-/** Cumulative study time excludes rests; continuing after the goal permits overtime. */
+/** Cumulative study time excludes rests and keeps counting beyond the goal. */
 export function sessionStudySeconds(active: DemoState['activeSession'], now: number) {
   if (!active) return 0
-  if (active.phase === 'break') return active.studySeconds
-  const elapsed = sessionElapsed(active, now)
-  const goal = studyGoalSeconds(active)
-  return active.studySeconds >= goal ? elapsed : Math.min(goal, elapsed)
+  return active.phase === 'break' ? active.studySeconds : sessionElapsed(active, now)
 }
 
 function continueStudySession(active: NonNullable<DemoState['activeSession']>, now: number, overflowSeconds = 0) {
@@ -105,6 +106,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
         ...state,
         profile: {
           ...state.profile,
+          name: action.nickname === undefined ? state.profile.name : resolveProfileName(action.nickname),
           loggedIn: true,
           onboarded: action.preview || state.profile.onboarded,
         },
@@ -125,6 +127,11 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       return createDemoState(action.now)
     case 'FIRST_VISIT':
       return { ...state, firstVisit: action.value }
+    case 'SET_AFFECTION': {
+      const score = normalizeAffectionScore(action.score)
+      if (!action.characterId.trim() || score === null || state.affection?.[action.characterId] === score) return state
+      return { ...state, affection: { ...state.affection, [action.characterId]: score } }
+    }
     case 'CAMERA_BACKGROUND':
       return { ...state, cameraBackground: normalizeCameraBackground(action.background) }
     case 'CAMERA':
@@ -148,6 +155,11 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
           ? state.savedRooms.filter((id) => id !== action.roomId)
           : [...state.savedRooms, action.roomId],
       }
+    case 'START_MVP':
+      return demoReducer(state, {
+        type: 'START', now: action.now, roomId: MVP_ROOM_ID,
+        characterIds: [MVP_CHARACTER_ID], tier: 'basic', targetMinutes: MVP_GOAL_MINUTES, camera: false,
+      })
     case 'START': {
       if (state.activeSession) return state
       const cost = tierCost(state, action.tier, action.now)
@@ -198,26 +210,13 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       return { ...state, activeSession: { ...active, focus } }
     }
     case 'TICK': {
-      let active = state.activeSession
-      if (!active) return state
-      // Settle crossed boundaries in order, including delayed ticks and old completed rests.
-      // Only the first goal triggers an automatic rest, so this loop has at most three transitions.
-      for (;;) {
-        const elapsed = sessionElapsed(active, action.now)
-        const goal = studyGoalSeconds(active)
-        if (active.phase === 'break' && elapsed >= BREAK_SECONDS) {
-          active = continueStudySession(active, action.now, elapsed - BREAK_SECONDS)
-        } else if (active.phase === 'study' && active.runningSince !== null && active.studySeconds < goal && elapsed >= goal) {
-          active = {
-            ...active,
-            phase: 'break',
-            studySeconds: goal,
-            elapsedMs: (elapsed - goal) * 1000,
-            runningSince: action.now,
-          }
-        } else break
-      }
-      return active === state.activeSession ? state : { ...state, activeSession: active }
+      const active = state.activeSession
+      if (!active || active.phase !== 'break') return state
+      const elapsed = sessionElapsed(active, action.now)
+      if (elapsed < BREAK_SECONDS) return state
+      // Only the user's TAKE_BREAK starts a rest. A completed rest resumes study,
+      // including study time after its end when a background tab delays this tick.
+      return { ...state, activeSession: continueStudySession(active, action.now, elapsed - BREAK_SECONDS) }
     }
     case 'RESUME_SESSION': {
       // Older saves can contain a stopped timer. Resuming never pauses a running session
@@ -307,7 +306,6 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       if (!active || !action.text.trim() || !active.characterIds.includes(action.characterId))
         return state
       const used = state.chatUsage.day === businessDay(action.now) ? state.chatUsage.used : 0
-      if (active.tier === 'basic' && used >= 3) return state
       const reply = /졸|피곤/.test(action.text)
         ? '나도 졸려. 5분만 더 버티고 쉬자.'
         : /시험|긴장/.test(action.text)

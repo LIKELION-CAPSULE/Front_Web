@@ -99,7 +99,7 @@ export function VerificationCodeInput({ value, onChange, invalid, describedBy, r
       </div>
       <span className="verification-code-focus" aria-hidden="true" />
       {verified && <div role="status" className="verification-code-success">
-        <Icon name="check" size={22} motion="draw" />
+        <Icon name="check" size={22} />
         <span>{successLabel}</span>
       </div>}
     </div>

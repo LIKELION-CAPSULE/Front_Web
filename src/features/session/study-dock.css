@@ -85,6 +85,8 @@
   .study-dock-item:last-child .study-dock-tooltip { right: 0; left: auto; translate: 0 0; }
   .study-dock[data-tooltip-dismissed='true'] .study-dock-item .study-dock-tooltip { visibility: hidden; opacity: 0; }
   .study-dock-item:has(.study-dock-popover) .study-dock-tooltip { visibility: hidden; opacity: 0; }
+  /* Position open popovers against the whole dock, rather than their trigger slot. */
+  .study-dock-item:has(> .study-dock-popover) { position: static; }
   .study-dock-popover {
     position: absolute;
     z-index: 2;
@@ -116,12 +118,10 @@
   @media (max-width: 699px) {
     .study-dock { --dock-size: 44px; --dock-spread: 0px; gap: 4px; padding: 8px; }
     .study-dock-item > button { transform: none; }
-    /* Anchor the menu to the whole dock now that chat is a primary mobile control. */
-    .study-dock-item:has(> button[data-action='more']) { position: static; }
   }
   @media (max-width: 479px) {
     .study-dock { gap: 3px; }
-    .study-dock-item > button > svg { width: 20px; height: 20px; }
+    .study-dock-item > button > .app-icon { width: 20px; height: 20px; }
   }
   @media (max-width: 359px) {
     .study-dock { gap: 2px; padding: 6px; }

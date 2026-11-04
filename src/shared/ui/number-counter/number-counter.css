@@ -1,0 +1,6 @@
+@layer components {
+  .number-counter { position: relative; display: inline-block; vertical-align: baseline; line-height: inherit; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .number-counter-reserve { visibility: hidden; pointer-events: none; }
+  .number-counter > number-flow-react { position: absolute; inset: 0; overflow: clip; line-height: inherit; --number-flow-mask-height: 0px; --number-flow-mask-width: 0px; }
+  .number-counter > number-flow-react::part(digit) { clip-path: inset(0); }
+}

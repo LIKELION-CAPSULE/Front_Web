@@ -1,0 +1,5 @@
+@layer components {
+  .app-icon { display: inline-flex; width: var(--icon-size, 20px); height: var(--icon-size, 20px); flex: none; align-items: center; justify-content: center; vertical-align: middle; line-height: 0; }
+  .app-icon > span { display: inline-flex; width: 100%; height: 100%; }
+  .app-icon svg { display: block; width: 100%; height: 100%; flex: none; overflow: visible; fill: inherit; }
+}

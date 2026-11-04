@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-11-05",
+  "tool": "built-in image_gen",
+  "useCase": "illustration-story / identity-preserve",
+  "reference": "../completion-v1/chaerin-completion-v1.webp",
+  "referenceRole": "Identity, outfit, smile, hand wave, rendering style and sunset classroom",
+  "prompt": "Use case: illustration-story, identity-preserve.\nAsset type: finished full-screen landscape illustration for the CAPSULE study-completion report, desktop web background.\nInput image 1 is the identity, outfit, smile, pose and rendering-style reference for CHAERIN. Recompose this exact warm farewell scene into a NEW wide 16:9 illustration, ideally 2304x1296 or 2048x1152.\nScene: the same Korean classroom in warm peach and amber late-afternoon sunset, believable desks and tall windows receding into the background. One coherent fully painted scene, not a collage.\nSubject: exactly the same recognizable Chaerin with long pale blonde hair and bangs, grey eyes, reserved but radiant slightly bashful smile, white rolled-sleeve collared shirt and loose dark tie, holding a dark closed notebook to her torso and gently waving with her other hand. Preserve her recognizable facial features, soft detailed Korean anime/webtoon illustration style and natural anatomy.\nComposition: Chaerin occupies the LEFT half only. Her face centered around x=28%, y=30% of the full canvas. Show her entire head with comfortable space above the hair, her waving hand entirely in frame, and torso through upper hips near the lower edge. The whole character including hand must stay within x=8%..49%. Eye-level perspective, friendly eye contact, a natural medium shot. RIGHT 48% is a spacious unoccupied classroom background reserved for an HTML report panel: no people or important objects there, gentle low-detail depth, restrained darker warm shadows with soft window light. The full environment fills all edges. Keep the lower-left quarter calm enough for an HTML dialogue panel, without obscuring her face or waving hand. No foreground desk across or in front of the subject.\nLighting: preserve golden rim light on hair and warm nostalgic classroom atmosphere; keep right-side highlights soft rather than glaring.\nText: none.\nConstraints: no text, letters, name tags, dialogue boxes, cards, buttons, UI, borders, frames, logos, signatures or watermarks. No second person, duplicated limbs, extra fingers, hats, new accessories or altered clothing. Opaque full background. This is artwork only; all dialogue and statistics will be real HTML layered afterward.",
+  "width": 1672,
+  "height": 941,
+  "master": "chaerin-completion-scene-v2.png",
+  "web": "chaerin-completion-scene-v2.webp",
+  "webEncoding": {
+    "tool": "cwebp",
+    "quality": 88,
+    "method": 6
+  },
+  "scope": "Report desktop background only; existing portrait is retained for mobile and capsule cards."
+}
