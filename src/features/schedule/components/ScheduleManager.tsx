@@ -5,6 +5,7 @@ import type { Memory } from '@/features/demo/types'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
 import { MemoryEditor } from './MemoryEditor'
 import { dayKey } from '@/shared/lib/format'
+import { clampCalendarDate, clampCalendarMonth } from '@/shared/lib/date-limits'
 import { selectSchedule, type SchedulePeriod } from '../schedule-data'
 import { ScheduleCalendar } from './ScheduleCalendar'
 import { ScheduleListPanel } from './ScheduleListPanel'
@@ -14,7 +15,7 @@ export function ScheduleManager() {
   const [params, setParams] = useSearchParams()
   const rooms = getStudyRooms()
   const today = dayKey()
-  const [month, setMonth] = useState(() => dayKey().slice(0, 7))
+  const [month, setMonth] = useState(() => clampCalendarMonth(dayKey().slice(0, 7)))
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [period, setPeriod] = useState<SchedulePeriod>('upcoming')
   const [editor, setEditor] = useState<Memory | 'new' | null>(() =>
@@ -39,11 +40,11 @@ export function ScheduleManager() {
         today={today}
         selected={selectedDay}
         onMonthChange={(value) => {
-          setMonth(value)
+          setMonth(clampCalendarMonth(value))
           setSelectedDay(null)
         }}
         onSelect={(day) => {
-          setSelectedDay(day)
+          setSelectedDay(clampCalendarDate(day))
           setPeriod('all')
         }}
       />

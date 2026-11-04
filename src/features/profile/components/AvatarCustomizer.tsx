@@ -34,9 +34,9 @@ export function AvatarCustomizer({
             onClick={() => onChange({ ...value, [category]: index })}
             className={cn(
               'avatar-part aspect-square rounded-[14px] border',
-              value[category] === index ? 'border-2 border-brand' : 'border-transparent',
+              value[category] === index ? 'border-2 border-text-accent' : 'border-transparent',
             )}
-            style={{ background: category === 'background' ? shade : '#202433' }}
+            style={{ background: category === 'background' ? shade : 'var(--color-surface)' }}
           >
             {category !== 'background' && (
               <span aria-hidden="true" className="flex h-full items-center justify-center">

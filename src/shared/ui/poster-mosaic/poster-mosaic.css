@@ -4,7 +4,7 @@
   height: 100%;
   overflow: hidden;
   isolation: isolate;
-  background: #161321;
+  background: var(--color-panel);
 }
 .poster-mosaic-grid {
   --mosaic-gap: 10px;
@@ -52,7 +52,7 @@
   height: 100%;
   overflow: hidden;
   border-radius: 8px;
-  background: #272333;
+  background: var(--color-surface);
 }
 .poster-mosaic-tile img {
   display: block;
@@ -71,13 +71,13 @@
   min-height: 32px;
   border: 1px solid transparent;
   border-radius: 999px;
-  background: #10101be6;
+  background: color-mix(in srgb, var(--color-panel) 90.20%, transparent);
   padding: 7px 10px;
-  color: #ffffffbf;
-  font-size: 10px;
+  color: color-mix(in srgb, var(--color-ink) 74.90%, transparent);
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
 }
 .poster-mosaic-motion-toggle:hover {
-  background: #252039d9;
+  background: color-mix(in srgb, var(--color-primary-soft) 85.10%, transparent);
   color: white;
 }
 @media (max-width: 1023px) {
@@ -89,7 +89,7 @@
     right: 16px;
     min-height: 28px;
     padding: 5px 8px;
-    font-size: 9px;
+    font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   }
 }
 @media (prefers-reduced-motion: reduce) {

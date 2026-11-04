@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { Memory } from '@/features/demo/types'
 import { Icon } from '@/shared/ui/Icon'
 import { Panel } from '@/shared/ui/Panel'
+import { MIN_CALENDAR_DATE, MIN_CALENDAR_MONTH, MIN_CALENDAR_YEAR } from '@/shared/lib/date-limits'
 import { scheduleMonthDays, shiftScheduleMonth } from '../schedule-data'
 
 export function ScheduleCalendar({
@@ -23,12 +24,12 @@ export function ScheduleCalendar({
   const currentYear = Number(today.slice(0, 4))
   const years = [
     ...new Set([
-      ...Array.from({ length: 21 }, (_, index) => currentYear - 10 + index),
+      ...Array.from({ length: Math.max(1, currentYear + 10 - MIN_CALENDAR_YEAR + 1) }, (_, index) => MIN_CALENDAR_YEAR + index),
       ...memories.map((memory) => Number(memory.date.slice(0, 4))),
       year,
     ]),
   ]
-    .filter((value) => Number.isInteger(value) && value > 0 && value < 10000)
+    .filter((value) => Number.isInteger(value) && value >= MIN_CALENDAR_YEAR && value < 10000)
     .sort((a, b) => a - b)
   const cells = useMemo(
     () => scheduleMonthDays(month, { weekStartsOn: 0, showOutsideDays: true }),
@@ -56,6 +57,7 @@ export function ScheduleCalendar({
         <button
           type="button"
           aria-label="이전 달"
+          disabled={month <= MIN_CALENDAR_MONTH}
           onClick={() => onMonthChange(shiftScheduleMonth(month, -1))}
         >
           <Icon name="chevron" size={16} className="rotate-180" />
@@ -105,7 +107,7 @@ export function ScheduleCalendar({
         aria-label={`${year}년 ${Number(month.slice(5))}월 일정`}
       >
         {cells.map((day, index) => {
-          if (!day) return <span key={`empty-${index}`} aria-hidden="true" />
+          if (!day || day < MIN_CALENDAR_DATE) return <span key={`empty-${index}`} aria-hidden="true" />
           const count = counts.get(day) ?? 0
           const outside = !day.startsWith(month)
           return (

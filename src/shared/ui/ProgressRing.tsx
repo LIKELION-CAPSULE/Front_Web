@@ -66,8 +66,8 @@ export function ProgressRing({
       <svg viewBox="0 0 64 64" aria-hidden="true">
         <defs>
           <linearGradient id={gradient} x1="0" y1="0" x2="1" y2="1">
-            <stop stopColor="#d2b5ff" />
-            <stop offset="1" stopColor="#8c64df" />
+            <stop stopColor="var(--color-text-accent)" />
+            <stop offset="1" stopColor="var(--color-primary)" />
           </linearGradient>
         </defs>
         <circle cx="32" cy="32" r="26" className="progress-ring-track" />

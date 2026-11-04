@@ -165,3 +165,9 @@ docs/*
 !docs/REFERENCE_COMMERCIAL_USE.md
 !docs/THIRD_PARTY_NOTICES.md
 !docs/DESIGN_CODE_AUDIT.md
+!docs/DESIGN_SYSTEM.md
+!docs/DESIGN_TOKENS.json
+!docs/README.md
+!docs/archive/
+docs/archive/*
+!docs/archive/DESIGN_SYSTEM_2026-10-26.md

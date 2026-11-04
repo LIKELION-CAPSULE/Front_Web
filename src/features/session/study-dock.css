@@ -1,4 +1,5 @@
 @layer components {
+  /* User-requested exception: retain the glass material and colors from before the design-system migration. */
   .study-dock {
     --dock-size: 44px;
     --dock-spread: 16px;
@@ -52,9 +53,11 @@
   .study-dock-item > button[data-device][aria-pressed='false'] { background: #eed7e2b8; color: #89364e; }
   .study-dock-item > button[data-action='finish'] { background: #f04e66e8; color: #fff; box-shadow: inset 0 1px 0 #ffffff30, 0 2px 8px #9a15292b; }
   .study-dock-item > button[data-action='finish']:hover { background: #ff6278; color: #fff; }
+  .study-dock-item > button:active:not(:disabled) { background: #ddd3ef; }
+  .study-dock-item > button[data-device][aria-pressed='false']:active { background: #ddbdc9; }
+  .study-dock-item > button[data-action='finish']:active { background: #d83b54; color: #fff; }
   .study-dock-item > button:disabled { cursor: wait; opacity: .5; }
-  .study-dock-item > button[data-action='pause']:disabled { cursor: default; }
-  .study-dock-item > button:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 4px; }
+  .study-dock-item > button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 4px; }
   .study-dock-divider { width: 1px; height: 24px; flex: none; margin-inline: 2px; background: #ffffff29; }
   .study-dock-tooltip {
     position: absolute;
@@ -89,25 +92,39 @@
     left: 50%;
     width: max-content;
     max-width: calc(100vw - 32px);
+    max-height: calc(100dvh - 144px - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
     translate: -50% 0;
     padding: 14px 16px 12px;
     border-radius: 16px;
-    background: #272636f5;
+    background: linear-gradient(135deg, #ffffff30, #e7e1ff0d), #262532d9;
     color: #f7f3ff;
-    box-shadow: 0 8px 30px #0005;
+    box-shadow: 0 8px 30px #0005, inset 0 1px 0 #ffffff45, inset 0 -1px 0 #ffffff0a;
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    backdrop-filter: blur(24px) saturate(140%);
   }
+  .study-dock-more { display: grid; width: min(280px, calc(100vw - 32px)); gap: 4px; padding: 8px; }
+  .study-dock-more > button { display: flex; min-height: 44px; align-items: center; gap: 10px; border: 0; border-radius: 10px; padding: 8px 12px; background: transparent; color: inherit; font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); text-align: left; }
+  .study-dock-more > button:hover:not(:disabled) { background: #ffffff18; }
+  .study-dock-more > button[aria-pressed='true'] { background: #b993f52b; color: #e5d4ff; }
+  .study-dock-more > button:disabled { opacity: .5; cursor: not-allowed; }
+  .study-dock-more-background { border-top: 1px solid #ffffff29; margin-top: 4px; padding: 12px 4px 4px; }
   @media (max-width: 1023px) {
     .study-stage > .study-dock { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
   }
   @media (max-width: 699px) {
-    .study-dock { --dock-spread: 0px; gap: 4px; padding: 8px; }
+    .study-dock { --dock-size: 44px; --dock-spread: 0px; gap: 4px; padding: 8px; }
+    .study-dock-item > button { transform: none; }
+    /* Anchor the menu to the whole dock now that chat is a primary mobile control. */
+    .study-dock-item:has(> button[data-action='more']) { position: static; }
   }
   @media (max-width: 479px) {
-    .study-dock { --dock-size: 40px; gap: 3px; }
+    .study-dock { gap: 3px; }
     .study-dock-item > button > svg { width: 20px; height: 20px; }
   }
   @media (max-width: 359px) {
-    .study-dock { --dock-size: 36px; gap: 2px; padding: 6px; }
+    .study-dock { gap: 2px; padding: 6px; }
     .study-dock-divider { margin-inline: 1px; }
   }
   @media (prefers-reduced-motion: reduce) {

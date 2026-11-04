@@ -1,10 +1,10 @@
 import { Link, useParams } from 'react-router'
 import { HeaderAccount } from '@/app/components/HeaderAccount'
+import { SiteHeader } from '@/app/components/SiteHeader'
 import { CharacterCard } from '@/features/characters/components/CharacterCard'
 import { RoomDetailBanner } from '@/features/rooms/components/RoomDetailBanner'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { ButtonLink } from '@/shared/ui/Button'
-import { Brand } from '@/shared/ui/Brand'
 import { Icon } from '@/shared/ui/Icon'
 import { useDemo } from '@/features/demo/demo-context'
 import NotFoundPage from '@/pages/NotFoundPage'
@@ -21,34 +21,32 @@ export default function RoomDetailPage() {
     )
   return (
     <>
-      <header className="detail-header">
-        <div className="page-container detail-header-inner">
-          <Link to="/" aria-label="CAPSULE 홈" className="shrink-0">
-            <Brand />
-          </Link>
+      <SiteHeader
+        navigation={(
           <nav aria-label="현재 위치" className="detail-breadcrumb">
-            <span aria-hidden="true" className="hidden h-5 w-px shrink-0 bg-line sm:block" />
-            <Link to="/" className="shrink-0 text-sm text-muted hover:text-ink">
-              홈
-            </Link>
-            <Icon name="chevron" size={14} className="shrink-0 text-subtle" />
-            <span aria-current="page" className="truncate text-sm font-semibold">
-              {room.name}
-            </span>
+            <span aria-hidden="true" className="hidden h-5 w-px shrink-0 bg-divider md:block" />
+            <div className="detail-breadcrumb-links">
+              <Link to="/" className="shrink-0 text-body-compact text-muted hover:text-ink">
+                홈
+              </Link>
+              <Icon name="chevron" size={14} className="shrink-0 text-subtle" />
+              <span aria-current="page" className="truncate text-body-compact font-semibold">
+                {room.name}
+              </span>
+            </div>
           </nav>
-          {state.profile.loggedIn ? (
-            <HeaderAccount studyTime="always" />
-          ) : (
-            <ButtonLink
-              to={`/login?next=${encodeURIComponent(`/rooms/${room.id}`)}`}
-              variant="secondary"
-              className="ml-auto"
-            >
-              로그인
-            </ButtonLink>
-          )}
-        </div>
-      </header>
+        )}
+        account={state.profile.loggedIn ? (
+          <HeaderAccount />
+        ) : (
+          <ButtonLink
+            to={`/login?next=${encodeURIComponent(`/rooms/${room.id}`)}`}
+            variant="secondary"
+          >
+            로그인
+          </ButtonLink>
+        )}
+      />
       <div className="page-container py-8 sm:py-10">
         <section
           className="room-detail-hero room-detail-hero--illustrated"
@@ -56,8 +54,8 @@ export default function RoomDetailPage() {
         >
           <RoomDetailBanner roomId={room.id} />
           <div className="room-detail-copy">
-            <h1 id="room-title">{room.name}</h1>
-            <p className="mt-4 max-w-md text-sm leading-7 text-white/75">{room.introduction}</p>
+            <h1 id="room-title" className="type-story-title">{room.name}</h1>
+            <p className="mt-4 max-w-md type-body text-muted">{room.introduction}</p>
             <ButtonLink
               to={
                 state.activeSession
@@ -73,7 +71,7 @@ export default function RoomDetailPage() {
         </section>
         <section className="mt-10" aria-labelledby="room-characters">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-            <h2 id="room-characters" className="text-2xl font-bold">
+            <h2 id="room-characters" className="type-section-title">
               이곳에서 함께할 {room.characters.length === 1 ? '친구' : '친구들'}
             </h2>
           </div>

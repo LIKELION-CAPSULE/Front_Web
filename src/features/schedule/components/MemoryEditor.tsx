@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useDemo } from '@/features/demo/demo-context'
 import type { Memory } from '@/features/demo/types'
 import { dayKey } from '@/shared/lib/format'
+import { clampCalendarDate } from '@/shared/lib/date-limits'
 import { Dialog } from '@/shared/ui/Dialog'
 import { Button } from '@/shared/ui/Button'
 import { DateTimeWheelField } from '@/shared/ui/DateTimeWheelField'
@@ -24,7 +25,7 @@ export function MemoryEditor({
   const { dispatch } = useDemo()
   const [kind, setKind] = useState<Memory['kind']>(initial?.kind ?? '시험')
   const [title, setTitle] = useState(initial?.title ?? '')
-  const [date, setDate] = useState(initial?.date ?? initialDate ?? dayKey())
+  const [date, setDate] = useState(() => clampCalendarDate(initial?.date ?? initialDate ?? dayKey()))
   const [time, setTime] = useState(initial?.time || '20:00')
   const [openField, setOpenField] = useState<'kind' | 'date' | 'time' | null>(null)
   return (
@@ -43,7 +44,7 @@ export function MemoryEditor({
           onSaved?.(memory)
           onClose()
         }}
-        className="space-y-4 [--form-input-border:var(--color-line)]"
+        className="space-y-4 [--form-input-border:var(--color-input-border)]"
       >
         <WheelSelectField
           label="종류"
@@ -84,7 +85,7 @@ export function MemoryEditor({
         <div className="flex gap-3">
           {initial && (
             <Button
-              variant="secondary"
+              variant="danger"
               onClick={() => {
                 dispatch({ type: 'DELETE_MEMORY', id: initial.id })
                 onClose()

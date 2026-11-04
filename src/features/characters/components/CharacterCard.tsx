@@ -24,7 +24,7 @@ export function CharacterCard({ character }: { character: Character }) {
       </div>
       <div className="p-5">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold">
+          <h3 className="type-card-title">
             <Link to={`/characters/${character.id}`} className="after:absolute after:inset-0">
               {character.name}
             </Link>

@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { FloatingSurface } from '@/shared/ui/FloatingSurface'
 
 export function RelationshipProgress({ level, next, progress }: { level: number; next: number; progress: number }) {
   const [open, setOpen] = useState(false)
@@ -9,7 +10,7 @@ export function RelationshipProgress({ level, next, progress }: { level: number;
   return (
     <div className="relationship-progress">
       <div className="relationship-progress-heading">
-        <p className="text-[17px] font-bold">Lv.{level} 친구</p>
+        <p className="text-card-title font-bold">Lv.{level} 친구</p>
         <p className="relationship-progress-status">
           {complete ? '최고 레벨' : `Lv.${level + 1}까지 ${percentage}%`}
         </p>
@@ -48,7 +49,7 @@ export function RelationshipProgress({ level, next, progress }: { level: number;
       </div>
       {open && (
         <div id={tooltipId} role="tooltip" className="relationship-progress-tooltip">
-          <span>{hint}</span>
+          <FloatingSurface>{hint}</FloatingSurface>
         </div>
       )}
     </div>

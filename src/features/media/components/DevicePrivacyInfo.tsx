@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Icon } from '@/shared/ui/Icon'
+import { FloatingSurface } from '@/shared/ui/FloatingSurface'
 
 export function DevicePrivacyInfo() {
   const [open, setOpen] = useState(false)
@@ -37,7 +38,7 @@ export function DevicePrivacyInfo() {
         aria-label="카메라·마이크 권한 안내"
         aria-expanded={open}
         aria-describedby={open ? id : undefined}
-        className="inline-flex size-8 items-center justify-center rounded-full text-subtle hover:text-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="inline-flex size-11 items-center justify-center rounded-full text-subtle hover:text-text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus-ring"
         onFocus={() => setOpen(true)}
         onClick={() => setOpen(true)}
       >
@@ -45,10 +46,10 @@ export function DevicePrivacyInfo() {
       </button>
       {open && (
         <div id={id} role="tooltip" className="device-privacy-tooltip">
-          <div className="rounded-card bg-surface px-4 py-3 text-xs leading-6 text-ink shadow-xl">
-            <p>카메라는 얼굴 감지로 집중 시간을 측정하고, 마이크는 소리가 잘 들어오는지 확인하는 데 사용해요.</p>
+          <FloatingSurface className="rounded-card px-4 py-3 type-body-compact">
+            <p>카메라를 켜면 얼굴 감지로 집중 시간을 측정해요. 카메라와 마이크는 공부 화면에서 각각 켜고 끌 수 있어요.</p>
             <p className="mt-2">영상과 소리는 내 기기에서만 처리하며 서버로 전송하거나 저장하지 않아요. 공부 화면에는 내 아바타가 보여요.</p>
-          </div>
+          </FloatingSurface>
         </div>
       )}
     </div>

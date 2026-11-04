@@ -44,7 +44,7 @@ export default function ChargePage() {
   }
   return (
     <div className="charge-page">
-      <Link to="/credits" className="mb-3 inline-block text-sm text-muted">
+      <Link to="/credits" className="mb-3 inline-block text-body-compact text-muted">
         ← 내 크레딧
       </Link>
       <div className="charge-page-heading">
@@ -59,7 +59,7 @@ export default function ChargePage() {
         open={checkout !== 'closed'}
         onClose={closeCheckout}
         title={checkout === 'success' ? '결제 완료' : '결제 정보'}
-        className="charge-checkout-dialog max-w-[560px] bg-panel"
+        className="charge-checkout-dialog max-w-[560px]"
       >
         {checkout === 'details' && (
           <form
@@ -70,7 +70,7 @@ export default function ChargePage() {
             }}
           >
             <div className="charge-checkout-summary">
-              <dl className="space-y-3 text-sm">
+              <dl className="space-y-3 text-body-compact">
                 <div className="flex justify-between gap-3">
                   <dt className="text-muted">상품</dt>
                   <dd className="text-right">
@@ -88,12 +88,12 @@ export default function ChargePage() {
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-muted">결제 금액</dt>
-                  <dd className="text-lg font-bold">{number(selected.amount)}원</dd>
+                  <dd className="type-card-title">{number(selected.amount)}원</dd>
                 </div>
               </dl>
             </div>
             <div className="charge-checkout-controls">
-              <h3 className="mb-3 text-sm font-bold">결제 수단</h3>
+              <h3 className="mb-3 type-card-title">결제 수단</h3>
               <div className="charge-payment-methods">
                 {['카드', '카카오페이', '토스페이'].map((value) => (
                   <RadioOption
@@ -107,7 +107,7 @@ export default function ChargePage() {
                   </RadioOption>
                 ))}
               </div>
-              <label className="mt-4 flex cursor-pointer items-center gap-2.5 text-xs leading-5">
+              <label className="mt-4 flex cursor-pointer items-center gap-2.5 type-body-compact">
                 <AnimatedCheckbox
                   checked={agreed}
                   onChange={(event) => setAgreed(event.target.checked)}
@@ -139,7 +139,7 @@ export default function ChargePage() {
             <Link
               to="/credits"
               onClick={closeCheckout}
-              className="mt-3 block text-center text-sm text-brand-strong underline"
+              className="mt-3 block text-center text-body-compact text-text-accent underline"
             >
               내 크레딧 확인
             </Link>

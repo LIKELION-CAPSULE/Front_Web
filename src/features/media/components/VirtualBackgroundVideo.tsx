@@ -3,6 +3,7 @@ import { useDemo } from '@/features/demo/demo-context'
 import { cn } from '@/shared/lib/cn'
 import { getCameraBackground, normalizeCameraBackground } from '../camera-backgrounds'
 import { useMedia } from '../media-context'
+import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { useVirtualBackground } from '../use-virtual-background'
 
 /** The user's camera with their chosen background. Mirroring is display-only and left to the parent's CSS. */
@@ -43,7 +44,7 @@ export function VirtualBackgroundVideo({ stream, label, className, onFrameSize }
         <video ref={videoRef} autoPlay muted playsInline disablePictureInPicture aria-label={label} />
         {enabled && <canvas ref={canvasRef} aria-hidden="true" />}
       </div>
-      {notice && <p role="status" className="virtual-background-notice">{notice}</p>}
+      {notice && <FeedbackMessage tone={loading ? 'info' : 'warning'} align="center" compact className="virtual-background-notice">{notice}</FeedbackMessage>}
     </div>
   )
 }

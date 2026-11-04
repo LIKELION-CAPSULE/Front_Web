@@ -43,7 +43,7 @@ export default function ReportPage() {
       </div>
       <div className="report-content">
         <div className="report-heading">
-          <div><h1 className="text-page-title font-bold tracking-tight">공부를 마쳤어요</h1><p className="report-room-name">{room.name}</p></div>
+          <div><h1 className="type-page-title">공부를 마쳤어요</h1><p className="report-room-name">{room.name}</p></div>
           <div className="report-focus"><ProgressRing value={recordFocusPercent(record)} label="이번 공부 집중률" /><span>집중률</span></div>
         </div>
         <div className="report-session-meta">
@@ -53,9 +53,9 @@ export default function ReportPage() {
         <p className="report-study-duration">함께 <strong>{formatMeasuredTime(record.studySeconds)}</strong> 공부했어요.</p>
         {record.targetSeconds && <p className="report-goal-result">목표 {duration(record.targetSeconds)} · {record.studySeconds >= record.targetSeconds ? '목표 달성' : `${Math.round(record.studySeconds / record.targetSeconds * 100)}% 공부했어요`}</p>}
         <div className="report-stats">
-          <StatCard label="집중" value={formatMeasuredTime(record.focusSeconds)} dark size="compact" />
-          <StatCard label={record.observedSeconds === undefined ? '딴짓' : '얼굴 미감지'} value={formatMeasuredTime(record.awaySeconds)} size="compact" />
-          <StatCard label="복귀" value={`${record.returns}회`} size="compact" />
+          <StatCard label="집중" value={formatMeasuredTime(record.focusSeconds)} dark size="compact" layout="responsive-row" />
+          <StatCard label="자리 비움" value={formatMeasuredTime(record.awaySeconds)} size="compact" layout="responsive-row" />
+          <StatCard label="복귀" value={`${record.returns}회`} size="compact" layout="responsive-row" />
         </div>
         {record.observedSeconds === undefined && <FocusTimeline seconds={record.studySeconds} />}
         <div className="report-relationships" aria-label="이번 공부로 가까워진 시간">
