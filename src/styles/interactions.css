@@ -117,24 +117,6 @@
     animation: skeleton-sweep 1.7s ease-in-out infinite;
     content: '';
   }
-  .quiet-mode-toggle {
-    display: flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    background: var(--color-panel);
-    padding: 6px 10px;
-    color: var(--color-muted);
-    font-size: var(--text-caption); line-height: var(--text-caption--line-height);
-  }
-  .quiet-mode-toggle[aria-pressed='true'] {
-    border-color: var(--color-focus-ring);
-    background: var(--color-primary-soft);
-    color: var(--color-text-accent);
-  }
   .segmented-option {
     transition:
       background 0.2s,
@@ -181,13 +163,6 @@
   .room-search {
     --search-width: 100%;
     flex-basis: 100%;
-  }
-}
-@media (max-width: 479px) {
-  .study-topbar .quiet-mode-toggle {
-    margin-left: auto;
-    padding: 6px 8px;
-    font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   }
 }
 @media (prefers-reduced-motion: reduce) {

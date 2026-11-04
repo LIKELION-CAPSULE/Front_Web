@@ -3,10 +3,10 @@ import { moveScene, resetScene } from '@/features/rooms/scene-motion'
 import { getRoomArtwork, type RoomArtwork as RoomArtworkData } from '@/features/rooms/artwork'
 import { cn } from '@/shared/lib/cn'
 import { RoomTitle } from './RoomTitle'
+import { MvpClassroomImage } from '@/features/mvp/MvpClassroomImage'
 import {
   getSceneBackground,
   getSceneSettings,
-  hasSceneDesk,
   type SceneVariant,
 } from '../composition'
 
@@ -15,7 +15,7 @@ export function RoomArtwork({
   artwork,
   variant = 'card',
   showTitle = false,
-  showDesk = true,
+  blurUnavailableCharacters = true,
   interactive = false,
   eager = false,
   className,
@@ -25,7 +25,7 @@ export function RoomArtwork({
   artwork?: RoomArtworkData
   variant?: SceneVariant
   showTitle?: boolean
-  showDesk?: boolean
+  blurUnavailableCharacters?: boolean
   interactive?: boolean
   eager?: boolean
   className?: string
@@ -40,7 +40,6 @@ export function RoomArtwork({
     '--subject-max-height': placement.maxHeight * 100,
     '--subject-aspect': placement.aspect,
     '--scene-surface': `${placement.surfaceY * 100}%`,
-    '--desk-factor': placement.deskFactor,
   } as CSSProperties
   return (
     <div
@@ -64,7 +63,9 @@ export function RoomArtwork({
         loading={eager ? 'eager' : 'lazy'}
         decoding="async"
       />
-      <img
+      {blurUnavailableCharacters && art.tone === 'classroom' ? (
+        <MvpClassroomImage src={art.subject} width={art.subjectSize[0]} height={art.subjectSize[1]} className="scene-subject" />
+      ) : <img
         src={art.subject}
         alt=""
         className="scene-subject"
@@ -72,16 +73,7 @@ export function RoomArtwork({
         height={art.subjectSize[1]}
         loading={eager ? 'eager' : 'lazy'}
         decoding="async"
-      />
-      {showDesk && hasSceneDesk(variant) && (
-        <img
-          src={art.desk}
-          alt=""
-          className="scene-desk"
-          loading={eager ? 'eager' : 'lazy'}
-          decoding="async"
-        />
-      )}
+      />}
       <div className="scene-shade" />
       {showTitle && (
         <div className="scene-title">

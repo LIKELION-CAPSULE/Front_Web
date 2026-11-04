@@ -6,6 +6,8 @@
 
 룸 상세는 배경·인물·좌석을 함께 그린 [상세 전용 완성형 배너 9종](room-detail-banners/README.md)을 사용합니다. 제목·소개는 HTML이며 생성 PNG·웹용 WebP·프롬프트 세트를 따로 보관합니다.
 
+종료 리포트는 [빈 노을 교실·투명 채린 분리 레이어 v3](reports/completion-layers-v3/README.md)를 사용합니다. 기존 완료 이미지의 표정·복장·손인사를 유지하며 배경과 인물을 분리해 캐릭터와 말풍선을 가운데 정렬합니다. [전체 화면 장면 v2](reports/completion-scene-v2/README.md)는 생성 참조·이력으로 보관하고, 캡슐 카드에는 [기존 세로 완료 이미지](reports/completion-v1/README.md)를 유지합니다.
+
 외부 이미지 URL이나 `Landing_Page` 경로를 런타임에 참조하지 않고 이 프로젝트 안의 파일을 사용합니다. `Landing_Page` 원본은 수정하지 않았습니다.
 
 | 위치 | 원본 | 사용처 |
@@ -30,7 +32,7 @@
 | `public/favicon.svg` | `Landing_Page/public/favicon.svg` | 파비콘 |
 | `figma/` | 기존 읽기 전용 와이어프레임 분석에서 추출 | 대화·상태 아이콘 및 원본 참고 |
 
-메인 룸 카드와 공부 장면에는 새 [레이어 에셋](scenes/README.md)을 사용합니다. 9종 모두 built-in image_gen으로 [전신 캐릭터/그룹](scenes/layered-v2/README.md)과 [메인화면용 바닥 배경](scenes/seated-v1/README.md)을 만들었습니다. 메인은 책상 없이 앉은 모습을 보여 주며, 공부·리포트는 분리된 책상 전경을 재사용합니다. 각 PNG 마스터·WebP·프롬프트·알파 검사 결과를 `scenes/`에 보관합니다. 원본 포스터 서체를 참조한 [투명 제목 9종](room-titles/README.md)도 `room-titles/`에 따로 보관합니다. `features/rooms/artwork.ts`의 `sceneArtwork.titleImage`로 연결하며 실제 제목 문자열도 별도로 관리합니다. 개발 서버의 `/src/assets/scenes/preview.html`에서 레이어와 화면 비율을 바꿔 볼 수 있습니다.
+메인 룸 카드와 공부 장면에는 새 [레이어 에셋](scenes/README.md)을 사용합니다. 9종 모두 built-in image_gen으로 [전신 캐릭터/그룹](scenes/layered-v2/README.md)과 [메인화면용 바닥 배경](scenes/seated-v1/README.md)을 만들었습니다. 모든 룸과 리포트 이미지 저장에서 캐릭터 앞의 별도 책상 전경을 제외합니다. 각 PNG 마스터·WebP·프롬프트·알파 검사 결과를 `scenes/`에 보관합니다. 원본 포스터 서체를 참조한 [투명 제목 9종](room-titles/README.md)도 `room-titles/`에 따로 보관합니다. `features/rooms/artwork.ts`의 `sceneArtwork.titleImage`로 연결하며 실제 제목 문자열도 별도로 관리합니다. 개발 서버의 `/src/assets/scenes/preview.html`에서 레이어와 화면 비율을 바꿔 볼 수 있습니다.
 
 로그인 격자는 `Landing_Page/src/data/rooms.ts`의 실제 스터디룸 9종을 기준으로 합니다. 위의 `auth-posters` 7개와 기존 `rooms/classroom.webp`, `rooms/night-study.webp`를 사용합니다. 랜딩페이지의 최적화된 WebP를 그대로 복사했으며 런타임 경로는 공유하지 않습니다.
 

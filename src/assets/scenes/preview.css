@@ -98,9 +98,6 @@
 .artwork-preview[data-subject='false'] .scene-subject {
   visibility: hidden;
 }
-.artwork-preview[data-desk='false'] .scene-desk {
-  visibility: hidden;
-}
 @media (max-width: 767px) {
   .artwork-preview-grid {
     grid-template-columns: 1fr;

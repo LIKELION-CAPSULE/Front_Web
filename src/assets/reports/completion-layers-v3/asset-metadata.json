@@ -1,0 +1,37 @@
+{
+  "files": [
+    {
+      "file": "chaerin-completion-character-v3.png",
+      "bytes": 2471173,
+      "sha256": "881d74a913e9c91753e6f4d8946ebecb703edae96bf02aae11894f71a060df06"
+    },
+    {
+      "file": "chaerin-completion-character-v3.webp",
+      "bytes": 363134,
+      "sha256": "0a10f891deebbb3fd22d2469ae157fe919f1cd1f18edc3fb6d6cb2097beca00c"
+    },
+    {
+      "file": "classroom-completion-background-v3.png",
+      "bytes": 1930622,
+      "sha256": "c6f35f3f8cfb92224685530e3e2a3924381db3c0a6c3044009214e7cc6cecba6"
+    },
+    {
+      "file": "classroom-completion-background-v3.webp",
+      "bytes": 176768,
+      "sha256": "3196e6654063b1cd5734bc3d7f698bc7f7c2dc7cdb87022ae58ae4ad35239f38"
+    }
+  ],
+  "characterDecodedWebPAlpha": {
+    "min": 0,
+    "max": 254,
+    "transparentPixels": 466664,
+    "nearOpaquePixels": 968859,
+    "totalPixels": 1572864,
+    "solidBoundsAlphaAtLeast240": {
+      "left": 24,
+      "top": 30,
+      "right": 965,
+      "bottom": 1535
+    }
+  }
+}

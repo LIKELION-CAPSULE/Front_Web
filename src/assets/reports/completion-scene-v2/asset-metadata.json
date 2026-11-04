@@ -1,0 +1,19 @@
+{
+  "id": "chaerin-completion-scene-v2",
+  "size": [
+    1672,
+    941
+  ],
+  "files": [
+    {
+      "file": "chaerin-completion-scene-v2.png",
+      "bytes": 2009184,
+      "sha256": "1ae77aa425f5263164c0e5880566060702ad8d5842cc8e076ec955e3ea7a8d31"
+    },
+    {
+      "file": "chaerin-completion-scene-v2.webp",
+      "bytes": 181716,
+      "sha256": "be44805752bab8dd7293bcafc88b7b2ee4adf8aa682b95b9c86a2ab2dfed3383"
+    }
+  ]
+}

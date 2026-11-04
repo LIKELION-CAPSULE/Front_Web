@@ -41,7 +41,7 @@ export function companionTimeSeries(
       const key = dayKey(record.endedAt).slice(0, annual ? 7 : 10)
       const index = keys.indexOf(key)
       if (index < 0) continue
-      // Shared sessions are apportioned once, matching companion relationship totals.
+      // Shared sessions are apportioned once, matching companion study-level totals.
       const share = Math.max(1, record.characterIds.length)
       totals[index]!.seconds += record.studySeconds / share
       totals[index]!.focus += record.focusSeconds / share

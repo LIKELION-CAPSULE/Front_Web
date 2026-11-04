@@ -14,7 +14,6 @@ export default function ArtworkPreview() {
   const [ratio, setRatio] = useState<Ratio>('landscape')
   const [background, setBackground] = useState(true)
   const [subject, setSubject] = useState(true)
-  const [desk, setDesk] = useState(true)
   const [fullBody, setFullBody] = useState(false)
   const [seated, setSeated] = useState(true)
   const [title, setTitle] = useState(true)
@@ -24,14 +23,12 @@ export default function ArtworkPreview() {
       data-ratio={ratio}
       data-background={background}
       data-subject={subject}
-      data-desk={desk}
     >
       <header className="artwork-preview-header">
         <p>CAPSULE · ASSET WORKSPACE</p>
         <h1>9가지 공부 공간, 따로 바꾸는 레이어</h1>
         <p>
-          메인화면은 책상 없이 앉아 있는 구도예요. 배경·전신 캐릭터·책상·제목을 따로 확인할 수
-          있어요.
+          모든 장면은 책상 전경 없이 표시해요. 배경·전신 캐릭터·제목을 따로 확인할 수 있어요.
         </p>
       </header>
       <div className="artwork-preview-controls" aria-label="레이어 미리보기 설정">
@@ -72,14 +69,6 @@ export default function ArtworkPreview() {
         <label>
           <input
             type="checkbox"
-            checked={desk}
-            onChange={(event) => setDesk(event.target.checked)}
-          />
-          책상 전경
-        </label>
-        <label>
-          <input
-            type="checkbox"
             checked={fullBody}
             onChange={(event) => setFullBody(event.target.checked)}
           />
@@ -101,7 +90,6 @@ export default function ArtworkPreview() {
             <article className="artwork-preview-card" key={id} data-artwork-id={id}>
               <div className="artwork-preview-stage">
                 <RoomArtwork
-                  showDesk={desk}
                   roomId={id}
                   variant={
                     fullBody
@@ -133,9 +121,6 @@ export default function ArtworkPreview() {
                   </a>
                   <a href={art.subject} target="_blank" rel="noreferrer">
                     전신 전경 WebP
-                  </a>
-                  <a href={art.desk} target="_blank" rel="noreferrer">
-                    책상 전경 WebP
                   </a>
                   <a href={art.titleImage} target="_blank" rel="noreferrer">
                     투명 제목 WebP

@@ -173,7 +173,7 @@ export function StudyDock({ chatOpen, onChatToggle, onPhaseToggle, onFinish, cam
                 }
               }}
             >
-              <Icon name={item.icon} size={22} motion={item.key === 'chat' ? 'draw' : 'pulse'} />
+              <Icon name={item.icon} size={22} />
             </button>
             <span id={`${id}-${item.key}`} role="tooltip" className="study-dock-tooltip">{item.hint}</span>
             {item.key === 'background' && backgroundVisible && (

@@ -66,20 +66,17 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.animated-checkbox-face path {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
+.animated-checkbox-face > .app-icon {
   opacity: 0;
   transition:
-    stroke-dashoffset 0.18s ease-out,
+    transform 0.18s ease-out,
     opacity 0.12s ease-out;
 }
 .animated-checkbox-input:checked + .animated-checkbox-face::before {
   opacity: 1;
   transform: scale(1);
 }
-.animated-checkbox-input:checked + .animated-checkbox-face path {
-  stroke-dashoffset: 0;
+.animated-checkbox-input:checked + .animated-checkbox-face > .app-icon {
   opacity: 1;
   transition-delay: 0.06s;
 }
@@ -96,7 +93,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .animated-checkbox-face::before,
-  .animated-checkbox-face path {
+  .animated-checkbox-face > .app-icon {
     transition: none;
     transform: none;
   }

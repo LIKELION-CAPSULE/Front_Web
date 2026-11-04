@@ -8,14 +8,9 @@ export type SceneComposition = {
   subjectLayout: SubjectPlacement
   seatedLayout?: SubjectPlacement & { bottom?: number }
   welcomeLayout?: Partial<SubjectPlacement> & { bottom?: number }
-  deskSurface: number
 }
 
 export type SceneRect = { x: number; y: number; width: number; height: number }
-
-export function hasSceneDesk(variant: SceneVariant) {
-  return variant !== 'seated' && variant !== 'welcome' && variant !== 'fullbody'
-}
 
 export function getSceneBackground(
   art: { background: string; seatedBackground: string },
@@ -53,10 +48,9 @@ export function getSceneSettings(art: SceneComposition, variant: SceneVariant) {
   return {
     ...layout,
     surfaceY,
-    // Tall tails, hair and head ornaments must stay above the desktop and inside the frame.
+    // Keep tall tails, hair and head ornaments inside the frame.
     maxHeight: Math.min(layout.maxHeight, (surfaceY - 0.02) / layout.anchor),
     aspect: art.subjectSize[0] / art.subjectSize[1],
-    deskFactor: 1 / (1 - art.deskSurface),
   }
 }
 
@@ -71,19 +65,12 @@ export function getSceneLayout(
     frame.height * settings.maxHeight,
   )
   const width = height * settings.aspect
-  const deskHeight = Math.max(0, frame.height * (1 - settings.surfaceY) * settings.deskFactor)
   return {
     subject: {
       x: frame.x + frame.width * settings.center - width / 2,
       y: frame.y + frame.height * settings.surfaceY - height * settings.anchor,
       width,
       height,
-    },
-    desk: {
-      x: frame.x,
-      y: frame.y + frame.height - deskHeight,
-      width: frame.width,
-      height: deskHeight,
     },
     surfaceY: frame.y + frame.height * settings.surfaceY,
   }

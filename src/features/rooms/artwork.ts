@@ -25,9 +25,6 @@ import labBackground from '@/assets/scenes/lab-background-v1.webp'
 import labSubject from '@/assets/scenes/layered-v2/lab-fullbody-v2.webp'
 import joseonBackground from '@/assets/scenes/joseon-background-v1.webp'
 import joseonSubject from '@/assets/scenes/layered-v2/joseon-fullbody-v2.webp'
-import lightDesk from '@/assets/scenes/layered-v2/desk-light-v1.webp'
-import darkDesk from '@/assets/scenes/layered-v2/desk-dark-v1.webp'
-import workshopDesk from '@/assets/scenes/layered-v2/desk-workshop-v1.webp'
 import classroomTitle from '@/assets/room-titles/classroom-title-v3-trimmed.webp'
 import nightTitle from '@/assets/room-titles/night-title-v1-compact-trimmed.webp'
 import catTitle from '@/assets/room-titles/cat-title-v1-trimmed.webp'
@@ -44,18 +41,12 @@ export type RoomArtwork = SceneComposition & {
   background: string
   seatedBackground: string
   subject: string
-  desk: string
   title: string
   titleImage: string
   titleImageSize: readonly [number, number]
   subtitle: string
   mood: string
   tone: string
-}
-const desks = {
-  light: { desk: lightDesk, deskSurface: 209 / 724 },
-  dark: { desk: darkDesk, deskSurface: 317 / 724 },
-  workshop: { desk: workshopDesk, deskSurface: 284 / 724 },
 }
 const group = { width: 0.96, center: 0.5, maxHeight: 1.3 }
 const single = { width: 0.6, center: 0.65, maxHeight: 1.3 }
@@ -74,7 +65,6 @@ export const sceneArtwork: Record<SceneId, RoomArtwork> = {
     subjectSize: [1536, 1024],
     subjectLayout: { ...group, anchor: 0.46 },
     seatedLayout: { ...seatedGroup, anchor: 997 / 1024 },
-    ...desks.light,
     title: '쌀쌀맞은 갸루짝꿍이\n나에게만\n친절하다!',
     titleImage: classroomTitle,
     titleImageSize: [1482, 852],
@@ -89,7 +79,6 @@ export const sceneArtwork: Record<SceneId, RoomArtwork> = {
     subjectSize: [1024, 1536],
     subjectLayout: { ...single, anchor: 0.46 },
     seatedLayout: { ...seatedSingle, anchor: 1510 / 1536 },
-    ...desks.dark,
     title: '전교 1등을\n이겨라',
     titleImage: nightTitle,
     titleImageSize: [1462, 801],
@@ -107,7 +96,6 @@ export const sceneArtwork: Record<SceneId, RoomArtwork> = {
     seatedLayout: { width: 0.94, center: 0.56, maxHeight: 0.84, anchor: 949 / 1024, bottom: 0.99 },
     // A low-lying face needs room above the welcome message, unlike upright figures.
     welcomeLayout: { width: 0.76, center: 0.65, maxHeight: 0.58, bottom: 0.69 },
-    ...desks.light,
     title: '냥냥이가 날\n그렇게 쳐다보면\n집중할 수가 없잖아!!',
     titleImage: catTitle,
     titleImageSize: [1462, 809],
@@ -122,7 +110,6 @@ export const sceneArtwork: Record<SceneId, RoomArtwork> = {
     subjectSize: [1536, 1024],
     subjectLayout: { ...group, anchor: 0.5 },
     seatedLayout: { ...seatedGroup, anchor: 1018 / 1024 },
-    ...desks.dark,
     title: '김상병의 두근두근\n비밀연등',
     titleImage: lanternTitle,
     titleImageSize: [1782, 717],
@@ -137,7 +124,6 @@ export const sceneArtwork: Record<SceneId, RoomArtwork> = {
     subjectSize: [1536, 1024],
     subjectLayout: { ...group, anchor: 0.49 },
     seatedLayout: { ...seatedGroup, anchor: 985 / 1024 },
-    ...desks.dark,
     title: '페보니우스\n마법학교',
     titleImage: fantasyTitle,
     titleImageSize: [1475, 797],
@@ -152,7 +138,6 @@ export const sceneArtwork: Record<SceneId, RoomArtwork> = {
     subjectSize: [1024, 1536],
     subjectLayout: { ...single, anchor: 0.48 },
     seatedLayout: { ...seatedSingle, maxHeight: 0.94, anchor: 1430 / 1536 },
-    ...desks.light,
     title: '모르는 일진이\n나한테 말을 건다',
     titleImage: iljinTitle,
     titleImageSize: [1666, 777],
@@ -167,7 +152,6 @@ export const sceneArtwork: Record<SceneId, RoomArtwork> = {
     subjectSize: [1536, 1024],
     subjectLayout: { ...group, anchor: 0.6 },
     seatedLayout: { ...seatedGroup, anchor: 990 / 1024 },
-    ...desks.light,
     title: '쥬라기\n독서실',
     titleImage: jurassicTitle,
     titleImageSize: [1568, 764],
@@ -182,7 +166,6 @@ export const sceneArtwork: Record<SceneId, RoomArtwork> = {
     subjectSize: [1536, 1024],
     subjectLayout: { ...group, anchor: 0.62 },
     seatedLayout: { ...seatedGroup, width: 1.08, center: 0.5, anchor: 915 / 1024 },
-    ...desks.workshop,
     title: '뚝딱뚝딱\n실험실',
     titleImage: labTitle,
     titleImageSize: [1616, 832],
@@ -197,7 +180,6 @@ export const sceneArtwork: Record<SceneId, RoomArtwork> = {
     subjectSize: [1536, 1024],
     subjectLayout: { ...group, anchor: 0.54 },
     seatedLayout: { ...seatedGroup, anchor: 996 / 1024 },
-    ...desks.dark,
     title: '조선시대\n야간 학습',
     titleImage: joseonTitle,
     titleImageSize: [1602, 854],

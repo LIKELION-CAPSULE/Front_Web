@@ -44,3 +44,18 @@ test('custom names survive migration and blank profile input uses the new defaul
   const next = demoReducer(custom, { type: 'PROFILE', name: ' ', avatar: custom.profile.avatar })
   assert.equal(next.profile.name, DEFAULT_PROFILE_NAME)
 })
+
+test('signup saves its nickname before avatar setup and preserves it when setup finishes', () => {
+  const source = createDemoState()
+  const signedUp = demoReducer(source, { type: 'LOGIN', nickname: '  공부친구  ' })
+  assert.equal(signedUp.profile.name, '공부친구')
+  assert.equal(signedUp.profile.loggedIn, true)
+  assert.equal(signedUp.profile.onboarded, false)
+  const avatar = { ...signedUp.profile.avatar, background: 1 }
+  const onboarded = demoReducer(signedUp, { type: 'PROFILE', name: signedUp.profile.name, avatar })
+  assert.equal(onboarded.profile.name, '공부친구')
+  assert.equal(onboarded.profile.avatar, avatar)
+  assert.equal(onboarded.profile.onboarded, true)
+  assert.equal(demoReducer(onboarded, { type: 'LOGIN' }).profile.name, '공부친구')
+  assert.equal(demoReducer(onboarded, { type: 'LOGIN', preview: true }).profile.name, '공부친구')
+})
