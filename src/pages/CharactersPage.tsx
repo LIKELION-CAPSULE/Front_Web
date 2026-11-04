@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
-import { relationship } from '@/features/demo/selectors'
+import { studyLevel } from '@/features/demo/selectors'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
 import { dateLabel, dayKey } from '@/shared/lib/format'
 import { ButtonLink } from '@/shared/ui/Button'
@@ -10,7 +10,9 @@ import { cn } from '@/shared/lib/cn'
 import NotFoundPage from './NotFoundPage'
 import { CharacterAvatar } from '@/features/characters/components/CharacterAvatar'
 import { CharacterArtwork } from '@/features/characters/components/CharacterArtwork'
-import { RelationshipProgress } from '@/features/characters/components/RelationshipProgress'
+import { StudyLevelProgress } from '@/features/characters/components/StudyLevelProgress'
+import { AffectionStatus } from '@/features/characters/components/AffectionStatus'
+import { affectionScore } from '@/features/characters/affection'
 import { PageHeading } from '@/shared/ui/PageHeading'
 import { characterTags } from '@/features/characters/character-tags'
 import { SearchField } from '@/shared/ui/SearchField'
@@ -33,7 +35,7 @@ export default function CharactersPage() {
   )
   const character = room?.characters.find((item) => item.id === characterId)
   if (!room || !character) return <NotFoundPage />
-  const relation = relationship(state, character.id)
+  const level = studyLevel(state, character.id)
   const allRecords = state.records.filter((record) => record.characterIds.includes(character.id))
   const recent = allRecords.slice(0, 3)
   const firstMet = allRecords.at(-1)?.startedAt ?? now
@@ -43,7 +45,7 @@ export default function CharactersPage() {
     <div className="characters-page">
       <section className="character-browser" aria-label="친구 찾기">
         <div className="character-browser-header [&_.page-heading]:mb-0">
-          <PageHeading title="공부로 가까워진 사이" eyebrow={null} />
+          <PageHeading title="함께 공부한 친구" eyebrow={null} />
           <SearchField
             label="친구 이름 검색"
             placeholder="친구 이름 검색"
@@ -97,7 +99,8 @@ export default function CharactersPage() {
           <ul aria-label="친구 소개" className="character-profile-tags">
             {hashtags.map((tag) => <li key={tag}>{tag}</li>)}
           </ul>
-          <RelationshipProgress key={character.id} level={relation.level} next={relation.next} progress={relation.progress} />
+          <StudyLevelProgress key={character.id} level={level.level} next={level.next} progress={level.progress} />
+          <div className="mt-5"><AffectionStatus name={character.name} score={affectionScore(state, character.id)} /></div>
           <div className="character-profile-actions mt-auto pt-8">
             <ButtonLink
               to={
@@ -132,7 +135,7 @@ export default function CharactersPage() {
                   함께 {Math.floor(record.studySeconds / 60 / record.characterIds.length)}분 공부
                 </span>
                 <strong>
-                  +{Math.floor(record.studySeconds / 60 / record.characterIds.length)}
+                  +{Math.floor(record.studySeconds / 60 / record.characterIds.length)}분
                 </strong>
               </div>
             ))}

@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createDemoState } from '../src/features/demo/seed.ts'
-import { relationship } from '../src/features/demo/selectors.ts'
+import { studyLevel } from '../src/features/demo/selectors.ts'
 import type { StudyRecord } from '../src/features/demo/types.ts'
 
 const record = (minutes: number, characterIds = ['chaerin']): StudyRecord => ({
-  id: 'relationship-study',
+  id: 'level-study',
   roomId: 'dawn-library',
   characterIds,
   tier: 'basic',
@@ -19,7 +19,7 @@ const record = (minutes: number, characterIds = ['chaerin']): StudyRecord => ({
   automatic: false,
 })
 
-test('relationship progress follows level boundaries and stays complete after reaching Lv.5', () => {
+test('study level progress follows level boundaries and stays complete after reaching Lv.5', () => {
   for (const [minutes, level, next, progress] of [
     [0, 1, 600, 0],
     [599, 1, 1, 599 / 6],
@@ -32,7 +32,7 @@ test('relationship progress follows level boundaries and stays complete after re
     [3000, 5, 0, 100],
   ]) {
     const state = { ...createDemoState(), records: minutes ? [record(minutes!)] : [] }
-    const actual = relationship(state, 'chaerin')
+    const actual = studyLevel(state, 'chaerin')
     assert.equal(actual.minutes, minutes)
     assert.equal(actual.level, level)
     assert.equal(actual.next, next)
@@ -43,7 +43,7 @@ test('relationship progress follows level boundaries and stays complete after re
 test('group study contributes each friend’s share to their next-level progress', () => {
   const state = { ...createDemoState(), records: [record(900, ['chaerin', 'sua', 'dahee'])] }
   for (const friend of ['chaerin', 'sua', 'dahee']) {
-    assert.deepEqual(relationship(state, friend), { level: 1, minutes: 300, next: 300, progress: 50 })
+    assert.deepEqual(studyLevel(state, friend), { level: 1, minutes: 300, next: 300, progress: 50 })
   }
-  assert.deepEqual(relationship(state, 'moru'), { level: 1, minutes: 0, next: 600, progress: 0 })
+  assert.deepEqual(studyLevel(state, 'moru'), { level: 1, minutes: 0, next: 600, progress: 0 })
 })

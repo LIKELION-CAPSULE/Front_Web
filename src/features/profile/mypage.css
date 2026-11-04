@@ -96,7 +96,7 @@
   position: relative;
   min-width: 0;
 }
-.schedule-calendar-dropdown > svg {
+.schedule-calendar-dropdown > .app-icon {
   position: absolute;
   top: 50%;
   right: 8px;

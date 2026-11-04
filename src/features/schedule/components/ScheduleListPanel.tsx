@@ -31,7 +31,7 @@ export function ScheduleListPanel({
           일정
         </h2>
         <Button size="sm" onClick={onAdd}>
-          <Icon name="calendar" size={16} motion="draw" />
+          <Icon name="calendar" size={16} />
           일정 추가
         </Button>
       </div>

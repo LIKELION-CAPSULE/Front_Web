@@ -8,6 +8,7 @@ import { TierSelector } from '@/features/session/components/TierSelector'
 import { StudyGoalPicker } from '@/features/session/components/StudyGoalPicker'
 import { Button } from '@/shared/ui/Button'
 import { OverlayPage } from '@/shared/ui/OverlayPage'
+import { Icon } from '@/shared/ui/Icon'
 import NotFoundPage from './NotFoundPage'
 import MvpUnavailablePage from './MvpUnavailablePage'
 import { MvpGate } from '@/features/mvp/MvpGate'
@@ -57,7 +58,7 @@ export default function PreparePage() {
       <section aria-labelledby="prepare-schedule-title" className="mt-5 flex items-center justify-between gap-3 rounded-control bg-panel p-4">
         <h2 id="prepare-schedule-title" className="type-section-title">일정</h2>
         <Button size="sm" variant="secondary" aria-haspopup="dialog" onClick={() => setScheduleOpen(true)}>
-          + 일정 추가
+          <Icon name="calendar" size={16} /> 일정 추가
         </Button>
       </section>
       <h2 className="mt-5 mb-3 type-section-title">대화 옵션</h2>

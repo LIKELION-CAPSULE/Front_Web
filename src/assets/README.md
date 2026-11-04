@@ -6,6 +6,8 @@
 
 룸 상세는 배경·인물·좌석을 함께 그린 [상세 전용 완성형 배너 9종](room-detail-banners/README.md)을 사용합니다. 제목·소개는 HTML이며 생성 PNG·웹용 WebP·프롬프트 세트를 따로 보관합니다.
 
+종료 리포트는 [빈 노을 교실·투명 채린 분리 레이어 v3](reports/completion-layers-v3/README.md)를 사용합니다. 기존 완료 이미지의 표정·복장·손인사를 유지하며 배경과 인물을 분리해 캐릭터와 말풍선을 가운데 정렬합니다. [전체 화면 장면 v2](reports/completion-scene-v2/README.md)는 생성 참조·이력으로 보관하고, 캡슐 카드에는 [기존 세로 완료 이미지](reports/completion-v1/README.md)를 유지합니다.
+
 외부 이미지 URL이나 `Landing_Page` 경로를 런타임에 참조하지 않고 이 프로젝트 안의 파일을 사용합니다. `Landing_Page` 원본은 수정하지 않았습니다.
 
 | 위치 | 원본 | 사용처 |

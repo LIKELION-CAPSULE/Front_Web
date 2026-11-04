@@ -11,6 +11,7 @@ import { MIN_CALENDAR_DATE } from '../../shared/lib/date-limits.ts'
 import { normalizeCameraBackground, type CameraBackgroundId } from '../media/camera-backgrounds.ts'
 import type { AvatarSettings, DemoState, FocusTotals, LedgerEntry, Memory, TierId } from './types.ts'
 import { MVP_CHARACTER_ID, MVP_GOAL_MINUTES, MVP_ROOM_ID } from '../mvp/policy.ts'
+import { normalizeAffectionScore } from '../characters/affection.ts'
 
 export const BREAK_SECONDS = 10 * 60
 
@@ -20,6 +21,7 @@ export type DemoAction =
   | { type: 'LOGOUT' }
   | { type: 'RESET'; now: number }
   | { type: 'FIRST_VISIT'; value: boolean }
+  | { type: 'SET_AFFECTION'; characterId: string; score: number }
   | { type: 'CAMERA'; enabled: boolean }
   | { type: 'CAMERA_BACKGROUND'; background: CameraBackgroundId }
   | { type: 'FACE_FOCUS'; sessionId: string; totals: FocusTotals; now: number }
@@ -128,6 +130,11 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       return createDemoState(action.now)
     case 'FIRST_VISIT':
       return { ...state, firstVisit: action.value }
+    case 'SET_AFFECTION': {
+      const score = normalizeAffectionScore(action.score)
+      if (!action.characterId.trim() || score === null || state.affection?.[action.characterId] === score) return state
+      return { ...state, affection: { ...state.affection, [action.characterId]: score } }
+    }
     case 'CAMERA_BACKGROUND':
       return { ...state, cameraBackground: normalizeCameraBackground(action.background) }
     case 'CAMERA':

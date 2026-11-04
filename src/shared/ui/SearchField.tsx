@@ -20,7 +20,11 @@ export function SearchField({
 }) {
   const input = useRef<HTMLInputElement>(null)
   return (
-    <div className={cn('search-field', className)}>
+    <div data-icon-trigger className={cn('search-field', className)} onClick={(event) => {
+      if (event.target === event.currentTarget || (event.target instanceof Element && event.target.closest('[data-icon="search"]'))) {
+        input.current?.focus({ preventScroll: true })
+      }
+    }}>
       <Icon name="search" size={17} />
       <input ref={input} type="search" aria-label={label} placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} />
       {value && (

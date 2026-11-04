@@ -85,6 +85,8 @@ export type Gift = {
 export type DemoState = {
   version: 1
   profile: Profile
+  /** Independent 0–100 backend scores. Missing entries have no decided initial value. */
+  affection?: Record<string, number>
   firstVisit: boolean
   credits: number
   ledger: LedgerEntry[]

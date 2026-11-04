@@ -1,12 +1,13 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
-import { measuredDuration } from '@/shared/lib/format'
 import { Icon } from '@/shared/ui/Icon'
+import { AnimatedDuration } from '@/shared/ui/number-counter/AnimatedDuration'
+import { NumberCounter } from '@/shared/ui/number-counter/NumberCounter'
 import { withParticle } from '@/shared/lib/korean'
 import type { CSSProperties } from 'react'
-import type { ReportRelationship } from '../report-relationship'
+import type { ReportStudyLevel } from '../report-study-level'
 
-export function RelationshipGain({ name, gain }: { name: string; gain: ReportRelationship }) {
+export function StudyLevelGain({ name, gain }: { name: string; gain: ReportStudyLevel }) {
   const reduced = useReducedMotion()
   const fill = useRef<HTMLSpanElement>(null)
   const meter = useRef<HTMLDivElement>(null)
@@ -61,13 +62,13 @@ export function RelationshipGain({ name, gain }: { name: string; gain: ReportRel
   const complete = reduced || finished
   const leveled = gain.after.level > gain.before.level
   return (
-    <section className="report-relationship-gain" data-complete={complete || undefined} data-level-up={burst || (reduced && leveled) || undefined}>
-      <div className="report-gain-heading"><h3>{withParticle(name, '과', '와')} 함께한 시간</h3><strong>+{measuredDuration(gain.gainSeconds)}</strong></div>
-      <div ref={meter} className="report-gain-track" role="progressbar" aria-label={`${name} 관계 진행도`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={reduced ? gain.after.progress : gain.before.progress}>
+    <section className="report-study-level-gain" data-complete={complete || undefined} data-level-up={burst || (reduced && leveled) || undefined}>
+      <div className="report-gain-heading"><h3>{withParticle(name, '과', '와')} 함께한 시간</h3><strong>+<AnimatedDuration seconds={gain.gainSeconds} measured /></strong></div>
+      <div ref={meter} className="report-gain-track" role="progressbar" aria-label={`${name} 공부 레벨 진행도`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={reduced ? gain.after.progress : gain.before.progress}>
         <span ref={fill} className="report-gain-fill" style={{ width: `${reduced ? gain.after.progress : gain.before.progress}%` }} />
       </div>
-      <div className="report-gain-details"><span className="report-gain-level">Lv.{displayLevel} 친구</span><span className="report-gain-next">{gain.after.level === 5 ? '가장 가까운 친구가 되었어요' : `Lv.${gain.after.level + 1}까지 ${gain.after.next}분`}</span></div>
-      {leveled && <p className="report-gain-celebration" role="status"><Icon name="sparkle" size={15} />Lv.{gain.after.level}로 더 가까워졌어요</p>}
+      <div className="report-gain-details"><span className="report-gain-level">공부 레벨 Lv.{displayLevel}</span><span className="report-gain-next">{gain.after.level === 5 ? '최고 레벨을 달성했어요' : <>Lv.{gain.after.level + 1}까지 <NumberCounter value={gain.after.next} />분</>}</span></div>
+      {leveled && <p className="report-gain-celebration" role="status">{(burst > 0 || complete) && <Icon name="sparkle" size={20} />}Lv.{gain.after.level}로 올랐어요</p>}
       {burst > 0 && <span key={burst} className="report-gain-burst" aria-hidden="true"><i />{Array.from({ length: 10 }, (_, index) => <span key={index} style={{ '--spark-index': index } as CSSProperties} />)}</span>}
     </section>
   )

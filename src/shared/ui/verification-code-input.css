@@ -91,9 +91,9 @@
     animation: code-pill-open 360ms cubic-bezier(.16,1,.3,1) 180ms both;
     content: '';
   }
-  .verification-code-success > svg { flex-shrink: 0; animation: code-check-in 260ms cubic-bezier(.2,1.35,.5,1) 300ms both; }
-  .verification-code-success > svg > path { stroke-dasharray: 1; animation: code-check-draw 240ms ease-out 340ms both; }
-  .verification-code-success > span { animation: code-label-in 240ms ease-out 340ms both; }
+  .verification-code-success > .app-icon { flex-shrink: 0; animation: code-check-in 260ms cubic-bezier(.2,1.35,.5,1) 300ms both; }
+
+  .verification-code-success > span:not(.app-icon) { animation: code-label-in 240ms ease-out 340ms both; }
   @media (max-width: 479px) {
     .verification-code-input { --code-gap: 8px; }
     .verification-code-slots > span { height: 52px; font-size: var(--text-section-title); }
@@ -104,8 +104,8 @@
     .verification-code-input[data-invalid], .verification-code-input[data-readonly] .verification-code-slots > span, .verification-code-slots i { animation: none; }
     .verification-code-input[data-verified] .verification-code-slots > span,
     .verification-code-input[data-verified] .verification-code-digit,
-    .verification-code-success::before, .verification-code-success > svg,
-    .verification-code-success > svg > path, .verification-code-success > span { animation: none; }
+    .verification-code-success::before, .verification-code-success > .app-icon,
+    .verification-code-success > span { animation: none; }
   }
 }
 @keyframes code-caret { 50% { opacity: 0; } }
@@ -119,5 +119,5 @@
 @keyframes code-digit-out { to { transform: translateY(-4px); opacity: 0; } }
 @keyframes code-pill-open { from { transform: scaleX(.18); opacity: 0; } 35% { opacity: 1; } to { transform: scaleX(1); opacity: 1; } }
 @keyframes code-check-in { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes code-check-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
 @keyframes code-label-in { from { transform: translateY(4px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }

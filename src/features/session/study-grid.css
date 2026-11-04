@@ -34,7 +34,7 @@
   .study-grid.is-focus > .focus-tile .tile-speech { bottom: 208px; }
   .study-grid.is-focus > :not(.focus-tile) .tile-speech { display: none; }
   .study-grid.is-focus > :not(.focus-tile) .tile-action-symbol { width: 32px; height: 32px; }
-  .study-grid.is-focus > :not(.focus-tile) .tile-action-symbol > svg { width: 20px; height: 20px; }
+  .study-grid.is-focus > :not(.focus-tile) .tile-action-symbol > .app-icon { width: 20px; height: 20px; }
 
   @media (max-width: 1023px) {
     .study-grid {

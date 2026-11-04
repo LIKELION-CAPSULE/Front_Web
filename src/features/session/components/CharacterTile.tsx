@@ -54,7 +54,7 @@ export function CharacterTile({
           aria-expanded={!!focus}
         >
           <span className="tile-action-symbol" aria-hidden="true">
-            <Icon name={focus ? 'shrink' : 'zoomIn'} size={28} motion="pulse" />
+            <Icon name={focus ? 'shrink' : 'zoomIn'} size={28} />
           </span>
         </button>
       )}

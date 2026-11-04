@@ -37,7 +37,7 @@ export function AppLayout() {
                   end={item.end}
                   className={({ isActive }) => cn('app-nav-item', isActive && 'is-active')}
                 >
-                  <Icon name={item.icon as IconName} size={17} motion={item.icon === 'heart' ? 'pulse' : 'draw'} />
+                  <Icon name={item.icon as IconName} size={17} />
                   {item.label}
                 </NavLink>
               )
@@ -59,7 +59,7 @@ export function AppLayout() {
           CAPSULE <span className="mx-2 text-divider">/</span> 같이 공부하는 시간의 힘.
         </span>
         <span>
-          작은 집중이 쌓이는 곳 <span className="ml-3 text-text-accent">✦</span>
+          작은 집중이 쌓이는 곳 <Icon name="sparkle" size={14} className="ml-3 text-text-accent" />
         </span>
       </footer>
     </div>

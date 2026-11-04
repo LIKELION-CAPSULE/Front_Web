@@ -164,7 +164,7 @@ test('a pass covers standard and one premium set per business day', () => {
   assert.equal(tierCost(state, 'premium', now + 86400000), 0)
 })
 
-test('gifts debit the ledger without changing study-based relationships', () => {
+test('gifts debit the ledger without changing study-level history or assigning affection', () => {
   const initial = createDemoState(now)
   const next = demoReducer(initial, {
     type: 'GIFT',
@@ -175,6 +175,7 @@ test('gifts debit the ledger without changing study-based relationships', () => 
   })
   assert.equal(next.credits, 940)
   assert.equal(next.records, initial.records)
+  assert.equal(next.affection, initial.affection)
   assert.equal(next.gifts.length, initial.gifts.length + 1)
   const poor = { ...initial, credits: 50 }
   assert.equal(

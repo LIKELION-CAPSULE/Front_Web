@@ -51,7 +51,7 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
                       : preparationPath
                   }
                 >
-                  <Icon name="play" size={17} motion="pulse" /> 이어서 공부하기
+                  <Icon name="play" size={17} /> 이어서 공부하기
                 </ButtonLink>
               ) : (
                 <Button onClick={onExplore}>

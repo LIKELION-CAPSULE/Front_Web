@@ -1,0 +1,16 @@
+{
+  "project": "Tween UI Number Counter",
+  "documentation": "https://tween-ui.vercel.app/component/number-counter",
+  "registry": "https://tween-ui.vercel.app/r/number-counter.json",
+  "reviewedOn": "2026-11-05",
+  "registrySha256": "d5bed5e52eb5929c823c6ca822b0a539446a98437e332fa42a791e1c4e676423",
+  "sourceSha256": "0b557de9d822bc8010e09c0074121066c6974b2216ec5564d2f353542616a2ee",
+  "changes": [
+    "Local cn and live reduced-motion hook.",
+    "Final-value screen-reader text and invisible width reservation.",
+    "ko-KR formatting and animated duration unit composition.",
+    "Once per mount viewport playback; cleanup and live reduced-motion changes.",
+    "Clip both axes to the reserved final-value viewport so rolling digits cannot paint over adjacent text or rows.",
+    "Reserve integer/fraction columns, use trend=1 and continuous for upward per-digit reels, clip each exposed digit part, and use a normal inline text baseline with zero mask padding."
+  ]
+}

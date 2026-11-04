@@ -46,7 +46,6 @@ export default function StudyPage() {
   const [params, setParams] = useSearchParams()
   const [reaction, setReaction] = useState(0)
   const [customSpeech, setCustomSpeech] = useState('')
-  const [quietMode, setQuietMode] = useState(false)
   const [showCamera, setShowCamera] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [replyMode, setReplyMode] = useState<ChatReplyMode>('scripted')
@@ -114,7 +113,6 @@ export default function StudyPage() {
         if (event.repeat) return
         const next = toggleStudyChat(new URLSearchParams(window.location.search), selected.id, resting)
         if (next.get('chat') === '1') {
-          setQuietMode(false)
           setReaction(0)
           setCustomSpeech('')
         }
@@ -139,11 +137,9 @@ export default function StudyPage() {
   }, [inSession, resting, focused?.id, selfFocused, selected, setParams])
   if (!active || active.id !== sessionId || !room || !selected)
     return (
-      <main id="main-content" className="page-container py-10">
+      <main id="main-content" tabIndex={-1} className="page-container grid min-h-dvh place-items-center py-10 focus:outline-none">
         <PageNavigation />
-        <EmptyState title="진행 중인 공부가 없어요" headingLevel="h1">
-          스터디룸을 골라 친구와 공부를 시작해 보세요.
-        </EmptyState>
+        <EmptyState title="진행 중인 공부가 없어요" headingLevel="h1" />
       </main>
     )
   const elapsed = sessionElapsed(active, now)
@@ -174,14 +170,12 @@ export default function StudyPage() {
   function toggleChat() {
     const next = toggleStudyChat(params, selected!.id, resting)
     if (next.get('chat') === '1') {
-      setQuietMode(false)
       setReaction(0)
       setCustomSpeech('')
     }
     setParams(next)
   }
   function selectFriend(id: string) {
-    setQuietMode(false)
     setParams(selectStudyChatFriend(params, id))
   }
   function activateFriend(id: string) {
@@ -200,7 +194,7 @@ export default function StudyPage() {
     const at = Date.now()
     const speaking = Object.values(pendingReplies).some(Boolean) || state.messages.some((message) =>
       message.sessionId === active!.id && message.sender === 'character' && typingEndsAt(message.text, message.createdAt ?? 0) > at)
-    const unavailable = replyMode !== 'llm' || quietMode || active!.phase !== 'study' || active!.runningSince === null
+    const unavailable = replyMode !== 'llm' || active!.phase !== 'study' || active!.runningSince === null
     const result = reactToBehavior(behaviorChat.current, change, unavailable || speaking)
     behaviorChat.current = result.state
     // With the chat closed, the reply shows as the first tile's speech bubble.
@@ -262,7 +256,6 @@ export default function StudyPage() {
   function takeBreak() {
     flushFocus()
     dispatch({ type: 'TAKE_BREAK', now: Date.now() })
-    setQuietMode(false)
     const next = new URLSearchParams(params)
     next.delete('focus')
     next.set('chat', '1')
@@ -306,7 +299,7 @@ export default function StudyPage() {
         <button type="button" className="tile-interaction" aria-label={selfFocused ? '내 화면 확대 닫기' : '내 화면 크게 보기'}
           aria-expanded={selfFocused} onClick={() => setParams(resting ? toggleBreakSelfFocus(params, selected!.id) : toggleStudyFocus(params, SELF_STUDY_TILE_ID))}>
           <span className="tile-action-symbol" aria-hidden="true">
-            <Icon name={selfFocused ? 'shrink' : 'zoomIn'} size={28} motion="pulse" />
+            <Icon name={selfFocused ? 'shrink' : 'zoomIn'} size={28} />
           </span>
         </button>
         {!resting && <div className="study-self-feedback">
@@ -348,23 +341,6 @@ export default function StudyPage() {
           />
         </div>
         <div className="study-header-actions">
-        {active.phase === 'study' && (
-          <button
-            type="button"
-            aria-pressed={quietMode}
-            onClick={() => {
-              setQuietMode(!quietMode)
-              if (!quietMode) {
-                if (chatOpen) closeChat()
-              }
-            }}
-            className="quiet-mode-toggle"
-            aria-label="조용히 집중"
-          >
-            <Icon name="moon" size={14} />
-            <span>조용히 집중</span>
-          </button>
-        )}
         <DevicePrivacyInfo />
         </div>
         <div className="study-session-stats">
@@ -397,34 +373,30 @@ export default function StudyPage() {
                 }
                 focus={focused?.id === character.id}
                 speaking={speakingCharacters.has(character.id)}
-                active={!quietMode && ((chatOpen && character.id === selected.id) || (index === 0 && reaction > 1))}
+                active={(chatOpen && character.id === selected.id) || (index === 0 && reaction > 1)}
                 status={
-                  quietMode
-                    ? '공부 중'
-                    : speakingCharacters.has(character.id)
-                      ? '말하는 중'
-                      : chatOpen && character.id === selected.id
-                        ? '채팅 중'
-                        : index === 0 && reaction
-                          ? reaction === 1
-                            ? '힐끔'
-                            : '말 거는 중'
-                          : '공부 중'
+                  speakingCharacters.has(character.id)
+                    ? '말하는 중'
+                    : chatOpen && character.id === selected.id
+                      ? '채팅 중'
+                      : index === 0 && reaction
+                        ? reaction === 1
+                          ? '힐끔'
+                          : '말 거는 중'
+                        : '공부 중'
                 }
                 speech={
-                  quietMode
+                  character.id === selected.id && chatOpen
                     ? undefined
-                    : character.id === selected.id && chatOpen
-                      ? undefined
-                      : index === 0
-                        ? customSpeech || reactions[reaction]
-                        : index === 1 && reaction
-                          ? '…'
-                          : undefined
+                    : index === 0
+                      ? customSpeech || reactions[reaction]
+                      : index === 1 && reaction
+                        ? '…'
+                        : undefined
                 }
                 onActivate={() => activateFriend(character.id)}
                 onDismiss={
-                  index === 0 && reaction > 1 && !chatOpen && !quietMode
+                  index === 0 && reaction > 1 && !chatOpen
                     ? () => {
                         setReaction(0)
                         setCustomSpeech('아, 필기 중이었구나. 미안!')
@@ -453,7 +425,6 @@ export default function StudyPage() {
                     <button
                       key={character.id}
                       onClick={() => {
-                        setQuietMode(false)
                         setParams(selectBreakFriend(params, character.id))
                       }}
                       className={cn('break-thumbnail', speakingCharacters.has(character.id) && 'is-speaking')}

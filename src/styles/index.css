@@ -494,7 +494,7 @@
     border-radius: 999px;
     background: var(--glass-background);
     padding: 5px 10px;
-    color: var(--color-affection-text);
+    color: var(--color-text-accent);
     font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   }
   .friend-card-time {
@@ -578,54 +578,55 @@
   .character-profile-tags li:first-child {
     color: var(--color-text-accent);
   }
-  .relationship-progress {
+  .study-level-progress {
     position: relative;
     margin-top: 16px;
   }
-  .relationship-progress-heading {
+  .study-level-progress-heading {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     justify-content: space-between;
     gap: 8px;
     margin-bottom: 4px;
   }
-  .relationship-progress-status {
-    color: var(--color-affection-text);
+  .study-level-progress-status {
+    color: var(--color-text-accent);
     font-size: var(--text-caption); line-height: var(--text-caption--line-height);
     white-space: nowrap;
   }
-  .relationship-progress-track {
+  .study-level-progress-track {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     border-radius: 8px;
     padding-block: 6px;
   }
-  .relationship-progress-step {
+  .study-level-progress-step {
     display: block;
     min-width: 0;
   }
-  .relationship-progress-segment {
+  .study-level-progress-segment {
     display: block;
     height: 8px;
     overflow: hidden;
     border-radius: 999px;
     background: var(--color-divider);
   }
-  .relationship-progress-fill {
+  .study-level-progress-fill {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: var(--color-affection);
+    background: var(--color-text-accent);
   }
-  .relationship-progress-step[data-state='next'] .relationship-progress-fill {
-    background: var(--color-affection);
+  .study-level-progress-step[data-state='next'] .study-level-progress-fill {
+    background: var(--color-text-accent);
   }
-  .relationship-progress-track:focus-visible {
+  .study-level-progress-track:focus-visible {
     outline: 2px solid var(--color-focus-ring);
     outline-offset: 4px;
   }
-  .relationship-progress-tooltip {
+  .study-level-progress-tooltip {
     position: absolute;
     z-index: 5;
     bottom: 100%;
@@ -635,7 +636,7 @@
     padding-bottom: 8px;
     transform: translateX(-50%);
   }
-  .relationship-progress-tooltip > .floating-surface {
+  .study-level-progress-tooltip > .floating-surface {
     display: block;
     border-radius: 10px;
     padding: 10px 12px;
@@ -889,6 +890,8 @@
     display: grid;
     flex: none;
     gap: 2px;
+    justify-items: center;
+    text-align: center;
     border-right: 1px solid color-mix(in srgb, var(--color-ink) 12.16%, transparent);
     padding-right: 20px;
   }
@@ -979,17 +982,6 @@
   }
 
   /* A keepsake after every study. */
-  .report-character {
-    position: relative;
-    min-height: 490px;
-    overflow: hidden;
-    border: 1px solid transparent;
-    border-radius: 18px;
-    background: var(--color-surface);
-  }
-  .report-character .character-figure > img {
-    object-position: 50% 30% !important;
-  }
   .capsule-share-page {
     display: flex;
     min-height: 100dvh;
@@ -1104,9 +1096,7 @@
   .study-topbar .study-session-stats { grid-area: 2 / 1 / 3 / -1; width: 100%; justify-content: space-between; gap: 16px; }
   .study-topbar .study-focus-status { padding-right: 16px; }
   .study-topbar .session-timer { gap: 6px; font-size: var(--text-timer-compact); line-height: var(--text-timer-compact--line-height); }
-  .study-topbar .quiet-mode-toggle { grid-area: 1 / 3; justify-self: end; }
   .study-topbar .study-room-heading { grid-area: 1 / 2; border-left: 0; padding-left: 0; }
-  .study-topbar:not(:has(.quiet-mode-toggle)) .study-room-heading { grid-column-end: -1; }
   .study-demo-menu { position: fixed; top: 50px; left: 12px; right: 12px; width: min(300px, calc(100% - 24px)); }
   .capsule-share-page {
     gap: 28px;
@@ -1187,9 +1177,6 @@
   }
   .capsule-share-page {
     flex-direction: column;
-  }
-  .report-character .character-figure > img {
-    object-position: 50% 35% !important;
   }
 }
 @media (max-width: 639px) {

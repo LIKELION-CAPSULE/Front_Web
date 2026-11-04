@@ -121,7 +121,7 @@
   }
   @media (max-width: 479px) {
     .study-dock { gap: 3px; }
-    .study-dock-item > button > svg { width: 20px; height: 20px; }
+    .study-dock-item > button > .app-icon { width: 20px; height: 20px; }
   }
   @media (max-width: 359px) {
     .study-dock { gap: 2px; padding: 6px; }

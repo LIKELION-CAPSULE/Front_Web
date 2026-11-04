@@ -69,7 +69,7 @@ export default function RoomDetailPage() {
               className="mt-6 max-w-full"
             >
               {state.activeSession ? '진행 중인 공부로 돌아가기' : '이곳에서 공부하기'}
-              <Icon name="arrow" size={18} motion="nudge" className="shrink-0" />
+              <Icon name="arrow" size={18} className="shrink-0" />
             </ButtonLink>
           </div>
         </section>
