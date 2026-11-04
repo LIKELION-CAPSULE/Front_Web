@@ -135,8 +135,11 @@ React + TypeScript(strict) + Vite + Tailwind CSS v4를 사용합니다. 공통 U
 
 ## 문서
 
-로컬의 [문서 목록](docs/README.md)에서 기획 근거와 구조를 확인할 수 있습니다. 현재 저장소의 `docs/` 제외 규칙은 유지되어 있습니다.
+로컬의 [문서 목록](docs/README.md)에서 기획 근거와 구조를 확인할 수 있습니다. 기존 `docs/` 제외 규칙은 유지하되 아래의 최신 프로젝트 개요·백엔드 문서·명세 원본은 Git 추적 대상에 포함합니다.
 
+- [프로젝트 개요](docs/PROJECT_OVERVIEW.md) — 현재 코드 기준 두 앱의 역할, MVP 동작, 상태·미디어·배포 경계.
+- [백엔드 API 정리](docs/BACKEND_API.md) — [Railway Swagger](https://backendlab-production-3052.up.railway.app/swagger-ui/index.html#/)의 전체 API·스키마와 프런트 연결 시 확인할 차이.
+- [OpenAPI 원본 스냅샷](docs/BACKEND_OPENAPI_2026-11-05.json) — 2026-11-05 조회 기준.
 - [원본 서비스 기획 정리](docs/CAPSULE_서비스_기획_정리.md) — 내용 수정 없이 `docs`로 이동.
 - [서비스·와이어프레임 분석](docs/SERVICE_ANALYSIS.md) — 핵심 경험, 우선순위, 문서 간 차이.
 - [피그마 화면 지도](docs/FIGMA_SCREEN_MAP.md) — 실제 확인한 노드와 현재 구현 범위.
