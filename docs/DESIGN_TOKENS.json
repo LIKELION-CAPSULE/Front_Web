@@ -1,8 +1,13 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.18",
+  "version": "1.0.19",
   "updatedAt": "2026-11-05",
   "status": "implemented-in-web-code",
+  "cssCascade": {
+    "layerOrder": ["properties", "theme", "base", "components", "utilities"],
+    "registerIn": "index.html inline style before external stylesheets",
+    "verifyProductionBuild": true
+  },
   "scope": [
     "Front_Web"
   ],
