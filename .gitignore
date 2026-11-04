@@ -162,6 +162,9 @@ Desktop.ini
 .turbo
 
 docs/*
+!docs/PROJECT_OVERVIEW.md
+!docs/BACKEND_API.md
+!docs/BACKEND_OPENAPI_2026-11-05.json
 !docs/REFERENCE_COMMERCIAL_USE.md
 !docs/THIRD_PARTY_NOTICES.md
 !docs/DESIGN_CODE_AUDIT.md

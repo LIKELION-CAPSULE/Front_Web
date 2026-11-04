@@ -1,4 +1,4 @@
-// Establish cascade layers before importing components with their own stylesheets.
+// Keep global CSS first in development; index.html also pins layer order before production CSS chunks.
 import '@/styles/index.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
