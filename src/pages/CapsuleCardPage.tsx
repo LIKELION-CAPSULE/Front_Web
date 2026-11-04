@@ -21,6 +21,8 @@ import { withParticle } from '@/shared/lib/korean'
 import { capsuleCardCopy, capsuleFocusCopy } from '@/features/reports/card-copy'
 import { capsuleCardColors } from '@/features/reports/capsule-card-layout'
 import { loadStoryFont } from '@/shared/design/story-font'
+import { isMvpCharacter, isMvpRoom } from '@/features/mvp/policy'
+import MvpUnavailablePage from './MvpUnavailablePage'
 
 const colors = capsuleCardColors
 const names = ['보라', '검정', '연보라', '라벤더']
@@ -48,7 +50,8 @@ export default function CapsuleCardPage() {
         <NotFoundPage />
       </OverlayPage>
     )
-  const participants = room.characters.filter(character => record.characterIds.includes(character.id))
+  if (!isMvpRoom(room.id)) return <OverlayPage><MvpUnavailablePage /></OverlayPage>
+  const participants = room.characters.filter(character => isMvpCharacter(character.id) && record.characterIds.includes(character.id))
   const friends = participants.length ? participants : [room.characters[0]!]
   const character = friends.find(friend => friend.id === params.get('friend')) ?? friends[0]!
   async function save(share = false) {

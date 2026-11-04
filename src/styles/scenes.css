@@ -48,16 +48,6 @@
     );
     transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.3, 1);
   }
-  .scene-desk {
-    position: absolute;
-    z-index: 2;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    height: calc((100% - var(--scene-surface)) * var(--desk-factor));
-    object-fit: fill;
-    pointer-events: none;
-  }
   .scene-shade {
     position: absolute;
     z-index: 3;
@@ -93,8 +83,7 @@
       linear-gradient(0deg, #11141bb3, transparent 55%);
   }
   .layered-scene--thumb .scene-shade,
-  .layered-scene--fullbody .scene-shade,
-  .layered-scene--fullbody .scene-desk {
+  .layered-scene--fullbody .scene-shade {
     display: none;
   }
   .room-card:has(a:focus-visible) {

@@ -93,22 +93,17 @@ test('study automatically enters break and preserves elapsed overflow', () => {
   assert.equal(sessionElapsed(state.activeSession, transition + 800000), 3206)
 })
 
-test('basic chat shares the daily limit across characters and resets at 05:00 Seoul', () => {
+test('free chat remains available after three messages and still tracks daily usage', () => {
   let state = demoReducer(createDemoState(now), start('basic'))
   for (const id of ['chaerin', 'sua', 'dahee'])
     state = demoReducer(state, { type: 'MESSAGE', now, characterId: id, name: id, text: '화이팅' })
   assert.equal(state.chatUsage.used, 3)
   assert.equal(new Set(state.messages.map((message) => message.id)).size, 6)
-  assert.equal(
-    demoReducer(state, {
-      type: 'MESSAGE',
-      now,
-      characterId: 'chaerin',
-      name: '채린',
-      text: '한 번 더',
-    }),
-    state,
-  )
+  for (let i = 0; i < 10; i++) {
+    state = demoReducer(state, { type: 'MESSAGE', now: now + i, characterId: 'chaerin', name: '채린', text: `한 번 더 ${i}` })
+  }
+  assert.equal(state.chatUsage.used, 13)
+  assert.equal(state.messages.length, 26)
   const nextDay = new Date('2026-10-27T05:00:00+09:00').getTime()
   assert.notEqual(businessDay(nextDay - 1), businessDay(nextDay))
   state = demoReducer(state, {

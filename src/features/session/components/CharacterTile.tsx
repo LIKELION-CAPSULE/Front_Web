@@ -34,9 +34,9 @@ export function CharacterTile({
       className={cn('character-tile', speaking && 'is-speaking', focus && 'focus-tile')}
       data-speaking={speaking || undefined}
     >
-      <div className="pointer-events-none absolute top-3 left-3 z-10 flex items-center gap-2">
+      <div className={cn('pointer-events-none absolute z-10 flex items-center gap-2', variant === 'small' ? 'inset-x-2 bottom-2' : 'top-3 left-3')}>
         <span className="tile-label">
-          {character.name} · {status}
+          {character.name}{variant !== 'small' && ` · ${status}`}
         </span>
       </div>
       <CharacterFigure

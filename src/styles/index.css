@@ -3,6 +3,7 @@
 @import './scenes.css';
 @import './welcome.css';
 @import './interactions.css';
+@import './mvp.css';
 
 @font-face {
   font-family: 'Pretendard';
@@ -735,25 +736,6 @@
     white-space: nowrap;
   }
   .study-stage { position: relative; flex: 1; min-height: 0; }
-  .study-grid {
-    display: grid;
-    height: 100%;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .study-grid.is-one-to-one {
-    grid-template-rows: minmax(0, 1fr);
-  }
-  .study-grid.is-focus {
-    grid-template-columns: minmax(0, 1fr) 300px;
-    grid-template-rows: repeat(3, minmax(0, 1fr));
-  }
-  .study-grid.is-focus > .focus-tile {
-    grid-area: 1 / 1 / 4 / 2;
-  }
-  .study-grid.is-focus.is-one-to-one { grid-template-rows: minmax(0, 1fr); }
-  .study-grid.is-focus.is-one-to-one > .focus-tile { grid-area: auto; }
   .character-tile,
   .self-tile {
     position: relative;
@@ -1106,22 +1088,7 @@
     overflow: visible;
     padding: 0 10px 10px;
   }
-  .study-grid {
-    min-height: calc(100dvh - 170px);
-    grid-auto-rows: minmax(300px, 1fr);
-  }
   .break-stage { min-height: max(640px, calc(100dvh - 120px)); }
-  .study-grid.is-focus {
-    grid-template-columns: minmax(0, 1fr) 220px;
-    min-height: 760px;
-  }
-  .study-grid.is-focus > .character-tile,
-  .study-grid.is-focus > .self-tile {
-    min-height: 240px;
-  }
-  .study-grid.is-focus > .focus-tile {
-    min-height: 740px;
-  }
   .tile-speech {
     font-size: var(--text-body); line-height: var(--text-body--line-height);
 
@@ -1211,25 +1178,6 @@
   }
 }
 @media (max-width: 699px) {
-  .study-grid,
-  .study-grid.is-focus,
-  .study-grid.is-one-to-one {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: none;
-    grid-auto-rows: 320px;
-  }
-  .study-grid.is-focus {
-    display: flex;
-    flex-direction: column;
-  }
-  .study-grid.is-focus > .character-tile,
-  .study-grid.is-focus > .self-tile {
-    min-height: 300px;
-  }
-  .study-grid.is-focus > .focus-tile {
-    grid-area: auto;
-    min-height: 480px;
-  }
   .study-room-name { font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
   .study-demo-label { display: none; }
   .study-demo-controls > summary { width: 28px; min-height: 28px; padding: 0; }

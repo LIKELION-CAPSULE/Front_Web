@@ -10,11 +10,12 @@ import { businessDay } from '../../shared/lib/format.ts'
 import { MIN_CALENDAR_DATE } from '../../shared/lib/date-limits.ts'
 import { normalizeCameraBackground, type CameraBackgroundId } from '../media/camera-backgrounds.ts'
 import type { AvatarSettings, DemoState, FocusTotals, LedgerEntry, Memory, TierId } from './types.ts'
+import { MVP_CHARACTER_ID, MVP_GOAL_MINUTES, MVP_ROOM_ID } from '../mvp/policy.ts'
 
 export const BREAK_SECONDS = 10 * 60
 
 export type DemoAction =
-  | { type: 'LOGIN'; preview?: boolean }
+  | { type: 'LOGIN'; preview?: boolean; nickname?: string }
   | { type: 'PROFILE'; name: string; avatar: AvatarSettings }
   | { type: 'LOGOUT' }
   | { type: 'RESET'; now: number }
@@ -24,6 +25,7 @@ export type DemoAction =
   | { type: 'FACE_FOCUS'; sessionId: string; totals: FocusTotals; now: number }
   | { type: 'EXAM_PROMPTED'; roomId: string }
   | { type: 'SAVE_ROOM'; roomId: string }
+  | { type: 'START_MVP'; now: number }
   | {
       type: 'START'
       now: number
@@ -105,6 +107,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
         ...state,
         profile: {
           ...state.profile,
+          name: action.nickname === undefined ? state.profile.name : resolveProfileName(action.nickname),
           loggedIn: true,
           onboarded: action.preview || state.profile.onboarded,
         },
@@ -148,6 +151,11 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
           ? state.savedRooms.filter((id) => id !== action.roomId)
           : [...state.savedRooms, action.roomId],
       }
+    case 'START_MVP':
+      return demoReducer(state, {
+        type: 'START', now: action.now, roomId: MVP_ROOM_ID,
+        characterIds: [MVP_CHARACTER_ID], tier: 'basic', targetMinutes: MVP_GOAL_MINUTES, camera: false,
+      })
     case 'START': {
       if (state.activeSession) return state
       const cost = tierCost(state, action.tier, action.now)
@@ -307,7 +315,6 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       if (!active || !action.text.trim() || !active.characterIds.includes(action.characterId))
         return state
       const used = state.chatUsage.day === businessDay(action.now) ? state.chatUsage.used : 0
-      if (active.tier === 'basic' && used >= 3) return state
       const reply = /졸|피곤/.test(action.text)
         ? '나도 졸려. 5분만 더 버티고 쉬자.'
         : /시험|긴장/.test(action.text)

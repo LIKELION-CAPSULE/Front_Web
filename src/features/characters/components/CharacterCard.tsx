@@ -1,11 +1,11 @@
 import type { Character } from '@/features/characters/types'
-import { Link } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { relationship } from '@/features/demo/selectors'
 import { duration } from '@/shared/lib/format'
 import { Icon } from '@/shared/ui/Icon'
 import { CharacterArtwork } from './CharacterArtwork'
 import { characterTags } from '../character-tags'
+import { MvpGate } from '@/features/mvp/MvpGate'
 
 export function CharacterCard({ character }: { character: Character }) {
   const { state } = useDemo()
@@ -25,11 +25,11 @@ export function CharacterCard({ character }: { character: Character }) {
       <div className="p-5">
         <div className="flex items-center justify-between">
           <h3 className="type-card-title">
-            <Link to={`/characters/${character.id}`} className="after:absolute after:inset-0">
-              {character.name}
-            </Link>
+            {character.name}
           </h3>
-          <Icon name="arrow" size={18} className="text-subtle" />
+          <MvpGate label={`${character.name} 친구 · 선물 · 보이스`} compact inline>
+            <span className="text-caption text-muted">친구 · 선물 · 보이스 <Icon name="arrow" size={14} /></span>
+          </MvpGate>
         </div>
         <ul className="friend-card-tags" aria-label={`${character.name} 소개`}>
           {characterTags(character.description).map((tag) => <li key={tag}>{tag}</li>)}

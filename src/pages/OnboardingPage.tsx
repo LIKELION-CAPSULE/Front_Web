@@ -10,16 +10,14 @@ import { AvatarIllustration } from '@/shared/ui/AvatarIllustration'
 import { Icon } from '@/shared/ui/Icon'
 import { AvatarCustomizer } from '@/features/profile/components/AvatarCustomizer'
 import { avatarShades } from '@/features/profile/avatar-options'
-import { FormField } from '@/shared/ui/FormField'
 
 export default function OnboardingPage() {
   const { state, dispatch } = useDemo()
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const [name, setName] = useState(state.profile.name)
   const [avatar, setAvatar] = useState(state.profile.avatar)
   function finish() {
-    dispatch({ type: 'PROFILE', name, avatar })
+    dispatch({ type: 'PROFILE', name: state.profile.name, avatar })
     navigate(safeReturnPath(params.get('next'), '/'))
   }
   return (
@@ -61,16 +59,7 @@ export default function OnboardingPage() {
           }}
         >
           <h1 className="type-page-title">내 아바타 만들기</h1>
-          <FormField label="닉네임" className="mt-6 max-w-[520px]">
-            <input
-              required
-              maxLength={20}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="form-input"
-            />
-          </FormField>
-          <div className="mt-5 max-w-[520px]">
+          <div className="mt-6 max-w-[520px]">
             <AvatarCustomizer value={avatar} onChange={setAvatar} />
           </div>
           <p className="mt-3 text-body-compact text-subtle">
@@ -84,7 +73,7 @@ export default function OnboardingPage() {
             <Button variant="secondary" onClick={finish}>
               나중에 바꿀게요
             </Button>
-            <Button type="submit" disabled={!name.trim()}>
+            <Button type="submit">
               이 모습으로 시작하기
             </Button>
           </div>

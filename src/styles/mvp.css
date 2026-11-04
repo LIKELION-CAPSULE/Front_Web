@@ -1,0 +1,51 @@
+@layer components {
+  .mvp-gate {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: inherit;
+    cursor: default;
+  }
+  span.mvp-gate { display: inline-grid; vertical-align: middle; }
+  .mvp-gate-content {
+    display: block;
+    min-width: 0;
+    height: 100%;
+    filter: blur(6px);
+    opacity: 0.48;
+    pointer-events: none;
+    user-select: none;
+  }
+  .mvp-gate-badge {
+    position: absolute;
+    z-index: 5;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 8px 16px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--color-panel);
+    color: var(--color-ink);
+    font-size: var(--text-label);
+    font-weight: 500;
+    line-height: var(--text-label--line-height);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .mvp-gate--compact .mvp-gate-content { filter: blur(3px); }
+  .mvp-gate--compact:not(.mvp-avatar) { min-width: 72px; min-height: 28px; }
+  .mvp-gate--compact .mvp-gate-badge {
+    padding: 4px 8px;
+    font-size: var(--text-caption);
+    font-weight: 400;
+    line-height: var(--text-caption--line-height);
+  }
+  .mvp-nav .mvp-gate-content { display: flex; align-items: stretch; }
+  .mvp-avatar { border-radius: 50%; }
+  .mvp-avatar .mvp-gate-badge { display: none; }
+  .mvp-room { border-radius: 20px; }
+  .mvp-friend { border-radius: 20px; }
+}

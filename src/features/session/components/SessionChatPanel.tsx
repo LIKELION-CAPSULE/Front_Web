@@ -1,9 +1,7 @@
 import { useCallback, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { Link } from 'react-router'
 import type { Character } from '@/features/characters/types'
 import { getCharacterArtwork } from '@/features/characters/artwork'
 import { useDemo } from '@/features/demo/demo-context'
-import { tierById } from '@/features/demo/catalog'
 import { number } from '@/shared/lib/format'
 import { withParticle } from '@/shared/lib/korean'
 import { Icon } from '@/shared/ui/Icon'
@@ -12,9 +10,9 @@ import { Tabs } from '@/shared/ui/Tabs'
 import type { ChatReplyMode } from '../llm-chat'
 import { studyGoalSeconds } from '../study-goal'
 import { ChatComposer } from './ChatComposer'
-import { UpgradePanel } from './UpgradePanel'
 import { TypingMessage } from './TypingMessage'
 import '../session-chat.css'
+import { MvpGate } from '@/features/mvp/MvpGate'
 
 const mobileQuery = '(max-width: 1023px)'
 const subscribe = (notify: () => void) => {
@@ -24,7 +22,7 @@ const subscribe = (notify: () => void) => {
 }
 const messageTime = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false })
 
-export function SessionChatPanel({ open, onClose, characters, selected, onSelect, onSend, onTypingChange, replyMode, onReplyModeChange, replyPending, replyError, used, now }: {
+export function SessionChatPanel({ open, onClose, characters, selected, onSelect, onSend, onTypingChange, replyMode, onReplyModeChange, replyPending, replyError }: {
   open: boolean
   onClose: () => void
   characters: readonly Character[]
@@ -36,14 +34,11 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
   onReplyModeChange: (mode: ChatReplyMode) => void
   replyPending: boolean
   replyError?: string
-  used: number
-  now: number
 }) {
   const { state } = useDemo()
   const active = state.activeSession!
   const mobile = useSyncExternalStore(subscribe, () => window.matchMedia(mobileQuery).matches, () => false)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
-  const [upgradeOpen, setUpgradeOpen] = useState(false)
   const ref = useRef<HTMLDialogElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
@@ -54,7 +49,6 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
   const seen = useRef(new Set(state.messages.map(message => message.id)))
   const titleId = useId()
   const messages = state.messages.filter(message => message.sessionId === active.id && message.characterId === selected.id)
-  const exhausted = active.tier === 'basic' && used >= 3
   const reportTyping = useCallback((messageId: string, typing: boolean) => {
     onTypingChange(selected.id, messageId, typing)
   }, [selected.id, onTypingChange])
@@ -77,7 +71,7 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
   }, [open, mobile])
   useLayoutEffect(() => { follow.current = true; scrollLatest() }, [selected.id, open, scrollLatest])
   useLayoutEffect(scrollLatest, [messages.length, replyPending, replyError, scrollLatest])
-  function dismiss() { setUpgradeOpen(false); onClose() }
+  function dismiss() { onClose() }
   function isBackdrop(event: { target: EventTarget | null; currentTarget: HTMLDialogElement; clientX: number; clientY: number }) {
     if (event.target !== event.currentTarget || !mobile) return false
     const bounds = event.currentTarget.getBoundingClientRect()
@@ -96,7 +90,7 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
         className="session-chat-panel"
         onCancel={event => { if (event.target === event.currentTarget) { event.preventDefault(); dismiss() } }}
         onClose={() => { if (open && !ref.current?.open) dismiss() }}
-        onKeyDown={event => { if (event.key === 'Escape' && !upgradeOpen) { event.preventDefault(); event.stopPropagation(); dismiss() } }}
+        onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); dismiss() } }}
         onPointerDown={event => { backdropStart.current = event.button === 0 && event.isPrimary && isBackdrop(event) }}
         onPointerCancel={() => { backdropStart.current = false }}
         onClick={event => { const close = backdropStart.current && isBackdrop(event); backdropStart.current = false; if (close) dismiss() }}
@@ -113,15 +107,14 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
                   ))}
                 </div>
               </div>
-              <Link to="/credits" className="session-chat-balance">{number(state.credits)} 크레딧</Link></div>
+              <MvpGate label="내 크레딧 · 충전" compact inline><span className="session-chat-balance">{number(state.credits)} 크레딧</span></MvpGate></div>
             <button ref={closeButton} type="button" onClick={dismiss} aria-label="대화창 닫기"><Icon name="close" size={19} /></button>
           </header>
           <div className="session-chat-friends">
             <Tabs label="대화 상대" options={characters.map(character => ({ id: character.id, label: character.name }))} value={selected.id} onChange={onSelect} size="sm" />
           </div>
           <div className="session-chat-plan">
-            <span>{tierById(active.tier).name} · {active.tier === 'basic' ? `무료 대화 ${used}/3회` : '자유 대화'}</span>
-            {active.tier !== 'special' && <button type="button" onClick={() => setUpgradeOpen(true)}>옵션 올리기</button>}
+            <span>자유 대화 · 횟수 제한 없음</span>
           </div>
           <div
             ref={list}
@@ -159,10 +152,9 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
             {replyError && <FeedbackMessage tone="error" className="mt-3">답장을 받지 못했어요. {replyError}</FeedbackMessage>}
           </div>
           <footer className="session-chat-footer">
-            {exhausted ? <button type="button" className="session-chat-limit" onPointerDown={event => event.preventDefault()} onClick={() => setUpgradeOpen(true)}>무료 대화를 모두 사용했어요 · 옵션 올리기</button> : <div className="session-chat-suggestions" aria-label="빠른 메시지">{['파이팅', '졸려', '이거 어려워'].map(text => <button key={text} type="button" onPointerDown={event => event.preventDefault()} onClick={() => send(text)}>{text}</button>)}</div>}
-            <ChatComposer name={selected.name} text={drafts[selected.id] ?? ''} onChange={text => setDrafts(previous => ({ ...previous, [selected.id]: text }))} onSend={send} disabled={exhausted} />
+            <div className="session-chat-suggestions" aria-label="빠른 메시지">{['파이팅', '졸려', '이거 어려워'].map(text => <button key={text} type="button" onPointerDown={event => event.preventDefault()} onClick={() => send(text)}>{text}</button>)}</div>
+            <ChatComposer name={selected.name} text={drafts[selected.id] ?? ''} onChange={text => setDrafts(previous => ({ ...previous, [selected.id]: text }))} onSend={send} disabled={replyPending} />
           </footer>
-          {upgradeOpen && <UpgradePanel onClose={() => setUpgradeOpen(false)} now={now} />}
         </>}
       </dialog>
     </div>

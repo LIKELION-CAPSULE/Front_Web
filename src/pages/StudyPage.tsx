@@ -2,7 +2,6 @@ import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useSta
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
 import { useDemo } from '@/features/demo/demo-context'
-import { tierById } from '@/features/demo/catalog'
 import { BREAK_SECONDS, sessionElapsed, sessionStudySeconds } from '@/features/demo/reducer'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { studyGoalSeconds } from '@/features/session/study-goal'
@@ -13,6 +12,7 @@ import { requestCharacterReply, type ChatReplyMode } from '@/features/session/ll
 import { behaviorPromptText, createBehaviorChatState, reactToBehavior, typingEndsAt, withRecentBehavior } from '@/features/session/behavior-chat'
 import type { BehaviorChange } from '@/features/media/behavior-monitor'
 import { CharacterTile } from '@/features/session/components/CharacterTile'
+import { StudyGrid } from '@/features/session/components/StudyGrid'
 import { StudyDock } from '@/features/session/components/StudyDock'
 import { StudySelfView } from '@/features/session/components/StudySelfView'
 import { StudyDemoControls } from '@/features/session/components/StudyDemoControls'
@@ -31,10 +31,11 @@ import { Button } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
 import { Icon } from '@/shared/ui/Icon'
 import { SessionChatPanel } from '@/features/session/components/SessionChatPanel'
-import { businessDay, clock } from '@/shared/lib/format'
+import { clock } from '@/shared/lib/format'
 import { cn } from '@/shared/lib/cn'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import { isMvpCharacter } from '@/features/mvp/policy'
 
 const reactions = ['', '…', '잠깐 자리 비운 거야?', '…나랑 공부하기 싫어?']
 
@@ -66,7 +67,7 @@ export default function StudyPage() {
   const speakingCharacters = new Set(Object.values(speakingMessages))
   const resting = active?.phase === 'break'
   const room = active && getStudyRoom(active.roomId)
-  const characters = room?.characters.filter(character => active?.characterIds.includes(character.id)) ?? []
+  const characters = room?.characters.filter(character => isMvpCharacter(character.id) && active?.characterIds.includes(character.id)) ?? []
   const focused = characters.find(character => character.id === params.get('focus'))
   const selfFocused = params.get('focus') === SELF_STUDY_TILE_ID
   const hasFocus = !!focused || selfFocused
@@ -150,7 +151,6 @@ export default function StudyPage() {
   const focusTotals = normalizeFocusTotals(active.focus)
   const focusRate = focusPercent(focusTotals.focusedMs, focusTotals.observedMs)
   const cameraVisible = showCamera && !!devices.camera.stream
-  const used = state.chatUsage.day === businessDay(now) ? state.chatUsage.used : 0
   const messages = state.messages.filter(
     (message) => message.sessionId === active.id && message.characterId === selected.id,
   )
@@ -189,9 +189,6 @@ export default function StudyPage() {
   }
   function send(text: string, voice = false) {
     if (!selected || !text.trim()) return
-    if (active!.tier === 'basic' && used >= 3) {
-      return
-    }
     if (replyMode === 'llm' && pendingReplies[selected.id]) return
     setSelfChatUntil(Date.now() + 1400)
     dispatch({ type: 'MESSAGE', characterId: selected.id, name: selected.name, text, voice, now, reply: replyMode })
@@ -376,20 +373,13 @@ export default function StudyPage() {
             elapsed={active.phase === 'study' ? sessionStudySeconds(active, now) : elapsed}
             duration={active.phase === 'study' ? goal : BREAK_SECONDS}
             resting={active.phase === 'break'}
-            tier={tierById(active.tier).name}
           />
         </div>
       </header>
       <div className="study-workspace" data-chat-open={chatOpen || undefined}>
       {active.phase === 'study' ? (
         <div className="study-stage">
-          <div
-            className={cn(
-              'study-grid',
-              hasFocus && 'is-focus',
-              characters.length === 1 && 'is-one-to-one',
-            )}
-          >
+          <StudyGrid focused={hasFocus}>
             {studyTiles.map((character, tileIndex) => {
               if (!character) return selfTile(hasFocus && !selfFocused)
               const index = tileIndex - Number(selfFocused)
@@ -443,7 +433,7 @@ export default function StudyPage() {
                 }
               />
             })}
-          </div>
+          </StudyGrid>
           {dock()}
         </div>
       ) : (
@@ -488,7 +478,7 @@ export default function StudyPage() {
           </div>
       )}
           <SessionChatPanel
-            open={chatOpen}
+            open={chatOpen && !leaveOpen && params.get('resume') !== '1' && !(active.phase === 'study' && active.runningSince === null)}
             onClose={closeChat}
             characters={characters}
             selected={selected}
@@ -499,8 +489,6 @@ export default function StudyPage() {
             onReplyModeChange={setReplyMode}
             replyPending={!!pendingReplies[selected.id]}
             replyError={replyErrors[selected.id]}
-            used={used}
-            now={now}
           />
       </div>
       <Dialog

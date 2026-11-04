@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { useParams, useSearchParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
-import { tierById } from '@/features/demo/catalog'
 import { FocusTimeline } from '@/features/reports/components/FocusTimeline'
 import { CompletionPortrait } from '@/features/reports/components/CompletionPortrait'
 import { RelationshipGain } from '@/features/reports/components/RelationshipGain'
@@ -18,6 +17,8 @@ import NotFoundPage from './NotFoundPage'
 import { ProgressRing } from '@/shared/ui/ProgressRing'
 import { recordFocusPercent } from '@/features/session/focus'
 import '@/features/reports/report-completion.css'
+import { isMvpCharacter, isMvpRoom } from '@/features/mvp/policy'
+import MvpUnavailablePage from './MvpUnavailablePage'
 
 export default function ReportPage() {
   const { recordId } = useParams()
@@ -27,7 +28,8 @@ export default function ReportPage() {
   const room = record && getStudyRoom(record.roomId)
   const gains = useMemo(() => record ? Object.fromEntries(record.characterIds.map(id => [id, reportRelationship(state.records, record, id)])) : {}, [record, state.records])
   if (!record || !room) return <OverlayPage><NotFoundPage /></OverlayPage>
-  const participants = room.characters.filter(character => record.characterIds.includes(character.id))
+  if (!isMvpRoom(room.id)) return <OverlayPage><MvpUnavailablePage /></OverlayPage>
+  const participants = room.characters.filter(character => isMvpCharacter(character.id) && record.characterIds.includes(character.id))
   const friends = participants.length ? participants : [room.characters[0]!]
   const character = friends.find(friend => friend.id === params.get('friend')) ?? friends[0]!
   const formatMeasuredTime = record.observedSeconds === undefined ? duration : measuredDuration
@@ -48,7 +50,6 @@ export default function ReportPage() {
         </div>
         <div className="report-session-meta">
           <span><Icon name="clock" size={14} /><time dateTime={new Date(record.endedAt).toISOString()}>{dateLabel(record.endedAt, true)} 완료</time></span>
-          <span><Icon name="chat" size={14} />대화 옵션 · {tierById(record.tier).name}</span>
         </div>
         <p className="report-study-duration">함께 <strong>{formatMeasuredTime(record.studySeconds)}</strong> 공부했어요.</p>
         {record.targetSeconds && <p className="report-goal-result">목표 {duration(record.targetSeconds)} · {record.studySeconds >= record.targetSeconds ? '목표 달성' : `${Math.round(record.studySeconds / record.targetSeconds * 100)}% 공부했어요`}</p>}

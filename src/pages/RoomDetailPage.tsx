@@ -8,6 +8,9 @@ import { ButtonLink } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
 import { useDemo } from '@/features/demo/demo-context'
 import NotFoundPage from '@/pages/NotFoundPage'
+import MvpUnavailablePage from '@/pages/MvpUnavailablePage'
+import { isMvpCharacter, isMvpRoom } from '@/features/mvp/policy'
+import { MvpGate } from '@/features/mvp/MvpGate'
 
 export default function RoomDetailPage() {
   const { roomId } = useParams()
@@ -19,6 +22,7 @@ export default function RoomDetailPage() {
         <NotFoundPage />
       </div>
     )
+  if (!isMvpRoom(room.id)) return <MvpUnavailablePage />
   return (
     <>
       <SiteHeader
@@ -55,7 +59,7 @@ export default function RoomDetailPage() {
           <RoomDetailBanner roomId={room.id} />
           <div className="room-detail-copy">
             <h1 id="room-title" className="type-story-title">{room.name}</h1>
-            <p className="mt-4 max-w-md type-body text-muted">{room.introduction}</p>
+            <p className="mt-4 max-w-md type-body text-muted">노을이 드는 교실에서 채린과 오늘의 공부를 시작해 봐요.</p>
             <ButtonLink
               to={
                 state.activeSession
@@ -77,7 +81,11 @@ export default function RoomDetailPage() {
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
             {room.characters.map((character) => (
-              <CharacterCard key={character.id} character={character} />
+              isMvpCharacter(character.id)
+                ? <CharacterCard key={character.id} character={character} />
+                : <MvpGate key={character.id} label={character.name} className="mvp-friend">
+                    <CharacterCard character={character} />
+                  </MvpGate>
             ))}
           </div>
         </section>
