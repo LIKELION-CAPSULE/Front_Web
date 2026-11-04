@@ -4,16 +4,17 @@ import { cn } from '@/shared/lib/cn'
 import { cameraBackgrounds, type CameraBackgroundId } from '../camera-backgrounds'
 
 /** Native radios give arrow-key selection for free; each change applies to the preview immediately. */
-export function CameraBackgroundPicker({ value, onChange, legend = '배경', className }: {
+export function CameraBackgroundPicker({ value, onChange, legend = '배경', hideLegend = false, className }: {
   value: CameraBackgroundId
   onChange: (id: CameraBackgroundId) => void
   legend?: string
+  hideLegend?: boolean
   className?: string
 }) {
   const name = useId()
   return (
     <fieldset className={cn('camera-background-picker', className)}>
-      <legend>{legend}</legend>
+      <legend className={hideLegend ? 'sr-only' : undefined}>{legend}</legend>
       {cameraBackgrounds.map((option) => (
         <label key={option.id} className="camera-background-option">
           <input

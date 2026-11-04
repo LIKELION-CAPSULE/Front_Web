@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import type { Dispatch } from 'react'
 import type { ActiveSession, FocusTotals } from '../demo/types'
-import { sessionElapsed, type DemoAction } from '../demo/reducer'
-import { studyGoalSeconds } from '../session/study-goal'
+import { sessionStudySeconds, type DemoAction } from '../demo/reducer'
 import { normalizeFocusTotals } from '../session/focus'
 import { FaceFocusTracker, MAX_FACE_SAMPLE_GAP_MS } from './face-focus-tracker'
 import type { Observation } from './types'
@@ -29,7 +28,8 @@ export function useFaceFocus({ session, enabled, observation, dispatch }: {
     if (!session) { trackerRef.current = null; published.current = null; return }
     if (trackerRef.current?.sessionId !== session.id) {
       const initial = normalizeFocusTotals(session.focus)
-      trackerRef.current = new FaceFocusTracker(session.id, studyGoalSeconds(session) * 1000, initial)
+      // The session helper bounds the initial goal and allows explicitly resumed overtime.
+      trackerRef.current = new FaceFocusTracker(session.id, Number.POSITIVE_INFINITY, initial)
       published.current = initial
     }
     const tracker = trackerRef.current
@@ -44,7 +44,7 @@ export function useFaceFocus({ session, enabled, observation, dispatch }: {
       tracker.interrupt()
       return
     }
-    tracker.observe(observation.at, sessionElapsed(session, epoch) * 1000, observation.faceCount > 0)
+    tracker.observe(observation.at, sessionStudySeconds(session, epoch) * 1000, observation.faceCount > 0)
   }, [session, enabled, observation, publish])
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export function useFaceFocus({ session, enabled, observation, dispatch }: {
 
   return useCallback(() => {
     if (session && enabled && !document.hidden && trackerRef.current?.sessionId === session.id)
-      trackerRef.current.close(performance.now(), sessionElapsed(session, Date.now()) * 1000)
+      trackerRef.current.close(performance.now(), sessionStudySeconds(session, Date.now()) * 1000)
     publish()
   }, [session, enabled, publish])
 }

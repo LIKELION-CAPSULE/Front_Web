@@ -1,0 +1,271 @@
+/* Generated from docs/DESIGN_TOKENS.json. Run npm run tokens:sync. */
+@theme {
+  --font-sans: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+  --font-story: 'Hahmlet', 'Pretendard', serif;
+  --color-canvas: #0F0E17;
+  --color-panel: #191823;
+  --color-surface: #292733;
+  --color-surface-raised: #292733;
+  --color-surface-soft: #0F0E17;
+  --color-surface-hover: #403E4B;
+  --color-ink: #FAFAFD;
+  --color-muted: #CAC9D4;
+  --color-subtle: #A4A3B0;
+  --color-placeholder: #A4A3B0;
+  --color-text-disabled: #807E8D;
+  --color-on-solid: #FFFFFF;
+  --color-divider: #403E4B;
+  --color-input-border: #807E8D;
+  --color-focus-ring: #AC95F8;
+  --color-primary: #7E54F6;
+  --color-primary-hover: #6B2CD1;
+  --color-primary-active: #502D96;
+  --color-text-accent: #C4B9F3;
+  --color-text-accent-hover: #D9D5F1;
+  --color-primary-soft: #241C3E;
+  --color-primary-soft-hover: #392766;
+  --color-primary-soft-active: #502D96;
+  --color-selected: #241C3E;
+  --color-selected-text: #C4B9F3;
+  --color-control: #403E4B;
+  --color-control-hover: #5E5C69;
+  --color-control-active: #292733;
+  --color-disabled: #292733;
+  --color-affection: #F971B3;
+  --color-affection-text: #F4A9C9;
+  --color-affection-soft: #341925;
+  --color-overlay: #0F0E17B8;
+  --color-transparent: #00000000;
+  --color-success: #5BE09C;
+  --color-success-bg: #173126;
+  --color-warning: #F4B95F;
+  --color-warning-bg: #352A18;
+  --color-danger: #F4AFA8;
+  --color-danger-bg: #3D2028;
+  --color-danger-bg-hover: #4A242E;
+  --color-danger-bg-active: #572833;
+  --color-danger-solid: #D62332;
+  --color-danger-solid-hover: #B51E2B;
+  --color-danger-solid-active: #941927;
+  --color-info: #8AD0F4;
+  --color-info-bg: #172D39;
+  --color-floating: #403E4B;
+  --color-floating-hover: #5E5C69;
+  --text-hero-title: 48px;
+  --text-hero-title--line-height: 60px;
+  --text-page-title: 30px;
+  --text-page-title--line-height: 40px;
+  --text-section-title: 20px;
+  --text-section-title--line-height: 28px;
+  --text-dialog-title: 20px;
+  --text-dialog-title--line-height: 28px;
+  --text-card-title: 16px;
+  --text-card-title--line-height: 24px;
+  --text-body: 16px;
+  --text-body--line-height: 26px;
+  --text-body-compact: 14px;
+  --text-body-compact--line-height: 22px;
+  --text-label: 14px;
+  --text-label--line-height: 20px;
+  --text-control: 16px;
+  --text-control--line-height: 24px;
+  --text-button: 16px;
+  --text-button--line-height: 24px;
+  --text-button-compact: 14px;
+  --text-button-compact--line-height: 20px;
+  --text-button-micro: 12px;
+  --text-button-micro--line-height: 18px;
+  --text-caption: 12px;
+  --text-caption--line-height: 18px;
+  --text-stat: 32px;
+  --text-stat--line-height: 40px;
+  --text-timer: 32px;
+  --text-timer--line-height: 40px;
+  --text-timer-compact: 22px;
+  --text-timer-compact--line-height: 30px;
+  --text-story-title: 32px;
+  --text-story-title--line-height: 40px;
+  --text-story-quote: 24px;
+  --text-story-quote--line-height: 36px;
+  --text-home-greeting: 16px;
+  --text-home-greeting--line-height: 24px;
+  --spacing-section: 40px;
+  --spacing-content: 24px;
+  --spacing-content-compact: 16px;
+  --spacing-panel: 24px;
+  --spacing-panel-compact: 20px;
+  --spacing-panel-roomy: 32px;
+  --radius-control: 12px;
+  --radius-card: 20px;
+  --radius-panel: 24px;
+}
+
+@media (max-width: 639px) { :root {
+  --text-hero-title: 32px;
+  --text-hero-title--line-height: 42px;
+  --text-page-title: 26px;
+  --text-page-title--line-height: 36px;
+  --text-story-title: 26px;
+  --text-story-title--line-height: 36px;
+  --text-story-quote: 22px;
+  --text-story-quote--line-height: 34px;
+  --text-home-greeting: 14px;
+  --text-home-greeting--line-height: 22px;
+} }
+
+:root { --glass-background: #191823F2; --floating-shadow: 0 16px 48px #00000066; --popover-shadow: 0 12px 32px #00000066, 0 3px 10px #00000033; }
+
+@utility type-hero-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-hero-title);
+  line-height: var(--text-hero-title--line-height);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+@utility type-page-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-page-title);
+  line-height: var(--text-page-title--line-height);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+@utility type-section-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-section-title);
+  line-height: var(--text-section-title--line-height);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+@utility type-dialog-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-dialog-title);
+  line-height: var(--text-dialog-title--line-height);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+@utility type-card-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-card-title);
+  line-height: var(--text-card-title--line-height);
+  font-weight: 600;
+  letter-spacing: 0em;
+}
+
+@utility type-body {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  font-weight: 400;
+  letter-spacing: 0em;
+}
+
+@utility type-body-compact {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-compact);
+  line-height: var(--text-body-compact--line-height);
+  font-weight: 400;
+  letter-spacing: 0em;
+}
+
+@utility type-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  font-weight: 500;
+  letter-spacing: 0em;
+}
+
+@utility type-control {
+  font-family: var(--font-sans);
+  font-size: var(--text-control);
+  line-height: var(--text-control--line-height);
+  font-weight: 400;
+  letter-spacing: 0em;
+}
+
+@utility type-button {
+  font-family: var(--font-sans);
+  font-size: var(--text-button);
+  line-height: var(--text-button--line-height);
+  font-weight: 600;
+  letter-spacing: 0em;
+}
+
+@utility type-button-compact {
+  font-family: var(--font-sans);
+  font-size: var(--text-button-compact);
+  line-height: var(--text-button-compact--line-height);
+  font-weight: 600;
+  letter-spacing: 0em;
+}
+
+@utility type-button-micro {
+  font-family: var(--font-sans);
+  font-size: var(--text-button-micro);
+  line-height: var(--text-button-micro--line-height);
+  font-weight: 600;
+  letter-spacing: 0em;
+}
+
+@utility type-caption {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  font-weight: 400;
+  letter-spacing: 0em;
+}
+
+@utility type-stat {
+  font-family: var(--font-sans);
+  font-size: var(--text-stat);
+  line-height: var(--text-stat--line-height);
+  font-weight: 700;
+  letter-spacing: 0em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+@utility type-timer {
+  font-family: var(--font-sans);
+  font-size: var(--text-timer);
+  line-height: var(--text-timer--line-height);
+  font-weight: 700;
+  letter-spacing: 0em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+@utility type-timer-compact {
+  font-family: var(--font-sans);
+  font-size: var(--text-timer-compact);
+  line-height: var(--text-timer-compact--line-height);
+  font-weight: 700;
+  letter-spacing: 0em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+@utility type-story-title {
+  font-family: var(--font-story);
+  font-size: var(--text-story-title);
+  line-height: var(--text-story-title--line-height);
+  font-weight: 700;
+  letter-spacing: 0em;
+}
+
+@utility type-story-quote {
+  font-family: var(--font-story);
+  font-size: var(--text-story-quote);
+  line-height: var(--text-story-quote--line-height);
+  font-weight: 500;
+  letter-spacing: 0em;
+}
+
+@utility type-home-greeting {
+  font-family: var(--font-sans);
+  font-size: var(--text-home-greeting);
+  line-height: var(--text-home-greeting--line-height);
+  font-weight: 500;
+  letter-spacing: 0em;
+}

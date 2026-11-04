@@ -10,7 +10,8 @@
 }
 .companion-chart-toolbar h2 {
   min-width: 0;
-  font-size: var(--text-card-title-compact);
+  font-size: var(--text-card-title);
+  line-height: var(--text-card-title--line-height);
   font-weight: 600;
 }
 .companion-chart-actions {
@@ -22,21 +23,25 @@
   min-height: 32px;
   padding: 6px 10px;
   border-radius: 8px;
-  background: var(--color-button-subtle);
+  background: var(--color-control);
   color: var(--color-muted);
-  font-size: 11px;
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
 }
 .companion-chart-actions button:enabled:hover {
-  background: var(--color-button-subtle-hover);
+  background: var(--color-control-hover);
   color: var(--color-ink);
 }
 .companion-chart-actions button:focus-visible {
-  outline: 2px solid #ba94f1;
-  outline-offset: 2px;
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 4px;
 }
 .companion-chart-actions button:disabled {
-  opacity: 0.4;
+  background: var(--color-disabled);
+  color: var(--color-text-disabled);
   cursor: default;
+}
+@media (max-width: 767px) {
+  .companion-chart-actions button { min-height: 44px; }
 }
 .companion-chart-legend {
   display: flex;
@@ -44,7 +49,7 @@
   overflow-x: auto;
   padding: 0 0 10px;
   scrollbar-width: thin;
-  scrollbar-color: #514362 transparent;
+  scrollbar-color: var(--color-control) transparent;
 }
 .companion-chart-legend button {
   display: flex;
@@ -56,14 +61,15 @@
   border-radius: 12px;
   background: transparent;
   text-align: left;
-  opacity: 0.5;
+  color: var(--color-muted);
   transition:
     opacity 0.2s,
     background 0.2s;
 }
 .companion-chart-legend button[aria-pressed='true'] {
-  background: #ffffff08;
-  opacity: 1;
+  background: var(--color-selected);
+  color: var(--color-selected-text);
+  font-weight: 600;
 }
 .companion-chart-legend button:hover {
   opacity: 1;
@@ -73,14 +79,14 @@
 }
 .companion-chart-legend strong {
   display: block;
-  font-size: 12px;
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   font-weight: 600;
 }
 .companion-chart-legend small {
   display: block;
   margin-top: 3px;
-  font-size: 10px;
-  color: #9499ad;
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
+  color: var(--color-subtle);
   white-space: nowrap;
 }
 .companion-chart-legend i,
@@ -99,7 +105,7 @@
   touch-action: pan-y;
 }
 .companion-chart-plot:focus-visible {
-  outline: 2px solid #ba94f1;
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 4px;
 }
 .companion-chart-plot > svg {
@@ -109,13 +115,13 @@
   overflow: visible;
 }
 .companion-chart-grid line {
-  stroke: #ffffff09;
+  stroke: color-mix(in srgb, var(--color-ink) 3.53%, transparent);
   stroke-dasharray: 3 5;
 }
 .companion-chart-grid text,
 .companion-chart-tick {
-  fill: #8c92a5;
-  font-size: 10px;
+  fill: var(--color-subtle);
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
 }
 .companion-chart-line {
   fill: none;
@@ -126,11 +132,11 @@
   animation: companion-line-reveal 0.65s ease-out backwards;
 }
 .companion-chart-crosshair line {
-  stroke: #c4b3dd66;
+  stroke: color-mix(in srgb, var(--color-text-accent) 40.00%, transparent);
   stroke-dasharray: 3 4;
 }
 .companion-chart-crosshair circle {
-  stroke: #151923;
+  stroke: var(--color-panel);
   stroke-width: 2;
 }
 .companion-chart-tooltip {
@@ -142,18 +148,15 @@
   overflow-y: auto;
   border-radius: 12px;
   padding: 12px 14px;
-  background: #22202fed;
-  box-shadow: 0 10px 28px #0004;
-  backdrop-filter: blur(12px);
-  font-size: 11px;
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   scrollbar-width: thin;
 }
 .companion-chart-tooltip > strong {
   display: block;
   margin-bottom: 9px;
-  font-size: 10px;
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   font-weight: 500;
-  color: #aaa3ba;
+  color: var(--color-muted);
 }
 .companion-chart-tooltip p,
 .companion-chart-tooltip-head {
@@ -175,15 +178,15 @@
   text-align: right;
 }
 .companion-chart-tooltip small {
-  color: #aaa3ba;
-  font-size: 9px;
+  color: var(--color-muted);
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   white-space: nowrap;
   text-align: right;
 }
 .companion-chart-tooltip-head {
   margin-top: 12px;
-  font-size: 9px;
-  color: #9d95af;
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
+  color: var(--color-muted);
 }
 .companion-chart-tooltip-head > :not(:first-child) {
   text-align: right;
@@ -192,8 +195,8 @@
   display: grid;
   min-height: 220px;
   place-content: center;
-  color: #9499ad;
-  font-size: 12px;
+  color: var(--color-subtle);
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
 }
 @keyframes companion-line-reveal {
   from {
@@ -209,14 +212,14 @@
 }
 @media (max-width: 767px) {
   .companion-chart-toolbar h2 {
-    font-size: 12px;
+    font-size: var(--text-card-title); line-height: var(--text-card-title--line-height);
   }
   .companion-chart-actions {
     gap: 0;
   }
   .companion-chart-actions button {
     padding-inline: 5px;
-    font-size: 10px;
+    font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   }
   .companion-chart-plot > svg {
     min-height: 150px;
@@ -225,7 +228,7 @@
     padding: 10px;
   }
   .companion-chart-tooltip small {
-    font-size: 8px;
+    font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   }
   .companion-chart-tooltip p {
     gap: 8px;

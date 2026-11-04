@@ -29,7 +29,7 @@ export default function OnboardingPage() {
         <Link to="/" aria-label="CAPSULE 홈">
           <Brand />
         </Link>
-        <span className="text-sm text-subtle">처음 설정 · 1/1</span>
+        <span className="text-body-compact text-subtle">처음 설정 · 1/1</span>
       </header>
       <main
         id="main-content"
@@ -39,28 +39,28 @@ export default function OnboardingPage() {
         <section
           className="onboarding-preview relative flex min-h-[340px] items-end justify-center overflow-hidden pb-10 lg:min-h-[794px]"
           style={{
-            background: `radial-gradient(ellipse at 50% 50%, ${avatarShades[avatar.background]}55, #111722 80%)`,
+            background: `radial-gradient(ellipse at 50% 50%, ${avatarShades[avatar.background]}55, var(--color-panel) 80%)`,
           }}
         >
-          <span className="absolute top-6 left-6 flex items-center gap-2 rounded-full bg-panel/80 px-3.5 py-2 text-xs text-muted">
+          <span className="absolute top-6 left-6 flex items-center gap-2 rounded-full bg-panel/80 px-3.5 py-2 text-caption text-muted">
             <Icon name="sparkle" size={14} />
             공부하는 나의 모습
           </span>
           <div className="onboarding-figure">
             <AvatarIllustration settings={avatar} />
           </div>
-          <span className="relative z-10 rounded-full bg-panel px-4 py-2 text-sm">
+          <span className="relative z-10 rounded-full bg-panel px-4 py-2 text-body-compact">
             카메라를 끄면 이 아바타가 보여요
           </span>
         </section>
         <form
-          className="flex flex-col px-5 py-8 [--form-input-border:var(--color-line)] sm:px-12 lg:py-10"
+          className="flex flex-col px-5 py-8 [--form-input-border:var(--color-input-border)] sm:px-12 lg:py-10"
           onSubmit={(event) => {
             event.preventDefault()
             finish()
           }}
         >
-          <h1 className="text-[28px] font-bold">내 아바타 만들기</h1>
+          <h1 className="type-page-title">내 아바타 만들기</h1>
           <FormField label="닉네임" className="mt-6 max-w-[520px]">
             <input
               required
@@ -73,12 +73,12 @@ export default function OnboardingPage() {
           <div className="mt-5 max-w-[520px]">
             <AvatarCustomizer value={avatar} onChange={setAvatar} />
           </div>
-          <p className="mt-3 text-sm text-subtle">
+          <p className="mt-3 text-body-compact text-subtle">
             선택한 파츠와 색을 미리 볼 수 있어요 · 데모 파츠
           </p>
           <div className="mt-6 flex items-center gap-3.5 rounded-[14px] bg-surface p-3.5">
             <Avatar size="lg" settings={avatar} />
-            <p className="text-[15px]">이 모습이 프로필 이미지가 돼요</p>
+            <p className="text-body">이 모습이 프로필 이미지가 돼요</p>
           </div>
           <div className="mt-auto grid max-w-[520px] gap-3 pt-10 sm:grid-cols-[2fr_3fr]">
             <Button variant="secondary" onClick={finish}>

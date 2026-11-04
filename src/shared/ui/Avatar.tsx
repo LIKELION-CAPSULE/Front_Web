@@ -8,20 +8,22 @@ type AvatarProps = {
   src?: string
   size?: 'sm' | 'md' | 'lg'
   settings?: AvatarSettings
+  className?: string
   children?: ReactNode
 }
 
 const sizes = { sm: 'size-7', md: 'size-9', lg: 'size-[68px]' }
 
 /** Decorative: the adjacent text supplies the person's name. */
-export function Avatar({ src, size = 'sm', settings, children }: AvatarProps) {
+export function Avatar({ src, size = 'sm', settings, className, children }: AvatarProps) {
   const { state } = useDemo()
   return (
     <span
       aria-hidden="true"
       className={cn(
-        'profile-avatar inline-block shrink-0 overflow-hidden rounded-full bg-placeholder',
+        'profile-avatar inline-block shrink-0 overflow-hidden rounded-full bg-surface',
         sizes[size],
+        className,
       )}
     >
       {children ??

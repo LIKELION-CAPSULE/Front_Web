@@ -1,11 +1,4 @@
-import { dayKey } from '../../shared/lib/format.ts'
 import type { DemoState, StudyRecord } from './types'
-
-export function todaySeconds(state: DemoState, now = Date.now()) {
-  return state.records
-    .filter((record) => dayKey(record.endedAt) === dayKey(now))
-    .reduce((sum, record) => sum + record.studySeconds, 0)
-}
 
 export function recordSeconds(records: StudyRecord[]) {
   return records.reduce((sum, record) => sum + record.studySeconds, 0)

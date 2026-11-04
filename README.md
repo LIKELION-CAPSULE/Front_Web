@@ -65,13 +65,13 @@ npm run preview
 
 홈의 친구 환영 장면, 포스터형 스터디룸 카드, 일러스트 기반 공부·휴식 화면, 친구 관계·선물·기록·크레딧 화면을 같은 색상·컨트롤로 연결했습니다. 룸/친구 검색·저장 필터·SVG 아바타 미리보기를 지원하고, 캡슐 카드의 실제 PNG에도 친구 그림이 들어갑니다.
 
-- 색상·폰트·간격: `src/styles/index.css`의 Tailwind `@theme`
+- 색상·폰트·글자 역할: `docs/DESIGN_TOKENS.json` → `npm run tokens:sync` → `src/styles/design-tokens.css` / 런타임 `src/shared/design/tokens.ts`
 - 공통 UI: `src/shared/ui`의 `Brand`, `Icon`, `AvatarIllustration`, `Button`, `Panel` 등
 - 친구 그림·표정·인물별 표시 영역: `src/features/characters/artwork.ts` / 공통 렌더링: `CharacterArtwork`
 - 룸 문구·친구 구성: `src/features/rooms/data/rooms.ts` / 원본 포스터: `src/features/rooms/posters.ts` / 이미지 결합: `services/room-service.ts`
 - 룸 장면의 배경·친구·책상·제목: `src/features/rooms/artwork.ts` / `src/styles/scenes.css`
 - 탐색·기록·공통 피드백 스타일: `src/styles/interactions.css`
-- 상세 가이드: [디자인 시스템](docs/DESIGN_SYSTEM.md)
+- 적용된 기준: [통합 디자인 기준](docs/DESIGN_SYSTEM.md) · [토큰 정의](docs/DESIGN_TOKENS.json). Front_Web 앱 전체에 반영했고, Landing_Page는 적용 대상에서 제외합니다. 적용 범위·예외·검증은 디자인 문서 12장에 기록했습니다. `npm run tokens:check`로 생성물과 정적 대비를 검사합니다.
 
 참고 사이트의 기존 조사로 활동 달력·집중률 링·공통 로딩·조용히 집중 모드를 추가했습니다. 현재 52곳을 재조사한 뒤 메인 히어로의 큰 슬로건과 소개는 방문 상태별로 바꾸고, 우측 하단 대사를 초상화·이름·꼬리 없는 글래스모피즘 형태로 정리했습니다. 확인 범위·접근 오류·적용 판단은 [52곳 재조사 기록](docs/WELCOME_HERO_RESEARCH.md)에 있습니다. 재사용 컴포넌트는 `CompanionGreeting`, 전용 스타일은 `src/styles/welcome.css`입니다. 현재 메인 배너는 [호버 지우기 전환](src/shared/ui/hover-scratch/README.md)을 사용합니다. [채린·수아·다희 전용 가로 이미지](src/assets/welcome-banners/README.md)를 생성했으며, 현재 이미지와 HTML 대사는 하나의 마스크로 함께 지워집니다. 마우스가 지나간 자리에 다음 이미지와 다음 대사가 보이고 면적 40%가 지워지면 나머지를 정리한 뒤 다음 이미지로 순환합니다. 첫 방문·이어하기 문구와 버튼은 HTML로 관리합니다. 모바일·터치·모션 감소에서는 친구 선택 버튼으로 전환합니다. 이전 하프톤 시안은 현재 화면에서 연결을 해제했습니다.
 
@@ -124,7 +124,7 @@ React + TypeScript(strict) + Vite + Tailwind CSS v4를 사용합니다. 공통 U
 
 ## 참고
 
-피그마는 읽기 전용으로 확인했습니다. 원본 프레임의 번호 핀과 메모는 기획 주석이므로 웹 UI에 포함하지 않았습니다. 화면 흐름은 유지하면서 `Landing_Page`의 로고·Pretendard 폰트·WebP 포스터·친구 일러스트를 재사용해 네이비와 라벤더 중심의 디자인을 적용했습니다. Figma 원본과 랜딩페이지 파일은 수정하지 않았습니다. 에셋 출처와 매핑은 [에셋 문서](src/assets/README.md)에 정리했습니다.
+초기 구현에서는 피그마를 읽기 전용으로 확인했으며, 원본 프레임의 번호 핀과 메모는 기획 주석이므로 웹 UI에 포함하지 않았습니다. `Landing_Page`의 로고·Pretendard·WebP 포스터·친구 일러스트를 재사용했고, 2026-11-03 통합 기준에 따라 Front_Web의 컬러·서체·컨트롤을 정리했습니다. Landing_Page에 적용했던 변경은 사용자 요청에 따라 원복했습니다. 이번 통일 작업에서 Figma 원본은 수정하지 않았습니다. 에셋 출처와 매핑은 [에셋 문서](src/assets/README.md)에 정리했습니다.
 
 BrowserRouter를 사용하므로 배포 서버에서는 `/rooms/dawn-library` 같은 URL도 `index.html`로 연결하는 SPA fallback이 필요합니다. Cloudflare Workers용 `wrangler.jsonc`에 이 동작과 빌드 결과 경로를 설정했습니다.
 

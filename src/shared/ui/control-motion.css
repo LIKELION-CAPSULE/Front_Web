@@ -13,7 +13,7 @@
   opacity: 0;
   pointer-events: none;
   fill: none;
-  stroke: #d4baff;
+  stroke: var(--color-text-accent);
   stroke-width: 1.7;
   stroke-linecap: round;
 }
@@ -49,7 +49,7 @@
   inset: -1px;
   border-radius: inherit;
   content: '';
-  background: #8051cc;
+  background: var(--color-primary);
   opacity: 0;
   transform: scale(0.7);
   transition:
@@ -61,7 +61,7 @@
   width: 16px;
   height: 16px;
   fill: none;
-  stroke: #fff;
+  stroke: var(--color-ink);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -84,11 +84,12 @@
   transition-delay: 0.06s;
 }
 .animated-checkbox-input:focus-visible + .animated-checkbox-face {
-  outline: 2px solid #c5a8ff;
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 4px;
 }
 .animated-checkbox-input:disabled + .animated-checkbox-face {
-  opacity: 0.4;
+  background: var(--color-disabled);
+  color: var(--color-text-disabled);
 }
 .animated-checkbox-input:disabled {
   cursor: not-allowed;
@@ -100,3 +101,6 @@
     transform: none;
   }
 }
+
+.animated-checkbox-input:disabled + .animated-checkbox-face::before { background: var(--color-disabled); }
+.animated-checkbox-input:disabled + .animated-checkbox-face svg { stroke: var(--color-text-disabled); }

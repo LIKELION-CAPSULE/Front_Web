@@ -9,7 +9,7 @@
     overflow: hidden;
     border: 1px solid transparent;
     border-radius: 24px;
-    background: #171925;
+    background: var(--color-panel);
   }
   .welcome-art-shade {
     position: absolute;
@@ -17,8 +17,8 @@
     inset: 0;
     pointer-events: none;
     background:
-      linear-gradient(90deg, #101321b8 0%, #10132170 30%, transparent 56%),
-      linear-gradient(0deg, #10132145, transparent 35%);
+      linear-gradient(90deg, color-mix(in srgb, var(--color-panel) 72.16%, transparent) 0%, color-mix(in srgb, var(--color-panel) 43.92%, transparent) 30%, transparent 56%),
+      linear-gradient(0deg, color-mix(in srgb, var(--color-panel) 27.06%, transparent), transparent 35%);
   }
   .welcome-copy {
     position: relative;
@@ -32,19 +32,19 @@
     padding: 38px 20px 38px 40px;
   }
   .welcome-copy h1 {
-    font-size: clamp(36px, 3.5vw, 48px);
-    font-weight: 750;
-    line-height: 1.17;
-    letter-spacing: -1.7px;
+    font-size: var(--text-hero-title);
+    font-weight: 700;
+    line-height: var(--text-hero-title--line-height);
+    letter-spacing: -0.02em;
   }
   .welcome-copy h1 > span {
-    color: #c4adf1;
+    color: var(--color-text-accent);
   }
   .welcome-description {
     margin-top: 16px;
-    color: #d2d0df;
-    font-size: 13px;
-    line-height: 1.9;
+    color: var(--color-muted);
+    font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height);
+
   }
   .companion-greeting {
     position: relative;
@@ -53,32 +53,44 @@
     margin: 0;
     border: 1px solid transparent;
     border-radius: 18px;
-    background: #182032ed;
+    background: var(--glass-background);
     padding: 16px 22px;
-    color: #faf7ff;
-    box-shadow: 0 10px 30px #080e231f;
+    color: var(--color-ink);
+    box-shadow: 0 10px 30px #0002;
     pointer-events: none;
   }
   .companion-greeting p {
     max-width: 20em;
     margin: 0;
-    font-size: 18px;
+    font-size: var(--text-story-quote); line-height: var(--text-story-quote--line-height);
     font-weight: 500;
-    line-height: 1.65;
-    letter-spacing: -0.3px;
+
+    letter-spacing: 0;
     word-break: keep-all;
     text-wrap: balance;
-    text-shadow: 0 1px 8px #080d2633;
-  }
+    text-shadow: 0 1px 8px color-mix(in srgb, var(--color-panel) 20.00%, transparent);
+   font-family: var(--font-story); }
   .welcome-greeting-slot {
     position: absolute;
     z-index: 3;
     bottom: 22px;
     left: 52%;
-    max-width: min(310px, 44%);
+    max-width: min(380px, 44%);
   }
   .welcome-speech {
-    padding: 16px 20px;
+    border: 0;
+    background: var(--color-panel);
+    padding: 12px 18px;
+    box-shadow: 0 8px 24px #0002;
+  }
+  .welcome-speech p {
+    max-width: none;
+    font-family: var(--font-sans);
+    font-size: var(--text-home-greeting);
+    line-height: var(--text-home-greeting--line-height);
+    font-weight: 500;
+    white-space: nowrap;
+    text-wrap: nowrap;
   }
   .welcome-actions {
     display: flex;
@@ -90,15 +102,23 @@
   .welcome-actions > button {
     min-height: 44px;
     padding: 10px 18px;
-    font-size: 13px;
   }
 }
 
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .companion-greeting {
-    background: linear-gradient(135deg, #1b2034b8, #111727ab);
-    -webkit-backdrop-filter: blur(18px) saturate(125%);
-    backdrop-filter: blur(18px) saturate(125%);
+@layer components {
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .companion-greeting {
+      background: var(--glass-background);
+      -webkit-backdrop-filter: blur(18px) saturate(125%);
+      backdrop-filter: blur(18px) saturate(125%);
+    }
+    .welcome-speech {
+      background: linear-gradient(135deg,
+        color-mix(in srgb, var(--color-panel) 68%, transparent),
+        color-mix(in srgb, var(--color-canvas) 62%, transparent));
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      backdrop-filter: blur(18px) saturate(140%);
+    }
   }
 }
 
@@ -108,15 +128,12 @@
     padding-right: 12px;
   }
   .welcome-description {
-    font-size: 12px;
-    line-height: 1.85;
+    font-size: var(--text-caption); line-height: var(--text-caption--line-height);
+
   }
   .welcome-greeting-slot {
     left: 51%;
     max-width: 43%;
-  }
-  .welcome-speech p {
-    font-size: 17px;
   }
 }
 @media (max-width: 767px) {
@@ -141,7 +158,7 @@
     --banner-position: 70% 50%;
   }
   .welcome-art-shade {
-    background: linear-gradient(180deg, #171925 0%, #17192535 18%, transparent 38%);
+    background: linear-gradient(180deg, var(--color-panel) 0%, color-mix(in srgb, var(--color-panel) 20.78%, transparent) 18%, transparent 38%);
   }
   .welcome-greeting-slot {
     bottom: 18px;
@@ -149,16 +166,13 @@
     max-width: calc(100% - 40px);
   }
   .welcome-speech {
-    padding: 14px 18px;
+    padding: 12px 16px;
   }
   .welcome-description {
-    font-size: 13px;
+    font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height);
   }
   .welcome-copy h1 {
-    font-size: 39px;
-  }
-  .welcome-speech p {
-    font-size: 17px;
+    font-size: var(--text-hero-title); line-height: var(--text-hero-title--line-height);
   }
   .welcome-actions {
     margin-top: 20px;
@@ -169,13 +183,13 @@
     padding: 24px 22px 18px;
   }
   .welcome-copy h1 {
-    font-size: 37px;
+    font-size: var(--text-hero-title); line-height: var(--text-hero-title--line-height);
   }
   .welcome-greeting-slot {
     left: 18px;
     max-width: calc(100% - 36px);
   }
   .welcome-speech {
-    padding: 14px 16px;
+    padding: 12px 14px;
   }
 }

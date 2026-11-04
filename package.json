@@ -8,18 +8,19 @@
   },
   "scripts": {
     "postinstall": "node scripts/sync-vision-runtime.mjs",
-    "predev": "node scripts/sync-vision-runtime.mjs",
-    "prebuild": "node scripts/sync-vision-runtime.mjs",
+    "predev": "node scripts/sync-design-tokens.mjs && node scripts/sync-vision-runtime.mjs",
+    "prebuild": "node scripts/sync-design-tokens.mjs && node scripts/sync-vision-runtime.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "assets:titles": "node scripts/prepare-room-titles.mjs",
     "lint": "eslint . --max-warnings 0",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tokens:sync": "node scripts/sync-design-tokens.mjs",
+    "tokens:check": "node scripts/sync-design-tokens.mjs --check"
   },
   "dependencies": {
-    "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@mediapipe/tasks-vision": "1.2.0",
     "gsap": "^3.15.0",
     "react": "^19.2.8",

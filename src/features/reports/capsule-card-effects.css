@@ -61,7 +61,7 @@
   .capsule-card-stage[data-active='pointer'] .capsule-card-glare, .capsule-card-stage[data-active='keyboard'] .capsule-card-glare { opacity: var(--capsule-glare-hover-opacity); }
   .capsule-card-stage.is-light .capsule-card-foil { mix-blend-mode: multiply; opacity: .05; }
   .capsule-card-stage.is-light[data-active='pointer'] .capsule-card-foil, .capsule-card-stage.is-light[data-active='keyboard'] .capsule-card-foil { opacity: var(--capsule-foil-hover-opacity); }
-  .capsule-card-stage:focus-visible > .capsule-share-card { outline: 2px solid var(--color-brand-strong); outline-offset: 6px; }
+  .capsule-card-stage:focus-visible > .capsule-share-card { outline: 2px solid var(--color-focus-ring); outline-offset: 4px; }
   @media (max-width: 479px) { .capsule-card-stage { width: min(360px, 100%); } }
   @media (hover: hover) and (pointer: fine) and (max-width: 699px) { .capsule-card-stage { max-width: calc(100% - 24px); } }
   @media (hover: none), (pointer: coarse) {

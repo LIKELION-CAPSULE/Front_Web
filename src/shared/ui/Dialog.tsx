@@ -17,6 +17,8 @@ export function Dialog({
   presentation = 'modal',
   label,
   closeLabel = '닫기',
+  showCloseButton = true,
+  titleAlign = 'start',
 }: {
   open: boolean
   onClose: () => void
@@ -26,6 +28,8 @@ export function Dialog({
   presentation?: 'modal' | 'sheet' | 'popover'
   label?: string
   closeLabel?: string
+  showCloseButton?: boolean
+  titleAlign?: 'start' | 'center'
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const startedOnBackdrop = useRef(false)
@@ -63,7 +67,10 @@ export function Dialog({
   }, [open, presentation])
   useLayoutEffect(() => {
     const dialog = ref.current
-    if (open && !dialog?.open) dialog?.showModal()
+    if (open && dialog && !dialog.open) {
+      dialog.showModal()
+      dialog.querySelector<HTMLElement>('[data-dialog-initial-focus]')?.focus()
+    }
     if (!open && dialog?.open) dialog.close()
     return () => { if (dialog?.open) dialog.close() }
   }, [open])
@@ -92,22 +99,23 @@ export function Dialog({
         if (shouldDismiss) dismiss()
       }}
       className={cn(
-        'app-dialog m-auto max-h-[90dvh] w-[calc(100%_-_32px)] max-w-lg overflow-y-auto rounded-3xl bg-canvas p-6 text-ink shadow-2xl sm:p-8',
+        'app-dialog m-auto max-h-[90dvh] w-[calc(100%_-_32px)] max-w-lg overflow-y-auto bg-surface-raised text-ink',
+        presentation === 'modal' ? 'rounded-3xl p-6 sm:p-8' : presentation === 'sheet' ? 'rounded-t-card p-panel-compact' : 'rounded-card p-content-compact',
         className,
       )}
     >
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <h2 id={titleId} className={cn(presentation === 'modal' ? 'text-dialog-title' : 'text-card-title', 'font-semibold')}>
+      <div className={cn('relative mb-5 flex items-start gap-4', titleAlign === 'center' ? 'justify-center' : 'justify-between')}>
+        <h2 id={titleId} className={cn(presentation === 'modal' ? 'type-dialog-title' : 'type-card-title', titleAlign === 'center' && 'w-full text-center', titleAlign === 'center' && showCloseButton && 'px-12')}>
           {title}
         </h2>
-        <button
+        {showCloseButton && <button
           type="button"
           onClick={dismiss}
           aria-label={closeLabel}
-          className="-mt-1 flex size-9 shrink-0 items-center justify-center rounded-full text-xl text-subtle transition-colors hover:bg-button-subtle-hover"
+          className={cn('-mt-1 flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-subtle transition-colors hover:bg-control-hover', titleAlign === 'center' && 'absolute right-0')}
         >
           ×
-        </button>
+        </button>}
       </div>
       {children}
     </dialog>

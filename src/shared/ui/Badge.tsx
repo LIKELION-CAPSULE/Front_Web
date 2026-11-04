@@ -13,8 +13,8 @@ export function Badge({
   return (
     <span
       className={cn(
-        'badge inline-flex items-center rounded-full px-2.5 py-1 text-xs leading-4',
-        dark ? 'bg-brand-solid text-white' : 'bg-surface text-brand-strong',
+        'badge inline-flex items-center rounded-full px-2.5 py-1 text-caption leading-4',
+        dark ? 'bg-primary text-white' : 'bg-surface text-text-accent',
         className,
       )}
     >

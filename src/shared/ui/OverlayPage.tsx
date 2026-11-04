@@ -25,7 +25,7 @@ export function OverlayPage({
       <PageNavigation />
       <div
         className={cn(
-          'overlay-content w-full max-w-[720px] rounded-3xl bg-panel p-6 shadow-2xl sm:p-10',
+          'overlay-content w-full max-w-[720px] rounded-3xl bg-surface-raised p-6 sm:p-10',
           className,
         )}
       >
@@ -34,7 +34,7 @@ export function OverlayPage({
             {backTo && (
               <Link
                 to={backTo}
-                className="inline-flex min-h-8 shrink-0 items-center text-sm text-muted hover:text-ink"
+                className="inline-flex min-h-8 shrink-0 items-center text-body-compact text-muted hover:text-ink"
               >
                 ← 돌아가기
               </Link>

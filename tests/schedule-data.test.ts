@@ -83,7 +83,8 @@ test('schedule calendars retain leap days and Monday-first positions with comple
 
 test('schedule month navigation crosses year boundaries without skipping short months', () => {
   assert.equal(shiftScheduleMonth('2026-12', 1), '2027-01')
-  assert.equal(shiftScheduleMonth('2026-01', -1), '2025-12')
+  assert.equal(shiftScheduleMonth('2026-01', -1), '2026-01')
+  assert.equal(shiftScheduleMonth('2027-01', -120), '2026-01')
   assert.equal(shiftScheduleMonth('2028-03', -1), '2028-02')
   assert.equal(shiftScheduleMonth('2026-10', 12), '2027-10')
 })

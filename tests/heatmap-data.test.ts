@@ -5,14 +5,14 @@ import { getRecordRange } from '../src/features/reports/record-period.ts'
 import { createDemoState } from '../src/features/demo/seed.ts'
 
 test('annual contribution cells preserve every leap day and Monday-first coordinates', () => {
-  const range = getRecordRange('year', Date.parse('2024-08-15T12:00:00+09:00'))
+  const range = getRecordRange('year', Date.parse('2028-08-15T12:00:00+09:00'))
   const chart = studyHeatmap([], range)
   assert.equal(chart.cells.length, 366)
-  assert.equal(chart.cells[0]!.row, 0)
-  assert.equal(chart.cells.at(-1)!.day, '2024-12-31')
+  assert.equal(chart.cells[0]!.row, 5)
+  assert.equal(chart.cells.at(-1)!.day, '2028-12-31')
   assert.equal(new Set(chart.cells.map((cell) => `${cell.column}:${cell.row}`)).size, 366)
-  assert.equal(chart.cells.find((cell) => cell.day === '2024-02-29')!.row, 3)
-  assert.equal(chart.cells.find((cell) => cell.day === '2024-08-16')!.disabled, true)
+  assert.equal(chart.cells.find((cell) => cell.day === '2028-02-29')!.row, 1)
+  assert.equal(chart.cells.find((cell) => cell.day === '2028-08-16')!.disabled, true)
 })
 test('daily intensity counts study seconds rather than a fixed number of study sets', () => {
   const now = Date.parse('2026-10-27T18:00:00+09:00'),

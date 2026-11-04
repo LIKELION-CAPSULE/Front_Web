@@ -27,7 +27,7 @@ export function ScheduleListPanel({
   return (
     <Panel bordered={false} density="roomy" className="schedule-details" aria-labelledby="schedule-heading">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 id="schedule-heading" className="text-section-title font-semibold">
+        <h2 id="schedule-heading" className="type-section-title">
           일정
         </h2>
         <Button size="sm" onClick={onAdd}>
@@ -68,7 +68,7 @@ export function ScheduleListPanel({
                 </div>
                 <div className="min-w-0">
                   <span className="schedule-kind">{memory.kind}</span>
-                  <h3 className="mt-1 text-sm font-semibold">{memory.title}</h3>
+                  <h3 className="mt-1 type-card-title">{memory.title}</h3>
                 </div>
                 <button
                   type="button"
@@ -83,7 +83,7 @@ export function ScheduleListPanel({
           })}
         </ul>
       ) : (
-        <p className="py-12 text-center text-sm text-subtle">
+        <p className="py-12 text-center text-body-compact text-subtle">
           {selectedDay
             ? '선택한 날짜에는 일정이 없어요.'
             : period === 'past' ? '지난 일정이 없어요.' : '등록된 일정이 없어요.'}

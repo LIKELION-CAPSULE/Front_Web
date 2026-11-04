@@ -8,7 +8,7 @@
   top: 0;
   z-index: -1;
   border-radius: 9px;
-  background: var(--color-brand-soft);
+  background: var(--color-primary-soft);
   pointer-events: none;
 }
 .segmented-indicator[data-ready='true'] {

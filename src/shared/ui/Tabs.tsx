@@ -62,9 +62,9 @@ export function Tabs({
           aria-pressed={value === option.id}
           onClick={() => onChange(option.id)}
           className={cn(
-            'segmented-option rounded-[9px] py-2 leading-5 transition-colors',
-            size === 'sm' ? 'px-3 text-xs' : 'px-4 text-sm',
-            value === option.id ? 'font-bold text-brand-strong' : 'text-subtle hover:text-ink',
+            'segmented-option rounded-[9px] py-2 leading-5 transition-colors max-md:min-h-11',
+            size === 'sm' ? 'px-3 text-caption' : 'px-4 text-body-compact',
+            value === option.id ? 'font-bold text-text-accent' : 'text-subtle hover:text-ink',
           )}
         >
           {option.label}

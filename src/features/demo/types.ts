@@ -52,6 +52,7 @@ export type ActiveSession = {
   phase: 'study' | 'break'
   elapsedMs: number
   runningSince: number | null
+  /** Cumulative study total at the last rest; retained while continuing the same session. */
   studySeconds: number
   startedAt: number
   camera: boolean

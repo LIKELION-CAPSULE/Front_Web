@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/Button'
 import { avatarShades } from '../avatar-options'
 import { AvatarCustomizer } from './AvatarCustomizer'
 import { FormField } from '@/shared/ui/FormField'
+import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 
 export function ProfileEditor() {
   const { state, dispatch } = useDemo()
@@ -22,7 +23,7 @@ export function ProfileEditor() {
       <div
         className="mypage-avatar-preview"
         style={{
-          background: `radial-gradient(ellipse at 50% 40%, ${avatarShades[avatar.background]}35, #141923 75%)`,
+          background: `radial-gradient(ellipse at 50% 40%, ${avatarShades[avatar.background]}35, var(--color-panel) 75%)`,
         }}
       >
         <div className="mypage-avatar-figure">
@@ -38,7 +39,7 @@ export function ProfileEditor() {
           setSaved(true)
         }}
       >
-        <h2 id="profile-heading" className="text-section-title font-semibold">
+        <h2 id="profile-heading" className="type-section-title">
           프로필
         </h2>
         <FormField label="닉네임" className="mt-5">
@@ -70,7 +71,7 @@ export function ProfileEditor() {
           {changed && (
             <button
               type="button"
-              className="px-2 py-2 text-sm text-muted"
+              className="px-2 py-2 text-body-compact text-muted"
               onClick={() => {
                 setName(state.profile.name)
                 setAvatar(state.profile.avatar)
@@ -81,9 +82,9 @@ export function ProfileEditor() {
             </button>
           )}
           {saved && (
-            <p role="status" className="text-xs text-brand-strong">
+            <FeedbackMessage tone="success">
               저장했어요.
-            </p>
+            </FeedbackMessage>
           )}
         </div>
       </form>

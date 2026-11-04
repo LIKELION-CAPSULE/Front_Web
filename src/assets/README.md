@@ -1,5 +1,7 @@
 # CAPSULE 에셋
 
+화면 구현 중 생성한 이미지 원본과 현재 제목 크롭은 [Figma 생성 에셋 관리 페이지](../../docs/FIGMA_GENERATED_ASSETS.md)에 용도·버전·파일 경로별로 정리했습니다.
+
 메인 환영 배너는 새로 생성한 [채린·수아·다희 전용 가로 이미지 3종](welcome-banners/README.md)을 사용합니다. PNG 마스터·웹용 WebP·전체 생성 프롬프트를 함께 보관하며, 첫 방문/이어하기 문구와 버튼은 HTML로 분리합니다.
 
 룸 상세는 배경·인물·좌석을 함께 그린 [상세 전용 완성형 배너 9종](room-detail-banners/README.md)을 사용합니다. 제목·소개는 HTML이며 생성 PNG·웹용 WebP·프롬프트 세트를 따로 보관합니다.

@@ -32,12 +32,10 @@ export function MediaProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'CAMERA_BACKGROUND', background: 'none' })
     setBackgroundNotice('배경을 불러오지 못해 기본 화면으로 돌렸어요.')
   }))
-  const prepareRoom = /^\/rooms\/([^/]+)\/prepare$/.exec(pathname)?.[1]
-  const allowed = state.profile.loggedIn && ((!!prepareRoom && !!getStudyRoom(prepareRoom)) ||
-    (!!state.activeSession && !!getStudyRoom(state.activeSession.roomId) && pathname === `/study/${state.activeSession.id}`))
+  const allowed = state.profile.loggedIn && !!state.activeSession &&
+    !!getStudyRoom(state.activeSession.roomId) && pathname === `/study/${state.activeSession.id}`
   const stream = allowed ? devices.camera.stream : null
-  const monitoring = allowed && (!pathname.startsWith('/study/') ||
-    (state.activeSession?.phase === 'study' && state.activeSession.runningSince !== null))
+  const monitoring = allowed && state.activeSession?.phase === 'study' && state.activeSession.runningSince !== null
   const availableVision = stream && monitoring ? vision : null
   const availableObservation = availableVision?.status === 'ready' ? observation : null
   const focusEnabled = !!state.activeSession && pathname === `/study/${state.activeSession.id}` &&

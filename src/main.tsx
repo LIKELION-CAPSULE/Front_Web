@@ -1,10 +1,11 @@
+// Establish cascade layers before importing components with their own stylesheets.
+import '@/styles/index.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import { App } from '@/app/App'
 import { DemoProvider } from '@/features/demo/DemoProvider'
 import { MediaProvider } from '@/features/media/MediaProvider'
-import '@/styles/index.css'
 import '@/features/media/media.css'
 
 const root = document.getElementById('root')

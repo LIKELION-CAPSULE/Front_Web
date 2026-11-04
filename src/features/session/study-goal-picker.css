@@ -1,0 +1,9 @@
+@layer components {
+  .study-goal-range { min-height: 44px; appearance: none; background: transparent; cursor: pointer; }
+  .study-goal-range::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(to right, var(--color-primary) 0 var(--goal-progress), var(--color-control) var(--goal-progress) 100%); }
+  .study-goal-range::-webkit-slider-thumb { width: 18px; height: 18px; margin-top: -6px; appearance: none; border: 0; border-radius: 50%; background: var(--color-primary); }
+  .study-goal-range::-moz-range-track { height: 6px; border-radius: 999px; background: var(--color-control); }
+  .study-goal-range::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--color-primary); }
+  .study-goal-range::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: var(--color-primary); }
+  .study-goal-range:focus-visible { border-radius: var(--radius-control); outline: 2px solid var(--color-focus-ring); outline-offset: 4px; }
+}

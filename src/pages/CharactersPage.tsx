@@ -62,7 +62,7 @@ export default function CharactersPage() {
               key={item.id}
               to={`/characters/${item.id}`}
               className={cn(
-                'character-picker-item inline-flex items-center gap-2 rounded-full py-1.5 pr-4 pl-1.5 text-xs',
+                'character-picker-item inline-flex items-center gap-2 rounded-full py-1.5 pr-4 pl-1.5 text-caption',
                 item.id === character.id && 'is-selected',
               )}
               aria-current={item.id === character.id ? 'page' : undefined}
@@ -73,7 +73,7 @@ export default function CharactersPage() {
           ))}
         </div>
         {search && (
-          <p className="mt-3 text-xs text-subtle" role="status">
+          <p className="mt-3 text-caption text-subtle" role="status">
             {filteredCharacters.length
               ? `${filteredCharacters.length}명의 친구를 찾았어요.`
               : '검색 결과가 없어요. 이름을 다시 확인해 주세요.'}
@@ -86,10 +86,10 @@ export default function CharactersPage() {
             <CharacterArtwork characterId={character.id} pose="affection" variant="portrait" />
           </div>
           <div className="mt-4 flex items-center justify-between gap-3">
-            <h2 className="text-[26px] font-bold">{character.name}</h2>
-            <p className="shrink-0 text-right text-[10px] text-subtle">
+            <h2 className="type-section-title">{character.name}</h2>
+            <p className="shrink-0 text-right text-caption text-subtle">
               처음 만난 날
-              <time dateTime={dayKey(firstMet)} className="mt-1 block text-xs text-muted">
+              <time dateTime={dayKey(firstMet)} className="mt-1 block text-caption text-muted">
                 {dayKey(firstMet).replaceAll('-', '.')}
               </time>
             </p>
@@ -113,20 +113,21 @@ export default function CharactersPage() {
             </ButtonLink>
             <Link
               to={`/characters/${character.id}/shop`}
-              className="mx-auto mt-4 block w-fit py-1 text-sm text-brand-strong underline underline-offset-4 hover:text-ink"
+              className="mx-auto mt-4 block w-fit py-1 text-body-compact text-text-accent underline underline-offset-4 hover:text-ink"
             >
               선물 · 보이스 보내기
             </Link>
           </div>
         </Panel>
         <div className="space-y-content">
-          <Panel title="함께한 공부" bordered={false} className="character-reasons-panel">
+          <Panel bordered={false} className="character-reasons-panel">
+            <h2 className="mb-4 type-section-title">함께한 공부</h2>
             {recent.map((record) => (
               <div
                 key={record.id}
-                className="flex items-center justify-between gap-3 py-3 text-sm"
+                className="flex items-center justify-between gap-3 py-3 text-body-compact"
               >
-                <span className="text-xs text-subtle">{dateLabel(record.endedAt)}</span>
+                <span className="text-caption text-subtle">{dateLabel(record.endedAt)}</span>
                 <span className="flex-1">
                   함께 {Math.floor(record.studySeconds / 60 / record.characterIds.length)}분 공부
                 </span>
@@ -137,8 +138,8 @@ export default function CharactersPage() {
             ))}
           </Panel>
           <section className="character-unlocks">
-            <h2 className="mb-4 text-card-title font-semibold">
-              함께 여는 콘텐츠 <span className="font-normal text-subtle">{unlocks.filter((item) => item.unlockedAt !== null).length} / {unlocks.length}</span>
+            <h2 className="mb-4 type-section-title">
+              함께 여는 콘텐츠 <span className="type-label text-subtle">{unlocks.filter((item) => item.unlockedAt !== null).length} / {unlocks.length}</span>
             </h2>
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               {unlocks.map((item) => (
@@ -150,19 +151,17 @@ export default function CharactersPage() {
                   )}
                   data-kind={item.kind}
                 >
-                  <span className="block text-xs text-muted">{item.kind}</span>
-                  <strong className="mt-2 block text-sm">{item.name}</strong>
-                  <span
-                    className={cn(
-                      'mt-2 block text-[11px]',
-                      item.unlockedAt !== null ? 'text-emerald-300' : 'text-muted',
-                    )}
-                  >
+                  <span className="block text-caption text-muted">{item.kind}</span>
+                  <h3 className="mt-2 type-card-title">{item.name}</h3>
+                  <p className="mt-2 type-caption text-muted">
                     {item.unlockedAt !== null && (
-                      <><time dateTime={dayKey(item.unlockedAt)}>{dayKey(item.unlockedAt).slice(2).replaceAll('-', '.')}</time> 열림 · </>
+                      <>
+                        <time dateTime={dayKey(item.unlockedAt)} className="text-subtle">{dayKey(item.unlockedAt).slice(2).replaceAll('-', '.')}</time>{' '}
+                        <span className="text-success">열림</span> ·{' '}
+                      </>
                     )}
                     {item.description}
-                  </span>
+                  </p>
                 </article>
               ))}
             </div>
