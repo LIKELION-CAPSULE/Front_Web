@@ -1,6 +1,9 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
+import { useBackend } from '@/features/backend/backend-context'
+import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import { ApiError } from '@/shared/api/client'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { RoomCompanions } from '@/features/rooms/components/RoomCompanions'
 import { MemoryEditor } from '@/features/schedule/components/MemoryEditor'
@@ -16,11 +19,13 @@ import { isMvpRoom, MVP_GOAL_MINUTES } from '@/features/mvp/policy'
 
 export default function PreparePage() {
   const { roomId } = useParams()
-  const { state, dispatch } = useDemo()
+  const { state } = useDemo()
+  const backend = useBackend()
+  const [error, setError] = useState('')
+  const [starting, setStarting] = useState(false)
   const navigate = useNavigate()
   const [goalMinutes, setGoalMinutes] = useState(MVP_GOAL_MINUTES)
   const [scheduleOpen, setScheduleOpen] = useState(false)
-  const starting = useRef(false)
   const room = getStudyRoom(roomId ?? '')
   if (!room)
     return (
@@ -28,18 +33,23 @@ export default function PreparePage() {
         <NotFoundPage />
       </OverlayPage>
     )
-  if (!isMvpRoom(room.id)) return <OverlayPage><MvpUnavailablePage /></OverlayPage>
+  if (!room.serverRoom && !isMvpRoom(room.id)) return <OverlayPage><MvpUnavailablePage /></OverlayPage>
   if (state.activeSession) return <Navigate to={`/study/${state.activeSession.id}`} replace />
 
-  function start() {
-    if (starting.current) return
-    starting.current = true
-    const startedAt = Date.now()
-    dispatch({
-      type: 'START_MVP',
-      now: startedAt,
-    })
-    navigate(`/study/session-${startedAt}`)
+  async function start() {
+    if (starting || !room?.characters[0]) return
+    setStarting(true); setError('')
+    try {
+      if (backend.activeSummary?.sessionId) { navigate(`/study/${backend.activeSummary.sessionId}?resume=1`); return }
+      const session = await backend.startSession(room.id, room.characters[0].id, MVP_GOAL_MINUTES)
+      navigate(`/study/${session.id}`)
+    } catch (reason) {
+      if (reason instanceof ApiError && reason.code === 'SESSION_ALREADY_IN_PROGRESS' && typeof reason.detail.sessionId === 'number') {
+        await backend.reload()
+        navigate(`/study/${reason.detail.sessionId}?resume=1`)
+      } else setError(reason instanceof Error ? reason.message : '공부를 시작하지 못했어요.')
+    }
+    finally { setStarting(false) }
   }
 
   return (
@@ -66,7 +76,8 @@ export default function PreparePage() {
         <TierSelector value="basic" onChange={() => {}} />
       </MvpGate>
       <StudyGoalPicker value={goalMinutes} onChange={setGoalMinutes} />
-      <Button className="mt-5 w-full" onClick={start}>시작하기</Button>
+      {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
+      <Button className="mt-5 w-full" disabled={starting} onClick={() => { void start() }}>{starting ? '시작하고 있어요…' : '시작하기'}</Button>
       {scheduleOpen && <MemoryEditor
         onClose={() => setScheduleOpen(false)}
       />}

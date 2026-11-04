@@ -14,10 +14,18 @@ const rooms: readonly StudyRoom[] = studyRooms.map((room) => ({
   })),
 }))
 
-// A local synchronous read today. API loading/error states belong here when connected.
+let serverRooms: readonly StudyRoom[] | null = null
+const reportRooms = new Map<string, StudyRoom>()
+
+export function setServerRooms(value: readonly StudyRoom[]) {
+  serverRooms = value
+  if (!value.length) reportRooms.clear()
+}
+export function registerReportRoom(room: StudyRoom) { reportRooms.set(room.id, room) }
+
 export function getStudyRooms(): readonly StudyRoom[] {
-  return rooms
+  return serverRooms ?? rooms
 }
 export function getStudyRoom(roomId: string): StudyRoom | undefined {
-  return rooms.find((room) => room.id === roomId)
+  return getStudyRooms().find((room) => room.id === roomId) ?? reportRooms.get(roomId)
 }

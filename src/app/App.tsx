@@ -16,12 +16,17 @@ const PreparePage = lazy(() => import('@/pages/PreparePage'))
 const StudyPage = lazy(() => import('@/pages/StudyPage'))
 const ReportPage = lazy(() => import('@/pages/ReportPage'))
 const CapsuleCardPage = lazy(() => import('@/pages/CapsuleCardPage'))
+const KakaoCallbackPage = lazy(() => import('@/pages/KakaoCallbackPage'))
+const PasswordResetPage = lazy(() => import('@/pages/PasswordResetPage'))
 
 export function App() {
   return (
     <Suspense fallback={<PageSkeleton />}>
       <Routes>
         <Route path="login" element={<LoginPage />} />
+        <Route path="password/reset" element={<PasswordResetPage />} />
+        <Route path="reset-password" element={<PasswordResetPage />} />
+        <Route path="oauth/kakao" element={<KakaoCallbackPage />} />
         <Route element={<RequireDemo />}>
           <Route path="onboarding" element={<OnboardingPage />} />
           <Route element={<AppLayout />}>
@@ -37,8 +42,10 @@ export function App() {
           <Route path="reports/:recordId" element={<ReportPage />} />
           <Route path="capsules/:recordId" element={<CapsuleCardPage />} />
         </Route>
-        <Route element={<DetailLayout />}>
-          <Route path="rooms/:roomId" element={<RoomDetailPage />} />
+        <Route element={<RequireDemo />}>
+          <Route element={<DetailLayout />}>
+            <Route path="rooms/:roomId" element={<RoomDetailPage />} />
+          </Route>
         </Route>
       </Routes>
     </Suspense>

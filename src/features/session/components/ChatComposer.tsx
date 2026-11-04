@@ -11,7 +11,7 @@ export function ChatComposer({ name, text, onChange, onSend, disabled }: {
   name: string
   text: string
   onChange: (text: string) => void
-  onSend: (text: string, voice?: boolean) => void
+  onSend: (text: string) => Promise<boolean>
   disabled: boolean
 }) {
   const ref = useRef<HTMLTextAreaElement>(null)
@@ -35,13 +35,12 @@ export function ChatComposer({ name, text, onChange, onSend, disabled }: {
     observer.observe(field)
     return () => observer.disconnect()
   }, [])
-  function submit() {
+  async function submit() {
     if (disabled || !text.trim()) return
-    onSend(text)
-    onChange('')
+    if (await onSend(text)) onChange('')
   }
   return (
-    <form className="session-chat-composer" data-has-text={!!text || undefined} onSubmit={(event) => { event.preventDefault(); submit() }}>
+    <form className="session-chat-composer" data-has-text={!!text || undefined} onSubmit={(event) => { event.preventDefault(); void submit() }}>
       <textarea
         ref={ref}
         rows={1}
@@ -49,16 +48,13 @@ export function ChatComposer({ name, text, onChange, onSend, disabled }: {
         value={text}
         onChange={event => onChange(event.target.value)}
         onKeyDown={event => {
-          if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) { event.preventDefault(); submit() }
+          if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) { event.preventDefault(); void submit() }
         }}
-        maxLength={500}
+        maxLength={300}
         disabled={disabled}
         placeholder={`${name}에게 한마디…`}
       />
       <div className="session-chat-composer-tools">
-        <button type="button" aria-label="샘플 음성 메시지 보내기" title="음성 메시지 체험" disabled={disabled} onClick={() => onSend('내일 영어 시험이라 좀 긴장돼', true)}>
-          <Icon name="microphone" size={18} />
-        </button>
         <button type="submit" className="session-chat-send" aria-label="메시지 보내기" disabled={disabled || !text.trim()}>
           <Icon name="arrow" size={18} />
         </button>

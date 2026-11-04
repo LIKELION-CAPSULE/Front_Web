@@ -2,6 +2,7 @@ import { legalDocuments, type LegalDocumentId } from '../data/legal-documents'
 import { AnimatedCheckbox } from '@/shared/ui/AnimatedCheckbox'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { useId } from 'react'
+import { useBackend } from '@/features/backend/backend-context'
 import type { AuthErrors, AuthField } from '../email-validation'
 
 export function TermsConsent({
@@ -14,6 +15,7 @@ export function TermsConsent({
   onChange?: (field: AuthField) => void
 }) {
   const id = useId()
+  const { terms } = useBackend()
   return (
     <fieldset className="relative min-w-0 space-y-4 py-2">
       <legend className="sr-only">약관 동의</legend>
@@ -38,7 +40,7 @@ export function TermsConsent({
                 />
                 <span>
                   <span className="mr-1 text-text-accent">[필수]</span>{' '}
-                  {legalDocuments[document].title} 동의
+                  {terms.find(term => term.code === (document === 'terms' ? 'SERVICE' : 'PRIVACY'))?.name ?? legalDocuments[document].title} 동의
                 </span>
               </label>
               <button

@@ -1,21 +1,22 @@
 import { useDemo } from '@/features/demo/demo-context'
-import { getStudyRoom } from '@/features/rooms/services/room-service'
+import { getStudyRooms } from '@/features/rooms/services/room-service'
 import { CompanionGreeting } from '@/features/characters/components/CompanionGreeting'
 import { HoverScratchCarousel } from '@/shared/ui/hover-scratch/HoverScratchCarousel'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
 import { welcomeBanners } from '../welcome-banners'
 import { welcomeCopy } from '../welcome-copy'
-import { MVP_ROOM_ID } from '@/features/mvp/policy'
+import { useBackend } from '@/features/backend/backend-context'
 
 export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
   const { state } = useDemo()
   const latest = state.records[0]
-  const room = getStudyRoom(MVP_ROOM_ID)!
-  const active = state.activeSession
-  const returning = !!active || (!state.firstVisit && !!latest)
+  const { activeSummary, home } = useBackend()
+  const room = getStudyRooms()[0]
+  const active = state.activeSession ?? (activeSummary?.sessionId ? { id: String(activeSummary.sessionId) } : null)
+  const returning = !!active || !state.firstVisit || !!latest
   const copy = active ? welcomeCopy.active : returning ? welcomeCopy.returning : welcomeCopy.fresh
-  const preparationPath = `/rooms/${room.id}/prepare`
+  const preparationPath = room ? `/rooms/${room.id}/prepare` : '/'
   return (
     <HoverScratchCarousel
       className="welcome-hero"
@@ -42,12 +43,13 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
               {returning && `${state.profile.name}님, `}
               {copy.description}
             </p>
+            {home?.todayStudySeconds !== undefined && <p className="mt-3 text-body-compact text-muted">오늘 함께 공부한 시간 {Math.floor(home.todayStudySeconds / 60)}분</p>}
             <div className="welcome-actions">
               {returning ? (
                 <ButtonLink
                   to={
                     active
-                      ? `/study/${active.id}`
+                      ? `/study/${active.id}${state.activeSession ? '' : '?resume=1'}`
                       : preparationPath
                   }
                 >

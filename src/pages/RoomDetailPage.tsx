@@ -22,7 +22,7 @@ export default function RoomDetailPage() {
         <NotFoundPage />
       </div>
     )
-  if (!isMvpRoom(room.id)) return <MvpUnavailablePage />
+  if (!room.serverRoom && !isMvpRoom(room.id)) return <MvpUnavailablePage />
   return (
     <>
       <SiteHeader
@@ -56,10 +56,10 @@ export default function RoomDetailPage() {
           className="room-detail-hero room-detail-hero--illustrated"
           aria-labelledby="room-title"
         >
-          <RoomDetailBanner roomId={room.id} />
+          {room.serverRoom && room.coverUrl && !room.artworkId ? <div className="room-detail-backdrop"><img src={room.coverUrl} alt="" className="room-detail-banner-image" /></div> : <RoomDetailBanner roomId={room.artworkId ?? room.id} />}
           <div className="room-detail-copy">
             <h1 id="room-title" className="type-story-title">{room.name}</h1>
-            <p className="mt-4 max-w-md type-body text-muted">노을이 드는 교실에서 채린과 오늘의 공부를 시작해 봐요.</p>
+            <p className="mt-4 max-w-md type-body text-muted">{room.description}</p>
             <ButtonLink
               to={
                 state.activeSession
@@ -81,7 +81,7 @@ export default function RoomDetailPage() {
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
             {room.characters.map((character) => (
-              isMvpCharacter(character.id)
+              (character.serverCharacter || isMvpCharacter(character.id))
                 ? <CharacterCard key={character.id} character={character} />
                 : <MvpGate key={character.id} label={character.name} className="mvp-friend">
                     <CharacterCard character={character} />
