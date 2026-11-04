@@ -3,7 +3,7 @@ import { useDemo } from '@/features/demo/demo-context'
 import type { LedgerEntry } from '@/features/demo/types'
 import { dateLabel, number } from '@/shared/lib/format'
 import { PageHeading } from '@/shared/ui/PageHeading'
-import { Badge } from '@/shared/ui/Badge'
+import { CreditLedger } from '@/features/credits/components/CreditLedger'
 import { ButtonLink } from '@/shared/ui/Button'
 import { Tabs } from '@/shared/ui/Tabs'
 import { Dialog } from '@/shared/ui/Dialog'
@@ -13,7 +13,6 @@ export default function CreditsPage() {
   const { state } = useDemo()
   const [filter, setFilter] = useState('all')
   const [receipt, setReceipt] = useState<LedgerEntry | null>(null)
-  const labels = { charge: '충전', use: '사용', bonus: '보너스', payment: '결제' }
   const rows = state.ledger.filter((entry) =>
     filter === 'all' ||
     (filter === 'charge'
@@ -32,24 +31,24 @@ export default function CreditsPage() {
         </ButtonLink>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
-        <Panel bordered={false} className="bg-brand-solid text-white">
-          <p className="text-sm text-white/70">보유 크레딧</p>
-          <p className="mt-2 font-mono text-[34px] font-bold">{number(state.credits)}</p>
+        <Panel bordered={false} className="bg-surface">
+          <p className="text-body-compact text-muted">보유 크레딧</p>
+          <p className="mt-2 type-stat">{number(state.credits)}</p>
         </Panel>
-        <Panel bordered={false} className="bg-brand-soft">
-          <p className="text-sm text-muted">이용 중인 패스</p>
-          <h2 className="mt-2 text-xl font-bold">
+        <Panel bordered={false} className="bg-primary-soft">
+          <p className="text-body-compact text-muted">이용 중인 패스</p>
+          <h2 className="mt-2 type-section-title">
             {state.pass ? state.pass.name : '아직 이용 중인 패스가 없어요'}
           </h2>
           {state.pass && (
-            <p className="mt-2 text-xs text-muted">
+            <p className="mt-2 text-caption text-muted">
               {dateLabel(state.pass.expiresAt)}까지 · 자동 갱신 없음
             </p>
           )}
         </Panel>
         <Panel bordered={false} className="bg-surface">
-          <p className="text-sm text-muted">사용한 크레딧</p>
-          <p className="mt-2 font-mono text-[30px] font-bold">{number(used)}</p>
+          <p className="text-body-compact text-muted">사용한 크레딧</p>
+          <p className="mt-2 type-stat">{number(used)}</p>
         </Panel>
       </div>
       <div className="mt-6">
@@ -65,59 +64,10 @@ export default function CreditsPage() {
           ]}
         />
       </div>
-      <div className="mt-4 overflow-x-auto rounded-[16px] border border-transparent">
-        <table className="w-full min-w-[700px] text-left text-sm">
-          <thead className="text-xs font-normal text-subtle">
-            <tr>
-              <th className="p-4 font-normal">일시</th>
-              <th className="p-4 font-normal">내용</th>
-              <th className="p-4 font-normal">구분</th>
-              <th className="p-4 font-normal">변동</th>
-              <th className="p-4 font-normal">잔액</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((entry) => (
-              <tr key={entry.id} className="border-t border-divider">
-                <td className="p-4 font-mono text-xs text-subtle">{dateLabel(entry.at, true)}</td>
-                <td className="p-4">
-                  {entry.kind === 'payment' || entry.kind === 'charge' ? (
-                    <button
-                      onClick={() => setReceipt(entry)}
-                      className="text-left underline decoration-line underline-offset-4"
-                    >
-                      {entry.description}
-                    </button>
-                  ) : (
-                    entry.description
-                  )}
-                </td>
-                <td className="p-4">
-                  <Badge dark={entry.kind === 'charge'}>{labels[entry.kind]}</Badge>
-                </td>
-                <td className="p-4 font-mono font-bold">
-                  <span className={entry.change > 0 ? 'text-brand' : ''}>
-                    {entry.change
-                      ? `${entry.change > 0 ? '+' : '−'}${number(Math.abs(entry.change))}`
-                      : '—'}
-                  </span>
-                </td>
-                <td className="p-4 font-mono text-xs text-muted">{number(entry.balance)}</td>
-              </tr>
-            ))}
-            {!rows.length && (
-              <tr>
-                <td colSpan={5} className="p-8 text-center text-sm text-muted">
-                  선택한 항목의 내역이 없어요.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <CreditLedger entries={rows} onReceipt={setReceipt} />
       <Dialog open={!!receipt} onClose={() => setReceipt(null)} title="결제 내역">
         {receipt && (
-          <div className="space-y-3 text-sm">
+          <div className="space-y-3 text-body-compact">
             <p>{receipt.description}</p>
             <p className="text-muted">결제 시각 {dateLabel(receipt.at, true)}</p>
             <p className="font-bold">{number(receipt.amount ?? 0)}원</p>

@@ -41,8 +41,8 @@
   padding: 27px 22px 26px;
   background: #f2eef4;
   color: #39323f;
-  font-size: 11px;
-  line-height: 1.65;
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
+
   transform: translateY(var(--receipt-pull, 0px));
   transition: transform 0.15s ease;
 }
@@ -64,17 +64,17 @@
   padding-bottom: 18px;
 }
 .receipt-heading > strong {
-  font-size: 16px;
+  font-size: var(--text-body); line-height: var(--text-body--line-height);
   font-weight: 700;
   letter-spacing: 3px;
 }
 .receipt-heading > span {
-  font-size: 12px;
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   font-weight: 600;
 }
 .receipt-heading time {
   color: #766c7f;
-  font-size: 10px;
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
 }
 .receipt-complete-symbol {
   color: #76529e;
@@ -99,14 +99,14 @@
   border-top: 1px dashed #b5aabf;
   margin-top: 4px;
   padding-top: 14px;
-  font-size: 14px;
+  font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height);
   font-weight: 600;
 }
 .receipt-toolbar {
   display: grid;
   gap: 6px;
   margin-top: 10px;
-  font-size: 11px;
+  font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   text-align: center;
   color: var(--color-subtle);
 }
@@ -119,10 +119,11 @@
   min-height: 36px;
   border-radius: 8px;
   padding: 6px 10px;
-  color: var(--color-brand-strong);
+  background: var(--color-control);
+  color: var(--color-ink);
 }
-.receipt-toolbar button:hover:enabled { background: var(--color-brand-soft); }
-.receipt-toolbar button:disabled { opacity: 0.4; }
+.receipt-toolbar button:hover:enabled { background: var(--color-primary-soft); }
+.receipt-toolbar button:disabled { background: var(--color-disabled); color: var(--color-text-disabled); }
 .payment-receipt[data-phase='ready'] .receipt-paper { touch-action: pan-x; cursor: grab; }
 .payment-receipt[data-phase='ready'] .receipt-paper:active { cursor: grabbing; }
 .payment-receipt[data-phase='detached'] .receipt-paper { opacity: 0; }

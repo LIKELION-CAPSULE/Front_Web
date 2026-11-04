@@ -7,6 +7,7 @@ import {
   studyGoalSeconds,
 } from '../session/study-goal.ts'
 import { businessDay } from '../../shared/lib/format.ts'
+import { MIN_CALENDAR_DATE } from '../../shared/lib/date-limits.ts'
 import { normalizeCameraBackground, type CameraBackgroundId } from '../media/camera-backgrounds.ts'
 import type { AvatarSettings, DemoState, FocusTotals, LedgerEntry, Memory, TierId } from './types.ts'
 
@@ -33,8 +34,9 @@ export type DemoAction =
       targetMinutes?: number
     }
   | { type: 'TICK'; now: number }
-  | { type: 'PAUSE'; now: number }
-  | { type: 'SKIP_TO_BREAK'; now: number }
+  | { type: 'RESUME_SESSION'; now: number }
+  | { type: 'TAKE_BREAK'; now: number }
+  | { type: 'CONTINUE_STUDY'; now: number }
   | { type: 'FINISH'; now: number }
   | { type: 'UPGRADE'; tier: TierId; now: number }
   | {
@@ -62,6 +64,24 @@ export function sessionElapsed(state: DemoState['activeSession'], now: number) {
           1000,
       )
     : 0
+}
+
+/** Cumulative study time excludes rests; continuing after the goal permits overtime. */
+export function sessionStudySeconds(active: DemoState['activeSession'], now: number) {
+  if (!active) return 0
+  if (active.phase === 'break') return active.studySeconds
+  const elapsed = sessionElapsed(active, now)
+  const goal = studyGoalSeconds(active)
+  return active.studySeconds >= goal ? elapsed : Math.min(goal, elapsed)
+}
+
+function continueStudySession(active: NonNullable<DemoState['activeSession']>, now: number, overflowSeconds = 0) {
+  return {
+    ...active,
+    phase: 'study' as const,
+    elapsedMs: (active.studySeconds + overflowSeconds) * 1000,
+    runningSince: now,
+  }
 }
 
 export function tierCost(state: DemoState, tier: TierId, now: number) {
@@ -171,68 +191,68 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       const previous = normalizeFocusTotals(active.focus)
       const next = normalizeFocusTotals(action.totals)
       if (next.observedMs < previous.observedMs || next.focusedMs < previous.focusedMs || next.returns < previous.returns) return state
-      const studyMs = (active.phase === 'study'
-        ? Math.min(studyGoalSeconds(active), sessionElapsed(active, action.now)) : active.studySeconds) * 1000
+      const studyMs = sessionStudySeconds(active, action.now) * 1000
       const observedMs = Math.min(next.observedMs, Math.max(previous.observedMs, studyMs))
       const focus = { observedMs, focusedMs: Math.min(observedMs, next.focusedMs), returns: next.returns }
       if (previous.observedMs === focus.observedMs && previous.focusedMs === focus.focusedMs && previous.returns === focus.returns) return state
       return { ...state, activeSession: { ...active, focus } }
     }
     case 'TICK': {
-      const active = state.activeSession
-      if (!active || active.runningSince === null) return state
-      const elapsed = sessionElapsed(active, action.now)
-      const goal = studyGoalSeconds(active)
-      if (active.phase === 'study' && elapsed >= goal) {
-        return {
-          ...state,
-          activeSession: {
+      let active = state.activeSession
+      if (!active) return state
+      // Settle crossed boundaries in order, including delayed ticks and old completed rests.
+      // Only the first goal triggers an automatic rest, so this loop has at most three transitions.
+      for (;;) {
+        const elapsed = sessionElapsed(active, action.now)
+        const goal = studyGoalSeconds(active)
+        if (active.phase === 'break' && elapsed >= BREAK_SECONDS) {
+          active = continueStudySession(active, action.now, elapsed - BREAK_SECONDS)
+        } else if (active.phase === 'study' && active.runningSince !== null && active.studySeconds < goal && elapsed >= goal) {
+          active = {
             ...active,
             phase: 'break',
             studySeconds: goal,
-            elapsedMs: Math.min((elapsed - goal) * 1000, BREAK_SECONDS * 1000),
-            runningSince: elapsed >= goal + BREAK_SECONDS ? null : action.now,
-          },
-        }
+            elapsedMs: (elapsed - goal) * 1000,
+            runningSince: action.now,
+          }
+        } else break
       }
-      if (active.phase === 'break' && elapsed >= BREAK_SECONDS)
-        return {
-          ...state,
-          activeSession: { ...active, elapsedMs: BREAK_SECONDS * 1000, runningSince: null },
-        }
-      return state
+      return active === state.activeSession ? state : { ...state, activeSession: active }
     }
-    case 'PAUSE':
-      return state.activeSession
-        ? {
-            ...state,
-            activeSession: {
-              ...state.activeSession,
-              elapsedMs: sessionElapsed(state.activeSession, action.now) * 1000,
-              runningSince: state.activeSession.runningSince === null ? action.now : null,
-            },
-          }
-        : state
-    case 'SKIP_TO_BREAK':
-      return state.activeSession
-        ? {
-            ...state,
-            activeSession: {
-              ...state.activeSession,
-              phase: 'break',
-              studySeconds: studyGoalSeconds(state.activeSession),
-              elapsedMs: 138000,
-              runningSince: action.now,
-            },
-          }
-        : state
+    case 'RESUME_SESSION': {
+      // Older saves can contain a stopped timer. Resuming never pauses a running session
+      // or restarts a completed break.
+      const active = state.activeSession
+      if (!active || active.runningSince !== null ||
+        (active.phase === 'break' && sessionElapsed(active, action.now) >= BREAK_SECONDS)) return state
+      return { ...state, activeSession: { ...active, runningSince: action.now } }
+    }
+    case 'TAKE_BREAK': {
+      const active = state.activeSession
+      if (!active || active.phase !== 'study') return state
+      return {
+        ...state,
+        activeSession: {
+          ...active,
+          phase: 'break',
+          studySeconds: sessionStudySeconds(active, action.now),
+          elapsedMs: 0,
+          runningSince: action.now,
+        },
+      }
+    }
+    case 'CONTINUE_STUDY': {
+      const active = state.activeSession
+      if (!active || active.phase !== 'break') return state
+      return {
+        ...state,
+        activeSession: continueStudySession(active, action.now),
+      }
+    }
     case 'FINISH': {
       const active = state.activeSession
       if (!active) return state
-      const total =
-        active.phase === 'break'
-          ? active.studySeconds
-          : Math.min(studyGoalSeconds(active), sessionElapsed(active, action.now))
+      const total = sessionStudySeconds(active, action.now)
       const focus = normalizeFocusTotals(active.focus)
       const observedMs = Math.min(Math.round(total * 1000), Math.round(focus.observedMs))
       const focusedMs = Math.min(observedMs, Math.round(focus.focusedMs))
@@ -393,6 +413,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       }
     }
     case 'MEMORY':
+      if (action.memory.date < MIN_CALENDAR_DATE) return state
       return {
         ...state,
         memories: state.memories.some((memory) => memory.id === action.memory.id)

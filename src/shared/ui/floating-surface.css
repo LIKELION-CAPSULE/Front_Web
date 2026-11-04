@@ -1,0 +1,8 @@
+@layer components {
+  .floating-surface {
+    background: var(--color-floating);
+    color: var(--color-ink);
+    box-shadow: var(--popover-shadow);
+  }
+  .floating-surface .menu-item:is(:hover, :focus-visible) { background: var(--color-floating-hover); }
+}

@@ -6,8 +6,13 @@ import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { DeviceController } from './device-controller'
 import { MediaContext } from './media-context'
 import { SegmentationClient } from './segmentation-client'
-import type { Observation, VisionMessage, VisionStatus } from './types'
+import { BehaviorMonitor } from './behavior-monitor'
+import { FACE_INTERVAL_MS, GESTURE_INTERVAL_MS, OBSERVATION_PUBLISH_MS, PHONE_INTERVAL_MS, PREPARE_FACE_INTERVAL_MS } from './behavior-constants'
+import type { Observation, VisionMessage, VisionStatus, VisionTask } from './types'
 import { useFaceFocus } from './use-face-focus'
+
+/** Scheduler resolution; each model runs when its own interval is due. */
+const TICK_MS = 1000 / 30
 
 export function MediaProvider({ children }: { children: ReactNode }) {
   const [controller] = useState(() => new DeviceController(
@@ -18,6 +23,8 @@ export function MediaProvider({ children }: { children: ReactNode }) {
   const [observation, setObservation] = useState<Observation | null>(null)
   const [attempt, setAttempt] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [behavior] = useState(() => new BehaviorMonitor())
+  const studyDetection = useRef(false)
   const { pathname } = useLocation()
   const { state, dispatch } = useDemo()
   const [backgroundNotice, setBackgroundNotice] = useState<string | null>(null)
@@ -25,18 +32,24 @@ export function MediaProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'CAMERA_BACKGROUND', background: 'none' })
     setBackgroundNotice('배경을 불러오지 못해 기본 화면으로 돌렸어요.')
   }))
-  const prepareRoom = /^\/rooms\/([^/]+)\/prepare$/.exec(pathname)?.[1]
-  const allowed = state.profile.loggedIn && ((!!prepareRoom && !!getStudyRoom(prepareRoom)) ||
-    (!!state.activeSession && !!getStudyRoom(state.activeSession.roomId) && pathname === `/study/${state.activeSession.id}`))
+  const allowed = state.profile.loggedIn && !!state.activeSession &&
+    !!getStudyRoom(state.activeSession.roomId) && pathname === `/study/${state.activeSession.id}`
   const stream = allowed ? devices.camera.stream : null
-  const monitoring = allowed && (!pathname.startsWith('/study/') ||
-    (state.activeSession?.phase === 'study' && state.activeSession.runningSince !== null))
+  const monitoring = allowed && state.activeSession?.phase === 'study' && state.activeSession.runningSince !== null
   const availableVision = stream && monitoring ? vision : null
   const availableObservation = availableVision?.status === 'ready' ? observation : null
   const focusEnabled = !!state.activeSession && pathname === `/study/${state.activeSession.id}` &&
     state.activeSession.phase === 'study' && state.activeSession.runningSince !== null &&
     state.activeSession.camera && !!stream && availableVision?.status === 'ready'
   const flushFocus = useFaceFocus({ session: state.activeSession, enabled: focusEnabled, observation: availableObservation, dispatch })
+  // Behavior rules run only while the study timer runs; `monitoring` already stops the loop on pause and break.
+  const detectBehavior = monitoring && !!state.activeSession && pathname === `/study/${state.activeSession.id}`
+
+  useEffect(() => {
+    // A ref keeps the worker alive from the prepare screen into the study screen.
+    studyDetection.current = detectBehavior
+    if (!detectBehavior) behavior.reset()
+  }, [detectBehavior, behavior])
 
   useEffect(() => {
     if (!allowed) controller.stop()
@@ -51,7 +64,9 @@ export function MediaProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const video = videoRef.current
     if (!stream || !video || !monitoring) return
-    let active = true, busy = false, ready = false, sentAt = 0, startupTimeout = 0
+    let active = true, busy = false, ready = false, sentAt = 0, startupTimeout = 0, publishedAt = -Infinity
+    const ranAt: Record<VisionTask, number> = { face: -Infinity, gesture: -Infinity, phone: -Infinity }
+    const unavailable = new Set<VisionTask>()
     let worker: Worker | null = null
     video.srcObject = stream
     const reset = () => { setObservation(null); setVision({ status: 'loading' }) }
@@ -64,6 +79,7 @@ export function MediaProvider({ children }: { children: ReactNode }) {
       worker?.terminate()
       worker = null
       setObservation(null)
+      behavior.reset()
       setVision({ status: 'error', error: typeof message === 'string' ? message : '감지를 시작하지 못했어요. 다시 시도해 주세요.' })
     }
     try {
@@ -77,9 +93,17 @@ export function MediaProvider({ children }: { children: ReactNode }) {
           ready = event.data.value.status === 'ready'
           setVision(event.data.value)
           if (!ready) setObservation(null)
+        } else if (event.data.type === 'task-error') {
+          unavailable.add(event.data.task)
         } else {
           busy = false
-          if (!document.hidden) setObservation(event.data.value)
+          if (document.hidden) return
+          const { at, face, hand, phoneScore } = event.data.value
+          if (face && at - publishedAt >= OBSERVATION_PUBLISH_MS - TICK_MS / 2) {
+            publishedAt = at
+            setObservation({ at, faceCount: face.faceCount, faceBox: face.faceBox })
+          }
+          if (studyDetection.current) behavior.observe({ face: face?.signal, hand, phoneScore }, at)
         }
       }
       worker.onerror = fail
@@ -90,14 +114,22 @@ export function MediaProvider({ children }: { children: ReactNode }) {
     const timer = window.setInterval(() => {
       if (busy && performance.now() - sentAt > 15000) { fail(); return }
       if (!active || !worker || !ready || busy || document.hidden || video.readyState < 2) return
+      const now = performance.now()
+      const intervals: Partial<Record<VisionTask, number>> = studyDetection.current
+        ? { face: FACE_INTERVAL_MS, gesture: GESTURE_INTERVAL_MS, phone: PHONE_INTERVAL_MS }
+        : { face: PREPARE_FACE_INTERVAL_MS }
+      const tasks = (Object.keys(intervals) as VisionTask[]).filter((task) =>
+        !unavailable.has(task) && now - ranAt[task] >= intervals[task]! - TICK_MS / 2)
+      if (!tasks.length) return
+      for (const task of tasks) ranAt[task] = now
       busy = true
-      sentAt = performance.now()
+      sentAt = now
       void createImageBitmap(video).then((frame) => {
         if (!active || !worker || document.hidden) { frame.close(); busy = false; return }
-        worker.postMessage({ type: 'frame', frame, at: performance.now() }, [frame])
+        worker.postMessage({ type: 'frame', frame, at: performance.now(), tasks }, [frame])
       }).catch(fail)
-    }, 200)
-    const visibility = () => { if (document.hidden) setObservation(null) }
+    }, TICK_MS)
+    const visibility = () => { if (document.hidden) { setObservation(null); behavior.reset() } }
     document.addEventListener('visibilitychange', visibility)
     return () => {
       active = false
@@ -105,13 +137,14 @@ export function MediaProvider({ children }: { children: ReactNode }) {
       clearTimeout(startupTimeout)
       document.removeEventListener('visibilitychange', visibility)
       worker?.terminate()
+      behavior.reset()
       video.pause()
       video.srcObject = null
     }
-  }, [stream, monitoring, attempt])
+  }, [stream, monitoring, attempt, behavior])
   return (
     <MediaContext value={{ devices, controller, vision: availableVision,
-      observation: availableObservation, flushFocus, segmentation, backgroundNotice,
+      observation: availableObservation, flushFocus, segmentation, backgroundNotice, behavior,
       retryVision: () => setAttempt((value) => value + 1) }}>
       <video ref={videoRef} muted playsInline aria-hidden="true" className="hidden" />
       {children}

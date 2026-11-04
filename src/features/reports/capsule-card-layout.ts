@@ -1,0 +1,14 @@
+import { designColors, designPalette, designTypography } from '@/shared/design/tokens'
+
+/** CSS-pixel coordinates are shared by the 360×600 preview and 2× PNG. */
+export const capsuleCardLayout = {
+  width: 360, height: 600, padding: 28, contentWidth: 304,
+  portrait: { top: 80, height: 224 },
+  intro: { top: 320 }, study: { top: 350 }, focus: { top: 402 },
+  badge: { top: 438 }, quote: { top: 500, height: 72, fontSize: designTypography['story-quote'].fontSizePx, lineHeight: designTypography['story-quote'].lineHeightPx },
+} as const
+
+export const capsuleCardColors = [designColors['primary-soft'], designColors.canvas, designPalette.violet['50'], designPalette.violet['300']]
+export function isLightCapsule(color: string) {
+  return color === designPalette.violet['50'] || color === designPalette.violet['300']
+}

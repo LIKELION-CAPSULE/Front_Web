@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 import { Icon } from '@/shared/ui/Icon'
 import { ButtonLink } from '@/shared/ui/Button'
+import { FloatingSurface } from '@/shared/ui/FloatingSurface'
 
 export function StudyDemoControls({ studying, onBreak, onReaction, onReturn }: {
   studying: boolean
@@ -31,7 +32,7 @@ export function StudyDemoControls({ studying, onBreak, onReaction, onReturn }: {
         <Icon name="sliders" size={14} />
         <span className="study-demo-label">데모 조작</span>
       </summary>
-      <div className="study-demo-menu">
+      <FloatingSurface className="study-demo-menu">
         <p>친구 반응과 쉬는 시간을 미리 확인할 수 있어요.</p>
         <div className="flex flex-wrap gap-1.5">
           {studying && <>
@@ -42,7 +43,7 @@ export function StudyDemoControls({ studying, onBreak, onReaction, onReturn }: {
           <Link to="/" onClick={close}>홈으로</Link>
           <ButtonLink to="/credits" variant="secondary" size="xs" onClick={close}>내 크레딧</ButtonLink>
         </div>
-      </div>
+      </FloatingSurface>
     </details>
   )
 }

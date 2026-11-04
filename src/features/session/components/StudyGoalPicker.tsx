@@ -1,5 +1,6 @@
-import { useId } from 'react'
+import { useId, type CSSProperties } from 'react'
 import { MAX_GOAL_MINUTES, MIN_GOAL_MINUTES, normalizeGoalMinutes } from '../study-goal'
+import '../study-goal-picker.css'
 
 export function StudyGoalPicker({
   value,
@@ -13,12 +14,12 @@ export function StudyGoalPicker({
     <fieldset className="mt-5 rounded-card border border-transparent bg-panel p-5">
       <legend className="sr-only">공부 목표 시간</legend>
       <div className="flex items-baseline justify-between gap-3">
-        <label htmlFor={id} className="text-sm font-semibold">
+        <label htmlFor={id} className="text-body-compact font-semibold">
           오늘의 목표 시간
         </label>
-        <output htmlFor={id} className="font-mono text-2xl font-bold text-brand-strong">
+        <output htmlFor={id} className="font-sans tabular-nums text-section-title font-bold text-text-accent">
           {value}
-          <small className="ml-1 text-sm">분</small>
+          <small className="ml-1 text-body-compact">분</small>
         </output>
       </div>
       <input
@@ -31,9 +32,10 @@ export function StudyGoalPicker({
         step={5}
         value={value}
         onChange={(event) => onChange(normalizeGoalMinutes(Number(event.target.value)))}
-        className="mt-5 min-h-11 w-full cursor-pointer accent-brand-solid"
+        className="study-goal-range mt-5 w-full"
+        style={{ '--goal-progress': `${(normalizeGoalMinutes(value) - MIN_GOAL_MINUTES) / (MAX_GOAL_MINUTES - MIN_GOAL_MINUTES) * 100}%` } as CSSProperties}
       />
-      <div className="mt-2 flex justify-between text-[11px] text-subtle">
+      <div className="mt-2 flex justify-between text-caption text-subtle">
         <span>5분</span>
         <span>3시간</span>
       </div>

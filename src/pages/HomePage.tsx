@@ -49,10 +49,10 @@ export default function HomePage() {
               ref={roomHeading}
               tabIndex={-1}
               id="rooms-heading"
-              className="scroll-mt-6 text-[26px] font-bold tracking-tight"
+              className="scroll-mt-6 type-section-title"
             >
               오늘은 어디서 공부할까요?{' '}
-              <span className="ml-1 text-base font-normal text-subtle">{rooms.length}</span>
+              <span className="ml-1 text-label font-normal text-subtle">{rooms.length}</span>
             </h2>
           </div>
           <div className="room-toolbar">
@@ -95,14 +95,14 @@ export default function HomePage() {
             <Icon
               name={filter === 'saved' && !search ? 'bookmark' : 'search'}
               size={30}
-              className="mx-auto mb-4 text-brand"
+              className="mx-auto mb-4 text-text-accent"
             />
-            <h3 className="text-lg font-semibold">
+            <h3 className="type-card-title">
               {filter === 'saved' && !search
                 ? '아직 저장한 스터디룸이 없어요'
                 : '검색 결과가 없어요'}
             </h3>
-            <p className="mt-2 text-sm text-muted">
+            <p className="mt-2 text-body-compact text-muted">
               {filter === 'saved' && !search
                 ? '마음에 드는 스터디룸을 저장해 보세요.'
                 : '스터디룸이나 친구 이름으로 다시 검색해 보세요.'}
@@ -110,7 +110,7 @@ export default function HomePage() {
             {filter !== 'saved' && (
               <button
                 onClick={resetFilters}
-                className="mt-5 rounded-full border border-transparent bg-brand-soft px-5 py-2 text-sm text-brand-strong"
+                className="mt-5 rounded-full border border-transparent bg-primary-soft px-5 py-2 text-body-compact text-text-accent"
               >
                 모든 스터디룸 보기
               </button>

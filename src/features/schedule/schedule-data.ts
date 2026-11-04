@@ -1,4 +1,5 @@
 import type { Memory } from '../demo/types.ts'
+import { clampCalendarMonth } from '../../shared/lib/date-limits.ts'
 
 export type SchedulePeriod = 'upcoming' | 'all' | 'past'
 
@@ -30,7 +31,7 @@ export function scheduleMonthDays(
 export function shiftScheduleMonth(month: string, offset: number) {
   const date = new Date(`${month}-01T00:00:00Z`)
   date.setUTCMonth(date.getUTCMonth() + offset)
-  return date.toISOString().slice(0, 7)
+  return clampCalendarMonth(date.toISOString().slice(0, 7))
 }
 
 export function selectSchedule(

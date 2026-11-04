@@ -8,6 +8,9 @@ import { withParticle } from '@/shared/lib/korean'
 import { capsuleCardCopy, capsuleFocusCopy } from './card-copy'
 import { completionArtwork } from './completion-artwork'
 import { drawCenterHoverMaterial } from './capsule-card-material'
+import { capsuleCardLayout as layout, isLightCapsule } from './capsule-card-layout'
+import { designColors, designTypography } from '@/shared/design/tokens'
+import { loadStoryFont } from '@/shared/design/story-font'
 
 async function loadImage(src: string) {
   const image = new Image()
@@ -17,6 +20,7 @@ async function loadImage(src: string) {
 }
 
 export async function exportCard(record: StudyRecord, character: string, color: string, characterId = 'chaerin') {
+  const [, storyFont] = await Promise.all([document.fonts.load('400 16px Pretendard'), loadStoryFont()])
   await document.fonts.ready
   const art = getCharacterArtwork(characterId)
   const completion = completionArtwork[characterId]
@@ -32,8 +36,8 @@ export async function exportCard(record: StudyRecord, character: string, color: 
   canvas.height = 1200
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('이미지 저장을 지원하지 않는 브라우저예요.')
-  const light = color === '#f5f0ff' || color === '#d8c5ff'
-  const foreground = light ? '#21182c' : '#fff'
+  const light = isLightCapsule(color)
+  const foreground = light ? designColors.canvas : designColors['on-solid']
   ctx.scale(2, 2)
   function rect(x: number, y: number, w: number, h: number, radius: number, fill: string) {
     ctx!.fillStyle = fill
@@ -59,7 +63,7 @@ export async function exportCard(record: StudyRecord, character: string, color: 
     if (!mark) throw new Error('이미지 저장을 지원하지 않는 브라우저예요.')
     mark.drawImage(brand, 0, 0)
     mark.globalCompositeOperation = 'source-in'
-    mark.fillStyle = '#f7f2ff'
+    mark.fillStyle = designColors['on-solid']
     mark.fillRect(0, 0, wordmark.width, wordmark.height)
     ctx.beginPath()
     ctx.rect(28 + 108 * .27, 28, 108 * .73, 36)
@@ -68,45 +72,61 @@ export async function exportCard(record: StudyRecord, character: string, color: 
   }
   ctx.restore()
   ctx.fillStyle = foreground
-  ctx.font = '500 12px "Pretendard"'
+  ctx.font = '400 12px "Pretendard"'
   ctx.textAlign = 'right'
   ctx.fillText(dateLabel(record.endedAt), 332, 50)
   ctx.textAlign = 'left'
-  rect(28, 80, 304, 260, 18, '#251f35')
+  const portraitHeight = layout.portrait.height
+  rect(28, 80, 304, portraitHeight, 18, designColors.panel)
   ctx.save()
   ctx.beginPath()
-  ctx.roundRect(28, 80, 304, 260, 18)
+  ctx.roundRect(28, 80, 304, portraitHeight, 18)
   ctx.clip()
-  if (layers) drawRoomLayers(ctx, layers, { x: 28, y: 80, width: 304, height: 260 })
+  if (layers) drawRoomLayers(ctx, layers, { x: 28, y: 80, width: 304, height: portraitHeight })
   else if (portrait) {
-    const scale = Math.max(304 / portrait.naturalWidth, 260 / portrait.naturalHeight)
+    const scale = Math.max(304 / portrait.naturalWidth, portraitHeight / portrait.naturalHeight)
     const width = portrait.naturalWidth * scale, height = portrait.naturalHeight * scale
-    ctx.drawImage(portrait, 28 + (304 - width) / 2, 80 + (260 - height) * (completion ? 0.1 : 0.35), width, height)
+    ctx.drawImage(portrait, 28 + (304 - width) / 2, 80 + (portraitHeight - height) * (completion ? 0.1 : 0.35), width, height)
   }
   const shade = ctx.createLinearGradient(28, 80, 28 + 304 * 0.7, 80)
   shade.addColorStop(0, '#14152380')
   shade.addColorStop(1, '#14152300')
   ctx.fillStyle = shade
-  ctx.fillRect(28, 80, 304, 260)
+  ctx.fillRect(28, 80, 304, portraitHeight)
   const titleWidth = 152
   ctx.shadowColor = '#00000066'
   ctx.shadowBlur = 8
   ctx.drawImage(title, 40, 92, titleWidth, titleWidth * title.naturalHeight / title.naturalWidth)
   ctx.restore()
-  ctx.fillStyle = foreground
-  ctx.font = '500 15px "Pretendard"'
-  ctx.fillText(`${withParticle(character, '과', '와')} 함께한 공부`, 28, 374, 304)
-  ctx.font = '800 52px "Pretendard"'
-  ctx.fillText((record.observedSeconds === undefined ? duration : measuredDuration)(record.studySeconds), 28, 440, 304)
-  ctx.font = '700 16px "Pretendard"'
-  ctx.fillText(capsuleFocusCopy(record), 28, 482, 304)
-  ctx.font = '700 12px "Pretendard"'
-  rect(28, 500, ctx.measureText(capsuleCardCopy.badge).width + 24, 28, 14, '#17171c')
-  ctx.fillStyle = '#fff'
-  ctx.fillText(capsuleCardCopy.badge, 40, 519)
-  ctx.fillStyle = foreground
+  function textLine(text: string, y: number, role: 'body' | 'stat' | 'body-compact' | 'caption' | 'story-quote', family = 'Pretendard', fill: string = foreground) {
+    const type = designTypography[role]
+    ctx!.font = `${type.fontWeight} ${type.fontSizePx}px "${family}"`
+    ctx!.fillStyle = fill
+    const metrics = ctx!.measureText(text)
+    const ascent = metrics.fontBoundingBoxAscent ?? type.fontSizePx * .8
+    const descent = metrics.fontBoundingBoxDescent ?? type.fontSizePx * .2
+    ctx!.fillText(text, layout.padding, y + (type.lineHeightPx - ascent - descent) / 2 + ascent, layout.contentWidth)
+  }
+  textLine(`${withParticle(character, '과', '와')} 함께한 공부`, layout.intro.top, 'body')
+  textLine((record.observedSeconds === undefined ? duration : measuredDuration)(record.studySeconds), layout.study.top, 'stat')
+  textLine(capsuleFocusCopy(record), layout.focus.top, 'body-compact')
   ctx.font = '400 12px "Pretendard"'
-  ctx.fillText(capsuleCardCopy.quote, 28, 570)
+  rect(28, layout.badge.top, ctx.measureText(capsuleCardCopy.badge).width + 20, 26, 13, designColors.canvas)
+  ctx.save()
+  ctx.translate(10, 4)
+  textLine(capsuleCardCopy.badge, layout.badge.top, 'caption', 'Pretendard', designColors.ink)
+  ctx.restore()
+  const quoteType = designTypography['story-quote']
+  ctx.font = `${quoteType.fontWeight} ${quoteType.fontSizePx}px "${storyFont}"`
+  const lines: string[] = []
+  let line = ''
+  for (const word of capsuleCardCopy.quote.split(' ')) {
+    const next = line ? `${line} ${word}` : word
+    if (line && ctx.measureText(next).width > layout.contentWidth) { lines.push(line); line = word }
+    else line = next
+  }
+  if (line) lines.push(line)
+  lines.forEach((text, index) => textLine(text, layout.quote.top + index * designTypography['story-quote'].lineHeightPx, 'story-quote', storyFont))
   return new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('이미지를 저장하지 못했어요.')), 'image/png'))
 }
 

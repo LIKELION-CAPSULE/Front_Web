@@ -4,22 +4,22 @@ import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { dateLabel, duration } from '@/shared/lib/format'
 
 export function SessionList({ records }: { records: readonly StudyRecord[] }) {
-  if (!records.length) return <p className="text-sm text-muted">이 기간에는 공부 기록이 없어요.</p>
+  if (!records.length) return <p className="text-body-compact text-muted">이 기간에는 공부 기록이 없어요.</p>
   return (
     <div>
       {records.map((record) => (
         <Link
           key={record.id}
           to={`/reports/${record.id}`}
-          className="flex flex-wrap items-center justify-between gap-2 border-t border-divider py-3 text-sm hover:text-brand-strong"
+          className="flex flex-wrap items-center justify-between gap-2 border-t border-divider py-3 text-body-compact hover:text-text-accent"
         >
           <span>
             {dateLabel(record.endedAt)} · {getStudyRoom(record.roomId)?.name ?? '스터디룸'}
           </span>
-          <span className="font-mono text-xs">
+          <span className="font-sans tabular-nums text-caption">
             {duration(record.studySeconds)}
             {record.targetSeconds && (
-              <small className="ml-2 text-subtle">/ 목표 {duration(record.targetSeconds)}</small>
+              <small className="ml-2 type-caption text-subtle">/ 목표 {duration(record.targetSeconds)}</small>
             )}
           </span>
         </Link>

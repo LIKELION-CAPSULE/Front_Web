@@ -3,7 +3,7 @@ import test from 'node:test'
 import { FaceFocusTracker } from '../src/features/media/face-focus-tracker.ts'
 import { focusMeasuredSeconds, focusPercent, normalizeFocusTotals, recordFocusPercent } from '../src/features/session/focus.ts'
 import { createDemoState } from '../src/features/demo/seed.ts'
-import { demoReducer } from '../src/features/demo/reducer.ts'
+import { demoReducer, sessionStudySeconds } from '../src/features/demo/reducer.ts'
 import { recordSummary, getRecordRange } from '../src/features/reports/record-period.ts'
 import { companionTimeSeries } from '../src/features/reports/companion-time.ts'
 import { capsuleFocusCopy } from '../src/features/reports/card-copy.ts'
@@ -116,6 +116,31 @@ test('focus actions are idempotent, monotonic, bounded and tied to the active se
   assert.equal(clamped.activeSession!.focus!.focusedMs, 1000)
   const finished = demoReducer(state, { type: 'FINISH', now: now + 1000 })
   assert.equal(demoReducer(finished, action), finished)
+})
+
+test('face measurements continue beyond a completed goal without bridging the rest', () => {
+  let state = demoReducer(createDemoState(now), {
+    type: 'START', now, roomId: 'dawn-library', characterIds: ['chaerin'], tier: 'basic', camera: true, targetMinutes: 5,
+  })
+  const tracker = new FaceFocusTracker(state.activeSession!.id, Number.POSITIVE_INFINITY)
+  const sample = (at: number, present: boolean) => {
+    tracker.observe(at, sessionStudySeconds(state.activeSession, now + at) * 1000, present)
+  }
+  for (let at = 0; at < 300000; at += 1000) sample(at, true)
+  sample(300000, false)
+  state = demoReducer(state, { type: 'TICK', now: now + 300000 })
+  tracker.close(300000, sessionStudySeconds(state.activeSession, now + 300000) * 1000)
+  state = demoReducer(state, { type: 'CONTINUE_STUDY', now: now + 900000 })
+  sample(900000, false)
+  sample(901000, true)
+  sample(902000, true)
+  const totals = tracker.getTotals()
+  assert.deepEqual(totals, { observedMs: 302000, focusedMs: 301000, returns: 1 })
+  state = demoReducer(state, { type: 'FACE_FOCUS', sessionId: tracker.sessionId, totals, now: now + 902000 })
+  state = demoReducer(state, { type: 'FINISH', now: now + 902000 })
+  assert.equal(state.records[0]!.studySeconds, 302)
+  assert.equal(state.records[0]!.observedSeconds, 302)
+  assert.equal(state.records[0]!.focusSeconds, 301)
 })
 test('camera-free and unmeasured sessions have an unknown focus rate rather than dummy scores', () => {
   const state = demoReducer(begin(false), { type: 'FINISH', now: now + 60000 })

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createDemoState } from '../src/features/demo/seed.ts'
-import { demoReducer, sessionElapsed, tierCost } from '../src/features/demo/reducer.ts'
+import { BREAK_SECONDS, demoReducer, sessionElapsed, tierCost } from '../src/features/demo/reducer.ts'
 import { businessDay } from '../src/shared/lib/format.ts'
 
 const now = new Date('2026-10-26T20:00:00+09:00').getTime()
@@ -43,12 +43,42 @@ test('insufficient credit never creates a session or a negative balance', () => 
   assert.equal(basic.activeSession?.tier, 'basic')
 })
 
-test('pausing freezes elapsed time and resuming preserves its value', () => {
+test('taking a break starts ten minutes of rest and records only actual study time', () => {
   let state = demoReducer(createDemoState(now), start())
-  state = demoReducer(state, { type: 'PAUSE', now: now + 1000 })
-  assert.equal(sessionElapsed(state.activeSession, now + 60000), 1)
-  state = demoReducer(state, { type: 'PAUSE', now: now + 100000 })
-  assert.equal(sessionElapsed(state.activeSession, now + 102000), 3)
+  const breakAt = now + 120500
+  state = demoReducer(state, { type: 'FACE_FOCUS', sessionId: state.activeSession!.id,
+    now: breakAt, totals: { observedMs: 120000, focusedMs: 90000, returns: 1 } })
+  state = demoReducer(state, { type: 'TAKE_BREAK', now: breakAt })
+  assert.equal(state.activeSession?.phase, 'break')
+  assert.equal(state.activeSession?.studySeconds, 120.5)
+  assert.equal(sessionElapsed(state.activeSession, breakAt), 0)
+  assert.equal(sessionElapsed(state.activeSession, breakAt + 10000), 10)
+  assert.equal(demoReducer(state, { type: 'TAKE_BREAK', now: breakAt + 10000 }), state)
+  state = demoReducer(state, { type: 'TICK', now: breakAt + BREAK_SECONDS * 1000 })
+  assert.equal(state.activeSession?.phase, 'study')
+  assert.equal(sessionElapsed(state.activeSession, breakAt + BREAK_SECONDS * 1000), 120.5)
+  assert.equal(demoReducer(state, { type: 'RESUME_SESSION', now: breakAt + 700000 }), state)
+  state = demoReducer(state, { type: 'FINISH', now: breakAt + 700000 })
+  assert.equal(state.records[0]?.studySeconds, 220.5)
+  assert.equal(state.records[0]?.focusSeconds, 90)
+  assert.equal(state.records[0]?.awaySeconds, 30)
+  assert.equal(state.records[0]?.completed, false)
+  assert.equal(demoReducer(state, { type: 'TAKE_BREAK', now: breakAt + 800000 }), state)
+})
+
+test('resuming a legacy stopped session cannot pause a running session', () => {
+  let state = demoReducer(createDemoState(now), start())
+  assert.equal(demoReducer(state, { type: 'RESUME_SESSION', now: now + 1000 }), state)
+  state = { ...state, activeSession: { ...state.activeSession!, elapsedMs: 5000, runningSince: null } }
+  state = demoReducer(state, { type: 'RESUME_SESSION', now: now + 100000 })
+  assert.equal(sessionElapsed(state.activeSession, now + 102000), 7)
+})
+
+test('a late manual break caps study time at its goal without adding the delay to rest', () => {
+  let state = demoReducer(createDemoState(now), start())
+  state = demoReducer(state, { type: 'TAKE_BREAK', now: now + 3100000 })
+  assert.equal(state.activeSession?.studySeconds, 3000)
+  assert.equal(sessionElapsed(state.activeSession, now + 3100000), 0)
 })
 
 test('study automatically enters break and preserves elapsed overflow', () => {
@@ -59,8 +89,8 @@ test('study automatically enters break and preserves elapsed overflow', () => {
   assert.equal(state.activeSession?.studySeconds, 3000)
   assert.equal(sessionElapsed(state.activeSession, transition), 6)
   state = demoReducer(state, { type: 'TICK', now: transition + 700000 })
-  assert.equal(state.activeSession?.runningSince, null)
-  assert.equal(sessionElapsed(state.activeSession, transition + 800000), 600)
+  assert.equal(state.activeSession?.phase, 'study')
+  assert.equal(sessionElapsed(state.activeSession, transition + 800000), 3206)
 })
 
 test('basic chat shares the daily limit across characters and resets at 05:00 Seoul', () => {
@@ -93,9 +123,9 @@ test('basic chat shares the daily limit across characters and resets at 05:00 Se
 
 test('finishing records the session once without inventing focus measurements', () => {
   let state = demoReducer(createDemoState(now), start())
-  state = demoReducer(state, { type: 'SKIP_TO_BREAK', now: now + 1 })
+  state = demoReducer(state, { type: 'TICK', now: now + 3000000 })
   const count = state.records.length
-  state = demoReducer(state, { type: 'FINISH', now: now + 2 })
+  state = demoReducer(state, { type: 'FINISH', now: now + 3010000 })
   assert.equal(state.records.length, count + 1)
   const record = state.records[0]!
   assert.equal(record.studySeconds, 3000)
@@ -103,7 +133,7 @@ test('finishing records the session once without inventing focus measurements', 
   assert.equal(record.focusSeconds + record.awaySeconds, 0)
   assert.equal(record.returns, 0)
   assert.equal(state.activeSession, null)
-  assert.equal(demoReducer(state, { type: 'FINISH', now: now + 3 }), state)
+  assert.equal(demoReducer(state, { type: 'FINISH', now: now + 3010001 }), state)
 })
 
 test('credit charging includes the selected bonus and records the running balance', () => {

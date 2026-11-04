@@ -4,6 +4,7 @@ import type { RecordRange } from '@/features/reports/record-period'
 import { studyHeatmap } from '../heatmap-data'
 import { StudyHeatmap } from './StudyHeatmap'
 import { Icon } from '@/shared/ui/Icon'
+import { MIN_CALENDAR_DATE } from '@/shared/lib/date-limits'
 
 export function ActivityHeatmap({
   records,
@@ -28,7 +29,7 @@ export function ActivityHeatmap({
   return (
     <div className="activity-calendar" aria-labelledby={heading} data-period={period}>
       <div className="activity-calendar-heading">
-        <h2 id={heading} className="text-card-title-compact font-semibold">
+        <h2 id={heading} className="type-card-title">
           집중이 쌓이는 달력
         </h2>
         <div className="activity-calendar-tools">
@@ -45,6 +46,7 @@ export function ActivityHeatmap({
                 <button
                   type="button"
                   aria-label={period === 'week' ? '이전 주' : '이전 달'}
+                  disabled={range.startDay <= MIN_CALENDAR_DATE}
                   onClick={() => onShiftPeriod(-1)}
                 >
                   <Icon name="chevron" size={17} className="rotate-180" />

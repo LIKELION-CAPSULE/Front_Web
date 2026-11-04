@@ -23,7 +23,7 @@ export function StudyHistoryPanel({
         <FocusSummary value={summary.focusRate} label={range.label} />
       </div>
       <div className="records-recent-sessions">
-        <h2 className="mb-4 text-card-title-compact font-semibold">최근 공부 기록</h2>
+        <h2 className="mb-4 type-card-title">최근 공부 기록</h2>
         <SessionList records={records.slice(0, 5)} />
       </div>
     </Panel>

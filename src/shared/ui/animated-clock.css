@@ -1,7 +1,7 @@
 @layer components {
-  .animated-clock, .animated-clock > span { display: inline-flex; vertical-align: bottom; }
-  .clock-digit { position: relative; display: inline-block; width: 1ch; height: 1.35em; overflow: hidden; line-height: 1.35; }
+  .animated-clock, .animated-clock > span { display: inline-flex; vertical-align: bottom; font-variant-numeric: tabular-nums lining-nums; }
+  .clock-digit { position: relative; display: inline-block; width: 1ch; height: 1lh; overflow: hidden; line-height: inherit; }
   .clock-digit > span { display: block; }
   .clock-digit-outgoing { position: absolute; inset: 0; pointer-events: none; }
-  .clock-separator { line-height: 1.35; }
+  .clock-separator { line-height: inherit; }
 }

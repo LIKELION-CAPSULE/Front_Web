@@ -8,6 +8,7 @@ import { number } from '@/shared/lib/format'
 import { Button } from '@/shared/ui/Button'
 import { RadioOption } from '@/shared/ui/RadioOption'
 import { Dialog } from '@/shared/ui/Dialog'
+import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 
 export function UpgradePanel({ onClose, now }: { onClose: () => void; now: number }) {
   const { state, dispatch } = useDemo()
@@ -34,25 +35,25 @@ export function UpgradePanel({ onClose, now }: { onClose: () => void; now: numbe
             onChange={() => setSelection(tier.id)}
           >
             <span className="flex items-center justify-between gap-2">
-              <span>
-                <strong className="block text-sm">{tier.name}</strong>
-                <span className="block text-[10px] leading-4 text-muted">{tier.summary}</span>
+              <span className="min-w-0">
+                <strong className="block type-card-title">{tier.name}</strong>
+                <span className="block break-keep type-body-compact text-muted">{tier.summary}</span>
               </span>
-              <strong className="font-mono text-sm">
+              <strong className="shrink-0 type-card-title tabular-nums">
                 {number(Math.max(0, tierCost(state, tier.id, now) - active.paidCredits))}
               </strong>
             </span>
           </RadioOption>
         ))}
       </div>
-      <p className="mt-3 flex justify-between text-xs text-muted">
+      <p className="mt-3 flex justify-between text-caption text-muted">
         <span>보유 크레딧</span>
         <strong>{number(state.credits)}</strong>
       </p>
       {state.credits < cost ? (
-        <p role="alert" className="mt-3 text-center text-xs text-brand-strong">
+        <FeedbackMessage tone="warning" align="center" className="mt-3">
           크레딧이 부족해요. 충전 후 돌아와 주세요.
-        </p>
+        </FeedbackMessage>
       ) : null}
       <Button
         size="md"
@@ -65,10 +66,10 @@ export function UpgradePanel({ onClose, now }: { onClose: () => void; now: numbe
       >
         차액 {number(cost)} 크레딧으로 올리기
       </Button>
-      <div className="mt-3 flex justify-center text-xs">
+      <div className="mt-3 flex justify-center text-caption">
         <Link
           to={`/credits/charge?returnTo=${encodeURIComponent(`/study/${active.id}`)}`}
-          className="text-brand-strong underline"
+          className="text-text-accent underline"
         >
           크레딧 · 패스 보기
         </Link>

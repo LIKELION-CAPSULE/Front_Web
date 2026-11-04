@@ -1,3 +1,4 @@
+import { FloatingSurface } from '@/shared/ui/FloatingSurface'
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { CharacterAvatar } from '@/features/characters/components/CharacterAvatar'
 import { duration } from '@/shared/lib/format'
@@ -210,7 +211,7 @@ export function CompanionTimeChart({
             )}
           </svg>
           {current !== null && (
-            <div
+            <FloatingSurface
               role="tooltip"
               aria-live="polite"
               className="companion-chart-tooltip"
@@ -232,7 +233,7 @@ export function CompanionTimeChart({
                   <b>{duration(item.points[current]?.cumulativeSeconds ?? 0)}</b>
                 </p>
               ))}
-            </div>
+            </FloatingSurface>
           )}
         </div>
       ) : (

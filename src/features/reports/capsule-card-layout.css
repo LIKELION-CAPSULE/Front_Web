@@ -1,0 +1,25 @@
+@layer components {
+  /* Fixed artboard: the preview scales as a whole, retaining PNG typography. */
+  .capsule-card-stage > .capsule-share-card {
+    position: relative;
+    display: block;
+    width: 360px;
+    height: 600px;
+    min-height: 600px;
+    padding: 28px;
+    color: var(--color-on-solid);
+    font-family: var(--font-sans);
+  }
+  .capsule-card-stage .capsule-share-card.share-light { color: var(--color-canvas); }
+  .capsule-card-stage .capsule-card-header { position: absolute; top: 28px; left: 28px; width: 304px; height: 36px; }
+  .capsule-card-stage .share-portrait { position: absolute; top: 80px; left: 28px; width: 304px; height: var(--card-portrait-height); margin: 0; }
+  .capsule-card-stage .capsule-card-intro,
+  .capsule-card-stage .capsule-study-amount,
+  .capsule-card-stage .capsule-card-focus,
+  .capsule-card-stage .capsule-card-quote { position: absolute; left: 28px; width: 304px; margin: 0; }
+  .capsule-card-stage .capsule-card-intro { top: var(--card-intro-top); }
+  .capsule-card-stage .capsule-study-amount { top: var(--card-study-top); font-size: var(--text-stat); line-height: var(--text-stat--line-height); font-weight: 700; font-variant-numeric: tabular-nums lining-nums; }
+  .capsule-card-stage .capsule-card-focus { top: var(--card-focus-top); font-weight: 400; }
+  .capsule-card-stage .capsule-card-badge { position: absolute; top: var(--card-badge-top); left: 28px; margin: 0; background: var(--color-canvas); color: var(--color-ink); font-size: var(--text-caption); line-height: var(--text-caption--line-height); font-weight: 400; }
+  .capsule-card-stage .capsule-card-quote { top: var(--card-quote-top); font-size: var(--card-quote-size); line-height: var(--card-quote-line); font-weight: 500; letter-spacing: 0; }
+}

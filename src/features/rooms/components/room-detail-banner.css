@@ -20,7 +20,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, #0c10175e, #0c10171a 42%, transparent 58%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-canvas) 36.86%, transparent), color-mix(in srgb, var(--color-canvas) 10.20%, transparent) 42%, transparent 58%);
 }
 @media (max-width: 1023px) {
   .room-detail-hero--illustrated {
@@ -43,7 +43,7 @@
     object-position: right center;
   }
   .room-detail-hero--illustrated .room-detail-backdrop::after {
-    background: linear-gradient(0deg, #171724, transparent 28%);
+    background: linear-gradient(0deg, var(--color-panel), transparent 28%);
   }
   .room-detail-hero--illustrated .room-detail-copy {
     order: 1;

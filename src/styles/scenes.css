@@ -98,8 +98,8 @@
     display: none;
   }
   .room-card:has(a:focus-visible) {
-    border-color: var(--color-brand);
-    box-shadow: 0 0 0 3px #a381ff25;
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 4px;
   }
   .room-card a:focus-visible {
     outline: none;

@@ -1,5 +1,11 @@
-import { twMerge } from 'tailwind-merge'
+import { extendTailwindMerge } from 'tailwind-merge'
+import { designTypography } from '../design/tokens.ts'
+
+// Custom text-* sizes must stay independent from text colors when merging.
+const mergeClasses = extendTailwindMerge({
+  extend: { theme: { text: Object.keys(designTypography) } },
+})
 
 export function cn(...classes: (string | false | null | undefined)[]) {
-  return twMerge(classes.filter(Boolean).join(' '))
+  return mergeClasses(classes.filter(Boolean).join(' '))
 }

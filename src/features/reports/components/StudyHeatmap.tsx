@@ -1,3 +1,4 @@
+import { FloatingSurface } from '@/shared/ui/FloatingSurface'
 import { useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { duration } from '@/shared/lib/format'
 import type { studyHeatmap } from '../heatmap-data'
@@ -161,7 +162,7 @@ export function StudyHeatmap({
         <span>많이</span>
       </div>
       {hover && hovered && (
-        <div
+        <FloatingSurface
           id={tooltipId}
           role="tooltip"
           className="heatmap-tooltip"
@@ -169,7 +170,7 @@ export function StudyHeatmap({
         >
           <span>{hovered.day.replaceAll('-', '.')}</span>
           <strong>{duration(hovered.seconds)}</strong>
-        </div>
+        </FloatingSurface>
       )}
     </div>
   )

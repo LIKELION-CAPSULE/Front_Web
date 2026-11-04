@@ -13,5 +13,6 @@ test('wheel dates clamp the selected day to the new month and leap year', () => 
 test('appointment wheel dates respect the minimum date without rejecting valid past schedules', () => {
   assert.equal(wheelDate(2026, 9, 20, '2026-10-28'), '2026-10-28')
   assert.equal(wheelDate(2026, 10, 29, '2026-10-28'), '2026-10-29')
-  assert.equal(wheelDate(2025, 12, 31), '2025-12-31')
+  assert.equal(wheelDate(2025, 12, 31), '2026-01-01')
+  assert.equal(wheelDate(2024, 2, 29, '2025-01-01'), '2026-01-01')
 })

@@ -92,15 +92,15 @@ export default function RecordsPage() {
                     aria-pressed={room.id === item.id}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-[16px] p-3 text-left',
-                      item.id === room.id ? 'bg-brand-soft' : 'hover:bg-panel',
+                      item.id === room.id ? 'bg-primary-soft' : 'hover:bg-panel',
                     )}
                   >
-                    <span className="size-16 shrink-0 overflow-hidden rounded-control bg-placeholder">
+                    <span className="size-16 shrink-0 overflow-hidden rounded-control bg-surface">
                       <RoomArtwork roomId={item.id} variant="thumb" />
                     </span>
                     <span className="min-w-0">
-                      <strong className="block text-sm">{item.name}</strong>
-                      <span className="mt-1 block text-xs text-subtle">
+                      <strong className="block text-body-compact">{item.name}</strong>
+                      <span className="mt-1 block text-caption text-subtle">
                         {duration(recordSeconds(sessions))} · {sessions.length}회
                       </span>
                     </span>
@@ -110,7 +110,7 @@ export default function RecordsPage() {
             </div>
           </aside>
           <div className="records-surface min-w-0 space-y-content">
-            <label className="block text-sm text-muted lg:hidden">
+            <label className="block text-body-compact text-muted lg:hidden">
               스터디룸
               <select
                 aria-label="스터디룸 선택"
@@ -125,7 +125,7 @@ export default function RecordsPage() {
                 ))}
               </select>
             </label>
-            <h2 className="text-xl font-semibold tracking-tight">{room.name}</h2>
+            <h2 className="type-section-title">{room.name}</h2>
             {content}
           </div>
         </div>

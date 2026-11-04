@@ -12,8 +12,8 @@ export function PageHeading({
   return (
     <div className="page-heading mb-8">
       {eyebrow && <p className="eyebrow mb-3">{eyebrow}</p>}
-      <h1 className="text-page-title font-bold tracking-tight">{title}</h1>
-      {children && <p className="mt-2 text-sm leading-6 text-muted">{children}</p>}
+      <h1 className="type-page-title">{title}</h1>
+      {children && <p className="mt-2 text-body-compact leading-6 text-muted">{children}</p>}
     </div>
   )
 }

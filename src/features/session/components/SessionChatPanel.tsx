@@ -7,8 +7,10 @@ import { tierById } from '@/features/demo/catalog'
 import { number } from '@/shared/lib/format'
 import { withParticle } from '@/shared/lib/korean'
 import { Icon } from '@/shared/ui/Icon'
+import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Tabs } from '@/shared/ui/Tabs'
 import type { ChatReplyMode } from '../llm-chat'
+import { studyGoalSeconds } from '../study-goal'
 import { ChatComposer } from './ChatComposer'
 import { UpgradePanel } from './UpgradePanel'
 import { TypingMessage } from './TypingMessage'
@@ -22,13 +24,14 @@ const subscribe = (notify: () => void) => {
 }
 const messageTime = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false })
 
-export function SessionChatPanel({ open, onClose, characters, selected, onSelect, onSend, replyMode, onReplyModeChange, replyPending, replyError, used, now }: {
+export function SessionChatPanel({ open, onClose, characters, selected, onSelect, onSend, onTypingChange, replyMode, onReplyModeChange, replyPending, replyError, used, now }: {
   open: boolean
   onClose: () => void
   characters: readonly Character[]
   selected: Character
   onSelect: (id: string) => void
   onSend: (text: string, voice?: boolean) => void
+  onTypingChange: (characterId: string, messageId: string, typing: boolean) => void
   replyMode: ChatReplyMode
   onReplyModeChange: (mode: ChatReplyMode) => void
   replyPending: boolean
@@ -52,6 +55,9 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
   const titleId = useId()
   const messages = state.messages.filter(message => message.sessionId === active.id && message.characterId === selected.id)
   const exhausted = active.tier === 'basic' && used >= 3
+  const reportTyping = useCallback((messageId: string, typing: boolean) => {
+    onTypingChange(selected.id, messageId, typing)
+  }, [selected.id, onTypingChange])
   const scrollLatest = useCallback(() => {
     if (follow.current && list.current) list.current.scrollTop = list.current.scrollHeight
   }, [])
@@ -128,7 +134,9 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
           >
             <article className="chat-message" data-sender="character">
               <div className="chat-message-meta"><img src={getCharacterArtwork(selected.id).affection} alt="" /><span>{selected.name}</span></div>
-              <p className="chat-message-bubble"><TypingMessage key={introId} id={introId} text={active.phase === 'break' ? '목표까지 잘 왔네. 잠깐 쉬었다 가자.' : '응, 무슨 일이야?'} seen={seen} onProgress={scrollLatest} /></p>
+              <p className="chat-message-bubble"><TypingMessage key={introId} id={introId} text={active.phase === 'break'
+                ? active.studySeconds >= studyGoalSeconds(active) ? '목표까지 잘 왔네. 잠깐 쉬었다 가자.' : '잠깐 쉬었다 가자. 쉬는 동안 얘기할래?'
+                : '응, 무슨 일이야?'} seen={seen} onProgress={scrollLatest} onTypingChange={reportTyping} /></p>
             </article>
             {messages.map(message => (
               <article key={message.id} className="chat-message" data-sender={message.sender}>
@@ -136,7 +144,7 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
                 <p className="chat-message-bubble">
                   {message.voice && <span className="chat-message-voice"><Icon name="microphone" size={14} />음성 메시지 체험 · 0:04</span>}
                   {message.sender === 'character'
-                    ? <TypingMessage id={message.id} text={message.text} seen={seen} onProgress={scrollLatest} />
+                    ? <TypingMessage id={message.id} text={message.text} seen={seen} onProgress={scrollLatest} onTypingChange={reportTyping} />
                     : message.text}
                 </p>
                 {message.sender === 'user' && <div className="chat-message-delivery"><Icon name="check" size={12} />보냄{message.createdAt && <time dateTime={new Date(message.createdAt).toISOString()}>{messageTime.format(message.createdAt)}</time>}</div>}
@@ -148,7 +156,7 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
                 <p className="chat-message-bubble chat-message-pending">입력 중…</p>
               </article>
             )}
-            {replyError && <p role="alert" className="session-chat-error">llm 답장 실패: {replyError}</p>}
+            {replyError && <FeedbackMessage tone="error" className="mt-3">답장을 받지 못했어요. {replyError}</FeedbackMessage>}
           </div>
           <footer className="session-chat-footer">
             {exhausted ? <button type="button" className="session-chat-limit" onPointerDown={event => event.preventDefault()} onClick={() => setUpgradeOpen(true)}>무료 대화를 모두 사용했어요 · 옵션 올리기</button> : <div className="session-chat-suggestions" aria-label="빠른 메시지">{['파이팅', '졸려', '이거 어려워'].map(text => <button key={text} type="button" onPointerDown={event => event.preventDefault()} onClick={() => send(text)}>{text}</button>)}</div>}

@@ -3,7 +3,9 @@ import type { CSSProperties, ReactNode } from 'react'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { cn } from '@/shared/lib/cn'
 import { capsuleFoil, capsuleFoilGradient } from '../capsule-card-material'
+import { capsuleCardLayout as layout } from '../capsule-card-layout'
 import '../capsule-card-effects.css'
+import '../capsule-card-layout.css'
 
 function paintSurface(node: HTMLElement, x: number, y: number, active: 'pointer' | 'keyboard' | '') {
   const tilt = window.innerWidth < 700 ? 0.5 : 1
@@ -21,6 +23,20 @@ export function CapsuleCardSurface({ children, color, light }: { children: React
   const frame = useRef(0)
   const pointer = useRef<{ x: number; y: number } | null>(null)
   const reduced = useReducedMotion()
+  useLayoutEffect(() => {
+    const stage = ref.current
+    const card = stage?.querySelector<HTMLElement>('.capsule-share-card')
+    if (!stage || !card) return
+    const resize = () => {
+      const scale = Math.min(1, stage.clientWidth / layout.width)
+      card.style.zoom = String(scale)
+      stage.style.height = `${layout.height * scale}px`
+    }
+    const observer = new ResizeObserver(resize)
+    observer.observe(stage)
+    resize()
+    return () => observer.disconnect()
+  }, [])
   useLayoutEffect(() => {
     if (reduced && ref.current) {
       cancelAnimationFrame(frame.current)
@@ -44,6 +60,14 @@ export function CapsuleCardSurface({ children, color, light }: { children: React
       ref={ref}
       className={cn('capsule-card-stage', light && 'is-light')}
       style={{
+        '--card-portrait-height': `${layout.portrait.height}px`,
+        '--card-intro-top': `${layout.intro.top}px`,
+        '--card-study-top': `${layout.study.top}px`,
+        '--card-focus-top': `${layout.focus.top}px`,
+        '--card-badge-top': `${layout.badge.top}px`,
+        '--card-quote-top': `${layout.quote.top}px`,
+        '--card-quote-size': `${layout.quote.fontSize}px`,
+        '--card-quote-line': `${layout.quote.lineHeight}px`,
         '--capsule-foil-gradient': capsuleFoilGradient,
         '--capsule-foil-hover-opacity': light ? capsuleFoil.lightOpacity : capsuleFoil.darkOpacity,
         '--capsule-glitter-hover-opacity': capsuleFoil.glitterOpacity,

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { dayKey } from '@/shared/lib/format'
 import { daysInMonth, wheelDate } from '@/shared/lib/wheel-date'
+import { clampCalendarDate, MIN_CALENDAR_DATE } from '@/shared/lib/date-limits'
 import { WheelColumn } from './WheelColumn'
 import { WheelField } from './WheelField'
 
@@ -29,21 +30,23 @@ export function DateTimeWheelField({
 }) {
   const [currentYear] = useState(() => Number(dayKey().slice(0, 4)))
   const isDate = mode === 'date'
-  const [year = currentYear, month = 1, day = 1] = value.split('-').map(Number)
+  const minimumDate = clampCalendarDate(min ?? MIN_CALENDAR_DATE)
+  const dateValue = isDate ? clampCalendarDate(value, minimumDate) : value
+  const [year = currentYear, month = 1, day = 1] = dateValue.split('-').map(Number)
   const [hour = 0, minute = 0] = value.split(':').map(Number)
-  const minimumYear = min ? Number(min.slice(0, 4)) : Math.min(currentYear - 10, Number(value.slice(0, 4)))
-  const maximumYear = Math.max(currentYear + 10, Number(value.slice(0, 4)))
+  const minimumYear = Number(minimumDate.slice(0, 4))
+  const maximumYear = Math.max(currentYear + 10, isDate ? year : currentYear)
   const years = useMemo(() => isDate ? numbers(minimumYear, maximumYear, '년') : [], [isDate, minimumYear, maximumYear])
-  const minimumMonth = min && year === Number(min.slice(0, 4)) ? Number(min.slice(5, 7)) : 1
-  const minimumDay = min && value.slice(0, 7) === min.slice(0, 7) ? Number(min.slice(8)) : 1
-  const formatted = isDate ? value.replaceAll('-', '.') : value
+  const minimumMonth = year === minimumYear ? Number(minimumDate.slice(5, 7)) : 1
+  const minimumDay = dateValue.slice(0, 7) === minimumDate.slice(0, 7) ? Number(minimumDate.slice(8)) : 1
+  const formatted = isDate ? dateValue.replaceAll('-', '.') : value
   return (
     <WheelField label={label} displayValue={formatted} icon={isDate ? 'calendar' : 'clock'} open={open} onOpenChange={onOpenChange}>
       {isDate ? (
         <>
-          <WheelColumn label="연도" options={years} value={String(year)} onChange={(next) => onChange(wheelDate(Number(next), month, day, min))} />
-          <WheelColumn label="월" options={numbers(minimumMonth, 12, '월')} value={String(month)} onChange={(next) => onChange(wheelDate(year, Number(next), day, min))} />
-          <WheelColumn label="일" options={numbers(minimumDay, daysInMonth(year, month), '일')} value={String(day)} onChange={(next) => onChange(wheelDate(year, month, Number(next), min))} />
+          <WheelColumn label="연도" options={years} value={String(year)} onChange={(next) => onChange(wheelDate(Number(next), month, day, minimumDate))} />
+          <WheelColumn label="월" options={numbers(minimumMonth, 12, '월')} value={String(month)} onChange={(next) => onChange(wheelDate(year, Number(next), day, minimumDate))} />
+          <WheelColumn label="일" options={numbers(minimumDay, daysInMonth(year, month), '일')} value={String(day)} onChange={(next) => onChange(wheelDate(year, month, Number(next), minimumDate))} />
         </>
       ) : (
         <>
