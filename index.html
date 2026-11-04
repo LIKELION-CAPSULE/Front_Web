@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Register layers before Vite's shared CSS chunks, which can load before index.css. -->
+    <style>@layer properties, theme, base, components, utilities;</style>
     <link rel="icon" href="/favicon.svg" />
     <meta name="theme-color" content="#0c1017" />
     <meta name="description" content="AI 친구와 함께 공부하며 집중을 쌓아 가는 스터디 공간 CAPSULE" />
