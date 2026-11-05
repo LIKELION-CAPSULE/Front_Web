@@ -16,6 +16,7 @@ import './hover-scratch/scratch.css'
 import '@/pages/onboarding.css'
 import '@/features/profile/components/avatar-dial.css'
 import '@/features/reports/report-completion.css'
+import '@/features/rooms/components/room-detail-banner.css'
 import '@/features/session/study-grid.css'
 import '@/features/session/session-chat.css'
 import './page-skeleton.css'
@@ -111,12 +112,21 @@ function OnboardingSkeleton() {
 function RoomSkeleton() {
   return <div className="min-h-dvh bg-canvas">
     <SiteHeader navigation={<div className="detail-breadcrumb"><Line className="h-5 w-40" /></div>} account={<AccountSkeleton />} />
-    <main id="main-content" className="page-container py-8 sm:py-10">
-      <section className="room-detail-hero room-detail-hero--illustrated">
+    <main id="main-content" className="room-detail-page">
+      <section className="room-detail-hero">
         <div className="room-detail-backdrop skeleton-line" />
-        <div className="room-detail-copy w-full"><Line className="h-14 w-4/5" /><Line className="mt-4 w-full" /><Line className="mt-2 w-3/4" /><Line className="mt-6 h-12 w-48 max-w-full" /></div>
+        <div className="page-container room-detail-hero-content">
+          <div className="room-detail-heading"><Line className="h-14 w-full" /><Line className="mt-3 h-14 w-3/4" /></div>
+          <div className="room-detail-hero-footer"><Line className="h-12 w-[216px] max-w-full room-detail-start" /><Line className="h-12 w-28 room-detail-save" /></div>
+        </div>
       </section>
-      <section className="mt-10"><Line className="mb-5 h-7 w-48" /><div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map(index => <Line key={index} className="h-72 rounded-card" />)}</div></section>
+      <div className="page-container room-detail-content">
+        <aside className="room-detail-sidebar"><div className="room-detail-poster skeleton-line" /></aside>
+        <div className="room-detail-main">
+          <section className="room-detail-introduction"><Line className="mb-4 h-[18px] w-16" /><Line className="h-7 w-4/5" /></section>
+          <section className="room-detail-friends"><Line className="mb-5 h-7 w-48" /><div className="room-detail-characters">{[0, 1, 2].map(index => <Line key={index} className="h-48 rounded-control" />)}</div></section>
+        </div>
+      </div>
     </main>
   </div>
 }

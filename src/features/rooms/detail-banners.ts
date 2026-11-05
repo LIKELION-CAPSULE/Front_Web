@@ -8,13 +8,13 @@ import jurassic from '@/assets/room-detail-banners/jurassic-detail-banner-v1.web
 import lab from '@/assets/room-detail-banners/lab-detail-banner-v1.webp'
 import joseon from '@/assets/room-detail-banners/joseon-detail-banner-v1.webp'
 
-const banner = (src: string, width = 2172, height = 724) => ({ src, width, height })
+const banner = (src: string, width = 2172, height = 724, mobilePosition = '68% top') => ({ src, width, height, mobilePosition })
 
 /** Complete illustrations for detail pages; room cards keep their independent scene layers. */
 export const roomDetailBanners: Record<string, ReturnType<typeof banner>> = {
   'dawn-library': banner(classroom),
-  'room-2': banner(night, 2167, 726),
-  'room-3': banner(cat),
+  'room-2': banner(night, 2167, 726, '73% top'),
+  'room-3': banner(cat, 2172, 724, '86% top'),
   lantern: banner(lantern),
   fantasy: banner(fantasy),
   iljin: banner(iljin),
