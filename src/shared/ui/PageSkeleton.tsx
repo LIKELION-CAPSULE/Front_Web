@@ -133,7 +133,15 @@ function RoomSkeleton() {
 
 function PrepareSkeleton() {
   return <OverlayPage backTo="/" className="sm:py-9" headerClassName="mb-0" headerAside={<Line className="h-12 w-36" />}>
-    <Line className="h-10 w-2/3" /><Line className="mt-5 h-20" /><Line className="mt-5 h-7 w-32" /><Line className="mt-3 h-28" /><Line className="mt-5 h-48" /><Line className="mt-5 h-12" />
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"><Line className="h-10 w-60 max-w-full" /><Line className="ml-auto h-4 w-52 max-w-full" /></div>
+    <div className="mt-5 rounded-card bg-panel p-5">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col items-center gap-2 sm:col-start-2"><Line className="h-5 w-28 max-w-full" /><Line className="h-10 w-16 max-w-full" /></div>
+        <Line className="col-start-2 row-start-1 h-10 w-28 justify-self-end sm:col-start-3" />
+      </div>
+      <Line className="mt-5 h-11" />
+    </div>
+    <Line className="mt-6 h-7 w-32" /><Line className="mt-3 h-52" /><Line className="mt-5 h-12" />
   </OverlayPage>
 }
 
@@ -142,7 +150,7 @@ function StudySkeleton() {
     <header className="study-topbar">
       <a><Brand /></a><div className="study-room-heading"><Line className="w-40 max-w-full" /></div><div className="study-header-actions"><Line className="size-9" /></div><div className="study-session-stats"><Line className="h-8 w-48 max-w-full" /></div>
     </header>
-    <div className="study-workspace"><div className="study-stage"><div className="study-grid is-one-to-one"><div className="character-tile skeleton-line" /><div className="self-tile skeleton-line" /></div></div></div>
+    <div className="study-workspace"><div className="study-stage"><div className="study-grid is-one-to-one is-focus" style={{ '--study-thumbnail-count': 1 } as CSSProperties}><div className="character-tile focus-tile skeleton-line" /><div className="self-tile skeleton-line" /></div></div></div>
   </main>
 }
 

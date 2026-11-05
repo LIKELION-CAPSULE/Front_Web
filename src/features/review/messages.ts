@@ -28,6 +28,12 @@ export function messagePreview(entry: ReviewMessageEntry): { id: string; exact: 
   if (entry.file.includes('ProfileEditor')) return { id: entry.statusTone === 'error' ? 'account-profile-error' : 'account-profile', exact: false }
   if (entry.file.includes('/schedule/')) return { id: entry.statusTone === 'empty' ? 'account-schedule-empty' : entry.statusTone === 'error' ? 'account-schedule-add-error' : 'account-schedule-add', exact: false }
   if (entry.file.includes('/media/')) return { id: 'camera-error', exact: false }
+  if (entry.file.includes('StudyNotifications')) return {
+    id: entry.text.includes('자리 지킴') ? 'study-presence-warning'
+      : entry.text.includes('카메라') ? 'camera-error'
+        : entry.text.includes('마이크') ? 'microphone-error' : 'study-sync-error',
+    exact: false,
+  }
   if (entry.file.includes('StudyPage')) return { id: 'study-finish-error', exact: false }
   if (entry.file.includes('HomePage')) {
     const states: Record<string, string> = {
@@ -70,6 +76,7 @@ export const reviewMessageScenarios: { id: string; tone: ReviewMessageTone }[] =
   { id: 'account-password-requested', tone: 'success' }, { id: 'account-password-error', tone: 'error' }, { id: 'account-password-pending', tone: 'loading' },
   { id: 'study-recover', tone: 'info' }, { id: 'study-message-error', tone: 'error' }, { id: 'study-finish', tone: 'warning' },
   { id: 'study-finish-error', tone: 'error' }, { id: 'study-unknown', tone: 'warning' }, { id: 'study-none', tone: 'empty' },
+  { id: 'study-presence-warning', tone: 'warning' }, { id: 'study-sync-error', tone: 'error' },
   { id: 'camera-error', tone: 'error' }, { id: 'microphone-error', tone: 'error' }, { id: 'report-error', tone: 'error' },
   { id: 'withdraw', tone: 'warning' }, { id: 'withdraw-conflict', tone: 'error' }, { id: 'withdraw-error', tone: 'error' },
   { id: 'withdraw-pending', tone: 'loading' }, { id: 'withdraw-done', tone: 'success' }, { id: 'not-found', tone: 'warning' },

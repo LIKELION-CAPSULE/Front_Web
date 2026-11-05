@@ -1,12 +1,20 @@
 import chaerin from '@/assets/welcome-banners/chaerin-banner-v1.webp'
 import sua from '@/assets/welcome-banners/sua-banner-v1.webp'
 import dahee from '@/assets/welcome-banners/dahee-banner-v1.webp'
+import malfoy from '@/assets/characters/malfoy-ts-v1/web/malfoy-ts-welcome-banner-v1.webp'
 import type { ScratchSlide } from '@/shared/ui/hover-scratch/HoverScratchCarousel'
 
 export type WelcomeBanner = ScratchSlide & { name: string; quote: string }
 
 /** Text is authored in HTML, independent of the generated illustration. */
 export const welcomeBanners: readonly WelcomeBanner[] = [
+  {
+    id: 'malfoy-ts',
+    name: '말포이 TS',
+    src: malfoy,
+    label: '호그와트 도서관에서 함께 공부하는 말포이 TS',
+    quote: '책 펴. 오늘도 같이 공부할 거잖아.',
+  },
   {
     id: 'chaerin',
     name: '채린',

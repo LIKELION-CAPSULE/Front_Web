@@ -20,9 +20,14 @@ export default function HomePage() {
   const [refreshError, setRefreshError] = useState('')
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   useEffect(() => {
-    if (location.state?.notice !== 'page-not-found') return
+    const content = location.state?.notice === 'page-not-found'
+      ? { title: '페이지를 찾을 수 없어요', text: '홈으로 이동했어요. 주소를 다시 확인해 주세요.' }
+      : location.state?.notice === 'study-not-found'
+        ? { title: '진행 중인 공부가 없어요', text: '홈으로 이동했어요. 스터디룸을 골라 새로운 공부를 시작해 주세요.' }
+        : null
+    if (!content) return
     const frame = requestAnimationFrame(() => {
-      const notice: NotificationItem = { id: crypto.randomUUID(), tone: 'warning', title: '페이지를 찾을 수 없어요', text: '홈으로 이동했어요. 주소를 다시 확인해 주세요.' }
+      const notice: NotificationItem = { id: crypto.randomUUID(), tone: 'warning', ...content }
       setNotifications(current => enqueueNotification(current, notice))
       navigate({ pathname: location.pathname, search: location.search, hash: location.hash }, { replace: true, state: null, preventScrollReset: true })
     })

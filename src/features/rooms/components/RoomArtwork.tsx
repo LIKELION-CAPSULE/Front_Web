@@ -77,7 +77,7 @@ export function RoomArtwork({
       <div className="scene-shade" />
       {showTitle && (
         <div className="scene-title">
-          <RoomTitle roomId={roomId} eager={eager} />
+          <RoomTitle roomId={roomId} artwork={art} eager={eager} />
         </div>
       )}
       {children}

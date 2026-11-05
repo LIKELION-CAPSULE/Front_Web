@@ -7,7 +7,7 @@ export function SessionFocus({ rate }: { rate: number | null }) {
       aria-live="off"
       className="study-focus-status"
       data-focus-level={level}
-      title={rate === null ? '아직 공부한 시간이 없어요.' : '자리 지킴 시간 / 공부 시간 (카메라를 끈 동안은 자리 지킴으로 계산)' }
+      title={rate === null ? '카메라로 측정한 시간이 없어요.' : '얼굴이 감지된 시간 / 측정한 시간'}
     >
       <span>자리 지킴률</span>
       <strong>{rate === null ? '—' : `${rate}%`}</strong>

@@ -87,7 +87,7 @@ export class Live2DStage {
     this.layout = layout
     this.load(baseUrl).catch((error: unknown) => {
       if (this.destroyed) return
-      console.warn('Live2D 모델을 불러오지 못해 기본 이미지로 보여요.', error)
+      console.warn('Live2D 모델을 불러오지 못했어요.', error)
       this.teardown()
       this.setStatus('error')
     })
@@ -107,6 +107,7 @@ export class Live2DStage {
 
   private async load(baseUrl: string) {
     const { pixi, engine } = await loadEngine(baseUrl)
+    if (this.destroyed) return
     const response = await fetch(this.modelJsonUrl, { credentials: 'omit' })
     if (!response.ok) throw new Error(`model3.json ${response.status}`)
     const settings = await response.json() as ModelSettings
@@ -184,6 +185,7 @@ export class Live2DStage {
     this.observer.observe(host)
     app.ticker.start()
     this.place()
+    app.render()
   }
 
   private place() {

@@ -1,3 +1,4 @@
+import { useLocation } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
 import { CompanionGreeting } from '@/features/characters/components/CompanionGreeting'
@@ -9,6 +10,7 @@ import { welcomeCopy } from '../welcome-copy'
 import { useBackend } from '@/features/backend/backend-context'
 
 export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
+  const location = useLocation()
   const { state } = useDemo()
   const latest = state.records[0]
   const { activeSummary, home } = useBackend()
@@ -47,6 +49,9 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
             <div className="welcome-actions">
               {returning ? (
                 <ButtonLink
+                  state={active ? undefined : { prepareBackground: location }}
+                  aria-haspopup={active ? undefined : 'dialog'}
+                  preventScrollReset
                   to={
                     active
                       ? `/study/${active.id}${state.activeSession ? '' : '?resume=1'}`

@@ -3,7 +3,8 @@ import type { ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { DemoContext } from './demo-context'
 import { demoReducer } from './reducer'
-import type { DemoState, Memory, Message } from './types'
+import type { DemoState, FocusTotals, Memory, Message } from './types'
+import { normalizeFocusTotals } from '@/features/session/focus'
 import { api, ApiError } from '@/shared/api/client'
 import { QueryCache } from '@/shared/api/query-cache'
 import { removeAccountSnapshots } from '@/features/auth/account-storage'
@@ -15,16 +16,24 @@ import { getStudyRooms, registerReportRoom, setServerRooms } from '@/features/ro
 import { readSavedRooms, writeSavedRooms } from '@/features/rooms/saved-rooms'
 import { flushSessionEvents, getSessionTotals, presenceKey, readSessionStorageItem } from '@/features/backend/use-session-sync'
 import type { BackendContextValue } from '@/features/backend/backend-context'
+import { Live2DStage } from '@/features/live2d/live2d-stage'
+import { SessionModel, type SessionModelFactory, type SessionModelStage } from '@/features/live2d/session-model'
 
 type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'signedOutNotice' | 'me' | 'home' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
 const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null, signedOutNotice: null, me: null, home: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : '요청을 처리하지 못했어요.'
+const createLive2DStage: SessionModelFactory = (url, layout) => new Live2DStage(url, layout, new URL(import.meta.env.BASE_URL, location.href).href)
 
 /** Server-backed state. Legacy samples and local login flags are never loaded here. */
-export function DemoProvider({ children }: { children: ReactNode }) {
+export function DemoProvider({ children, modelFactory = createLive2DStage }: { children: ReactNode; modelFactory?: SessionModelFactory }) {
   const { pathname } = useLocation()
   const [state, dispatch] = useReducer(demoReducer, undefined, adapt.emptyState)
   const [meta, setMeta] = useState<Meta>(initialMeta)
+  const [models] = useState(() => new SessionModel(modelFactory))
+  const [live2dStage, setLive2dStage] = useState<SessionModelStage | null>(null)
+  const pendingSession = useRef<StartResponse | ResumeResponse | null>(null)
+  const modelEntry = useRef<{ pathname: string } | null>(null)
+  const currentPath = useRef(pathname)
   const stateRef = useRef(state)
   const epoch = useRef(0)
   const bootstrap = useRef<Promise<void> | null>(null)
@@ -37,6 +46,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const failedMessages = useRef(new Map<string, { content: string; inputType: string; requestId: string }>())
   const previousPath = useRef(pathname)
   useLayoutEffect(() => { stateRef.current = state }, [state])
+  useLayoutEffect(() => { currentPath.current = pathname }, [pathname])
+  useEffect(() => () => models.release(), [models])
+  useEffect(() => {
+    if (modelEntry.current && modelEntry.current.pathname !== pathname) models.release()
+  }, [models, pathname])
+  const releaseModel = useCallback(() => {
+    models.release()
+    setLive2dStage(null)
+  }, [models])
   const patch = useCallback((value: Partial<DemoState>) => {
     stateRef.current = { ...stateRef.current, ...value }
     dispatch({ type: 'SERVER_SYNC', patch: value })
@@ -44,6 +62,16 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (state.profile.loggedIn && state.profile.userId) writeSavedRooms(state.profile.userId, state.savedRooms)
   }, [state.profile.loggedIn, state.profile.userId, state.savedRooms])
+  useEffect(() => {
+    const active = state.activeSession
+    if (!active || !state.profile.userId) return
+    try {
+      localStorage.setItem(`capsule-session:${state.profile.userId}:${active.id}`, JSON.stringify({
+        roomId: active.roomId, targetSeconds: active.targetSeconds, startedAt: active.startedAt,
+        focus: normalizeFocusTotals(active.focus),
+      }))
+    } catch { /* Camera measurement still works in memory when storage is unavailable. */ }
+  }, [state.activeSession, state.profile.userId])
   useEffect(() => {
     const before = previousPath.current
     previousPath.current = pathname
@@ -53,6 +81,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     queueMicrotask(() => {
       if (stateRef.current.activeSession?.id !== active.id) return
       const room = getStudyRooms().find(value => value.id === active.roomId)
+      releaseModel()
       patch({ activeSession: null })
       setMeta(previous => ({ ...previous, visuals: null, activeSummary: {
         sessionId: Number(active.id), roomId: Number(active.roomId), roomName: room?.name,
@@ -60,9 +89,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         startedAt: new Date(active.startedAt + (active.serverOffsetMs ?? 0)).toISOString(),
       } }))
     })
-  }, [pathname, patch])
+  }, [pathname, patch, releaseModel])
   const clear = useCallback((signedOutNotice: Meta['signedOutNotice'] = null) => {
     epoch.current++
+    pendingSession.current = null
+    modelEntry.current = null
+    releaseModel()
     queries.current = new QueryCache()
     homeRevision.current++
     memoryRevision.current++
@@ -71,7 +103,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     setServerRooms([])
     patch(adapt.emptyState())
     setMeta(previous => ({ ...initialMeta, terms: previous.terms, status: 'ready', signedOutNotice }))
-  }, [patch])
+  }, [patch, releaseModel])
   const loadAvatars = useCallback(() => queries.current.load('avatars', async () => {
     const value = await api.request<AvatarsResponse>('/avatars')
     if (!Array.isArray(value.avatars)) throw new ApiError('아바타 정보를 확인하지 못했어요.', 502)
@@ -259,46 +291,68 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     return saved
   }, [patch])
   const installSession = useCallback(async (dto: StartResponse | ResumeResponse) => {
-    const active = adapt.session(dto)
-    active.presenceKnown = true
-    active.initialAwaySeconds = 0
-    if ('studySeconds' in dto) {
-      const extended = dto as ResumeResponse & { presentSeconds?: number }
-      if (typeof extended.presentSeconds === 'number') {
-        active.initialAwaySeconds = Math.max(0, active.studySeconds - extended.presentSeconds)
-      } else {
-        active.presenceKnown = false
-        // Without a saved baseline, earlier study counts as away so a missing record never turns absences into presence.
-        active.initialAwaySeconds = active.studySeconds
-        try {
-          // localStorage (not sessionStorage) so a new tab or a browser restart on this device keeps the baseline.
-          const saved = JSON.parse(readSessionStorageItem(presenceKey(stateRef.current.profile.userId, active.id)) ?? 'null') as { studySeconds: number; presentSeconds: number; known?: boolean } | null
-          if (saved && saved.known !== false && Number.isFinite(saved.studySeconds) && Number.isFinite(saved.presentSeconds)) {
-            active.presenceKnown = true
-            active.initialAwaySeconds = Math.max(0, Math.min(active.studySeconds, saved.studySeconds - saved.presentSeconds))
-          }
-        } catch { /* The conservative baseline above stays. */ }
-      }
-    }
-    if (!getStudyRooms().some(value => value.id === active.roomId)) {
-      const detail = await api.request<RoomDetail>(`/rooms/${active.roomId}`)
-      setServerRooms([...getStudyRooms(), adapt.room(detail)])
-    }
-    patch({ activeSession: active, firstVisit: false })
-    invalidateSessionQueries(active.roomId)
-    setMeta(previous => ({ ...previous, visuals: dto, activeSummary: null }))
+    const generation = epoch.current
+    const entry = { pathname: currentPath.current }
+    modelEntry.current = entry
     try {
-      localStorage.setItem(`capsule-session:${stateRef.current.profile.userId}:${active.id}`, JSON.stringify({ roomId: active.roomId, targetSeconds: active.targetSeconds, startedAt: active.startedAt }))
-    } catch { /* Server report still works without browser storage. */ }
-    return active
-  }, [patch, invalidateSessionQueries])
+      const active = adapt.session(dto)
+      active.presenceKnown = true
+      active.initialAwaySeconds = 0
+      if ('studySeconds' in dto) {
+        try {
+          const stored = JSON.parse(readSessionStorageItem(`capsule-session:${stateRef.current.profile.userId}:${active.id}`) ?? 'null') as { focus?: FocusTotals } | null
+          active.focus = normalizeFocusTotals(stored?.focus)
+        } catch { /* Only newly measured camera time is used when no snapshot can be restored. */ }
+        const extended = dto as ResumeResponse & { presentSeconds?: number }
+        if (typeof extended.presentSeconds === 'number') {
+          active.initialAwaySeconds = Math.max(0, active.studySeconds - extended.presentSeconds)
+        } else {
+          active.presenceKnown = false
+          // Without a saved baseline, earlier study counts as away so a missing record never turns absences into presence.
+          active.initialAwaySeconds = active.studySeconds
+          try {
+            // localStorage (not sessionStorage) so a new tab or a browser restart on this device keeps the baseline.
+            const saved = JSON.parse(readSessionStorageItem(presenceKey(stateRef.current.profile.userId, active.id)) ?? 'null') as { studySeconds: number; presentSeconds: number; known?: boolean } | null
+            if (saved && saved.known !== false && Number.isFinite(saved.studySeconds) && Number.isFinite(saved.presentSeconds)) {
+              active.presenceKnown = true
+              active.initialAwaySeconds = Math.max(0, Math.min(active.studySeconds, saved.studySeconds - saved.presentSeconds))
+            }
+          } catch { /* The conservative baseline above stays. */ }
+        }
+      }
+      if (!getStudyRooms().some(value => value.id === active.roomId)) {
+        const detail = await api.request<RoomDetail>(`/rooms/${active.roomId}`)
+        if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
+        setServerRooms([...getStudyRooms(), adapt.room(detail)])
+      }
+      if (generation !== epoch.current || currentPath.current !== entry.pathname) throw new ApiError('공부 준비가 취소됐어요.', 409)
+      const stage = await models.prepare(dto.character)
+      if (generation !== epoch.current || currentPath.current !== entry.pathname) {
+        releaseModel()
+        throw new ApiError('공부 준비가 취소됐어요.', 409)
+      }
+      setLive2dStage(stage)
+      pendingSession.current = null
+      patch({ activeSession: active, firstVisit: false })
+      invalidateSessionQueries(active.roomId)
+      setMeta(previous => ({ ...previous, visuals: dto, activeSummary: null }))
+      try {
+        localStorage.setItem(`capsule-session:${stateRef.current.profile.userId}:${active.id}`, JSON.stringify({ roomId: active.roomId, targetSeconds: active.targetSeconds, startedAt: active.startedAt, focus: active.focus }))
+      } catch { /* Server report still works without browser storage. */ }
+      return active
+    } finally { if (modelEntry.current === entry) modelEntry.current = null }
+  }, [patch, invalidateSessionQueries, models, releaseModel])
   const startSession = useCallback(async (roomId: string, characterId: string, minutes: number) => {
     if (pending.current.has('start')) throw new ApiError('공부를 시작하고 있어요.', 409)
     pending.current.add('start')
     const generation = epoch.current
     try {
-      const dto = await api.request<StartResponse>('/sessions', { method: 'POST', body: { roomId: adapt.numericId(roomId), characterId: adapt.numericId(characterId), targetMinutes: minutes } })
+      const cached = pendingSession.current
+      const dto = cached?.room?.id === adapt.numericId(roomId) && cached.character?.id === adapt.numericId(characterId)
+        ? await api.request<ResumeResponse>(`/sessions/${adapt.id(cached.sessionId)}/resume`, { method: 'POST' })
+        : await api.request<StartResponse>('/sessions', { method: 'POST', body: { roomId: adapt.numericId(roomId), characterId: adapt.numericId(characterId), targetMinutes: minutes } })
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
+      pendingSession.current = dto
       return await installSession(dto)
     } finally { pending.current.delete('start') }
   }, [installSession])
@@ -325,13 +379,20 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       })
       const record = adapt.report(dto, current.roomId, current.targetSeconds)
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
+      record.cameraFocus = normalizeFocusTotals(stateRef.current.activeSession?.focus ?? current.focus)
+      try {
+        localStorage.setItem(`capsule-session:${stateRef.current.profile.userId}:${current.id}`, JSON.stringify({
+          roomId: current.roomId, targetSeconds: current.targetSeconds, startedAt: current.startedAt, focus: record.cameraFocus,
+        }))
+      } catch { /* The current report retains its camera measurement in memory. */ }
       invalidateSessionQueries(current.roomId)
       patch({ activeSession: null, records: [record, ...stateRef.current.records.filter(value => value.id !== record.id)], latestRecordId: record.id })
+      releaseModel()
       try { localStorage.removeItem(presenceKey(stateRef.current.profile.userId, current.id)) } catch { /* Nothing to clean up. */ }
       setMeta(previous => ({ ...previous, activeSummary: null, visuals: null }))
       return record
     } finally { pending.current.delete('end') }
-  }, [patch, invalidateSessionQueries])
+  }, [patch, invalidateSessionQueries, releaseModel])
   const sendMessage = useCallback(async (characterId: string, content: string, inputType: 'TEXT' | 'QUICK' = 'TEXT') => {
     const current = stateRef.current.activeSession
     if (!current) throw new ApiError('진행 중인 공부가 없어요.', 400)
@@ -385,16 +446,19 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       registerReportRoom(room)
     }
     let target: number | undefined
+    let cameraFocus: FocusTotals | undefined
     try {
-      const stored = JSON.parse(readSessionStorageItem(`capsule-session:${stateRef.current.profile.userId}:${sessionId}`) ?? 'null') as { targetSeconds?: number } | null
+      const stored = JSON.parse(readSessionStorageItem(`capsule-session:${stateRef.current.profile.userId}:${sessionId}`) ?? 'null') as { targetSeconds?: number; focus?: FocusTotals } | null
       if (typeof stored?.targetSeconds === 'number' && stored.targetSeconds > 0) target = stored.targetSeconds
+      if (stored?.focus) cameraFocus = normalizeFocusTotals(stored.focus)
     } catch { /* Do not invent a target missing from the report. */ }
     const record = adapt.report(dto, room.id, target)
+    record.cameraFocus = cameraFocus
     patch({ records: [...stateRef.current.records.filter(value => value.id !== record.id), record] })
   }, [patch])
   return (
     <DemoContext value={{ state, dispatch, storageAvailable: true }}>
-      <BackendContext value={{ ...meta, reload, refreshHome, updateAffinity, authenticate, logout, withdrawAccount, forgetAuthentication: clear, saveProfile, createMemory, startSession, resumeSession, finishSession, sendMessage, loadReport }}>
+      <BackendContext value={{ ...meta, live2dStage, reload, refreshHome, updateAffinity, authenticate, logout, withdrawAccount, forgetAuthentication: clear, saveProfile, createMemory, startSession, resumeSession, finishSession, sendMessage, loadReport }}>
         {children}
       </BackendContext>
     </DemoContext>

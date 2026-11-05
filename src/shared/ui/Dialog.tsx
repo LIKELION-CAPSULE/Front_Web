@@ -22,6 +22,7 @@ export function Dialog({
   showHeader = true,
   titleAlign = 'start',
   dismissible = true,
+  onOpen,
 }: {
   open: boolean
   onClose: () => void
@@ -35,6 +36,7 @@ export function Dialog({
   showHeader?: boolean
   titleAlign?: 'start' | 'center'
   dismissible?: boolean
+  onOpen?: (dialog: HTMLDialogElement) => void | (() => void)
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const startedOnBackdrop = useRef(false)
@@ -72,13 +74,18 @@ export function Dialog({
   }, [open, presentation])
   useLayoutEffect(() => {
     const dialog = ref.current
+    let cleanup: void | (() => void)
     if (open && dialog && !dialog.open) {
       dialog.showModal()
-      dialog.querySelector<HTMLElement>('[data-dialog-initial-focus]')?.focus()
+      dialog.querySelector<HTMLElement>('[data-dialog-initial-focus]')?.focus({ preventScroll: true })
+      cleanup = onOpen?.(dialog)
     }
     if (!open && dialog?.open) dialog.close()
-    return () => { if (dialog?.open) dialog.close() }
-  }, [open])
+    return () => {
+      cleanup?.()
+      if (dialog?.open) dialog.close()
+    }
+  }, [open, onOpen])
   function dismiss() {
     if (!dismissible) return
     ref.current?.close()

@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, type CSSProperties } from 'react'
-import type { Live2DStage } from '../live2d-stage'
+import type { SessionModelStage } from '../session-model'
 import { useLive2DStatus } from '../use-live2d'
 import '../live2d.css'
 
 /** A tile's slot for the shared Live2D canvas, over the room background. Hidden until the model is ready. */
-export function Live2DFigure({ stage, background }: { stage: Live2DStage; background?: string }) {
+export function Live2DFigure({ stage, background }: { stage: SessionModelStage; background?: string }) {
   const host = useRef<HTMLDivElement>(null)
   const status = useLive2DStatus(stage)
   useLayoutEffect(() => {

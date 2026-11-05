@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useLocation, useParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { studyLevel } from '@/features/demo/selectors'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
@@ -20,6 +20,7 @@ import { withParticle } from '@/shared/lib/korean'
 import { characterUnlocks } from '@/features/characters/unlocks'
 
 export default function CharactersPage() {
+  const location = useLocation()
   const { characterId = 'chaerin' } = useParams()
   const { state } = useDemo()
   const [now] = useState(Date.now)
@@ -103,6 +104,9 @@ export default function CharactersPage() {
           <div className="mt-5"><AffectionStatus name={character.name} score={affectionScore(state, character.id)} /></div>
           <div className="character-profile-actions mt-auto pt-8">
             <ButtonLink
+              state={state.activeSession ? undefined : { prepareBackground: location }}
+              aria-haspopup={state.activeSession ? undefined : 'dialog'}
+              preventScrollReset
               to={
                 state.activeSession
                   ? `/study/${state.activeSession.id}`

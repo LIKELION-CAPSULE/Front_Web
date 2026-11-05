@@ -1,0 +1,84 @@
+.app-dialog.prepare-dialog {
+  width: min(720px, calc(100% - 32px));
+  max-width: 720px;
+  max-height: calc(100dvh - 32px);
+  padding: 36px 40px;
+  overscroll-behavior: contain;
+}
+.app-dialog.prepare-dialog[open] { animation: none; }
+.app-dialog.prepare-dialog--stack {
+  --prepare-stack-angle: -2deg;
+  --prepare-stack-pitch: 2deg;
+  --prepare-stack-yaw: -3deg;
+  width: min(720px, calc(100% - 96px));
+  max-height: calc(100dvh - 96px);
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+}
+.prepare-stack {
+  position: relative;
+  border-radius: inherit;
+  transform-origin: 35% 60%;
+  transform: translate3d(0, 0, 0) perspective(1400px) rotateX(var(--prepare-stack-pitch)) rotateY(var(--prepare-stack-yaw)) rotateZ(var(--prepare-stack-angle)) scale(1);
+}
+.prepare-stack-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 #ffffff0d, 0 8px 24px #0003;
+}
+.prepare-stack-layer--far {
+  background: color-mix(in srgb, var(--color-primary) 24%, var(--color-panel));
+  transform: translate(18px, 16px) rotate(3deg) scale(.96);
+}
+.prepare-stack-layer--near {
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-raised));
+  transform: translate(-14px, 9px) rotate(-2.4deg) scale(.985);
+}
+.prepare-stack-surface {
+  position: relative;
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: inherit;
+  background: var(--color-surface-raised);
+  padding: 36px 40px;
+  box-shadow: inset 0 1px 0 #ffffff0d, 0 2px 4px #0002, 0 16px 40px #0005, 0 36px 80px #0004;
+}
+.prepare-dialog[data-stack-entering] .prepare-stack,
+.prepare-dialog[data-stack-entering] .prepare-stack-layer { will-change: transform, opacity; }
+.prepare-dialog::backdrop {
+  background: var(--color-overlay);
+  backdrop-filter: blur(12px);
+  animation: prepare-backdrop-enter 280ms ease-out both;
+}
+.prepare-dialog .prepare-back {
+  flex-shrink: 0;
+  padding-inline: 0;
+}
+@media (max-width: 767px) {
+  .app-dialog.prepare-dialog--stack {
+    --prepare-stack-angle: -.8deg;
+    --prepare-stack-pitch: 0deg;
+    --prepare-stack-yaw: -1deg;
+    width: calc(100% - 48px);
+    max-height: calc(100dvh - 64px);
+  }
+  .prepare-stack-surface { max-height: calc(100dvh - 64px); }
+  .prepare-stack-layer--far { transform: translate(8px, 10px) rotate(1.2deg) scale(.97); }
+  .prepare-stack-layer--near { transform: translate(-7px, 5px) rotate(-1.2deg) scale(.985); }
+}
+@media (max-width: 639px) {
+  .app-dialog.prepare-dialog:not(.prepare-dialog--stack) { padding: 24px; }
+  .prepare-stack-surface { padding: 24px; }
+}
+@keyframes prepare-backdrop-enter {
+  from { background: transparent; backdrop-filter: blur(0); }
+  to { background: var(--color-overlay); backdrop-filter: blur(12px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prepare-dialog::backdrop { animation: none; }
+}

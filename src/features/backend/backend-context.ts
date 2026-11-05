@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react'
 import type { ActiveSession, Memory, StudyRecord } from '../demo/types'
 import type { ActiveSessionSummary, AffinityChange, AvatarItem, HomeResponse, LoginResponse, MeResponse, MessageResponse, StartResponse, ResumeResponse, TermVersion } from '@/shared/api/types'
 import type { LoadingStage } from '@/shared/lib/loading-screen'
+import type { SessionModelStage } from '@/features/live2d/session-model'
 
 export type BackendContextValue = {
   status: 'loading' | 'ready' | 'error'
@@ -14,6 +15,7 @@ export type BackendContextValue = {
   avatars: AvatarItem[]
   terms: TermVersion[]
   visuals: StartResponse | ResumeResponse | null
+  live2dStage: SessionModelStage | null
   affinities: Record<string, AffinityChange>
   updateAffinity: (characterId: number, value?: AffinityChange) => void
   refreshHome: () => Promise<void>

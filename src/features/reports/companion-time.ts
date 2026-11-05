@@ -1,7 +1,7 @@
 import type { StudyRecord } from '../demo/types.ts'
 import { dayKey } from '../../shared/lib/format.ts'
 import { periodDays, recordsInRange, type RecordRange } from './record-period.ts'
-import { focusMeasuredSeconds, focusPercent } from '../session/focus.ts'
+import { focusDetectedSeconds, focusMeasuredSeconds, focusPercent } from '../session/focus.ts'
 
 export type TimeBucket = { key: string; label: string; tick: string; future: boolean }
 export type CompanionSeries = {
@@ -44,7 +44,7 @@ export function companionTimeSeries(
       // Shared sessions are apportioned once, matching companion study-level totals.
       const share = Math.max(1, record.characterIds.length)
       totals[index]!.seconds += record.studySeconds / share
-      totals[index]!.focus += record.focusSeconds / share
+      totals[index]!.focus += focusDetectedSeconds(record) / share
       totals[index]!.observed += focusMeasuredSeconds(record) / share
     }
     const seconds = totals.reduce((sum, total) => sum + total.seconds, 0)

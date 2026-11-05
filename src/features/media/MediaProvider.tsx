@@ -40,7 +40,7 @@ export function MediaProvider({ children }: { children: ReactNode }) {
   const availableObservation = availableVision?.status === 'ready' ? observation : null
   const focusEnabled = !!state.activeSession && pathname === `/study/${state.activeSession.id}` &&
     state.activeSession.phase === 'study' && state.activeSession.runningSince !== null &&
-    state.activeSession.camera && !!stream && availableVision?.status === 'ready'
+    !!stream && availableVision?.status === 'ready'
   const flushFocus = useFaceFocus({ session: state.activeSession, enabled: focusEnabled, observation: availableObservation, dispatch })
   // Behavior rules run only while the study timer runs; `monitoring` already stops the loop on pause and break.
   const detectBehavior = monitoring && !!state.activeSession && pathname === `/study/${state.activeSession.id}`

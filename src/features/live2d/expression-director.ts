@@ -2,13 +2,13 @@ import {
   advanceExpression, cancelPendingExpression, createExpressionSchedule, expressionRequest, nextExpressionDeadline, requestExpression,
   type ExpressionCommand, type ExpressionCue, type ExpressionSchedule,
 } from './expression-scheduler'
-import type { Live2DStage } from './live2d-stage'
+import type { SessionModelStage } from './session-model'
 
 /** Runs the pure scheduler on a timer and forwards its commands to the current stage. */
 export class ExpressionDirector {
   private schedule: ExpressionSchedule = createExpressionSchedule()
   private timer: number | undefined
-  private stage: Live2DStage | null = null
+  private stage: SessionModelStage | null = null
   private readonly now: () => number
 
   constructor(now = () => performance.now()) {
@@ -16,7 +16,7 @@ export class ExpressionDirector {
   }
 
   /** A stage that appears later (or reloads) picks up the face already on schedule. */
-  setStage(stage: Live2DStage | null) {
+  setStage(stage: SessionModelStage | null) {
     this.stage = stage
     const shown = this.schedule.shown
     stage?.setExpression(shown && (shown.until === null || this.now() < shown.until) ? shown.file : null)

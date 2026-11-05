@@ -22,6 +22,5 @@
   .detection-status { margin-top: 16px; font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height);  }
   .detection-status.is-compact { margin-top: 0; font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
   .study-self-feedback { position: absolute; z-index: 12; top: 12px; right: 12px; left: 12px; display: grid; justify-items: start; gap: 8px; color: white; }
-  .study-self-feedback > p, .break-device-error { max-width: 280px; padding: 6px 8px; background: color-mix(in srgb, var(--color-surface) 86.27%, transparent); font-size: var(--text-caption); line-height: var(--text-caption--line-height);  border-radius: 8px; }
   .study-self-feedback .detection-status { width: fit-content; padding: 3px 8px; border-radius: 8px; background: color-mix(in srgb, var(--color-surface) 74.12%, transparent); }
 }
