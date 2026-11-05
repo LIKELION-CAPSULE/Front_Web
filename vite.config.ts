@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { handleChatRequest, type ChatEnv } from './server/openai-chat'
 import { proxyBackend, type BackendEnv } from './server/backend-proxy'
+import { reviewCopyPlugin } from './server/review-copy.ts'
 
 /** Local API gateway. Production uses api/router.ts on Vercel or server/worker.ts on Cloudflare. */
 function chatApi(env: ChatEnv & BackendEnv): Plugin {
@@ -25,7 +26,20 @@ function chatApi(env: ChatEnv & BackendEnv): Plugin {
     response.headers.forEach((value, key) => { if (key !== 'set-cookie') res.setHeader(key, value) })
     const cookies = response.headers.getSetCookie()
     if (cookies.length) res.setHeader('set-cookie', cookies)
-    res.end(await response.text())
+    // Pass the body through as it arrives so event streams (chat replies) reach the browser chunk by chunk.
+    if (!response.body) return void res.end()
+    res.flushHeaders()
+    const reader = response.body.getReader()
+    // The browser left (aborted or navigated away): stop reading from the backend.
+    res.on('close', () => { reader.cancel().catch(() => { /* Already finished. */ }) })
+    try {
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done || res.destroyed) break
+        res.write(value)
+      }
+    } catch { /* The backend connection broke: ending here lets the client see a cut stream and retry. */ }
+    res.end()
   }
   return {
     name: 'capsule-chat-api',
@@ -38,7 +52,7 @@ export default defineConfig(({ mode }) => {
   // Empty prefix loads OPENAI_* from .env.local without exposing it to client code (only VITE_* is exposed).
   const env = loadEnv(mode, process.cwd(), '')
   return {
-    plugins: [react(), tailwindcss(), chatApi({ OPENAI_API_KEY: env.OPENAI_API_KEY, OPENAI_MODEL: env.OPENAI_MODEL, BACKEND_API_ORIGIN: env.BACKEND_API_ORIGIN })],
+    plugins: [react(), tailwindcss(), reviewCopyPlugin(), chatApi({ OPENAI_API_KEY: env.OPENAI_API_KEY, OPENAI_MODEL: env.OPENAI_MODEL, BACKEND_API_ORIGIN: env.BACKEND_API_ORIGIN })],
     server: { port: 3000, strictPort: true, headers: { 'Referrer-Policy': 'no-referrer' } },
     preview: { port: 3000, strictPort: true, headers: { 'Referrer-Policy': 'no-referrer' } },
     worker: { format: 'es' },

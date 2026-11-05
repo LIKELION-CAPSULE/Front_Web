@@ -191,7 +191,9 @@
   .button-danger-solid:not(:disabled, [aria-disabled='true']):active { background: var(--color-danger-solid-active); }
   .ui-button:is(:disabled, [aria-disabled='true']):not([data-loading]), .button-subtle:disabled { background: var(--color-disabled); color: var(--color-text-disabled); opacity: 1; }
   .button-ghost:is(:disabled, [aria-disabled='true']):not([data-loading]) { background: transparent; }
-  .ui-button[data-loading] { cursor: wait; }
+  .ui-button[data-loading] { position: relative; cursor: wait; }
+  .ui-button-label { display: inline-flex; align-items: center; justify-content: center; gap: inherit; opacity: 0; }
+  .ui-button-progress { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
   .field-label {
     display: block;
     margin-bottom: 8px;
@@ -664,14 +666,71 @@
 
   /* First visit. */
   .login-page {
+    position: relative;
+    isolation: isolate;
     background:
       radial-gradient(ellipse at 100% 30%, color-mix(in srgb, var(--color-primary) 3.53%, transparent), transparent 50%), var(--color-canvas);
   }
   .login-world {
+    position: absolute;
+    inset: 0;
     background: var(--color-panel);
   }
+  .login-world .poster-mosaic::after {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    content: '';
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, transparent 25%, color-mix(in srgb, var(--color-canvas) 32%, transparent) 45%, color-mix(in srgb, var(--color-canvas) 88%, transparent) 74%, var(--color-canvas)),
+      linear-gradient(0deg, color-mix(in srgb, var(--color-canvas) 45%, transparent), transparent 45%);
+  }
   .login-scroll-pane {
+    --login-pane-padding-inline: 40px;
+    position: relative;
+    z-index: 1;
+    grid-column: 2;
+    align-self: center;
+    justify-self: center;
+    width: calc(100% - 32px);
+    max-width: calc(452px + 2 * var(--login-pane-padding-inline) + 2px);
+    max-height: calc(100dvh - 64px);
+    margin: 32px 32px 32px 0;
+    padding: 40px var(--login-pane-padding-inline);
+    border: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
+    border-radius: 32px;
+    background: linear-gradient(145deg, color-mix(in srgb, var(--color-surface-raised) 80%, transparent), color-mix(in srgb, var(--color-canvas) 94%, transparent));
+    box-shadow: 0 24px 80px #0003;
+    backdrop-filter: blur(20px);
     scrollbar-gutter: stable both-edges;
+  }
+  .kakao-signup-note {
+    position: relative;
+    display: inline-flex;
+    padding: 4px 10px;
+    border: 1px solid #ff6b57;
+    border-radius: 999px;
+    background: #fff;
+    color: #d23c2f;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+    animation: kakao-signup-emphasis 3.2s ease-in-out infinite;
+    transform-origin: 50% 100%;
+  }
+  .kakao-signup-note::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border-right: 1px solid #ff6b57;
+    border-bottom: 1px solid #ff6b57;
+    background: inherit;
+    transform: translateX(-50%) rotate(45deg);
   }
   .kakao-button {
     border-color: transparent;
@@ -682,6 +741,9 @@
   .kakao-button:enabled:hover {
     background: #FADA0A;
     box-shadow: none;
+  }
+  .login-page:has(.poster-mosaic-motion-toggle[aria-pressed="true"]) .kakao-signup-note {
+    animation-play-state: paused;
   }
   .onboarding-figure {
     position: absolute;
@@ -1046,8 +1108,41 @@
     grid-template-rows: minmax(140px, 26dvh) minmax(0, 1fr);
   }
   .login-scroll-pane {
+    --login-pane-padding-inline: 24px;
+    grid-column: 1;
+    align-self: start;
+    max-height: calc(100dvh - max(140px, 26dvh) + 12px);
+    margin: -28px 16px 16px;
     padding-block: 28px;
+    border-radius: 26px;
   }
+  .login-world {
+    position: relative;
+    grid-row: 1;
+  }
+  .login-world .poster-mosaic::after {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-canvas) 4%, transparent) 35%, var(--color-canvas));
+  }
+}
+
+@keyframes kakao-signup-emphasis {
+  0%, 18%, 100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 #ff6b5700; }
+  36% { transform: translateY(-4px) scale(1.025); box-shadow: 0 0 0 6px #ff6b571a; }
+  52% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 #ff6b5700; }
+  66% { transform: translateY(-2px) scale(1.01); }
+}
+
+@media (max-width: 380px) {
+  .login-scroll-pane {
+    --login-pane-padding-inline: 20px;
+    width: calc(100% - 24px);
+    padding-block: 24px;
+    margin-inline: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kakao-signup-note { animation: none; }
 }
 
 @media (min-width: 768px) {

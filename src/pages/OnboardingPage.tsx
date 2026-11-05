@@ -14,16 +14,16 @@ export default function OnboardingPage() {
   const backend = useBackend()
   const [name, setName] = useState(state.profile.name)
   const [avatarId, setAvatarId] = useState(backend.avatars[0]?.id)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<'default' | 'selected' | null>(null)
   const [error, setError] = useState('')
   const [params] = useSearchParams()
   const navigate = useNavigate()
   async function finish(selected?: number) {
     if (busy) return
-    setBusy(true); setError('')
+    setBusy(selected === undefined ? 'default' : 'selected'); setError('')
     try { await backend.saveProfile(name, selected); await backend.reload(); navigate(safeReturnPath(params.get('next'), '/'), { replace: true }) }
     catch (reason) { setError(reason instanceof Error ? reason.message : '프로필을 저장하지 못했어요.') }
-    finally { setBusy(false) }
+    finally { setBusy(null) }
   }
   return <main id="main-content" className="page-container max-w-3xl py-10">
     <Brand className="mb-10 w-40" />
@@ -34,8 +34,8 @@ export default function OnboardingPage() {
       <ServerAvatarPicker value={avatarId} onChange={setAvatarId} />
       {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
       <div className="mt-8 flex flex-wrap gap-3">
-        <Button variant="secondary" disabled={busy || !name.trim()} onClick={() => { void finish() }}>기본 아바타로 시작하기</Button>
-        <Button type="submit" disabled={busy || !name.trim() || !avatarId}>{busy ? '저장하고 있어요…' : '이 모습으로 시작하기'}</Button>
+        <Button variant="secondary" loading={busy === 'default'} disabled={!!busy || !name.trim()} onClick={() => { void finish() }}>기본 아바타로 시작하기</Button>
+        <Button type="submit" loading={busy === 'selected'} disabled={!!busy || !name.trim() || !avatarId}>이 모습으로 시작하기</Button>
       </div>
     </form>
   </main>

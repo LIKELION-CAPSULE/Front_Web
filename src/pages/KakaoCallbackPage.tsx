@@ -5,6 +5,7 @@ import { api } from '@/shared/api/client'
 import type { KakaoRequest, KakaoResponse } from '@/shared/api/types'
 import { safeReturnPath } from '@/shared/lib/format'
 import { kakaoErrorNotice } from '@/features/auth/auth-notices'
+import { PageSkeleton } from '@/shared/ui/PageSkeleton'
 
 export default function KakaoCallbackPage() {
   const [params] = useSearchParams()
@@ -30,8 +31,5 @@ export default function KakaoCallbackPage() {
       navigate(`/login?notice=${kakaoErrorNotice(reason)}`, { replace: true })
     })
   }, [authenticate, navigate, params])
-  return <main className="page-container py-16" id="main-content">
-    <h1 className="type-page-title">카카오 로그인</h1>
-    <p role="status" className="mt-4">로그인하고 있어요…</p>
-  </main>
+  return <PageSkeleton label="카카오 로그인을 처리하고 있어요." />
 }
