@@ -9,7 +9,7 @@ import type { AffinityChange, AvatarsResponse, HomeResponse, MeResponse, MemoryL
 import { BackendContext } from '@/features/backend/backend-context'
 import * as adapt from '@/features/backend/adapters'
 import { getStudyRooms, registerReportRoom, setServerRooms } from '@/features/rooms/services/room-service'
-import { flushSessionEvents, getSessionTotals } from '@/features/backend/use-session-sync'
+import { flushSessionEvents, getSessionTotals, presenceKey, readSessionStorageItem } from '@/features/backend/use-session-sync'
 import type { BackendContextValue } from '@/features/backend/backend-context'
 
 type Meta = Pick<BackendContextValue, 'status' | 'error' | 'me' | 'home' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
@@ -158,13 +158,16 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         active.initialAwaySeconds = Math.max(0, active.studySeconds - extended.presentSeconds)
       } else {
         active.presenceKnown = false
+        // Without a saved baseline, earlier study counts as away so a missing record never turns absences into presence.
+        active.initialAwaySeconds = active.studySeconds
         try {
-          const saved = JSON.parse(sessionStorage.getItem(`capsule-presence:${stateRef.current.profile.userId}:${active.id}`) ?? 'null') as { studySeconds: number; presentSeconds: number; known?: boolean } | null
+          // localStorage (not sessionStorage) so a new tab or a browser restart on this device keeps the baseline.
+          const saved = JSON.parse(readSessionStorageItem(presenceKey(stateRef.current.profile.userId, active.id)) ?? 'null') as { studySeconds: number; presentSeconds: number; known?: boolean } | null
           if (saved && saved.known !== false && Number.isFinite(saved.studySeconds) && Number.isFinite(saved.presentSeconds)) {
             active.presenceKnown = true
             active.initialAwaySeconds = Math.max(0, Math.min(active.studySeconds, saved.studySeconds - saved.presentSeconds))
           }
-        } catch { /* A missing baseline must not turn previous absences into presence. */ }
+        } catch { /* The conservative baseline above stays. */ }
       }
     }
     if (!getStudyRooms().some(value => value.id === active.roomId)) {
@@ -174,7 +177,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     patch({ activeSession: active, firstVisit: false })
     setMeta(previous => ({ ...previous, visuals: dto, activeSummary: null }))
     try {
-      sessionStorage.setItem(`capsule-session:${stateRef.current.profile.userId}:${active.id}`, JSON.stringify({ roomId: active.roomId, targetSeconds: active.targetSeconds, startedAt: active.startedAt }))
+      localStorage.setItem(`capsule-session:${stateRef.current.profile.userId}:${active.id}`, JSON.stringify({ roomId: active.roomId, targetSeconds: active.targetSeconds, startedAt: active.startedAt }))
     } catch { /* Server report still works without browser storage. */ }
     return active
   }, [patch])
@@ -195,11 +198,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
     return installSession(dto)
   }, [installSession])
-  const finishSession = useCallback(async () => {
+  const finishSession = useCallback(async (options: { acceptUnknownPresence?: boolean } = {}) => {
     if (pending.current.has('end')) throw new ApiError('공부를 마무리하고 있어요.', 409)
     const current = stateRef.current.activeSession
     if (!current) throw new ApiError('진행 중인 공부가 없어요.', 400)
-    if (current.presenceKnown === false) throw new ApiError('이전 자리 지킴 시간을 불러오지 못했어요. 처음 공부한 브라우저에서 이어가 주세요.', 409)
+    // An unknown baseline already counts earlier study as away; ending then needs the user's explicit confirmation.
+    if (current.presenceKnown === false && !options.acceptUnknownPresence) throw new ApiError('이전 자리 지킴 시간을 불러오지 못했어요. 처음 공부한 브라우저에서 이어가 주세요.', 409)
     const generation = epoch.current
     pending.current.add('end')
     try {
@@ -211,6 +215,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       const record = adapt.report(dto, current.roomId, current.targetSeconds)
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
       patch({ activeSession: null, records: [record, ...stateRef.current.records.filter(value => value.id !== record.id)], latestRecordId: record.id })
+      try { localStorage.removeItem(presenceKey(stateRef.current.profile.userId, current.id)) } catch { /* Nothing to clean up. */ }
       setMeta(previous => ({ ...previous, activeSummary: null, visuals: null }))
       return record
     } finally { pending.current.delete('end') }
@@ -253,7 +258,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     }
     let target: number | undefined
     try {
-      const stored = JSON.parse(sessionStorage.getItem(`capsule-session:${stateRef.current.profile.userId}:${sessionId}`) ?? 'null') as { targetSeconds?: number } | null
+      const stored = JSON.parse(readSessionStorageItem(`capsule-session:${stateRef.current.profile.userId}:${sessionId}`) ?? 'null') as { targetSeconds?: number } | null
       if (typeof stored?.targetSeconds === 'number' && stored.targetSeconds > 0) target = stored.targetSeconds
     } catch { /* Do not invent a target missing from the report. */ }
     const record = adapt.report(dto, room.id, target)

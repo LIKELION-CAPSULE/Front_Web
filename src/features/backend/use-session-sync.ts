@@ -23,6 +23,13 @@ export function getSessionTotals(active: ActiveSession): SessionTotals {
 }
 export async function flushSessionEvents(sessionId: string) { await queues.get(sessionId)?.() }
 
+/** Study totals saved per device so resuming in a new tab or after a restart can continue the presence count. */
+export const presenceKey = (userId: number | undefined, sessionId: string) => `capsule-presence:${userId}:${sessionId}`
+/** Reads device storage, falling back to tab storage written before the move to localStorage. */
+export function readSessionStorageItem(key: string) {
+  try { return localStorage.getItem(key) ?? sessionStorage.getItem(key) } catch { return null }
+}
+
 type Input = {
   active: ActiveSession | null; userId?: number; observation: Observation | null; camera: boolean
   behavior?: BehaviorMonitor
@@ -136,7 +143,8 @@ export function useSessionSync(input: Input) {
     }
     const count = current.clock.totals(study)
     setPresentSeconds(count.presentSeconds)
-    try { sessionStorage.setItem(`capsule-presence:${userId}:${active.id}`, JSON.stringify({ ...count, known: active.presenceKnown !== false })) } catch { /* Timing still works in memory. */ }
+    // An unknown baseline is already counted conservatively (earlier study as away), so these totals are safe to resume from.
+    try { localStorage.setItem(presenceKey(userId, active.id), JSON.stringify({ ...count, known: true })) } catch { /* Timing still works in memory. */ }
     if (current.alive) {
       const next = escalateAway(current.flow, now)
       if (next.intensity !== null && next.flow.away) {

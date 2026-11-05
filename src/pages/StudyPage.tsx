@@ -248,13 +248,18 @@ export default function StudyPage() {
       return false
     } finally { setPendingReplies(previous => ({ ...previous, [characterId]: false })) }
   }
+  function openLeave() {
+    setSessionError('')
+    setLeaveOpen(true)
+  }
   async function finish() {
     if (finishing) return
     setFinishing(true); setSessionError('')
     flushFocus()
     expressions.cancelPending()
     try {
-      const record = await backend.finishSession()
+      // The leave dialog already tells the user how an unrestored baseline is recorded, so pressing finish confirms it.
+      const record = await backend.finishSession({ acceptUnknownPresence: true })
       controller.stop()
       navigate(`/reports/${record.id}`)
     } catch (reason) { setSessionError(reason instanceof Error ? reason.message : '공부를 마무리하지 못했어요.') }
@@ -302,7 +307,7 @@ export default function StudyPage() {
         chatOpen={chatOpen}
         onChatToggle={toggleChat}
         onPhaseToggle={resting ? continueStudy : takeBreak}
-        onFinish={() => setLeaveOpen(true)}
+        onFinish={openLeave}
         camera={devices.camera}
         microphone={devices.microphone}
         showCamera={cameraVisible}
@@ -353,7 +358,7 @@ export default function StudyPage() {
             // Leaving mid-session asks first; modified clicks still open home in a new tab.
             if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
             event.preventDefault()
-            setLeaveOpen(true)
+            openLeave()
           }}
         >
           <Brand />
@@ -506,6 +511,9 @@ export default function StudyPage() {
           <dt className="text-body-compact text-muted">지금까지 공부한 시간</dt>
           <dd className="text-section-title font-bold tabular-nums" data-study-total>{clock(sessionStudySeconds(active, now))}</dd>
         </dl>
+        {active.presenceKnown === false && <FeedbackMessage tone="warning" className="mb-4">이전 자리 지킴 시간을 불러오지 못했어요. 지금 끝내면 이어서 공부한 동안의 자리 지킴만 기록돼요.</FeedbackMessage>}
+        {/* The page-level error sits behind this modal, so a failed finish is shown here too. */}
+        {sessionError && <FeedbackMessage tone="error" className="mb-4">{sessionError}</FeedbackMessage>}
         <div className="grid gap-2 sm:grid-cols-2">
           <Button variant="danger-solid" disabled={finishing} onClick={() => { void finish() }}>{finishing ? '마무리하고 있어요…' : '응, 여기까지 할게'}</Button>
           <Button variant="secondary" data-dialog-initial-focus onClick={() => setLeaveOpen(false)}>
