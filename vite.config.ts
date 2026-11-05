@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { handleChatRequest, type ChatEnv } from './server/openai-chat'
 import { proxyBackend, type BackendEnv } from './server/backend-proxy'
+import { reviewCopyPlugin } from './server/review-copy.ts'
 
 /** Local API gateway. Production uses api/router.ts on Vercel or server/worker.ts on Cloudflare. */
 function chatApi(env: ChatEnv & BackendEnv): Plugin {
@@ -51,7 +52,7 @@ export default defineConfig(({ mode }) => {
   // Empty prefix loads OPENAI_* from .env.local without exposing it to client code (only VITE_* is exposed).
   const env = loadEnv(mode, process.cwd(), '')
   return {
-    plugins: [react(), tailwindcss(), chatApi({ OPENAI_API_KEY: env.OPENAI_API_KEY, OPENAI_MODEL: env.OPENAI_MODEL, BACKEND_API_ORIGIN: env.BACKEND_API_ORIGIN })],
+    plugins: [react(), tailwindcss(), reviewCopyPlugin(), chatApi({ OPENAI_API_KEY: env.OPENAI_API_KEY, OPENAI_MODEL: env.OPENAI_MODEL, BACKEND_API_ORIGIN: env.BACKEND_API_ORIGIN })],
     server: { port: 3000, strictPort: true, headers: { 'Referrer-Policy': 'no-referrer' } },
     preview: { port: 3000, strictPort: true, headers: { 'Referrer-Policy': 'no-referrer' } },
     worker: { format: 'es' },

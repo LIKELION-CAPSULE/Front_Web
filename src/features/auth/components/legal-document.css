@@ -1,0 +1,23 @@
+.legal-document { color: var(--color-muted); font-size: 14px; line-height: 1.9; overflow-wrap: anywhere; }
+.legal-document > * + * { margin-top: 18px; }
+.legal-document h3, .legal-document h4, .legal-document h5, .legal-document h6 { margin-top: 30px; color: var(--color-ink); font-size: 16px; font-weight: 700; line-height: 1.6; }
+.legal-document > :first-child { margin-top: 0; }
+.legal-document strong { color: var(--color-ink); font-weight: 650; }
+.legal-document ul, .legal-document ol { padding-left: 24px; }
+.legal-document ul { list-style-type: disc; }
+.legal-document ol { list-style-type: decimal; }
+.legal-document li + li { margin-top: 8px; }
+.legal-document li > * + * { margin-top: 8px; }
+.legal-document li::marker { color: var(--color-text-accent); font-weight: 600; }
+.legal-document a { color: var(--color-text-accent); text-decoration: underline; text-underline-offset: 3px; }
+.legal-document blockquote { border-left: 3px solid var(--color-primary); padding: 12px 16px; background: var(--color-panel); border-radius: 0 10px 10px 0; }
+.legal-document code { padding: 2px 5px; border-radius: 4px; background: var(--color-panel); font-size: .9em; }
+.legal-document pre { overflow-x: auto; padding: 16px; border-radius: 10px; background: var(--color-panel); }
+.legal-document pre code { padding: 0; white-space: pre; }
+.legal-document hr { border: 0; border-top: 1px solid var(--color-divider); margin-block: 24px; }
+.legal-table-scroll { overflow-x: auto; border: 1px solid var(--color-divider); border-radius: 12px; }
+.legal-table-scroll table { width: 100%; min-width: 420px; border-collapse: collapse; font-size: 13px; line-height: 1.8; }
+.legal-table-scroll th, .legal-table-scroll td { padding: 12px 14px; text-align: left; vertical-align: top; }
+.legal-table-scroll th { color: var(--color-ink); background: var(--color-panel); font-weight: 650; }
+.legal-table-scroll tbody tr + tr { border-top: 1px solid var(--color-divider); }
+.legal-table-scroll tbody tr:nth-child(even) { background: color-mix(in srgb, var(--color-panel) 35%, transparent); }

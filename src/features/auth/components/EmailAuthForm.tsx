@@ -127,8 +127,8 @@ export function EmailAuthForm({
       {signup && <TermsConsent onOpenDocument={onOpenDocument} errors={errors} onChange={clearError} />}
       {signup && !termsReady && <FeedbackMessage tone="error">약관을 불러오지 못했어요. 페이지를 새로고침해 다시 시도해 주세요.</FeedbackMessage>}
       {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
-      <Button type="submit" disabled={busy || (signup && !termsReady)} className="w-full">
-        {busy ? '확인하고 있어요…' : signup ? '회원가입' : '로그인'}
+      <Button type="submit" loading={busy} disabled={signup && !termsReady} className="w-full">
+        {signup ? '회원가입' : '로그인'}
       </Button>
     </form>
   )
