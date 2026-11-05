@@ -1,0 +1,23 @@
+Live2D Cubism notices for CAPSULE
+=================================
+
+1. Live2D Cubism Core (live2d/live2dcubismcore.min.js)
+   (C) 2019 Live2D Inc. All rights reserved.
+   Version 5.1.0, downloaded unchanged on 2026-11-05 from the official distribution
+   https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js
+   SHA-256 25ae938cb4fe282ce189b357bcc97e603d1e1f7ec78bf04150d401c23cdc792f
+   This file is the "Redistributable Code" under the Live2D Proprietary Software License Agreement:
+   https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_en.html
+   The file keeps its original header notice.
+
+2. Live2D Cubism SDK Framework (bundled inside untitled-pixi-live2d-engine)
+   Copyright(c) Live2D Inc. All rights reserved.
+   Use of this source code is governed by the Live2D Open Software License:
+   https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html
+
+3. Publishing an application that uses the Cubism SDK may require a Live2D publication license
+   depending on the publisher's scale. Review the current terms before a commercial release:
+   https://www.live2d.com/en/sdk/license/
+
+Live2D model assets (character models, textures, expressions) are delivered by the CAPSULE backend
+storage and are not part of this repository.

@@ -7,6 +7,10 @@ import { sessionStudySeconds } from '../demo/reducer'
 import { PresenceClock } from './presence-clock'
 import type { StateEvent } from './presence-clock'
 import { useBackend } from './backend-context'
+import type { BehaviorMonitor } from '../media/behavior-monitor'
+import type { ExpressionCue } from '../live2d/expression-scheduler'
+import { pickMotionEvents, type MotionCooldowns, type MotionEventType } from './motion-events'
+import { escalateAway, eventQueued, type EventFlow } from './session-event-flow'
 
 export type SessionTotals = { studySeconds: number; presentSeconds: number }
 const totalsBySession = new Map<string, () => SessionTotals>()
@@ -21,12 +25,21 @@ export async function flushSessionEvents(sessionId: string) { await queues.get(s
 
 type Input = {
   active: ActiveSession | null; userId?: number; observation: Observation | null; camera: boolean
-  onReaction: (result: ReactionResponse) => void; onEnded: () => void
+  behavior?: BehaviorMonitor
+  /** `event` is the API 18 type the line answers. */
+  onReaction: (result: ReactionResponse, event: string) => void
+  /** Immediate faces from API 18 (`stage: 'notice'`). Faces with lines arrive through `onReaction`. */
+  onExpression?: (cue: ExpressionCue) => void
+  onEnded: () => void
 }
 type Runtime = {
   sessionId: string; signature: string; clock: PresenceClock; outbox: StateEvent[]; draining: Promise<void> | null
-  heartbeat: boolean; revision: number; alive: boolean
-  away: { eventId: number; at: number; intensity: number } | null
+  heartbeat: boolean; alive: boolean
+  /** State-event ordering; motion events never change it. */
+  flow: EventFlow
+  motionSentAt: MotionCooldowns
+  /** Only the latest motion event may show its reaction. */
+  motionTurn: number
 }
 
 export function useSessionSync(input: Input) {
@@ -41,42 +54,71 @@ export function useSessionSync(input: Input) {
     if (reason instanceof ApiError && reason.code === 'SESSION_ENDED') latest.current.onEnded()
     else setError(reason instanceof Error ? reason.message : '상태 기록을 저장하지 못했어요.')
   }, [])
-  const react = useCallback(async (current: Runtime, eventId: number, intensity = 1) => {
-    const revision = current.revision
+  const react = useCallback(async (current: Runtime, eventId: number, event: string, intensity = 1, turn?: number) => {
+    const revision = current.flow.revision
     const requestId = crypto.randomUUID()
     try {
       const result = await api.request<ReactionResponse>(`/sessions/${current.sessionId}/events/${eventId}/reaction`, {
         method: 'POST', body: { requestId, intensity, tts: false },
       })
-      if (current.alive && runtime.current === current && current.revision === revision && result.requestId === requestId) latest.current.onReaction(result)
+      const latestTurn = turn === undefined || current.motionTurn === turn
+      if (current.alive && runtime.current === current && current.flow.revision === revision && latestTurn && result.requestId === requestId) latest.current.onReaction(result, event)
     } catch (reason) { fail(reason, current) }
   }, [fail])
+  const notice = useCallback((result: EventResponse, event: string) => {
+    for (const character of result.characters ?? []) {
+      if (character.characterId) latest.current.onExpression?.({ characterId: character.characterId, expression: character.expression, event, stage: 'notice' })
+    }
+  }, [])
   const drain = useCallback(async (current: Runtime) => {
     if (current.draining) return current.draining
     current.draining = (async () => {
       while (current.outbox.length) {
         const event = current.outbox[0]!
-        const revision = current.revision
+        const revision = current.flow.revision
         const result = await api.request<EventResponse>(`/sessions/${current.sessionId}/events`, { method: 'POST', body: event })
         current.outbox.shift()
         if (current.alive) for (const character of result.characters ?? []) {
           if (character.characterId) updateAffinity(character.characterId, character.affinity)
         }
-        if (current.alive && current.revision === revision && current.outbox.length === 0 && result.eventId) {
-          if (event.type === 'AWAY') current.away = { eventId: result.eventId, at: Date.parse(event.occurredAt) - (latest.current.active?.serverOffsetMs ?? 0), intensity: 1 }
-          void react(current, result.eventId)
+        if (current.alive && current.flow.revision === revision && current.outbox.length === 0) {
+          notice(result, event.type)
+          if (result.eventId) {
+            if (event.type === 'AWAY') current.flow = { ...current.flow, away: { eventId: result.eventId, at: Date.parse(event.occurredAt) - (latest.current.active?.serverOffsetMs ?? 0), intensity: 1 } }
+            void react(current, result.eventId, event.type)
+          }
         }
       }
       if (current.alive) setError('')
     })()
     try { await current.draining } finally { current.draining = null }
-  }, [react, updateAffinity])
+  }, [notice, react, updateAffinity])
   const enqueue = useCallback((current: Runtime, event: StateEvent) => {
-    current.revision++
-    if (event.type !== 'AWAY') current.away = null
+    current.flow = eventQueued(current.flow, event.type)
     current.outbox.push(event)
     void drain(current).catch(reason => fail(reason, current))
   }, [drain, fail])
+  /** Motion events go out on their own so a gesture never interrupts the state-event queue or away escalation. */
+  const sendMotion = useCallback(async (current: Runtime, type: MotionEventType, occurredAt: string) => {
+    // Motion events leave the state flow as it is (no revision bump, the away escalation keeps running).
+    current.flow = eventQueued(current.flow, type)
+    const revision = current.flow.revision
+    const turn = ++current.motionTurn
+    try {
+      const result = await api.request<EventResponse>(`/sessions/${current.sessionId}/events`, { method: 'POST', body: { type, occurredAt } })
+      if (!current.alive || runtime.current !== current) return
+      for (const character of result.characters ?? []) {
+        if (character.characterId) updateAffinity(character.characterId, character.affinity)
+      }
+      // A state change or a newer gesture since sending makes this reaction stale.
+      if (current.flow.revision !== revision || current.motionTurn !== turn) return
+      notice(result, type)
+      if (result.eventId) void react(current, result.eventId, type, 1, turn)
+    } catch (reason) {
+      // Gestures are best effort; only a finished session needs handling here.
+      if (reason instanceof ApiError && reason.code === 'SESSION_ENDED') fail(reason, current)
+    }
+  }, [fail, notice, react, updateAffinity])
   const totals = useCallback((current: Runtime) => {
     const active = latest.current.active
     if (!active || active.id !== current.sessionId) throw new Error('진행 세션이 변경됐어요.')
@@ -95,10 +137,12 @@ export function useSessionSync(input: Input) {
     const count = current.clock.totals(study)
     setPresentSeconds(count.presentSeconds)
     try { sessionStorage.setItem(`capsule-presence:${userId}:${active.id}`, JSON.stringify({ ...count, known: active.presenceKnown !== false })) } catch { /* Timing still works in memory. */ }
-    const away = current.away
-    if (away && current.alive) {
-      const intensity = now - away.at >= 300_000 ? 3 : now - away.at >= 60_000 ? 2 : 1
-      if (intensity > away.intensity) { away.intensity = intensity; void react(current, away.eventId, intensity) }
+    if (current.alive) {
+      const next = escalateAway(current.flow, now)
+      if (next.intensity !== null && next.flow.away) {
+        current.flow = next.flow
+        void react(current, next.flow.away.eventId, 'AWAY', next.intensity)
+      }
     }
   }, [enqueue, react])
   const heartbeat = useCallback(async (current: Runtime) => {
@@ -122,6 +166,7 @@ export function useSessionSync(input: Input) {
   const userId = input.userId
   const resumed = !!visuals && 'studySeconds' in visuals
   const startedAt = visuals && 'startedAt' in visuals ? visuals.startedAt : undefined
+  const behavior = input.behavior
   const signature = `${sessionId}:${visuals?.serverTime ?? ''}`
   useEffect(() => {
     const active = latest.current.active
@@ -129,7 +174,10 @@ export function useSessionSync(input: Input) {
     let current = runtime.current
     if (!current || current.signature !== signature) {
       const baseAway = active.initialAwaySeconds ?? 0
-      current = { sessionId: active.id, signature, clock: new PresenceClock(baseAway), outbox: [], draining: null, heartbeat: false, revision: 0, alive: true, away: null }
+      current = {
+        sessionId: active.id, signature, clock: new PresenceClock(baseAway), outbox: [], draining: null, heartbeat: false, alive: true,
+        flow: { revision: 0, away: null }, motionSentAt: {}, motionTurn: 0,
+      }
       runtime.current = current
     }
     runtime.current!.alive = true
@@ -141,21 +189,33 @@ export function useSessionSync(input: Input) {
       initialized.add(key)
       enqueue(sync, { type: 'FOCUS', occurredAt: startedAt })
     }
+    const stopBehavior = behavior?.onChange((change) => {
+      const { active: now, camera } = latest.current
+      if (!sync.alive || !now || now.id !== sync.sessionId) return
+      const picked = pickMotionEvents(sync.motionSentAt, change.started, change.at, {
+        camera, phase: now.phase, running: now.runningSince !== null, hidden: document.hidden,
+      })
+      sync.motionSentAt = picked.sentAt
+      const occurredAt = new Date(change.at + (now.serverOffsetMs ?? 0)).toISOString()
+      for (const type of picked.types) void sendMotion(sync, type, occurredAt)
+    })
     const timer = window.setInterval(() => tick(sync), 250)
     const pulse = window.setInterval(() => { void heartbeat(sync) }, 60_000)
     const visible = () => { tick(sync); if (!document.hidden) void heartbeat(sync) }
     document.addEventListener('visibilitychange', visible)
     return () => {
       sync.alive = false
+      stopBehavior?.()
       clearInterval(timer); clearInterval(pulse); document.removeEventListener('visibilitychange', visible)
       totalsBySession.delete(active.id); queues.delete(active.id)
     }
-  }, [sessionId, signature, userId, resumed, startedAt, drain, enqueue, heartbeat, tick, totals])
+  }, [sessionId, signature, userId, resumed, startedAt, behavior, drain, enqueue, heartbeat, sendMotion, tick, totals])
   const retry = useCallback(async () => {
     if (runtime.current) await heartbeat(runtime.current)
   }, [heartbeat])
   const cancelReaction = useCallback(() => {
-    if (runtime.current) runtime.current.revision++
+    const current = runtime.current
+    if (current) current.flow = { ...current.flow, revision: current.flow.revision + 1 }
   }, [])
   return { error, retry, presentSeconds, cancelReaction }
 }
