@@ -18,6 +18,7 @@ export class ApiClient {
   private token: string | null = null
   private refreshTask: Promise<boolean> | null = null
   private generation = 0
+  private session = 0
   private expired: (() => void) | null = null
   private readonly reads = new Map<string, Promise<unknown>>()
   private readonly transport: typeof fetch
@@ -26,7 +27,8 @@ export class ApiClient {
     this.transport = transport
     this.base = base
   }
-  setToken(token: string | null) { this.token = token; this.generation++; this.reads.clear() }
+  setToken(token: string | null) { this.session++; this.replaceToken(token) }
+  private replaceToken(token: string | null) { this.token = token; this.generation++; this.reads.clear() }
   onExpired(callback: (() => void) | null) { this.expired = callback }
   async waitForRefresh() { await this.refreshTask?.catch(() => false) }
   async refresh(): Promise<boolean> {
@@ -37,7 +39,7 @@ export class ApiClient {
         const data = await this.request<{ accessToken?: string }>('/auth/refresh', { method: 'POST', auth: false })
         if (generation !== this.generation) return false
         if (!data?.accessToken) throw new ApiError('로그인 응답을 확인하지 못했어요.', 502)
-        this.setToken(data.accessToken)
+        this.replaceToken(data.accessToken)
         return true
       } catch (error) {
         if (error instanceof ApiError && [401, 403].includes(error.status)) return false
@@ -61,6 +63,7 @@ export class ApiClient {
   }
   private async perform<T>(path: string, options: Options, retry: boolean): Promise<T> {
     const token = this.token
+    const session = this.session
     const headers: Record<string, string> = { accept: 'application/json' }
     if (options.body !== undefined) headers['content-type'] = 'application/json'
     if (options.auth !== false && token) headers.authorization = `Bearer ${token}`
@@ -76,7 +79,11 @@ export class ApiClient {
       throw new ApiError('서버에 연결하지 못했어요. 다시 시도해 주세요.', 0)
     }
     if (response.status === 401 && options.auth !== false) {
-      if (retry && ((this.token && this.token !== token) || await this.refresh())) return this.request<T>(path, options, false)
+      const changed = () => new ApiError('로그인 상태가 변경됐어요. 다시 시도해 주세요.', 401, 'AUTH_SESSION_CHANGED')
+      if (session !== this.session) throw changed()
+      const renewed = retry && ((this.token && this.token !== token) || await this.refresh())
+      if (session !== this.session) throw changed()
+      if (renewed) return this.request<T>(path, options, false)
       this.setToken(null)
       this.expired?.()
     }

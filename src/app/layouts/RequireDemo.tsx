@@ -17,7 +17,9 @@ export function RequireDemo() {
   ) : (
     <Navigate
       replace
-      to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`}
+      to={backend.signedOutNotice
+        ? `/login?notice=${backend.signedOutNotice}`
+        : `/login?next=${encodeURIComponent(location.pathname + location.search)}`}
     />
   )
 }

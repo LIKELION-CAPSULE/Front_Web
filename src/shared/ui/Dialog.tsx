@@ -20,6 +20,7 @@ export function Dialog({
   closeLabel = '닫기',
   showCloseButton = true,
   titleAlign = 'start',
+  dismissible = true,
 }: {
   open: boolean
   onClose: () => void
@@ -31,6 +32,7 @@ export function Dialog({
   closeLabel?: string
   showCloseButton?: boolean
   titleAlign?: 'start' | 'center'
+  dismissible?: boolean
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const startedOnBackdrop = useRef(false)
@@ -76,6 +78,7 @@ export function Dialog({
     return () => { if (dialog?.open) dialog.close() }
   }, [open])
   function dismiss() {
+    if (!dismissible) return
     ref.current?.close()
     onClose()
   }
@@ -109,7 +112,7 @@ export function Dialog({
         <h2 id={titleId} className={cn(presentation === 'modal' ? 'type-dialog-title' : 'type-card-title', titleAlign === 'center' && 'w-full text-center', titleAlign === 'center' && showCloseButton && 'px-12')}>
           {title}
         </h2>
-        {showCloseButton && <button
+        {showCloseButton && dismissible && <button
           type="button"
           onClick={dismiss}
           aria-label={closeLabel}

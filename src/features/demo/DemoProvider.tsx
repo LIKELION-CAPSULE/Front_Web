@@ -6,6 +6,7 @@ import { demoReducer } from './reducer'
 import type { DemoState, Memory } from './types'
 import { api, ApiError } from '@/shared/api/client'
 import { QueryCache } from '@/shared/api/query-cache'
+import { removeAccountSnapshots } from '@/features/auth/account-storage'
 import type { AffinityChange, AvatarsResponse, HomeResponse, MeResponse, MemoryList, MemoryResponse, LoginResponse, RoomDetail, StartResponse, ResumeResponse, ReportResponse, MessageResponse, TermsResponse } from '@/shared/api/types'
 import { BackendContext } from '@/features/backend/backend-context'
 import * as adapt from '@/features/backend/adapters'
@@ -13,8 +14,8 @@ import { getStudyRooms, registerReportRoom, setServerRooms } from '@/features/ro
 import { flushSessionEvents, getSessionTotals, presenceKey, readSessionStorageItem } from '@/features/backend/use-session-sync'
 import type { BackendContextValue } from '@/features/backend/backend-context'
 
-type Meta = Pick<BackendContextValue, 'status' | 'error' | 'me' | 'home' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
-const initialMeta: Meta = { status: 'loading', error: null, me: null, home: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
+type Meta = Pick<BackendContextValue, 'status' | 'error' | 'signedOutNotice' | 'me' | 'home' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
+const initialMeta: Meta = { status: 'loading', error: null, signedOutNotice: null, me: null, home: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : '요청을 처리하지 못했어요.'
 
 /** Server-backed state. Legacy samples and local login flags are never loaded here. */
@@ -55,7 +56,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       } }))
     })
   }, [pathname, patch])
-  const clear = useCallback(() => {
+  const clear = useCallback((signedOutNotice: Meta['signedOutNotice'] = null) => {
     epoch.current++
     queries.current = new QueryCache()
     homeRevision.current++
@@ -64,7 +65,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     api.setToken(null)
     setServerRooms([])
     patch(adapt.emptyState())
-    setMeta(previous => ({ ...initialMeta, terms: previous.terms, status: 'ready' }))
+    setMeta(previous => ({ ...initialMeta, terms: previous.terms, status: 'ready', signedOutNotice }))
   }, [patch])
   const loadAvatars = useCallback(() => queries.current.load('avatars', async () => {
     const value = await api.request<AvatarsResponse>('/avatars')
@@ -180,6 +181,24 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     await api.waitForRefresh()
     await api.request('/auth/logout', { method: 'POST', auth: false })
     clear()
+  }, [clear])
+  const withdrawAccount = useCallback(async () => {
+    if (pending.current.has('withdraw')) throw new ApiError('회원탈퇴를 처리하고 있어요.', 409)
+    const generation = epoch.current
+    const userId = stateRef.current.profile.userId
+    if (!stateRef.current.profile.loggedIn || !userId) throw new ApiError('로그인이 필요해요.', 401)
+    pending.current.add('withdraw')
+    try {
+      await api.waitForRefresh()
+      if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
+      await api.request('/me', { method: 'DELETE' })
+      if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
+      for (const getStorage of [() => localStorage, () => sessionStorage]) {
+        try { removeAccountSnapshots(getStorage(), userId) } catch { /* In-memory account data is still cleared below. */ }
+      }
+      try { sessionStorage.removeItem('capsule-login-provider'); sessionStorage.removeItem('capsule-kakao') } catch { /* Storage may be unavailable. */ }
+      clear('account-withdrawn')
+    } finally { pending.current.delete('withdraw') }
   }, [clear])
   const updateAffinity = useCallback((characterId: number, value?: AffinityChange) => {
     if (!value || !Number.isSafeInteger(characterId)) return
@@ -349,7 +368,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   }, [patch])
   return (
     <DemoContext value={{ state, dispatch, storageAvailable: true }}>
-      <BackendContext value={{ ...meta, reload, refreshHome, updateAffinity, authenticate, logout, forgetAuthentication: clear, saveProfile, createMemory, startSession, resumeSession, finishSession, sendMessage, loadReport }}>
+      <BackendContext value={{ ...meta, reload, refreshHome, updateAffinity, authenticate, logout, withdrawAccount, forgetAuthentication: clear, saveProfile, createMemory, startSession, resumeSession, finishSession, sendMessage, loadReport }}>
         {children}
       </BackendContext>
     </DemoContext>
