@@ -2,6 +2,7 @@ import { studyRooms } from '@/features/rooms/data/rooms'
 import { getCharacterArtwork } from '@/features/characters/artwork'
 import { getRoomArtwork } from '@/features/rooms/artwork'
 import { roomPosters } from '@/features/rooms/posters'
+import { roomDetailBanners } from '@/features/rooms/detail-banners'
 import { dayKey } from '@/shared/lib/format'
 import terms from '@/features/auth/data/legal/terms.md?raw'
 import privacy from '@/features/auth/data/legal/privacy.md?raw'
@@ -16,7 +17,7 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
   const rooms = studyRooms.slice(0, 3).map((room, index) => ({
     id: 101 + index, name: room.name, description: room.description,
     thumbnailUrl: roomPosters[getRoomArtwork(room.id).tone],
-    bannerUrl: roomPosters[getRoomArtwork(room.id).tone],
+    bannerUrl: roomDetailBanners[room.id]!.src,
     characters: [{ id: 201 + index, name: room.characters[0]!.name, profileImageUrl: getCharacterArtwork(room.characters[0]!.id).study,
       personality: ['조용한', '다정한', '집중하는'], relation: { level: 3, totalStudySeconds: 7200, points: 62, stage: 2, stageName: '친구' } }],
   }))

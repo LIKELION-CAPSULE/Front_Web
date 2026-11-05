@@ -42,11 +42,11 @@ export function RoomCard({ room }: { room: StudyRoom }) {
             </Link>
           )}
         </h3>
-        {!comingSoon && !room.serverRoom && (
+        {!comingSoon && (
           <BookmarkButton
             pressed={saved}
             onClick={save}
-            label={`${room.name} 저장`}
+            label={`${room.name} ${saved ? '저장 해제' : '저장'}`}
             className="room-save"
           />
         )}

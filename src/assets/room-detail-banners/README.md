@@ -27,7 +27,9 @@
 - 인물과 공간의 원근·빛·접촉 그림자가 일치하고 몸을 지지하는 의자·소파·방석이 보이는 구도
 - 이미지 안 제목·로고·UI·워터마크와 인물 앞을 가리는 책상 제외
 
-[detail-banners.ts](../../features/rooms/detail-banners.ts)에 룸 ID별 경로·크기를 등록하고 [RoomDetailBanner](../../features/rooms/components/RoomDetailBanner.tsx)가 표시합니다. 데스크톱은 문구를 이미지 위에 배치하고, 1023px 이하에서는 인물 쪽 이미지와 문구를 위아래로 배치합니다. 배치는 [room-detail-banner.css](../../features/rooms/components/room-detail-banner.css)에서 조정합니다.
+[detail-banners.ts](../../features/rooms/detail-banners.ts)에 룸 ID별 경로·크기를 등록하고 [RoomDetailBanner](../../features/rooms/components/RoomDetailBanner.tsx)가 표시합니다. 헤더 바로 아래부터 화면 전체 너비로 이미지를 펼치고, 하단 그라데이션 위에 룸 제목·공부 시작·저장 버튼을 배치합니다. 모바일은 룸별 인물 위치를 기준으로 이미지를 채우고, 시작 버튼 옆에 저장 아이콘을 둡니다. 친구 이름과 인원수는 반복하지 않으며 아래에는 포스터·공간 소개·친구 정보가 이어집니다. 배치는 [room-detail-banner.css](../../features/rooms/components/room-detail-banner.css)에서 조정합니다.
+
+저장·해제 상태는 홈과 상세에서 공유하며 현재 브라우저에 계정별로 보관합니다. 새로고침과 로그아웃 후 같은 계정으로 로그인해도 유지하고, 회원탈퇴 시 해당 계정의 저장 목록만 제거합니다. 서버 동기화 API는 사용하지 않습니다.
 
 메인화면의 룸 카드는 `scenes/`의 분리된 배경·전신을 계속 사용합니다. 상세 배너를 바꿀 때는 이 폴더에 새 버전을 만들고 등록 경로를 교체하면 됩니다.
 
