@@ -11,6 +11,7 @@ import { drawCenterHoverMaterial } from './capsule-card-material'
 import { capsuleCardLayout as layout, isLightCapsule } from './capsule-card-layout'
 import { designColors, designTypography } from '@/shared/design/tokens'
 import { loadStoryFont } from '@/shared/design/story-font'
+import { canvasMeasure, fitCardQuote } from './card-quote'
 
 async function loadImage(src: string) {
   const image = new Image()
@@ -98,7 +99,7 @@ export async function exportCard(record: StudyRecord, character: string, color: 
   ctx.shadowBlur = 8
   ctx.drawImage(title, 40, 92, titleWidth, titleWidth * title.naturalHeight / title.naturalWidth)
   ctx.restore()
-  function textLine(text: string, y: number, role: 'body' | 'stat' | 'body-compact' | 'caption' | 'story-quote', family = 'Pretendard', fill: string = foreground) {
+  function textLine(text: string, y: number, role: 'body' | 'stat' | 'body-compact' | 'caption', family = 'Pretendard', fill: string = foreground) {
     const type = designTypography[role]
     ctx!.font = `${type.fontWeight} ${type.fontSizePx}px "${family}"`
     ctx!.fillStyle = fill
@@ -116,17 +117,15 @@ export async function exportCard(record: StudyRecord, character: string, color: 
   ctx.translate(10, 4)
   textLine(capsuleCardCopy.badge, layout.badge.top, 'caption', 'Pretendard', designColors.ink)
   ctx.restore()
-  const quoteType = designTypography['story-quote']
-  ctx.font = `${quoteType.fontWeight} ${quoteType.fontSizePx}px "${storyFont}"`
-  const lines: string[] = []
-  let line = ''
-  for (const word of (record.serverReport?.closingLine ?? capsuleCardCopy.quote).split(' ')) {
-    const next = line ? `${line} ${word}` : word
-    if (line && ctx.measureText(next).width > layout.contentWidth) { lines.push(line); line = word }
-    else line = next
-  }
-  if (line) lines.push(line)
-  lines.forEach((text, index) => textLine(text, layout.quote.top + index * designTypography['story-quote'].lineHeightPx, 'story-quote', storyFont))
+  const quote = fitCardQuote(record.serverReport?.closingLine ?? capsuleCardCopy.quote, canvasMeasure(ctx, storyFont))
+  ctx.font = `${layout.quote.fontWeight} ${quote.fontSize}px "${storyFont}"`
+  ctx.fillStyle = foreground
+  quote.lines.forEach((text, index) => {
+    const metrics = ctx.measureText(text)
+    const ascent = metrics.fontBoundingBoxAscent ?? quote.fontSize * .8
+    const descent = metrics.fontBoundingBoxDescent ?? quote.fontSize * .2
+    ctx.fillText(text, layout.padding, quote.top + index * quote.lineHeight + (quote.lineHeight - ascent - descent) / 2 + ascent, layout.contentWidth)
+  })
   return new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('이미지를 저장하지 못했어요.')), 'image/png'))
 }
 

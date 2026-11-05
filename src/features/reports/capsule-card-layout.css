@@ -21,5 +21,7 @@
   .capsule-card-stage .capsule-study-amount { top: var(--card-study-top); font-size: var(--text-stat); line-height: var(--text-stat--line-height); font-weight: 700; font-variant-numeric: tabular-nums lining-nums; }
   .capsule-card-stage .capsule-card-focus { top: var(--card-focus-top); font-weight: 400; }
   .capsule-card-stage .capsule-card-badge { position: absolute; top: var(--card-badge-top); left: 28px; margin: 0; background: var(--color-canvas); color: var(--color-ink); font-size: var(--text-caption); line-height: var(--text-caption--line-height); font-weight: 400; }
-  .capsule-card-stage .capsule-card-quote { top: var(--card-quote-top); font-size: var(--card-quote-size); line-height: var(--card-quote-line); font-weight: 500; letter-spacing: 0; }
+  /* top, font-size and line-height come from fitCardQuote so long lines stay inside the card. */
+  .capsule-card-stage .capsule-card-quote { font-weight: 500; letter-spacing: 0; }
+  .capsule-card-stage .capsule-card-quote > span { display: block; white-space: nowrap; }
 }
