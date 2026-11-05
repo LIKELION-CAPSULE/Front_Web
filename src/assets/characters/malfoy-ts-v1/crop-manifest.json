@@ -1,0 +1,28 @@
+{
+  "method": "deterministic alpha bounds, no regeneration / no aspect ratio distortion",
+  "alphaThreshold": 12,
+  "padding": 12,
+  "source": "masters/hogwarts-night-title-v1.png",
+  "output": "web/hogwarts-night-title-v1-trimmed.webp",
+  "crop": {
+    "x": 28,
+    "y": 2,
+    "width": 1488,
+    "height": 1013
+  },
+  "sourceSha256": "6449b09d1328ebb19ced433576ad081967fb76c273a7de9a269960ee66764ad8",
+  "outputMetadata": {
+    "width": 1488,
+    "height": 1013,
+    "mode": "RGBA",
+    "hasTransparency": true,
+    "alphaRange": [
+      0,
+      254
+    ],
+    "transparentPixels": 750623,
+    "semiTransparentPixels": 756721,
+    "bytes": 338534,
+    "sha256": "bc2ad3db79759a0dbae84832d56e74f5eb3c32ac639b76424e9b96460b8c407d"
+  }
+}

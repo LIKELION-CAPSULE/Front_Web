@@ -303,6 +303,7 @@ export type RoomDetail = {
   name?: string
   description?: string
   thumbnailUrl?: string
+  bannerUrl?: string
   characters?: (RoomCharacter)[]
   activeSessionId?: number
 }

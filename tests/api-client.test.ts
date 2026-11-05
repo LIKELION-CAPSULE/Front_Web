@@ -4,6 +4,66 @@ import { ApiClient, ApiError } from '../src/shared/api/client.ts'
 
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 
+test('concurrent GETs share one request, while later reads still reach the server', async () => {
+  let calls = 0
+  const client = new ApiClient(async () => { calls++; await new Promise(resolve => setTimeout(resolve, 5)); return json({ id: 1 }) })
+  const values = await Promise.all([client.request('/me'), client.request('/me')])
+  assert.equal(calls, 1)
+  assert.deepEqual(values, [{ id: 1 }, { id: 1 }])
+  await client.request('/me')
+  assert.equal(calls, 2)
+})
+
+test('mutations, separate signals and authentication modes never share a GET task', async () => {
+  let calls = 0
+  const client = new ApiClient(async () => { calls++; return json({ ok: true }) })
+  await Promise.all([
+    client.request('/me', { method: 'PATCH', body: {} }), client.request('/me', { method: 'PATCH', body: {} }),
+    client.request('/me', { signal: new AbortController().signal }), client.request('/me', { signal: new AbortController().signal }),
+    client.request('/me', { auth: false }), client.request('/me'),
+  ])
+  assert.equal(calls, 6)
+})
+
+test('new authentication never reuses a pending response from the previous account', async () => {
+  const replies: ((response: Response) => void)[] = []
+  const client = new ApiClient(async () => new Promise<Response>(resolve => { replies.push(resolve) }))
+  client.setToken('account-a')
+  const old = client.request('/me')
+  client.setToken('account-b')
+  const current = client.request('/me')
+  assert.equal(replies.length, 2)
+  replies[1]!(json({ userId: 2 }))
+  assert.deepEqual(await current, { userId: 2 })
+  replies[0]!(json({ userId: 1 }))
+  assert.deepEqual(await old, { userId: 1 })
+})
+
+test('a shared GET failure does not suppress a later retry', async () => {
+  let calls = 0
+  const client = new ApiClient(async () => { calls++; return calls === 1 ? json({ code: 'UNAVAILABLE' }, 503) : json({ ok: true }) })
+  const failures = await Promise.allSettled([client.request('/home'), client.request('/home')])
+  assert.equal(calls, 1)
+  assert.ok(failures.every(result => result.status === 'rejected'))
+  assert.deepEqual(await client.request('/home'), { ok: true })
+  assert.equal(calls, 2)
+})
+
+test('a read after a successful write never joins an older pending read', async () => {
+  const replies: ((response: Response) => void)[] = []
+  const client = new ApiClient(async (_url, options) => options?.method === 'POST'
+    ? json({ saved: true })
+    : new Promise<Response>(resolve => { replies.push(resolve) }))
+  const old = client.request('/me/memories')
+  await client.request('/me/memories', { method: 'POST', body: {} })
+  const updated = client.request('/me/memories')
+  assert.equal(replies.length, 2)
+  replies[1]!(json({ memories: ['saved'] }))
+  assert.deepEqual(await updated, { memories: ['saved'] })
+  replies[0]!(json({ memories: [] }))
+  await old
+})
+
 test('public authentication uses same-origin cookies without bearer and handles 204', async () => {
   const calls: RequestInit[] = []
   const client = new ApiClient(async (_url, init) => { calls.push(init!); return new Response(null, { status: 204 }) })

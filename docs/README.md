@@ -2,12 +2,14 @@
 
 | 문서 | 용도 |
 |---|---|
+| [API_CALL_OPTIMIZATION_2026-11-05.md](API_CALL_OPTIMIZATION_2026-11-05.md) · [JSON](API_CALL_OPTIMIZATION_2026-11-05.json) | API 중복·과도한 묶음 조회 최적화, 전후 요청 수, 메모리 재사용/무효화·heartbeat 정책·추가 개선 후보. 로컬 전용 |
+| [API_AUDIT_2026-11-05.md](API_AUDIT_2026-11-05.md) · [JSON](API_AUDIT_2026-11-05.json) | 최신 Swagger 변경·25개 API별 호출 위치/실응답·20개 정상/5개 오류만 검증·메일 수신·브라우저 결과. 로컬 전용 |
 | [REAL_ACCOUNT_API_TEST_GUIDE_2026-11-05.md](REAL_ACCOUNT_API_TEST_GUIDE_2026-11-05.md) | 17개 API 실계정 검증 순서·요청/응답 예시·화면 성공 기준·쿠키/갱신·heartbeat/이어하기 확인 방법. 로컬 전용 |
 | [KAKAO_LOGIN_REVIEW_2026-11-05.md](KAKAO_LOGIN_REVIEW_2026-11-05.md) | 추가 카카오 자료 대조·반영. 등록된 로컬 포트 3000, 버튼 동의 안내, callback 오류 복귀, 비밀번호 재설정 경로·토큰 제거 |
 | [STATE_AND_INSTANT_ACTION_REVIEW_2026-11-05.md](STATE_AND_INSTANT_ACTION_REVIEW_2026-11-05.md) | 추가 제공 문서의 네 순간 동작 코드·사전 대사·새 호감도 정책과 현재 코드/API 차이. 백엔드 반영 예정 |
 | [API_INTEGRATION_2026-11-05.md](API_INTEGRATION_2026-11-05.md) | API 연결 결과, 환경 설정, 상태·자리 지킴 정책, 검증과 대기 항목. 현재 실행 기준 |
 | [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) | 2026-11-05 코드 기준 프로젝트 구성, 현재 MVP, 두 프런트 앱의 데이터 흐름과 백엔드 연동 지점 |
-| [BACKEND_API.md](BACKEND_API.md) | Railway Swagger 기반 API 25개, 요청·응답 스키마 50개, 인증·세션 흐름과 프런트 연동 차이 |
+| [BACKEND_API.md](BACKEND_API.md) | 최신 Railway Swagger 기반 API 25개·스키마 50개, 새 bannerUrl·실제 상태 코드 차이·현재 연동 상태 |
 | [BACKEND_OPENAPI_2026-11-05.json](BACKEND_OPENAPI_2026-11-05.json) | 같은 날 내려받은 OpenAPI 3.1.0 원본 스냅샷. API 문서 검증·갱신 근거 |
 | [CAPSULE_서비스_기획_정리.md](CAPSULE_서비스_기획_정리.md) | 사업계획서를 재구성한 원본 참고 문서. 기존 파일을 내용 수정 없이 이동 |
 | [SERVICE_ANALYSIS.md](SERVICE_ANALYSIS.md) | 제품·사업·기술 분석, MVP 우선순위, 기획서와 와이어프레임의 차이 |

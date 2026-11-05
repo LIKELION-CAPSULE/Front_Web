@@ -8,6 +8,7 @@ export type StudyRoom = {
   description: string
   introduction: string
   coverUrl?: string
+  bannerUrl?: string
   characters: readonly Character[]
   contentStatus: 'preview' | 'coming-soon'
 }

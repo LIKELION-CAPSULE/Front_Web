@@ -1,0 +1,63 @@
+{
+  "characterId": "malfoy-ts",
+  "characterName": "말포이 TS",
+  "roomAssetId": "hogwarts-night-library",
+  "roomTitle": "밤의 호그와트 도서관",
+  "pathBase": "relative to this directory",
+  "status": "asset-ready / character and backend IDs require registration",
+  "scene": {
+    "background": "web/hogwarts-night-background-v1.webp",
+    "seatedBackground": "web/hogwarts-night-seated-background-v1.webp",
+    "subject": "web/malfoy-ts-fullbody-v1.webp",
+    "subjectSize": [
+      1024,
+      1536
+    ],
+    "title": "밤의 호그와트 도서관",
+    "titleImage": "web/hogwarts-night-title-v1-trimmed.webp",
+    "titleImageSize": [
+      1488,
+      1013
+    ]
+  },
+  "home": {
+    "subject": "web/malfoy-ts-home-subject-v1.webp",
+    "background": "web/hogwarts-night-seated-background-v1.webp",
+    "subjectSize": [
+      1024,
+      1536
+    ]
+  },
+  "characterArtwork": {
+    "study": "web/malfoy-ts-study-v1.webp",
+    "reaction": "web/malfoy-ts-reaction-v1.webp",
+    "affection": "web/malfoy-ts-affection-v1.webp",
+    "position": "50% 40%"
+  },
+  "welcomeBanner": {
+    "src": "web/malfoy-ts-welcome-banner-v1.webp",
+    "width": 2172,
+    "height": 724
+  },
+  "detailBanner": {
+    "src": "web/hogwarts-night-detail-banner-v1.webp",
+    "width": 2172,
+    "height": 724
+  },
+  "poster": "web/hogwarts-night-poster-v1.webp",
+  "completion": {
+    "src": "web/malfoy-ts-completion-v1.webp",
+    "backgroundSrc": "web/hogwarts-night-completion-background-v3.webp",
+    "foregroundSrc": "web/malfoy-ts-completion-character-v3.webp"
+  },
+  "typography": {
+    "titleMaster": "masters/hogwarts-night-title-v1.png",
+    "titleWeb": "web/hogwarts-night-title-v1-trimmed.webp"
+  },
+  "notes": [
+    "룸 제목은 밤의 호그와트 도서관으로 통일",
+    "배너·상태·완료 이미지는 문구를 HTML로 별도 표시. 포스터에만 공식 룸 제목 포함",
+    "리포트 v3는 배경+투명 인물 조합, 캡슐 카드는 completion.src 세로 완성형 사용",
+    "PNG 원본과 알파 유지 WebP를 보관. 기존 MVP 선택 정책·기존 캐릭터 이미지는 별도 관리"
+  ]
+}

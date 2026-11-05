@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { emptyState, numericId, profile, memory, session, report } from '../src/features/backend/adapters.ts'
+import { emptyState, numericId, profile, memory, room, session, report } from '../src/features/backend/adapters.ts'
 
 const serverTime = '2026-11-05T03:00:02Z'
 const startedAt = '2026-11-05T03:00:00Z'
@@ -22,6 +22,13 @@ test('only safe positive integer server IDs are accepted', () => {
 test('profile uses the authenticated identity and rejects an incomplete response', () => {
   assert.equal(profile({ userId: 7, nickname: '서버 사용자', onboardingRequired: false }).name, '서버 사용자')
   assert.throws(() => profile({ nickname: 'anonymous', onboardingRequired: false }))
+})
+
+test('room details retain the server banner separately from the list thumbnail', () => {
+  const result = room({ id: 11, name: '새 룸', characters: [], thumbnailUrl: 'https://assets.example/poster.webp', bannerUrl: 'https://assets.example/banner.webp' })
+  assert.equal(result.coverUrl, 'https://assets.example/poster.webp')
+  assert.equal(result.bannerUrl, 'https://assets.example/banner.webp')
+  assert.equal(room({ id: 11, name: '이전 룸', characters: [] }).bannerUrl, undefined)
 })
 
 test('server time corrects a skewed local clock and retains the three minute goal', () => {

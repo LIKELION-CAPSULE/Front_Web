@@ -1,16 +1,16 @@
 import { roomDetailBanners } from '../detail-banners'
 import './room-detail-banner.css'
 
-export function RoomDetailBanner({ roomId }: { roomId: string }) {
+export function RoomDetailBanner({ roomId, src }: { roomId: string; src?: string }) {
   const banner = roomDetailBanners[roomId] ?? roomDetailBanners['dawn-library']!
   return (
     <div className="room-detail-backdrop" aria-hidden="true">
       <img
         className="room-detail-banner-image"
-        src={banner.src}
+        src={src || banner.src}
         alt=""
-        width={banner.width}
-        height={banner.height}
+        width={src ? undefined : banner.width}
+        height={src ? undefined : banner.height}
         loading="eager"
         fetchPriority="high"
         decoding="async"
