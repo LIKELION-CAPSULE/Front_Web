@@ -40,6 +40,7 @@ export function room(dto: HomeRoom | RoomDetail): StudyRoom {
   if (!dto.name || !Array.isArray(dto.characters)) throw new ApiError('스터디룸 정보를 확인하지 못했어요.', 502)
   return {
     id: id(dto.id), serverRoom: true, name: dto.name, coverUrl: dto.thumbnailUrl,
+    bannerUrl: 'bannerUrl' in dto ? dto.bannerUrl : undefined,
     artworkId: studyRooms.find(value => value.name === dto.name)?.id,
     description: 'description' in dto ? dto.description ?? '' : '', introduction: '', contentStatus: 'preview',
     characters: dto.characters.map(character => ({

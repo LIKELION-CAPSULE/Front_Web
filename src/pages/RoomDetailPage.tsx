@@ -56,7 +56,10 @@ export default function RoomDetailPage() {
           className="room-detail-hero room-detail-hero--illustrated"
           aria-labelledby="room-title"
         >
-          {room.serverRoom && room.coverUrl && !room.artworkId ? <div className="room-detail-backdrop"><img src={room.coverUrl} alt="" className="room-detail-banner-image" /></div> : <RoomDetailBanner roomId={room.artworkId ?? room.id} />}
+          <RoomDetailBanner
+            roomId={room.artworkId ?? room.id}
+            src={room.bannerUrl || (room.serverRoom && !room.artworkId ? room.coverUrl : undefined)}
+          />
           <div className="room-detail-copy">
             <h1 id="room-title" className="type-story-title">{room.name}</h1>
             <p className="mt-4 max-w-md type-body text-muted">{room.description}</p>

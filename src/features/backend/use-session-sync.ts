@@ -34,7 +34,7 @@ type Input = {
 }
 type Runtime = {
   sessionId: string; signature: string; clock: PresenceClock; outbox: StateEvent[]; draining: Promise<void> | null
-  heartbeat: boolean; alive: boolean
+  heartbeat: boolean; lastHeartbeatAt: number; alive: boolean
   /** State-event ordering; motion events never change it. */
   flow: EventFlow
   motionSentAt: MotionCooldowns
@@ -153,6 +153,7 @@ export function useSessionSync(input: Input) {
       await drain(current)
       const count = totals(current)
       await api.request(`/sessions/${current.sessionId}/heartbeat`, { method: 'POST', body: latest.current.active?.presenceKnown === false ? undefined : { studySeconds: count.studySeconds, presentSeconds: count.presentSeconds } })
+      current.lastHeartbeatAt = Date.now()
       if (current.alive) setError('')
     } catch (reason) { fail(reason, current) }
     finally { current.heartbeat = false }
@@ -175,7 +176,7 @@ export function useSessionSync(input: Input) {
     if (!current || current.signature !== signature) {
       const baseAway = active.initialAwaySeconds ?? 0
       current = {
-        sessionId: active.id, signature, clock: new PresenceClock(baseAway), outbox: [], draining: null, heartbeat: false, alive: true,
+        sessionId: active.id, signature, clock: new PresenceClock(baseAway), outbox: [], draining: null, heartbeat: false, lastHeartbeatAt: Date.now(), alive: true,
         flow: { revision: 0, away: null }, motionSentAt: {}, motionTurn: 0,
       }
       runtime.current = current
@@ -201,7 +202,7 @@ export function useSessionSync(input: Input) {
     })
     const timer = window.setInterval(() => tick(sync), 250)
     const pulse = window.setInterval(() => { void heartbeat(sync) }, 60_000)
-    const visible = () => { tick(sync); if (!document.hidden) void heartbeat(sync) }
+    const visible = () => { tick(sync); if (!document.hidden && Date.now() - sync.lastHeartbeatAt >= 60_000) void heartbeat(sync) }
     document.addEventListener('visibilitychange', visible)
     return () => {
       sync.alive = false

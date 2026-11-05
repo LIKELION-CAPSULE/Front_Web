@@ -14,14 +14,14 @@ export function RoomCompanions({
   className?: string
   blurUnavailableCharacters?: boolean
 }) {
-  const available = blurUnavailableCharacters ? characters.filter(character => isMvpCharacter(character.id)) : characters
+  const available = blurUnavailableCharacters ? characters.filter(character => character.serverCharacter || isMvpCharacter(character.id)) : characters
   const names = (available.length ? available : characters).map((character) => character.name).join(' · ')
   return (
     <div className={cn('room-companions', className)}>
       <span className="room-card-avatars flex shrink-0 -space-x-2">
         {characters.map((character) => (
-          !blurUnavailableCharacters || isMvpCharacter(character.id)
-            ? <CharacterAvatar key={character.id} characterId={character.id} />
+          !blurUnavailableCharacters || character.serverCharacter || isMvpCharacter(character.id)
+            ? <CharacterAvatar key={character.id} characterId={character.artworkId ?? character.id} src={character.serverCharacter ? character.avatarUrl : undefined} />
             : <MvpGate key={character.id} label={character.name} className="mvp-avatar" compact inline>
                 <CharacterAvatar characterId={character.id} />
               </MvpGate>

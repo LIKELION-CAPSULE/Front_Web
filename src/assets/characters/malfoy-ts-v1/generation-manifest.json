@@ -1,0 +1,756 @@
+{
+  "generatedAt": "2026-11-05",
+  "tool": "built-in image_gen.imagegen",
+  "characterId": "malfoy-ts",
+  "characterName": "말포이 TS",
+  "roomTitle": "밤의 호그와트 도서관",
+  "roomAssetId": "hogwarts-night-library",
+  "canonicalIdentity": "The SAME young adult female genderbent Draco Malfoy, age 20+, pale complexion, cool aristocratic narrow face and pointed chin, slender straight nose, sharp cool emerald eyes, very long straight platinum-blonde hair parted at the center with curtain face-framing strands and a visible forehead, small silver hoop earrings. Crisp white collared shirt, emerald-and-silver diagonal striped necktie, charcoal grey V-neck sweater vest with subtle emerald trim, black Hogwarts-style academic robe with dark emerald lining and a small serpent crest, dark pleated skirt near the knee, opaque black tights, polished black loafers. An aloof intelligent expression with restrained warmth. This exact face, hair length/parting, earrings, uniform colors and clothing layers MUST stay consistent.",
+  "counts": {
+    "pngMasters": 14,
+    "webpFiles": 15,
+    "previewItems": 15
+  },
+  "assets": [
+    {
+      "id": "fullbody",
+      "role": "기준 전신 · 투명",
+      "master": "masters/malfoy-ts-fullbody-v1.png",
+      "web": "web/malfoy-ts-fullbody-v1.webp",
+      "transparentBackground": true,
+      "masterMetadata": {
+        "width": 1024,
+        "height": 1536,
+        "mode": "RGBA",
+        "hasTransparency": true,
+        "alphaRange": [
+          0,
+          254
+        ],
+        "transparentPixels": 955497,
+        "semiTransparentPixels": 617367,
+        "bytes": 1638832,
+        "sha256": "0c71e4c5074014259d99f3221a21955c64402e23414bc523998b6a1db8761c6f"
+      },
+      "webMetadata": {
+        "width": 1024,
+        "height": 1536,
+        "mode": "RGBA",
+        "hasTransparency": true,
+        "alphaRange": [
+          0,
+          254
+        ],
+        "transparentPixels": 955497,
+        "semiTransparentPixels": 617367,
+        "bytes": 152256,
+        "sha256": "5107515edee5b3f9536c4cb0e408ea4b084efaa25570ed49894a53d9c2f36b65"
+      },
+      "encoding": {
+        "quality": 90,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: illustration-story / stylized-concept.\nAsset type: production canonical full-body transparent character master for the CAPSULE study companion app; this is the first identity reference for a complete consistent asset set.\nPrimary request: a female version of Draco Malfoy (\"말포이 TS\"), age 20+, rendered in the polished detailed Korean anime / visual novel painting style of the existing CAPSULE illustrations.\nInput images: Image 1 is a visual reference for the genderbent Malfoy archetype (platinum hair, green eyes, green-silver uniform, robe). Use these character motifs but CREATE a new neutral full-body illustration; do not reproduce the reference pose, camera or composition. Image 2 is only an illustration finish reference from the existing CAPSULE project; do not copy that character's face, blunt bangs, golden lighting or ordinary school uniform.\nSubject: The SAME young adult female genderbent Draco Malfoy, age 20+, pale complexion, cool aristocratic narrow face and pointed chin, slender straight nose, sharp cool emerald eyes, very long straight platinum-blonde hair parted at the center with curtain face-framing strands and a visible forehead, small silver hoop earrings. Crisp white collared shirt, emerald-and-silver diagonal striped necktie, charcoal grey V-neck sweater vest with subtle emerald trim, black Hogwarts-style academic robe with dark emerald lining and a small serpent crest, dark pleated skirt near the knee, opaque black tights, polished black loafers. An aloof intelligent expression with restrained warmth. This exact face, hair length/parting, earrings, uniform colors and clothing layers MUST stay consistent.\nComposition: one character only, head-to-toe standing three-quarter front view, naturally balanced relaxed posture, knees and feet visible, one arm holding a closed dark emerald book against her torso and the other relaxed. Whole body centered in a portrait 1024x1536 canvas, clear safe margin on all sides including long hair and shoes. Neutral cool silver key light and restrained emerald rim light; refined layered fabric and clean expressive eyes.\nBackground: genuinely transparent alpha. Only the character and the held book. No environment, floor, chair, desk, backdrop glow, shadow plane, border, labels, text, logo or watermark. Avoid pin-up posing, low angles and exaggerated anatomy. Preserve real alpha especially hair edges.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/tmp/capsule-malfoy-references/female-malfoy-reference.jpg",
+          "role": "visual research reference"
+        },
+        {
+          "inputImage": 2,
+          "path": "src/assets/characters/kang-study.webp",
+          "role": "rendering/style reference"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-30a07d11-2cb5-4538-a7f1-596d925706d2.png"
+    },
+    {
+      "id": "sceneBackground",
+      "role": "공부 장면 배경",
+      "master": "masters/hogwarts-night-background-v1.png",
+      "web": "web/hogwarts-night-background-v1.webp",
+      "transparentBackground": false,
+      "masterMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 2473942,
+        "sha256": "12ebea34634d93e3243de1c5cdc29786fce84f0d98d8d6ed474509d070c0ada6"
+      },
+      "webMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 250786,
+        "sha256": "e2c6ff8a6699506d94eadf031b639adb7559c13a203395510ba899d5bd229454"
+      },
+      "encoding": {
+        "quality": 88,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: illustration-story.\nAsset type: empty environment/background plate for a layered CAPSULE study-room illustration.\nPrimary request: \"밤의 호그와트 도서관\" (Hogwarts library at night), specifically a Slytherin-feeling quiet scholarly interior. This is a clean background, not a poster.\nInput image 1 is an architectural/palette reference from the Slytherin common room. Reinterpret it as an original library painting with no people or game UI.\nScene: an elegant gothic castle library after dark. Tall pointed stone arches and very high dark walnut bookshelves, silver serpent details, rich dark emerald velvet reading seats, a few warm brass reading lamps, a vaulted ceiling, leaded windows glowing with deep blue-green moonlit lake water and silver light. Cool emerald and charcoal palette with tiny warm pools of lamplight, reflective green-black stone floor and worn books. Rich readable environment rather than total darkness. Moody, exclusive, calm, study-friendly.\nComposition: wide 16:9 landscape around 2048x1152. Same visual-novel/Korean anime illustration finish as the CAPSULE artwork, detailed hand-painted background, natural perspective viewed from seated eye level. Leave the central and lower-right foreground as unobstructed floor/rug where a separately drawn character can sit/stand. Tables and reading chairs are in the mid/background only, never a giant desk across the front. A calm dark left zone can support app copy.\nConstraints: absolutely no people, human silhouettes, portraits of faces, floating books, animals, UI, legible letters, in-image title, game HUD, crests used as a watermark or logos. Opaque background, no border.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/tmp/capsule-malfoy-references/slytherin-common-room-reference.jpg",
+          "role": "visual research reference"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-52902115-d452-45fd-83c7-6cd6d634e1b6.png"
+    },
+    {
+      "id": "title",
+      "role": "룸 제목 · 투명 원본",
+      "master": "masters/hogwarts-night-title-v1.png",
+      "web": "web/hogwarts-night-title-v1.webp",
+      "transparentBackground": true,
+      "masterMetadata": {
+        "width": 1536,
+        "height": 1024,
+        "mode": "RGBA",
+        "hasTransparency": true,
+        "alphaRange": [
+          0,
+          254
+        ],
+        "transparentPixels": 815972,
+        "semiTransparentPixels": 756892,
+        "bytes": 2336377,
+        "sha256": "6449b09d1328ebb19ced433576ad081967fb76c273a7de9a269960ee66764ad8"
+      },
+      "webMetadata": {
+        "width": 1536,
+        "height": 1024,
+        "mode": "RGBA",
+        "hasTransparency": true,
+        "alphaRange": [
+          0,
+          254
+        ],
+        "transparentPixels": 815972,
+        "semiTransparentPixels": 756892,
+        "bytes": 337860,
+        "sha256": "252fc618af1c689abe658ed55f0aefd07e614b4b3191a48a4a132399d2587692"
+      },
+      "encoding": {
+        "quality": 90,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: logo-brand / illustration-story.\nAsset type: transparent illustrated Korean room-title wordmark for an anime study-room card, not a complete poster.\nText (verbatim, exact Korean): \"밤의 호그와트 도서관\". Render the complete phrase correctly with no missing/extra Hangul. Suggested two-line arrangement: first line \"밤의 호그와트\", second line \"도서관\". Do not write English or any additional subtitle.\nStyle: elegant magical scholarly gothic-inspired Korean lettering, readable distinctive Korean serif strokes with restrained calligraphic flourishes, antique silver and pearl highlights, deep emerald edges and a fine charcoal outline so it reads on both light and dark scenes. Slightly larger second line, compact balanced silhouette; restrained small crescent-moon and silver serpent-like flourish integrated with letters, no large illustration. Premium night-library / Slytherin mood, refined rather than scary.\nComposition: one centered isolated title lockup on a genuinely transparent canvas, landscape about 1536x1024, lettering fills 85-90% of available area with a clear safe margin. All letter strokes and decorations inside the canvas. It must remain readable when shown 300px wide.\nConstraints: genuine alpha transparency around and inside letter counters. No solid background, paper, room, character, frame, watermark, app UI, mockup scene, extraneous symbols or other text.",
+      "referenceRoles": [],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-f73d93dc-e22f-448d-a8dd-3fd2528bef29.png"
+    },
+    {
+      "id": "study",
+      "role": "공부 상태",
+      "master": "masters/malfoy-ts-study-v1.png",
+      "web": "web/malfoy-ts-study-v1.webp",
+      "transparentBackground": false,
+      "masterMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 2475666,
+        "sha256": "dd1c35c868165ae66a010d9f0c39e8ee5c63086f73b45d12949e12ad69cc5b92"
+      },
+      "webMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 270894,
+        "sha256": "bc692ba46e4093e65652349ebff69689adbb3fefb6df509ab8aa7f382bdbfb24"
+      },
+      "encoding": {
+        "quality": 88,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: identity-preserve / illustration-story. Asset type: opaque 16:9 study-state scene for the CAPSULE study companion.\nInput 1 is the CANONICAL CHARACTER IDENTITY. Input 2 is the environment/palette reference. Create a new scene with the exact same woman, face, long center-parted platinum hair, small hoop earrings, green eyes, all uniform and robe layers. The SAME young adult female genderbent Draco Malfoy, age 20+, pale complexion, cool aristocratic narrow face and pointed chin, slender straight nose, sharp cool emerald eyes, very long straight platinum-blonde hair parted at the center with curtain face-framing strands and a visible forehead, small silver hoop earrings. Crisp white collared shirt, emerald-and-silver diagonal striped necktie, charcoal grey V-neck sweater vest with subtle emerald trim, black Hogwarts-style academic robe with dark emerald lining and a small serpent crest, dark pleated skirt near the knee, opaque black tights, polished black loafers. An aloof intelligent expression with restrained warmth. This exact face, hair length/parting, earrings, uniform colors and clothing layers MUST stay consistent.\nScene: the Hogwarts library at night in the Slytherin palette of input 2: dark wood bookshelves, gothic arches, emerald lake/moon window light and a warm desk reading lamp.\nComposition: landscape 16:9 around 1536x864. Medium shot at seated eye level, character seated behind a dark walnut study desk, upper body and hands fully visible, the face at roughly 55% image width. She is quietly focused on an open book and writing notes with a quill in the other hand. Natural correct finger anatomy and believable chair/desk contact. Cool composed concentrated expression, mouth closed, eyes looking down toward her notes. Her sleeves and green-lined robe drape naturally. Match the polished Korean anime visual-novel rendering of input 1.\nNo title, legible writing, speech bubble, UI, heart icons, logo, watermark or other people. Do not change the character design. Opaque whole scene.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/malfoy-ts-fullbody-v1.png",
+          "role": "canonical character identity"
+        },
+        {
+          "inputImage": 2,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/hogwarts-night-background-v1.png",
+          "role": "environment and palette reference"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-b5a8e68e-b167-4605-8398-73cae054edaa.png"
+    },
+    {
+      "id": "reaction",
+      "role": "반응 상태",
+      "master": "masters/malfoy-ts-reaction-v1.png",
+      "web": "web/malfoy-ts-reaction-v1.webp",
+      "transparentBackground": false,
+      "masterMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 2584921,
+        "sha256": "fe2f9b58d652389d5d4c0051bc545dcbdd1bd6ef5e058d3e65e111f42d8004df"
+      },
+      "webMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 300442,
+        "sha256": "06209b42b65272c03719d23113d838f1229d797912a0dbc51d57c029d5a71d34"
+      },
+      "encoding": {
+        "quality": 88,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: identity-preserve / illustration-story. Asset type: opaque 16:9 attentive reaction-state scene for the CAPSULE study companion.\nInput 1 is the exact canonical character; input 2 defines the night-library location. The SAME young adult female genderbent Draco Malfoy, age 20+, pale complexion, cool aristocratic narrow face and pointed chin, slender straight nose, sharp cool emerald eyes, very long straight platinum-blonde hair parted at the center with curtain face-framing strands and a visible forehead, small silver hoop earrings. Crisp white collared shirt, emerald-and-silver diagonal striped necktie, charcoal grey V-neck sweater vest with subtle emerald trim, black Hogwarts-style academic robe with dark emerald lining and a small serpent crest, dark pleated skirt near the knee, opaque black tights, polished black loafers. An aloof intelligent expression with restrained warmth. This exact face, hair length/parting, earrings, uniform colors and clothing layers MUST stay consistent.\nSame dark walnut reading desk, open books, quill and warm lamp in an emerald/blue gothic Hogwarts library at night, as a coherent alternate pose to a study scene. Medium shot at seated eye level, character around 55% width, landscape 16:9 around 1536x864, upper body and hands visible.\nPose/expression: she has paused writing and looks directly at the viewer with one slightly raised eyebrow and a small confident teasing smirk, one finger keeping her place in the open book, her other hand holding the quill lightly above her notes. A subtle \"you called?\" reaction; intelligent and reserved, not shouting or aggressive. Keep neutral natural posture, outfit, hair parting/length, eyes and silver hoop earrings identical. Polished detailed Korean anime / visual novel painting, cool moon rim light with a modest warm desk-lamp accent.\nNo text, readable notes, title, speech bubble, UI, logo, watermark, floating symbols or other people. Opaque background.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/malfoy-ts-fullbody-v1.png",
+          "role": "canonical character identity"
+        },
+        {
+          "inputImage": 2,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/hogwarts-night-background-v1.png",
+          "role": "environment and palette reference"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-2d9b5295-ed98-44fe-a46f-23cd5994cad6.png"
+    },
+    {
+      "id": "affection",
+      "role": "휴식 · 호감 상태",
+      "master": "masters/malfoy-ts-affection-v1.png",
+      "web": "web/malfoy-ts-affection-v1.webp",
+      "transparentBackground": false,
+      "masterMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 2446245,
+        "sha256": "dff9ba4f2948fc782e23f2976d3f81c7ac517ea50f2869c37c15c096ef44bfcf"
+      },
+      "webMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 256818,
+        "sha256": "71fea8b9f3ec044e158b9d19ad8e4306ef55ae8ad7ef9b074238343290cbed19"
+      },
+      "encoding": {
+        "quality": 88,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: identity-preserve / illustration-story. Asset type: opaque 16:9 rest / gentle-affection state for the CAPSULE study companion.\nInput 1 is the exact canonical character, input 2 is the night-library environment. The SAME young adult female genderbent Draco Malfoy, age 20+, pale complexion, cool aristocratic narrow face and pointed chin, slender straight nose, sharp cool emerald eyes, very long straight platinum-blonde hair parted at the center with curtain face-framing strands and a visible forehead, small silver hoop earrings. Crisp white collared shirt, emerald-and-silver diagonal striped necktie, charcoal grey V-neck sweater vest with subtle emerald trim, black Hogwarts-style academic robe with dark emerald lining and a small serpent crest, dark pleated skirt near the knee, opaque black tights, polished black loafers. An aloof intelligent expression with restrained warmth. This exact face, hair length/parting, earrings, uniform colors and clothing layers MUST stay consistent.\nSame dark walnut desk, open books and warm reading lamp in the same Slytherin emerald/blue Hogwarts library at night. Landscape 16:9 around 1536x864, medium shot from seated eye level, upper body and relaxed hands fully visible, face at roughly 55% width.\nPose/expression: a quiet study break. She rests her cheek lightly on one hand, the other hand rests naturally on the closed green book, shoulders relaxed, eyes meeting the viewer with a restrained soft smile and very slight warmth in the cheeks. Preserve her cool aristocratic features and confident Malfoy identity; do not turn her into a different cheerful girl. Same center-parted long platinum hair, small silver hoops, robe, sweater vest and emerald/silver tie. Polished Korean anime visual-novel painting; cool silver/green ambient light and a soft warm lamplight on her face.\nNo hearts, romantic props, text, title, speech bubbles, legible lettering, UI, logos, watermark or other people. Fully opaque scene.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/malfoy-ts-fullbody-v1.png",
+          "role": "canonical character identity"
+        },
+        {
+          "inputImage": 2,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/hogwarts-night-background-v1.png",
+          "role": "environment and palette reference"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-14fccf95-eefe-4ca1-bff2-a08a34a96ebf.png"
+    },
+    {
+      "id": "homeSubject",
+      "role": "홈 카드 전경 · 투명",
+      "master": "masters/malfoy-ts-home-subject-v1.png",
+      "web": "web/malfoy-ts-home-subject-v1.webp",
+      "transparentBackground": true,
+      "masterMetadata": {
+        "width": 1024,
+        "height": 1536,
+        "mode": "RGBA",
+        "hasTransparency": true,
+        "alphaRange": [
+          0,
+          254
+        ],
+        "transparentPixels": 719984,
+        "semiTransparentPixels": 852880,
+        "bytes": 1979924,
+        "sha256": "f73c13cb94a36f4ae81ccb313700d136d0d04c79f149332de4b1c445d4091296"
+      },
+      "webMetadata": {
+        "width": 1024,
+        "height": 1536,
+        "mode": "RGBA",
+        "hasTransparency": true,
+        "alphaRange": [
+          0,
+          254
+        ],
+        "transparentPixels": 719984,
+        "semiTransparentPixels": 852880,
+        "bytes": 195060,
+        "sha256": "876bc206aa4ae5fcea2565e202861e975be44b34c49bdce96985055a9f8851d7"
+      },
+      "encoding": {
+        "quality": 90,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: identity-preserve / background-extraction. Asset type: genuinely transparent seated full-body foreground for a CAPSULE home room card.\nInput 1 is the exact identity and rendering reference. The SAME young adult female genderbent Draco Malfoy, age 20+, pale complexion, cool aristocratic narrow face and pointed chin, slender straight nose, sharp cool emerald eyes, very long straight platinum-blonde hair parted at the center with curtain face-framing strands and a visible forehead, small silver hoop earrings. Crisp white collared shirt, emerald-and-silver diagonal striped necktie, charcoal grey V-neck sweater vest with subtle emerald trim, black Hogwarts-style academic robe with dark emerald lining and a small serpent crest, dark pleated skirt near the knee, opaque black tights, polished black loafers. An aloof intelligent expression with restrained warmth. This exact face, hair length/parting, earrings, uniform colors and clothing layers MUST stay consistent.\nCreate a seated version of this SAME woman, on a compact low dark-emerald velvet cushion with only the cushion included. Entire body from head through both black loafers visible, legs naturally held together angled slightly to one side, dignified upright posture and a closed emerald book resting across her lap, both hands naturally on the book. The black green-lined robe is neatly draped around her, all clothing covers naturally. Small confident closed-mouth smile, gaze toward the viewer. View from normal eye level, three-quarter front, no low angle or exaggerated foreshortening.\nPortrait about 1024x1536, centered with complete hair, shoes and robe hem inside safe margins. Cool silver/emerald soft rim light, detailed Korean anime painting matching input 1.\nGenuinely transparent alpha background. Only the same character, her lap book and the small cushion. No floor, backdrop, library, chair back, desk, shadow plane, opaque halo, text, UI, logo or watermark. Preserve translucent hair-edge alpha.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/malfoy-ts-fullbody-v1.png",
+          "role": "canonical character identity"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-747bbe8f-d2c2-44af-bc8e-8aaabaf95d4c.png"
+    },
+    {
+      "id": "welcome",
+      "role": "홈 환영 배너",
+      "master": "masters/malfoy-ts-welcome-banner-v1.png",
+      "web": "web/malfoy-ts-welcome-banner-v1.webp",
+      "transparentBackground": false,
+      "masterMetadata": {
+        "width": 2172,
+        "height": 724,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 2519353,
+        "sha256": "50d6e58542d325934fb582926266b70bf22249f8b74d7046087c8ebf7661b6dd"
+      },
+      "webMetadata": {
+        "width": 2172,
+        "height": 724,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 281980,
+        "sha256": "08952ceb41fd6072d244e0f4939db02af65cb00412f5d58e4d4fb39dfbf2b6e3"
+      },
+      "encoding": {
+        "quality": 88,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: identity-preserve / illustration-story. Asset type: CAPSULE home welcome banner, panoramic 3:1 around 2172x724.\nInput 1 is the exact canonical woman and outfit. Input 2 defines the gothic Hogwarts night-library, emerald/charcoal palette, lake-window light and warm reading lamps. The SAME young adult female genderbent Draco Malfoy, age 20+, pale complexion, cool aristocratic narrow face and pointed chin, slender straight nose, sharp cool emerald eyes, very long straight platinum-blonde hair parted at the center with curtain face-framing strands and a visible forehead, small silver hoop earrings. Crisp white collared shirt, emerald-and-silver diagonal striped necktie, charcoal grey V-neck sweater vest with subtle emerald trim, black Hogwarts-style academic robe with dark emerald lining and a small serpent crest, dark pleated skirt near the knee, opaque black tights, polished black loafers. An aloof intelligent expression with restrained warmth. This exact face, hair length/parting, earrings, uniform colors and clothing layers MUST stay consistent.\nCreate a polished Korean anime illustration of this same woman studying at an elegant walnut desk in that night library, seen from a natural seated eye-level angle, placed on the right 40% of this ultrawide image. She glances toward the viewer with a cool knowing half-smile, a hand resting on an open book. Keep her face and upper body clear and recognizable, platinum hair with center part, robe green lining, hoop earrings and green/silver tie.\nThe left half is a darker, visually calm extension of the book-lined library with subtle arched window light, reserved for actual HTML greeting and button; no face or bright busy object in that copy zone. Beautiful deep emerald atmosphere and muted warm lamps, environment still legible.\nOne continuous coherent 3:1 scene, not panels or collage. Absolutely no text, title, nameplate, speech bubble, icon, logo, UI, border, other people or watermark. Opaque image.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/malfoy-ts-fullbody-v1.png",
+          "role": "canonical character identity"
+        },
+        {
+          "inputImage": 2,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/hogwarts-night-background-v1.png",
+          "role": "environment and palette reference"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-e304e7ab-df66-458f-aaba-e3bfe9e6438d.png"
+    },
+    {
+      "id": "detail",
+      "role": "룸 상세 배너",
+      "master": "masters/hogwarts-night-detail-banner-v1.png",
+      "web": "web/hogwarts-night-detail-banner-v1.webp",
+      "transparentBackground": false,
+      "masterMetadata": {
+        "width": 2172,
+        "height": 724,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 2623929,
+        "sha256": "1e4a6a9833de66ecd85b14544c5ae53989d24bdfd34a2644f2b7b0b410aa60a3"
+      },
+      "webMetadata": {
+        "width": 2172,
+        "height": 724,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 319676,
+        "sha256": "7597a64878416f94cdccbb9c86115d729a1a088e1bea9fe802d57cc25151d23e"
+      },
+      "encoding": {
+        "quality": 88,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: identity-preserve / illustration-story. Asset type: complete CAPSULE room-detail panoramic banner 3:1 around 2172x724 for the room \"밤의 호그와트 도서관\"; do NOT render the title in the artwork.\nInput 1 is the exact female Malfoy character, input 2 is the Hogwarts Slytherin-style night-library environment. The SAME young adult female genderbent Draco Malfoy, age 20+, pale complexion, cool aristocratic narrow face and pointed chin, slender straight nose, sharp cool emerald eyes, very long straight platinum-blonde hair parted at the center with curtain face-framing strands and a visible forehead, small silver hoop earrings. Crisp white collared shirt, emerald-and-silver diagonal striped necktie, charcoal grey V-neck sweater vest with subtle emerald trim, black Hogwarts-style academic robe with dark emerald lining and a small serpent crest, dark pleated skirt near the knee, opaque black tights, polished black loafers. An aloof intelligent expression with restrained warmth. This exact face, hair length/parting, earrings, uniform colors and clothing layers MUST stay consistent.\nScene: a richly painted midnight gothic library with dark wood shelves, pointed stone arches, deep emerald velvet furniture and moonlit lake-green windows, restrained warm bronze lamps. On the right half, the same woman sits comfortably in an emerald velvet reading armchair with her pelvis actually supported by the seat, knees naturally lowered and together, black tights and loafers visible, a green book open across her lap. Calm poised expression, head slightly turned toward viewer; the full seated silhouette and chair contact must be natural. The long black robe with emerald lining drapes from the chair naturally.\nThe left 45% remains a calm darker view of the library shelves and arched windows for HTML copy. No large foreground desk obscuring her. One continuous scene, correct perspective, sophisticated Korean anime visual-novel painting matching input 1.\nNo embedded title, letters, labels, nameplates, speech bubbles, UI, logo, other people or watermark. Opaque image.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/malfoy-ts-fullbody-v1.png",
+          "role": "canonical character identity"
+        },
+        {
+          "inputImage": 2,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/hogwarts-night-background-v1.png",
+          "role": "environment and palette reference"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-38c2a510-e8fd-4bca-9ade-f72543ce8f06.png"
+    },
+    {
+      "id": "poster",
+      "role": "로그인 · 룸 포스터",
+      "master": "masters/hogwarts-night-poster-v1.png",
+      "web": "web/hogwarts-night-poster-v1.webp",
+      "transparentBackground": false,
+      "masterMetadata": {
+        "width": 1024,
+        "height": 1536,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 2746088,
+        "sha256": "1aabfd08c17fe72a795a9083a7a19f0a0fb791934bc7de5799d64043061fc42a"
+      },
+      "webMetadata": {
+        "width": 1024,
+        "height": 1536,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 336608,
+        "sha256": "fe3fd34357708e23f40ee4cb896912727a85b36f02861b9d64d176178d0ec24f"
+      },
+      "encoding": {
+        "quality": 88,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: illustration-story / ads-marketing. Asset type: original portrait room key-art poster for a CAPSULE login poster grid.\nInput 1 is the exact canonical female Malfoy character, input 2 is the night-library environment/palette, input 3 is the exact Korean room-title wordmark design and spelling.\nThe SAME young adult female genderbent Draco Malfoy, age 20+, pale complexion, cool aristocratic narrow face and pointed chin, slender straight nose, sharp cool emerald eyes, very long straight platinum-blonde hair parted at the center with curtain face-framing strands and a visible forehead, small silver hoop earrings. Crisp white collared shirt, emerald-and-silver diagonal striped necktie, charcoal grey V-neck sweater vest with subtle emerald trim, black Hogwarts-style academic robe with dark emerald lining and a small serpent crest, dark pleated skirt near the knee, opaque black tights, polished black loafers. An aloof intelligent expression with restrained warmth. This exact face, hair length/parting, earrings, uniform colors and clothing layers MUST stay consistent.\nPortrait 1024x1536. Compose this same woman in an elegant dark-emerald gothic Hogwarts library at night, framed from head through knees near the center, holding a closed green book, calmly looking toward the viewer with an aloof confident slight smile. Platinum hair is luminous against dark vaulted bookshelves, emerald/silver uniform and robe unchanged. Background: moonlit green-blue arched lake windows, silver serpent architectural detail and small warm reading lamps. Rich polished Korean anime visual-novel painting.\nNear the lower quarter, integrate the EXACT Korean title \"밤의 호그와트 도서관\" as a readable elegant antique-silver and emerald magical title, using input 3 as its typography reference. This title is the ONLY text. Keep her face clear, title must not cover the face, no extra labels or subtitles, no English. Spell every Hangul syllable correctly.\nNo app UI, fake buttons, frames, logos, watermarks or other people. A finished illustration poster rather than a flat collage.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/malfoy-ts-fullbody-v1.png",
+          "role": "canonical character identity"
+        },
+        {
+          "inputImage": 2,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/hogwarts-night-background-v1.png",
+          "role": "environment and palette reference"
+        },
+        {
+          "inputImage": 3,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/hogwarts-night-title-v1.png",
+          "role": "exact title typography"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-cc546154-fb25-427b-9947-07e0cf4529ae.png"
+    },
+    {
+      "id": "completionPortrait",
+      "role": "완료 · 캡슐 카드 세로 원본",
+      "master": "masters/malfoy-ts-completion-v1.png",
+      "web": "web/malfoy-ts-completion-v1.webp",
+      "transparentBackground": false,
+      "masterMetadata": {
+        "width": 1024,
+        "height": 1536,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 2435149,
+        "sha256": "24ac29c800f25942addb08ff6595da77eb65818e0e06b265d2be24c165441530"
+      },
+      "webMetadata": {
+        "width": 1024,
+        "height": 1536,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 240316,
+        "sha256": "6fe517ce027b1dddaa7797add11c6da96a116e92b1defa59c3ccf0394f584708"
+      },
+      "encoding": {
+        "quality": 88,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: identity-preserve / illustration-story. Asset type: dedicated study-completion portrait illustration for CAPSULE capsule-card previews and PNG export.\nInput 1 defines the SAME canonical female Malfoy face, hair, clothing and rendering. Input 2 defines the Hogwarts library at night. The SAME young adult female genderbent Draco Malfoy, age 20+, pale complexion, cool aristocratic narrow face and pointed chin, slender straight nose, sharp cool emerald eyes, very long straight platinum-blonde hair parted at the center with curtain face-framing strands and a visible forehead, small silver hoop earrings. Crisp white collared shirt, emerald-and-silver diagonal striped necktie, charcoal grey V-neck sweater vest with subtle emerald trim, black Hogwarts-style academic robe with dark emerald lining and a small serpent crest, dark pleated skirt near the knee, opaque black tights, polished black loafers. An aloof intelligent expression with restrained warmth. This exact face, hair length/parting, earrings, uniform colors and clothing layers MUST stay consistent.\nPortrait 1024x1536, one woman centered, framed from the full top of her head through the upper thighs. She has just finished studying and offers a restrained pleased smile, eyes directed at the viewer with gentle confidence. One hand raised beside her shoulder in a small natural goodbye/encouragement wave with five well-formed fingers, the other arm holds a closed dark emerald notebook against her waist. Same green-silver tie, charcoal vest, black emerald-lined robe, silver hoop earrings, long center-parted platinum hair. Her aristocratic features remain recognizable; no blunt bangs.\nBackground: softly rendered emerald gothic Hogwarts night-library with dark shelves and a quiet reading lamp, cool silver window rim light and a gentle warm touch on the face, natural integration. Detailed polished Korean anime painting matching input 1. Keep hair, waving fingers and book inside safe margins.\nNo text, in-image title, UI, bubble, logo, hearts, extra people or watermark. Opaque illustration. The exact woman and pose will later be extracted as the transparent report foreground.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/malfoy-ts-fullbody-v1.png",
+          "role": "canonical character identity"
+        },
+        {
+          "inputImage": 2,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/hogwarts-night-background-v1.png",
+          "role": "environment and palette reference"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-22d226a0-d526-4f7f-8b4f-ba557f3f0490.png"
+    },
+    {
+      "id": "seatedBackground",
+      "role": "홈 바닥 배경",
+      "master": "masters/hogwarts-night-seated-background-v1.png",
+      "web": "web/hogwarts-night-seated-background-v1.webp",
+      "transparentBackground": false,
+      "masterMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 2722627,
+        "sha256": "9ea256ff3bab3ded5d7f5a9cef5f7dea8cad45ffd66534fe2ecde42eecfe3006"
+      },
+      "webMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 362712,
+        "sha256": "e0cb0293b3ef9879801a1c71e53f080e37e10f6a2f7b1e556b2ccc74146c26c9"
+      },
+      "encoding": {
+        "quality": 88,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: precise-object-edit / illustration-story. Asset type: clean empty home-card floor background in the same Hogwarts night-library, wide 16:9 around 2048x1152.\nInput 1 is the environment consistency reference. Preserve the same gothic library identity: emerald/blue lake-window glow, pointed stone arches, dark walnut bookshelves, silver serpent ornaments, tiny warm lamps. Create a second view from a slightly closer/lower reading-lounge position, with a broad open dark emerald rug and polished dark green stone floor filling the lower 40% where a separately drawn seated character will be composited. Keep shelves and green velvet reading seats behind this open foreground and outside the center/right character area. The room should feel comfortable, rich, calm and legible rather than pitch black. Painterly polished Korean anime background, natural perspective and coherent light.\nThere are NO people or characters, silhouettes, faces, animals or floating objects. No desk/table/chair across the foreground. No text, title, UI, logo, watermark or border. Opaque background, maintain full 16:9 composition.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/hogwarts-night-background-v1.png",
+          "role": "environment and palette reference"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-d65e6a6f-0207-45ae-b63d-65f21cc70084.png"
+    },
+    {
+      "id": "completionBackground",
+      "role": "최신 리포트 v3 · 빈 배경",
+      "master": "masters/hogwarts-night-completion-background-v3.png",
+      "web": "web/hogwarts-night-completion-background-v3.webp",
+      "transparentBackground": false,
+      "masterMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 2297077,
+        "sha256": "bf8cc7e775a94f9e3ea0324e815f3cddacd4a4e465a8c229f64027395f1d66fd"
+      },
+      "webMetadata": {
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB",
+        "hasTransparency": false,
+        "alphaRange": [
+          255,
+          255
+        ],
+        "transparentPixels": 0,
+        "semiTransparentPixels": 0,
+        "bytes": 235642,
+        "sha256": "26cee3bd74fc6a82cc87ea84a2d60a98d2618107d07fc1d4fad4db415de45521"
+      },
+      "encoding": {
+        "quality": 88,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: precise-object-edit / illustration-story. Asset type: latest v3 empty full-screen study-completion report background for CAPSULE, separate from the character.\nInput 1 is the environment consistency reference. Create a quiet slightly closer corner of the SAME Hogwarts library at night, Slytherin mood: dark emerald bookcases, pointed stone arches, moonlit blue-green lake windows with subtle silver caustics, a few warm reading lamps, deep charcoal/emerald palette. A softly lit empty area in the left half is intended for a separately composited standing character; the right half is calmer and darker for a real HTML results panel. Keep the entire library continuous and naturally detailed, softly legible without distracting bright foreground objects.\nWide 16:9 around 2048x1152, seated eye-level perspective, polished painterly Korean anime background matching input 1. No huge desk across the front.\nCompletely remove/omit ALL people, character silhouettes, portraits, shadows of people, ghost figures and animals. No text, title, UI, overlays, icons, logo, watermark, frames or placeholders. Fully opaque clean background plate.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/Users/jeongin/github_repo/studywithme/Front_Web/src/assets/characters/malfoy-ts-v1/masters/hogwarts-night-background-v1.png",
+          "role": "environment and palette reference"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-9da815f9-7f24-4b09-8fbf-0683860381f0.png"
+    },
+    {
+      "id": "completionCharacter",
+      "role": "최신 리포트 v3 · 투명 인물",
+      "master": "masters/malfoy-ts-completion-character-v3.png",
+      "web": "web/malfoy-ts-completion-character-v3.webp",
+      "transparentBackground": true,
+      "masterMetadata": {
+        "width": 1024,
+        "height": 1536,
+        "mode": "RGBA",
+        "hasTransparency": true,
+        "alphaRange": [
+          0,
+          254
+        ],
+        "transparentPixels": 580390,
+        "semiTransparentPixels": 992474,
+        "bytes": 2183893,
+        "sha256": "c1a078c5d86f0b25570573a2650877aa5eccc1c71d11155b0d111e4faac51f4b"
+      },
+      "webMetadata": {
+        "width": 1024,
+        "height": 1536,
+        "mode": "RGBA",
+        "hasTransparency": true,
+        "alphaRange": [
+          0,
+          254
+        ],
+        "transparentPixels": 580390,
+        "semiTransparentPixels": 992474,
+        "bytes": 256514,
+        "sha256": "f17347240e6ac1671248c3615c909a9f6bac82a213142425142e2cdc6f392576"
+      },
+      "encoding": {
+        "quality": 90,
+        "alphaQuality": 100,
+        "method": 6
+      },
+      "prompt": "Use case: background-extraction / identity-preserve.\nAsset type: latest v3 transparent character foreground for a CAPSULE study-completion report.\nInput image 1 is the EDIT TARGET. Extract ONLY the exact female Malfoy character and the dark emerald notebook she is holding. Preserve this exact face, pointed features, emerald eyes, small confident gentle smile, long center-parted platinum-blonde hair, silver hoop earrings, naturally raised waving hand with five fingers, emerald-and-silver tie, charcoal V-neck sweater, black robe with emerald lining, skirt, and all existing fine highlights.\nDo not change the identity, facial expression, clothing layers, hand pose, body pose, notebook design or illustration style. This is an extraction of the SAME completed portrait, not a new pose or a redesign.\nRemove the ENTIRE library, windows, columns, bookshelves, furniture, plants, lamps, floor, distant silhouettes, environment reflections and background shadows. Keep only her silhouette plus held notebook. No floor patch, white/black halo, opaque backdrop or painted checkerboard.\nComposition: portrait 1024x1536. Keep whole head and all hair edges and waving fingers inside safe margins, centered in the canvas; preserve the source's head-through-upper-thigh framing with the robe naturally continuing to the lower edge. Minimal practical transparent padding around the full silhouette.\nOutput must have a genuinely transparent alpha channel with clean natural anti-aliased hair edges. Preserve existing cool moon rim light on the woman. No letters, UI, logo, watermark, frame, extra props or new accessories.",
+      "referenceRoles": [
+        {
+          "inputImage": 1,
+          "path": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-22d226a0-d526-4f7f-8b4f-ba557f3f0490.png",
+          "role": "EDIT TARGET: completed portrait; preserve identity, expression, wave, outfit and book; extract character only"
+        }
+      ],
+      "generationSource": "/Users/jeongin/.codex/generated_images/01a1a84e-59d0-7190-a0d6-9d3c199584da/exec-f0415290-6ac8-4fd8-bb83-3f2ac8d65256.png"
+    }
+  ],
+  "titleCrop": {
+    "web": "web/hogwarts-night-title-v1-trimmed.webp",
+    "width": 1488,
+    "height": 1013,
+    "mode": "RGBA",
+    "hasTransparency": true,
+    "alphaRange": [
+      0,
+      254
+    ],
+    "transparentPixels": 750623,
+    "semiTransparentPixels": 756721,
+    "bytes": 338534,
+    "sha256": "bc2ad3db79759a0dbae84832d56e74f5eb3c32ac639b76424e9b96460b8c407d"
+  }
+}

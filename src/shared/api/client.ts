@@ -19,13 +19,14 @@ export class ApiClient {
   private refreshTask: Promise<boolean> | null = null
   private generation = 0
   private expired: (() => void) | null = null
+  private readonly reads = new Map<string, Promise<unknown>>()
   private readonly transport: typeof fetch
   private readonly base: string
   constructor(transport: typeof fetch = globalThis.fetch.bind(globalThis), base = '/api/backend') {
     this.transport = transport
     this.base = base
   }
-  setToken(token: string | null) { this.token = token; this.generation++ }
+  setToken(token: string | null) { this.token = token; this.generation++; this.reads.clear() }
   onExpired(callback: (() => void) | null) { this.expired = callback }
   async waitForRefresh() { await this.refreshTask?.catch(() => false) }
   async refresh(): Promise<boolean> {
@@ -47,6 +48,18 @@ export class ApiClient {
     try { return await task } finally { if (this.refreshTask === task) this.refreshTask = null }
   }
   async request<T>(path: string, options: Options = {}, retry = true): Promise<T> {
+    // Share concurrent reads only. Mutations and individually cancellable requests stay independent.
+    if ((options.method ?? 'GET').toUpperCase() !== 'GET' || options.body !== undefined || options.signal || !retry) {
+      return this.perform<T>(path, options, retry)
+    }
+    const key = JSON.stringify([this.generation, options.auth !== false, path])
+    const existing = this.reads.get(key)
+    if (existing) return existing as Promise<T>
+    const task = this.perform<T>(path, options, retry)
+    this.reads.set(key, task)
+    try { return await task } finally { if (this.reads.get(key) === task) this.reads.delete(key) }
+  }
+  private async perform<T>(path: string, options: Options, retry: boolean): Promise<T> {
     const token = this.token
     const headers: Record<string, string> = { accept: 'application/json' }
     if (options.body !== undefined) headers['content-type'] = 'application/json'
@@ -90,6 +103,8 @@ export class ApiClient {
       throw new ApiError(code && messages[code] ? messages[code] : message, response.status, code, detail)
     }
     if (raw && data === null) throw new ApiError('서버 응답 형식을 확인하지 못했어요.', 502)
+    // A read started before a successful write must not serve as the write's follow-up read.
+    if (!['GET', 'HEAD'].includes((options.method ?? 'GET').toUpperCase())) this.reads.clear()
     return data as T
   }
 }

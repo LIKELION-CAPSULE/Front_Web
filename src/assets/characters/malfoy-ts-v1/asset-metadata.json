@@ -1,0 +1,425 @@
+{
+  "asOf": "2026-11-05",
+  "pngMasters": {
+    "masters/malfoy-ts-fullbody-v1.png": {
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "hasTransparency": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "transparentPixels": 955497,
+      "semiTransparentPixels": 617367,
+      "bytes": 1638832,
+      "sha256": "0c71e4c5074014259d99f3221a21955c64402e23414bc523998b6a1db8761c6f"
+    },
+    "masters/hogwarts-night-background-v1.png": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 2473942,
+      "sha256": "12ebea34634d93e3243de1c5cdc29786fce84f0d98d8d6ed474509d070c0ada6"
+    },
+    "masters/hogwarts-night-title-v1.png": {
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "hasTransparency": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "transparentPixels": 815972,
+      "semiTransparentPixels": 756892,
+      "bytes": 2336377,
+      "sha256": "6449b09d1328ebb19ced433576ad081967fb76c273a7de9a269960ee66764ad8"
+    },
+    "masters/malfoy-ts-study-v1.png": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 2475666,
+      "sha256": "dd1c35c868165ae66a010d9f0c39e8ee5c63086f73b45d12949e12ad69cc5b92"
+    },
+    "masters/malfoy-ts-reaction-v1.png": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 2584921,
+      "sha256": "fe2f9b58d652389d5d4c0051bc545dcbdd1bd6ef5e058d3e65e111f42d8004df"
+    },
+    "masters/malfoy-ts-affection-v1.png": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 2446245,
+      "sha256": "dff9ba4f2948fc782e23f2976d3f81c7ac517ea50f2869c37c15c096ef44bfcf"
+    },
+    "masters/malfoy-ts-home-subject-v1.png": {
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "hasTransparency": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "transparentPixels": 719984,
+      "semiTransparentPixels": 852880,
+      "bytes": 1979924,
+      "sha256": "f73c13cb94a36f4ae81ccb313700d136d0d04c79f149332de4b1c445d4091296"
+    },
+    "masters/malfoy-ts-welcome-banner-v1.png": {
+      "width": 2172,
+      "height": 724,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 2519353,
+      "sha256": "50d6e58542d325934fb582926266b70bf22249f8b74d7046087c8ebf7661b6dd"
+    },
+    "masters/hogwarts-night-detail-banner-v1.png": {
+      "width": 2172,
+      "height": 724,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 2623929,
+      "sha256": "1e4a6a9833de66ecd85b14544c5ae53989d24bdfd34a2644f2b7b0b410aa60a3"
+    },
+    "masters/hogwarts-night-poster-v1.png": {
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 2746088,
+      "sha256": "1aabfd08c17fe72a795a9083a7a19f0a0fb791934bc7de5799d64043061fc42a"
+    },
+    "masters/malfoy-ts-completion-v1.png": {
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 2435149,
+      "sha256": "24ac29c800f25942addb08ff6595da77eb65818e0e06b265d2be24c165441530"
+    },
+    "masters/hogwarts-night-seated-background-v1.png": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 2722627,
+      "sha256": "9ea256ff3bab3ded5d7f5a9cef5f7dea8cad45ffd66534fe2ecde42eecfe3006"
+    },
+    "masters/hogwarts-night-completion-background-v3.png": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 2297077,
+      "sha256": "bf8cc7e775a94f9e3ea0324e815f3cddacd4a4e465a8c229f64027395f1d66fd"
+    },
+    "masters/malfoy-ts-completion-character-v3.png": {
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "hasTransparency": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "transparentPixels": 580390,
+      "semiTransparentPixels": 992474,
+      "bytes": 2183893,
+      "sha256": "c1a078c5d86f0b25570573a2650877aa5eccc1c71d11155b0d111e4faac51f4b"
+    }
+  },
+  "web": {
+    "web/malfoy-ts-fullbody-v1.webp": {
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "hasTransparency": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "transparentPixels": 955497,
+      "semiTransparentPixels": 617367,
+      "bytes": 152256,
+      "sha256": "5107515edee5b3f9536c4cb0e408ea4b084efaa25570ed49894a53d9c2f36b65"
+    },
+    "web/hogwarts-night-background-v1.webp": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 250786,
+      "sha256": "e2c6ff8a6699506d94eadf031b639adb7559c13a203395510ba899d5bd229454"
+    },
+    "web/hogwarts-night-title-v1.webp": {
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "hasTransparency": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "transparentPixels": 815972,
+      "semiTransparentPixels": 756892,
+      "bytes": 337860,
+      "sha256": "252fc618af1c689abe658ed55f0aefd07e614b4b3191a48a4a132399d2587692"
+    },
+    "web/malfoy-ts-study-v1.webp": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 270894,
+      "sha256": "bc692ba46e4093e65652349ebff69689adbb3fefb6df509ab8aa7f382bdbfb24"
+    },
+    "web/malfoy-ts-reaction-v1.webp": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 300442,
+      "sha256": "06209b42b65272c03719d23113d838f1229d797912a0dbc51d57c029d5a71d34"
+    },
+    "web/malfoy-ts-affection-v1.webp": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 256818,
+      "sha256": "71fea8b9f3ec044e158b9d19ad8e4306ef55ae8ad7ef9b074238343290cbed19"
+    },
+    "web/malfoy-ts-home-subject-v1.webp": {
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "hasTransparency": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "transparentPixels": 719984,
+      "semiTransparentPixels": 852880,
+      "bytes": 195060,
+      "sha256": "876bc206aa4ae5fcea2565e202861e975be44b34c49bdce96985055a9f8851d7"
+    },
+    "web/malfoy-ts-welcome-banner-v1.webp": {
+      "width": 2172,
+      "height": 724,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 281980,
+      "sha256": "08952ceb41fd6072d244e0f4939db02af65cb00412f5d58e4d4fb39dfbf2b6e3"
+    },
+    "web/hogwarts-night-detail-banner-v1.webp": {
+      "width": 2172,
+      "height": 724,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 319676,
+      "sha256": "7597a64878416f94cdccbb9c86115d729a1a088e1bea9fe802d57cc25151d23e"
+    },
+    "web/hogwarts-night-poster-v1.webp": {
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 336608,
+      "sha256": "fe3fd34357708e23f40ee4cb896912727a85b36f02861b9d64d176178d0ec24f"
+    },
+    "web/malfoy-ts-completion-v1.webp": {
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 240316,
+      "sha256": "6fe517ce027b1dddaa7797add11c6da96a116e92b1defa59c3ccf0394f584708"
+    },
+    "web/hogwarts-night-seated-background-v1.webp": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 362712,
+      "sha256": "e0cb0293b3ef9879801a1c71e53f080e37e10f6a2f7b1e556b2ccc74146c26c9"
+    },
+    "web/hogwarts-night-completion-background-v3.webp": {
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "hasTransparency": false,
+      "alphaRange": [
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "semiTransparentPixels": 0,
+      "bytes": 235642,
+      "sha256": "26cee3bd74fc6a82cc87ea84a2d60a98d2618107d07fc1d4fad4db415de45521"
+    },
+    "web/malfoy-ts-completion-character-v3.webp": {
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "hasTransparency": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "transparentPixels": 580390,
+      "semiTransparentPixels": 992474,
+      "bytes": 256514,
+      "sha256": "f17347240e6ac1671248c3615c909a9f6bac82a213142425142e2cdc6f392576"
+    }
+  },
+  "titleCrop": {
+    "web/hogwarts-night-title-v1-trimmed.webp": {
+      "width": 1488,
+      "height": 1013,
+      "mode": "RGBA",
+      "hasTransparency": true,
+      "alphaRange": [
+        0,
+        254
+      ],
+      "transparentPixels": 750623,
+      "semiTransparentPixels": 756721,
+      "bytes": 338534,
+      "sha256": "bc2ad3db79759a0dbae84832d56e74f5eb3c32ac639b76424e9b96460b8c407d"
+    }
+  },
+  "checks": {
+    "allFilesDecode": true,
+    "dimensionsPreserved": true,
+    "transparentAssetsHaveRealAlpha": true,
+    "webpAlphaMatchesPngExactly": true,
+    "titleSpelling": "밤의 호그와트 도서관",
+    "figmaAssetPreviews": 15,
+    "figmaCompositionLayers": 2,
+    "figmaVisualReviewPassed": true
+  }
+}
