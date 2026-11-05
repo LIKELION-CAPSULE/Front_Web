@@ -22,7 +22,8 @@ export type BackendContextValue = {
   createMemory: (input: Omit<Memory, 'id'>) => Promise<Memory>
   startSession: (roomId: string, characterId: string, minutes: number) => Promise<ActiveSession>
   resumeSession: (sessionId: string) => Promise<ActiveSession>
-  finishSession: () => Promise<StudyRecord>
+  /** `acceptUnknownPresence`: the user confirmed ending although earlier presence could not be restored. */
+  finishSession: (options?: { acceptUnknownPresence?: boolean }) => Promise<StudyRecord>
   sendMessage: (characterId: string, content: string, inputType?: 'TEXT' | 'QUICK') => Promise<MessageResponse>
   loadReport: (sessionId: string) => Promise<void>
 }
