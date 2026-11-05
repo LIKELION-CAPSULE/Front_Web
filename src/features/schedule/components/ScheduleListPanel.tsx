@@ -27,11 +27,16 @@ export function ScheduleListPanel({
 }) {
   const scroll = useRef<HTMLDivElement>(null)
   const editing = !!editor
-  useLayoutEffect(() => { scroll.current?.scrollTo({ top: 0 }) }, [selectedDay, period, editing])
+  const empty = memories.length === 0
+  useLayoutEffect(() => {
+    const content = scroll.current
+    if (!content) return
+    content.scrollTo({ top: empty ? Math.max(0, content.scrollHeight - content.clientHeight) : 0 })
+  }, [selectedDay, period, editing, empty])
   return (
     <Panel bordered={false} density="roomy" className="schedule-details" aria-label="일정 목록">
       {editor ?? <>
-        <div ref={scroll} className="schedule-list-scroll" role="group" aria-label="일정 내용" tabIndex={0}>
+        <div ref={scroll} className="schedule-list-scroll" data-empty={empty || undefined} role="group" aria-label="일정 내용" tabIndex={0}>
           {selectedDay && (
             <div className="schedule-selected-date">
               <h3>{selectedDay.replaceAll('-', '.')}</h3>
@@ -60,7 +65,7 @@ export function ScheduleListPanel({
               })}
             </ul>
           ) : (
-            <p className="py-12 text-center text-body-compact text-subtle">
+            <p className="schedule-empty text-body-compact text-subtle">
               {selectedDay
                 ? '선택한 날짜에는 일정이 없어요.'
                 : period === 'past' ? '지난 일정이 없어요.' : '등록된 일정이 없어요.'}

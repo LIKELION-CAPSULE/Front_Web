@@ -91,6 +91,5 @@
   .account-settings-dialog .schedule-content { gap: 8px; }
   .account-settings-dialog .schedule-calendar { gap: 6px; }
   .account-settings-dialog .schedule-calendar-day { min-height: 44px; }
-  .account-settings-dialog .schedule-details { gap: 8px; padding: 8px; }
-  .account-settings-dialog .schedule-list-toolbar { gap: 8px; padding-top: 8px; }
+  .account-settings-dialog .schedule-details { --schedule-toolbar-spacing: 8px; gap: 8px; padding: 8px; }
 }
