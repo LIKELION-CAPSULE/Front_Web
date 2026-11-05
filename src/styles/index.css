@@ -826,44 +826,6 @@
   :is(.character-tile, .self-tile, .break-thumbnail):has(.tile-interaction:focus-visible) { outline: 2px solid var(--color-focus-ring); outline-offset: 4px; }
   .tile-action-symbol { display: flex; width: 52px; height: 52px; align-items: center; justify-content: center; border-radius: 50%; background: color-mix(in srgb, var(--color-panel) 65.88%, transparent); opacity: 0; transform: scale(.92); backdrop-filter: blur(10px); transition: opacity 160ms, transform 160ms; }
   .tile-interaction:is(:hover, :focus-visible) .tile-action-symbol { opacity: 1; transform: scale(1); }
-  .tile-speech {
-    position: absolute;
-    z-index: 5;
-    right: 20px;
-    bottom: 56px;
-    left: 20px;
-    display: flex;
-    width: fit-content;
-    max-width: calc(100% - 40px);
-    align-items: center;
-    gap: 10px;
-    border: 1px solid transparent;
-    border-radius: 15px 15px 15px 4px;
-    background: var(--glass-background);
-    padding: 10px 15px;
-    color: var(--color-ink);
-    box-shadow: 0 6px 22px #0002;
-    font-size: var(--text-body); line-height: var(--text-body--line-height);
-
-    backdrop-filter: blur(12px);
-  }
-  .focus-speech {
-    right: 28px;
-    bottom: 70px;
-    left: 28px;
-    padding: 15px 20px;
-    font-size: var(--text-body); line-height: var(--text-body--line-height);
-
-  }
-  .rest-speech {
-    right: 28px;
-    bottom: 280px;
-    left: 28px;
-    max-width: calc(100% - 56px);
-    padding: 16px 20px;
-    font-size: var(--text-body); line-height: var(--text-body--line-height);
-
-  }
   .self-tile {
     background: radial-gradient(ellipse at 50% 85%, color-mix(in srgb, var(--color-primary-soft) 31.37%, transparent), transparent 65%), var(--color-panel);
   }
@@ -1136,10 +1098,6 @@
     padding: 0 10px 10px;
   }
   .break-stage { min-height: max(640px, calc(100dvh - 120px)); }
-  .tile-speech {
-    font-size: var(--text-body); line-height: var(--text-body--line-height);
-
-   background: var(--glass-background);  color: var(--color-ink); }
   .study-demo-menu { position: fixed; top: 50px; left: 12px; right: 12px; width: min(300px, calc(100% - 24px)); }
   .capsule-share-page {
     gap: 28px;
@@ -1223,10 +1181,6 @@
   .study-room-name { font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
   .study-demo-label { display: none; }
   .study-demo-controls > summary { width: 28px; min-height: 28px; padding: 0; }
-  .rest-speech {
-    bottom: 280px;
-    font-size: var(--text-body); line-height: var(--text-body--line-height);
-  }
   .capsule-share-page {
     flex-direction: column;
   }

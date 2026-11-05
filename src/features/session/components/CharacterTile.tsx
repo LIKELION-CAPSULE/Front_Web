@@ -6,6 +6,7 @@ import { CharacterFigure } from './CharacterFigure'
 import type { FigureVariant } from './CharacterFigure'
 import type { SessionModelStage } from '@/features/live2d/session-model'
 import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
+import { CharacterSpeechBubble } from './CharacterSpeechBubble'
 
 export function CharacterTile({
   character,
@@ -66,26 +67,7 @@ export function CharacterTile({
           </span>
         </button>
       )}
-      {speech && (
-        <div
-          className={cn(
-            'tile-speech',
-            variant === 'focus' && 'focus-speech',
-            variant === 'rest' && 'rest-speech',
-          )}
-        >
-          <p>{speech}</p>
-          {onDismiss && (
-            <button
-              type="button"
-              onClick={onDismiss}
-              className="button-subtle shrink-0 rounded-full border border-transparent px-2.5 py-1 text-caption text-muted"
-            >
-              아니야
-            </button>
-          )}
-        </div>
-      )}
+      {speech && <CharacterSpeechBubble name={character.name} text={speech} expanded={variant === 'focus' || variant === 'rest'} onDismiss={onDismiss} />}
       {children}
     </article>
   )
