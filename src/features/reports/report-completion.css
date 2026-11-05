@@ -115,6 +115,8 @@
     .report-companion { min-height: 0; }
     .report-character-art { position: relative; inset: auto; width: 100%; }
     .report-character-art > img { height: auto; max-height: 74svh; }
+    /* The fallback figure is absolutely positioned and has no height of its own; without one the dialogue's negative margin pulls it above the page. */
+    .report-character-art:has(> .character-figure) { height: clamp(320px, 62svh, 640px); }
     .report-dialogue { max-width: none; margin-top: calc(-1 * clamp(80px, 10svh, 112px)); }
     .report-content { max-width: none; }
   }
