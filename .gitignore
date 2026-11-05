@@ -149,6 +149,9 @@ vite.config.ts.timestamp-*
 # Wrangler local state and cache
 .wrangler/
 
+# Vercel project metadata, local builds and pulled environment variables
+.vercel/
+
 # Operating system metadata
 .DS_Store
 ._*
