@@ -4,12 +4,13 @@ import { AppNavigation } from '@/app/components/AppNavigation'
 import { PageNavigation } from '@/app/PageNavigation'
 import { useDemo } from '@/features/demo/demo-context'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import { ButtonLink } from '@/shared/ui/Button'
 import { AppFrame } from './AppFrame'
 
 export function AppLayout() {
-  const { storageAvailable } = useDemo()
+  const { state, storageAvailable } = useDemo()
   return (
-    <AppFrame navigation={<AppNavigation />} account={<HeaderAccount />}>
+    <AppFrame navigation={<AppNavigation />} account={state.profile.loggedIn ? <HeaderAccount /> : <ButtonLink to="/login" size="sm" variant="secondary">로그인</ButtonLink>}>
       <PageNavigation />
       {!storageAvailable && (
         <FeedbackMessage tone="warning" className="mb-4 rounded-control bg-surface p-3">

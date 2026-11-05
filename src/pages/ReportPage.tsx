@@ -35,7 +35,7 @@ export default function ReportPage() {
   const { record, error, retry } = useServerReport(recordId)
   const room = record && getStudyRoom(record.roomId)
   const gains = useMemo(() => record ? Object.fromEntries(record.characterIds.map(id => [id, reportStudyLevel(state.records, record, id)])) : {}, [record, state.records])
-  if (!record || !room) return error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : <PageSkeleton />
+  if (!record || !room) return error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : <PageSkeleton screen="report" />
   if (!room.serverRoom && !isMvpRoom(room.id)) return <OverlayPage><MvpUnavailablePage /></OverlayPage>
   const participants = room.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && record.characterIds.includes(character.id))
   const friends = participants.length ? participants : [room.characters[0]!]

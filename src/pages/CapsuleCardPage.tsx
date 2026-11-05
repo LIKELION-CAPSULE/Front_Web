@@ -45,7 +45,7 @@ export default function CapsuleCardPage() {
   const { record, error, retry } = useServerReport(recordId)
   const room = record && getStudyRoom(record.roomId)
   useEffect(() => { let alive = true; void loadStoryFont().then(font => { if (alive) setStoryFont(font) }); return () => { alive = false } }, [])
-  if (!record || !room) return error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : <PageSkeleton />
+  if (!record || !room) return error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : <PageSkeleton screen="capsule" />
   if (!room.serverRoom && !isMvpRoom(room.id)) return <OverlayPage><MvpUnavailablePage /></OverlayPage>
   const participants = room.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && record.characterIds.includes(character.id))
   const friends = participants.length ? participants : [room.characters[0]!]

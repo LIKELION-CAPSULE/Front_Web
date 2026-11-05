@@ -5,7 +5,7 @@ import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { FormField } from '@/shared/ui/FormField'
 import { api, ApiError } from '@/shared/api/client'
 
-export function PasswordRecoveryForm({ token, onReset }: { token?: string; onReset?: () => void } = {}) {
+export function PasswordRecoveryForm({ token, onReset, defaultEmail, onBusyChange }: { token?: string; onReset?: () => void; defaultEmail?: string; onBusyChange?: (busy: boolean) => void } = {}) {
   const id = useId()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -18,7 +18,7 @@ export function PasswordRecoveryForm({ token, onReset }: { token?: string; onRes
     const password = String(data.get('password') ?? '')
     if (token && (password.length < 8 || new TextEncoder().encode(password).length > 72)) { setError('비밀번호는 8자 이상, 72바이트 이하로 입력해 주세요.'); return }
     if (token && password !== data.get('confirmPassword')) { setError('비밀번호가 일치하지 않아요.'); return }
-    setBusy(true); setError('')
+    setBusy(true); onBusyChange?.(true); setError('')
     try {
       await api.request(token ? '/auth/password/reset' : '/auth/password/reset-request', {
         method: 'POST', auth: false, body: token ? { token, newPassword: password } : { email: String(data.get('email')).trim() },
@@ -31,12 +31,12 @@ export function PasswordRecoveryForm({ token, onReset }: { token?: string; onRes
         setError('재설정 링크가 만료됐거나 이미 사용됐어요. 새 링크를 받아 주세요.')
       } else setError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.')
     }
-    finally { setBusy(false) }
+    finally { setBusy(false); onBusyChange?.(false) }
   }}>
     {token ? <>
       <FormField label="새 비밀번호"><input className="form-input" name="password" type="password" minLength={8} autoComplete="new-password" required /></FormField>
       <FormField label="새 비밀번호 확인"><input className="form-input" name="confirmPassword" type="password" minLength={8} autoComplete="new-password" required /></FormField>
-    </> : <FormField label="이메일"><input className="form-input" name="email" type="email" autoComplete="email" required placeholder="hello@example.com" aria-describedby={`${id}-notice`} /></FormField>}
+    </> : <FormField label="이메일"><input className="form-input" name="email" type="email" autoComplete="email" defaultValue={defaultEmail} readOnly={busy || done} required placeholder="hello@example.com" aria-describedby={done ? `${id}-notice` : undefined} /></FormField>}
     <Button type="submit" className="w-full" loading={busy} disabled={done || invalidToken}>{token ? '비밀번호 변경하기' : '재설정 링크 받기'}</Button>
     {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
     {invalidToken && <Link to="/login?mode=forgot-password" className="inline-flex min-h-11 items-center text-text-accent underline">재설정 링크 다시 받기</Link>}

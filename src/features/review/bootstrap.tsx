@@ -15,7 +15,7 @@ export async function mountReview(root: HTMLElement, id: string | null) {
   const local = createReviewStorage(), session = createReviewStorage()
   Object.defineProperty(window, 'localStorage', { configurable: true, value: local })
   Object.defineProperty(window, 'sessionStorage', { configurable: true, value: session })
-  session.setItem('capsule-kakao', JSON.stringify({ state: 'review-state', next: '/', redirect: `${location.origin}/oauth/kakao` }))
+  session.setItem('capsule-kakao', JSON.stringify({ state: 'review-state', next: scenario.loginNext ?? '/', redirect: `${location.origin}/oauth/kakao` }))
   if (scenario.id !== 'report-no-target') local.setItem(`capsule-session:${REVIEW_USER_ID}:${REVIEW_SESSION_ID}`, JSON.stringify({ targetSeconds: 1800 }))
   if (scenario.session !== 'unknown') local.setItem(`capsule-presence:${REVIEW_USER_ID}:${REVIEW_SESSION_ID}`, JSON.stringify({ studySeconds: 65, presentSeconds: 55, known: true }))
   // Install before importing App: ApiClient captures fetch when its singleton is constructed.
