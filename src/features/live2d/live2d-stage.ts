@@ -1,9 +1,9 @@
 import type { Application } from 'pixi.js'
 import type { Live2DModel } from 'untitled-pixi-live2d-engine/cubism'
-import { createBlinkState, stepBlink, type BlinkState } from './blink'
+import { createBlinkState, stepBlink, type BlinkState } from './blink.ts'
 import {
   BREATH_DEPTH, CUBISM_CORE_PATH, FALLBACK_EYE_BLINK_IDS, FOCUS_ORIGIN_Y, FOCUS_STRENGTH, OFFSET_PERCENT,
-} from './live2d-constants'
+} from './live2d-constants.ts'
 
 export type Live2DLayout = { scale: number; offsetX: number; offsetY: number }
 export type Live2DStatus = 'loading' | 'ready' | 'error'
@@ -185,7 +185,6 @@ export class Live2DStage {
     this.observer.observe(host)
     app.ticker.start()
     this.place()
-    app.render()
   }
 
   private place() {
@@ -205,6 +204,9 @@ export class Live2DStage {
       width / 2 + (this.layout.offsetX / OFFSET_PERCENT) * width,
       height / 2 + (this.layout.offsetY / OFFSET_PERCENT) * height,
     )
+    // ResizeObserver runs after the ticker's animation frame. Resizing clears
+    // the canvas, so repaint the newly placed model before the browser presents it.
+    app.render()
   }
 
   /** Breaks only: the face follows the cursor. Turning it off eases the face back to the front. */

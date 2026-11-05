@@ -57,6 +57,7 @@ export default function StudyPage() {
   const [sessionError, setSessionError] = useState('')
   const [resuming, setResuming] = useState(false)
   const [pendingReplies, setPendingReplies] = useState<Record<string, boolean>>({})
+  const sendingReplies = useRef(new Set<string>())
   const [replyErrors, setReplyErrors] = useState<Record<string, string>>({})
   const [speakingMessages, setSpeakingMessages] = useState<SpeakingMessages>({})
   const [selfChatUntil, setSelfChatUntil] = useState(0)
@@ -234,8 +235,9 @@ export default function StudyPage() {
     setParams(toggleStudyFocus(params, id, defaultFocus))
   }
   async function send(text: string, inputType: 'TEXT' | 'QUICK' = 'TEXT') {
-    if (!selected || !text.trim() || pendingReplies[selected.id]) return false
+    if (!selected || !text.trim() || sendingReplies.current.has(selected.id) || pendingReplies[selected.id] || speakingCharacters.has(selected.id)) return false
     const characterId = selected.id
+    sendingReplies.current.add(characterId)
     sync.cancelReaction()
     setSelfChatUntil(Date.now() + 1400)
     setPendingReplies(previous => ({ ...previous, [characterId]: true }))
@@ -248,7 +250,10 @@ export default function StudyPage() {
     } catch (reason) {
       setReplyErrors(previous => ({ ...previous, [characterId]: reason instanceof Error ? reason.message : '답장을 받지 못했어요.' }))
       return false
-    } finally { setPendingReplies(previous => ({ ...previous, [characterId]: false })) }
+    } finally {
+      sendingReplies.current.delete(characterId)
+      setPendingReplies(previous => ({ ...previous, [characterId]: false }))
+    }
   }
   function openLeave() {
     flushFocus()
@@ -496,6 +501,7 @@ export default function StudyPage() {
             onSend={send}
             onTypingChange={reportTyping}
             replyPending={!!pendingReplies[selected.id]}
+            replySpeaking={speakingCharacters.has(selected.id)}
             replyError={replyErrors[selected.id]}
           />
           {dock(resting)}
