@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { scheduleCountdown, scheduleMonthDays, selectSchedule, shiftScheduleMonth } from '../src/features/schedule/schedule-data.ts'
+import { scheduleCountdown, scheduleMonthDays, scheduleWeekDays, selectSchedule, shiftScheduleMonth, shiftScheduleWeek } from '../src/features/schedule/schedule-data.ts'
 import type { Memory } from '../src/features/demo/types.ts'
 import { createDemoState } from '../src/features/demo/seed.ts'
 import { migrateSharedSchedule } from '../src/features/schedule/migrate-schedule.ts'
@@ -24,6 +24,21 @@ const memories = [
   memory('all-day', '2026-10-27'),
   memory('early', '2026-10-27', '10:00'),
 ]
+
+test('weekly calendars keep Sunday-first dates across months, leap days and years', () => {
+  assert.deepEqual(scheduleWeekDays('2028-02-29'), ['2028-02-27', '2028-02-28', '2028-02-29', '2028-03-01', '2028-03-02', '2028-03-03', '2028-03-04'])
+  assert.deepEqual(scheduleWeekDays('2026-12-31'), ['2026-12-27', '2026-12-28', '2026-12-29', '2026-12-30', '2026-12-31', '2027-01-01', '2027-01-02'])
+  assert.equal(scheduleWeekDays('2026-11-01')[0], '2026-11-01')
+})
+
+test('weekly navigation respects the 2026 floor without skipping partial weeks or daylight-saving days', () => {
+  assert.equal(shiftScheduleWeek('2026-01-04', -1), '2026-01-01')
+  assert.equal(shiftScheduleWeek('2026-01-01', -1), '2026-01-01')
+  assert.equal(scheduleWeekDays('2026-01-01')[4], '2026-01-01')
+  assert.equal(shiftScheduleWeek('2026-03-08', 1), '2026-03-15')
+  assert.equal(shiftScheduleWeek('2026-12-31', 1), '2027-01-07')
+  assert.equal(shiftScheduleWeek('2028-03-01', -1), '2028-02-23')
+})
 
 test('schedule countdowns use calendar days across leap months and year boundaries', () => {
   assert.equal(scheduleCountdown('2026-10-29', '2026-10-28'), 'D-1')

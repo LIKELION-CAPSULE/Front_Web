@@ -6,7 +6,7 @@ export function captureReviewMessages(document: Document): ReviewLiveMessage[] {
   if (!view) return []
   const messages: ReviewLiveMessage[] = []
   const scope = [...document.querySelectorAll('dialog:modal')].at(-1) ?? document
-  for (const element of scope.querySelectorAll<HTMLElement>('[data-feedback], [role="alert"], [role="status"], [aria-busy="true"], button:disabled, .room-empty, section.min-h-72, .schedule-details > p')) {
+  for (const element of scope.querySelectorAll<HTMLElement>('[data-feedback], [role="alert"], [role="status"], [aria-busy="true"], button:disabled, .room-empty, section.min-h-72, .schedule-list-scroll > p')) {
     let visible = true
     for (let parent: HTMLElement | null = element; parent; parent = parent.parentElement) {
       const style = view.getComputedStyle(parent)
@@ -20,7 +20,7 @@ export function captureReviewMessages(document: Document): ReviewLiveMessage[] {
     const loading = /하고 있어요|불러오고|연결 중|로그인하고|답장을 기다/.test(text)
     if (element.matches('button:disabled') && !loading) continue
     const tone = (element.dataset.feedback || (loading || element.hasAttribute('aria-busy') || element.classList.contains('page-skeleton') ? 'loading'
-      : element.getAttribute('role') === 'alert' ? 'error' : element.matches('.room-empty, section.min-h-72, .schedule-details > p') ? 'empty' : 'info')) as ReviewMessageTone
+      : element.getAttribute('role') === 'alert' ? 'error' : element.matches('.room-empty, section.min-h-72, .schedule-list-scroll > p') ? 'empty' : 'info')) as ReviewMessageTone
     if (!messages.some(message => message.text === text && message.tone === tone)) messages.push({ text, tone })
   }
   return messages

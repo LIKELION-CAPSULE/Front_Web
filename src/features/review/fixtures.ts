@@ -20,7 +20,8 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     characters: [{ id: 201 + index, name: room.characters[0]!.name, profileImageUrl: getCharacterArtwork(room.characters[0]!.id).study,
       personality: ['조용한', '다정한', '집중하는'], relation: { level: 3, totalStudySeconds: 7200, points: 62, stage: 2, stageName: '친구' } }],
   }))
-  let authenticated = !scenario.guest, onboardingRequired = !!scenario.onboarding, nickname = '검토하는 나'
+  const avatars = ['chaerin', 'sua', 'dahee', 'doyun', 'moru', 'aiden', 'elia', 'leon'].map((character, index) => ({ id: 77 + index, name: `아바타 ${String(index + 1).padStart(2, '0')}`, thumbnailUrl: getCharacterArtwork(character).study }))
+  let authenticated = !scenario.guest, onboardingRequired = !!scenario.onboarding, nickname = '검토하는 나', profileImage = figure
   let active = !!scenario.session, eventId = 1, memoryId = 10
   let studySeconds = 65, presentSeconds = 55
   const today = dayKey()
@@ -32,10 +33,10 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     { memoryId: 4, type: 'EXAM', title: '지난 주 영어 시험', dueDate: date(-4), dueTime: '10:00', dDay: -4 },
   ]
   const summary = () => active ? { sessionId: REVIEW_SESSION_ID, roomId: 101, roomName: base.name, characterName: base.characters[0]!.name, startedAt: new Date(Date.now() - 65_000).toISOString() } : null
-  const me = () => ({ userId: REVIEW_USER_ID, nickname, onboardingRequired, profileImage: figure, activeSession: summary() })
+  const me = () => ({ userId: REVIEW_USER_ID, nickname, onboardingRequired, profileImage, activeSession: summary() })
   const visuals = () => ({ sessionId: REVIEW_SESSION_ID, targetMinutes: 3, room: { id: 101, name: base.name },
     character: { id: 201, name: base.characters[0]!.name, profileImageUrl: figure },
-    me: { nickname, profileImageUrl: figure }, serverTime: new Date().toISOString() })
+    me: { nickname, profileImageUrl: profileImage }, serverTime: new Date().toISOString() })
   const report = () => ({ sessionId: REVIEW_SESSION_ID, roomName: base.name, character: { id: 201, name: base.characters[0]!.name },
     startedAt: new Date(Date.now() - 1_800_000).toISOString(), endedAt: new Date().toISOString(), endType: 'USER',
     studySeconds: 1500, presentSeconds: 1380, awaySeconds: 120, returnCount: 2,
@@ -43,7 +44,7 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
       levelUp: scenario.id === 'report-levelup', stage: 2, stageName: '친구', nextLevelSeconds: 200 },
     closingLine: '오늘도 같이 공부해서 좋았어. 다음에도 이 자리에서 만나자.',
   })
-  const json = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+  const json = (body: unknown, status = 200) => new Response(status === 204 || body === null ? null : JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
   return async (input, options) => {
     const url = new URL(input instanceof Request ? input.url : String(input), location.href)
     const method = (options?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase()
@@ -54,7 +55,11 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     const path = url.pathname.replace('/api/backend', '')
     const log = (status: number) => parent.postMessage({ type: 'capsule-review:request', method, path, status }, location.origin)
     const reply = (body: unknown, status = 200) => { log(status); return json(body, status) }
-    if ((scenario.fault === 'bootstrap-pending' && path === '/auth/refresh') || (scenario.fault === 'kakao-pending' && path === '/auth/social/KAKAO') || (scenario.fault === 'withdraw-pending' && method === 'DELETE')) {
+    if ((scenario.fault === 'bootstrap-pending' && path === '/auth/refresh') || (scenario.fault === 'kakao-pending' && path === '/auth/social/KAKAO')
+      || (scenario.fault === 'home-pending' && path === '/home') || (scenario.fault === 'avatars-pending' && path === '/avatars')
+      || (scenario.fault === 'report-pending' && path.endsWith('/report')) || (scenario.fault === 'withdraw-pending' && method === 'DELETE')
+      || (scenario.fault === 'reset-request-pending' && path === '/auth/password/reset-request')
+      || (scenario.fault === 'memory-pending' && path === '/me/memories' && method === 'POST')) {
       log(0)
       return new Promise<Response>((_resolve, reject) => {
         const signal = options?.signal
@@ -78,8 +83,8 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     if (path === '/auth/email/verification/confirm') return scenario.fault === 'verification' ? reply({ code: 'INVALID_CODE' }, 400) : reply({ verificationToken: 'review-verification' })
     if (path === '/auth/email/signup') { authenticated = true; onboardingRequired = true; nickname = String(body.nickname); return reply({ accessToken: 'review-access', ...me() }) }
     if (path === '/auth/social/KAKAO') { authenticated = true; return reply({ accessToken: 'review-access', ...me() }) }
-    if (path === '/auth/logout') { authenticated = false; return reply(null, 204) }
-    if (path === '/auth/password/reset-request') return reply(null, 202)
+    if (path === '/auth/logout') { if (scenario.fault === 'logout') return reply({}, 500); authenticated = false; return reply(null, 204) }
+    if (path === '/auth/password/reset-request') return scenario.fault === 'reset-request' ? reply({}, 500) : reply(null, 202)
     if (path === '/auth/password/reset') return scenario.fault === 'reset' ? reply({ code: 'RESET_TOKEN_INVALID' }, 400) : reply(null, 204)
     if (!authenticated) return reply({ code: 'UNAUTHORIZED' }, 401)
     if (path === '/me' && method === 'DELETE') {
@@ -89,12 +94,15 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     }
     if (path === '/me' && method === 'PATCH') {
       if (scenario.fault === 'profile') return reply({}, 500)
-      nickname = String(body.nickname); onboardingRequired = false; return reply(me())
+      nickname = String(body.nickname); onboardingRequired = false
+      profileImage = avatars.find(avatar => avatar.id === body.avatarId)?.thumbnailUrl ?? profileImage
+      return reply(me())
     }
     if (path === '/me') return scenario.fault === 'bootstrap' ? reply({}, 500) : reply(me())
-    if (path === '/avatars') return reply({ avatars: [{ id: 77, name: '기본 아바타', thumbnailUrl: figure }] })
+    if (path === '/avatars') return reply({ avatars })
     if (path === '/home') return reply({ todayStudySeconds: scenario.returning ? 5400 : 0, activeSession: summary(), rooms: scenario.empty ? [] : rooms })
     if (path === '/me/memories' && method === 'POST') {
+      if (scenario.fault === 'memory') return reply({}, 500)
       const saved = { ...body, memoryId: memoryId++ }
       memories.push(saved as typeof memories[number]); return reply(saved, 201)
     }

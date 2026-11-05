@@ -8,13 +8,13 @@ import ChargePage from '@/pages/ChargePage'
 import GiftShopPage from '@/pages/GiftShopPage'
 import { useDemo } from '@/features/demo/demo-context'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
-import { PageSkeleton } from '@/shared/ui/PageSkeleton'
+import { AppLoading } from '@/shared/ui/AppLoading'
 
 /** These source pages are retained for copy review; production routes stay gated. */
 export function ReviewDraftRoutes() {
   const { state } = useDemo()
   // A source page may assume legacy IDs exist; wait until ReviewSetup installs its own data.
-  if (!state.profile.loggedIn || !getStudyRooms().some(room => room.id === 'dawn-library')) return <PageSkeleton />
+  if (!state.profile.loggedIn || !getStudyRooms().some(room => room.id === 'dawn-library')) return <AppLoading />
   return <Routes>
     <Route element={<AppLayout />}>
       <Route path="records" element={<RecordsPage />} />

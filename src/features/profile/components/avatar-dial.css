@@ -1,0 +1,63 @@
+@layer components {
+  .avatar-dial {
+    --dial-option-size: 68px;
+    --dial-preview-size: 280px;
+    --dial-radius-x: calc(50% - var(--dial-option-size) / 2 - 8px);
+    --dial-radius-y: 112px;
+    --dial-center-y: 246px;
+    --dial-step: 25deg;
+    width: min(640px, 100%);
+    min-width: 0;
+    margin: 0 auto;
+    border: 0;
+    padding: 0;
+  }
+  .avatar-dial-stage { position: relative; height: 408px; touch-action: pan-y; }
+  .avatar-dial-stage[data-draggable] { cursor: grab; }
+  .avatar-dial-stage[data-draggable]:active { cursor: grabbing; }
+  .avatar-dial-preview { position: absolute; top: 0; left: 50%; width: var(--dial-preview-size); margin: 0; transform: translateX(-50%); }
+  .avatar-dial-portrait { position: relative; display: grid; width: 100%; height: var(--dial-preview-size); overflow: hidden; place-items: center; border: 1px solid color-mix(in srgb, var(--color-primary) 18%, transparent); border-radius: 50%; background: var(--color-panel); }
+  .avatar-dial-preview::before { position: absolute; z-index: -1; top: -22px; right: -22px; left: -22px; height: calc(var(--dial-preview-size) + 44px); border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 70%); content: ''; }
+  .avatar-dial-image, .avatar-dial-portrait > .avatar-illustration { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .avatar-dial-portrait .avatar-dial-image { object-fit: cover; object-position: 50% 24%; }
+  .avatar-dial-preview figcaption { max-width: 150px; margin: 10px auto 0; overflow: hidden; color: var(--color-muted); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 500; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+  .avatar-dial-orbit { position: absolute; top: var(--dial-center-y); left: 50%; width: calc(2 * var(--dial-radius-x)); height: calc(2 * var(--dial-radius-y)); border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent); border-radius: 50%; transform: translate(-50%, -50%); clip-path: inset(50% 0 0); pointer-events: none; }
+  .avatar-dial-hole {
+    position: absolute;
+    z-index: 1;
+    top: calc(var(--dial-center-y) + var(--dial-radius-y) * cos(var(--dial-position) * var(--dial-step)));
+    left: calc(50% + var(--dial-radius-x) * sin(var(--dial-position) * var(--dial-step)));
+    display: grid;
+    width: var(--dial-option-size);
+    height: var(--dial-option-size);
+    place-items: center;
+    border: 1px solid var(--color-divider);
+    border-radius: 50%;
+    background: var(--color-canvas);
+    padding: 5px;
+    box-shadow: inset 0 2px 6px color-mix(in srgb, var(--color-canvas) 80%, transparent), 0 8px 24px color-mix(in srgb, var(--color-canvas) 40%, transparent);
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    transition: border-color 160ms, background 160ms, box-shadow 160ms;
+  }
+  .avatar-dial-hole:hover { border-color: var(--color-text-accent); background: var(--color-panel); }
+  .avatar-dial-hole:has(input:checked) { border-color: var(--color-primary); background: var(--color-primary-soft); box-shadow: 0 0 0 3px var(--color-primary-soft), 0 8px 28px color-mix(in srgb, var(--color-canvas) 55%, transparent); }
+  .avatar-dial-hole:has(input:focus-visible) { outline: 2px solid var(--color-focus-ring); outline-offset: 5px; }
+  .avatar-dial-hole:has(input:disabled) { cursor: default; }
+  .avatar-dial-thumbnail { display: grid; width: 100%; height: 100%; overflow: hidden; place-items: center; border-radius: 50%; background: var(--color-panel); }
+  .avatar-dial-thumbnail .avatar-dial-image { object-fit: cover; object-position: 50% 24%; }
+  .avatar-dial-thumbnail > .avatar-illustration { width: 100%; height: 100%; }
+  .avatar-dial-hole[inert] { pointer-events: none; }
+  .avatar-dial-empty { position: absolute; right: 0; bottom: 44px; left: 0; color: var(--color-subtle); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); text-align: center; }
+  @media (max-width: 767px) {
+    .avatar-dial { --dial-option-size: 60px; --dial-preview-size: 224px; --dial-radius-y: 90px; --dial-center-y: 232px; --dial-step: 37.5deg; }
+    .avatar-dial-stage { height: 370px; }
+  }
+  @media (max-width: 479px) {
+    .avatar-dial { --dial-option-size: 52px; --dial-preview-size: 208px; --dial-radius-y: 82px; --dial-center-y: 220px; }
+    .avatar-dial-stage { height: 340px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .avatar-dial-hole { transition: none; }
+  }
+}

@@ -19,6 +19,7 @@ export function Dialog({
   label,
   closeLabel = '닫기',
   showCloseButton = true,
+  showHeader = true,
   titleAlign = 'start',
   dismissible = true,
 }: {
@@ -31,6 +32,7 @@ export function Dialog({
   label?: string
   closeLabel?: string
   showCloseButton?: boolean
+  showHeader?: boolean
   titleAlign?: 'start' | 'center'
   dismissible?: boolean
 }) {
@@ -90,6 +92,7 @@ export function Dialog({
       aria-labelledby={label ? undefined : titleId}
       onCancel={(event) => {
         event.preventDefault()
+        event.stopPropagation()
         dismiss()
       }}
       onClose={() => { if (open && !ref.current?.open) onClose() }}
@@ -108,7 +111,7 @@ export function Dialog({
         className,
       )}
     >
-      <div className={cn('relative mb-5 flex items-start gap-4', titleAlign === 'center' ? 'justify-center' : 'justify-between')}>
+      {showHeader ? <div className={cn('relative mb-5 flex items-start gap-4', titleAlign === 'center' ? 'justify-center' : 'justify-between')}>
         <h2 id={titleId} className={cn(presentation === 'modal' ? 'type-dialog-title' : 'type-card-title', titleAlign === 'center' && 'w-full text-center', titleAlign === 'center' && showCloseButton && 'px-12')}>
           {title}
         </h2>
@@ -120,7 +123,7 @@ export function Dialog({
         >
           <Icon name="close" size={20} />
         </button>}
-      </div>
+      </div> : <h2 id={titleId} className="sr-only">{title}</h2>}
       {children}
     </dialog>
   )

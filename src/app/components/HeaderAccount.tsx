@@ -1,97 +1,45 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router'
-import { useDemo } from '@/features/demo/demo-context'
+import { lazy, Suspense, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router'
+import { accountRequest, closeAccountRequest } from '@/features/profile/account-location'
 import { Avatar } from '@/shared/ui/Avatar'
-import { useBackend } from '@/features/backend/backend-context'
-import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import { Dialog } from '@/shared/ui/Dialog'
 import { Icon } from '@/shared/ui/Icon'
-import { FloatingSurface } from '@/shared/ui/FloatingSurface'
+import { QuarterRingSpinner } from '@/shared/ui/QuarterRingSpinner'
 import { MvpGate } from '@/features/mvp/MvpGate'
-import { AccountWithdrawalDialog } from '@/features/auth/components/AccountWithdrawalDialog'
+import '@/features/profile/components/account-settings.css'
+
+const AccountSettingsDialog = lazy(() => import('@/features/profile/components/AccountSettingsDialog'))
+
+function AccountSettingsLoading({ onClose }: { onClose: () => void }) {
+  return <Dialog open title="계정 설정" onClose={onClose} showHeader={false} showCloseButton={false} className="account-settings-dialog">
+    <div className="account-settings-layout" aria-hidden="true" inert>
+      <aside className="account-settings-sidebar"><div className="account-settings-identity"><div className="account-settings-avatar skeleton-line rounded-full" /><div className="skeleton-line h-6 w-28 rounded-control" /></div><hr className="account-settings-divider" /><div className="account-settings-menu">{['profile', 'schedule', 'security'].map(view => <div key={view} data-account-view={view} className="account-settings-tab skeleton-line" />)}</div><div className="account-settings-footer"><div className="account-settings-tab skeleton-line" /></div></aside>
+      <div className="account-settings-loading"><QuarterRingSpinner /></div>
+    </div>
+    <span role="status" data-account-loading className="sr-only">계정 설정을 불러오고 있어요.</span>
+    <button type="button" className="account-settings-close" aria-label="계정 설정 닫기" onClick={onClose}><Icon name="close" size={20} /></button>
+  </Dialog>
+}
 
 export function HeaderAccount() {
-  const { state } = useDemo()
-  const { logout } = useBackend()
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const [withdrawalOpen, setWithdrawalOpen] = useState(false)
-  const menuRef = useRef<HTMLDetailsElement>(null)
-
-  useEffect(() => {
-    const closeOutside = (event: PointerEvent) => {
-      const menu = menuRef.current
-      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) {
-        menu.open = false
-      }
-    }
-    document.addEventListener('pointerdown', closeOutside)
-    return () => document.removeEventListener('pointerdown', closeOutside)
-  }, [])
-
-  return (
-    <>
-      <div className="header-account ml-auto flex shrink-0 items-center gap-2 sm:gap-5">
-        <MvpGate label="내 크레딧 · 충전" compact inline>
-          <span className="credit-chip">
-            <Icon name="coin" size={16} />
-            <span className="sr-only">크레딧</span>
-            <span className="font-sans tabular-nums text-body-compact font-bold text-ink">—</span>
-          </span>
-        </MvpGate>
-        <details
-          ref={menuRef}
-          className="relative z-30"
-          onKeyDown={(event) => {
-            if (event.key === 'Escape' && event.currentTarget.open) {
-              event.preventDefault()
-              event.stopPropagation()
-              event.currentTarget.open = false
-              event.currentTarget.querySelector('summary')?.focus()
-            }
-          }}
-          onBlur={(event) => {
-            if (event.relatedTarget instanceof Node && !event.currentTarget.contains(event.relatedTarget)) {
-              event.currentTarget.open = false
-            }
-          }}
-        >
-          <summary
-            aria-label="내 프로필 메뉴"
-            className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center gap-2 rounded-full"
-          >
-            <Avatar size="md" />
-          </summary>
-          <FloatingSurface className="absolute top-12 right-0 w-60 rounded-card p-3">
-            <p className="mb-2 border-b border-floating-hover px-3 py-2 text-body-compact font-bold">
-              {state.profile.name}
-            </p>
-            <Link
-              to="/mypage"
-              className="menu-item"
-              onClick={(event) => {
-                event.currentTarget.closest('details')?.removeAttribute('open')
-              }}
-            >
-              마이페이지
-            </Link>
-            <button disabled={busy} onClick={async () => {
-              setBusy(true); setError('')
-              try { await logout() } catch (reason) { setError(reason instanceof Error ? reason.message : '로그아웃하지 못했어요.') }
-              finally { setBusy(false) }
-            }} className="menu-item">{busy ? '로그아웃 중…' : '로그아웃'}</button>
-            <button type="button" disabled={busy} className="menu-item text-danger" onClick={() => {
-              setError('')
-              menuRef.current?.removeAttribute('open')
-              setWithdrawalOpen(true)
-            }}>회원탈퇴</button>
-            {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
-          </FloatingSurface>
-        </details>
-      </div>
-      {withdrawalOpen && <AccountWithdrawalDialog onClose={() => {
-        setWithdrawalOpen(false)
-        menuRef.current?.querySelector('summary')?.focus()
-      }} />}
-    </>
-  )
+  const [localOpen, setOpen] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const requested = accountRequest(location.search)
+  const open = localOpen || requested !== null
+  const trigger = useRef<HTMLButtonElement>(null)
+  function close() {
+    setOpen(false)
+    if (requested) navigate({ pathname: location.pathname, search: closeAccountRequest(location.search), hash: location.hash }, { replace: true, preventScrollReset: true })
+    requestAnimationFrame(() => trigger.current?.focus({ preventScroll: true }))
+  }
+  return <>
+    <div className="header-account ml-auto flex shrink-0 items-center gap-2 sm:gap-5">
+      <MvpGate label="내 크레딧 · 충전" compact inline>
+        <span className="credit-chip"><Icon name="coin" size={16} /><span className="sr-only">크레딧</span><span className="font-sans tabular-nums text-body-compact font-bold text-ink">—</span></span>
+      </MvpGate>
+      <button ref={trigger} type="button" aria-label="계정 설정 열기" aria-haspopup="dialog" aria-expanded={open} className="flex min-h-11 min-w-11 items-center justify-center rounded-full" onClick={() => setOpen(true)}><Avatar size="md" /></button>
+    </div>
+    {open && <Suspense fallback={<AccountSettingsLoading onClose={close} />}><AccountSettingsDialog key={requested ? `${requested.view}:${requested.openEditor}` : 'local'} initialView={requested?.view} openScheduleEditor={requested?.openEditor} onClose={close} /></Suspense>}
+  </>
 }

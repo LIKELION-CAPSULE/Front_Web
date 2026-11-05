@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useIsPresent } from 'motion/react'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { Icon, type IconName } from './Icon'
+import { Button } from './Button'
 import type { FeedbackTone } from './FeedbackMessage'
 import type { NotificationItem } from './notification-queue'
 import './notification-stack.css'
@@ -48,6 +49,7 @@ function NotificationCard({ item, onDismiss }: { item: NotificationItem; onDismi
     <div className="notification-content">
       <p id={`${item.id}-title`} className="notification-title">{item.title}</p>
       <p id={`${item.id}-description`} className="notification-description">{item.text}</p>
+      {item.action && <Button variant="ghost" size="sm" className="notification-action" onFocus={rememberFocus} onClick={item.action.onClick}>{item.action.label}</Button>}
     </div>
     <button type="button" className="notification-close" aria-label={`${item.title} 알림 닫기`} onFocus={rememberFocus} onClick={dismiss}><Icon name="close" size={16} /></button>
   </motion.div>

@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
-import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import { NotificationStack } from '@/shared/ui/NotificationStack'
+import { enqueueNotification, type NotificationItem } from '@/shared/ui/notification-queue'
 import { RoomCard } from '@/features/rooms/components/RoomCard'
 import { StudyWelcomeBanner } from '@/features/rooms/components/StudyWelcomeBanner'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
@@ -10,11 +12,45 @@ import { cn } from '@/shared/lib/cn'
 import { SearchField } from '@/shared/ui/SearchField'
 
 export default function HomePage() {
+  const location = useLocation()
+  const navigate = useNavigate()
   const rooms = getStudyRooms()
   const { state } = useDemo()
-  const { refreshHome } = useBackend()
+  const { refreshHome, reload, status, error, home } = useBackend()
   const [refreshError, setRefreshError] = useState('')
-  useEffect(() => { let alive = true; void refreshHome().catch(reason => { if (alive) setRefreshError(reason instanceof Error ? reason.message : '홈을 새로 불러오지 못했어요.') }); return () => { alive = false } }, [refreshHome])
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  useEffect(() => {
+    if (location.state?.notice !== 'page-not-found') return
+    const frame = requestAnimationFrame(() => {
+      const notice: NotificationItem = { id: crypto.randomUUID(), tone: 'warning', title: '페이지를 찾을 수 없어요', text: '홈으로 이동했어요. 주소를 다시 확인해 주세요.' }
+      setNotifications(current => enqueueNotification(current, notice))
+      navigate({ pathname: location.pathname, search: location.search, hash: location.hash }, { replace: true, state: null, preventScrollReset: true })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [location, navigate])
+  const showConnectionError = useCallback((text: string) => {
+    const item: NotificationItem = { id: crypto.randomUUID(), tone: 'error', title: '앱 연결 실패', text, action: { label: '다시 연결하기', onClick: () => { void reload() } } }
+    setNotifications(current => enqueueNotification(current, item))
+  }, [reload, setNotifications])
+  useEffect(() => {
+    if (status !== 'error') return
+    const frame = requestAnimationFrame(() => showConnectionError(error || '앱에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.'))
+    return () => cancelAnimationFrame(frame)
+  }, [status, error, showConnectionError])
+  useEffect(() => {
+    // A failed bootstrap stays on home until the user explicitly retries.
+    if (status !== 'ready') return
+    let alive = true
+    void refreshHome().catch(reason => {
+      if (!alive) return
+      const message = reason instanceof Error ? reason.message : '홈을 새로 불러오지 못했어요.'
+      setRefreshError(message)
+      showConnectionError(message)
+    })
+    return () => { alive = false }
+  }, [refreshHome, status, showConnectionError])
+  const connectionFailed = status === 'error' || !!refreshError
+  const roomsUnavailable = connectionFailed && !home
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
   const roomHeading = useRef<HTMLHeadingElement>(null)
@@ -40,13 +76,13 @@ export default function HomePage() {
           .toLocaleLowerCase('ko-KR')
           .includes(search)),
   )
-  function resetFilters() {
-    setFilter('all')
-    setQuery('')
-  }
+  const emptyState = !rooms.length
+    ? { icon: 'book' as const, title: '아직 등록된 스터디룸이 없어요', description: '스터디룸이 등록되면 이곳에 표시돼요.' }
+    : filter === 'saved' && !search
+      ? { icon: 'bookmark' as const, title: '아직 저장한 스터디룸이 없어요', description: '마음에 드는 스터디룸을 저장해 보세요.' }
+      : { icon: 'search' as const, title: '검색 결과가 없어요', description: '스터디룸이나 친구 이름으로 다시 검색해 보세요.' }
   return (
     <>
-      {refreshError && <FeedbackMessage tone="error">{refreshError}</FeedbackMessage>}
       <StudyWelcomeBanner onExplore={exploreRooms} />
       <section className="rooms-section" aria-labelledby="rooms-heading">
         <div className="section-heading">
@@ -58,7 +94,7 @@ export default function HomePage() {
               className="scroll-mt-6 type-section-title"
             >
               오늘은 어디서 공부할까요?{' '}
-              <span className="ml-1 text-label font-normal text-subtle">{rooms.length}</span>
+              {!roomsUnavailable && <span className="ml-1 text-label font-normal text-subtle">{rooms.length}</span>}
             </h2>
           </div>
           <div className="room-toolbar">
@@ -86,7 +122,7 @@ export default function HomePage() {
             <SearchField label="스터디룸 검색" placeholder="스터디룸·친구 이름 검색" value={query} onChange={setQuery} className="room-search" />
           </div>
         </div>
-        {search && filter !== 'saved' && (
+        {search && !roomsUnavailable && rooms.length > 0 && filter !== 'saved' && (
           <p role="status" className="search-result-count">
             스터디룸 {visible.length}개를 찾았어요.
           </p>
@@ -96,34 +132,23 @@ export default function HomePage() {
             <RoomCard key={room.id} room={room} />
           ))}
         </div>
-        {!visible.length && (
+        {!roomsUnavailable && !visible.length && (
           <div className="room-empty">
             <Icon
-              name={filter === 'saved' && !search ? 'bookmark' : 'search'}
+              name={emptyState.icon}
               size={30}
               className="mx-auto mb-4 text-text-accent"
             />
             <h3 className="type-card-title">
-              {filter === 'saved' && !search
-                ? '아직 저장한 스터디룸이 없어요'
-                : '검색 결과가 없어요'}
+              {emptyState.title}
             </h3>
             <p className="mt-2 text-body-compact text-muted">
-              {filter === 'saved' && !search
-                ? '마음에 드는 스터디룸을 저장해 보세요.'
-                : '스터디룸이나 친구 이름으로 다시 검색해 보세요.'}
+              {emptyState.description}
             </p>
-            {filter !== 'saved' && (
-              <button
-                onClick={resetFilters}
-                className="mt-5 rounded-full border border-transparent bg-primary-soft px-5 py-2 text-body-compact text-text-accent"
-              >
-                모든 스터디룸 보기
-              </button>
-            )}
           </div>
         )}
       </section>
+      <NotificationStack items={notifications} onDismiss={id => setNotifications(current => current.filter(item => item.id !== id))} />
     </>
   )
 }

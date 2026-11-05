@@ -1,0 +1,1 @@
+export const WITHDRAWAL_CONFIRMATION = 'CAPSULE을 탈퇴합니다'

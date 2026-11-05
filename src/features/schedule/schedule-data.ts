@@ -1,7 +1,24 @@
 import type { Memory } from '../demo/types.ts'
-import { clampCalendarMonth } from '../../shared/lib/date-limits.ts'
+import { clampCalendarDate, clampCalendarMonth } from '../../shared/lib/date-limits.ts'
 
 export type SchedulePeriod = 'upcoming' | 'all' | 'past'
+
+/** Calendar arithmetic stays in UTC so a week always has seven calendar dates. */
+export function scheduleWeekDays(day: string) {
+  const start = new Date(`${clampCalendarDate(day)}T00:00:00Z`)
+  start.setUTCDate(start.getUTCDate() - start.getUTCDay())
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start)
+    date.setUTCDate(start.getUTCDate() + index)
+    return date.toISOString().slice(0, 10)
+  })
+}
+
+export function shiftScheduleWeek(day: string, offset: number) {
+  const date = new Date(`${clampCalendarDate(day)}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + offset * 7)
+  return clampCalendarDate(date.toISOString().slice(0, 10))
+}
 
 export function scheduleCountdown(date: string, today: string) {
   const days = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000)

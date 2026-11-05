@@ -72,7 +72,7 @@ export default function CapsuleCardPage() {
     navigate(`${window.location.pathname}${window.location.search}`, { replace: true, state: null })
   }
   let content
-  if (!record || !room) content = error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : introPhase ? null : <PageSkeleton />
+  if (!record || !room) content = error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : introPhase ? null : <PageSkeleton screen="capsule" />
   else if (!available) content = <OverlayPage><MvpUnavailablePage /></OverlayPage>
   else content = <CapsuleCardView record={record} room={room} storyFont={storyFont} intro={introPhase} onRevealed={() => settle('card')} />
   return (

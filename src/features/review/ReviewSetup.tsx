@@ -21,9 +21,9 @@ function findTarget(step: ReviewStep): HTMLElement | null {
   }) ?? null
 }
 
-function waitForScreen() {
+function waitForScreen(loading?: string) {
   return new Promise<void>((resolve, reject) => {
-    const check = () => !document.querySelector('.page-skeleton') && !!document.querySelector('main, [role="alert"]')
+    const check = () => loading ? !!document.querySelector(`[data-loading-screen="${loading}"]`) : !document.querySelector('[data-loading-screen], [data-account-loading]') && !!document.querySelector('main, [role="alert"]')
     if (check()) { resolve(); return }
     const timeout = setTimeout(() => { clearInterval(timer); reject(new Error('화면을 아직 준비하지 못했어요. 상태 초기화를 눌러 다시 열어 주세요.')) }, 12_000)
     const timer = setInterval(() => {
@@ -57,7 +57,7 @@ export function ReviewSetup({ scenario }: { scenario: ReviewScenario }) {
   const { state, dispatch } = useDemo()
   const initialized = useRef(false)
   useEffect(() => {
-    if (initialized.current || (status === 'loading' && scenario.fault !== 'bootstrap-pending')) return
+    if (initialized.current || (status === 'loading' && !scenario.loading)) return
     initialized.current = true
     const run = async () => {
       if (scenario.draft) {
@@ -71,11 +71,10 @@ export function ReviewSetup({ scenario }: { scenario: ReviewScenario }) {
         if (scenario.session === 'break') dispatch({ type: 'TAKE_BREAK', now: Date.now() })
         await new Promise(resolve => setTimeout(resolve, 160))
       }
-      const loadingPreview = scenario.fault === 'bootstrap-pending' || scenario.fault === 'kakao-pending'
-      if (!loadingPreview) await waitForScreen()
+      await waitForScreen(scenario.loading)
       for (const step of scenario.steps ?? []) await runStep(step)
       await new Promise(resolve => setTimeout(resolve, scenario.fault === 'verification-expired' ? 1200 : 200))
-      if (!loadingPreview) await waitForScreen()
+      await waitForScreen(scenario.loading)
       document.body.dataset.reviewReady = scenario.id
       parent.postMessage({ type: 'capsule-review:ready', id: scenario.id }, location.origin)
     }
