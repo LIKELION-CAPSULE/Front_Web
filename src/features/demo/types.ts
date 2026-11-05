@@ -8,6 +8,9 @@ export type AvatarSettings = {
   background: number
 }
 export type Profile = {
+  userId?: number
+  profileImage?: string
+  avatarId?: number
   name: string
   loggedIn: boolean
   onboarded: boolean
@@ -25,6 +28,9 @@ export type LedgerEntry = {
 export type Pass = { name: string; expiresAt: number; premiumDay: string | null }
 export type FocusTotals = { observedMs: number; focusedMs: number; returns: number }
 export type StudyRecord = {
+  serverReport?: import('../../shared/api/types.ts').ReportResponse
+  roomName?: string
+  characterName?: string
   /** Absent on legacy/sample records. Zero means no valid camera measurement. */
   observedSeconds?: number
   targetSeconds?: number
@@ -42,6 +48,10 @@ export type StudyRecord = {
   automatic: boolean
 }
 export type ActiveSession = {
+  serverSession?: boolean
+  serverOffsetMs?: number
+  presenceKnown?: boolean
+  initialAwaySeconds?: number
   focus?: FocusTotals
   targetSeconds?: number
   id: string
@@ -65,6 +75,7 @@ export type Memory = {
   time: string
 }
 export type Message = {
+  requestId?: string
   id: string
   createdAt?: number
   sessionId: string

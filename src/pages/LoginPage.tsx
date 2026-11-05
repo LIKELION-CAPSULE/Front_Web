@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
-import { useDemo } from '@/features/demo/demo-context'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
+import { useBackend } from '@/features/backend/backend-context'
+import { api } from '@/shared/api/client'
+import type { ExpiresResponse, LoginResponse } from '@/shared/api/types'
+import { authNotice } from '@/features/auth/auth-notices'
+import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { PageNavigation } from '@/app/PageNavigation'
 import { safeReturnPath } from '@/shared/lib/format'
 import { Button } from '@/shared/ui/Button'
@@ -15,17 +19,19 @@ import { LegalDocumentDialog } from '@/features/auth/components/LegalDocumentDia
 import type { LegalDocumentId } from '@/features/auth/data/legal-documents'
 
 export default function LoginPage() {
-  const { state, dispatch } = useDemo()
+  const backend = useBackend()
+  const [oauthError, setOauthError] = useState('')
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const [legal, setLegal] = useState<LegalDocumentId | null>(null)
-  const [signupDraft, setSignupDraft] = useState<{ email: string; nickname: string } | null>(null)
+  const [signupDraft, setSignupDraft] = useState<{ email: string; password: string; nickname: string; expiresAt: number } | null>(null)
   const scrollPane = useRef<HTMLElement>(null)
   const panel = useRef<HTMLDivElement>(null)
   const mode = params.get('mode')
-  const view = mode === 'login' || mode === 'signup' || mode === 'forgot-password' ? mode : 'welcome'
+  const view = params.has('token') ? 'forgot-password' : mode === 'login' || mode === 'signup' || mode === 'forgot-password' ? mode : 'welcome'
   const verifying = view === 'signup' && signupDraft !== null
   const next = safeReturnPath(params.get('next'), '/')
+  const notice = authNotice(params.get('notice'))
   useEffect(() => {
     document.title = `CAPSULE · ${verifying ? '이메일 인증' : view === 'login' ? '로그인' : view === 'signup' ? '회원가입' : view === 'forgot-password' ? '비밀번호 찾기' : '같이 공부할 친구가 기다리고 있어요'}`
     scrollPane.current?.scrollTo({ top: 0 })
@@ -33,18 +39,33 @@ export default function LoginPage() {
   }, [view, verifying])
   function authPath(target?: EmailAuthMode | 'forgot-password') {
     const search = new URLSearchParams(params)
+    if (target !== 'forgot-password') search.delete('token')
     if (target) search.set('mode', target)
     else search.delete('mode')
     return `/login${search.size ? `?${search}` : ''}`
   }
-  function login(preview = false, nickname?: string) {
-    dispatch({ type: 'LOGIN', preview, nickname })
-    navigate(
-      nickname === undefined && (preview || state.profile.onboarded)
-        ? next
-        : `/onboarding?next=${encodeURIComponent(next)}`,
-    )
+  async function complete(result: LoginResponse) {
+    const me = await backend.authenticate(result)
+    setSignupDraft(null)
+    sessionStorage.setItem('capsule-login-provider', 'EMAIL')
+    navigate(me.onboardingRequired ? `/onboarding?next=${encodeURIComponent(next)}` : next, { replace: true })
   }
+  function kakao() {
+    const key = import.meta.env.VITE_KAKAO_REST_API_KEY as string | undefined
+    const redirect = import.meta.env.VITE_KAKAO_REDIRECT_URI as string | undefined
+    if (!key || !redirect) { setOauthError('카카오 로그인을 준비하고 있어요. 이메일로 로그인해 주세요.'); return }
+    if (!['SERVICE', 'PRIVACY'].every(code => backend.terms.some(term => term.code === code && term.termVersionId && term.content))) {
+      setOauthError('약관 정보를 불러오지 못했어요. 페이지를 새로고침해 다시 시도해 주세요.'); return
+    }
+    try {
+      if (new URL(redirect).origin !== window.location.origin) { setOauthError('현재 접속 주소에서 카카오 로그인을 사용할 수 없어요. 로그인 페이지 주소를 확인해 주세요.'); return }
+    } catch { setOauthError('카카오 로그인 주소를 확인하지 못했어요. 이메일로 로그인해 주세요.'); return }
+    const state = crypto.randomUUID()
+    sessionStorage.setItem('capsule-kakao', JSON.stringify({ state, next, redirect }))
+    const query = new URLSearchParams({ client_id: key, redirect_uri: redirect, response_type: 'code', state })
+    window.location.assign(`https://kauth.kakao.com/oauth/authorize?${query}`)
+  }
+  if (params.has('token')) return <Navigate to={`/password/reset?${params}`} replace />
   return (
     <main
       id="main-content"
@@ -69,7 +90,11 @@ export default function LoginPage() {
           <Link to={authPath()} className="block w-fit" onClick={() => setSignupDraft(null)}>
             <Brand className="w-[160px]" />
           </Link>
-          {verifying && <EmailVerificationForm email={signupDraft.email} onBack={() => setSignupDraft(null)} onVerified={() => login(false, signupDraft.nickname)} />}
+          {notice && <FeedbackMessage tone={notice.tone} className="mt-5">{notice.text}</FeedbackMessage>}
+          {verifying && <EmailVerificationForm email={signupDraft.email} onBack={() => setSignupDraft(null)} expiresAt={signupDraft.expiresAt} onVerified={async verificationToken => {
+            const result = await api.request<LoginResponse>('/auth/email/signup', { method: 'POST', auth: false, body: { verificationToken, password: signupDraft.password, nickname: signupDraft.nickname, agreedTermVersionIds: backend.terms.filter(term => term.required).map(term => term.termVersionId) } })
+            await complete(result)
+          }} />}
           <div hidden={verifying}>
             {view === 'welcome' ? (
               <>
@@ -82,16 +107,15 @@ export default function LoginPage() {
                   기다리고 있어요
                 </h1>
                 <p className="mt-4 text-subtle">친구와 함께 공부를 시작해요.</p>
-                <Button onClick={() => login()} className="kakao-button mt-7 w-full text-[#241f14]">
+                <Button onClick={kakao} className="kakao-button mt-7 w-full text-[#241f14]">
                   <Icon name="chat" size={18} fill="currentColor" /> 카카오로 계속하기
                 </Button>
-                <Button
-                  onClick={() => login(true)}
-                  variant="secondary"
-                  className="mt-4 w-full"
-                >
-                  가입 없이 둘러보기
-                </Button>
+                <p className="mt-3 text-caption leading-6 text-subtle">
+                  카카오로 계속하면{' '}
+                  <button type="button" onClick={() => setLegal('terms')} className="text-muted underline underline-offset-4">이용약관</button>과{' '}
+                  <button type="button" onClick={() => setLegal('privacy')} className="text-muted underline underline-offset-4">개인정보 처리방침</button>에 동의하는 것으로 봅니다.
+                </p>
+                {oauthError && <FeedbackMessage tone="error" className="mt-4">{oauthError}</FeedbackMessage>}
                 <div className="mt-9 flex items-center gap-3 text-caption text-subtle">
                   <span className="h-px flex-1 bg-divider" />
                   또는
@@ -137,9 +161,14 @@ export default function LoginPage() {
                   <>
                     <EmailAuthForm
                       mode={view}
-                      onSubmit={(email, nickname) => {
-                        if (view === 'signup') setSignupDraft({ email, nickname })
-                        else login()
+                      onSubmit={async input => {
+                        if (view === 'signup') {
+                          const result = await api.request<ExpiresResponse>('/auth/email/verification', { method: 'POST', auth: false, body: { email: input.email } })
+                          if (!result.expiresInSeconds) throw new Error('인증 유효 시간을 확인하지 못했어요.')
+                          setSignupDraft({ ...input, expiresAt: Date.now() + result.expiresInSeconds * 1000 })
+                        } else {
+                          await complete(await api.request<LoginResponse>('/auth/email/login', { method: 'POST', auth: false, body: { email: input.email, password: input.password } }))
+                        }
                       }}
                       onOpenDocument={setLegal}
                     />

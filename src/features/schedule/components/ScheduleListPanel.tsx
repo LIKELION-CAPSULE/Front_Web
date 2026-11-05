@@ -63,7 +63,7 @@ export function ScheduleListPanel({
               <li key={memory.id} className="schedule-row">
                 <div className="schedule-date">
                   {countdown && <span className="schedule-countdown">{countdown}</span>}
-                  <time dateTime={memory.date}>{memory.date.replaceAll('-', '.')}</time>
+                  {memory.date ? <time dateTime={memory.date}>{memory.date.replaceAll('-', '.')}</time> : <span>마감일 없음</span>}
                   <span>{memory.time || '종일'}</span>
                 </div>
                 <div className="min-w-0">
@@ -73,10 +73,10 @@ export function ScheduleListPanel({
                 <button
                   type="button"
                   className="schedule-edit"
-                  aria-label={`${memory.title} 수정`}
+                  aria-label={`${memory.title} 상세`}
                   onClick={() => onEdit(memory)}
                 >
-                  수정
+                  보기
                 </button>
               </li>
             )

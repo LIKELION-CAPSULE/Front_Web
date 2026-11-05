@@ -161,6 +161,11 @@ Desktop.ini
 # Turbo Repo
 .turbo
 
+# Local image asset package for backend/Figma handoff
+/backend-asset-handoff-*/
+
+# Keep API documentation, reviews and OpenAPI snapshots local.
+# Only the shared non-API documents below are tracked.
 docs/*
 !docs/REFERENCE_COMMERCIAL_USE.md
 !docs/THIRD_PARTY_NOTICES.md

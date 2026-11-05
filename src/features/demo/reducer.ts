@@ -16,6 +16,7 @@ import { normalizeAffectionScore } from '../characters/affection.ts'
 export const BREAK_SECONDS = 10 * 60
 
 export type DemoAction =
+  | { type: 'SERVER_SYNC'; patch: Partial<DemoState> }
   | { type: 'LOGIN'; preview?: boolean; nickname?: string }
   | { type: 'PROFILE'; name: string; avatar: AvatarSettings }
   | { type: 'LOGOUT' }
@@ -101,6 +102,8 @@ function transaction(state: DemoState, entry: Omit<LedgerEntry, 'balance'>): Dem
 
 export function demoReducer(state: DemoState, action: DemoAction): DemoState {
   switch (action.type) {
+    case 'SERVER_SYNC':
+      return { ...state, ...action.patch }
     case 'LOGIN':
       return {
         ...state,

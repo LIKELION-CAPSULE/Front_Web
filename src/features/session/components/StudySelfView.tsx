@@ -5,10 +5,11 @@ import { VirtualBackgroundVideo } from '@/features/media/components/VirtualBackg
 import { getCameraBackground, type CameraBackgroundId } from '@/features/media/camera-backgrounds'
 import { cn } from '@/shared/lib/cn'
 
-export function StudySelfView({ stream, showCamera, avatar, background, small = false, expanded = false }: {
+export function StudySelfView({ stream, showCamera, avatar, image, background, small = false, expanded = false }: {
   stream: MediaStream | null
   showCamera: boolean
   avatar: AvatarSettings
+  image?: string
   background: CameraBackgroundId
   small?: boolean
   expanded?: boolean
@@ -21,12 +22,12 @@ export function StudySelfView({ stream, showCamera, avatar, background, small = 
       {cameraVisible
         ? <VirtualBackgroundVideo stream={stream} label="내 카메라 미리보기" />
         : portrait
-          ? <Avatar settings={avatar} className={expanded ? 'size-36 sm:size-44' : small ? 'size-12' : 'size-24 sm:size-28'} />
+          ? <Avatar src={image} settings={avatar} className={expanded ? 'size-36 sm:size-44' : small ? 'size-12' : 'size-24 sm:size-28'} />
           : <>
             {/* Avatar mode never mounts a live camera preview behind the illustration. */}
             {backdrop.kind !== 'none' && <div className="study-avatar-background" data-kind={backdrop.kind}
               style={backdrop.kind === 'image' ? { backgroundImage: `url("${backdrop.src}")` } : undefined} aria-hidden="true" />}
-            <AvatarIllustration settings={avatar} />
+            {image ? <img src={image} alt="내 아바타" className="size-full object-contain" /> : <AvatarIllustration settings={avatar} />}
           </>}
     </div>
   )

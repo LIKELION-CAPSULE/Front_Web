@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
 import { useDemo } from '@/features/demo/demo-context'
@@ -6,16 +6,16 @@ import { BREAK_SECONDS, sessionElapsed, sessionStudySeconds } from '@/features/d
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { studyGoalSeconds } from '@/features/session/study-goal'
 import { isStudyChatOpen, SELF_STUDY_TILE_ID, selectBreakFriend, selectStudyChatFriend, toggleBreakSelfFocus, toggleStudyChat, toggleStudyFocus } from '@/features/session/study-interaction'
-import { focusPercent, normalizeFocusTotals } from '@/features/session/focus'
+import { focusPercent } from '@/features/session/focus'
 import { useNow } from '@/features/session/use-now'
-import { requestCharacterReply, type ChatReplyMode } from '@/features/session/llm-chat'
-import { behaviorPromptText, createBehaviorChatState, reactToBehavior, typingEndsAt, withRecentBehavior } from '@/features/session/behavior-chat'
-import type { BehaviorChange } from '@/features/media/behavior-monitor'
+import { useBackend } from '@/features/backend/backend-context'
+import { useSessionSync } from '@/features/backend/use-session-sync'
+import type { ReactionResponse } from '@/shared/api/types'
+import { ApiError } from '@/shared/api/client'
 import { CharacterTile } from '@/features/session/components/CharacterTile'
 import { StudyGrid } from '@/features/session/components/StudyGrid'
 import { StudyDock } from '@/features/session/components/StudyDock'
 import { StudySelfView } from '@/features/session/components/StudySelfView'
-import { StudyDemoControls } from '@/features/session/components/StudyDemoControls'
 import { SessionTimer } from '@/features/session/components/SessionTimer'
 import { SessionFocus } from '@/features/session/components/SessionFocus'
 import { getCharacterArtwork } from '@/features/characters/artwork'
@@ -36,6 +36,9 @@ import { cn } from '@/shared/lib/cn'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { isMvpCharacter } from '@/features/mvp/policy'
+import { useExpressionDirector, useLive2DStage } from '@/features/live2d/use-live2d'
+import type { ExpressionCue } from '@/features/live2d/expression-scheduler'
+import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 
 const reactions = ['', '…', '잠깐 자리 비운 거야?', '…나랑 공부하기 싫어?']
 
@@ -48,7 +51,10 @@ export default function StudyPage() {
   const [customSpeech, setCustomSpeech] = useState('')
   const [showCamera, setShowCamera] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
-  const [replyMode, setReplyMode] = useState<ChatReplyMode>('scripted')
+  const backend = useBackend()
+  const [finishing, setFinishing] = useState(false)
+  const [sessionError, setSessionError] = useState('')
+  const [resuming, setResuming] = useState(false)
   const [pendingReplies, setPendingReplies] = useState<Record<string, boolean>>({})
   const [replyErrors, setReplyErrors] = useState<Record<string, string>>({})
   const [speakingMessages, setSpeakingMessages] = useState<SpeakingMessages>({})
@@ -56,8 +62,7 @@ export default function StudyPage() {
   const reportTyping = useCallback((characterId: string, messageId: string, typing: boolean) => {
     setSpeakingMessages(current => updateSpeakingMessages(current, characterId, messageId, typing))
   }, [])
-  const { devices, controller, flushFocus, behavior } = useMedia()
-  const behaviorChat = useRef(createBehaviorChatState())
+  const { devices, controller, flushFocus, observation, behavior } = useMedia()
   const now = useNow()
   const active = state.activeSession
   const inSession = active?.id === sessionId
@@ -66,20 +71,36 @@ export default function StudyPage() {
   const speakingCharacters = new Set(Object.values(speakingMessages))
   const resting = active?.phase === 'break'
   const room = active && getStudyRoom(active.roomId)
-  const characters = room?.characters.filter(character => isMvpCharacter(character.id) && active?.characterIds.includes(character.id)) ?? []
+  const characters = room?.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && active?.characterIds.includes(character.id)) ?? []
   const focused = characters.find(character => character.id === params.get('focus'))
   const selfFocused = params.get('focus') === SELF_STUDY_TILE_ID
   const hasFocus = !!focused || selfFocused
   const selected = characters.find(character => character.id === params.get('friend')) ?? focused ?? characters[0]
   const chatOpen = isStudyChatOpen(params, resting)
   const previousPhase = useRef(active?.phase)
-  useEffect(() => { behaviorChat.current = createBehaviorChatState() }, [sessionId])
-  const onBehaviorChange = useEffectEvent((change: BehaviorChange) => {
-    // Same guard as the early return below, so the handler only runs after a full render of this session.
-    const session = state.activeSession
-    if (session && session.id === sessionId && getStudyRoom(session.roomId) && selected) reactToDetection(change)
+  // Only the server character with a model gets Live2D; everyone else keeps the static artwork.
+  const live2dFigure = inSession ? backend.visuals?.character : null
+  const live2dCharacterId = live2dFigure?.id ? String(live2dFigure.id) : null
+  const live2d = useLive2DStage(live2dFigure)
+  const expressions = useExpressionDirector(live2d)
+  const reducedMotion = useReducedMotion()
+  const cueExpression = (cue: ExpressionCue) => {
+    if (String(cue.characterId) === live2dCharacterId) expressions.cue(cue)
+  }
+  const sync = useSessionSync({
+    active: inSession ? active : null, userId: state.profile.userId, observation,
+    camera: !!devices.camera.stream, behavior,
+    onExpression: cueExpression,
+    onReaction: (result: ReactionResponse, event: string) => {
+      for (const reply of result.characters ?? []) {
+        if (reply.characterId) cueExpression({ characterId: reply.characterId, expression: reply.expression, event, stage: 'speech', text: reply.content })
+        if (!reply.characterId || !reply.content) continue
+        dispatch({ type: 'CHARACTER_REPLY', sessionId: active!.id, characterId: String(reply.characterId), text: reply.content, now: Date.now() })
+        setReaction(0); setCustomSpeech(reply.content)
+      }
+    },
+    onEnded: () => { controller.stop(); navigate(`/reports/${active!.id}`, { replace: true }) },
   })
-  useEffect(() => behavior.onChange((change) => onBehaviorChange(change)), [behavior])
   useEffect(() => {
     if (inSession && previousPhase.current === 'break' && active?.phase === 'study') {
       // Automatic rest completion returns to the study view while preserving conversations.
@@ -91,6 +112,14 @@ export default function StudyPage() {
     }
     previousPhase.current = active?.phase
   }, [active?.phase, inSession, setParams])
+  useEffect(() => {
+    // A break drops faces still waiting to show; the break's own reaction brings the next face.
+    if (active?.phase === 'break') expressions.cancelPending()
+  }, [active?.phase, expressions])
+  useEffect(() => {
+    // Study time (including pause) keeps the friend facing forward; breaks follow the cursor.
+    live2d?.setTracking(inSession && active?.phase === 'break' && !reducedMotion)
+  }, [live2d, inSession, active?.phase, reducedMotion])
   useLayoutEffect(() => {
     if (!inSession || !hasFocus || (resting && !selfFocused) || !window.matchMedia('(max-width: 1023px)').matches) return
     const tile = document.querySelector<HTMLElement>(resting ? '.break-self-tile.focus-tile' : '.study-grid > .focus-tile')
@@ -135,6 +164,22 @@ export default function StudyPage() {
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   }, [inSession, resting, focused?.id, selfFocused, selected, setParams])
+  if ((!active || active.id !== sessionId) && backend.activeSummary && String(backend.activeSummary.sessionId) === sessionId) {
+    return <main id="main-content" className="page-container grid min-h-dvh place-items-center">
+      <section><h1 className="type-page-title">다시 공부를 시작할까요?</h1><p className="mt-4 text-muted">{backend.activeSummary.roomName}에서 하던 공부를 이어가요.</p>
+      {sessionError && <FeedbackMessage tone="error">{sessionError}</FeedbackMessage>}
+      <Button className="mt-5" disabled={resuming} onClick={async () => {
+        if (resuming || !sessionId) return
+        setResuming(true); setSessionError('')
+        try { await backend.resumeSession(sessionId); setParams({}, { replace: true }) }
+        catch (reason) {
+          if (reason instanceof ApiError && reason.code === 'SESSION_ENDED') navigate(`/reports/${sessionId}`, { replace: true })
+          else setSessionError(reason instanceof Error ? reason.message : '공부를 이어가지 못했어요.')
+        }
+        finally { setResuming(false) }
+      }}>{resuming ? '불러오고 있어요…' : '이어서 시작할게'}</Button><Link to="/" className="ml-4 text-muted underline">홈으로</Link></section>
+    </main>
+  }
   if (!active || active.id !== sessionId || !room || !selected)
     return (
       <main id="main-content" tabIndex={-1} className="page-container grid min-h-dvh place-items-center py-10 focus:outline-none">
@@ -144,8 +189,8 @@ export default function StudyPage() {
     )
   const elapsed = sessionElapsed(active, now)
   const goal = studyGoalSeconds(active)
-  const focusTotals = normalizeFocusTotals(active.focus)
-  const focusRate = focusPercent(focusTotals.focusedMs, focusTotals.observedMs)
+  const studyTotal = sessionStudySeconds(active, now)
+  const focusRate = active.presenceKnown === false ? null : focusPercent(sync.presentSeconds, studyTotal)
   const cameraVisible = showCamera && !!devices.camera.stream
   const messages = state.messages.filter(
     (message) => message.sessionId === active.id && message.characterId === selected.id,
@@ -156,11 +201,16 @@ export default function StudyPage() {
     : characters
   // Keep a stable key for my tile when moving it into the expanded position.
   const studyTiles = selfFocused ? [null, ...characters] : [...orderedCharacters, null]
-  function resumeStudy() {
-    const next = new URLSearchParams(params)
-    next.delete('resume')
-    setParams(next, { replace: true })
-    dispatch({ type: 'RESUME_SESSION', now: Date.now() })
+  async function resumeStudy() {
+    if (resuming) return
+    setResuming(true); setSessionError('')
+    try {
+      await backend.resumeSession(active!.id)
+      const next = new URLSearchParams(params)
+      next.delete('resume')
+      setParams(next, { replace: true })
+    } catch (reason) { setSessionError(reason instanceof Error ? reason.message : '공부를 이어가지 못했어요.') }
+    finally { setResuming(false) }
   }
   function closeChat() {
     const next = new URLSearchParams(params)
@@ -181,57 +231,39 @@ export default function StudyPage() {
   function activateFriend(id: string) {
     setParams(toggleStudyFocus(params, id))
   }
-  function send(text: string, voice = false) {
-    if (!selected || !text.trim()) return
-    if (replyMode === 'llm' && pendingReplies[selected.id]) return
+  async function send(text: string, inputType: 'TEXT' | 'QUICK' = 'TEXT') {
+    if (!selected || !text.trim() || pendingReplies[selected.id]) return false
+    const characterId = selected.id
+    sync.cancelReaction()
     setSelfChatUntil(Date.now() + 1400)
-    dispatch({ type: 'MESSAGE', characterId: selected.id, name: selected.name, text, voice, now, reply: replyMode })
-    setCustomSpeech('')
-    if (replyMode === 'llm') void askCharacter(selected, withRecentBehavior(text, behaviorChat.current.recent, behavior.getSnapshot(), Date.now()))
-  }
-  /** A new detection may make a friend speak first; requests are dropped while any friend is replying. */
-  function reactToDetection(change: BehaviorChange) {
-    const at = Date.now()
-    const speaking = Object.values(pendingReplies).some(Boolean) || state.messages.some((message) =>
-      message.sessionId === active!.id && message.sender === 'character' && typingEndsAt(message.text, message.createdAt ?? 0) > at)
-    const unavailable = replyMode !== 'llm' || active!.phase !== 'study' || active!.runningSince === null
-    const result = reactToBehavior(behaviorChat.current, change, unavailable || speaking)
-    behaviorChat.current = result.state
-    // With the chat closed, the reply shows as the first tile's speech bubble.
-    const character = chatOpen ? selected : focused ?? characters[0]
-    if (result.prompt && character) void askCharacter(character, behaviorPromptText(result.prompt), !chatOpen)
-  }
-  async function askCharacter(character: (typeof characters)[number], text: string, speakFirst = false) {
-    const { id: sessionId, phase } = active!
-    const history = state.messages
-      .filter((message) => message.sessionId === sessionId && message.characterId === character.id)
-      .map(({ sender, text }) => ({ sender, text }))
-    setPendingReplies((previous) => ({ ...previous, [character.id]: true }))
-    setReplyErrors((previous) => ({ ...previous, [character.id]: '' }))
+    setPendingReplies(previous => ({ ...previous, [characterId]: true }))
+    setReplyErrors(previous => ({ ...previous, [characterId]: '' }))
     try {
-      const reply = await requestCharacterReply({
-        userName: state.profile.name,
-        room: { name: room!.name, description: room!.description },
-        character: { name: character.name, description: character.description },
-        phase,
-        elapsedMinutes: (phase === 'study' ? elapsed : active!.studySeconds) / 60,
-        goalMinutes: goal / 60,
-        history,
-        text,
-      })
-      dispatch({ type: 'CHARACTER_REPLY', sessionId, characterId: character.id, text: reply, now: Date.now() })
-      if (speakFirst) { setReaction(0); setCustomSpeech(reply) }
-    } catch (error) {
-      setReplyErrors((previous) => ({ ...previous, [character.id]: error instanceof Error ? error.message : String(error) }))
-    } finally {
-      setPendingReplies((previous) => ({ ...previous, [character.id]: false }))
-    }
+      const result = await backend.sendMessage(characterId, text, inputType)
+      setCustomSpeech(result.content ?? '')
+      if (result.characterId) cueExpression({ characterId: result.characterId, expression: result.expression, event: 'MESSAGE', stage: 'speech', text: result.content })
+      return true
+    } catch (reason) {
+      setReplyErrors(previous => ({ ...previous, [characterId]: reason instanceof Error ? reason.message : '답장을 받지 못했어요.' }))
+      return false
+    } finally { setPendingReplies(previous => ({ ...previous, [characterId]: false })) }
   }
-  function finish() {
+  function openLeave() {
+    setSessionError('')
+    setLeaveOpen(true)
+  }
+  async function finish() {
+    if (finishing) return
+    setFinishing(true); setSessionError('')
     flushFocus()
-    controller.stop()
-    dispatch({ type: 'FINISH', now: Date.now() })
-    navigate(`/reports/${active!.id}`)
+    expressions.cancelPending()
+    try {
+      // The leave dialog already tells the user how an unrestored baseline is recorded, so pressing finish confirms it.
+      const record = await backend.finishSession({ acceptUnknownPresence: true })
+      controller.stop()
+      navigate(`/reports/${record.id}`)
+    } catch (reason) { setSessionError(reason instanceof Error ? reason.message : '공부를 마무리하지 못했어요.') }
+    finally { setFinishing(false) }
   }
   async function toggleCamera() {
     if (devices.camera.stream) {
@@ -275,7 +307,7 @@ export default function StudyPage() {
         chatOpen={chatOpen}
         onChatToggle={toggleChat}
         onPhaseToggle={resting ? continueStudy : takeBreak}
-        onFinish={() => setLeaveOpen(true)}
+        onFinish={openLeave}
         camera={devices.camera}
         microphone={devices.microphone}
         showCamera={cameraVisible}
@@ -295,7 +327,7 @@ export default function StudyPage() {
       <article key={SELF_STUDY_TILE_ID} aria-label={resting ? cameraVisible ? '내 카메라' : '내 아바타' : '내 칸'}
         className={cn(resting && 'break-self-tile', resting && !selfFocused ? 'break-thumbnail bg-surface' : 'self-tile', selfFocused && 'focus-tile', selfSpeaking && 'is-speaking')} data-speaking={selfSpeaking || undefined}>
         {selfSpeaking && <span className="sr-only">{microphoneSpeaking ? '음성 입력 중' : '메시지 전송'}</span>}
-        <StudySelfView stream={devices.camera.stream} showCamera={cameraVisible} avatar={state.profile.avatar} background={normalizeCameraBackground(state.cameraBackground)} small={small} expanded={selfFocused} />
+        <StudySelfView stream={devices.camera.stream} showCamera={cameraVisible} avatar={state.profile.avatar} image={backend.visuals?.me?.profileImageUrl ?? state.profile.profileImage} background={normalizeCameraBackground(state.cameraBackground)} small={small} expanded={selfFocused} />
         <button type="button" className="tile-interaction" aria-label={selfFocused ? '내 화면 확대 닫기' : '내 화면 크게 보기'}
           aria-expanded={selfFocused} onClick={() => setParams(resting ? toggleBreakSelfFocus(params, selected!.id) : toggleStudyFocus(params, SELF_STUDY_TILE_ID))}>
           <span className="tile-action-symbol" aria-hidden="true">
@@ -326,19 +358,13 @@ export default function StudyPage() {
             // Leaving mid-session asks first; modified clicks still open home in a new tab.
             if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
             event.preventDefault()
-            setLeaveOpen(true)
+            openLeave()
           }}
         >
           <Brand />
         </Link>
         <div className="study-room-heading">
           <span className="study-room-name">{room.name}</span>
-          <StudyDemoControls
-            studying={active.phase === 'study'}
-            onBreak={takeBreak}
-            onReaction={(level) => { setReaction(level); setCustomSpeech('') }}
-            onReturn={() => { setReaction(0); setCustomSpeech('오, 돌아왔네. 계속 가자.') }}
-          />
         </div>
         <div className="study-header-actions">
         <DevicePrivacyInfo />
@@ -352,6 +378,8 @@ export default function StudyPage() {
           />
         </div>
       </header>
+      {active.presenceKnown === false && <FeedbackMessage tone="warning" className="px-5 py-3">이전 자리 지킴 시간을 불러오지 못했어요. 공부 결과를 저장하려면 처음 공부한 브라우저에서 이어가 주세요.</FeedbackMessage>}
+      {(sync.error || sessionError) && <div className="px-5 py-3"><FeedbackMessage tone="error">{sessionError || sync.error}</FeedbackMessage>{sync.error && <Button size="sm" onClick={() => { void sync.retry() }}>연결 다시 확인</Button>}</div>}
       <div className="study-workspace" data-chat-open={chatOpen || undefined}>
       {active.phase === 'study' ? (
         <div className="study-stage">
@@ -362,6 +390,8 @@ export default function StudyPage() {
               return <CharacterTile
                 key={character.id}
                 character={character}
+                live2d={character.id === live2dCharacterId ? live2d : null}
+                background={backend.visuals?.room?.backgroundImageUrl}
                 variant={
                   hasFocus
                     ? character.id === focused?.id
@@ -412,10 +442,12 @@ export default function StudyPage() {
           <div className="break-stage" data-self-focused={selfFocused || undefined}>
             <CharacterTile
               character={selected}
+              live2d={selected.id === live2dCharacterId ? live2d : null}
+              background={backend.visuals?.room?.backgroundImageUrl}
               variant="rest"
               speaking={speakingCharacters.has(selected.id)}
               status={speakingCharacters.has(selected.id) ? '말하는 중' : '쉬는 중'}
-              speech={chatOpen ? undefined : lastReply?.text ?? '그럼 조금만 더 쉬어. 내가 시간 봐 줄게.'}
+              speech={chatOpen ? undefined : lastReply?.text}
             />
             <div className="break-thumbnails">
               <div className="break-friend-thumbnails">
@@ -456,8 +488,6 @@ export default function StudyPage() {
             onSelect={selectFriend}
             onSend={send}
             onTypingChange={reportTyping}
-            replyMode={replyMode}
-            onReplyModeChange={setReplyMode}
             replyPending={!!pendingReplies[selected.id]}
             replyError={replyErrors[selected.id]}
           />
@@ -472,7 +502,7 @@ export default function StudyPage() {
           「{room.name}」에서 {active.phase === 'study' ? '하던 공부를' : '쉬는 시간을'} 이어서 진행해요.
           준비되면 시작해 주세요.
         </p>
-        <Button className="w-full" onClick={resumeStudy}>
+        <Button className="w-full" disabled={resuming} onClick={() => { void resumeStudy() }}>
           <Icon name="play" size={17} /> 이어서 시작할게
         </Button>
       </Dialog>
@@ -481,8 +511,11 @@ export default function StudyPage() {
           <dt className="text-body-compact text-muted">지금까지 공부한 시간</dt>
           <dd className="text-section-title font-bold tabular-nums" data-study-total>{clock(sessionStudySeconds(active, now))}</dd>
         </dl>
+        {active.presenceKnown === false && <FeedbackMessage tone="warning" className="mb-4">이전 자리 지킴 시간을 불러오지 못했어요. 지금 끝내면 이어서 공부한 동안의 자리 지킴만 기록돼요.</FeedbackMessage>}
+        {/* The page-level error sits behind this modal, so a failed finish is shown here too. */}
+        {sessionError && <FeedbackMessage tone="error" className="mb-4">{sessionError}</FeedbackMessage>}
         <div className="grid gap-2 sm:grid-cols-2">
-          <Button variant="danger-solid" onClick={() => { setLeaveOpen(false); finish() }}>응, 여기까지 할게</Button>
+          <Button variant="danger-solid" disabled={finishing} onClick={() => { void finish() }}>{finishing ? '마무리하고 있어요…' : '응, 여기까지 할게'}</Button>
           <Button variant="secondary" data-dialog-initial-focus onClick={() => setLeaveOpen(false)}>
             아니, 더 할거야
           </Button>

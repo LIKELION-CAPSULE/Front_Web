@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
-import { number } from '@/shared/lib/format'
 import { Avatar } from '@/shared/ui/Avatar'
-import { Button } from '@/shared/ui/Button'
-import { Dialog } from '@/shared/ui/Dialog'
+import { useBackend } from '@/features/backend/backend-context'
+import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Icon } from '@/shared/ui/Icon'
 import { FloatingSurface } from '@/shared/ui/FloatingSurface'
 import { MvpGate } from '@/features/mvp/MvpGate'
 
 export function HeaderAccount() {
-  const { state, dispatch } = useDemo()
-  const [resetOpen, setResetOpen] = useState(false)
+  const { state } = useDemo()
+  const { logout } = useBackend()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
   const menuRef = useRef<HTMLDetailsElement>(null)
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export function HeaderAccount() {
           <span className="credit-chip">
             <Icon name="coin" size={16} />
             <span className="sr-only">크레딧</span>
-            <span className="font-sans tabular-nums text-body-compact font-bold text-ink">{number(state.credits)}</span>
+            <span className="font-sans tabular-nums text-body-compact font-bold text-ink">—</span>
           </span>
         </MvpGate>
         <details
@@ -71,33 +72,15 @@ export function HeaderAccount() {
             >
               마이페이지
             </Link>
-            <button
-              onClick={() => dispatch({ type: 'FIRST_VISIT', value: !state.firstVisit })}
-              className="menu-item"
-            >
-              {state.firstVisit ? '재방문 화면 보기' : '첫 방문 화면 보기'}
-            </button>
-            <button onClick={() => dispatch({ type: 'LOGOUT' })} className="menu-item">
-              로그아웃
-            </button>
-            <button onClick={() => setResetOpen(true)} className="menu-item">
-              체험 기록 초기화
-            </button>
+            <button disabled={busy} onClick={async () => {
+              setBusy(true); setError('')
+              try { await logout() } catch (reason) { setError(reason instanceof Error ? reason.message : '로그아웃하지 못했어요.') }
+              finally { setBusy(false) }
+            }} className="menu-item">{busy ? '로그아웃 중…' : '로그아웃'}</button>
+            {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
           </FloatingSurface>
         </details>
       </div>
-      <Dialog
-        open={resetOpen}
-        onClose={() => setResetOpen(false)}
-        title="체험 기록을 초기화할까요?"
-      >
-        <p className="mb-5 text-body-compact leading-6 text-muted">
-          이 브라우저의 체험 데이터를 모두 지우고, 처음 제공된 샘플 데이터로 돌아가요.
-        </p>
-        <Button variant="danger-solid" onClick={() => dispatch({ type: 'RESET', now: Date.now() })} className="w-full">
-          초기화하기
-        </Button>
-      </Dialog>
     </>
   )
 }

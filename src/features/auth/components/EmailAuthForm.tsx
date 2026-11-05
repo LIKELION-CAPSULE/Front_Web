@@ -3,6 +3,8 @@ import { TermsConsent } from './TermsConsent'
 import type { LegalDocumentId } from '../data/legal-documents'
 import { FormField } from '@/shared/ui/FormField'
 import { useId, useState } from 'react'
+import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import { useBackend } from '@/features/backend/backend-context'
 import { validateEmailAuth, type AuthErrors, type AuthField } from '../email-validation'
 
 export type EmailAuthMode = 'login' | 'signup'
@@ -13,10 +15,14 @@ export function EmailAuthForm({
   onOpenDocument,
 }: {
   mode: EmailAuthMode
-  onSubmit: (email: string, nickname: string) => void
+  onSubmit: (input: { email: string; password: string; nickname: string }) => Promise<void>
   onOpenDocument: (document: LegalDocumentId) => void
 }) {
   const signup = mode === 'signup'
+  const { terms } = useBackend()
+  const termsReady = ['SERVICE', 'PRIVACY'].every(code => terms.some(term => term.code === code && term.termVersionId && term.content))
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
   const id = useId()
   const [errors, setErrors] = useState<AuthErrors>({})
   const errorId = (field: AuthField) => `${id}-${field}-error`
@@ -33,8 +39,9 @@ export function EmailAuthForm({
     <form
       noValidate
       className="mt-6 space-y-5 [--form-input-border:var(--color-input-border)]"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault()
+        if (busy || (signup && !termsReady)) return
         const form = event.currentTarget
         const data = new FormData(form)
         const email = form.elements.namedItem('email') as HTMLInputElement
@@ -50,11 +57,13 @@ export function EmailAuthForm({
           (form.elements.namedItem(invalid) as HTMLInputElement | null)?.focus()
           return
         }
-        // Signup fields stay in the mounted form while verification is shown,
-        // so going back preserves the draft. Credentials are never persisted or sent.
         const address = String(data.get('email') ?? '').trim()
-        if (!signup) form.reset()
-        onSubmit(address, String(data.get('nickname') ?? '').trim())
+        setBusy(true)
+        setError('')
+        try {
+          await onSubmit({ email: address, password: String(data.get('password') ?? ''), nickname: String(data.get('nickname') ?? '').trim() })
+        } catch (reason) { setError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.') }
+        finally { setBusy(false) }
       }}
     >
       <FormField label="이메일" error={errors.email} errorId={errorId('email')}>
@@ -116,8 +125,10 @@ export function EmailAuthForm({
         </FormField>
       )}
       {signup && <TermsConsent onOpenDocument={onOpenDocument} errors={errors} onChange={clearError} />}
-      <Button type="submit" className="w-full">
-        {signup ? '회원가입' : '로그인'}
+      {signup && !termsReady && <FeedbackMessage tone="error">약관을 불러오지 못했어요. 페이지를 새로고침해 다시 시도해 주세요.</FeedbackMessage>}
+      {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
+      <Button type="submit" disabled={busy || (signup && !termsReady)} className="w-full">
+        {busy ? '확인하고 있어요…' : signup ? '회원가입' : '로그인'}
       </Button>
     </form>
   )

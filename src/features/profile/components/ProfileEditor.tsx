@@ -1,93 +1,37 @@
 import { useState } from 'react'
 import { useDemo } from '@/features/demo/demo-context'
-import { AvatarIllustration } from '@/shared/ui/AvatarIllustration'
+import { useBackend } from '@/features/backend/backend-context'
 import { Button } from '@/shared/ui/Button'
-import { avatarShades } from '../avatar-options'
-import { AvatarCustomizer } from './AvatarCustomizer'
 import { FormField } from '@/shared/ui/FormField'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import { ServerAvatarPicker } from './ServerAvatarPicker'
 
 export function ProfileEditor() {
-  const { state, dispatch } = useDemo()
+  const { state } = useDemo()
+  const { avatars, saveProfile } = useBackend()
+  const currentAvatar = state.profile.avatarId ?? avatars.find(avatar => avatar.thumbnailUrl === state.profile.profileImage)?.id
   const [name, setName] = useState(state.profile.name)
-  const [avatar, setAvatar] = useState(state.profile.avatar)
+  const [avatarId, setAvatarId] = useState(currentAvatar)
+  const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
-  const changed =
-    name !== state.profile.name ||
-    Object.keys(avatar).some(
-      (key) =>
-        avatar[key as keyof typeof avatar] !== state.profile.avatar[key as keyof typeof avatar],
-    )
-  return (
-    <section className="mypage-profile" aria-labelledby="profile-heading">
-      <div
-        className="mypage-avatar-preview"
-        style={{
-          background: `radial-gradient(ellipse at 50% 40%, ${avatarShades[avatar.background]}35, var(--color-panel) 75%)`,
-        }}
-      >
-        <div className="mypage-avatar-figure">
-          <AvatarIllustration settings={avatar} />
-        </div>
-      </div>
-      <form
-        className="mypage-profile-form"
-        onSubmit={(event) => {
-          event.preventDefault()
-          dispatch({ type: 'PROFILE', name, avatar })
-          setName(name.trim())
-          setSaved(true)
-        }}
-      >
-        <h2 id="profile-heading" className="type-section-title">
-          프로필
-        </h2>
-        <FormField label="닉네임" className="mt-5">
-          <input
-            required
-            maxLength={20}
-            value={name}
-            className="form-input"
-            onChange={(event) => {
-              setName(event.target.value)
-              setSaved(false)
-            }}
-          />
-        </FormField>
-        <div className="mt-5">
-          <AvatarCustomizer
-            size="sm"
-            value={avatar}
-            onChange={(value) => {
-              setAvatar(value)
-              setSaved(false)
-            }}
-          />
-        </div>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={!name.trim() || !changed}>
-            프로필 저장
-          </Button>
-          {changed && (
-            <button
-              type="button"
-              className="px-2 py-2 text-body-compact text-muted"
-              onClick={() => {
-                setName(state.profile.name)
-                setAvatar(state.profile.avatar)
-                setSaved(false)
-              }}
-            >
-              되돌리기
-            </button>
-          )}
-          {saved && (
-            <FeedbackMessage tone="success">
-              저장했어요.
-            </FeedbackMessage>
-          )}
-        </div>
-      </form>
-    </section>
-  )
+  const [error, setError] = useState('')
+  const changed = name.trim() !== state.profile.name || avatarId !== currentAvatar
+  return <section aria-labelledby="profile-heading" className="mypage-profile">
+    <div className="mypage-avatar-preview">{(avatars.find(value => value.id === avatarId)?.thumbnailUrl ?? state.profile.profileImage) && <img src={avatars.find(value => value.id === avatarId)?.thumbnailUrl ?? state.profile.profileImage} alt="내 아바타" className="h-80 w-full object-contain" />}</div>
+    <form className="mypage-profile-form" onSubmit={async event => {
+      event.preventDefault()
+      if (busy || !changed) return
+      setBusy(true); setError(''); setSaved(false)
+      try { await saveProfile(name, avatarId); setName(name.trim()); setSaved(true) }
+      catch (reason) { setError(reason instanceof Error ? reason.message : '저장하지 못했어요.') }
+      finally { setBusy(false) }
+    }}>
+      <h2 id="profile-heading" className="type-section-title">프로필</h2>
+      <FormField label="닉네임" className="mt-5"><input className="form-input" required maxLength={20} value={name} onChange={event => { setName(event.target.value); setSaved(false) }} /></FormField>
+      <ServerAvatarPicker value={avatarId} onChange={value => { setAvatarId(value); setSaved(false) }} />
+      <Button type="submit" className="mt-6" disabled={busy || !name.trim() || !changed}>{busy ? '저장하고 있어요…' : '프로필 저장'}</Button>
+      {saved && <FeedbackMessage tone="success" className="mt-3">저장했어요.</FeedbackMessage>}
+      {error && <FeedbackMessage tone="error" className="mt-3">{error}</FeedbackMessage>}
+    </form>
+  </section>
 }

@@ -41,9 +41,10 @@ export function selectSchedule(
 ) {
   return memories
     .filter((memory) =>
-      period === 'all' || (period === 'past' ? memory.date < today : memory.date >= today),
+      period === 'all' || (!!memory.date && (period === 'past' ? memory.date < today : memory.date >= today)),
     )
     .sort((a, b) => {
+      if (!a.date || !b.date) return a.date ? -1 : b.date ? 1 : a.id.localeCompare(b.id)
       const aPast = a.date < today,
         bPast = b.date < today
       if (aPast !== bPast) return aPast ? 1 : -1

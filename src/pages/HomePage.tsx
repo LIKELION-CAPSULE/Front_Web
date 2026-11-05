@@ -1,4 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useBackend } from '@/features/backend/backend-context'
+import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { RoomCard } from '@/features/rooms/components/RoomCard'
 import { StudyWelcomeBanner } from '@/features/rooms/components/StudyWelcomeBanner'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
@@ -10,6 +12,9 @@ import { SearchField } from '@/shared/ui/SearchField'
 export default function HomePage() {
   const rooms = getStudyRooms()
   const { state } = useDemo()
+  const { refreshHome } = useBackend()
+  const [refreshError, setRefreshError] = useState('')
+  useEffect(() => { let alive = true; void refreshHome().catch(reason => { if (alive) setRefreshError(reason instanceof Error ? reason.message : '홈을 새로 불러오지 못했어요.') }); return () => { alive = false } }, [refreshHome])
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
   const roomHeading = useRef<HTMLHeadingElement>(null)
@@ -41,6 +46,7 @@ export default function HomePage() {
   }
   return (
     <>
+      {refreshError && <FeedbackMessage tone="error">{refreshError}</FeedbackMessage>}
       <StudyWelcomeBanner onExplore={exploreRooms} />
       <section className="rooms-section" aria-labelledby="rooms-heading">
         <div className="section-heading">

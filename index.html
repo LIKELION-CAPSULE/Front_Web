@@ -3,6 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
+    <script>
+      // Remove reset credentials before CSS/font loading and React initialization.
+      (() => {
+        const url = new URL(window.location.href)
+        if (!['/password/reset', '/reset-password', '/login'].includes(url.pathname) || !url.searchParams.has('token')) return
+        const token = url.searchParams.get('token') || null
+        url.searchParams.delete('token')
+        if (url.pathname === '/login') {
+          url.pathname = '/password/reset'
+          url.searchParams.delete('mode')
+        }
+        const cleanPath = url.pathname + url.search + url.hash
+        window.__capsulePasswordReset = { token, cleanPath }
+        window.history.replaceState(window.history.state, '', cleanPath)
+      })()
+    </script>
     <!-- Register layers before Vite's shared CSS chunks, which can load before index.css. -->
     <style>@layer properties, theme, base, components, utilities;</style>
     <link rel="icon" href="/favicon.svg" />

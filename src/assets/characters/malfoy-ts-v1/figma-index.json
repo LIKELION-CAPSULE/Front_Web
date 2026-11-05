@@ -1,0 +1,233 @@
+{
+  "asOf": "2026-11-05",
+  "characterId": "malfoy-ts",
+  "roomTitle": "밤의 호그와트 도서관",
+  "fileKey": "HpoEbOqfoDUwPq4zvYa6LL",
+  "pageId": "1053:172",
+  "sectionId": "1692:10658",
+  "wrapperId": "1692:10659",
+  "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1692-10658",
+  "counts": {
+    "masterImages": 14,
+    "titleCrop": 1,
+    "assetPreviewLayers": 15,
+    "reportCompositionLayers": 2
+  },
+  "assets": [
+    {
+      "assetId": "fullbody",
+      "role": "기준 전신 · 투명",
+      "master": "masters/malfoy-ts-fullbody-v1.png",
+      "web": "web/malfoy-ts-fullbody-v1.webp",
+      "width": 1024,
+      "height": 1536,
+      "hasTransparency": true,
+      "nodeId": "1693:10669",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10669",
+      "exportFormat": "PNG",
+      "exportScale": 3.657142857142857
+    },
+    {
+      "assetId": "sceneBackground",
+      "role": "공부 장면 배경",
+      "master": "masters/hogwarts-night-background-v1.png",
+      "web": "web/hogwarts-night-background-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "hasTransparency": false,
+      "nodeId": "1693:10742",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10742",
+      "exportFormat": "PNG",
+      "exportScale": 2.488095238095238
+    },
+    {
+      "assetId": "title",
+      "role": "룸 제목 · 투명 원본",
+      "master": "masters/hogwarts-night-title-v1.png",
+      "web": "web/hogwarts-night-title-v1.webp",
+      "width": 1536,
+      "height": 1024,
+      "hasTransparency": true,
+      "nodeId": "1693:10788",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10788",
+      "exportFormat": "PNG",
+      "exportScale": 2.4380952380952383
+    },
+    {
+      "assetId": "study",
+      "role": "공부 상태",
+      "master": "masters/malfoy-ts-study-v1.png",
+      "web": "web/malfoy-ts-study-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "hasTransparency": false,
+      "nodeId": "1693:10688",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10688",
+      "exportFormat": "PNG",
+      "exportScale": 2.488095238095238
+    },
+    {
+      "assetId": "reaction",
+      "role": "반응 상태",
+      "master": "masters/malfoy-ts-reaction-v1.png",
+      "web": "web/malfoy-ts-reaction-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "hasTransparency": false,
+      "nodeId": "1693:10696",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10696",
+      "exportFormat": "PNG",
+      "exportScale": 2.488095238095238
+    },
+    {
+      "assetId": "affection",
+      "role": "휴식 · 호감 상태",
+      "master": "masters/malfoy-ts-affection-v1.png",
+      "web": "web/malfoy-ts-affection-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "hasTransparency": false,
+      "nodeId": "1693:10704",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10704",
+      "exportFormat": "PNG",
+      "exportScale": 2.488095238095238
+    },
+    {
+      "assetId": "homeSubject",
+      "role": "홈 카드 전경 · 투명",
+      "master": "masters/malfoy-ts-home-subject-v1.png",
+      "web": "web/malfoy-ts-home-subject-v1.webp",
+      "width": 1024,
+      "height": 1536,
+      "hasTransparency": true,
+      "nodeId": "1693:10677",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10677",
+      "exportFormat": "PNG",
+      "exportScale": 3.657142857142857
+    },
+    {
+      "assetId": "welcome",
+      "role": "홈 환영 배너",
+      "master": "masters/malfoy-ts-welcome-banner-v1.png",
+      "web": "web/malfoy-ts-welcome-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "hasTransparency": false,
+      "nodeId": "1693:10715",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10715",
+      "exportFormat": "PNG",
+      "exportScale": 3.232142857142857
+    },
+    {
+      "assetId": "detail",
+      "role": "룸 상세 배너",
+      "master": "masters/hogwarts-night-detail-banner-v1.png",
+      "web": "web/hogwarts-night-detail-banner-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "hasTransparency": false,
+      "nodeId": "1693:10723",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10723",
+      "exportFormat": "PNG",
+      "exportScale": 3.232142857142857
+    },
+    {
+      "assetId": "poster",
+      "role": "로그인 · 룸 포스터",
+      "master": "masters/hogwarts-night-poster-v1.png",
+      "web": "web/hogwarts-night-poster-v1.webp",
+      "width": 1024,
+      "height": 1536,
+      "hasTransparency": false,
+      "nodeId": "1693:10731",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10731",
+      "exportFormat": "PNG",
+      "exportScale": 3.657142857142857
+    },
+    {
+      "assetId": "completionPortrait",
+      "role": "완료 · 캡슐 카드 세로 원본",
+      "master": "masters/malfoy-ts-completion-v1.png",
+      "web": "web/malfoy-ts-completion-v1.webp",
+      "width": 1024,
+      "height": 1536,
+      "hasTransparency": false,
+      "nodeId": "1693:10769",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10769",
+      "exportFormat": "PNG",
+      "exportScale": 3.657142857142857
+    },
+    {
+      "assetId": "seatedBackground",
+      "role": "홈 바닥 배경",
+      "master": "masters/hogwarts-night-seated-background-v1.png",
+      "web": "web/hogwarts-night-seated-background-v1.webp",
+      "width": 1672,
+      "height": 941,
+      "hasTransparency": false,
+      "nodeId": "1693:10750",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10750",
+      "exportFormat": "PNG",
+      "exportScale": 2.488095238095238
+    },
+    {
+      "assetId": "completionBackground",
+      "role": "최신 리포트 v3 · 빈 배경",
+      "master": "masters/hogwarts-night-completion-background-v3.png",
+      "web": "web/hogwarts-night-completion-background-v3.webp",
+      "width": 1672,
+      "height": 941,
+      "hasTransparency": false,
+      "nodeId": "1693:10758",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10758",
+      "exportFormat": "PNG",
+      "exportScale": 2.488095238095238
+    },
+    {
+      "assetId": "completionCharacter",
+      "role": "최신 리포트 v3 · 투명 인물",
+      "master": "masters/malfoy-ts-completion-character-v3.png",
+      "web": "web/malfoy-ts-completion-character-v3.webp",
+      "width": 1024,
+      "height": 1536,
+      "hasTransparency": true,
+      "nodeId": "1693:10777",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10777",
+      "exportFormat": "PNG",
+      "exportScale": 3.657142857142857
+    },
+    {
+      "assetId": "titleCrop",
+      "role": "룸 제목 · 현재 화면 크롭",
+      "master": "masters/hogwarts-night-title-v1.png",
+      "web": "web/hogwarts-night-title-v1-trimmed.webp",
+      "width": 1488,
+      "height": 1013,
+      "hasTransparency": true,
+      "nodeId": "1693:10796",
+      "url": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=1693-10796",
+      "exportFormat": "PNG",
+      "exportScale": 2.4119047619047618
+    }
+  ],
+  "reportComposition": [
+    {
+      "id": "1693:10662",
+      "name": "활용 예시 / 빈 도서관 배경",
+      "width": 2192,
+      "height": 1234
+    },
+    {
+      "id": "1693:10663",
+      "name": "활용 예시 / 투명 말포이 TS",
+      "width": 780,
+      "height": 1170
+    }
+  ],
+  "validation": {
+    "missingImages": 0,
+    "placeholder": false,
+    "wrongFonts": [],
+    "visualReview": "전체 섹션 스크린샷 확인: 원본 15종·리포트 분리 레이어·한글 제목·서식·겹침 확인 완료"
+  }
+}

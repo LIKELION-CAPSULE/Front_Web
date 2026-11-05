@@ -1,84 +1,42 @@
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
-import { PageNavigation } from '@/app/PageNavigation'
+import { useNavigate, useSearchParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
+import { useBackend } from '@/features/backend/backend-context'
+import { ServerAvatarPicker } from '@/features/profile/components/ServerAvatarPicker'
 import { safeReturnPath } from '@/shared/lib/format'
-import { Avatar } from '@/shared/ui/Avatar'
 import { Button } from '@/shared/ui/Button'
+import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import { FormField } from '@/shared/ui/FormField'
 import { Brand } from '@/shared/ui/Brand'
-import { AvatarIllustration } from '@/shared/ui/AvatarIllustration'
-import { Icon } from '@/shared/ui/Icon'
-import { AvatarCustomizer } from '@/features/profile/components/AvatarCustomizer'
-import { avatarShades } from '@/features/profile/avatar-options'
 
 export default function OnboardingPage() {
-  const { state, dispatch } = useDemo()
-  const navigate = useNavigate()
+  const { state } = useDemo()
+  const backend = useBackend()
+  const [name, setName] = useState(state.profile.name)
+  const [avatarId, setAvatarId] = useState(backend.avatars[0]?.id)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
   const [params] = useSearchParams()
-  const [avatar, setAvatar] = useState(state.profile.avatar)
-  function finish() {
-    dispatch({ type: 'PROFILE', name: state.profile.name, avatar })
-    navigate(safeReturnPath(params.get('next'), '/'))
+  const navigate = useNavigate()
+  async function finish(selected?: number) {
+    if (busy) return
+    setBusy(true); setError('')
+    try { await backend.saveProfile(name, selected); await backend.reload(); navigate(safeReturnPath(params.get('next'), '/'), { replace: true }) }
+    catch (reason) { setError(reason instanceof Error ? reason.message : '프로필을 저장하지 못했어요.') }
+    finally { setBusy(false) }
   }
-  return (
-    <div className="min-h-dvh">
-      <PageNavigation />
-      <header className="flex h-[65px] items-center gap-5 border-b border-divider px-5 sm:px-8">
-        <Link to="/" aria-label="CAPSULE 홈">
-          <Brand />
-        </Link>
-        <span className="text-body-compact text-subtle">처음 설정 · 1/1</span>
-      </header>
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className="grid focus:outline-none lg:grid-cols-[minmax(0,620fr)_minmax(0,660fr)]"
-      >
-        <section
-          className="onboarding-preview relative flex min-h-[340px] items-end justify-center overflow-hidden pb-10 lg:min-h-[794px]"
-          style={{
-            background: `radial-gradient(ellipse at 50% 50%, ${avatarShades[avatar.background]}55, var(--color-panel) 80%)`,
-          }}
-        >
-          <span className="absolute top-6 left-6 flex items-center gap-2 rounded-full bg-panel/80 px-3.5 py-2 text-caption text-muted">
-            <Icon name="sparkle" size={14} />
-            공부하는 나의 모습
-          </span>
-          <div className="onboarding-figure">
-            <AvatarIllustration settings={avatar} />
-          </div>
-          <span className="relative z-10 rounded-full bg-panel px-4 py-2 text-body-compact">
-            카메라를 끄면 이 아바타가 보여요
-          </span>
-        </section>
-        <form
-          className="flex flex-col px-5 py-8 [--form-input-border:var(--color-input-border)] sm:px-12 lg:py-10"
-          onSubmit={(event) => {
-            event.preventDefault()
-            finish()
-          }}
-        >
-          <h1 className="type-page-title">내 아바타 만들기</h1>
-          <div className="mt-6 max-w-[520px]">
-            <AvatarCustomizer value={avatar} onChange={setAvatar} />
-          </div>
-          <p className="mt-3 text-body-compact text-subtle">
-            선택한 파츠와 색을 미리 볼 수 있어요 · 데모 파츠
-          </p>
-          <div className="mt-6 flex items-center gap-3.5 rounded-[14px] bg-surface p-3.5">
-            <Avatar size="lg" settings={avatar} />
-            <p className="text-body">이 모습이 프로필 이미지가 돼요</p>
-          </div>
-          <div className="mt-auto grid max-w-[520px] gap-3 pt-10 sm:grid-cols-[2fr_3fr]">
-            <Button variant="secondary" onClick={finish}>
-              나중에 바꿀게요
-            </Button>
-            <Button type="submit">
-              이 모습으로 시작하기
-            </Button>
-          </div>
-        </form>
-      </main>
-    </div>
-  )
+  return <main id="main-content" className="page-container max-w-3xl py-10">
+    <Brand className="mb-10 w-40" />
+    <h1 className="type-page-title">내 아바타를 골라요</h1>
+    <p className="mt-3 text-muted">카메라를 끄면 선택한 아바타가 보여요.</p>
+    <form className="mt-6" onSubmit={event => { event.preventDefault(); void finish(avatarId) }}>
+      <FormField label="닉네임"><input className="form-input" required maxLength={20} value={name} onChange={event => setName(event.target.value)} /></FormField>
+      <ServerAvatarPicker value={avatarId} onChange={setAvatarId} />
+      {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Button variant="secondary" disabled={busy || !name.trim()} onClick={() => { void finish() }}>기본 아바타로 시작하기</Button>
+        <Button type="submit" disabled={busy || !name.trim() || !avatarId}>{busy ? '저장하고 있어요…' : '이 모습으로 시작하기'}</Button>
+      </div>
+    </form>
+  </main>
 }
