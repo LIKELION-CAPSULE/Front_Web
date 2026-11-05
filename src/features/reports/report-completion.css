@@ -9,7 +9,7 @@
     color: var(--color-ink);
   }
   .report-scene-art { position: fixed; z-index: 0; inset: 0; pointer-events: none; }
-  .report-scene-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 30% top; }
+  .report-scene-art > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 30% top; }
   .report-scene::before {
     position: fixed;
     z-index: 1;
@@ -109,12 +109,14 @@
   @media (max-width: 1023px) {
     .report-scene { --report-gutter: 24px; }
     .report-scene-art, .report-scene::before { position: absolute; height: clamp(560px, 85svh, 840px); bottom: auto; }
-    .report-scene-art img { object-position: center; }
+    .report-scene-art > img { object-position: center; }
     .report-scene::before { background: linear-gradient(0deg, var(--color-canvas), transparent 55%); }
     .report-layout { max-width: 640px; min-height: 0; grid-template-columns: minmax(0, 1fr); gap: 24px; }
     .report-companion { min-height: 0; }
     .report-character-art { position: relative; inset: auto; width: 100%; }
     .report-character-art > img { height: auto; max-height: 74svh; }
+    /* Without a foreground image the column is empty; keep the dialogue below the full-screen image as before. */
+    .report-character-art:empty { height: clamp(320px, 62svh, 640px); }
     .report-dialogue { max-width: none; margin-top: calc(-1 * clamp(80px, 10svh, 112px)); }
     .report-content { max-width: none; }
   }

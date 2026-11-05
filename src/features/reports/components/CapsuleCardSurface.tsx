@@ -65,9 +65,6 @@ export function CapsuleCardSurface({ children, color, light }: { children: React
         '--card-study-top': `${layout.study.top}px`,
         '--card-focus-top': `${layout.focus.top}px`,
         '--card-badge-top': `${layout.badge.top}px`,
-        '--card-quote-top': `${layout.quote.top}px`,
-        '--card-quote-size': `${layout.quote.fontSize}px`,
-        '--card-quote-line': `${layout.quote.lineHeight}px`,
         '--capsule-foil-gradient': capsuleFoilGradient,
         '--capsule-foil-hover-opacity': light ? capsuleFoil.lightOpacity : capsuleFoil.darkOpacity,
         '--capsule-glitter-hover-opacity': capsuleFoil.glitterOpacity,
@@ -99,6 +96,8 @@ export function CapsuleCardSurface({ children, color, light }: { children: React
           <span className="capsule-card-foil" />
           <span className="capsule-card-glitter" />
           <span className="capsule-card-glare" />
+          {/* Transparent except for the light that crosses the card once at the end of the opening intro. */}
+          <span className="capsule-card-sweep" />
         </span>
       </div>
     </div>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ComponentType } from 'react'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { CompletionPortrait } from '@/features/reports/components/CompletionPortrait'
@@ -22,14 +22,79 @@ import { withParticle } from '@/shared/lib/korean'
 import { capsuleCardCopy, capsuleFocusCopy } from '@/features/reports/card-copy'
 import { capsuleCardColors } from '@/features/reports/capsule-card-layout'
 import { loadStoryFont } from '@/shared/design/story-font'
+import { fitCardQuote, previewMeasure } from '@/features/reports/card-quote'
 import { isMvpCharacter, isMvpRoom } from '@/features/mvp/policy'
 import MvpUnavailablePage from './MvpUnavailablePage'
+import { CapsuleCardBack } from '@/features/reports/components/CapsuleCardBack'
+import { CapsuleIntroFallback, type CapsuleIntroProps } from '@/features/reports/components/CapsuleIntroFallback'
+import { CountUpText, type CountUpHandle } from '@/features/reports/components/CountUpText'
+import { revealCapsuleCard } from '@/features/reports/capsule-card-reveal'
+import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
+import '@/features/reports/capsule-card-reveal.css'
+
+// three.js stays out of the main bundle: it loads only when the intro plays.
+// If the chunk fails to load, the card still flips in without the capsule.
+const CapsuleIntro = lazy<ComponentType<CapsuleIntroProps>>(() => import('@/features/reports/components/CapsuleIntro').catch(() => ({ default: CapsuleIntroFallback })))
 
 const colors = capsuleCardColors
 const names = ['보라', '검정', '연보라', '라벤더']
 
+/** Intro phases: the capsule shakes while loading, then opens and the card flips in. */
+type IntroPhase = 'loading' | 'opening'
+
 export default function CapsuleCardPage() {
   const { recordId } = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const reduced = useReducedMotion()
+  // Only the report's button asks for the intro; a shared link or a reload shows the card right away.
+  const [intro, setIntro] = useState<IntroPhase | null>(() => (location.state as { capsuleIntro?: unknown } | null)?.capsuleIntro === true ? 'loading' : null)
+  const settled = useRef({ capsule: false, card: false })
+  const [storyFont, setStoryFont] = useState('Pretendard')
+  const [, setFontsReady] = useState(false)
+  const { record, error, retry } = useServerReport(recordId)
+  const room = record && getStudyRoom(record.roomId)
+  const available = !!room && (!!room.serverRoom || isMvpRoom(room.id))
+  // Without a card to open into (error, unknown or unavailable room), the usual screens show instead.
+  const introPhase = intro && !reduced && !error && !(record && !available) ? intro : null
+  useEffect(() => {
+    let alive = true
+    void loadStoryFont().then(font => { if (alive) setStoryFont(font) })
+    // The quote is measured on a canvas, so measure again once every face has loaded.
+    void document.fonts.ready.then(() => { if (alive) setFontsReady(true) })
+    return () => { alive = false }
+  }, [])
+  function settle(part: 'capsule' | 'card') {
+    settled.current[part] = true
+    if (!settled.current.capsule || !settled.current.card) return
+    setIntro(null)
+    // Forget the request so a reload does not play the intro again.
+    navigate(`${window.location.pathname}${window.location.search}`, { replace: true, state: null })
+  }
+  let content
+  if (!record || !room) content = error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : introPhase ? null : <PageSkeleton screen="capsule" />
+  else if (!available) content = <OverlayPage><MvpUnavailablePage /></OverlayPage>
+  else content = <CapsuleCardView record={record} room={room} storyFont={storyFont} intro={introPhase} onRevealed={() => settle('card')} />
+  return (
+    <>
+      {content}
+      {/* Rendered beside the content, not inside its branches, so the capsule keeps playing when the record arrives. */}
+      {introPhase && (
+        <>
+          <p role="status" className="sr-only">{record ? '캡슐 카드를 열고 있어요…' : '캡슐 카드를 불러오고 있어요…'}</p>
+          <Suspense fallback={null}>
+            <CapsuleIntro ready={!!record} onOpen={() => setIntro('opening')} onDone={() => settle('capsule')} />
+          </Suspense>
+        </>
+      )}
+    </>
+  )
+}
+
+type Room = NonNullable<ReturnType<typeof getStudyRoom>>
+type StudyRecord = NonNullable<ReturnType<typeof useServerReport>['record']>
+
+function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { record: StudyRecord; room: Room; storyFont: string; intro: IntroPhase | null; onRevealed: () => void }) {
   const [params, setParams] = useSearchParams()
   const { createMemory } = useBackend()
   const navigate = useNavigate()
@@ -40,22 +105,37 @@ export default function CapsuleCardPage() {
   const [openField, setOpenField] = useState<'date' | 'time' | null>(null)
   const [status, setStatus] = useState<{ tone: FeedbackTone; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
-  const [storyFont, setStoryFont] = useState('Pretendard')
   const [copyFallback, setCopyFallback] = useState(false)
-  const { record, error, retry } = useServerReport(recordId)
-  const room = record && getStudyRoom(record.roomId)
-  useEffect(() => { let alive = true; void loadStoryFont().then(font => { if (alive) setStoryFont(font) }); return () => { alive = false } }, [])
-  if (!record || !room) return error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : <PageSkeleton screen="capsule" />
-  if (!room.serverRoom && !isMvpRoom(room.id)) return <OverlayPage><MvpUnavailablePage /></OverlayPage>
+  const cardRoot = useRef<HTMLDivElement>(null)
+  const flipper = useRef<HTMLDivElement>(null)
+  const panel = useRef<HTMLElement>(null)
+  const studyCount = useRef<CountUpHandle>(null)
+  const revealed = useRef(onRevealed)
+  useLayoutEffect(() => { revealed.current = onRevealed })
+  const opening = intro === 'opening'
+  useLayoutEffect(() => {
+    if (!opening) return
+    const timeline = revealCapsuleCard({
+      root: cardRoot.current!,
+      flipper: flipper.current!,
+      panel: panel.current,
+      studySeconds: record.studySeconds,
+      count: seconds => studyCount.current?.show(seconds),
+      onComplete: () => revealed.current(),
+    })
+    return () => { timeline.kill() }
+  }, [opening, record.studySeconds])
   const participants = room.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && record.characterIds.includes(character.id))
   const friends = participants.length ? participants : [room.characters[0]!]
   const character = friends.find(friend => friend.id === params.get('friend')) ?? friends[0]!
+  const quote = fitCardQuote(record.serverReport?.closingLine ?? capsuleCardCopy.quote, previewMeasure(storyFont))
+  const studyAmount = record.observedSeconds === undefined ? duration : measuredDuration
   async function save(share = false) {
     if (busy) return
     setBusy(true)
     try {
       const blob = await exportCard(
-        record!,
+        record,
         character.name,
         colors[color]!,
         character.artworkId ?? character.id,
@@ -106,30 +186,39 @@ export default function CapsuleCardPage() {
     finally { setBusy(false) }
   }
   return (
-    <main id="main-content" tabIndex={-1} className="capsule-share-page">
+    <main id="main-content" tabIndex={-1} className="capsule-share-page" data-intro={intro ?? undefined}>
       <PageNavigation />
-      <CapsuleCardSurface color={colors[color]!} light={color > 1}>
-        <div className="capsule-card-header">
-          <CapsuleCardBrand />
-          <span>{dateLabel(record.endedAt)}</span>
+      <div className="capsule-card-scene" inert={!!intro}>
+        <div ref={cardRoot} className="capsule-card-root">
+          <div ref={flipper} className="capsule-card-flipper">
+            <CapsuleCardSurface color={colors[color]!} light={color > 1}>
+              <div className="capsule-card-header">
+                <CapsuleCardBrand />
+                <span>{dateLabel(record.endedAt)}</span>
+              </div>
+              <div className="share-portrait">
+                <CompletionPortrait characterId={character.artworkId ?? character.id} name={character.name} variant="share" />
+                <div className="capsule-room-title"><RoomTitle roomId={room.artworkId ?? room.id} eager /></div>
+              </div>
+              <p className="capsule-card-intro type-body">
+                {withParticle(character.name, '과', '와')} 함께한 공부
+              </p>
+              <p className="capsule-study-amount"><CountUpText ref={studyCount} value={record.studySeconds} format={studyAmount} /></p>
+              <p className="capsule-card-focus type-body-compact">
+                {capsuleFocusCopy(record)}
+              </p>
+              <span className="badge capsule-card-badge inline-flex items-center rounded-full px-2.5 py-1">
+                {capsuleCardCopy.badge}
+              </span>
+              <p className="capsule-card-quote" style={{ fontFamily: storyFont, top: quote.top, fontSize: quote.fontSize, lineHeight: `${quote.lineHeight}px` }}>
+                {quote.lines.map((line, index) => <span key={index}>{line}</span>)}
+              </p>
+            </CapsuleCardSurface>
+            {intro && <CapsuleCardBack />}
+          </div>
         </div>
-        <div className="share-portrait">
-          <CompletionPortrait characterId={character.artworkId ?? character.id} name={character.name} variant="share" />
-          <div className="capsule-room-title"><RoomTitle roomId={room.artworkId ?? room.id} eager /></div>
-        </div>
-        <p className="capsule-card-intro type-body">
-          {withParticle(character.name, '과', '와')} 함께한 공부
-        </p>
-        <p className="capsule-study-amount">{(record.observedSeconds === undefined ? duration : measuredDuration)(record.studySeconds)}</p>
-        <p className="capsule-card-focus type-body-compact">
-          {capsuleFocusCopy(record)}
-        </p>
-        <span className="badge capsule-card-badge inline-flex items-center rounded-full px-2.5 py-1">
-          {capsuleCardCopy.badge}
-        </span>
-        <p className="capsule-card-quote" style={{ fontFamily: storyFont }}>{record.serverReport?.closingLine ?? capsuleCardCopy.quote}</p>
-      </CapsuleCardSurface>
-      <section className="w-full max-w-[440px] rounded-3xl bg-panel p-7">
+      </div>
+      <section ref={panel} className="w-full max-w-[440px] rounded-3xl bg-panel p-7" inert={!!intro}>
         <h1 className="type-page-title">캡슐 카드</h1>
         {friends.length > 1 && <div className="mt-4"><Tabs label="카드의 친구" options={friends.map(friend => ({ id: friend.id, label: friend.name }))} value={character.id} onChange={id => { const next = new URLSearchParams(params); next.set('friend', id); setParams(next, { replace: true }) }} size="sm" /></div>}
         <p className="mt-4 text-body-compact font-bold text-muted">카드 색 · {names[color]}</p>

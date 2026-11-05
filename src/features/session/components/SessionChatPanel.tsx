@@ -43,6 +43,8 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
   const seen = useRef(new Set(state.messages.map(message => message.id)))
   const titleId = useId()
   const messages = state.messages.filter(message => message.sessionId === active.id && message.characterId === selected.id)
+  // Once a streamed reply starts, its own bubble replaces the typing indicator.
+  const replyStarted = messages.at(-1)?.sender === 'character'
   const reportTyping = useCallback((messageId: string, typing: boolean) => {
     onTypingChange(selected.id, messageId, typing)
   }, [selected.id, onTypingChange])
@@ -124,7 +126,7 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
                 {message.sender === 'user' && <div className="chat-message-delivery"><Icon name="check" size={12} />보냄{message.createdAt && <time dateTime={new Date(message.createdAt).toISOString()}>{messageTime.format(message.createdAt)}</time>}</div>}
               </article>
             ))}
-            {replyPending && (
+            {replyPending && !replyStarted && (
               <article className="chat-message" data-sender="character">
                 <div className="chat-message-meta"><img src={selected.avatarUrl ?? getCharacterArtwork(selected.artworkId ?? selected.id).affection} alt="" /><span>{selected.name}</span></div>
                 <p className="chat-message-bubble chat-message-pending">입력 중…</p>

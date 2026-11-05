@@ -47,14 +47,15 @@ export default function ReportPage() {
     <main id="main-content" tabIndex={-1} className="report-scene focus:outline-none">
       <PageNavigation />
       <div className="report-scene-art">
-        {art?.backgroundSrc && <img src={art.backgroundSrc} alt="" width={1672} height={941} decoding="async" fetchPriority="high" />}
+        {/* Friends without a layered completion scene fill the screen with their completion image instead. */}
+        {art?.backgroundSrc
+          ? <img src={art.backgroundSrc} alt="" width={1672} height={941} decoding="async" fetchPriority="high" />
+          : <CompletionPortrait characterId={character.id} name={character.name} variant="report" />}
       </div>
       <div className="report-layout">
         <div className="report-companion">
           <div className="report-character-art">
-            {art?.foregroundSrc
-              ? <img src={art.foregroundSrc} alt={`${character.name}의 밝게 웃는 공부 완료 모습`} width={1024} height={1536} decoding="async" fetchPriority="high" />
-              : <CompletionPortrait characterId={character.id} name={character.name} variant="report" />}
+            {art?.backgroundSrc && art.foregroundSrc && <img src={art.foregroundSrc} alt={`${character.name}의 밝게 웃는 공부 완료 모습`} width={1024} height={1536} decoding="async" fetchPriority="high" />}
           </div>
           <section className="report-dialogue report-glass" aria-label={`${character.name}의 한마디`}>
             {friends.length > 1 && <Tabs label="완료 이미지의 친구" options={friends.map(friend => ({ id: friend.id, label: friend.name }))} value={character.id} onChange={id => { const next = new URLSearchParams(params); next.set('friend', id); setParams(next, { replace: true }) }} size="sm" />}
@@ -89,7 +90,7 @@ export default function ReportPage() {
           {!record.serverReport && <div className="report-affection">
             {friends.map(friend => <AffectionStatus key={friend.id} name={friend.name} score={affectionScore(state, friend.id)} current animate />)}
           </div>}
-          <div className="report-actions"><ButtonLink to="/" variant="secondary">홈으로</ButtonLink><ButtonLink to={`/capsules/${record.id}?friend=${character.id}`} className="report-capsule-cta"><span>캡슐 카드 만들기</span></ButtonLink></div>
+          <div className="report-actions"><ButtonLink to="/" variant="secondary">홈으로</ButtonLink><ButtonLink to={`/capsules/${record.id}?friend=${character.id}`} state={{ capsuleIntro: true }} className="report-capsule-cta"><span>캡슐 카드 만들기</span></ButtonLink></div>
         </section>
       </div>
     </main>

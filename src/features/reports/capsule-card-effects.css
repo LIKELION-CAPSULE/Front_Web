@@ -56,6 +56,13 @@
     opacity: 0.12;
     transition: opacity 300ms;
   }
+  /* Hidden until the opening intro sweeps it across the card once. */
+  .capsule-card-sweep {
+    opacity: 0;
+    background: linear-gradient(105deg, transparent 32%, #ffffff1f 44%, #ffffff59 50%, #ffffff1f 56%, transparent 68%);
+    mix-blend-mode: screen;
+  }
+
   .capsule-card-stage[data-active='pointer'] .capsule-card-foil, .capsule-card-stage[data-active='keyboard'] .capsule-card-foil { opacity: var(--capsule-foil-hover-opacity); }
   .capsule-card-stage[data-active='pointer'] .capsule-card-glitter, .capsule-card-stage[data-active='keyboard'] .capsule-card-glitter { opacity: var(--capsule-glitter-hover-opacity); }
   .capsule-card-stage[data-active='pointer'] .capsule-card-glare, .capsule-card-stage[data-active='keyboard'] .capsule-card-glare { opacity: var(--capsule-glare-hover-opacity); }

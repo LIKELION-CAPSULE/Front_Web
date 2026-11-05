@@ -3,12 +3,13 @@ import type { ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { DemoContext } from './demo-context'
 import { demoReducer } from './reducer'
-import type { DemoState, Memory } from './types'
+import type { DemoState, Memory, Message } from './types'
 import { api, ApiError } from '@/shared/api/client'
 import { QueryCache } from '@/shared/api/query-cache'
 import { removeAccountSnapshots } from '@/features/auth/account-storage'
-import type { AffinityChange, AvatarsResponse, CreateMemoryRequest, HomeResponse, MeResponse, MemoryList, MemoryResponse, LoginResponse, RoomDetail, StartResponse, ResumeResponse, ReportResponse, MessageResponse, TermsResponse } from '@/shared/api/types'
+import type { AffinityChange, AvatarsResponse, CreateMemoryRequest, HomeResponse, MeResponse, MemoryList, MemoryResponse, LoginResponse, RoomDetail, StartResponse, ResumeResponse, ReportResponse, TermsResponse } from '@/shared/api/types'
 import { BackendContext } from '@/features/backend/backend-context'
+import { streamMessage } from '@/features/backend/message-stream'
 import * as adapt from '@/features/backend/adapters'
 import { getStudyRooms, registerReportRoom, setServerRooms } from '@/features/rooms/services/room-service'
 import { flushSessionEvents, getSessionTotals, presenceKey, readSessionStorageItem } from '@/features/backend/use-session-sync'
@@ -337,20 +338,35 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     const requestId = previous?.content === content.trim() && previous.inputType === inputType ? previous.requestId : crypto.randomUUID()
     failedMessages.current.set(key, { content: content.trim(), inputType, requestId })
     pending.current.add(key)
+    const live = () => generation === epoch.current && stateRef.current.activeSession?.id === current.id
+    // Replaces a message in place (keeping its position) or appends it.
+    const upsert = (message: Message) => {
+      const list = stateRef.current.messages
+      patch({ messages: list.some(value => value.id === message.id) ? list.map(value => value.id === message.id ? message : value) : [...list, message] })
+    }
+    const reply = (text: string, createdAt = Date.now()): Message => ({
+      id: `${requestId}:reply`, requestId, sessionId: current.id, characterId, sender: 'character', text, voice: false,
+      createdAt: stateRef.current.messages.find(value => value.id === `${requestId}:reply`)?.createdAt ?? createdAt,
+    })
+    // The user's line shows right away so streamed reply text appears below it.
+    upsert({ id: `${requestId}:user`, requestId, sessionId: current.id, characterId, sender: 'user', text: content.trim(), voice: false, createdAt: Date.now() })
     try {
-      const result = await api.request<MessageResponse>(`/sessions/${adapt.numericId(current.id)}/messages`, {
-        method: 'POST', body: { requestId, characterId: adapt.numericId(characterId), content: content.trim(), inputType, tts: false },
+      const result = await streamMessage(api, adapt.numericId(current.id), { requestId, characterId: adapt.numericId(characterId), content: content.trim(), inputType, tts: false }, {
+        onReply: text => { if (live()) upsert(reply(text)) },
+        alive: live,
       })
-      if (result.requestId !== requestId || adapt.id(result.characterId) !== characterId || !result.content) throw new ApiError('답장 응답을확인하지 못했어요.', 502)
-      if (generation !== epoch.current || stateRef.current.activeSession?.id !== current.id) return result
-      const now = Date.now()
-      patch({ messages: [...stateRef.current.messages,
-        { id: `${requestId}:user`, requestId, sessionId: current.id, characterId, sender: 'user', text: content.trim(), voice: false, createdAt: now },
-        { id: `${requestId}:reply`, requestId, sessionId: current.id, characterId, sender: 'character', text: result.content, voice: false, createdAt: now },
-      ] })
+      if (result.requestId !== requestId || adapt.id(result.characterId) !== characterId || !result.content) throw new ApiError('답장 응답을 확인하지 못했어요.', 502)
+      if (!live()) return result
+      // `done` holds the final text; it also creates the bubble when no `reply` came (fallback line, or a resend that
+      // waited for the original request and gets its stored reply with no expression and affinity delta 0).
+      upsert(reply(result.content))
       updateAffinity(result.characterId!, result.affinity)
       failedMessages.current.delete(key)
       return result
+    } catch (error) {
+      // As with API 20, a failed send leaves no messages; sending the same text again reuses the requestId.
+      if (live()) patch({ messages: stateRef.current.messages.filter(value => value.requestId !== requestId) })
+      throw error
     } finally { pending.current.delete(key) }
   }, [patch, updateAffinity])
   const loadReport = useCallback(async (sessionId: string) => {
