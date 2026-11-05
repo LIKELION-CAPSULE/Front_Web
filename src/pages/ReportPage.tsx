@@ -6,7 +6,7 @@ import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { CompletionPortrait } from '@/features/reports/components/CompletionPortrait'
 import { CompletionQuote } from '@/features/reports/components/CompletionQuote'
 import { StudyLevelGain } from '@/features/reports/components/StudyLevelGain'
-import { completionArtwork } from '@/features/reports/completion-artwork'
+import { getCompletionArtwork } from '@/features/reports/completion-artwork'
 import { reportStudyLevel } from '@/features/reports/report-study-level'
 import { AffectionStatus } from '@/features/characters/components/AffectionStatus'
 import { affectionScore } from '@/features/characters/affection'
@@ -42,7 +42,7 @@ export default function ReportPage() {
   const character = friends.find(friend => friend.id === params.get('friend')) ?? friends[0]!
   const measured = !!record.serverReport || record.observedSeconds !== undefined
   const focusPercent = recordFocusPercent(record)
-  const art = completionArtwork[character.artworkId ?? character.id]
+  const art = getCompletionArtwork(character.artworkId ?? character.id, character.name)
   return (
     <main id="main-content" tabIndex={-1} className="report-scene focus:outline-none">
       <PageNavigation />
@@ -50,7 +50,7 @@ export default function ReportPage() {
         {/* Friends without a layered completion scene fill the screen with their completion image instead. */}
         {art?.backgroundSrc
           ? <img src={art.backgroundSrc} alt="" width={1672} height={941} decoding="async" fetchPriority="high" />
-          : <CompletionPortrait characterId={character.id} name={character.name} variant="report" />}
+          : <CompletionPortrait characterId={character.artworkId ?? character.id} name={character.name} variant="report" />}
       </div>
       <div className="report-layout">
         <div className="report-companion">

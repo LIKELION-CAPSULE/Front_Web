@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { FaceFocusTracker } from '../src/features/media/face-focus-tracker.ts'
-import { focusMeasuredSeconds, focusPercent, normalizeFocusTotals, recordFocusPercent } from '../src/features/session/focus.ts'
+import { focusDetectedSeconds, focusMeasuredSeconds, focusPercent, normalizeFocusTotals, recordFocusPercent } from '../src/features/session/focus.ts'
 import { createDemoState } from '../src/features/demo/seed.ts'
 import { demoReducer, sessionStudySeconds } from '../src/features/demo/reducer.ts'
 import { recordSummary, getRecordRange } from '../src/features/reports/record-period.ts'
@@ -9,6 +9,7 @@ import { companionTimeSeries } from '../src/features/reports/companion-time.ts'
 import { capsuleFocusCopy } from '../src/features/reports/card-copy.ts'
 import { measuredDuration } from '../src/shared/lib/format.ts'
 import type { StudyRecord } from '../src/features/demo/types.ts'
+import { report as serverReport } from '../src/features/backend/adapters.ts'
 
 const now = Date.parse('2026-10-28T12:00:00+09:00')
 const begin = (camera = true) => demoReducer(createDemoState(now), {
@@ -175,4 +176,31 @@ test('history and companion summaries weight valid measurement time and preserve
   assert.equal(recordSummary(records).focusRate, 62.5)
   const { series } = companionTimeSeries(records, [{ id: 'chaerin', name: '채린' }], getRecordRange('week', now))
   assert.equal(series[0]!.focusRate, 62.5)
+})
+
+test('a server presence settlement never substitutes for missing camera measurement', () => {
+  const result = serverReport({ sessionId: 101, character: { id: 201 }, startedAt: new Date(now).toISOString(), endedAt: new Date(now + 60000).toISOString(), studySeconds: 60, presentSeconds: 54, awaySeconds: 6, returnCount: 2 }, '101')
+  assert.equal(result.focusSeconds, 54)
+  assert.equal(focusMeasuredSeconds(result), 0)
+  assert.equal(focusDetectedSeconds(result), 0)
+  assert.equal(recordFocusPercent(result), null)
+  assert.equal(recordSummary([result]).focusRate, null)
+  assert.equal(capsuleFocusCopy(result), '집중 측정 대기 · 복귀 0회')
+})
+
+test('live camera totals remain the report and history basis even when server presence differs', () => {
+  const result = serverReport({ sessionId: 101, character: { id: 201 }, startedAt: new Date(now).toISOString(), endedAt: new Date(now + 60000).toISOString(), studySeconds: 60, presentSeconds: 54, awaySeconds: 6, returnCount: 2 }, '101')
+  result.cameraFocus = { observedMs: 40000, focusedMs: 30000, returns: 1 }
+  assert.equal(recordFocusPercent(result), 75)
+  assert.equal(focusMeasuredSeconds(result), 40)
+  assert.equal(focusDetectedSeconds(result), 30)
+  assert.equal(capsuleFocusCopy(result), '집중 30초 · 복귀 1회')
+  const unmeasured = { ...result, id: 'unmeasured', cameraFocus: undefined }
+  assert.equal(recordSummary([result, unmeasured]).focusRate, 75)
+  const { series } = companionTimeSeries([result, unmeasured], [{ id: '201', name: '친구' }], getRecordRange('week', now))
+  assert.equal(series[0]!.focusRate, 75)
+  const restored = JSON.parse(JSON.stringify(result)) as StudyRecord
+  assert.equal(recordFocusPercent(restored), 75)
+  // Backend whole-second settlement must not change the camera measurement ratio.
+  assert.equal(recordFocusPercent({ ...restored, studySeconds: 39 }), 75)
 })

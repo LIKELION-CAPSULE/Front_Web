@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
 import { useDemo } from '@/features/demo/demo-context'
 import { BREAK_SECONDS, sessionElapsed, sessionStudySeconds } from '@/features/demo/reducer'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { studyGoalSeconds } from '@/features/session/study-goal'
-import { isStudyChatOpen, SELF_STUDY_TILE_ID, selectBreakFriend, selectStudyChatFriend, toggleBreakSelfFocus, toggleStudyChat, toggleStudyFocus } from '@/features/session/study-interaction'
-import { focusPercent } from '@/features/session/focus'
+import { isStudyChatOpen, SELF_STUDY_TILE_ID, STUDY_GRID_FOCUS, selectBreakFriend, selectStudyChatFriend, toggleBreakSelfFocus, toggleStudyChat, toggleStudyFocus } from '@/features/session/study-interaction'
+import { focusPercent, normalizeFocusTotals } from '@/features/session/focus'
 import { useNow } from '@/features/session/use-now'
 import { useBackend } from '@/features/backend/backend-context'
 import { useSessionSync } from '@/features/backend/use-session-sync'
@@ -15,6 +15,7 @@ import { ApiError } from '@/shared/api/client'
 import { CharacterTile } from '@/features/session/components/CharacterTile'
 import { StudyGrid } from '@/features/session/components/StudyGrid'
 import { StudyDock } from '@/features/session/components/StudyDock'
+import { StudyNotifications } from '@/features/session/components/StudyNotifications'
 import { StudySelfView } from '@/features/session/components/StudySelfView'
 import { SessionTimer } from '@/features/session/components/SessionTimer'
 import { SessionFocus } from '@/features/session/components/SessionFocus'
@@ -33,10 +34,10 @@ import { Icon } from '@/shared/ui/Icon'
 import { SessionChatPanel } from '@/features/session/components/SessionChatPanel'
 import { clock } from '@/shared/lib/format'
 import { cn } from '@/shared/lib/cn'
-import { EmptyState } from '@/shared/ui/EmptyState'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { isMvpCharacter } from '@/features/mvp/policy'
-import { useExpressionDirector, useLive2DStage } from '@/features/live2d/use-live2d'
+import { useExpressionDirector } from '@/features/live2d/use-live2d'
+import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
 import type { ExpressionCue } from '@/features/live2d/expression-scheduler'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 
@@ -72,7 +73,8 @@ export default function StudyPage() {
   const resting = active?.phase === 'break'
   const room = active && getStudyRoom(active.roomId)
   const characters = room?.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && active?.characterIds.includes(character.id)) ?? []
-  const focused = characters.find(character => character.id === params.get('focus'))
+  const defaultFocus = !resting && characters.length === 1 ? characters[0]!.id : undefined
+  const focused = characters.find(character => character.id === (params.get('focus') ?? defaultFocus))
   const selfFocused = params.get('focus') === SELF_STUDY_TILE_ID
   const hasFocus = !!focused || selfFocused
   const selected = characters.find(character => character.id === params.get('friend')) ?? focused ?? characters[0]
@@ -81,7 +83,7 @@ export default function StudyPage() {
   // Only the server character with a model gets Live2D; everyone else keeps the static artwork.
   const live2dFigure = inSession ? backend.visuals?.character : null
   const live2dCharacterId = live2dFigure?.id ? String(live2dFigure.id) : null
-  const live2d = useLive2DStage(live2dFigure)
+  const live2d = backend.live2dStage
   const expressions = useExpressionDirector(live2d)
   const reducedMotion = useReducedMotion()
   const cueExpression = (cue: ExpressionCue) => {
@@ -149,26 +151,28 @@ export default function StudyPage() {
       } else if (!editing && key === 'v' && !resting && !document.querySelector('dialog:modal')) {
         event.preventDefault()
         if (event.repeat) return
-        setParams(toggleStudyFocus(new URLSearchParams(window.location.search), selfFocused ? SELF_STUDY_TILE_ID : focused?.id ?? selected.id))
+        setParams(toggleStudyFocus(new URLSearchParams(window.location.search), selfFocused ? SELF_STUDY_TILE_ID : focused?.id ?? selected.id, defaultFocus))
       } else if (event.key === 'Escape' && !event.isComposing) {
         // Read the latest location so successive Escape presses close one layer each.
         const next = new URLSearchParams(window.location.search)
         const chatting = isStudyChatOpen(next, resting)
-        if (!chatting && !next.has('focus')) return
+        const focus = next.get('focus') ?? defaultFocus
+        if (!chatting && (!focus || focus === STUDY_GRID_FOCUS)) return
         event.preventDefault()
         if (chatting) next.set('chat', '0')
+        else if (defaultFocus) next.set('focus', STUDY_GRID_FOCUS)
         else next.delete('focus')
         setParams(next)
       }
     }
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
-  }, [inSession, resting, focused?.id, selfFocused, selected, setParams])
+  }, [inSession, resting, focused?.id, selfFocused, selected, defaultFocus, setParams])
   if ((!active || active.id !== sessionId) && backend.activeSummary && String(backend.activeSummary.sessionId) === sessionId) {
     return <main id="main-content" className="page-container grid min-h-dvh place-items-center">
       <section><h1 className="type-page-title">다시 공부를 시작할까요?</h1><p className="mt-4 text-muted">{backend.activeSummary.roomName}에서 하던 공부를 이어가요.</p>
       {sessionError && <FeedbackMessage tone="error">{sessionError}</FeedbackMessage>}
-      <Button className="mt-5" disabled={resuming} onClick={async () => {
+      <Button className="mt-5" loading={resuming} onClick={async () => {
         if (resuming || !sessionId) return
         setResuming(true); setSessionError('')
         try { await backend.resumeSession(sessionId); setParams({}, { replace: true }) }
@@ -177,20 +181,18 @@ export default function StudyPage() {
           else setSessionError(reason instanceof Error ? reason.message : '공부를 이어가지 못했어요.')
         }
         finally { setResuming(false) }
-      }}>{resuming ? '불러오고 있어요…' : '이어서 시작할게'}</Button><Link to="/" className="ml-4 text-muted underline">홈으로</Link></section>
+      }}>이어서 시작할게</Button><Link to="/" className="ml-4 text-muted underline">홈으로</Link></section>
     </main>
   }
-  if (!active || active.id !== sessionId || !room || !selected)
-    return (
-      <main id="main-content" tabIndex={-1} className="page-container grid min-h-dvh place-items-center py-10 focus:outline-none">
-        <PageNavigation />
-        <EmptyState title="진행 중인 공부가 없어요" headingLevel="h1" />
-      </main>
-    )
+  if (!active || active.id !== sessionId || !room || !selected) {
+    // Successful settlement clears the session before navigating to its report.
+    if (finishing) return null
+    return <Navigate to="/" replace state={{ notice: 'study-not-found' }} />
+  }
   const elapsed = sessionElapsed(active, now)
   const goal = studyGoalSeconds(active)
-  const studyTotal = sessionStudySeconds(active, now)
-  const focusRate = active.presenceKnown === false ? null : focusPercent(sync.presentSeconds, studyTotal)
+  const focusTotals = normalizeFocusTotals(active.focus)
+  const focusRate = focusPercent(focusTotals.focusedMs, focusTotals.observedMs)
   const cameraVisible = showCamera && !!devices.camera.stream
   const messages = state.messages.filter(
     (message) => message.sessionId === active.id && message.characterId === selected.id,
@@ -229,7 +231,7 @@ export default function StudyPage() {
     setParams(selectStudyChatFriend(params, id))
   }
   function activateFriend(id: string) {
-    setParams(toggleStudyFocus(params, id))
+    setParams(toggleStudyFocus(params, id, defaultFocus))
   }
   async function send(text: string, inputType: 'TEXT' | 'QUICK' = 'TEXT') {
     if (!selected || !text.trim() || pendingReplies[selected.id]) return false
@@ -249,8 +251,15 @@ export default function StudyPage() {
     } finally { setPendingReplies(previous => ({ ...previous, [characterId]: false })) }
   }
   function openLeave() {
+    flushFocus()
+    dispatch({ type: 'PAUSE_SESSION', now: Date.now() })
     setSessionError('')
     setLeaveOpen(true)
+  }
+  function closeLeave() {
+    if (finishing) return
+    dispatch({ type: 'RESUME_SESSION', now: Date.now() })
+    setLeaveOpen(false)
   }
   async function finish() {
     if (finishing) return
@@ -329,7 +338,7 @@ export default function StudyPage() {
         {selfSpeaking && <span className="sr-only">{microphoneSpeaking ? '음성 입력 중' : '메시지 전송'}</span>}
         <StudySelfView stream={devices.camera.stream} showCamera={cameraVisible} avatar={state.profile.avatar} image={backend.visuals?.me?.profileImageUrl ?? state.profile.profileImage} background={normalizeCameraBackground(state.cameraBackground)} small={small} expanded={selfFocused} />
         <button type="button" className="tile-interaction" aria-label={selfFocused ? '내 화면 확대 닫기' : '내 화면 크게 보기'}
-          aria-expanded={selfFocused} onClick={() => setParams(resting ? toggleBreakSelfFocus(params, selected!.id) : toggleStudyFocus(params, SELF_STUDY_TILE_ID))}>
+          aria-expanded={selfFocused} onClick={() => setParams(resting ? toggleBreakSelfFocus(params, selected!.id) : toggleStudyFocus(params, SELF_STUDY_TILE_ID, defaultFocus))}>
           <span className="tile-action-symbol" aria-hidden="true">
             <Icon name={selfFocused ? 'shrink' : 'zoomIn'} size={28} />
           </span>
@@ -337,8 +346,6 @@ export default function StudyPage() {
         {!resting && <div className="study-self-feedback">
           <DetectionStatus />
           <BehaviorBadges />
-          {devices.camera.error && <FeedbackMessage tone="error" compact>{devices.camera.error}</FeedbackMessage>}
-          {devices.microphone.error && <FeedbackMessage tone="error" compact>{devices.microphone.error}</FeedbackMessage>}
         </div>}
       </article>
     )
@@ -378,8 +385,14 @@ export default function StudyPage() {
           />
         </div>
       </header>
-      {active.presenceKnown === false && <FeedbackMessage tone="warning" className="px-5 py-3">이전 자리 지킴 시간을 불러오지 못했어요. 공부 결과를 저장하려면 처음 공부한 브라우저에서 이어가 주세요.</FeedbackMessage>}
-      {(sync.error || sessionError) && <div className="px-5 py-3"><FeedbackMessage tone="error">{sessionError || sync.error}</FeedbackMessage>{sync.error && <Button size="sm" onClick={() => { void sync.retry() }}>연결 다시 확인</Button>}</div>}
+      <StudyNotifications
+        presenceUnknown={active.presenceKnown === false}
+        cameraError={devices.camera.error}
+        microphoneError={devices.microphone.error}
+        syncError={sync.error}
+        sessionError={leaveOpen || params.get('resume') === '1' || (active.phase === 'study' && active.runningSince === null) ? '' : sessionError}
+        onRetrySync={sync.retry}
+      />
       <div className="study-workspace" data-chat-open={chatOpen || undefined}>
       {active.phase === 'study' ? (
         <div className="study-stage">
@@ -436,7 +449,6 @@ export default function StudyPage() {
               />
             })}
           </StudyGrid>
-          {dock()}
         </div>
       ) : (
           <div className="break-stage" data-self-focused={selfFocused || undefined}>
@@ -462,21 +474,16 @@ export default function StudyPage() {
                       className={cn('break-thumbnail', speakingCharacters.has(character.id) && 'is-speaking')}
                       data-speaking={speakingCharacters.has(character.id) || undefined}
                     >
-                      <img
+                      {character.serverCharacter ? character.id === live2dCharacterId && live2d && <Live2DFigure stage={live2d} background={backend.visuals?.room?.backgroundImageUrl} /> : <img
                         src={getCharacterArtwork(character.id).affection}
                         alt=""
                         className="size-full object-cover"
-                      />
+                      />}
                       <span className="tile-label">{character.name} · 쉬는 중</span>
                     </button>
                   ))}
               </div>
               {selfTile(!selfFocused)}
-            </div>
-            {dock(true)}
-            <div className="break-device-feedback">
-              {devices.camera.error && <FeedbackMessage tone="error" compact className="break-device-error">{devices.camera.error}</FeedbackMessage>}
-              {devices.microphone.error && <FeedbackMessage tone="error" compact className="break-device-error">{devices.microphone.error}</FeedbackMessage>}
             </div>
           </div>
       )}
@@ -491,9 +498,10 @@ export default function StudyPage() {
             replyPending={!!pendingReplies[selected.id]}
             replyError={replyErrors[selected.id]}
           />
+          {dock(resting)}
       </div>
       <Dialog
-        open={params.get('resume') === '1' || (active.phase === 'study' && active.runningSince === null)}
+        open={!leaveOpen && (params.get('resume') === '1' || (active.phase === 'study' && active.runningSince === null))}
         onClose={() => navigate('/')}
         closeLabel="홈으로 돌아가기"
         title="다시 공부를 시작할까요?"
@@ -502,11 +510,12 @@ export default function StudyPage() {
           「{room.name}」에서 {active.phase === 'study' ? '하던 공부를' : '쉬는 시간을'} 이어서 진행해요.
           준비되면 시작해 주세요.
         </p>
-        <Button className="w-full" disabled={resuming} onClick={() => { void resumeStudy() }}>
+        {sessionError && <FeedbackMessage tone="error" className="mb-4">{sessionError}</FeedbackMessage>}
+        <Button className="w-full" loading={resuming} onClick={() => { void resumeStudy() }}>
           <Icon name="play" size={17} /> 이어서 시작할게
         </Button>
       </Dialog>
-      <Dialog open={leaveOpen} onClose={() => setLeaveOpen(false)} title="공부를 마치시겠습니까?" showCloseButton={false} titleAlign="center">
+      <Dialog open={leaveOpen} onClose={closeLeave} dismissible={!finishing} title="공부를 마치시겠습니까?" showCloseButton={false} titleAlign="center">
         <dl className="mb-4 flex items-center justify-between gap-4 rounded-control bg-surface p-4">
           <dt className="text-body-compact text-muted">지금까지 공부한 시간</dt>
           <dd className="text-section-title font-bold tabular-nums" data-study-total>{clock(sessionStudySeconds(active, now))}</dd>
@@ -516,7 +525,7 @@ export default function StudyPage() {
         {sessionError && <FeedbackMessage tone="error" className="mb-4">{sessionError}</FeedbackMessage>}
         <div className="grid gap-2 sm:grid-cols-2">
           <Button variant="danger-solid" disabled={finishing} onClick={() => { void finish() }}>{finishing ? '마무리하고 있어요…' : '응, 여기까지 할게'}</Button>
-          <Button variant="secondary" data-dialog-initial-focus onClick={() => setLeaveOpen(false)}>
+          <Button variant="secondary" disabled={finishing} data-dialog-initial-focus onClick={closeLeave}>
             아니, 더 할거야
           </Button>
         </div>

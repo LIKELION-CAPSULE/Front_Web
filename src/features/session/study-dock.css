@@ -60,14 +60,15 @@
   .study-dock-item > button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 4px; }
   .study-dock-divider { width: 1px; height: 24px; flex: none; margin-inline: 2px; background: #ffffff29; }
   .study-dock-tooltip {
+    --dock-tooltip-x: -50%;
     position: absolute;
     bottom: calc(100% + 22px);
     left: 50%;
     visibility: hidden;
     width: max-content;
     padding: 7px 11px;
-    translate: -50% 0;
-    transform: translateY(4px);
+    /* Keep both offsets in one transform so production optimization preserves centering. */
+    transform: translate(var(--dock-tooltip-x), 4px);
     border-radius: 10px;
     background: #272636f5;
     color: #f7f3ff;
@@ -80,9 +81,9 @@
     transition: opacity 120ms, transform 120ms, visibility 120ms;
   }
   .study-dock-item:hover .study-dock-tooltip,
-  .study-dock-item:has(button:focus-visible) .study-dock-tooltip { visibility: visible; opacity: 1; transform: translateY(0); }
-  .study-dock-item:first-child .study-dock-tooltip { left: 0; translate: 0 0; }
-  .study-dock-item:last-child .study-dock-tooltip { right: 0; left: auto; translate: 0 0; }
+  .study-dock-item:has(button:focus-visible) .study-dock-tooltip { visibility: visible; opacity: 1; transform: translate(var(--dock-tooltip-x), 0); }
+  .study-dock-item:first-child .study-dock-tooltip { --dock-tooltip-x: 0px; left: 0; }
+  .study-dock-item:last-child .study-dock-tooltip { --dock-tooltip-x: 0px; right: 0; left: auto; }
   .study-dock[data-tooltip-dismissed='true'] .study-dock-item .study-dock-tooltip { visibility: hidden; opacity: 0; }
   .study-dock-item:has(.study-dock-popover) .study-dock-tooltip { visibility: hidden; opacity: 0; }
   /* Position open popovers against the whole dock, rather than their trigger slot. */
@@ -113,7 +114,7 @@
   .study-dock-more > button:disabled { opacity: .5; cursor: not-allowed; }
   .study-dock-more-background { border-top: 1px solid #ffffff29; margin-top: 4px; padding: 12px 4px 4px; }
   @media (max-width: 1023px) {
-    .study-stage > .study-dock { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+    .study-workspace > .study-dock { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
   }
   @media (max-width: 699px) {
     .study-dock { --dock-size: 44px; --dock-spread: 0px; gap: 4px; padding: 8px; }

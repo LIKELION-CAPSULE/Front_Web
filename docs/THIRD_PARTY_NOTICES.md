@@ -26,7 +26,7 @@ User-supplied and generated illustration assets retain their existing provenance
 - **[PixiJS 8.21.0](https://pixijs.com/)** — MIT · Copyright (c) 2013-2023 Mathew Groves, Chad Engler. [Original notice](../public/licenses/PixiJS-MIT.txt). Its dependencies eventemitter3, ismobilejs, parse-svg-path, @xmldom/xmldom, gifuct-js, js-binary-schema-parser and @pixi/colord are MIT; earcut is ISC; tiny-lru is BSD-3-Clause.
 - **[@pixi/sound 6.0.2](https://github.com/pixijs/sound)** — MIT · Copyright (c) 2017 Matt Karl, LLC. Installed as an engine dependency and only loaded for motion sounds or lip sync, which CAPSULE does not use. [Original notice](../public/licenses/PixiSound-MIT.txt).
 
-PixiJS and the engine load only on the study page, in a separate `live2d` chunk. Live2D model files come from the backend's storage (`modelJsonUrl`) and are not distributed from this repository.
+PixiJS and the engine load while preparing a study session, in a separate `live2d` chunk. Live2D model files come from the backend's storage (`modelJsonUrl`) and are not distributed from this repository.
 
 ## Capsule card opening (3D intro)
 

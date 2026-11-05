@@ -57,7 +57,7 @@ export function StudyActivityPanel({
               </dd>
             </div>
             <div>
-              <dt>집중률</dt>
+              <dt>자리 지킴률</dt>
               <dd>
                 {selectedSummary.focusRate === null ? '—' : <>{selectedSummary.focusRate}<small>%</small></>}
               </dd>

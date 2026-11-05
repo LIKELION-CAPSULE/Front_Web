@@ -29,6 +29,8 @@ export type Pass = { name: string; expiresAt: number; premiumDay: string | null 
 export type FocusTotals = { observedMs: number; focusedMs: number; returns: number }
 export type StudyRecord = {
   serverReport?: import('../../shared/api/types.ts').ReportResponse
+  /** Camera measurement, kept separately from the server's presence-based settlement. */
+  cameraFocus?: FocusTotals
   roomName?: string
   characterName?: string
   /** Absent on legacy/sample records. Zero means no valid camera measurement. */

@@ -1,5 +1,5 @@
 @layer components {
-  /* Sits over the static artwork, which stays as the loading and failure fallback. */
+  /* The study screen opens only after this model has loaded. */
   .live2d-host {
     position: absolute;
     inset: 0;
@@ -11,7 +11,4 @@
   .live2d-host[data-status='ready'] { opacity: 1; }
   .live2d-host[data-status='error'] { display: none; }
   .live2d-canvas { display: block; }
-  @media (prefers-reduced-motion: no-preference) {
-    .live2d-host { transition: opacity 0.4s ease; }
-  }
 }

@@ -18,11 +18,17 @@ export function focusPercent(focused: number, observed: number): number | null {
 
 /** Legacy samples already partition their entire study time into focus/away. */
 export function focusMeasuredSeconds(record: StudyRecord) {
+  if (record.cameraFocus) return normalizeFocusTotals(record.cameraFocus).observedMs / 1000
+  if (record.serverReport) return 0
   return record.observedSeconds === undefined ? record.studySeconds
     : Math.min(nonnegative(record.studySeconds), nonnegative(record.observedSeconds))
 }
 
+export function focusDetectedSeconds(record: StudyRecord) {
+  if (record.cameraFocus) return normalizeFocusTotals(record.cameraFocus).focusedMs / 1000
+  return record.serverReport ? 0 : Math.min(focusMeasuredSeconds(record), nonnegative(record.focusSeconds))
+}
+
 export function recordFocusPercent(record: StudyRecord) {
-  if (record.serverReport) return focusPercent(record.focusSeconds, record.studySeconds)
-  return focusPercent(record.focusSeconds, focusMeasuredSeconds(record))
+  return focusPercent(focusDetectedSeconds(record), focusMeasuredSeconds(record))
 }

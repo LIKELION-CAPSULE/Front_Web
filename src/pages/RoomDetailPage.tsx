@@ -1,11 +1,10 @@
-import { Link, useParams } from 'react-router'
+import { Link, useLocation, useParams } from 'react-router'
 import { HeaderAccount } from '@/app/components/HeaderAccount'
 import { SiteHeader } from '@/app/components/SiteHeader'
 import { CharacterCard } from '@/features/characters/components/CharacterCard'
 import { RoomDetailBanner } from '@/features/rooms/components/RoomDetailBanner'
 import { RoomDetailWordmark } from '@/features/rooms/components/RoomDetailWordmark'
-import { roomArtwork } from '@/features/rooms/artwork'
-import { roomPosters } from '@/features/rooms/posters'
+import { getRoomPoster } from '@/features/rooms/room-poster'
 import { getStudyRoom, getStudyRooms } from '@/features/rooms/services/room-service'
 import { ButtonLink } from '@/shared/ui/Button'
 import { BookmarkButton } from '@/shared/ui/BookmarkButton'
@@ -18,6 +17,7 @@ import { MvpGate } from '@/features/mvp/MvpGate'
 
 export default function RoomDetailPage() {
   const { roomId } = useParams()
+  const location = useLocation()
   const { state, dispatch } = useDemo()
   const room = roomId ? getStudyRoom(roomId) : undefined
   if (!room || room.contentStatus === 'coming-soon')
@@ -27,8 +27,7 @@ export default function RoomDetailPage() {
       </div>
     )
   if (!room.serverRoom && !isMvpRoom(room.id)) return <MvpUnavailablePage />
-  const artwork = roomArtwork[room.artworkId ?? room.id]
-  const poster = room.coverUrl || (artwork && roomPosters[artwork.tone])
+  const poster = getRoomPoster(room)
   const relatedRooms = getStudyRooms().filter(value => value.id !== room.id && value.contentStatus === 'preview' && (value.serverRoom || isMvpRoom(value.id))).slice(0, 3)
   const studyPath = state.activeSession ? `/study/${state.activeSession.id}` : `/rooms/${room.id}/prepare`
   const saved = state.savedRooms.includes(room.id)
@@ -71,7 +70,7 @@ export default function RoomDetailPage() {
               <h1 id="room-title">{room.name}</h1>
             </div>
             <div className="room-detail-hero-footer">
-              <ButtonLink to={studyPath} className="room-detail-start">
+              <ButtonLink to={studyPath} state={state.activeSession ? undefined : { prepareBackground: location }} aria-haspopup={state.activeSession ? undefined : 'dialog'} preventScrollReset className="room-detail-start">
                 <Icon name="play" size={18} fill="currentColor" />
                 {state.activeSession ? '진행 중인 공부로 돌아가기' : '이곳에서 공부하기'}
               </ButtonLink>

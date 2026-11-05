@@ -161,3 +161,45 @@ test('old saved completed rests restart study without counting frozen offline ti
   assert.equal(state.activeSession!.phase, 'study')
   assert.equal(sessionStudySeconds(state.activeSession, now + 10000000), 120)
 })
+
+test('leave confirmation time is excluded both when finishing and when continuing study', () => {
+  let state = demoReducer(start(5), { type: 'PAUSE_SESSION', now: now + 120500 })
+  const id = state.activeSession!.id
+  assert.equal(state.activeSession!.runningSince, null)
+  assert.equal(demoReducer(state, { type: 'PAUSE_SESSION', now: now + 500000 }), state)
+  state = demoReducer(state, { type: 'TICK', now: now + 720500 })
+  assert.equal(sessionStudySeconds(state.activeSession, now + 720500), 120.5)
+  const finished = demoReducer(state, { type: 'FINISH', now: now + 720500 })
+  assert.equal(finished.records[0]!.studySeconds, 120.5)
+  assert.equal(finished.records[0]!.completed, false)
+
+  state = demoReducer(state, { type: 'RESUME_SESSION', now: now + 720500 })
+  assert.equal(state.activeSession!.id, id)
+  assert.equal(demoReducer(state, { type: 'RESUME_SESSION', now: now + 721500 }), state)
+  state = demoReducer(state, { type: 'FINISH', now: now + 730500 })
+  assert.equal(state.records[0]!.studySeconds, 130.5)
+})
+
+test('leave confirmation freezes a rest countdown and continuing keeps its remaining time', () => {
+  let state = demoReducer(start(5), { type: 'TAKE_BREAK', now: now + 120000 })
+  state = demoReducer(state, { type: 'PAUSE_SESSION', now: now + 420000 })
+  state = demoReducer(state, { type: 'TICK', now: now + 1920000 })
+  assert.equal(state.activeSession!.phase, 'break')
+  assert.equal(sessionElapsed(state.activeSession, now + 1920000), 300)
+  assert.equal(sessionStudySeconds(state.activeSession, now + 1920000), 120)
+  state = demoReducer(state, { type: 'RESUME_SESSION', now: now + 1920000 })
+  state = demoReducer(state, { type: 'TICK', now: now + 2219999 })
+  assert.equal(state.activeSession!.phase, 'break')
+  state = demoReducer(state, { type: 'TICK', now: now + 2220000 })
+  assert.equal(state.activeSession!.phase, 'study')
+  assert.equal(sessionStudySeconds(state.activeSession, now + 2221000), 121)
+})
+
+test('opening leave confirmation after a rest deadline freezes the settled study total', () => {
+  let state = demoReducer(start(5), { type: 'TAKE_BREAK', now: now + 120000 })
+  state = demoReducer(state, { type: 'PAUSE_SESSION', now: now + 721250 })
+  state = demoReducer(state, { type: 'TICK', now: now + 10000000 })
+  assert.equal(state.activeSession!.phase, 'study')
+  assert.equal(state.activeSession!.runningSince, null)
+  assert.equal(sessionStudySeconds(state.activeSession, now + 10000000), 121.25)
+})
