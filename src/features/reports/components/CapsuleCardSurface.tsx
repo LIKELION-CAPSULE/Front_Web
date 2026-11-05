@@ -96,6 +96,8 @@ export function CapsuleCardSurface({ children, color, light }: { children: React
           <span className="capsule-card-foil" />
           <span className="capsule-card-glitter" />
           <span className="capsule-card-glare" />
+          {/* Transparent except for the light that crosses the card once at the end of the opening intro. */}
+          <span className="capsule-card-sweep" />
         </span>
       </div>
     </div>

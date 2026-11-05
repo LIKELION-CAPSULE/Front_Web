@@ -28,6 +28,10 @@ User-supplied and generated illustration assets retain their existing provenance
 
 PixiJS and the engine load only on the study page, in a separate `live2d` chunk. Live2D model files come from the backend's storage (`modelJsonUrl`) and are not distributed from this repository.
 
+## Capsule card opening (3D intro)
+
+- **[three.js 0.187.0](https://threejs.org/)** — MIT · Copyright © 2010-2026 three.js authors. [Original notice](../public/licenses/three.js-MIT.txt). Used with its bundled `RoomEnvironment` addon for the capsule opening shown when a capsule card is made from a report. It loads only for that intro, in a separate lazy chunk; no external HDR or model files are used.
+
 ## Local camera inference
 
 - **MediaPipe Tasks Vision 1.2.0 and official Face Landmarker float16 v1** — Apache-2.0. [Original license](../public/licenses/vision/MediaPipe-LICENSE.txt). The official bundle contains BlazeFace, FaceMesh V2 and Blendshape V2; model card sources and the unchanged weights are listed in the [model manifest](../public/models/README.md).

@@ -1,0 +1,5 @@
+@layer components {
+  /* Above the page, below notifications. The card under it shows through once the halves part. */
+  .capsule-intro { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+  .capsule-intro > canvas { display: block; width: 100%; height: 100%; }
+}
