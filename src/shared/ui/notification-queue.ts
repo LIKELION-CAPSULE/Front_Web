@@ -1,6 +1,11 @@
 import type { FeedbackTone } from './FeedbackMessage'
 
-export type NotificationContent = { tone: FeedbackTone; title: string; text: string }
+export type NotificationContent = {
+  tone: FeedbackTone
+  title: string
+  text: string
+  action?: { label: string; onClick: () => void }
+}
 export type NotificationItem = NotificationContent & { id: string }
 
 /** Keep the newest notices first and coalesce repeated results, including effect replays. */

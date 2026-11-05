@@ -15,8 +15,8 @@ import { getStudyRooms, registerReportRoom, setServerRooms } from '@/features/ro
 import { flushSessionEvents, getSessionTotals, presenceKey, readSessionStorageItem } from '@/features/backend/use-session-sync'
 import type { BackendContextValue } from '@/features/backend/backend-context'
 
-type Meta = Pick<BackendContextValue, 'status' | 'error' | 'signedOutNotice' | 'me' | 'home' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
-const initialMeta: Meta = { status: 'loading', error: null, signedOutNotice: null, me: null, home: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
+type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'signedOutNotice' | 'me' | 'home' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
+const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null, signedOutNotice: null, me: null, home: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : '요청을 처리하지 못했어요.'
 
 /** Server-backed state. Legacy samples and local login flags are never loaded here. */
@@ -104,6 +104,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       const me = await api.request<MeResponse>('/me')
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
       const userProfile = adapt.profile(me)
+      setMeta(previous => ({ ...previous, loadingStage: me.onboardingRequired ? 'onboarding' : 'page' }))
       if (me.onboardingRequired) {
         const avatars = await loadAvatars()
         if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
@@ -137,7 +138,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     const generation = epoch.current
     queries.current.invalidate('home')
     queries.current.invalidate('memories')
-    setMeta(previous => ({ ...previous, status: 'loading', error: null }))
+    setMeta(previous => ({ ...previous, status: 'loading', error: null, loadingStage: previous.status === 'loading' ? previous.loadingStage : 'auth' }))
     try {
       if (stateRef.current.profile.loggedIn) await loadUser()
       else if (await api.refresh()) await loadUser()
@@ -173,6 +174,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     memoryRevision.current++
     api.setToken(result.accessToken)
     const generation = epoch.current
+    setMeta(previous => ({ ...previous, status: 'loading', error: null, loadingStage: 'auth' }))
     try { return await loadUser() } catch (error) {
       if (generation === epoch.current) setMeta(previous => ({ ...previous, status: 'error', error: errorMessage(error) }))
       throw error

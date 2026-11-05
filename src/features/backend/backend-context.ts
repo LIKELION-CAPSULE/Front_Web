@@ -1,9 +1,11 @@
 import { createContext, useContext } from 'react'
 import type { ActiveSession, Memory, StudyRecord } from '../demo/types'
 import type { ActiveSessionSummary, AffinityChange, AvatarItem, HomeResponse, LoginResponse, MeResponse, MessageResponse, StartResponse, ResumeResponse, TermVersion } from '@/shared/api/types'
+import type { LoadingStage } from '@/shared/lib/loading-screen'
 
 export type BackendContextValue = {
   status: 'loading' | 'ready' | 'error'
+  loadingStage: LoadingStage
   error: string | null
   signedOutNotice: 'account-withdrawn' | null
   me: MeResponse | null

@@ -1,0 +1,12 @@
+@layer components {
+  .skeleton-block { height: 20px; }
+  .skeleton-avatar-option { --dial-position: calc(var(--skeleton-index) - 3); }
+  .page-skeleton .onboarding-details .field-label { width: 48px; margin-inline: auto; border-radius: 6px; background: var(--color-panel); color: transparent; }
+  .page-skeleton :is(.report-glass, .overlay-content, .capsule-share-page > section) .skeleton-line { background: var(--color-surface); }
+  .skeleton-report-portrait { height: min(56svh, 540px); }
+  .skeleton-capsule-card { width: min(360px, 100%); height: auto; aspect-ratio: 3 / 5; flex: none; }
+  @media (max-width: 767px) {
+    .skeleton-avatar-option { --dial-position: calc(var(--skeleton-index) - 2); }
+    .skeleton-avatar-option:nth-last-child(-n + 2) { display: none; }
+  }
+}

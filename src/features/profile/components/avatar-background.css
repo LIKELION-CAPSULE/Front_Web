@@ -1,0 +1,39 @@
+@layer components {
+  .avatar-background { position: relative; isolation: isolate; background: var(--color-canvas); }
+  .avatar-background::before, .avatar-background::after {
+    position: var(--avatar-background-position, absolute);
+    z-index: -1;
+    inset: -10%;
+    content: '';
+    pointer-events: none;
+  }
+  .avatar-background::before {
+    background:
+      radial-gradient(ellipse 110% 85% at 50% 0%, var(--color-canvas) 48%, transparent 100%),
+      radial-gradient(ellipse 100% 70% at 50% 115%, color-mix(in srgb, var(--color-primary) 52%, var(--color-canvas)), var(--color-primary-soft) 52%, transparent 100%);
+    transform-origin: 50% 100%;
+    animation: avatar-background-swell 18s ease-in-out -3s infinite alternate;
+  }
+  .avatar-background::after {
+    background:
+      radial-gradient(ellipse 65% 48% at 12% 105%, color-mix(in srgb, var(--color-primary) 36%, transparent), transparent 75%),
+      radial-gradient(ellipse 60% 45% at 92% 100%, color-mix(in srgb, var(--color-text-accent) 18%, transparent), transparent 75%);
+    opacity: 0.6;
+    animation: avatar-background-drift 23s ease-in-out -8s infinite alternate;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .avatar-background::before, .avatar-background::after { animation: none; transform: none; }
+  }
+}
+
+@keyframes avatar-background-swell {
+  0% { transform: translate3d(-2%, 1%, 0) rotate(-1deg) scale(1.02); }
+  50% { transform: translate3d(1%, -2%, 0) rotate(0.5deg) scale(1.06); }
+  100% { transform: translate3d(2%, 0, 0) rotate(1deg) scale(1.1); }
+}
+
+@keyframes avatar-background-drift {
+  0% { transform: translate3d(-3%, 2%, 0) scale(1.04, 0.98); opacity: 0.4; }
+  50% { transform: translate3d(2%, -3%, 0) scale(1.08, 1.05); opacity: 0.7; }
+  100% { transform: translate3d(3%, 1%, 0) scale(1, 1.08); opacity: 0.5; }
+}
