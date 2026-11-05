@@ -86,6 +86,12 @@ export type MessageResponse = {
   audioBase64?: string
 }
 
+/** API 28 `POST /sessions/{id}/messages/stream`: the request body is `MessageRequest`; `done` carries `MessageResponse`. */
+export type MessageStreamReply = {
+  /** The whole reply so far: replace the bubble text, never append. */
+  content?: string
+}
+
 export type MotionRef = {
   group?: string
   file?: string
