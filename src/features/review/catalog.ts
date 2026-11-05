@@ -83,7 +83,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'room', group: '스터디룸·준비', title: '스터디룸 상세', path: '/rooms/101', note: '배너·성격 태그·관계 정보' },
   { id: 'room-loading', group: '스터디룸·준비', title: '스터디룸 로딩', path: '/rooms/101', fault: 'home-pending', loading: 'room', note: '룸 배너·친구 카드 위치의 스켈레톤' },
   { id: 'room-missing', group: '스터디룸·준비', title: '존재하지 않는 룸', path: '/rooms/999999', note: '찾을 수 없는 화면' },
-  { id: 'prepare', group: '스터디룸·준비', title: '공부 준비', path: '/rooms/101/prepare', note: '룸 상세 배경 블러·일정·대화 옵션·목표 시간' },
+  { id: 'prepare', group: '스터디룸·준비', title: '공부 준비', path: '/rooms/101/prepare', note: '룸 상세 배경 블러·상단 목표 시간과 일정 통합·하단 대화 옵션' },
   { id: 'prepare-from-room', group: '스터디룸·준비', title: '룸 상세에서 공부 준비', path: '/rooms/101', steps: [click('이곳에서 공부하기')], note: '열기 전 상세 화면·스크롤 보존, 닫으면 원래 위치로 복귀' },
   { id: 'prepare-from-home', group: '스터디룸·준비', title: '홈에서 공부 준비', path: '/', returning: true, steps: [click('이어서 공부하기')], note: '홈을 블러 배경으로 유지하며 필터·스크롤 상태 보존' },
   { id: 'prepare-loading', group: '스터디룸·준비', title: '공부 준비 로딩', path: '/rooms/101/prepare', fault: 'home-pending', loading: 'prepare', note: '목표 시간·공부 설정 영역의 스켈레톤' },

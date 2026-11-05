@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
@@ -11,6 +11,7 @@ import { TierSelector } from '@/features/session/components/TierSelector'
 import { StudyGoalPicker } from '@/features/session/components/StudyGoalPicker'
 import { Button } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
+import { PrepareDialog } from '@/features/session/components/PrepareDialog'
 import { prepareBackground } from '@/features/session/prepare-location'
 import { Icon } from '@/shared/ui/Icon'
 import NotFoundPage from './NotFoundPage'
@@ -30,6 +31,7 @@ export default function PreparePage() {
   const closing = useRef(false)
   const scheduleSection = useRef<HTMLElement>(null)
   const [goalMinutes, setGoalMinutes] = useState(MVP_GOAL_MINUTES)
+  const goalHintId = useId()
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const room = getStudyRoom(roomId ?? '')
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function PreparePage() {
   }
 
   return (
-    <Dialog open title="공부 준비" showHeader={false} onClose={close} dismissible={!starting} className="prepare-dialog">
+    <PrepareDialog open title="공부 준비" showHeader={false} onClose={close} dismissible={!starting}>
       <div className="flex items-start justify-between gap-4">
         <Button variant="ghost" size="sm" disabled={starting} onClick={close} className="prepare-back">
           <Icon name="arrow" size={16} className="rotate-180" />돌아가기
@@ -83,18 +85,31 @@ export default function PreparePage() {
           <RoomCompanions characters={room.characters} className="justify-end" />
         </div>
       </div>
-      <h1 tabIndex={-1} data-dialog-initial-focus className="min-w-0 break-keep type-page-title focus:outline-none">목표 시간을 정해요</h1>
-      <section ref={scheduleSection} aria-labelledby="prepare-schedule-title" className="mt-5 flex items-center justify-between gap-3 rounded-control bg-panel p-4">
-        <h2 id="prepare-schedule-title" className="type-section-title">일정</h2>
-        <Button size="sm" variant="secondary" disabled={starting} aria-haspopup="dialog" onClick={() => setScheduleOpen(true)}>
-          <Icon name="calendar" size={16} /> 일정 추가
-        </Button>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h1 tabIndex={-1} data-dialog-initial-focus className="min-w-0 break-keep type-page-title focus:outline-none">목표 시간을 정해요</h1>
+        <p id={goalHintId} className="ml-auto text-right text-caption text-subtle">
+          조절값 {goalMinutes}분 · 시연 목표는 {MVP_GOAL_MINUTES}분으로 고정.
+        </p>
+      </div>
+      <section ref={scheduleSection} aria-label="목표 시간과 일정" className="mt-5 rounded-card bg-panel p-5">
+        <StudyGoalPicker
+          value={goalMinutes}
+          onChange={setGoalMinutes}
+          descriptionId={goalHintId}
+          className="m-0 min-w-0 rounded-none border-0 bg-transparent p-0"
+          headerAction={
+            <Button size="sm" variant="secondary" disabled={starting} aria-haspopup="dialog" className="whitespace-nowrap px-3" onClick={() => setScheduleOpen(true)}>
+              <Icon name="calendar" size={16} /> 일정 추가
+            </Button>
+          }
+        />
       </section>
-      <h2 className="mt-5 mb-3 type-section-title">대화 옵션</h2>
-      <MvpGate label="대화 옵션" className="rounded-card">
-        <TierSelector value="basic" onChange={() => {}} />
-      </MvpGate>
-      <StudyGoalPicker value={goalMinutes} onChange={setGoalMinutes} />
+      <section aria-labelledby="prepare-conversation-title" className="mt-6">
+        <h2 id="prepare-conversation-title" className="mb-3 type-section-title">대화 옵션</h2>
+        <MvpGate label="대화 옵션" className="rounded-card">
+          <TierSelector value="basic" onChange={() => {}} />
+        </MvpGate>
+      </section>
       {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
       <Button className="mt-5 w-full" loading={starting} onClick={() => { void start() }}>시작하기</Button>
       {scheduleOpen && <AccountSettingsDialog
@@ -102,6 +117,6 @@ export default function PreparePage() {
         openScheduleEditor
         onClose={closeSchedule}
       />}
-    </Dialog>
+    </PrepareDialog>
   )
 }

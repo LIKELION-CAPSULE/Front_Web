@@ -1,34 +1,44 @@
-import { useId, type CSSProperties } from 'react'
+import { useId, type CSSProperties, type ReactNode } from 'react'
 import { MAX_GOAL_MINUTES } from '../study-goal'
 import { MVP_GOAL_MINUTES } from '@/features/mvp/policy'
+import { cn } from '@/shared/lib/cn'
 import '../study-goal-picker.css'
 
 export function StudyGoalPicker({
   value,
   onChange,
+  className,
+  headerAction,
+  descriptionId,
 }: {
   value: number
   onChange: (minutes: number) => void
+  className?: string
+  headerAction?: ReactNode
+  descriptionId?: string
 }) {
   const id = useId()
   return (
-    <fieldset className="mt-5 rounded-card border border-transparent bg-panel p-5">
+    <fieldset className={cn('mt-5 rounded-card border border-transparent bg-panel p-5', className)}>
       <legend className="sr-only">공부 목표 시간</legend>
-      <div className="flex items-baseline justify-between gap-3">
-        <label htmlFor={id} className="text-body-compact font-semibold">
-          오늘의 목표 시간
-        </label>
-        <output htmlFor={id} className="font-sans tabular-nums text-section-title font-bold text-text-accent">
-          {MVP_GOAL_MINUTES}
-          <small className="ml-1 text-body-compact">분</small>
-        </output>
+      <div className={headerAction ? 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]' : 'flex justify-center'}>
+        <div className={cn('flex min-w-0 flex-col items-center gap-2 text-center', !!headerAction && 'sm:col-start-2')}>
+          <label htmlFor={id} className="break-keep text-body-compact font-semibold">
+            오늘의 목표 시간
+          </label>
+          <output htmlFor={id} className="font-sans tabular-nums whitespace-nowrap text-stat font-bold text-text-accent">
+            {MVP_GOAL_MINUTES}
+            <small className="ml-1 text-body">분</small>
+          </output>
+        </div>
+        {headerAction && <div className="col-start-2 row-start-1 justify-self-end sm:col-start-3">{headerAction}</div>}
       </div>
       <input
         id={id}
         type="range"
         aria-label="공부 목표 시간"
         aria-valuetext={`${value}분 선택 · 시연 목표는 ${MVP_GOAL_MINUTES}분 고정`}
-        aria-describedby={`${id}-hint`}
+        aria-describedby={descriptionId}
         min={MVP_GOAL_MINUTES}
         max={MAX_GOAL_MINUTES}
         step={1}
@@ -37,13 +47,6 @@ export function StudyGoalPicker({
         className="study-goal-range mt-5 w-full"
         style={{ '--goal-progress': `${(value - MVP_GOAL_MINUTES) / (MAX_GOAL_MINUTES - MVP_GOAL_MINUTES) * 100}%` } as CSSProperties}
       />
-      <div className="mt-2 flex justify-between text-caption text-subtle">
-        <span>3분</span>
-        <span>3시간</span>
-      </div>
-      <p id={`${id}-hint`} className="mt-3 text-caption text-muted">
-        조절값 {value}분 · 시연 목표는 3분으로 고정.
-      </p>
     </fieldset>
   )
 }
