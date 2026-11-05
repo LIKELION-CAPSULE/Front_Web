@@ -8,7 +8,7 @@ AI 친구와 함께 공부하는 CAPSULE의 프런트엔드입니다. Railway �
 - 서버 룸·친구 ID로 3분 MVP 공부를 시작하고, `FOCUS/AWAY/RETURN/BREAK`, 1분 heartbeat, 메시지·리포트·일정을 연결합니다. 자리 비움은 서버 계약의 연속 10초 기준이며, 자리 지킴률은 자리 지킴 시간 ÷ 공부 시간입니다.
 - 카카오 로그인은 `.env.local`의 `VITE_KAKAO_REST_API_KEY`, `VITE_KAKAO_REDIRECT_URI`를 설정하고 같은 URI를 카카오 개발자 콘솔에 등록합니다. 현재 callback 경로는 `/oauth/kakao`입니다. 배포 환경에도 각각 값을 설정합니다.
 - 로컬 개발·미리보기는 `http://localhost:3000`을 사용합니다. 추가 제공 자료의 등록 URI에 맞춰 `VITE_KAKAO_REDIRECT_URI=http://localhost:3000/oauth/kakao`로 설정합니다. [카카오·재설정 후속 반영](docs/KAKAO_LOGIN_REVIEW_2026-11-05.md)을 참고하세요.
-- 브라우저는 동일 출처 `/api/backend/*`를 사용하며 Vite 개발/미리보기 또는 Cloudflare Worker가 Railway의 `/api/*`로 전달합니다. `BACKEND_API_ORIGIN`은 서버 설정입니다.
+- 브라우저는 동일 출처 `/api/backend/*`를 사용하며 Vite 개발/미리보기, Vercel 함수 또는 Cloudflare Worker가 Railway의 `/api/*`로 전달합니다. `BACKEND_API_ORIGIN`은 서버 설정입니다.
 - 연결 상태·실제 검증 범위·대기 기능은 [API 연동 기록](docs/API_INTEGRATION_2026-11-05.md)에 정리했습니다. 아래의 기존 시연 안내에는 API 연결 전 데모 동작과 이전 UI 검토 이력이 포함됩니다.
 
 ## 현재 MVP 시연 범위
@@ -160,7 +160,28 @@ React + TypeScript(strict) + Vite + Tailwind CSS v4를 사용합니다. 공통 U
 
 초기 구현에서는 피그마를 읽기 전용으로 확인했으며, 원본 프레임의 번호 핀과 메모는 기획 주석이므로 웹 UI에 포함하지 않았습니다. `Landing_Page`의 로고·Pretendard·WebP 포스터·친구 일러스트를 재사용했고, 2026-11-03 통합 기준에 따라 Front_Web의 컬러·서체·컨트롤을 정리했습니다. Landing_Page에 적용했던 변경은 사용자 요청에 따라 원복했습니다. 이번 통일 작업에서 Figma 원본은 수정하지 않았습니다. 에셋 출처와 매핑은 [에셋 문서](src/assets/README.md)에 정리했습니다.
 
-BrowserRouter를 사용하므로 배포 서버에서는 `/rooms/dawn-library` 같은 URL도 `index.html`로 연결하는 SPA fallback이 필요합니다. Cloudflare Workers용 `wrangler.jsonc`에 이 동작과 빌드 결과 경로를 설정했습니다.
+BrowserRouter를 사용하므로 배포 서버에서는 `/rooms/1` 같은 URL도 `index.html`로 연결하는 SPA fallback이 필요합니다. Vercel은 `vercel.json`, Cloudflare Workers는 `wrangler.jsonc`로 설정합니다. API 요청은 SPA fallback과 구분합니다.
+
+### Vercel 배포
+
+`Front_Web` 저장소의 프로젝트 루트에 `vercel.json`과 `api/router.ts`가 함께 있어야 합니다. `dist`만 정적으로 업로드하면 API 함수가 생성되지 않습니다. Vite 개발 미들웨어와 Cloudflare의 Worker 설정도 Vercel에서는 실행되지 않습니다.
+
+| 항목 | 설정 |
+| --- | --- |
+| Framework Preset | Vite |
+| Root Directory | 이 저장소 루트 `.`. 상위 모노레포를 연결했다면 `Front_Web` |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+| Production Branch | 현재 프로젝트는 `main` |
+| API 함수 | `api/router.ts`, 모든 `/api/*` 요청을 명시적으로 연결 |
+
+Vercel 프로젝트의 Environment Variables에 `BACKEND_API_ORIGIN`, `VITE_KAKAO_REST_API_KEY`, `VITE_KAKAO_REDIRECT_URI`를 설정합니다. 현재 운영 callback은 `https://capsule-front-web.vercel.app/oauth/kakao`이며 카카오 개발자 콘솔에도 같은 주소가 등록되어 있어야 합니다. 로컬의 `.env.local`은 Git에서 제외되며 Vercel로 자동 전송되지 않습니다. 환경변수 변경은 새 배포에서 적용합니다.
+
+함수는 공통 `server/backend-proxy.ts`를 사용해 Authorization·JSON·쿼리를 전달하고 refresh cookie를 현재 도메인의 HttpOnly/Secure 쿠키로 맞춥니다. 브라우저의 API 주소는 계속 `/api/backend/*`입니다. `/api/chat`은 기존 서버 전용 OpenAI 설정을 사용하는 별도 경로이며 정상 공부 대화는 백엔드 `/messages`를 사용합니다.
+
+배포 확인은 `GET /api/backend/terms`의 **200 JSON**, 쿠키 없는 `POST /api/backend/auth/refresh`의 **401 JSON**, `/login`·`/rooms/1`·`/oauth/kakao` 직접 접속의 HTML 응답으로 구분합니다. 초기 refresh 401은 로그아웃 상태의 정상 응답이며, 플랫폼의 `404 NOT_FOUND`나 HTML 응답과 다릅니다.
+
+공식 참고: [Vercel Node.js 함수](https://vercel.com/docs/functions/runtimes/node-js), [Vite SPA 라우팅](https://vercel.com/docs/frameworks/frontend/vite#using-vite-to-make-spas).
 
 ### Cloudflare Workers 배포
 

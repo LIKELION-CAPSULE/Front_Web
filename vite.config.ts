@@ -6,7 +6,7 @@ import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { handleChatRequest, type ChatEnv } from './server/openai-chat'
 import { proxyBackend, type BackendEnv } from './server/backend-proxy'
 
-/** Serves /api/chat during `vite dev` and `vite preview`; production uses server/worker.ts. */
+/** Local API gateway. Production uses api/router.ts on Vercel or server/worker.ts on Cloudflare. */
 function chatApi(env: ChatEnv & BackendEnv): Plugin {
   async function middleware(req: IncomingMessage, res: ServerResponse, next: () => void) {
     const backend = req.url?.startsWith('/api/backend/')
