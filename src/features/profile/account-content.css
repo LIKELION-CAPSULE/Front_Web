@@ -3,9 +3,9 @@
 .schedule-content { display: flex; min-width: 0; min-height: 0; flex: 1; flex-direction: column; gap: 20px; overflow: hidden; }
 .schedule-calendar, .schedule-details { min-width: 0; flex-shrink: 0; }
 .schedule-calendar { display: grid; width: 100%; gap: 12px; border-radius: 0; background: transparent; padding: 0; }
-.schedule-calendar-heading { display: flex; align-items: center; gap: 12px; }
-.schedule-calendar-heading > button { min-width: 44px; min-height: 44px; border-radius: var(--radius-control); background: var(--color-surface); padding: 8px 10px; color: var(--color-muted); font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
-.schedule-calendar-navigation { display: grid; width: max-content; max-width: calc(100% - 56px); min-width: 0; flex: 0 1 auto; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 4px; margin-inline: auto; }
+.schedule-calendar-heading { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 12px; }
+.schedule-calendar-heading > button { grid-column: 3; justify-self: end; min-width: 44px; min-height: 44px; border-radius: var(--radius-control); background: var(--color-surface); padding: 8px 10px; color: var(--color-muted); font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
+.schedule-calendar-navigation { display: grid; grid-column: 2; justify-self: center; width: max-content; max-width: 100%; min-width: 0; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 4px; }
 .schedule-calendar-navigation > button { display: grid; min-height: 44px; place-items: center; border-radius: var(--radius-control); color: var(--color-muted); }
 .schedule-calendar-navigation > button:hover:not(:disabled) { background: var(--color-control-hover); color: var(--color-ink); }
 .schedule-calendar-navigation > button:disabled { color: var(--color-text-disabled); cursor: default; }
@@ -61,7 +61,6 @@
 }
 @media (max-width: 767px) {
   .schedule-calendar-heading { gap: 8px; }
-  .schedule-calendar-navigation { max-width: calc(100% - 52px); }
   .schedule-calendar-range { font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
   .schedule-details { padding: 16px; }
   .schedule-editor-fields { gap: 4px; }
