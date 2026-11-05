@@ -7,12 +7,14 @@ import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Icon } from '@/shared/ui/Icon'
 import { FloatingSurface } from '@/shared/ui/FloatingSurface'
 import { MvpGate } from '@/features/mvp/MvpGate'
+import { AccountWithdrawalDialog } from '@/features/auth/components/AccountWithdrawalDialog'
 
 export function HeaderAccount() {
   const { state } = useDemo()
   const { logout } = useBackend()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [withdrawalOpen, setWithdrawalOpen] = useState(false)
   const menuRef = useRef<HTMLDetailsElement>(null)
 
   useEffect(() => {
@@ -77,10 +79,19 @@ export function HeaderAccount() {
               try { await logout() } catch (reason) { setError(reason instanceof Error ? reason.message : '로그아웃하지 못했어요.') }
               finally { setBusy(false) }
             }} className="menu-item">{busy ? '로그아웃 중…' : '로그아웃'}</button>
+            <button type="button" disabled={busy} className="menu-item text-danger" onClick={() => {
+              setError('')
+              menuRef.current?.removeAttribute('open')
+              setWithdrawalOpen(true)
+            }}>회원탈퇴</button>
             {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
           </FloatingSurface>
         </details>
       </div>
+      {withdrawalOpen && <AccountWithdrawalDialog onClose={() => {
+        setWithdrawalOpen(false)
+        menuRef.current?.querySelector('summary')?.focus()
+      }} />}
     </>
   )
 }

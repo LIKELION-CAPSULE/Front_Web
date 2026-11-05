@@ -5,6 +5,7 @@ export const authNotices = {
   'kakao-expired': { tone: 'error', text: '카카오 로그인 요청이 만료됐거나 이미 사용됐어요. 다시 로그인해 주세요.' },
   'kakao-failed': { tone: 'error', text: '카카오 로그인에 실패했어요. 다시 로그인해 주세요.' },
   'password-reset': { tone: 'success', text: '비밀번호가 바뀌었어요. 새 비밀번호로 로그인해 주세요.' },
+  'account-withdrawn': { tone: 'success', text: '회원탈퇴가 완료됐어요.' },
 } as const
 
 export function authNotice(value: string | null) {

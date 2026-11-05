@@ -5,6 +5,7 @@ import type { ActiveSessionSummary, AffinityChange, AvatarItem, HomeResponse, Lo
 export type BackendContextValue = {
   status: 'loading' | 'ready' | 'error'
   error: string | null
+  signedOutNotice: 'account-withdrawn' | null
   me: MeResponse | null
   home: HomeResponse | null
   activeSummary: ActiveSessionSummary | null
@@ -17,6 +18,7 @@ export type BackendContextValue = {
   reload: () => Promise<void>
   authenticate: (result: LoginResponse) => Promise<MeResponse>
   logout: () => Promise<void>
+  withdrawAccount: () => Promise<void>
   forgetAuthentication: () => void
   saveProfile: (nickname: string, avatarId?: number) => Promise<void>
   createMemory: (input: Omit<Memory, 'id'>) => Promise<Memory>
