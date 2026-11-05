@@ -119,6 +119,49 @@ test('a delayed refresh cannot restore a token after logout', async () => {
   assert.equal(await task, false)
 })
 
+test('a delayed withdrawal 401 never retries with a different account or logs that account out', async () => {
+  const calls: RequestInit[] = []
+  let finish!: (response: Response) => void
+  let expired = 0
+  const client = new ApiClient(async (_url, options) => {
+    calls.push(options!)
+    return new Promise<Response>(resolve => { finish = resolve })
+  })
+  client.onExpired(() => expired++)
+  client.setToken('account-a')
+  const withdrawal = client.request('/me', { method: 'DELETE' })
+  client.setToken('account-b')
+  finish(json({ code: 'UNAUTHORIZED' }, 401))
+  await assert.rejects(withdrawal, error => error instanceof ApiError && error.code === 'AUTH_SESSION_CHANGED')
+  assert.equal(calls.length, 1)
+  assert.equal(new Headers(calls[0]?.headers).get('authorization'), 'Bearer account-a')
+  assert.equal(expired, 0)
+})
+
+test('account changes during token refresh cannot replay a pending withdrawal', async () => {
+  let finish!: (response: Response) => void
+  let refreshing!: () => void
+  const beganRefresh = new Promise<void>(resolve => { refreshing = resolve })
+  let deletions = 0, expired = 0
+  const client = new ApiClient(async (url) => {
+    if (String(url).endsWith('/auth/refresh')) {
+      refreshing()
+      return new Promise<Response>(resolve => { finish = resolve })
+    }
+    deletions++
+    return json({ code: 'UNAUTHORIZED' }, 401)
+  })
+  client.onExpired(() => expired++)
+  client.setToken('account-a')
+  const withdrawal = client.request('/me', { method: 'DELETE' })
+  await beganRefresh
+  client.setToken('account-b')
+  finish(json({ accessToken: 'stale-account-a' }))
+  await assert.rejects(withdrawal, error => error instanceof ApiError && error.code === 'AUTH_SESSION_CHANGED')
+  assert.equal(deletions, 1)
+  assert.equal(expired, 0)
+})
+
 test('mutations are not retried for server errors and preserve conflict details', async () => {
   let calls = 0
   const client = new ApiClient(async () => { calls++; return json({ code: 'SESSION_ALREADY_IN_PROGRESS', detail: { sessionId: 123 } }, 409) })
