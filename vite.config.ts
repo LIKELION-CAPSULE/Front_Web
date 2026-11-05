@@ -25,7 +25,20 @@ function chatApi(env: ChatEnv & BackendEnv): Plugin {
     response.headers.forEach((value, key) => { if (key !== 'set-cookie') res.setHeader(key, value) })
     const cookies = response.headers.getSetCookie()
     if (cookies.length) res.setHeader('set-cookie', cookies)
-    res.end(await response.text())
+    // Pass the body through as it arrives so event streams (chat replies) reach the browser chunk by chunk.
+    if (!response.body) return void res.end()
+    res.flushHeaders()
+    const reader = response.body.getReader()
+    // The browser left (aborted or navigated away): stop reading from the backend.
+    res.on('close', () => { reader.cancel().catch(() => { /* Already finished. */ }) })
+    try {
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done || res.destroyed) break
+        res.write(value)
+      }
+    } catch { /* The backend connection broke: ending here lets the client see a cut stream and retry. */ }
+    res.end()
   }
   return {
     name: 'capsule-chat-api',
