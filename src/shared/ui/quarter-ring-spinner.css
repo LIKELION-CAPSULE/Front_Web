@@ -1,0 +1,15 @@
+@layer components {
+  .quarter-ring-spinner {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    animation: quarter-ring-spin 800ms linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .quarter-ring-spinner { animation: none; }
+  }
+}
+
+@keyframes quarter-ring-spin {
+  to { transform: rotate(360deg); }
+}

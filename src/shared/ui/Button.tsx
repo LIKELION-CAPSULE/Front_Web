@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { Link, type LinkProps } from 'react-router'
 import { cn } from '@/shared/lib/cn'
+import { QuarterRingSpinner } from './QuarterRingSpinner'
 
 type Variant = 'primary' | 'secondary' | 'soft' | 'ghost' | 'danger' | 'danger-solid'
 type Size = 'xs' | 'sm' | 'md' | 'lg'
@@ -33,12 +34,20 @@ function controlClasses(variant: Variant, size: Size, className?: string) {
 type ControlProps = { variant?: Variant; size?: Size; loading?: boolean }
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & ControlProps
 
+function ButtonContent({ loading, children }: { loading: boolean; children: ReactNode }) {
+  if (!loading) return children
+  return <>
+    <span className="ui-button-label">{children}</span>
+    <span className="ui-button-progress" aria-hidden="true"><QuarterRingSpinner /></span>
+  </>
+}
+
 export function Button({ variant = 'primary', size = 'lg', loading = false, disabled, children, className, type = 'button', ...props }: ButtonProps) {
-  return <button {...props} type={type} disabled={disabled || loading} aria-busy={loading || undefined} data-loading={loading || undefined} className={controlClasses(variant, size, className)}>{children}</button>
+  return <button {...props} type={type} disabled={disabled || loading} aria-busy={loading || undefined} data-loading={loading || undefined} className={controlClasses(variant, size, className)}><ButtonContent loading={loading}>{children}</ButtonContent></button>
 }
 
 type ButtonLinkProps = Omit<LinkProps, 'children'> & ControlProps & { children: ReactNode }
 
-export function ButtonLink({ variant = 'primary', size = 'lg', loading = false, onClick, className, ...props }: ButtonLinkProps) {
-  return <Link {...props} aria-busy={loading || undefined} aria-disabled={loading || undefined} data-loading={loading || undefined} onClick={event => { if (loading) event.preventDefault(); else onClick?.(event) }} className={controlClasses(variant, size, className)} />
+export function ButtonLink({ variant = 'primary', size = 'lg', loading = false, onClick, className, children, ...props }: ButtonLinkProps) {
+  return <Link {...props} aria-busy={loading || undefined} aria-disabled={loading || undefined} data-loading={loading || undefined} onClick={event => { if (loading) event.preventDefault(); else onClick?.(event) }} className={controlClasses(variant, size, className)}><ButtonContent loading={loading}>{children}</ButtonContent></Link>
 }

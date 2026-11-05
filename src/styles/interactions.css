@@ -100,10 +100,11 @@
     color: var(--color-canvas);
   }
   .page-skeleton {
-    min-height: 80dvh;
-    padding-top: 36px;
-    padding-bottom: 36px;
+    min-height: 100dvh;
   }
+  .page-skeleton .skeleton-line { background: var(--color-panel); }
+  .page-skeleton .welcome-copy .skeleton-line { background: var(--color-surface); }
+  .page-skeleton .search-field > * { visibility: hidden; }
   .skeleton-line {
     position: relative;
     overflow: hidden;

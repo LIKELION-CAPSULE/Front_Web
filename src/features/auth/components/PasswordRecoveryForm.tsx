@@ -37,10 +37,9 @@ export function PasswordRecoveryForm({ token, onReset }: { token?: string; onRes
       <FormField label="새 비밀번호"><input className="form-input" name="password" type="password" minLength={8} autoComplete="new-password" required /></FormField>
       <FormField label="새 비밀번호 확인"><input className="form-input" name="confirmPassword" type="password" minLength={8} autoComplete="new-password" required /></FormField>
     </> : <FormField label="이메일"><input className="form-input" name="email" type="email" autoComplete="email" required placeholder="hello@example.com" aria-describedby={`${id}-notice`} /></FormField>}
-    <Button type="submit" className="w-full" disabled={busy || done || invalidToken}>{busy ? '처리하고 있어요…' : token ? '비밀번호 변경하기' : '재설정 링크 받기'}</Button>
+    <Button type="submit" className="w-full" loading={busy} disabled={done || invalidToken}>{token ? '비밀번호 변경하기' : '재설정 링크 받기'}</Button>
     {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
     {invalidToken && <Link to="/login?mode=forgot-password" className="inline-flex min-h-11 items-center text-text-accent underline">재설정 링크 다시 받기</Link>}
     {done && <FeedbackMessage id={`${id}-notice`} tone="success">{token ? '비밀번호를 변경했어요. 새 비밀번호로 로그인해 주세요.' : '가입된 이메일이면 재설정 메일이 가요. 30분 안에 링크를 눌러 주세요.'}</FeedbackMessage>}
-    {!token && <p className="text-caption text-muted">카카오로 가입했다면 카카오로 로그인해 주세요.</p>}
   </form>
 }
