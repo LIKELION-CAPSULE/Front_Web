@@ -7,7 +7,7 @@ import type { DemoState, Memory } from './types'
 import { api, ApiError } from '@/shared/api/client'
 import { QueryCache } from '@/shared/api/query-cache'
 import { removeAccountSnapshots } from '@/features/auth/account-storage'
-import type { AffinityChange, AvatarsResponse, HomeResponse, MeResponse, MemoryList, MemoryResponse, LoginResponse, RoomDetail, StartResponse, ResumeResponse, ReportResponse, MessageResponse, TermsResponse } from '@/shared/api/types'
+import type { AffinityChange, AvatarsResponse, CreateMemoryRequest, HomeResponse, MeResponse, MemoryList, MemoryResponse, LoginResponse, RoomDetail, StartResponse, ResumeResponse, ReportResponse, MessageResponse, TermsResponse } from '@/shared/api/types'
 import { BackendContext } from '@/features/backend/backend-context'
 import * as adapt from '@/features/backend/adapters'
 import { getStudyRooms, registerReportRoom, setServerRooms } from '@/features/rooms/services/room-service'
@@ -237,7 +237,10 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const createMemory = useCallback(async (input: Omit<Memory, 'id'>) => {
     const generation = epoch.current
     const value = await api.request<MemoryResponse>('/me/memories', {
-      method: 'POST', body: { type: { 시험: 'EXAM', 목표: 'GOAL', 약속: 'PROMISE' }[input.kind], title: input.title, dueDate: input.date, dueTime: input.time || null },
+      method: 'POST', body: {
+        type: { 시험: 'EXAM', 목표: 'GOAL', 약속: 'PROMISE' }[input.kind], title: input.title,
+        ...(input.date ? { dueDate: input.date } : {}), ...(input.time ? { dueTime: input.time } : {}),
+      } satisfies CreateMemoryRequest,
     })
     const saved = adapt.memory(value)
     if (generation === epoch.current) {
