@@ -22,6 +22,7 @@ import { withParticle } from '@/shared/lib/korean'
 import { capsuleCardCopy, capsuleFocusCopy } from '@/features/reports/card-copy'
 import { capsuleCardColors } from '@/features/reports/capsule-card-layout'
 import { loadStoryFont } from '@/shared/design/story-font'
+import { fitCardQuote, previewMeasure } from '@/features/reports/card-quote'
 import { isMvpCharacter, isMvpRoom } from '@/features/mvp/policy'
 import MvpUnavailablePage from './MvpUnavailablePage'
 
@@ -41,15 +42,23 @@ export default function CapsuleCardPage() {
   const [status, setStatus] = useState<{ tone: FeedbackTone; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const [storyFont, setStoryFont] = useState('Pretendard')
+  const [, setFontsReady] = useState(false)
   const [copyFallback, setCopyFallback] = useState(false)
   const { record, error, retry } = useServerReport(recordId)
   const room = record && getStudyRoom(record.roomId)
-  useEffect(() => { let alive = true; void loadStoryFont().then(font => { if (alive) setStoryFont(font) }); return () => { alive = false } }, [])
+  useEffect(() => {
+    let alive = true
+    void loadStoryFont().then(font => { if (alive) setStoryFont(font) })
+    // The quote is measured on a canvas, so measure again once every face has loaded.
+    void document.fonts.ready.then(() => { if (alive) setFontsReady(true) })
+    return () => { alive = false }
+  }, [])
   if (!record || !room) return error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : <PageSkeleton />
   if (!room.serverRoom && !isMvpRoom(room.id)) return <OverlayPage><MvpUnavailablePage /></OverlayPage>
   const participants = room.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && record.characterIds.includes(character.id))
   const friends = participants.length ? participants : [room.characters[0]!]
   const character = friends.find(friend => friend.id === params.get('friend')) ?? friends[0]!
+  const quote = fitCardQuote(record.serverReport?.closingLine ?? capsuleCardCopy.quote, previewMeasure(storyFont))
   async function save(share = false) {
     if (busy) return
     setBusy(true)
@@ -127,7 +136,9 @@ export default function CapsuleCardPage() {
         <span className="badge capsule-card-badge inline-flex items-center rounded-full px-2.5 py-1">
           {capsuleCardCopy.badge}
         </span>
-        <p className="capsule-card-quote" style={{ fontFamily: storyFont }}>{record.serverReport?.closingLine ?? capsuleCardCopy.quote}</p>
+        <p className="capsule-card-quote" style={{ fontFamily: storyFont, top: quote.top, fontSize: quote.fontSize, lineHeight: `${quote.lineHeight}px` }}>
+          {quote.lines.map((line, index) => <span key={index}>{line}</span>)}
+        </p>
       </CapsuleCardSurface>
       <section className="w-full max-w-[440px] rounded-3xl bg-panel p-7">
         <h1 className="type-page-title">캡슐 카드</h1>
