@@ -12,6 +12,7 @@ import { BackendContext } from '@/features/backend/backend-context'
 import { streamMessage } from '@/features/backend/message-stream'
 import * as adapt from '@/features/backend/adapters'
 import { getStudyRooms, registerReportRoom, setServerRooms } from '@/features/rooms/services/room-service'
+import { readSavedRooms, writeSavedRooms } from '@/features/rooms/saved-rooms'
 import { flushSessionEvents, getSessionTotals, presenceKey, readSessionStorageItem } from '@/features/backend/use-session-sync'
 import type { BackendContextValue } from '@/features/backend/backend-context'
 
@@ -40,6 +41,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     stateRef.current = { ...stateRef.current, ...value }
     dispatch({ type: 'SERVER_SYNC', patch: value })
   }, [])
+  useEffect(() => {
+    if (state.profile.loggedIn && state.profile.userId) writeSavedRooms(state.profile.userId, state.savedRooms)
+  }, [state.profile.loggedIn, state.profile.userId, state.savedRooms])
   useEffect(() => {
     const before = previousPath.current
     previousPath.current = pathname
@@ -109,7 +113,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         const avatars = await loadAvatars()
         if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
         setServerRooms([])
-        patch({ ...adapt.emptyState(), profile: userProfile })
+        patch({ ...adapt.emptyState(), profile: userProfile, savedRooms: readSavedRooms(me.userId) })
         setMeta(previous => ({ ...previous, status: 'ready', error: null, me, avatars, home: null, activeSummary: null }))
         return me
       }
@@ -120,6 +124,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       const sameUser = previous.profile.userId === me.userId
       patch({
         ...(sameUser ? {} : adapt.emptyState()), profile: { ...userProfile, avatarId: sameUser ? previous.profile.avatarId : undefined },
+        savedRooms: sameUser ? previous.savedRooms : readSavedRooms(me.userId),
         ...(revision === memoryRevision.current ? { memories } : {}),
         ...(homeVersion === homeRevision.current ? { firstVisit: (home.todayStudySeconds ?? 0) === 0 && !home.activeSession } : {}),
       })

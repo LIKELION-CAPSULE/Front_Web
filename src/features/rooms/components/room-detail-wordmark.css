@@ -1,0 +1,127 @@
+@font-face {
+  font-family: 'League Gothic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../../assets/brand/LeagueGothic.ttf') format('truetype');
+}
+
+/* Oversized display type is an intentional artwork exception to UI text sizes. */
+.room-detail-wordmark {
+  --wordmark-size: clamp(88px, 11vw, 176px);
+  position: relative;
+  isolation: isolate;
+  height: clamp(240px, 22vw, 380px);
+  margin-top: clamp(40px, 5vw, 80px);
+  overflow: clip;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, rgb(0 0 0 / 20%) 12%, rgb(0 0 0 / 65%) 28%, #000 44%);
+  mask-image: linear-gradient(to bottom, transparent, rgb(0 0 0 / 20%) 12%, rgb(0 0 0 / 65%) 28%, #000 44%);
+  pointer-events: none;
+  user-select: none;
+}
+.room-detail-wordmark-line {
+  --wordmark-ink: var(--color-ink);
+  --wordmark-scale: 1;
+  --wordmark-shift: 0px;
+  position: absolute;
+  border-block: 1px solid color-mix(in srgb, var(--wordmark-ink) 16%, transparent);
+  background: var(--color-canvas);
+  padding-block: 16px;
+  transform: translateY(-50%) rotate(var(--wordmark-angle));
+}
+/* Fixed offsets give the collage irregular placement without changing on reload. */
+.room-detail-wordmark-line--echo {
+  --wordmark-ink: color-mix(in srgb, var(--color-subtle) 50%, var(--color-canvas));
+  --wordmark-angle: -4deg;
+  --wordmark-scale: .5;
+  --wordmark-shift: 6%;
+  z-index: 0;
+  top: 31%;
+  left: -9%;
+  width: 118%;
+  padding-block: 8px;
+}
+.room-detail-wordmark-line--paper {
+  --wordmark-angle: 10deg;
+  --wordmark-shift: -2%;
+  z-index: 1;
+  top: 78%;
+  left: -24%;
+  width: 148%;
+}
+.room-detail-wordmark-line--slip {
+  --wordmark-ink: var(--color-text-accent);
+  --wordmark-angle: 17deg;
+  --wordmark-scale: .48;
+  --wordmark-shift: -8%;
+  z-index: 2;
+  top: 55%;
+  left: 54%;
+  width: 66%;
+  background: var(--color-primary-soft);
+}
+.room-detail-wordmark-line--underlay {
+  --wordmark-angle: -17deg;
+  --wordmark-scale: .72;
+  --wordmark-shift: 8%;
+  z-index: 3;
+  top: 120%;
+  left: -18%;
+  width: 120%;
+}
+.room-detail-wordmark-line--violet {
+  --wordmark-ink: var(--color-text-accent);
+  --wordmark-angle: -9deg;
+  --wordmark-scale: 1.12;
+  --wordmark-shift: 3%;
+  z-index: 4;
+  top: 112%;
+  left: -28%;
+  width: 160%;
+}
+.room-detail-wordmark-line--note {
+  --wordmark-angle: -19deg;
+  --wordmark-scale: .48;
+  z-index: 5;
+  top: 100%;
+  left: -10%;
+  width: 47%;
+  background: var(--color-primary);
+}
+.room-detail-wordmark-track {
+  position: relative;
+  left: 50%;
+  display: flex;
+  width: max-content;
+  transform: translateX(calc(-50% + var(--wordmark-shift)));
+  color: var(--wordmark-ink);
+  font-family: 'League Gothic', Impact, var(--font-sans);
+  font-size: calc(var(--wordmark-size) * var(--wordmark-scale));
+  font-weight: 400;
+  line-height: .9;
+  letter-spacing: .005em;
+  white-space: nowrap;
+}
+.room-detail-wordmark-repeat {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: .22em;
+  padding-right: .22em;
+}
+.room-detail-wordmark-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--wordmark-ink);
+}
+.room-detail-wordmark-dot { color: var(--wordmark-ink); }
+
+@media (max-width: 767px) {
+  .room-detail-wordmark { height: 240px; }
+  .room-detail-wordmark-line { padding-block: 12px; }
+  .room-detail-wordmark-line--echo { top: 37%; padding-block: 6px; }
+  .room-detail-wordmark-line--paper { top: 83%; --wordmark-angle: 13deg; }
+  .room-detail-wordmark-line--slip { top: 57%; left: 45%; width: 85%; }
+  .room-detail-wordmark-line--violet { top: 105%; --wordmark-angle: -12deg; }
+  .room-detail-wordmark-line--note { top: 98%; left: -22%; width: 78%; }
+  .room-detail-wordmark-outline { -webkit-text-stroke-width: 1px; }
+}

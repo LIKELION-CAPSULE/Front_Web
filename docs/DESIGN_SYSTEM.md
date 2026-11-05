@@ -165,6 +165,8 @@ CSS 이름은 `--color-<이름>`, Figma 이름은 `color/<이름>`으로 대응�
 
 `캡슐 카드 만들기`는 기존 3.6초 주기의 반복 빛 흐름·글로우를 유지한다. 호버/키보드 초점에서는 일시 정지하고 움직임 줄이기에서는 정적인 버튼으로 표시한다. 일반 Button에는 이 반복 효과를 확장하지 않는다.
 
+스터디룸 상세의 좌측 포스터는 사용자 요청으로 호버와 무관하게 20초 주기의 느린 3D 틸트를 자동 반복한다. perspective와 X·Y·Z 회전, 작은 수직 이동만 사용해 주변 정보의 배치 높이는 바꾸지 않는다. 로딩 포스터와 움직임 줄이기 설정에서는 정지한다. 친구 카드의 함께한 시간·레벨은 인물 사진 위에 겹치지 않고 이름·소개 옆 정보 영역에서 표시한다. 호감도는 레벨 바로 오른쪽에 하트와 숫자로 표시하며 하트는 `affection`, 숫자는 `affection-text`를 사용한다. 좁은 화면에서도 레벨과 호감도는 함께 줄바꿈하고 미확정 값은 `—`로 유지한다.
+
 리포트 상단은 왼쪽 제목·공부 시간·목표와 오른쪽 룸명·완료 시각·집중률로 구성한다. 완료 시각 행은 추후 대화 옵션을 같은 줄에 추가할 수 있게 flex-wrap 구조를 유지하며 현재 대화 옵션은 표시하지 않는다. 480px 미만은 요약과 보조 정보를 세로로 배치하고 룸명/시각 옆에 집중률을 둔다. 룸명·시각·수치를 생략하거나 작은 글자로 축소하지 않는다.
 
 홈 배너의 인사 말풍선은 이미지가 비치는 별도 유리 표면을 사용한다. `panel` 68%에서 `canvas` 62%로 이어지는 그라데이션, 18px 배경 흐림과 140% 채도를 적용하며 기본 외곽선은 두지 않는다. 배경 흐림 미지원 환경은 불투명 `panel`로 대체한다. 홈 효과를 위해 다른 화면의 공통 유리 표면 값을 낮추지 않는다.
@@ -265,6 +267,8 @@ Hahmlet은 룸의 분위기를 소개하는 제목과 한 영역의 대표 문�
 목표 기본 스택은 `Pretendard, Apple SD Gothic Neo, sans-serif`, 포인트 스택은 `Hahmlet, Pretendard, serif`다. Hahmlet은 공식 Google Fonts 가변 TTF를 수정 없이 자체 호스팅한다. [폰트 배포 기록](../src/assets/brand/README.md)과 [OFL 원문 고지](../public/licenses/Hahmlet-OFL.txt)를 포함하며, 500·700 굵기를 사용한다. `font-display: swap`과 대체 폰트에서도 버튼·제목·내보내기 레이아웃이 유지되어야 한다.
 
 코드 이름은 `--font-sans`, `--font-story`를 사용하고, 숫자 계열은 `--font-sans`를 공유한다. JSON의 `font.numeric`은 다른 폰트 파일이 아니라 숫자 기능 설정이다. Figma에서도 같은 두 서체 계열을 사용한다.
+
+스터디룸 상세 하단의 교차하는 영문 장식은 사용자 요청에 따른 서체·크기 예외다. 해당 요소에만 자체 호스팅한 League Gothic 400을 쓰고 채움·윤곽선 글자를 흰색·연보라로 표현한다. 크기·각도·시작 위치가 다른 여섯 띠를 불규칙하게 겹치고, 전체 교차 형태 대신 일부 글자와 띠가 페이지 끝에서 잘려 보이게 한다. 위쪽은 마스크 그라데이션으로 배경에 서서히 사라지게 하고, 아래쪽과 양옆은 잘린 표현을 유지한다. 배치는 고정하며 자동 재생이나 스크롤 모션은 없다. `aria-hidden`과 `pointer-events: none`을 적용하고 넘치는 부분은 장식 영역 내부에서 자른다. 본문·헤더·버튼·룸 제목의 서체 규칙에는 확장하지 않는다. [원본·라이선스 기록](../src/assets/brand/README.md#league-gothic)을 함께 보관한다.
 
 ### 6.2 역할별 크기·행간·굵기
 
@@ -422,7 +426,7 @@ AnimatedClock은 Pretendard의 숫자 폭을 고정하고, 숫자 셀은 `1ch` �
 | [Button.tsx](../src/shared/ui/Button.tsx) | 종류와 크기에서만 결정. 페이지별 font-size 재지정 금지 |
 | [Panel.tsx](../src/shared/ui/Panel.tsx) | panel/surface 역할, `bordered` 사용처, 통계 글자 투명도 확인 |
 | [PageHeading.tsx](../src/shared/ui/PageHeading.tsx) | 제목·소개를 역할 토큰으로 연결 |
-| [room-detail-banner.css](../src/features/rooms/components/room-detail-banner.css) | 상세 배너 룸 제목에 story-title 적용. 설명·버튼·헤더에 Hahmlet을 확장하지 않음 |
+| [room-detail-banner.css](../src/features/rooms/components/room-detail-banner.css) | 상세 이미지는 헤더 바로 아래부터 전체 너비로 표시하고 하단 그라데이션으로 본문에 연결. 룸 제목만 Hahmlet을 쓰며 크기는 page-title~hero-title, 모바일은 page-title. 설명·버튼·헤더에는 확장하지 않음 |
 | [Dialog.tsx](../src/shared/ui/Dialog.tsx) | 모달 제목·surface-raised·닫기 ghost·포커스 함께 확인 |
 | [session-chat.css](../src/features/session/session-chat.css) | 말풍선·시간·빠른 메시지·입력·보내기의 직접 색/작은 글자 |
 | [animated-clock.css](../src/shared/ui/animated-clock.css) | 숫자 셀 높이·너비와 목표 timer 행간을 동기화 |

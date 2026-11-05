@@ -1,4 +1,4 @@
-import { useRef, type MouseEventHandler } from 'react'
+import { useRef, type MouseEventHandler, type ReactNode } from 'react'
 import { Icon } from './Icon'
 import { cn } from '@/shared/lib/cn'
 import './control-motion.css'
@@ -9,11 +9,13 @@ export function BookmarkButton({
   label,
   onClick,
   className,
+  children,
 }: {
   pressed: boolean
   label: string
   onClick: MouseEventHandler<HTMLButtonElement>
   className?: string
+  children?: ReactNode
 }) {
   const iconRef = useRef<HTMLSpanElement>(null)
   const burstRef = useRef<SVGSVGElement>(null)
@@ -64,6 +66,7 @@ export function BookmarkButton({
       <span ref={iconRef} className="bookmark-symbol">
         <Icon name="bookmark" size={18} fill={pressed ? 'currentColor' : 'none'} />
       </span>
+      {children && <span className="bookmark-label">{children}</span>}
     </button>
   )
 }
