@@ -89,7 +89,7 @@ export default function ReportPage() {
           {!record.serverReport && <div className="report-affection">
             {friends.map(friend => <AffectionStatus key={friend.id} name={friend.name} score={affectionScore(state, friend.id)} current animate />)}
           </div>}
-          <div className="report-actions"><ButtonLink to="/" variant="secondary">홈으로</ButtonLink><ButtonLink to={`/capsules/${record.id}?friend=${character.id}`} className="report-capsule-cta"><span>캡슐 카드 만들기</span></ButtonLink></div>
+          <div className="report-actions"><ButtonLink to="/" variant="secondary">홈으로</ButtonLink><ButtonLink to={`/capsules/${record.id}?friend=${character.id}`} state={{ capsuleIntro: true }} className="report-capsule-cta"><span>캡슐 카드 만들기</span></ButtonLink></div>
         </section>
       </div>
     </main>

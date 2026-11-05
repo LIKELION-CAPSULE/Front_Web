@@ -31,6 +31,7 @@
     "react-dom": "^19.2.8",
     "react-router": "^8.5.0",
     "tailwind-merge": "^3.7.0",
+    "three": "0.187.0",
     "untitled-pixi-live2d-engine": "1.4.0"
   },
   "devDependencies": {
@@ -39,6 +40,7 @@
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@types/three": "0.187.0",
     "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.0.1",

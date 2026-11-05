@@ -1,0 +1,74 @@
+@layer components {
+  /*
+   * The card stage sits in the reveal wrappers (scene > root > flipper). The scene takes over the stage's own
+   * sizing so the card lays out exactly as when the stage was the page's flex item.
+   */
+  .capsule-card-scene { width: 360px; max-width: 100%; flex: none; }
+  .capsule-card-scene .capsule-card-stage { width: 100%; max-width: none; }
+  @media (max-width: 479px) { .capsule-card-scene { width: min(360px, 100%); } }
+  @media (hover: hover) and (pointer: fine) and (max-width: 699px) { .capsule-card-scene { max-width: calc(100% - 24px); } }
+
+  /* Only while the intro plays: 3D flip from the back, with the tilt and the controls held still. */
+  .capsule-share-page[data-intro] .capsule-card-scene { perspective: 1100px; }
+  .capsule-share-page[data-intro] .capsule-card-root { transform-style: preserve-3d; pointer-events: none; }
+  .capsule-share-page[data-intro] .capsule-card-flipper { position: relative; transform-style: preserve-3d; }
+  .capsule-share-page[data-intro] .capsule-card-stage { backface-visibility: hidden; }
+  .capsule-share-page[data-intro] .capsule-share-card > :is(.capsule-card-header, .share-portrait, .capsule-card-intro, .capsule-study-amount, .capsule-card-focus, .capsule-card-badge, .capsule-card-quote) {
+    /* `translate` composes with the tilt layers' translateZ transform instead of replacing it. */
+    translate: 0 var(--capsule-reveal-y, 0px);
+  }
+  .capsule-share-page[data-intro='loading'] .capsule-card-root,
+  .capsule-share-page[data-intro='loading'] > section { opacity: 0; }
+
+  .capsule-card-back { position: absolute; inset: 0; transform: rotateY(180deg); backface-visibility: hidden; container-type: size; }
+  /* Sizes are fractions of the 360px artboard so the back scales with the front's zoom. */
+  .capsule-card-back-face {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: calc(28cqw / 3.6);
+    background:
+      repeating-linear-gradient(135deg, color-mix(in srgb, var(--capsule-back-cap) 9%, transparent) 0 calc(1cqw / 3.6), transparent calc(1cqw / 3.6) calc(14cqw / 3.6)),
+      radial-gradient(ellipse at 50% 44%, color-mix(in srgb, var(--capsule-back-body) 34%, transparent), transparent 62%),
+      var(--capsule-back-color);
+    box-shadow: 0 20px 80px #0005, inset 0 0 0 1px color-mix(in srgb, var(--capsule-back-cap) 14%, transparent);
+  }
+  .capsule-card-back-pill {
+    position: absolute;
+    top: 44%;
+    left: 50%;
+    display: flex;
+    width: calc(176cqw / 3.6);
+    height: calc(64cqw / 3.6);
+    overflow: hidden;
+    border-radius: 999px;
+    translate: -50% -50%;
+    rotate: -28deg;
+    box-shadow: 0 calc(18cqw / 3.6) calc(40cqw / 3.6) #0007, 0 0 calc(60cqw / 3.6) color-mix(in srgb, var(--capsule-back-body) 45%, transparent);
+  }
+  .capsule-card-back-pill > span { flex: 1; }
+  .capsule-card-back-pill > span:first-child { background: var(--capsule-back-body); }
+  .capsule-card-back-pill > span:last-child { background: var(--capsule-back-cap); box-shadow: calc(-2cqw / 3.6) 0 0 #0002; }
+  /* Glossy highlight along the top of the pill. */
+  .capsule-card-back-pill::after {
+    position: absolute;
+    inset: 12% 8% 52%;
+    border-radius: 999px;
+    background: linear-gradient(#ffffff8c, #ffffff00);
+    content: '';
+  }
+  .capsule-card-back-word {
+    position: absolute;
+    bottom: calc(52cqw / 3.6);
+    left: 0;
+    width: 100%;
+    color: var(--capsule-back-cap);
+    font-family: var(--font-sans);
+    font-size: calc(13cqw / 3.6);
+    font-weight: 700;
+    letter-spacing: 0.42em;
+    text-align: center;
+    text-indent: 0.42em;
+    opacity: 0.8;
+  }
+}
