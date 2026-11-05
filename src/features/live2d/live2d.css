@@ -1,0 +1,17 @@
+@layer components {
+  /* Sits over the static artwork, which stays as the loading and failure fallback. */
+  .live2d-host {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--color-surface) var(--live2d-background, none) center / cover no-repeat;
+  }
+  .live2d-host[data-status='ready'] { opacity: 1; }
+  .live2d-host[data-status='error'] { display: none; }
+  .live2d-canvas { display: block; }
+  @media (prefers-reduced-motion: no-preference) {
+    .live2d-host { transition: opacity 0.4s ease; }
+  }
+}

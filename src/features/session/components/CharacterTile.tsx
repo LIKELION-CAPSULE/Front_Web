@@ -4,6 +4,8 @@ import { cn } from '@/shared/lib/cn'
 import { Icon } from '@/shared/ui/Icon'
 import { CharacterFigure } from './CharacterFigure'
 import type { FigureVariant } from './CharacterFigure'
+import type { Live2DStage } from '@/features/live2d/live2d-stage'
+import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
 
 export function CharacterTile({
   character,
@@ -15,6 +17,8 @@ export function CharacterTile({
   speech,
   onActivate,
   onDismiss,
+  live2d,
+  background,
   children,
 }: {
   character: Character
@@ -26,6 +30,10 @@ export function CharacterTile({
   speech?: string
   onActivate?: () => void
   onDismiss?: () => void
+  /** The page's shared Live2D stage; the static figure stays underneath as the fallback. */
+  live2d?: Live2DStage | null
+  /** Room background drawn behind the Live2D model. */
+  background?: string
   children?: ReactNode
 }) {
   return (
@@ -44,6 +52,7 @@ export function CharacterTile({
         characterId={character.artworkId ?? character.id}
         pose={variant === 'rest' ? 'affection' : active ? 'reaction' : 'study'}
       />
+      {live2d && <Live2DFigure stage={live2d} background={background} />}
       <div className="tile-image-shade" />
       {onActivate && (
         <button

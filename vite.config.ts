@@ -43,8 +43,27 @@ export default defineConfig(({ mode }) => {
     preview: { port: 3000, strictPort: true, headers: { 'Referrer-Policy': 'no-referrer' } },
     worker: { format: 'es' },
     build: {
+      // The lazily loaded `live2d` chunk (PixiJS + Live2D engine, ~1.1 MB, study page only) is the only one above 500 kB.
+      chunkSizeWarningLimit: 1200,
       rolldownOptions: {
-        output: { comments: { legal: true } },
+        output: {
+          comments: { legal: true },
+          // PixiJS loads its renderers through internal dynamic imports; split across chunks, a renderer class can
+          // evaluate before its base class. Keeping Pixi and the Live2D engine together (still lazy, study page only)
+          // preserves their order.
+          // Vite's preload helper is shared by every lazy route, so it must not be pulled into that chunk: the engine
+          // module throws when it runs before the Cubism Core script, and the app entry imports the helper eagerly.
+          codeSplitting: {
+            groups: [
+              { name: 'preload-helper', test: /vite[\\/]preload-helper/, priority: 2 },
+              {
+                name: 'live2d',
+                priority: 1,
+                test: /[\\/]node_modules[\\/](pixi\.js|@pixi[\\/]|untitled-pixi-live2d-engine|eventemitter3|earcut|tiny-lru|ismobilejs|parse-svg-path|@xmldom[\\/]|gifuct-js|js-binary-schema-parser)/,
+              },
+            ],
+          },
+        },
       },
     },
     resolve: {
