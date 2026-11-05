@@ -9,9 +9,10 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["vite.config.ts", "server"]
+  "include": ["vite.config.ts", "server", "api"]
 }
