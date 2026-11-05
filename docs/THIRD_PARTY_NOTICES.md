@@ -18,6 +18,16 @@ GSAP's license requires preservation of proprietary notices. A separate public-f
 
 User-supplied and generated illustration assets retain their existing provenance manifests.
 
+## Live2D rendering (study room friend)
+
+- **Live2D Cubism Core 5.1.0** — Live2D Proprietary Software License Agreement, "Redistributable Code". Served unchanged from `public/live2d/live2dcubismcore.min.js` (official distribution, original header retained). Source, hash and license links: [Live2D notice](../public/licenses/Live2D-Cubism-NOTICE.txt).
+- **Live2D Cubism SDK Framework** (bundled inside the engine below) — Live2D Open Software License. Covered by the same [Live2D notice](../public/licenses/Live2D-Cubism-NOTICE.txt). A Live2D publication license may be required for a commercial release depending on the publisher's scale; check the current terms before release.
+- **[untitled-pixi-live2d-engine 1.4.0](https://github.com/Untitled-Story/untitled-pixi-live2d-engine)** — MIT · Copyright (c) 2026 GuangChen2333. [Original notice](../public/licenses/untitled-pixi-live2d-engine-MIT.txt).
+- **[PixiJS 8.21.0](https://pixijs.com/)** — MIT · Copyright (c) 2013-2023 Mathew Groves, Chad Engler. [Original notice](../public/licenses/PixiJS-MIT.txt). Its dependencies eventemitter3, ismobilejs, parse-svg-path, @xmldom/xmldom, gifuct-js, js-binary-schema-parser and @pixi/colord are MIT; earcut is ISC; tiny-lru is BSD-3-Clause.
+- **[@pixi/sound 6.0.2](https://github.com/pixijs/sound)** — MIT · Copyright (c) 2017 Matt Karl, LLC. Installed as an engine dependency and only loaded for motion sounds or lip sync, which CAPSULE does not use. [Original notice](../public/licenses/PixiSound-MIT.txt).
+
+PixiJS and the engine load only on the study page, in a separate `live2d` chunk. Live2D model files come from the backend's storage (`modelJsonUrl`) and are not distributed from this repository.
+
 ## Local camera inference
 
 - **MediaPipe Tasks Vision 1.2.0 and official Face Landmarker float16 v1** — Apache-2.0. [Original license](../public/licenses/vision/MediaPipe-LICENSE.txt). The official bundle contains BlazeFace, FaceMesh V2 and Blendshape V2; model card sources and the unchanged weights are listed in the [model manifest](../public/models/README.md).

@@ -36,6 +36,9 @@ import { cn } from '@/shared/lib/cn'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { isMvpCharacter } from '@/features/mvp/policy'
+import { useExpressionDirector, useLive2DStage } from '@/features/live2d/use-live2d'
+import type { ExpressionCue } from '@/features/live2d/expression-scheduler'
+import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 
 const reactions = ['', '…', '잠깐 자리 비운 거야?', '…나랑 공부하기 싫어?']
 
@@ -59,7 +62,7 @@ export default function StudyPage() {
   const reportTyping = useCallback((characterId: string, messageId: string, typing: boolean) => {
     setSpeakingMessages(current => updateSpeakingMessages(current, characterId, messageId, typing))
   }, [])
-  const { devices, controller, flushFocus, observation } = useMedia()
+  const { devices, controller, flushFocus, observation, behavior } = useMedia()
   const now = useNow()
   const active = state.activeSession
   const inSession = active?.id === sessionId
@@ -75,11 +78,22 @@ export default function StudyPage() {
   const selected = characters.find(character => character.id === params.get('friend')) ?? focused ?? characters[0]
   const chatOpen = isStudyChatOpen(params, resting)
   const previousPhase = useRef(active?.phase)
+  // Only the server character with a model gets Live2D; everyone else keeps the static artwork.
+  const live2dFigure = inSession ? backend.visuals?.character : null
+  const live2dCharacterId = live2dFigure?.id ? String(live2dFigure.id) : null
+  const live2d = useLive2DStage(live2dFigure)
+  const expressions = useExpressionDirector(live2d)
+  const reducedMotion = useReducedMotion()
+  const cueExpression = (cue: ExpressionCue) => {
+    if (String(cue.characterId) === live2dCharacterId) expressions.cue(cue)
+  }
   const sync = useSessionSync({
     active: inSession ? active : null, userId: state.profile.userId, observation,
-    camera: !!devices.camera.stream,
-    onReaction: (result: ReactionResponse) => {
+    camera: !!devices.camera.stream, behavior,
+    onExpression: cueExpression,
+    onReaction: (result: ReactionResponse, event: string) => {
       for (const reply of result.characters ?? []) {
+        if (reply.characterId) cueExpression({ characterId: reply.characterId, expression: reply.expression, event, stage: 'speech', text: reply.content })
         if (!reply.characterId || !reply.content) continue
         dispatch({ type: 'CHARACTER_REPLY', sessionId: active!.id, characterId: String(reply.characterId), text: reply.content, now: Date.now() })
         setReaction(0); setCustomSpeech(reply.content)
@@ -98,6 +112,14 @@ export default function StudyPage() {
     }
     previousPhase.current = active?.phase
   }, [active?.phase, inSession, setParams])
+  useEffect(() => {
+    // A break drops faces still waiting to show; the break's own reaction brings the next face.
+    if (active?.phase === 'break') expressions.cancelPending()
+  }, [active?.phase, expressions])
+  useEffect(() => {
+    // Study time (including pause) keeps the friend facing forward; breaks follow the cursor.
+    live2d?.setTracking(inSession && active?.phase === 'break' && !reducedMotion)
+  }, [live2d, inSession, active?.phase, reducedMotion])
   useLayoutEffect(() => {
     if (!inSession || !hasFocus || (resting && !selfFocused) || !window.matchMedia('(max-width: 1023px)').matches) return
     const tile = document.querySelector<HTMLElement>(resting ? '.break-self-tile.focus-tile' : '.study-grid > .focus-tile')
@@ -219,6 +241,7 @@ export default function StudyPage() {
     try {
       const result = await backend.sendMessage(characterId, text, inputType)
       setCustomSpeech(result.content ?? '')
+      if (result.characterId) cueExpression({ characterId: result.characterId, expression: result.expression, event: 'MESSAGE', stage: 'speech', text: result.content })
       return true
     } catch (reason) {
       setReplyErrors(previous => ({ ...previous, [characterId]: reason instanceof Error ? reason.message : '답장을 받지 못했어요.' }))
@@ -229,6 +252,7 @@ export default function StudyPage() {
     if (finishing) return
     setFinishing(true); setSessionError('')
     flushFocus()
+    expressions.cancelPending()
     try {
       const record = await backend.finishSession()
       controller.stop()
@@ -361,6 +385,8 @@ export default function StudyPage() {
               return <CharacterTile
                 key={character.id}
                 character={character}
+                live2d={character.id === live2dCharacterId ? live2d : null}
+                background={backend.visuals?.room?.backgroundImageUrl}
                 variant={
                   hasFocus
                     ? character.id === focused?.id
@@ -411,6 +437,8 @@ export default function StudyPage() {
           <div className="break-stage" data-self-focused={selfFocused || undefined}>
             <CharacterTile
               character={selected}
+              live2d={selected.id === live2dCharacterId ? live2d : null}
+              background={backend.visuals?.room?.backgroundImageUrl}
               variant="rest"
               speaking={speakingCharacters.has(selected.id)}
               status={speakingCharacters.has(selected.id) ? '말하는 중' : '쉬는 중'}
