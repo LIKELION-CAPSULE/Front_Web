@@ -56,3 +56,23 @@ test('a resumed session preserves known absence time and keeps totals within bou
   assert.equal(clock.totals(100).presentSeconds, 70)
   assert.equal(clock.totals(5).presentSeconds, 0)
 })
+
+test('time spent in a confirmation pause never completes the ten-second absence window', () => {
+  const clock = new PresenceClock()
+  clock.sample(0, epoch, 'absent', 'study')
+  assert.deepEqual(clock.sample(5, epoch + 5000, 'absent', 'study', false), [])
+  assert.deepEqual(clock.sample(5, epoch + 105000, 'absent', 'study', false), [])
+  assert.deepEqual(clock.sample(5, epoch + 105000, 'absent', 'study'), [])
+  assert.deepEqual(clock.sample(14, epoch + 114000, 'absent', 'study'), [])
+  assert.equal(clock.sample(15, epoch + 115000, 'absent', 'study')[0]?.type, 'AWAY')
+})
+
+test('pausing retains actual absence totals and resuming clears AWAY without a physical return', () => {
+  const clock = new PresenceClock()
+  clock.sample(10, epoch + 10000, 'absent', 'study')
+  clock.sample(20, epoch + 20000, 'absent', 'study')
+  assert.deepEqual(clock.sample(25, epoch + 25000, 'unknown', 'study', false), [])
+  assert.deepEqual(clock.sample(25, epoch + 125000, 'off', 'study', false), [])
+  assert.deepEqual(clock.sample(25, epoch + 125000, 'present', 'study'), [{ type: 'FOCUS', occurredAt: new Date(epoch + 125000).toISOString() }])
+  assert.deepEqual(clock.totals(30), { studySeconds: 30, presentSeconds: 15, awaySeconds: 15, returns: 0 })
+})

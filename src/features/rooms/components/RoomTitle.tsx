@@ -1,8 +1,8 @@
-import { getRoomArtwork } from '@/features/rooms/artwork'
+import { getRoomArtwork, type RoomArtwork } from '@/features/rooms/artwork'
 
 /** A separate transparent title layer; alt text retains the readable room name. */
-export function RoomTitle({ roomId, eager = false }: { roomId: string; eager?: boolean }) {
-  const art = getRoomArtwork(roomId)
+export function RoomTitle({ roomId, artwork, eager = false }: { roomId: string; artwork?: RoomArtwork; eager?: boolean }) {
+  const art = artwork ?? getRoomArtwork(roomId)
   return (
     <img
       src={art.titleImage}

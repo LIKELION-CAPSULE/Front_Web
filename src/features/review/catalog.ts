@@ -1,5 +1,6 @@
 import type { SkeletonScreen } from '../../shared/lib/loading-screen.ts'
 import { WITHDRAWAL_CONFIRMATION } from '../auth/withdrawal-confirmation.ts'
+import type { FocusTotals } from '../demo/types.ts'
 
 export type ReviewStep =
   | { click: string; selector?: string; includes?: boolean }
@@ -17,6 +18,7 @@ export type ReviewScenario = {
   empty?: boolean
   returning?: boolean
   session?: 'recover' | 'study' | 'break' | 'unknown'
+  cameraFocus?: FocusTotals
   fault?: string
   draft?: boolean
   loading?: SkeletonScreen | 'auth'
@@ -69,6 +71,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'onboarding-loading', group: '온보딩·홈', title: '프로필 선택 로딩', path: '/onboarding', onboarding: true, fault: 'avatars-pending', loading: 'onboarding', note: '계정 확인 후 아바타 데이터 대기' },
   { id: 'onboarding-error', group: '온보딩·홈', title: '온보딩 저장 실패', path: '/onboarding', onboarding: true, fault: 'profile', steps: [click('이 모습으로 시작하기')], note: '프로필 API 실패 안내' },
   { id: 'home-first', group: '온보딩·홈', title: '홈 · 첫 방문', path: '/', note: '첫 공부 안내·스터디룸 목록' },
+  { id: 'home-malfoy', group: '온보딩·홈', title: '홈 · 호그와트 룸', path: '/', note: '실제 WebP 인물·배경·제목 레이어와 저장·룸 이동' },
   { id: 'home-return', group: '온보딩·홈', title: '홈 · 재방문', path: '/', returning: true, note: '오늘 공부 시간·다시 시작 안내' },
   { id: 'home-resume', group: '온보딩·홈', title: '홈 · 이어하기', path: '/', session: 'recover', note: '진행 중인 공부가 있는 홈' },
   { id: 'home-empty', group: '온보딩·홈', title: '홈 · 룸 없음', path: '/', empty: true, note: '서버 목록이 비어 있는 경우' },
@@ -80,23 +83,35 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'room', group: '스터디룸·준비', title: '스터디룸 상세', path: '/rooms/101', note: '배너·성격 태그·관계 정보' },
   { id: 'room-loading', group: '스터디룸·준비', title: '스터디룸 로딩', path: '/rooms/101', fault: 'home-pending', loading: 'room', note: '룸 배너·친구 카드 위치의 스켈레톤' },
   { id: 'room-missing', group: '스터디룸·준비', title: '존재하지 않는 룸', path: '/rooms/999999', note: '찾을 수 없는 화면' },
-  { id: 'prepare', group: '스터디룸·준비', title: '공부 준비', path: '/rooms/101/prepare', note: '일정·대화 옵션·목표 시간' },
+  { id: 'prepare', group: '스터디룸·준비', title: '공부 준비', path: '/rooms/101/prepare', note: '룸 상세 배경 블러·일정·대화 옵션·목표 시간' },
+  { id: 'prepare-from-room', group: '스터디룸·준비', title: '룸 상세에서 공부 준비', path: '/rooms/101', steps: [click('이곳에서 공부하기')], note: '열기 전 상세 화면·스크롤 보존, 닫으면 원래 위치로 복귀' },
+  { id: 'prepare-from-home', group: '스터디룸·준비', title: '홈에서 공부 준비', path: '/', returning: true, steps: [click('이어서 공부하기')], note: '홈을 블러 배경으로 유지하며 필터·스크롤 상태 보존' },
   { id: 'prepare-loading', group: '스터디룸·준비', title: '공부 준비 로딩', path: '/rooms/101/prepare', fault: 'home-pending', loading: 'prepare', note: '목표 시간·공부 설정 영역의 스켈레톤' },
   { id: 'prepare-error', group: '스터디룸·준비', title: '공부 시작 실패', path: '/rooms/101/prepare', fault: 'start', steps: [click('시작하기')], note: '시작 API 실패·재시도' },
-  { id: 'prepare-memory', group: '스터디룸·준비', title: '준비 화면 · 일정 추가', path: '/rooms/101/prepare', steps: [click('일정 추가')], note: '준비 화면에서 여는 일정 창' },
+  { id: 'prepare-pending', group: '스터디룸·준비', title: '공부 시작 중', path: '/rooms/101/prepare', fault: 'start-pending', steps: [click('시작하기')], note: '공통 로딩 스피너·중복 요청·닫기 방지, 배경 유지' },
+  { id: 'prepare-model-missing', group: '스터디룸·준비', title: 'Live2D 모델 주소 없음', path: '/rooms/101/prepare', fault: 'model-missing', steps: [click('시작하기')], note: '다른 캐릭터로 대체하지 않고 준비 창에서 안내' },
+  { id: 'prepare-memory', group: '스터디룸·준비', title: '준비 화면 · 일정 추가', path: '/rooms/101/prepare', steps: [click('일정 추가')], note: '설정의 일정 탭에서 추가 폼을 바로 열고, 닫으면 준비 창으로 복귀' },
   { id: 'study-recover', group: '공부·휴식·대화', title: '공부 이어하기 안내', path: '/study/9001', session: 'recover', note: '새로고침·재접속 뒤의 시작 안내' },
-  { id: 'study', group: '공부·휴식·대화', title: '공부 중', path: '/study/9001', session: 'study', note: '타이머·친구·카메라 꺼짐' },
+  { id: 'study', group: '공부·휴식·대화', title: '공부 중', path: '/study/9001', session: 'study', note: '1:1 진입 시 캐릭터 전체 화면·내 썸네일·타이머' },
+  { id: 'study-focus-measured', group: '공부·휴식·대화', title: '공부 화면 · 카메라 자리 지킴률', path: '/study/9001', session: 'study', cameraFocus: { observedMs: 40000, focusedMs: 30000, returns: 1 }, note: '얼굴 감지 30초 / 유효 측정 40초 = 자리 지킴률 75%, 카메라를 끈 동안은 분모 유지' },
+  { id: 'study-grid', group: '공부·휴식·대화', title: '공부 화면 · 분할 보기', path: '/study/9001?focus=grid', session: 'study', note: '확대 해제 후 선택하는 분할 보기·채팅 상태 유지' },
+  { id: 'study-self-focus', group: '공부·휴식·대화', title: '공부 화면 · 내 화면 확대', path: '/study/9001?focus=self', session: 'study', note: '내 화면 확대·친구 썸네일·확대 전환' },
   { id: 'study-loading', group: '공부·휴식·대화', title: '공부 화면 로딩', path: '/study/9001', fault: 'home-pending', loading: 'study', note: '공부 화면의 헤더·타일 영역 스켈레톤' },
   { id: 'study-break', group: '공부·휴식·대화', title: '쉬는 시간', path: '/study/9001', session: 'break', note: '휴식 타이머·대화·복귀' },
-  { id: 'study-chat', group: '공부·휴식·대화', title: '대화창', path: '/study/9001?chat=1', session: 'study', note: '메시지 입력·빠른 대화·친구 답장' },
+  { id: 'study-chat', group: '공부·휴식·대화', title: '대화창', path: '/study/9001?chat=1', session: 'study', note: '메시지 입력·빠른 대화·친구 답장, 독은 전체 작업 영역의 하단 중앙 유지' },
   { id: 'study-message-error', group: '공부·휴식·대화', title: '답장 실패', path: '/study/9001?chat=1', session: 'study', fault: 'message', steps: send, note: '전송 실패·재시도 문구' },
-  { id: 'study-finish', group: '공부·휴식·대화', title: '공부 종료 확인', path: '/study/9001', session: 'study', steps: finish, note: '공부 시간·계속하기/끝내기' },
+  { id: 'study-finish', group: '공부·휴식·대화', title: '공부 종료 확인', path: '/study/9001', session: 'study', steps: finish, note: '확인 중 타이머·측정 일시정지, 취소 시 이어하기' },
   { id: 'study-finish-error', group: '공부·휴식·대화', title: '공부 정산 실패', path: '/study/9001', session: 'study', fault: 'end', steps: [...finish, click('응, 여기까지 할게')], note: '확인 창 안의 종료 실패 안내' },
   { id: 'study-unknown', group: '공부·휴식·대화', title: '자리 지킴 복구 불가', path: '/study/9001', session: 'unknown', steps: finish, note: '이전 시간 복구가 없는 종료 경고' },
-  { id: 'study-none', group: '공부·휴식·대화', title: '진행 중인 공부 없음', path: '/study/9001', note: '세션 없는 공부 경로' },
-  { id: 'camera-error', group: '공부·휴식·대화', title: '카메라 권한 오류', path: '/study/9001', session: 'study', steps: [click('카메라 켜기')], note: '실제 장치 요청 없이 권한 거부 문구' },
-  { id: 'microphone-error', group: '공부·휴식·대화', title: '마이크 권한 오류', path: '/study/9001', session: 'study', steps: [click('마이크 켜기')], note: '실제 장치 요청 없이 권한 거부 문구' },
-  { id: 'report', group: '리포트·캡슐', title: '공부 리포트', path: '/reports/9001', returning: true, note: '시간·자리 지킴·호감도·완료 대사' },
+  { id: 'study-presence-warning', group: '공부·휴식·대화', title: '자리 지킴 복구 알림', path: '/study/9001', session: 'unknown', note: '화면을 밀지 않는 우측 상단 경고·닫기' },
+  { id: 'study-notifications', group: '공부·휴식·대화', title: '공부 알림 모음', path: '/study/9001', session: 'unknown', steps: [click('카메라 켜기'), click('마이크 켜기')], note: '자리 지킴·카메라·마이크 알림을 최대 3개 쌓아 표시' },
+  { id: 'study-sync-error', group: '공부·휴식·대화', title: '공부 기록 연결 알림', path: '/study/9001', session: 'study', fault: 'sync', steps: [click('쉬는 시간'), click('대화창 닫기')], note: '알림 안의 연결 재시도·복구 후 알림 해제' },
+  { id: 'study-none', group: '공부·휴식·대화', title: '진행 중인 공부 없음', path: '/study/9001', note: '홈으로 이동·우측 상단 알림·닫기' },
+  { id: 'camera-error', group: '공부·휴식·대화', title: '카메라 권한 오류', path: '/study/9001', session: 'study', steps: [click('카메라 켜기')], note: '실제 장치 요청 없이 우측 상단에 권한 오류 알림' },
+  { id: 'microphone-error', group: '공부·휴식·대화', title: '마이크 권한 오류', path: '/study/9001', session: 'study', steps: [click('마이크 켜기')], note: '실제 장치 요청 없이 우측 상단에 권한 오류 알림' },
+  { id: 'report', group: '리포트·캡슐', title: '공부 리포트', path: '/reports/9001', returning: true, note: '시간·자리 지킴·호감도·완료 대사, 카메라 측정 없으면 자리 지킴률 —' },
+  { id: 'report-malfoy', group: '리포트·캡슐', title: '말포이 완료 리포트', path: '/reports/9001', note: '실제 호그와트 v3 PNG 배경·말포이 투명 인물, 서버 숫자 ID와 이름으로 매핑' },
+  { id: 'report-focus-measured', group: '리포트·캡슐', title: '리포트 · 카메라 자리 지킴률', path: '/reports/9001', cameraFocus: { observedMs: 40000, focusedMs: 30000, returns: 1 }, note: '저장한 카메라 측정 기준 자리 지킴률 75%, 서버 자리 지킴 통계와 구분' },
   { id: 'report-loading', group: '리포트·캡슐', title: '리포트 로딩', path: '/reports/9001', fault: 'report-pending', loading: 'report', note: '리포트 API 응답을 기다리는 화면' },
   { id: 'report-levelup', group: '리포트·캡슐', title: '레벨 상승 리포트', path: '/reports/9001', returning: true, note: '공부 레벨 상승·달성률' },
   { id: 'report-no-target', group: '리포트·캡슐', title: '목표 정보 없는 리포트', path: '/reports/9001', note: '기기 저장값이 없는 실제 복구 조건' },

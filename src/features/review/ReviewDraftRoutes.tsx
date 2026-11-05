@@ -10,6 +10,12 @@ import { useDemo } from '@/features/demo/demo-context'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
 import { AppLoading } from '@/shared/ui/AppLoading'
 
+/** Wait for the review image to load before opening the study preview. */
+export function ReviewStudyGate() {
+  const { state } = useDemo()
+  return state.activeSession ? <App /> : <AppLoading label="캐릭터를 불러오고 있어요." />
+}
+
 /** These source pages are retained for copy review; production routes stay gated. */
 export function ReviewDraftRoutes() {
   const { state } = useDemo()

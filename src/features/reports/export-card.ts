@@ -6,7 +6,7 @@ import { dateLabel, duration, measuredDuration } from '@/shared/lib/format'
 import type { StudyRecord } from '@/features/demo/types'
 import { withParticle } from '@/shared/lib/korean'
 import { capsuleCardCopy, capsuleFocusCopy } from './card-copy'
-import { completionArtwork } from './completion-artwork'
+import { getCompletionArtwork } from './completion-artwork'
 import { drawCenterHoverMaterial } from './capsule-card-material'
 import { capsuleCardLayout as layout, isLightCapsule } from './capsule-card-layout'
 import { designColors, designTypography } from '@/shared/design/tokens'
@@ -24,7 +24,7 @@ export async function exportCard(record: StudyRecord, character: string, color: 
   const [, storyFont] = await Promise.all([document.fonts.load('400 16px Pretendard'), loadStoryFont()])
   await document.fonts.ready
   const art = getCharacterArtwork(characterId)
-  const completion = completionArtwork[characterId]
+  const completion = getCompletionArtwork(characterId, character)
   const roomArt = getRoomArtwork(record.roomId)
   const layers = !completion && (characterId === 'chaerin' || !!art.sceneId) ? await loadRoomLayers(record.roomId) : null
   const [brand, title, portrait] = await Promise.all([

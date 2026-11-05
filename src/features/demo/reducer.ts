@@ -39,6 +39,7 @@ export type DemoAction =
       targetMinutes?: number
     }
   | { type: 'TICK'; now: number }
+  | { type: 'PAUSE_SESSION'; now: number }
   | { type: 'RESUME_SESSION'; now: number }
   | { type: 'TAKE_BREAK'; now: number }
   | { type: 'CONTINUE_STUDY'; now: number }
@@ -221,9 +222,16 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       // including study time after its end when a background tab delays this tick.
       return { ...state, activeSession: continueStudySession(active, action.now, elapsed - BREAK_SECONDS) }
     }
+    case 'PAUSE_SESSION': {
+      // Settle a rest that already ended before freezing the current phase.
+      const next = demoReducer(state, { type: 'TICK', now: action.now })
+      const active = next.activeSession
+      if (!active || active.runningSince === null) return next
+      return { ...next, activeSession: { ...active, elapsedMs: sessionElapsed(active, action.now) * 1000, runningSince: null } }
+    }
     case 'RESUME_SESSION': {
-      // Older saves can contain a stopped timer. Resuming never pauses a running session
-      // or restarts a completed break.
+      // Resume from the frozen total without adding time spent in the leave dialog
+      // or offline, and never restart a completed break.
       const active = state.activeSession
       if (!active || active.runningSince !== null ||
         (active.phase === 'break' && sessionElapsed(active, action.now) >= BREAK_SECONDS)) return state

@@ -7,6 +7,7 @@ import iljin from '@/assets/auth-posters/iljin.webp'
 import jurassic from '@/assets/auth-posters/jurassic.webp'
 import lab from '@/assets/auth-posters/lab.webp'
 import joseon from '@/assets/auth-posters/joseon.webp'
+import hogwarts from '@/assets/characters/malfoy-ts-v1/web/hogwarts-night-poster-v1.webp'
 
 export const roomPosters: Record<string, string> = {
   classroom,
@@ -18,4 +19,8 @@ export const roomPosters: Record<string, string> = {
   jurassic,
   lab,
   joseon,
+}
+
+export const roomPosterOverrides: Record<string, string> = {
+  'hogwarts-night-library': hogwarts,
 }

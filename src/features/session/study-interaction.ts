@@ -1,11 +1,16 @@
 export const SELF_STUDY_TILE_ID = 'self'
+export const STUDY_GRID_FOCUS = 'grid'
 
 export function toggleStudyFocus(
   current: URLSearchParams,
   tileId: string,
+  defaultFocus?: string,
 ) {
   const next = new URLSearchParams(current)
-  if (next.get('focus') === tileId) next.delete('focus')
+  if ((next.get('focus') ?? defaultFocus) === tileId) {
+    if (defaultFocus) next.set('focus', STUDY_GRID_FOCUS)
+    else next.delete('focus')
+  }
   else next.set('focus', tileId)
   return next
 }

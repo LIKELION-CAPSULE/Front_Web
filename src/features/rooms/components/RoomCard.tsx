@@ -6,7 +6,7 @@ import { RoomArtwork } from './RoomArtwork'
 import { RoomTitle } from './RoomTitle'
 import { RoomCompanions } from './RoomCompanions'
 import { moveScene, resetScene } from '@/features/rooms/scene-motion'
-import { getHomeRoomArtwork } from '@/features/rooms/home-artwork'
+import { findHomeRoomArtwork, getHomeRoomArtwork } from '@/features/rooms/home-artwork'
 import { MvpGate } from '@/features/mvp/MvpGate'
 import { isMvpRoom } from '@/features/mvp/policy'
 
@@ -14,15 +14,20 @@ export function RoomCard({ room }: { room: StudyRoom }) {
   const { state, dispatch } = useDemo()
   const comingSoon = (!room.serverRoom && !isMvpRoom(room.id)) || room.contentStatus === 'coming-soon'
   const saved = state.savedRooms.includes(room.id)
+  const artworkId = room.artworkId ?? room.id
+  const homeArtwork = findHomeRoomArtwork(artworkId, room.name)
+  const title = homeArtwork
+    ? <RoomTitle roomId={artworkId} artwork={homeArtwork} />
+    : room.serverRoom && !room.artworkId ? room.name : <RoomTitle roomId={artworkId} />
   function save() {
     dispatch({ type: 'SAVE_ROOM', roomId: room.id })
   }
   const card = (
     <article className="room-card" onPointerMove={moveScene} onPointerLeave={resetScene}>
       <div className="room-card-art">
-        {room.serverRoom && room.coverUrl ? <img src={room.coverUrl} alt="" className="absolute inset-0 size-full object-cover" /> : <RoomArtwork
-          roomId={room.artworkId ?? room.id}
-          artwork={getHomeRoomArtwork(room.artworkId ?? room.id)}
+        {room.serverRoom && room.coverUrl && !homeArtwork ? <img src={room.coverUrl} alt="" className="absolute inset-0 size-full object-cover" /> : <RoomArtwork
+          roomId={artworkId}
+          artwork={homeArtwork ?? getHomeRoomArtwork(artworkId)}
           variant="seated"
           blurUnavailableCharacters={false}
           interactive
@@ -32,12 +37,12 @@ export function RoomCard({ room }: { room: StudyRoom }) {
         <h3>
           {comingSoon ? (
             <span className="room-card-title">
-              {room.serverRoom && !room.artworkId ? room.name : <RoomTitle roomId={room.artworkId ?? room.id} />}
+              {title}
             </span>
           ) : (
             <Link to={`/rooms/${room.id}`} aria-label={room.name} className="room-card-link">
               <span className="room-card-title">
-                {room.serverRoom && !room.artworkId ? room.name : <RoomTitle roomId={room.artworkId ?? room.id} />}
+                {title}
               </span>
             </Link>
           )}

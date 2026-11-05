@@ -6,6 +6,9 @@ import { roomDetailBanners } from '@/features/rooms/detail-banners'
 import { dayKey } from '@/shared/lib/format'
 import terms from '@/features/auth/data/legal/terms.md?raw'
 import privacy from '@/features/auth/data/legal/privacy.md?raw'
+import malfoyProfile from '@/assets/characters/malfoy-ts-v1/web/malfoy-ts-study-v1.webp'
+import hogwartsPoster from '@/assets/characters/malfoy-ts-v1/web/hogwarts-night-poster-v1.webp'
+import hogwartsBanner from '@/assets/characters/malfoy-ts-v1/web/hogwarts-night-detail-banner-v1.webp'
 import type { ReviewScenario } from './catalog'
 
 export const REVIEW_USER_ID = 990001
@@ -15,15 +18,16 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
   const base = studyRooms.find(room => room.id === 'dawn-library')!
   const figure = getCharacterArtwork('chaerin').study
   const rooms = studyRooms.slice(0, 3).map((room, index) => ({
-    id: 101 + index, name: room.name, description: room.description,
-    thumbnailUrl: roomPosters[getRoomArtwork(room.id).tone],
-    bannerUrl: roomDetailBanners[room.id]!.src,
-    characters: [{ id: 201 + index, name: room.characters[0]!.name, profileImageUrl: getCharacterArtwork(room.characters[0]!.id).study,
+    id: 101 + index, name: scenario.id === 'home-malfoy' && index === 0 ? '밤의 호그와트 도서관' : room.name, description: room.description,
+    thumbnailUrl: scenario.id === 'home-malfoy' && index === 0 ? hogwartsPoster : roomPosters[getRoomArtwork(room.id).tone],
+    bannerUrl: scenario.id === 'home-malfoy' && index === 0 ? hogwartsBanner : roomDetailBanners[room.id]!.src,
+    characters: [{ id: 201 + index, name: scenario.id === 'home-malfoy' && index === 0 ? '말포이 TS' : room.characters[0]!.name, profileImageUrl: scenario.id === 'home-malfoy' && index === 0 ? malfoyProfile : getCharacterArtwork(room.characters[0]!.id).study,
       personality: ['조용한', '다정한', '집중하는'], relation: { level: 3, totalStudySeconds: 7200, points: 62, stage: 2, stageName: '친구' } }],
   }))
   const avatars = ['chaerin', 'sua', 'dahee', 'doyun', 'moru', 'aiden', 'elia', 'leon'].map((character, index) => ({ id: 77 + index, name: `아바타 ${String(index + 1).padStart(2, '0')}`, thumbnailUrl: getCharacterArtwork(character).study }))
   let authenticated = !scenario.guest, onboardingRequired = !!scenario.onboarding, nickname = '검토하는 나', profileImage = figure
   let active = !!scenario.session, eventId = 1, memoryId = 10
+  let syncFailures = scenario.fault === 'sync' ? 1 : 0
   let studySeconds = 65, presentSeconds = 55
   const today = dayKey()
   const date = (days: number) => dayKey(Date.now() + days * 86_400_000)
@@ -36,9 +40,10 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
   const summary = () => active ? { sessionId: REVIEW_SESSION_ID, roomId: 101, roomName: base.name, characterName: base.characters[0]!.name, startedAt: new Date(Date.now() - 65_000).toISOString() } : null
   const me = () => ({ userId: REVIEW_USER_ID, nickname, onboardingRequired, profileImage, activeSession: summary() })
   const visuals = () => ({ sessionId: REVIEW_SESSION_ID, targetMinutes: 3, room: { id: 101, name: base.name },
-    character: { id: 201, name: base.characters[0]!.name, profileImageUrl: figure },
+    // The review-only image stage reads this local image URL instead of loading a model.
+    character: { id: 201, name: base.characters[0]!.name, profileImageUrl: figure, modelJsonUrl: scenario.fault === 'model-missing' ? undefined : figure },
     me: { nickname, profileImageUrl: profileImage }, serverTime: new Date().toISOString() })
-  const report = () => ({ sessionId: REVIEW_SESSION_ID, roomName: base.name, character: { id: 201, name: base.characters[0]!.name },
+  const report = () => ({ sessionId: REVIEW_SESSION_ID, roomName: scenario.id === 'report-malfoy' ? '밤의 호그와트 도서관' : base.name, character: { id: 201, name: scenario.id === 'report-malfoy' ? '말포이 TS' : base.characters[0]!.name },
     startedAt: new Date(Date.now() - 1_800_000).toISOString(), endedAt: new Date().toISOString(), endType: 'USER',
     studySeconds: 1500, presentSeconds: 1380, awaySeconds: 120, returnCount: 2,
     relation: { levelBefore: 3, levelAfter: scenario.id === 'report-levelup' ? 4 : 3, pointsBefore: 61, pointsAfter: 62,
@@ -60,7 +65,8 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
       || (scenario.fault === 'home-pending' && path === '/home') || (scenario.fault === 'avatars-pending' && path === '/avatars')
       || (scenario.fault === 'report-pending' && path.endsWith('/report')) || (scenario.fault === 'withdraw-pending' && method === 'DELETE')
       || (scenario.fault === 'reset-request-pending' && path === '/auth/password/reset-request')
-      || (scenario.fault === 'memory-pending' && path === '/me/memories' && method === 'POST')) {
+      || (scenario.fault === 'memory-pending' && path === '/me/memories' && method === 'POST')
+      || (scenario.fault === 'start-pending' && path === '/sessions' && method === 'POST')) {
       log(0)
       return new Promise<Response>((_resolve, reject) => {
         const signal = options?.signal
@@ -114,7 +120,10 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
       active = true; return reply({ ...visuals(), startedAt: new Date().toISOString() }, 201)
     }
     if (path.endsWith('/resume')) return reply({ ...visuals(), studySeconds, breakSeconds: 0 })
-    if (path.endsWith('/events')) return reply({ eventId: eventId++, characters: [{ characterId: 201, affinity: { delta: 0, points: 62, level: 3, stage: 2, stageName: '친구' } }] }, 201)
+    if (path.endsWith('/events')) {
+      if (syncFailures > 0) { syncFailures--; return reply({}, 500) }
+      return reply({ eventId: eventId++, characters: [{ characterId: 201, affinity: { delta: 0, points: 62, level: 3, stage: 2, stageName: '친구' } }] }, 201)
+    }
     if (path.endsWith('/reaction')) return reply({ requestId: body.requestId, characters: [{ characterId: 201, content: '천천히 해도 괜찮아. 나도 옆에서 같이 공부할게.' }] })
     if (path.endsWith('/messages')) return scenario.fault === 'message' ? reply({}, 500) : reply({ requestId: body.requestId, characterId: body.characterId, content: '좋아, 우리 조금만 더 집중해 보자!', affinity: { points: 62, stage: 2, stageName: '친구' } })
     if (path.endsWith('/heartbeat')) { studySeconds = Number(body.studySeconds ?? studySeconds); presentSeconds = Number(body.presentSeconds ?? presentSeconds); return reply(null, 204) }

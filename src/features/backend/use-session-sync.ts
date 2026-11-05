@@ -138,14 +138,14 @@ export function useSessionSync(input: Input) {
     const study = sessionStudySeconds(active, now)
     const fresh = observation && now - (performance.timeOrigin + observation.at) < 1500
     const presence = !camera ? 'off' : !document.hidden && fresh ? observation.faceCount > 0 ? 'present' : 'absent' : 'unknown'
-    for (const event of current.clock.sample(study, now, presence, active.phase)) {
+    for (const event of current.clock.sample(study, now, presence, active.phase, active.runningSince !== null)) {
       enqueue(current, { ...event, occurredAt: new Date(Date.parse(event.occurredAt) + (active.serverOffsetMs ?? 0)).toISOString() })
     }
     const count = current.clock.totals(study)
     setPresentSeconds(count.presentSeconds)
     // An unknown baseline is already counted conservatively (earlier study as away), so these totals are safe to resume from.
     try { localStorage.setItem(presenceKey(userId, active.id), JSON.stringify({ ...count, known: true })) } catch { /* Timing still works in memory. */ }
-    if (current.alive) {
+    if (current.alive && active.runningSince !== null) {
       const next = escalateAway(current.flow, now)
       if (next.intensity !== null && next.flow.away) {
         current.flow = next.flow
@@ -167,10 +167,13 @@ export function useSessionSync(input: Input) {
     finally { current.heartbeat = false }
   }, [drain, fail, tick, totals])
   useLayoutEffect(() => {
-    // Record rapid break/resume clicks before the periodic sampling tick.
+    // Record phase and pause changes before the periodic sampling tick.
     const current = runtime.current
-    if (current?.alive) tick(current)
-  }, [input.active?.phase, input.camera, tick])
+    if (current?.alive) {
+      if (input.active?.runningSince === null) current.flow = { revision: current.flow.revision + 1, away: null }
+      tick(current)
+    }
+  }, [input.active?.phase, input.active?.runningSince, input.camera, tick])
   const sessionId = input.active?.id
   const userId = input.userId
   const resumed = !!visuals && 'studySeconds' in visuals
