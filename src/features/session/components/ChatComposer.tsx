@@ -7,14 +7,15 @@ function resizeInput(field: HTMLTextAreaElement) {
   field.style.height = `${Math.min(120, Math.max(24, field.scrollHeight))}px`
 }
 
-export function ChatComposer({ name, text, onChange, onSend, disabled }: {
+export function ChatComposer({ name, text, onChange, onSend, sendDisabled }: {
   name: string
   text: string
   onChange: (text: string) => void
   onSend: (text: string) => Promise<boolean>
-  disabled: boolean
+  sendDisabled: boolean
 }) {
   const ref = useRef<HTMLTextAreaElement>(null)
+  const submitting = useRef(false)
   useLayoutEffect(() => {
     const field = ref.current
     if (!field) return
@@ -36,8 +37,10 @@ export function ChatComposer({ name, text, onChange, onSend, disabled }: {
     return () => observer.disconnect()
   }, [])
   async function submit() {
-    if (disabled || !text.trim()) return
-    if (await onSend(text)) onChange('')
+    if (sendDisabled || submitting.current || !text.trim()) return
+    submitting.current = true
+    try { await onSend(text) }
+    finally { submitting.current = false }
   }
   return (
     <form className="session-chat-composer" data-has-text={!!text || undefined} onSubmit={(event) => { event.preventDefault(); void submit() }}>
@@ -51,11 +54,10 @@ export function ChatComposer({ name, text, onChange, onSend, disabled }: {
           if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) { event.preventDefault(); void submit() }
         }}
         maxLength={300}
-        disabled={disabled}
         placeholder={`${name}에게 한마디…`}
       />
       <div className="session-chat-composer-tools">
-        <button type="submit" className="session-chat-send" aria-label="메시지 보내기" disabled={disabled || !text.trim()}>
+        <button type="submit" className="session-chat-send" aria-label="메시지 보내기" disabled={sendDisabled || !text.trim()}>
           <Icon name="arrow" size={18} />
         </button>
       </div>

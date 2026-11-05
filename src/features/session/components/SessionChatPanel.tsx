@@ -8,6 +8,8 @@ import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Tabs } from '@/shared/ui/Tabs'
 import { ChatComposer } from './ChatComposer'
 import { TypingMessage } from './TypingMessage'
+import { TypingIndicator } from './TypingIndicator'
+import { sendChatDraft } from '../chat-draft'
 import '../session-chat.css'
 
 const mobileQuery = '(max-width: 1023px)'
@@ -18,7 +20,7 @@ const subscribe = (notify: () => void) => {
 }
 const messageTime = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false })
 
-export function SessionChatPanel({ open, onClose, characters, selected, onSelect, onSend, onTypingChange, replyPending, replyError }: {
+export function SessionChatPanel({ open, onClose, characters, selected, onSelect, onSend, onTypingChange, replyPending, replySpeaking, replyError }: {
   open: boolean
   onClose: () => void
   characters: readonly Character[]
@@ -27,6 +29,7 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
   onSend: (text: string, inputType?: 'TEXT' | 'QUICK') => Promise<boolean>
   onTypingChange: (characterId: string, messageId: string, typing: boolean) => void
   replyPending: boolean
+  replySpeaking: boolean
   replyError?: string
 }) {
   const { state } = useDemo()
@@ -45,6 +48,7 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
   const messages = state.messages.filter(message => message.sessionId === active.id && message.characterId === selected.id)
   // Once a streamed reply starts, its own bubble replaces the typing indicator.
   const replyStarted = messages.at(-1)?.sender === 'character'
+  const sendDisabled = replyPending || replySpeaking
   const reportTyping = useCallback((messageId: string, typing: boolean) => {
     onTypingChange(selected.id, messageId, typing)
   }, [selected.id, onTypingChange])
@@ -73,7 +77,11 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
     const bounds = event.currentTarget.getBoundingClientRect()
     return event.clientX < bounds.left || event.clientX >= bounds.right || event.clientY < bounds.top || event.clientY >= bounds.bottom
   }
-  async function send(text: string, inputType: 'TEXT' | 'QUICK' = 'TEXT') { follow.current = true; return onSend(text, inputType) }
+  async function send(text: string, inputType: 'TEXT' | 'QUICK' = 'TEXT') {
+    if (sendDisabled || !text.trim()) return false
+    follow.current = true
+    return sendChatDraft({ characterId: selected.id, text, inputType, onSend: () => onSend(text, inputType), updateDrafts: setDrafts })
+  }
   return (
     <div className="session-chat-slot">
       <dialog
@@ -92,16 +100,12 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
       >
         {open && <>
           <header className="session-chat-header">
-            <div>
-              <div className="session-chat-title">
-                <h2 id={titleId}>친구와 대화</h2>
-              </div>
+            <h2 id={titleId}>친구와 대화</h2>
+            <div className="session-chat-friends">
+              <Tabs label="대화 상대" options={characters.map(character => ({ id: character.id, label: character.name }))} value={selected.id} onChange={onSelect} size="sm" />
             </div>
             <button ref={closeButton} type="button" onClick={dismiss} aria-label="대화창 닫기"><Icon name="close" size={19} /></button>
           </header>
-          <div className="session-chat-friends">
-            <Tabs label="대화 상대" options={characters.map(character => ({ id: character.id, label: character.name }))} value={selected.id} onChange={onSelect} size="sm" />
-          </div>
           <div className="session-chat-plan">
             <span>자유 대화 · 횟수 제한 없음</span>
           </div>
@@ -123,20 +127,20 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
                     ? <TypingMessage id={message.id} text={message.text} seen={seen} onProgress={scrollLatest} onTypingChange={reportTyping} />
                     : message.text}
                 </p>
-                {message.sender === 'user' && <div className="chat-message-delivery"><Icon name="check" size={12} />보냄{message.createdAt && <time dateTime={new Date(message.createdAt).toISOString()}>{messageTime.format(message.createdAt)}</time>}</div>}
+                {message.sender === 'user' && !!message.createdAt && <time className="chat-message-time" dateTime={new Date(message.createdAt).toISOString()}>{messageTime.format(message.createdAt)}</time>}
               </article>
             ))}
             {replyPending && !replyStarted && (
               <article className="chat-message" data-sender="character">
                 <div className="chat-message-meta"><img src={selected.avatarUrl ?? getCharacterArtwork(selected.artworkId ?? selected.id).affection} alt="" /><span>{selected.name}</span></div>
-                <p className="chat-message-bubble chat-message-pending">입력 중…</p>
+                <p className="chat-message-bubble chat-message-pending"><TypingIndicator name={selected.name} /></p>
               </article>
             )}
             {replyError && <FeedbackMessage tone="error" className="mt-3">답장을 받지 못했어요. {replyError}</FeedbackMessage>}
           </div>
           <footer className="session-chat-footer">
-            <div className="session-chat-suggestions" aria-label="빠른 메시지">{['파이팅', '졸려', '이거 어려워'].map(text => <button key={text} type="button" onPointerDown={event => event.preventDefault()} disabled={replyPending} onClick={() => { void send(text, 'QUICK') }}>{text}</button>)}</div>
-            <ChatComposer name={selected.name} text={drafts[selected.id] ?? ''} onChange={text => setDrafts(previous => ({ ...previous, [selected.id]: text }))} onSend={send} disabled={replyPending} />
+            <div className="session-chat-suggestions" aria-label="빠른 메시지">{['파이팅', '졸려', '이거 어려워'].map(text => <button key={text} type="button" onPointerDown={event => event.preventDefault()} disabled={sendDisabled} onClick={() => { void send(text, 'QUICK') }}>{text}</button>)}</div>
+            <ChatComposer key={selected.id} name={selected.name} text={drafts[selected.id] ?? ''} onChange={text => setDrafts(previous => ({ ...previous, [selected.id]: text }))} onSend={send} sendDisabled={sendDisabled} />
           </footer>
         </>}
       </dialog>

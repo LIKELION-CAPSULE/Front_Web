@@ -1,0 +1,62 @@
+@layer components {
+  .character-speech-bubble {
+    --speech-inset: 20px;
+    position: absolute;
+    z-index: 5;
+    top: 64px;
+    right: var(--speech-inset);
+    left: var(--speech-inset);
+    display: flex;
+    width: fit-content;
+    max-width: min(66.6667vw, calc(100% - var(--speech-inset) - var(--speech-inset)));
+    align-items: center;
+    gap: 12px;
+    margin: 0 auto;
+    border: 0;
+    border-radius: 18px;
+    background: var(--color-panel);
+    padding: 12px 18px;
+    color: var(--color-ink);
+    box-shadow: 0 8px 24px #0002;
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    font-weight: 500;
+  }
+  .character-speech-bubble[data-expanded] {
+    --speech-inset: 28px;
+    padding: 16px 22px;
+  }
+  .character-speech-bubble-text {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    text-shadow: 0 1px 8px color-mix(in srgb, var(--color-panel) 20%, transparent);
+  }
+  .character-speech-bubble-dismiss {
+    min-height: 44px;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--color-control) 60%, transparent);
+    padding: 8px 12px;
+    color: var(--color-muted);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+  }
+  .character-speech-bubble-dismiss:hover { background: var(--color-control-hover); color: var(--color-ink); }
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .character-speech-bubble {
+      background: linear-gradient(135deg,
+        color-mix(in srgb, var(--color-panel) 68%, transparent),
+        color-mix(in srgb, var(--color-canvas) 62%, transparent));
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      backdrop-filter: blur(18px) saturate(140%);
+    }
+  }
+  @media (max-width: 639px) {
+    .character-speech-bubble { gap: 8px; padding: 12px 14px; }
+    .character-speech-bubble[data-expanded] { --speech-inset: 20px; padding: 14px 16px; }
+  }
+}
