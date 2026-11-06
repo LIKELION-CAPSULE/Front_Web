@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Character } from '@/features/characters/types'
 import { cn } from '@/shared/lib/cn'
-import { Icon } from '@/shared/ui/Icon'
 import { CharacterFigure } from './CharacterFigure'
 import type { FigureVariant } from './CharacterFigure'
 import type { SessionModelStage } from '@/features/live2d/session-model'
@@ -61,11 +60,7 @@ export function CharacterTile({
           className="tile-interaction"
           aria-label={focus ? `${character.name} 확대 닫기` : `${character.name} 크게 보기`}
           aria-expanded={!!focus}
-        >
-          <span className="tile-action-symbol" aria-hidden="true">
-            <Icon name={focus ? 'shrink' : 'zoomIn'} size={28} />
-          </span>
-        </button>
+        />
       )}
       {speech && <CharacterSpeechBubble name={character.name} text={speech} expanded={variant === 'focus' || variant === 'rest'} onDismiss={onDismiss} />}
       {children}

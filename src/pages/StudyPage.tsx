@@ -37,6 +37,7 @@ import { cn } from '@/shared/lib/cn'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { isMvpCharacter } from '@/features/mvp/policy'
 import { useExpressionDirector } from '@/features/live2d/use-live2d'
+import { useAvatarModel } from '@/features/live2d/use-avatar-model'
 import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
 import type { ExpressionCue } from '@/features/live2d/expression-scheduler'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
@@ -82,10 +83,11 @@ export default function StudyPage() {
   const selected = characters.find(character => character.id === params.get('friend')) ?? focused ?? characters[0]
   const chatOpen = isStudyChatOpen(params, resting)
   const previousPhase = useRef(active?.phase)
-  // Only the server character with a model gets Live2D; everyone else keeps the static artwork.
+  // The companion and my avatar keep independent models and canvases.
   const live2dFigure = inSession ? backend.visuals?.character : null
   const live2dCharacterId = live2dFigure?.id ? String(live2dFigure.id) : null
   const live2d = backend.live2dStage
+  const selfAvatar = useAvatarModel(inSession ? backend.visuals?.avatar : undefined, sessionId)
   const expressions = useExpressionDirector(live2d)
   const reducedMotion = useReducedMotion()
   const cueExpression = (cue: ExpressionCue) => {
@@ -124,6 +126,10 @@ export default function StudyPage() {
     // Study time (including pause) keeps the friend facing forward; breaks follow the cursor.
     live2d?.setTracking(inSession && active?.phase === 'break' && !reducedMotion)
   }, [live2d, inSession, active?.phase, reducedMotion])
+  useEffect(() => {
+    selfAvatar.stage?.setTracking(inSession && resting && !reducedMotion)
+    return () => selfAvatar.stage?.setTracking(false)
+  }, [selfAvatar.stage, inSession, resting, reducedMotion])
   useLayoutEffect(() => {
     if (!inSession || !hasFocus || (resting && !selfFocused) || !window.matchMedia('(max-width: 1023px)').matches) return
     const tile = document.querySelector<HTMLElement>(resting ? '.break-self-tile.focus-tile' : '.study-grid > .focus-tile')
@@ -352,13 +358,12 @@ export default function StudyPage() {
       <article key={SELF_STUDY_TILE_ID} aria-label={resting ? cameraVisible ? '내 카메라' : '내 아바타' : '내 칸'}
         className={cn(resting && 'break-self-tile', resting && !selfFocused ? 'break-thumbnail bg-surface' : 'self-tile', selfFocused && 'focus-tile', selfSpeaking && 'is-speaking')} data-speaking={selfSpeaking || undefined}>
         {selfSpeaking && <span className="sr-only">{microphoneSpeaking ? '음성 입력 중' : '메시지 전송'}</span>}
-        <StudySelfView stream={devices.camera.stream} showCamera={cameraVisible} avatar={state.profile.avatar} image={backend.visuals?.me?.profileImageUrl ?? state.profile.profileImage} background={normalizeCameraBackground(state.cameraBackground)} small={small} expanded={selfFocused} />
+        <StudySelfView stream={devices.camera.stream} showCamera={cameraVisible} avatar={state.profile.avatar}
+          image={backend.visuals?.avatar?.profileImageUrl ?? backend.visuals?.me?.profileImageUrl ?? state.profile.profileImage}
+          roomBackground={backend.visuals?.room?.backgroundImageUrl} model={selfAvatar.stage} modelStatus={selfAvatar.status}
+          onRetryModel={selfAvatar.retry} small={small} expanded={selfFocused} />
         <button type="button" className="tile-interaction" aria-label={selfFocused ? '내 화면 확대 닫기' : '내 화면 크게 보기'}
-          aria-expanded={selfFocused} onClick={() => setParams(resting ? toggleBreakSelfFocus(params, selected!.id) : toggleStudyFocus(params, SELF_STUDY_TILE_ID, defaultFocus))}>
-          <span className="tile-action-symbol" aria-hidden="true">
-            <Icon name={selfFocused ? 'shrink' : 'zoomIn'} size={28} />
-          </span>
-        </button>
+          aria-expanded={selfFocused} onClick={() => setParams(resting ? toggleBreakSelfFocus(params, selected!.id) : toggleStudyFocus(params, SELF_STUDY_TILE_ID, defaultFocus))} />
         {!resting && <div className="study-self-feedback">
           <DetectionStatus />
           <BehaviorBadges />
