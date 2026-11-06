@@ -32,7 +32,8 @@
     "react-router": "^8.5.0",
     "tailwind-merge": "^3.7.0",
     "three": "0.187.0",
-    "untitled-pixi-live2d-engine": "1.4.0"
+    "untitled-pixi-live2d-engine": "1.4.0",
+    "windups": "^1.2.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
