@@ -4,6 +4,7 @@ import { useBackend } from '@/features/backend/backend-context'
 import { api } from '@/shared/api/client'
 import type { ExpiresResponse, LoginResponse } from '@/shared/api/types'
 import { authNotice } from '@/features/auth/auth-notices'
+import { rememberLoginProvider, saveKakaoLogin } from '@/features/auth/auth-storage'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
 import { enqueueNotification, type NotificationContent, type NotificationItem } from '@/shared/ui/notification-queue'
 import { PageNavigation } from '@/app/PageNavigation'
@@ -66,7 +67,7 @@ export default function LoginPage() {
   async function complete(result: LoginResponse) {
     const me = await backend.authenticate(result)
     setSignupDraft(null)
-    sessionStorage.setItem('capsule-login-provider', 'EMAIL')
+    rememberLoginProvider('EMAIL')
     navigate(me.onboardingRequired ? `/onboarding?next=${encodeURIComponent(next)}` : next, { replace: true })
   }
   function kakao() {
@@ -81,7 +82,10 @@ export default function LoginPage() {
       if (new URL(redirect).origin !== window.location.origin) { showError('현재 접속 주소에서 카카오 로그인을 사용할 수 없어요. 로그인 페이지 주소를 확인해 주세요.'); return }
     } catch { showError('카카오 로그인 주소를 확인하지 못했어요. 이메일로 로그인해 주세요.'); return }
     const state = crypto.randomUUID()
-    sessionStorage.setItem('capsule-kakao', JSON.stringify({ state, next, redirect }))
+    if (!saveKakaoLogin({ state, next, redirect })) {
+      showError('브라우저 저장소를 사용할 수 없어 카카오 로그인을 시작하지 못했어요. 저장소를 허용하거나 이메일로 로그인해 주세요.')
+      return
+    }
     const query = new URLSearchParams({ client_id: key, redirect_uri: redirect, response_type: 'code', state })
     window.location.assign(`https://kauth.kakao.com/oauth/authorize?${query}`)
   }

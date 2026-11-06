@@ -11,6 +11,7 @@ import type { BehaviorMonitor } from '../media/behavior-monitor'
 import type { ExpressionCue } from '../live2d/expression-scheduler'
 import { pickMotionEvents, type MotionCooldowns, type MotionEventType } from './motion-events'
 import { escalateAway, eventQueued, type EventFlow } from './session-event-flow'
+import { flushSessionOutbox } from './session-outbox'
 
 export type SessionTotals = { studySeconds: number; presentSeconds: number }
 const totalsBySession = new Map<string, () => SessionTotals>()
@@ -78,27 +79,22 @@ export function useSessionSync(input: Input) {
     }
   }, [])
   const drain = useCallback(async (current: Runtime) => {
-    if (current.draining) return current.draining
-    current.draining = (async () => {
-      while (current.outbox.length) {
-        const event = current.outbox[0]!
-        const revision = current.flow.revision
-        const result = await api.request<EventResponse>(`/sessions/${current.sessionId}/events`, { method: 'POST', body: event })
-        current.outbox.shift()
-        if (current.alive) for (const character of result.characters ?? []) {
+    await flushSessionOutbox(current,
+      event => api.request<EventResponse>(`/sessions/${current.sessionId}/events`, { method: 'POST', body: event }),
+      (result, event, revision) => {
+        for (const character of result.characters ?? []) {
           if (character.characterId) updateAffinity(character.characterId, character.affinity)
         }
-        if (current.alive && current.flow.revision === revision && current.outbox.length === 0) {
+        if (current.flow.revision === revision && current.outbox.length === 0) {
           notice(result, event.type)
           if (result.eventId) {
             if (event.type === 'AWAY') current.flow = { ...current.flow, away: { eventId: result.eventId, at: Date.parse(event.occurredAt) - (latest.current.active?.serverOffsetMs ?? 0), intensity: 1 } }
             void react(current, result.eventId, event.type)
           }
         }
-      }
-      if (current.alive) setError('')
-    })()
-    try { await current.draining } finally { current.draining = null }
+      },
+    )
+    if (current.alive) setError('')
   }, [notice, react, updateAffinity])
   const enqueue = useCallback((current: Runtime, event: StateEvent) => {
     current.flow = eventQueued(current.flow, event.type)
@@ -159,6 +155,7 @@ export function useSessionSync(input: Input) {
     try {
       tick(current)
       await drain(current)
+      if (!current.alive) return
       const count = totals(current)
       await api.request(`/sessions/${current.sessionId}/heartbeat`, { method: 'POST', body: latest.current.active?.presenceKnown === false ? undefined : { studySeconds: count.studySeconds, presentSeconds: count.presentSeconds } })
       current.lastHeartbeatAt = Date.now()

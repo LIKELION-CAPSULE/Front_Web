@@ -27,9 +27,9 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
       renderSlide={(slide) => (
         <>
           <div className="welcome-art-shade" aria-hidden="true" />
-          <div className="welcome-greeting-slot">
+          {slide.quote && <div className="welcome-greeting-slot">
             <CompanionGreeting name={slide.name} quote={slide.quote} className="welcome-speech" />
-          </div>
+          </div>}
         </>
       )}
     >

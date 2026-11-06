@@ -41,7 +41,7 @@ export class SessionModel {
   private readonly create: SessionModelFactory
   private readonly timeoutMs: number
 
-  constructor(create: SessionModelFactory, timeoutMs = Infinity) {
+  constructor(create: SessionModelFactory, timeoutMs = 60_000) {
     this.create = create
     this.timeoutMs = timeoutMs
   }

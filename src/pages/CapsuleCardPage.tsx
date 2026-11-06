@@ -21,6 +21,7 @@ import { PageSkeleton } from '@/shared/ui/PageSkeleton'
 import { withParticle } from '@/shared/lib/korean'
 import { capsuleCardCopy, capsuleFocusCopy } from '@/features/reports/card-copy'
 import { capsuleCardColors } from '@/features/reports/capsule-card-layout'
+import { getCapsuleRoomArtwork } from '@/features/reports/capsule-room-artwork'
 import { loadStoryFont } from '@/shared/design/story-font'
 import { fitCardQuote, previewMeasure } from '@/features/reports/card-quote'
 import { isMvpCharacter, isMvpRoom } from '@/features/mvp/policy'
@@ -128,6 +129,7 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
   const participants = room.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && record.characterIds.includes(character.id))
   const friends = participants.length ? participants : [room.characters[0]!]
   const character = friends.find(friend => friend.id === params.get('friend')) ?? friends[0]!
+  const roomArtwork = getCapsuleRoomArtwork(room)
   const quote = fitCardQuote(record.serverReport?.closingLine ?? capsuleCardCopy.quote, previewMeasure(storyFont))
   const studyAmount = record.observedSeconds === undefined ? duration : measuredDuration
   async function save(share = false) {
@@ -139,6 +141,7 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
         character.name,
         colors[color]!,
         character.artworkId ?? character.id,
+        roomArtwork,
       )
       const file = new File([blob], 'capsule-study-card.png', { type: 'image/png' })
       if (share && navigator.canShare?.({ files: [file] })) {
@@ -198,7 +201,7 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
               </div>
               <div className="share-portrait">
                 <CompletionPortrait characterId={character.artworkId ?? character.id} name={character.name} variant="share" />
-                <div className="capsule-room-title"><RoomTitle roomId={room.artworkId ?? room.id} eager /></div>
+                <div className="capsule-room-title"><RoomTitle roomId={room.artworkId ?? room.id} artwork={roomArtwork} eager /></div>
               </div>
               <p className="capsule-card-intro type-body">
                 {withParticle(character.name, '과', '와')} 함께한 공부
