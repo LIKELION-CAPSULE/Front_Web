@@ -5,6 +5,7 @@ import { api } from '@/shared/api/client'
 import type { KakaoRequest, KakaoResponse } from '@/shared/api/types'
 import { safeReturnPath } from '@/shared/lib/format'
 import { kakaoErrorNotice } from '@/features/auth/auth-notices'
+import { clearKakaoLogin, readKakaoLogin, rememberLoginProvider } from '@/features/auth/auth-storage'
 import { RouteLoading } from '@/app/components/RouteLoading'
 
 export default function KakaoCallbackPage() {
@@ -16,20 +17,20 @@ export default function KakaoCallbackPage() {
   useEffect(() => {
     if (request.current) return
     request.current = (async () => {
-      const saved = JSON.parse(sessionStorage.getItem('capsule-kakao') ?? 'null') as { state?: string; next?: string; redirect?: string } | null
+      const saved = readKakaoLogin()
       const code = params.get('code')
-      if (params.has('error')) { navigate('/login?notice=kakao-cancelled', { replace: true }); return }
-      if (!saved?.state || saved.state !== params.get('state') || !code || !saved.redirect) { navigate('/login?notice=kakao-invalid-request', { replace: true }); return }
+      if (params.has('error')) { clearKakaoLogin(); navigate('/login?notice=kakao-cancelled', { replace: true }); return }
+      if (!saved || saved.state !== params.get('state') || !code) { clearKakaoLogin(); navigate('/login?notice=kakao-invalid-request', { replace: true }); return }
       const body: KakaoRequest = { code, redirectUri: saved.redirect }
       const result = await api.request<KakaoResponse>('/auth/social/KAKAO', { method: 'POST', auth: false, body })
       const next = safeReturnPath(saved.next ?? null, '/')
       setDestination(next)
       const me = await authenticate(result)
-      sessionStorage.removeItem('capsule-kakao')
-      sessionStorage.setItem('capsule-login-provider', 'KAKAO')
+      clearKakaoLogin()
+      rememberLoginProvider('KAKAO')
       navigate(me.onboardingRequired ? `/onboarding?next=${encodeURIComponent(next)}` : next, { replace: true })
     })().catch(reason => {
-      sessionStorage.removeItem('capsule-kakao')
+      clearKakaoLogin()
       navigate(`/login?notice=${kakaoErrorNotice(reason)}`, { replace: true })
     })
   }, [authenticate, navigate, params])

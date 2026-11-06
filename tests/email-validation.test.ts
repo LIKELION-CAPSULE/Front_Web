@@ -30,3 +30,17 @@ test('signup requires a non-blank nickname of at most 20 characters', () => {
     assert.deepEqual(validateEmailAuth({ ...valid, nickname }, true, true), {})
   }
 })
+
+test('signup validates the server password byte limit before requesting email verification', () => {
+  for (const password of ['a'.repeat(72), '가'.repeat(24), '😀'.repeat(18)]) {
+    assert.deepEqual(validateEmailAuth({ ...valid, password, confirmPassword: password }, true, true), {})
+  }
+  for (const password of ['a'.repeat(73), '가'.repeat(25), '😀'.repeat(19)]) {
+    assert.match(validateEmailAuth({ ...valid, password, confirmPassword: password }, true, true).password!, /72바이트/)
+  }
+})
+
+test('login keeps accepting existing credentials without applying the signup byte limit', () => {
+  const password = 'a'.repeat(73)
+  assert.equal(validateEmailAuth({ ...valid, password }, false, true).password, undefined)
+})

@@ -8,6 +8,7 @@ export function validateEmailAuth(values: EmailAuthValues, signup: boolean, emai
   else if (!emailValid) errors.email = '이메일 주소를 확인해 주세요.'
   if (!values.password) errors.password = '비밀번호를 입력해 주세요.'
   else if (signup && values.password.length < 8) errors.password = '비밀번호는 8자 이상 입력해 주세요.'
+  else if (signup && new TextEncoder().encode(values.password).length > 72) errors.password = '비밀번호는 72바이트 이하로 입력해 주세요.'
   if (signup) {
     if (!values.confirmPassword) errors.confirmPassword = '비밀번호를 한 번 더 입력해 주세요.'
     else if (values.password !== values.confirmPassword) errors.confirmPassword = '비밀번호가 일치하지 않아요.'

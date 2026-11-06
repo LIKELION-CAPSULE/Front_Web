@@ -79,6 +79,23 @@ test('a stalled load times out, releases resources, and leaves the action availa
   assert.equal(model.listeners, 0)
 })
 
+test('the production default also releases a stalled model and lets a new attempt complete', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const stalled = fakeStage(), retry = fakeStage()
+  let attempts = 0
+  const loader = new SessionModel(() => ++attempts === 1 ? stalled.stage : retry.stage)
+  const entry = loader.prepare({ modelJsonUrl: '/friend.model3.json' })
+  const rejection = assert.rejects(entry, /다시 시도/)
+  t.mock.timers.tick(60_000)
+  await rejection
+  assert.equal(stalled.destroyed, 1)
+  assert.equal(stalled.listeners, 0)
+  const next = loader.prepare({ modelJsonUrl: '/friend.model3.json' })
+  retry.setStatus('ready')
+  assert.equal(await next, retry.stage)
+  loader.release()
+})
+
 test('changing model or layout cancels the previous preparation and uses safe layout values', async () => {
   const first = fakeStage(), second = fakeStage()
   const layouts: unknown[] = []
