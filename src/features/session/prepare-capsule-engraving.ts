@@ -67,8 +67,8 @@ export function engravePrepareCapsule(body: Shell, cap: Shell, inscription: Caps
     shell.outer.customProgramCacheKey = () => 'prepare-capsule-engraving-v1'
     shell.outer.needsUpdate = true
   }
-  engrave(body, -PREPARE_SHAPE.length / 2, PREPARE_SHAPE.bodyRim, -.37, .48)
-  engrave(cap, PREPARE_SHAPE.capRim, PREPARE_SHAPE.length / 2, .37, .48, true)
+  engrave(body, PREPARE_SHAPE.minY, PREPARE_SHAPE.bodyRim, (PREPARE_SHAPE.minY + PREPARE_SHAPE.capRim) / 2, .64)
+  engrave(cap, PREPARE_SHAPE.capRim, PREPARE_SHAPE.maxY, (PREPARE_SHAPE.capRim + PREPARE_SHAPE.maxY) / 2, .72, true)
   return {
     update(amount: number) {
       strength.value = amount
