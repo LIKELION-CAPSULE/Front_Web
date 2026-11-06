@@ -152,7 +152,7 @@ export default function LoginPage() {
                 >
                   <Link
                     to={authPath('login')}
-                    className="text-muted underline underline-offset-4 hover:text-text-accent"
+                    className="text-text-accent underline underline-offset-4"
                   >
                     로그인
                   </Link>
@@ -161,7 +161,7 @@ export default function LoginPage() {
                   </span>
                   <Link
                     to={authPath('signup')}
-                    className="text-muted underline underline-offset-4 hover:text-text-accent"
+                    className="text-text-accent underline underline-offset-4"
                   >
                     회원가입
                   </Link>
@@ -201,14 +201,14 @@ export default function LoginPage() {
                       <nav aria-label="계정 메뉴" className="mt-7 flex items-center justify-center gap-4 text-body-compact text-muted">
                         <Link
                           to={authPath('forgot-password')}
-                          className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-text-accent"
+                          className="inline-flex min-h-11 items-center text-text-accent underline underline-offset-4"
                         >
                           비밀번호 찾기
                         </Link>
                         <span aria-hidden="true" className="text-divider">|</span>
                         <Link
                           to={authPath('signup')}
-                          className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-text-accent"
+                          className="inline-flex min-h-11 items-center text-text-accent underline underline-offset-4"
                         >
                           회원가입
                         </Link>

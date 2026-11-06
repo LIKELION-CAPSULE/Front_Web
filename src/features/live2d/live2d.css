@@ -10,5 +10,6 @@
   }
   .live2d-host[data-status='ready'] { opacity: 1; }
   .live2d-host[data-status='error'] { display: none; }
-  .live2d-canvas { display: block; }
+  /* Centered so a buffer that has not caught up with a resizing tile stays aligned (see RESIZE_SETTLE_MS). */
+  .live2d-canvas { position: absolute; top: 50%; left: 50%; display: block; transform: translate(-50%, -50%); }
 }

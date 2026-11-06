@@ -53,7 +53,10 @@ export default function StudyPage() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [reaction, setReaction] = useState(0)
+  /** The bubble shows event reactions only; chat replies stay in the chat panel. */
   const [customSpeech, setCustomSpeech] = useState('')
+  const [speechKey, setSpeechKey] = useState(0)
+  const say = (text: string) => { setCustomSpeech(text); setSpeechKey(key => key + 1) }
   const [showCamera, setShowCamera] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
   const backend = useBackend()
@@ -98,13 +101,14 @@ export default function StudyPage() {
   const sync = useSessionSync({
     active: inSession ? active : null, userId: state.profile.userId, observation,
     camera: !!devices.camera.stream, behavior,
+    busy: Object.values(pendingReplies).some(Boolean) || speakingCharacters.size > 0,
     onExpression: cueExpression,
     onReaction: (result: ReactionResponse, event: string) => {
       for (const reply of result.characters ?? []) {
         if (reply.characterId) cueExpression({ characterId: reply.characterId, expression: reply.expression, event, stage: 'speech', text: reply.content })
         if (!reply.characterId || !reply.content) continue
         dispatch({ type: 'CHARACTER_REPLY', sessionId: active!.id, characterId: String(reply.characterId), text: reply.content, now: Date.now() })
-        setReaction(0); setCustomSpeech(reply.content)
+        setReaction(0); say(reply.content)
       }
     },
     onEnded: () => { controller.stop(); if (sessionId) navigate(`/reports/${sessionId}`, { replace: true }) },
@@ -211,10 +215,6 @@ export default function StudyPage() {
   const focusRate = focusPercent(focusTotals.focusedMs, focusTotals.observedMs)
   const affection = normalizeAffectionScore(backend.affinities[selected.id]?.points ?? selected.relation?.points)
   const cameraVisible = showCamera && !!devices.camera.stream
-  const messages = state.messages.filter(
-    (message) => message.sessionId === active.id && message.characterId === selected.id,
-  )
-  const lastReply = messages.filter((message) => message.sender === 'character').at(-1)
   const orderedCharacters = focused
     ? [focused, ...characters.filter(character => character.id !== focused.id)]
     : characters
@@ -260,7 +260,7 @@ export default function StudyPage() {
     setReplyErrors(previous => ({ ...previous, [characterId]: '' }))
     try {
       const result = await backend.sendMessage(characterId, text, inputType)
-      setCustomSpeech(result.content ?? '')
+      // The reply is shown in the chat panel only, never in the speech bubble.
       if (result.characterId) cueExpression({ characterId: result.characterId, expression: result.expression, event: 'MESSAGE', stage: 'speech', text: result.content })
       return true
     } catch (reason) {
@@ -469,12 +469,13 @@ export default function StudyPage() {
                         ? '…'
                         : undefined
                 }
+                speechKey={speechKey}
                 onActivate={() => activateFriend(character.id)}
                 onDismiss={
                   index === 0 && reaction > 1 && !chatOpen
                     ? () => {
                         setReaction(0)
-                        setCustomSpeech('아, 필기 중이었구나. 미안!')
+                        say('아, 필기 중이었구나. 미안!')
                       }
                     : undefined
                 }
@@ -491,7 +492,8 @@ export default function StudyPage() {
               variant="rest"
               speaking={speakingCharacters.has(selected.id)}
               status={speakingCharacters.has(selected.id) ? '말하는 중' : '쉬는 중'}
-              speech={chatOpen ? undefined : lastReply?.text}
+              speech={chatOpen ? undefined : customSpeech || undefined}
+              speechKey={speechKey}
             />
             <div className="break-thumbnails">
               <div className="break-friend-thumbnails">

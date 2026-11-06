@@ -63,6 +63,11 @@ function loadEngine(baseUrl: string) {
 }
 
 const clamp = (value: number) => Math.max(-1, Math.min(1, value))
+/**
+ * While a tile keeps changing size (the chat panel sliding open), the drawing buffer is reallocated once this long
+ * after the last change instead of on every frame. Reallocating a full-screen buffer each frame stutters.
+ */
+export const RESIZE_SETTLE_MS = 140
 
 /**
  * One WebGL canvas and one model for the study page.
@@ -75,6 +80,9 @@ export class Live2DStage {
   private model: Live2DModel | null = null
   private hosts: HTMLElement[] = []
   private observer: ResizeObserver | null = null
+  /** The host the drawing buffer was last sized for; a new host is sized at once. */
+  private sizedHost: HTMLElement | null = null
+  private settleTimer: ReturnType<typeof setTimeout> | undefined
   private destroyed = false
   private tracking = false
   private expression: string | null = null
@@ -187,7 +195,11 @@ export class Live2DStage {
     this.place()
   }
 
-  private place() {
+  /**
+   * Fits the model to its tile. The first size on a host resizes the buffer at once; later changes keep the current
+   * buffer (centered and clipped by the tile, see live2d.css) until the size settles, then resize once.
+   */
+  private place(settled = false) {
     const app = this.app
     const model = this.model
     const host = this.hosts.at(-1)
@@ -195,14 +207,24 @@ export class Live2DStage {
     const width = host.clientWidth
     const height = host.clientHeight
     if (!width || !height) return
-    if (app.renderer.width !== width || app.renderer.height !== height) app.renderer.resize(width, height)
+    if (app.renderer.width !== width || app.renderer.height !== height) {
+      clearTimeout(this.settleTimer)
+      this.settleTimer = undefined
+      if (settled || this.sizedHost !== host) {
+        app.renderer.resize(width, height)
+        this.sizedHost = host
+      } else {
+        this.settleTimer = setTimeout(() => { this.settleTimer = undefined; this.place(true) }, RESIZE_SETTLE_MS)
+      }
+    }
     const { originalWidth, originalHeight } = model.internalModel
     const fit = Math.min(width / originalWidth, height / originalHeight) * this.layout.scale
     model.scale.set(fit)
     model.anchor.set(0.5, 0.5)
+    // Canvas coordinates: the canvas is centered on the tile, so its center is the tile's center.
     model.position.set(
-      width / 2 + (this.layout.offsetX / OFFSET_PERCENT) * width,
-      height / 2 + (this.layout.offsetY / OFFSET_PERCENT) * height,
+      app.renderer.width / 2 + (this.layout.offsetX / OFFSET_PERCENT) * width,
+      app.renderer.height / 2 + (this.layout.offsetY / OFFSET_PERCENT) * height,
     )
     // ResizeObserver runs after the ticker's animation frame. Resizing clears
     // the canvas, so repaint the newly placed model before the browser presents it.
@@ -263,6 +285,8 @@ export class Live2DStage {
 
   private teardown() {
     window.removeEventListener('pointermove', this.onPointerMove)
+    clearTimeout(this.settleTimer)
+    this.settleTimer = undefined
     this.observer?.disconnect()
     this.observer = null
     const app = this.app
