@@ -1,7 +1,7 @@
 import {
-  AdditiveBlending, AgXToneMapping, BackSide, BufferAttribute, BufferGeometry, CanvasTexture, Color, DirectionalLight, DoubleSide,
-  Group, InstancedMesh, LatheGeometry, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, PerspectiveCamera, Plane,
-  PlaneGeometry, PMREMGenerator, Points, Raycaster, Scene, Sprite, SpriteMaterial, SRGBColorSpace, TorusGeometry, Vector2, Vector3,
+  AdditiveBlending, AgXToneMapping, BufferAttribute, BufferGeometry, CanvasTexture, Color, DirectionalLight, DoubleSide,
+  Group, InstancedMesh, Mesh, MeshBasicMaterial, PerspectiveCamera, Plane,
+  PlaneGeometry, PMREMGenerator, Points, Raycaster, Scene, Sprite, SpriteMaterial, SRGBColorSpace, Vector2, Vector3,
   WebGLRenderer,
 } from 'three'
 import type { Material, Object3D, Texture } from 'three'
@@ -10,56 +10,18 @@ import { designColors, designPalette } from '@/shared/design/tokens'
 import { createChips, createFracture } from './capsule-fracture'
 import { createRibbons, createSparkles } from './capsule-light'
 import { createPost } from './capsule-post'
+import { CAPSULE_RADIUS as R, CAPSULE_CAP_RADIUS as CAP_R, CAPSULE_SEAM_Y as SEAM_Y, createCapsuleShell as shell } from './capsule-shell'
 
 /** The card's four corners in viewport pixels (top left, top right, bottom right, bottom left). */
 export type CardQuad = readonly (readonly [number, number])[]
 export type CapsuleQuality = 'high' | 'normal'
 
-const R = 0.34
-/** The cap is slightly wider so it closes over the body. */
-const CAP_R = R * 1.04
-const SEGMENTS = 96
-const ARC_STEPS = 32
-const SEAM_Y = -0.12
 /** Frames skipped before timing (shader compiles land there), then frames averaged to judge the device. */
 const WARMUP_FRAMES = 5
 const SAMPLE_FRAMES = 30
 const SLOW_FRAME_MS = 25
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min)
-
-/** Lathe profile, ordered bottom to top: a hemisphere and a straight wall up (body) or down (cap) to the rim. */
-function profile(radius: number, center: number, rim: number, cap: boolean) {
-  const arc = Array.from({ length: ARC_STEPS + 1 }, (_, step) => {
-    const angle = (step / ARC_STEPS) * Math.PI / 2
-    return cap
-      ? new Vector2(radius * Math.cos(angle), center + radius * Math.sin(angle))
-      : new Vector2(radius * Math.sin(angle), center - radius * Math.cos(angle))
-  })
-  return cap ? [new Vector2(radius, rim), ...arc] : [...arc, new Vector2(radius, rim)]
-}
-
-function shell(hex: string, radius: number, center: number, rim: number, cap: boolean) {
-  const color = new Color(hex)
-  // Transparent from the start so fading the halves out later needs no material change mid-animation.
-  const outer = new MeshPhysicalMaterial({
-    color, roughness: 0.2, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.03,
-    sheen: 0.35, sheenRoughness: 0.5, sheenColor: color.clone().lerp(new Color('#ffffff'), 0.65),
-    iridescence: 0.3, iridescenceIOR: 1.3, iridescenceThicknessMinimum: 200, iridescenceThicknessMaximum: 520,
-    envMapIntensity: 1.25, side: DoubleSide, transparent: true,
-  })
-  const inner = new MeshStandardMaterial({ color: color.clone().multiplyScalar(0.3), roughness: 0.7, side: BackSide, transparent: true })
-  const group = new Group()
-  const lip = new Mesh(new TorusGeometry(radius * 0.983, radius * 0.022, 16, SEGMENTS), outer)
-  lip.rotation.x = Math.PI / 2
-  lip.position.y = rim
-  group.add(
-    new Mesh(new LatheGeometry(profile(radius, center, rim, cap), SEGMENTS), outer),
-    new Mesh(new LatheGeometry(profile(radius * 0.965, center, rim, cap), SEGMENTS), inner),
-    lip,
-  )
-  return { group, outer, materials: [outer, inner], radius, color, direction: (cap ? 1 : -1) as 1 | -1 }
-}
 
 function radialTexture(stops: [number, string][]) {
   const canvas = document.createElement('canvas')

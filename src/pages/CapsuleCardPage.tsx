@@ -36,7 +36,7 @@ import '@/features/reports/capsule-card-reveal.css'
 const CapsuleIntro = lazy<ComponentType<CapsuleIntroProps>>(() => import('@/features/reports/components/CapsuleIntro').catch(() => ({ default: CapsuleIntroFallback })))
 
 const colors = capsuleCardColors
-const names = ['보라', '검정', '연보라', '라벤더']
+const names = ['보라', '검정']
 
 /** Intro phases: the capsule shakes while loading, then bursts open and the card turns in. */
 type IntroPhase = 'loading' | 'opening'
@@ -193,7 +193,7 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
       <div className="capsule-card-scene" inert={!!intro}>
         <div ref={cardRoot} className="capsule-card-root">
           <div ref={flipper} className="capsule-card-flipper">
-            <CapsuleCardSurface color={colors[color]!} light={color > 1}>
+            <CapsuleCardSurface color={colors[color]!} light={false}>
               <div className="capsule-card-header">
                 <CapsuleCardBrand />
                 <span>{dateLabel(record.endedAt)}</span>
@@ -223,7 +223,7 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
         <h1 className="type-page-title">캡슐 카드</h1>
         {friends.length > 1 && <div className="mt-4"><Tabs label="카드의 친구" options={friends.map(friend => ({ id: friend.id, label: friend.name }))} value={character.id} onChange={id => { const next = new URLSearchParams(params); next.set('friend', id); setParams(next, { replace: true }) }} size="sm" /></div>}
         <p className="mt-4 text-body-compact font-bold text-muted">카드 색 · {names[color]}</p>
-        <div className="relative mt-2 h-[30px] w-[150px]">
+        <div className="mt-2 flex gap-2.5">
           {colors.map((_, index) => (
             <button
               key={index}
@@ -232,10 +232,10 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
               aria-pressed={color === index}
               onClick={() => setColor(index)}
               className={cn(
-                'absolute top-0 size-[30px] rounded-full',
+                'size-[30px] rounded-full',
                 color === index && 'outline-2 outline-offset-4 outline-text-accent',
               )}
-              style={{ left: index * 40, background: colors[index] }}
+              style={{ background: colors[index] }}
             />
           ))}
         </div>

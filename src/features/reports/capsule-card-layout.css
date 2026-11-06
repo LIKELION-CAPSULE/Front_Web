@@ -13,6 +13,7 @@
   .capsule-card-stage .capsule-share-card.share-light { color: var(--color-canvas); }
   .capsule-card-stage .capsule-card-header { position: absolute; top: 28px; left: 28px; width: 304px; height: 36px; }
   .capsule-card-stage .share-portrait { position: absolute; top: 80px; left: 28px; width: 304px; height: var(--card-portrait-height); margin: 0; }
+  .capsule-card-stage .capsule-room-title { width: var(--card-room-title-width); }
   .capsule-card-stage .capsule-card-intro,
   .capsule-card-stage .capsule-study-amount,
   .capsule-card-stage .capsule-card-focus,

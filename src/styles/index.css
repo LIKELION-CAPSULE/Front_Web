@@ -717,11 +717,11 @@
   .study-shell {
     position: relative;
     height: 100dvh;
-    min-height: 640px;
+    min-height: 0;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    padding: 0 16px 12px;
+    padding: 0 16px max(12px, env(safe-area-inset-bottom, 0px));
     background: var(--color-canvas);
   }
   .study-topbar {
@@ -758,7 +758,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .study-stage { position: relative; flex: 1; min-height: 0; container: study-stage / inline-size; }
+  .study-stage { position: relative; flex: 1; min-height: 0; overflow: auto; container: study-stage / inline-size; }
   .character-tile,
   .self-tile {
     --study-tile-radius: 16px;
@@ -826,7 +826,7 @@
   .tile-interaction:focus-visible { outline: none; }
   :is(.character-tile, .self-tile, .break-thumbnail):has(.tile-interaction:focus-visible) { outline: 2px solid var(--color-focus-ring); outline-offset: 4px; }
   .self-tile {
-    background: radial-gradient(ellipse at 50% 85%, color-mix(in srgb, var(--color-primary-soft) 31.37%, transparent), transparent 65%), var(--color-panel);
+    background: var(--color-panel);
   }
   .study-self-view {
     position: absolute;
@@ -836,7 +836,7 @@
     justify-content: flex-end;
     flex-direction: column;
   }
-  .study-self-view[data-avatar-style='portrait'] { justify-content: center; }
+  .study-self-view[data-avatar-style='portrait'] { justify-content: center; background: var(--color-panel); }
   .study-self-portrait { position: relative; }
   .study-avatar-background {
     position: absolute;
@@ -891,17 +891,17 @@
   .session-timer-goal { font-weight: 500; color: var(--color-muted); }
   .session-timer > strong { font-weight: 700; color: var(--color-ink); }
   .session-timer[data-finished='true'] > strong { color: var(--color-text-accent); }
-  .break-stage { position: relative; min-width: 0; min-height: 0; }
+  .break-stage { position: relative; min-width: 0; min-height: 0; container: study-stage / inline-size; }
   .break-stage > .character-tile {
     min-height: inherit;
   }
   .break-thumbnails {
     position: absolute;
     z-index: 12;
-    right: 20px;
-    bottom: 170px;
+    right: 12px;
+    bottom: 12px;
     display: flex;
-    max-width: calc(100% - 40px);
+    max-width: calc(100% - 24px);
     justify-content: flex-end;
     gap: 10px;
   }
@@ -912,17 +912,18 @@
   .break-stage[data-self-focused='true'] .break-friend-thumbnails {
     position: absolute;
     z-index: 12;
-    right: 20px;
-    bottom: 170px;
+    right: 12px;
+    bottom: 12px;
     display: flex;
-    max-width: calc(100% - 40px);
+    max-width: calc(100% - 24px);
     gap: 10px;
   }
   .break-thumbnail {
     --study-tile-radius: 10px;
     position: relative;
-    width: 120px;
-    height: 78px;
+    width: clamp(112px, calc((100cqw - 440px) / 2 - 24px), 260px);
+    height: auto;
+    aspect-ratio: 3 / 2;
     flex-shrink: 1;
     overflow: hidden;
     border: 1px solid transparent;
@@ -1083,12 +1084,8 @@
     height: 350px;
   }
   .study-shell {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-    padding: 0 10px 10px;
+    padding: 0 10px max(12px, env(safe-area-inset-bottom, 0px));
   }
-  .break-stage { min-height: max(640px, calc(100dvh - 120px)); }
   .study-demo-menu { position: fixed; top: 50px; left: 12px; right: 12px; width: min(300px, calc(100% - 24px)); }
   .capsule-share-page {
     gap: 28px;

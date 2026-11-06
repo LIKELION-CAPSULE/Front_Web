@@ -28,7 +28,7 @@ export function StudySelfView({ stream, showCamera, avatar, image, roomBackgroun
       {cameraVisible
         ? <VirtualBackgroundVideo stream={stream} label="내 카메라 미리보기" />
         : <>
-            {roomBackground && <div className="study-avatar-background" style={{ backgroundImage: `url(${JSON.stringify(roomBackground)})` }} aria-hidden="true" />}
+            {modelVisible && roomBackground && <div className="study-avatar-background" style={{ backgroundImage: `url(${JSON.stringify(roomBackground)})` }} aria-hidden="true" />}
             {modelVisible ? <div className="study-avatar-model"><Live2DFigure stage={model} /></div>
               : <Avatar src={image} settings={avatar} className={cn('study-self-portrait', expanded ? 'size-36 sm:size-44' : small ? 'size-12' : 'size-24 sm:size-28')} />}
             {(waitingForModel || modelFailed) && <div className="study-avatar-status" role="status">

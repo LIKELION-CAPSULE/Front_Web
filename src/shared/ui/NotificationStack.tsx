@@ -55,10 +55,11 @@ function NotificationCard({ item, onDismiss }: { item: NotificationItem; onDismi
   </motion.div>
 }
 
-export function NotificationStack({ items, onDismiss }: { items: readonly NotificationItem[]; onDismiss: (id: string) => void }) {
-  return createPortal(<aside className="notification-stack" aria-label="알림" aria-hidden={!items.length || undefined}>
+export function NotificationStack({ items, onDismiss, placement = 'viewport' }: { items: readonly NotificationItem[]; onDismiss: (id: string) => void; placement?: 'viewport' | 'container' }) {
+  const stack = <aside className="notification-stack" data-placement={placement} aria-label="알림" aria-hidden={!items.length || undefined}>
     <AnimatePresence initial={false}>
       {items.map(item => <NotificationCard key={item.id} item={item} onDismiss={onDismiss} />)}
     </AnimatePresence>
-  </aside>, document.body)
+  </aside>
+  return placement === 'container' ? stack : createPortal(stack, document.body)
 }
