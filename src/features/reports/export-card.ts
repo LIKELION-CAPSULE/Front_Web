@@ -84,19 +84,20 @@ export async function exportCard(record: StudyRecord, character: string, color: 
   ctx.clip()
   if (layers) drawRoomLayers(ctx, layers, { x: 28, y: 80, width: 304, height: portraitHeight })
   else if (portrait) {
-    const scale = Math.max(304 / portrait.naturalWidth, portraitHeight / portrait.naturalHeight)
+    const framing = completion?.cardFraming
+    const scale = Math.max(304 / portrait.naturalWidth, portraitHeight / portrait.naturalHeight) * (framing?.scale ?? 1)
     const width = portrait.naturalWidth * scale, height = portrait.naturalHeight * scale
-    ctx.drawImage(portrait, 28 + (304 - width) / 2, 80 + (portraitHeight - height) * (completion ? 0.1 : 0.35), width, height)
+    ctx.drawImage(portrait, 28 + (304 - width) * (framing?.x ?? .5), 80 + (portraitHeight - height) * (framing?.y ?? (completion ? .1 : .35)), width, height)
   }
   const shade = ctx.createLinearGradient(28, 80, 28 + 304 * 0.7, 80)
   shade.addColorStop(0, '#14152380')
   shade.addColorStop(1, '#14152300')
   ctx.fillStyle = shade
   ctx.fillRect(28, 80, 304, portraitHeight)
-  const titleWidth = 152
+  const titleWidth = layout.roomTitle.width
   ctx.shadowColor = '#00000066'
   ctx.shadowBlur = 8
-  ctx.drawImage(title, 40, 92, titleWidth, titleWidth * title.naturalHeight / title.naturalWidth)
+  ctx.drawImage(title, layout.padding + layout.roomTitle.inset, layout.portrait.top + layout.roomTitle.inset, titleWidth, titleWidth * title.naturalHeight / title.naturalWidth)
   ctx.restore()
   function textLine(text: string, y: number, role: 'body' | 'stat' | 'body-compact' | 'caption', family = 'Pretendard', fill: string = foreground) {
     const type = designTypography[role]

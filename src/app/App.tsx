@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router'
 import { AppLayout } from '@/app/layouts/AppLayout'
 import { DetailLayout } from '@/app/layouts/DetailLayout'
@@ -11,16 +11,23 @@ import MvpUnavailablePage from '@/pages/MvpUnavailablePage'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
 import { prepareBackground, prepareRoomId } from '@/features/session/prepare-location'
+import { loadStudyPage, preparedStudyPage } from './study-page-loader'
 
 const RoomDetailPage = lazy(() => import('@/pages/RoomDetailPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
 const PreparePage = lazy(() => import('@/pages/PreparePage'))
-const StudyPage = lazy(() => import('@/pages/StudyPage'))
+const LazyStudyPage = lazy(loadStudyPage)
 const ReportPage = lazy(() => import('@/pages/ReportPage'))
 const CapsuleCardPage = lazy(() => import('@/pages/CapsuleCardPage'))
 const KakaoCallbackPage = lazy(() => import('@/pages/KakaoCallbackPage'))
 const PasswordResetPage = lazy(() => import('@/pages/PasswordResetPage'))
+
+function StudyPage() {
+  // Keep one component type for this route's lifetime, including direct visits that use Suspense.
+  const [Page] = useState(() => preparedStudyPage() ?? LazyStudyPage)
+  return <Page />
+}
 
 export function App() {
   const location = useLocation()

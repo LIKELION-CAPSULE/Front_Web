@@ -40,7 +40,7 @@ import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { isMvpCharacter } from '@/features/mvp/policy'
 import { useExpressionDirector } from '@/features/live2d/use-live2d'
 import { useAvatarModel } from '@/features/live2d/use-avatar-model'
-import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
+import { StudyCharacterFigure } from '@/features/session/components/StudyCharacterFigure'
 import type { ExpressionCue } from '@/features/live2d/expression-scheduler'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { resolveStudyRoute } from '@/features/session/study-route'
@@ -413,18 +413,6 @@ export default function StudyPage() {
           />
         </div>
       </header>
-      <StudyNotifications
-        key={`${state.profile.userId}:${active.id}`}
-        goalNoticeKey={`${state.profile.userId}:${active.id}:${goal}`}
-        goalReached={sessionStudySeconds(active, now) >= goal}
-        studying={!resting && active.runningSince !== null && !leaveOpen && params.get('resume') !== '1'}
-        presenceUnknown={active.presenceKnown === false}
-        cameraError={devices.camera.error}
-        microphoneError={devices.microphone.error}
-        syncError={sync.error}
-        sessionError={leaveOpen || params.get('resume') === '1' || (active.phase === 'study' && active.runningSince === null) ? '' : sessionError}
-        onRetrySync={sync.retry}
-      />
       <div className="study-workspace" data-chat-open={chatOpen || undefined}>
       {active.phase === 'study' ? (
         <div className="study-stage">
@@ -508,7 +496,7 @@ export default function StudyPage() {
                       className={cn('break-thumbnail', speakingCharacters.has(character.id) && 'is-speaking')}
                       data-speaking={speakingCharacters.has(character.id) || undefined}
                     >
-                      {character.serverCharacter ? character.id === live2dCharacterId && live2d && <Live2DFigure stage={live2d} background={backend.visuals?.room?.backgroundImageUrl} /> : <img
+                      {character.serverCharacter ? character.id === live2dCharacterId && live2d && <StudyCharacterFigure character={character} stage={live2d} background={backend.visuals?.room?.backgroundImageUrl} /> : <img
                         src={getCharacterArtwork(character.id).affection}
                         alt=""
                         className="size-full object-cover"
@@ -533,7 +521,21 @@ export default function StudyPage() {
             replySpeaking={speakingCharacters.has(selected.id)}
             replyError={replyErrors[selected.id]}
           />
-          {dock(resting)}
+          <div className="study-controls" data-thumbnails={hasFocus || resting ? characters.length : 0}>
+            <StudyNotifications
+              key={`${state.profile.userId}:${active.id}`}
+              goalNoticeKey={`${state.profile.userId}:${active.id}:${goal}`}
+              goalReached={sessionStudySeconds(active, now) >= goal}
+              studying={!resting && active.runningSince !== null && !leaveOpen && params.get('resume') !== '1'}
+              presenceUnknown={active.presenceKnown === false}
+              cameraError={devices.camera.error}
+              microphoneError={devices.microphone.error}
+              syncError={sync.error}
+              sessionError={leaveOpen || params.get('resume') === '1' || (active.phase === 'study' && active.runningSince === null) ? '' : sessionError}
+              onRetrySync={sync.retry}
+            />
+            {dock(resting)}
+          </div>
       </div>
       <Dialog
         open={!leaveOpen && (params.get('resume') === '1' || (active.phase === 'study' && active.runningSince === null))}

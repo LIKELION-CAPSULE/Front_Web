@@ -8,11 +8,12 @@
   }
   .study-grid.is-one-to-one { grid-template-rows: minmax(0, 1fr); }
   .study-grid.is-focus {
+    --study-thumbnail-width: clamp(112px, calc((100cqw - 440px) / 2 - 24px), 260px);
     position: relative;
-    grid-template-columns: minmax(0, 1fr) repeat(var(--study-thumbnail-count), minmax(0, 260px));
+    grid-template-columns: minmax(0, 1fr) repeat(var(--study-thumbnail-count), minmax(0, var(--study-thumbnail-width)));
     grid-template-rows: minmax(0, 1fr);
     gap: 8px;
-    padding: 16px 16px 112px;
+    padding: 12px;
   }
   .study-grid.is-focus > .focus-tile {
     position: absolute;
@@ -33,23 +34,18 @@
   .study-grid.is-focus > :nth-child(3) { grid-column: 3; }
   .study-grid.is-focus > :nth-child(4) { grid-column: 4; }
   .study-grid.is-focus > :not(.focus-tile) .character-speech-bubble { display: none; }
-  /* With a single thumbnail on a wide stage, it tucks into the bottom-right corner, clear of the centered dock. */
-  @container study-stage (min-width: 960px) {
-    .study-grid.is-focus:not(:has(> :nth-child(3))) { padding: 12px; }
-  }
-
   @media (max-width: 1023px) {
     .study-grid {
-      min-height: calc(100dvh - 170px);
+      min-height: 0;
       grid-auto-rows: minmax(300px, 1fr);
     }
-    .study-grid.is-focus { min-height: max(480px, calc(100dvh - 170px)); }
+    .study-grid.is-focus { min-height: 0; }
   }
   @media (max-width: 699px) {
     .study-grid:not(.is-focus) {
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: none;
-      grid-auto-rows: 320px;
+      grid-auto-rows: minmax(240px, 1fr);
     }
   }
 }

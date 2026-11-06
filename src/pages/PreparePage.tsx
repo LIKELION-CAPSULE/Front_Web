@@ -5,6 +5,7 @@ import { useBackend } from '@/features/backend/backend-context'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { ApiError } from '@/shared/api/client'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
+import { getRoomPoster } from '@/features/rooms/room-poster'
 import { RoomCompanions } from '@/features/rooms/components/RoomCompanions'
 import AccountSettingsDialog from '@/features/profile/components/AccountSettingsDialog'
 import { TierSelector } from '@/features/session/components/TierSelector'
@@ -12,6 +13,7 @@ import { StudyGoalPicker } from '@/features/session/components/StudyGoalPicker'
 import { Button } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
 import { PrepareDialog } from '@/features/session/components/PrepareDialog'
+import type { PrepareDepartureHandle } from '@/features/session/components/PrepareDeparture'
 import { prepareBackground } from '@/features/session/prepare-location'
 import { Icon } from '@/shared/ui/Icon'
 import NotFoundPage from './NotFoundPage'
@@ -19,6 +21,7 @@ import MvpUnavailablePage from './MvpUnavailablePage'
 import { MvpGate } from '@/features/mvp/MvpGate'
 import { isMvpRoom, MVP_GOAL_MINUTES } from '@/features/mvp/policy'
 import './prepare.css'
+import { loadStudyPage } from '@/app/study-page-loader'
 
 export default function PreparePage() {
   const { roomId } = useParams()
@@ -27,6 +30,9 @@ export default function PreparePage() {
   const backend = useBackend()
   const [error, setError] = useState('')
   const [starting, setStarting] = useState(false)
+  const departure = useRef<PrepareDepartureHandle>(null)
+  const startInFlight = useRef(false)
+  const mounted = useRef(true)
   const navigate = useNavigate()
   const closing = useRef(false)
   const scheduleSection = useRef<HTMLElement>(null)
@@ -39,6 +45,15 @@ export default function PreparePage() {
     document.title = 'CAPSULE · 공부 준비'
     return () => { document.title = title }
   }, [])
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
+  useEffect(() => {
+    if (!error || starting) return
+    const frame = requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-prepare-start]')?.focus({ preventScroll: true }))
+    return () => cancelAnimationFrame(frame)
+  }, [error, starting])
   function close() {
     if (starting || closing.current) return
     closing.current = true
@@ -56,26 +71,47 @@ export default function PreparePage() {
       </Dialog>
     )
   if (!room.serverRoom && !isMvpRoom(room.id)) return <Dialog open title="공부 준비" onClose={close} className="prepare-dialog"><MvpUnavailablePage /></Dialog>
-  if (state.activeSession) return <Navigate to={`/study/${state.activeSession.id}`} replace />
+  // The server can finish before the plan has entered the capsule.
+  if (state.activeSession && !starting) return <Navigate to={`/study/${state.activeSession.id}`} replace />
 
   async function start() {
-    if (starting || !room?.characters[0]) return
+    if (startInFlight.current || !room?.characters[0]) return
+    startInFlight.current = true
     setStarting(true); setError('')
+    let departing = false
     try {
       if (backend.activeSummary?.sessionId) { navigate(`/study/${backend.activeSummary.sessionId}?resume=1`, { replace: true }); return }
-      const session = await backend.startSession(room.id, room.characters[0].id, MVP_GOAL_MINUTES)
-      navigate(`/study/${session.id}`, { replace: true })
+      const nextScreen = loadStudyPage()
+      const animation = departure.current?.play({
+        nickname: state.profile.name, targetMinutes: MVP_GOAL_MINUTES,
+        characterName: room.characters[0].name, createdAt: Date.now(),
+        posterUrl: getRoomPoster(room),
+      }) ?? Promise.resolve()
+      const [session] = await Promise.all([backend.startSession(room.id, room.characters[0].id, MVP_GOAL_MINUTES), animation, nextScreen])
+      if (!mounted.current) return
+      departing = true
+      const enterStudy = () => navigate(`/study/${session.id}`, { replace: true })
+      if (departure.current) await departure.current.depart(enterStudy)
+      else enterStudy()
     } catch (reason) {
+      departing = false
+      if (!mounted.current) return
+      departure.current?.reset()
       if (reason instanceof ApiError && reason.code === 'SESSION_ALREADY_IN_PROGRESS' && typeof reason.detail.sessionId === 'number') {
-        await backend.reload()
-        navigate(`/study/${reason.detail.sessionId}?resume=1`, { replace: true })
+        try {
+          await backend.reload()
+          if (mounted.current) navigate(`/study/${reason.detail.sessionId}?resume=1`, { replace: true })
+        } catch (reloadError) {
+          if (mounted.current) setError(reloadError instanceof Error ? reloadError.message : '진행 중인 공부를 확인하지 못했어요.')
+        }
       } else setError(reason instanceof Error ? reason.message : '공부를 시작하지 못했어요.')
     }
-    finally { setStarting(false) }
+    // Keep the guard until unmount: browser Back can interrupt a handoff before its route update commits.
+    finally { startInFlight.current = false; if (mounted.current && !departing) setStarting(false) }
   }
 
   return (
-    <PrepareDialog open title="공부 준비" showHeader={false} onClose={close} dismissible={!starting}>
+    <PrepareDialog open title="공부 준비" showHeader={false} onClose={close} dismissible={!starting} departureRef={departure}>
       <div className="flex items-start justify-between gap-4">
         <Button variant="ghost" size="sm" disabled={starting} onClick={close} className="prepare-back">
           <Icon name="arrow" size={16} className="rotate-180" />돌아가기
@@ -111,7 +147,7 @@ export default function PreparePage() {
         </MvpGate>
       </section>
       {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
-      <Button className="mt-5 w-full" loading={starting} onClick={() => { void start() }}>시작하기</Button>
+      <Button data-prepare-start className="mt-5 w-full" loading={starting} onClick={() => { void start() }}>시작하기</Button>
       {scheduleOpen && <AccountSettingsDialog
         initialView="schedule"
         openScheduleEditor

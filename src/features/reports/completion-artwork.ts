@@ -7,11 +7,11 @@ import malfoyCompletion from '@/assets/characters/malfoy-ts-v1/web/malfoy-ts-com
 import hogwartsBackground from '@/assets/characters/malfoy-ts-v1/web/hogwarts-night-completion-background-v3.webp'
 import malfoyForeground from '@/assets/characters/malfoy-ts-v1/web/malfoy-ts-completion-character-v3.webp'
 
-export const completionArtwork: Record<string, { src: string; backgroundSrc?: string; foregroundSrc?: string; quote: string }> = {
+export const completionArtwork: Record<string, { src: string; backgroundSrc?: string; foregroundSrc?: string; quote: string; cardFraming?: { scale: number; x: number; y: number } }> = {
   chaerin: { src: chaerin, backgroundSrc: classroomBackground, foregroundSrc: chaerinForeground, quote: '오늘 꽤 잘했네. 내일도 네 자리 비워 둘게.' },
   sua: { src: sua, quote: '오늘도 한 걸음 나아갔네. 같이해서 더 좋았어.' },
   dahee: { src: dahee, quote: '우리 오늘도 해냈다! 다음에도 같이 달려 보자.' },
-  'malfoy-ts': { src: malfoyCompletion, backgroundSrc: hogwartsBackground, foregroundSrc: malfoyForeground, quote: '' },
+  'malfoy-ts': { src: malfoyCompletion, backgroundSrc: hogwartsBackground, foregroundSrc: malfoyForeground, quote: '', cardFraming: { scale: 1.1, x: 0, y: 0 } },
 }
 
 /** Frontend asset keys are independent of the backend's numeric character IDs. */

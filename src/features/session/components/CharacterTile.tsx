@@ -4,7 +4,7 @@ import { cn } from '@/shared/lib/cn'
 import { CharacterFigure } from './CharacterFigure'
 import type { FigureVariant } from './CharacterFigure'
 import type { SessionModelStage } from '@/features/live2d/session-model'
-import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
+import { StudyCharacterFigure } from './StudyCharacterFigure'
 import { CharacterSpeechBubble } from './CharacterSpeechBubble'
 
 export function CharacterTile({
@@ -50,7 +50,7 @@ export function CharacterTile({
           {character.name}{variant !== 'small' && ` · ${status}`}
         </span>
       </div>
-      {character.serverCharacter ? live2d && <Live2DFigure stage={live2d} background={background} /> : <CharacterFigure
+      {character.serverCharacter ? live2d && <StudyCharacterFigure character={character} stage={live2d} background={background} /> : <CharacterFigure
         variant={variant}
         characterId={character.artworkId ?? character.id}
         pose={variant === 'rest' ? 'affection' : active ? 'reaction' : 'study'}

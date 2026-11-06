@@ -43,7 +43,11 @@ class ReviewImageStage implements SessionModelStage {
 
   private mount() {
     const host = this.hosts.at(-1)
-    if (host) host.append(this.image)
+    if (host) {
+      // The seated review uses a transparent full figure, fitted like the model canvas.
+      this.image.style.objectFit = host.closest('.study-character-scene') ? 'contain' : 'cover'
+      host.append(this.image)
+    }
     else this.image.remove()
   }
 

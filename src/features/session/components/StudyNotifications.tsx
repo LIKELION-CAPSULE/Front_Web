@@ -67,5 +67,5 @@ export function StudyNotifications({ goalNoticeKey, goalReached, studying, prese
   useStudyNotice(setItems, 'study-session', '공부 처리 오류', 'error', sessionError)
   useGoalNotice(setItems, goalNoticeKey, goalReached, studying)
 
-  return <NotificationStack items={items} onDismiss={id => setItems(current => current.filter(item => item.id !== id))} />
+  return <NotificationStack items={items} placement="container" onDismiss={id => setItems(current => current.filter(item => item.id !== id))} />
 }
