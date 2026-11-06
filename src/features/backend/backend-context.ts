@@ -19,6 +19,8 @@ export type BackendContextValue = {
   affinities: Record<string, AffinityChange>
   updateAffinity: (characterId: number, value?: AffinityChange) => void
   refreshHome: () => Promise<void>
+  /** Loads the avatar choices into `avatars` (cached). */
+  ensureAvatars: () => Promise<void>
   reload: () => Promise<void>
   authenticate: (result: LoginResponse) => Promise<MeResponse>
   logout: () => Promise<void>

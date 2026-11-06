@@ -1,4 +1,4 @@
-// OpenAPI 3.1 snapshot: docs/BACKEND_OPENAPI_2026-11-05.json.
+// Matches the backend OpenAPI (https://backendlab-production-3052.up.railway.app/v3/api-docs), checked 2026-11-06.
 // Fields without required remain optional; adapters validate the fields needed by the UI.
 
 export type StartRequest = {
