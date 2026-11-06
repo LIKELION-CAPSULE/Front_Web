@@ -6,12 +6,13 @@ import {
 import type { Material } from 'three'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { designColors, designPalette } from '@/shared/design/tokens'
-import { capsuleLanding, capsuleLidPose, clamp01, ease, prepareFormLayout, prepareCapsuleScale, PREPARE_SHAPE, LID_OPEN_START_MS, LID_OPEN_END_MS, LID_CLOSE_START_MS, PREPARE_DEPARTURE_MS, PREPARE_STORE_MS, PREPARE_TRAVEL_MS } from './prepare-capsule-motion'
+import { capsuleLanding, capsuleLidPose, clamp01, ease, prepareFormLayout, prepareCapsuleFloor, prepareCapsuleScale, PREPARE_SHAPE, DOT_FORM_START_MS, DOT_BURST_MS, LID_OPEN_START_MS, LID_OPEN_END_MS, LID_CLOSE_START_MS, PREPARE_DEPARTURE_MS, PREPARE_STORE_MS, PREPARE_TRAVEL_MS } from './prepare-capsule-motion'
 import type { PreparePaper } from './prepare-paper-snapshot'
 import type { CapsuleInscription } from './prepare-capsule-personalization'
 import { engravePrepareCapsule } from './prepare-capsule-engraving'
 import { createPrepareDots } from './prepare-capsule-dots'
-import { createPrepareCapsuleHalves } from './prepare-capsule-shape'
+import { createPrepareCapsuleHalves, keepPrepareCapsuleInFront } from './prepare-capsule-shape'
+import { prepareHalftoneFragment } from './prepare-halftone'
 
 export type PrepareCapsulePhase = 'dropping' | 'opening' | 'halftone' | 'burst' | 'gathering' | 'closing' | 'sealed'
 export type PrepareCapsuleScene = {
@@ -38,11 +39,13 @@ export function createPrepareCapsuleScene(host: HTMLElement, paper: PreparePaper
   const environment = pmrem.fromScene(room, .04).texture
   room.dispose()
   scene.environment = environment
+  // Lift the room's long reflection onto the upper shoulder, clear of the front-facing engraving.
+  scene.environmentRotation.x = -Math.PI * .4
   scene.add(new AmbientLight(0xffffff, .15))
-  const key = new DirectionalLight(0xfff5ec, 1.3)
-  key.position.set(-250, 400, 700)
-  const rim = new DirectionalLight(0xc4b9f3, 1.6)
-  rim.position.set(350, 120, -150)
+  const key = new DirectionalLight(0xfff5ec, 1.1)
+  key.position.set(-320, 850, 320)
+  const rim = new DirectionalLight(0xc4b9f3, 1.2)
+  rim.position.set(420, 350, -300)
   scene.add(key, rim)
 
   const texture = new CanvasTexture(paper.canvas)
@@ -50,6 +53,12 @@ export function createPrepareCapsuleScene(host: HTMLElement, paper: PreparePaper
   texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4)
   const geometry = new PlaneGeometry(paper.bounds.width, paper.bounds.height)
   const front = new MeshBasicMaterial({ map: texture, transparent: true, toneMapped: false, depthWrite: false })
+  const halftoneProgress = { value: 0 }
+  front.onBeforeCompile = shader => {
+    shader.uniforms.uPrepareHalftoneProgress = halftoneProgress
+    shader.fragmentShader = 'uniform float uPrepareHalftoneProgress;\n' + shader.fragmentShader.replace('#include <alphamap_fragment>', '#include <alphamap_fragment>\n' + prepareHalftoneFragment)
+  }
+  front.customProgramCacheKey = () => 'prepare-diagonal-halftone-v1'
   const sheet = new Group()
   sheet.add(new Mesh(geometry, front))
   scene.add(sheet)
@@ -65,9 +74,11 @@ export function createPrepareCapsuleScene(host: HTMLElement, paper: PreparePaper
   const capsule = new Group()
   capsule.add(cap.group, body.group)
   const seamMaterial = new MeshBasicMaterial({ color: designPalette.violet['200'], transparent: true, opacity: 0, depthWrite: false })
-  const seam = new Mesh(new TorusGeometry(PREPARE_SHAPE.radius, .002, 8, 96), seamMaterial)
+  // Exterior and lips always cover the poster/particles; keep the inner walls at physical depth.
+  keepPrepareCapsuleInFront(cap.outer, cap.materials[2]!, body.outer, body.materials[2]!, seamMaterial)
+  const seam = new Mesh(new TorusGeometry(PREPARE_SHAPE.capRadius, .002, 8, 96), seamMaterial)
   seam.rotation.x = Math.PI / 2
-  seam.position.y = 0
+  seam.position.y = PREPARE_SHAPE.capRim
   capsule.add(seam)
   scene.add(capsule)
   const shadowCanvas = document.createElement('canvas')
@@ -107,39 +118,37 @@ export function createPrepareCapsuleScene(host: HTMLElement, paper: PreparePaper
   function draw(now: number) {
     if (disposed) return
     const elapsed = Math.max(now - startedAt, complete ? PREPARE_DEPARTURE_MS : 0)
-    const landing = capsuleLanding(elapsed, width, height, scale, seed)
+    const formLayout = prepareFormLayout(width, height, paper.bounds.width, paper.bounds.height, paper.bounds.x, paper.bounds.y)
+    const floor = prepareCapsuleFloor(height, paper.bounds.bottom, scale)
+    const lift = scale * PREPARE_SHAPE.capRadius
+    const landing = capsuleLanding(elapsed, width, height, scale, seed, floor, formLayout.x)
     const open = clamp01((elapsed - LID_OPEN_START_MS) / (LID_OPEN_END_MS - LID_OPEN_START_MS))
     const close = clamp01((elapsed - LID_CLOSE_START_MS) / (PREPARE_STORE_MS - LID_CLOSE_START_MS))
     const lid = open * (1 - close)
-    const center = interval(elapsed, PREPARE_STORE_MS, 4960)
-    const reveal = interval(elapsed, 4580, 4960)
+    const center = interval(elapsed, PREPARE_STORE_MS, PREPARE_STORE_MS + 380)
+    const reveal = interval(elapsed, PREPARE_STORE_MS - 80, PREPARE_STORE_MS + 300)
     engraving.update(reveal)
-    key.position.x = -250 + 600 * interval(elapsed, 4580, 5040)
-    const nextPhase = elapsed < LID_OPEN_START_MS ? 'dropping' : elapsed < 1850 ? 'opening' : elapsed < 2240 ? 'halftone' : elapsed < 2900 ? 'burst' : elapsed < LID_CLOSE_START_MS ? 'gathering' : elapsed < PREPARE_STORE_MS ? 'closing' : 'sealed'
+    // A small overhead sweep preserves the reveal without a highlight crossing the text.
+    key.position.x = -320 + 120 * interval(elapsed, PREPARE_STORE_MS - 80, PREPARE_STORE_MS + 380)
+    const nextPhase = elapsed < LID_OPEN_START_MS ? 'dropping' : elapsed < DOT_FORM_START_MS ? 'opening' : elapsed < DOT_BURST_MS ? 'halftone' : elapsed < DOT_BURST_MS + 980 ? 'burst' : elapsed < LID_CLOSE_START_MS ? 'gathering' : elapsed < PREPARE_STORE_MS ? 'closing' : 'sealed'
     if (!complete && phase !== nextPhase) { phase = nextPhase; onPhase(nextPhase) }
     if (!complete) {
-      const makeRoom = interval(elapsed, 0, 320)
-      const layout = prepareFormLayout(width, height, paper.bounds.width, paper.bounds.height)
-      sheet.scale.setScalar(1 + (layout.scale - 1) * makeRoom)
-      sheet.position.set(
-        (paper.bounds.x + paper.bounds.width / 2 - width / 2) * (1 - makeRoom),
-        (height / 2 - paper.bounds.y - paper.bounds.height / 2) * (1 - makeRoom) + layout.y * makeRoom,
-        0,
-      )
+      sheet.scale.setScalar(1)
+      sheet.position.set(formLayout.x, formLayout.y, 0)
       sheet.rotation.set(0, 0, 0)
-      front.opacity = 1 - dots.formation(elapsed)
-      sheet.visible = front.opacity > .001
+      halftoneProgress.value = dots.formation(elapsed)
+      sheet.visible = elapsed >= DOT_FORM_START_MS && halftoneProgress.value < 1
     } else sheet.visible = false
-    capsule.position.set(landing.x * (1 - center), landing.y * (1 - center) + (complete && travelStartedAt === null ? Math.sin(elapsed / 550) * 3 : 0), landing.z)
-    capsule.rotation.set(landing.pitch, landing.yaw - .14 * lid, landing.angle)
+    capsule.position.set(landing.x * (1 - center), landing.y * (1 - center) + lift * center + (complete && travelStartedAt === null ? Math.sin(elapsed / 550) * 3 : 0), landing.z)
+    capsule.rotation.set(landing.pitch, landing.yaw - .52 * ease(lid), landing.angle)
     capsule.scale.set(scale * landing.squash, scale * (1 + landing.contact * .015), scale)
     const lidPose = capsuleLidPose(lid)
+    // Balance the full silhouette while the longer sleeve pulls out, preserving room at both screen edges.
+    capsule.position.x -= lidPose.y * scale * .5 * Math.cos(capsule.rotation.y)
     cap.group.position.set(lidPose.x, lidPose.y, lidPose.z)
     cap.group.rotation.z = lidPose.angle
-    const opacity = interval(elapsed, 0, 90)
-    shellMaterials.forEach(material => { material.opacity = opacity })
     seamMaterial.opacity = close >= .99 ? .12 : 0
-    shadow.position.set(landing.x, height * .08 * (1 - center) - scale * .38, -100)
+    shadow.position.set(capsule.position.x, capsule.position.y - scale * .38, -100)
     shadow.scale.set(scale * 2.8 + landing.altitude * .2, scale * .33 + landing.altitude * .03, 1)
     shadowMaterial.opacity = .65 * (1 - clamp01(landing.altitude / height)) + landing.contact * .12
     dots.update(elapsed, sheet, capsule)
@@ -149,7 +158,7 @@ export function createPrepareCapsuleScene(host: HTMLElement, paper: PreparePaper
       const pan = ease((progress - .12) / .88)
       // Portrait cameras see farther right for the same yaw; carry the capsule completely beyond that view.
       capsule.position.x = (width * 1.25 + height * .35) * roll
-      capsule.position.y = -height * .07 * roll + Math.sin(progress * Math.PI) * lyingScale * .09
+      capsule.position.y = lift - height * .07 * roll + Math.sin(progress * Math.PI) * lyingScale * .09
       capsule.rotation.set(progress * Math.PI * 1.4, -.12 * pan, -Math.PI / 2 - roll * Math.PI * .65)
       camera.position.x = width * .16 * pan
       camera.rotation.y = -.18 * pan
@@ -177,7 +186,7 @@ export function createPrepareCapsuleScene(host: HTMLElement, paper: PreparePaper
     dots.mesh.visible = false
     cap.group.position.set(0, 0, 0); cap.group.rotation.z = 0
     shellMaterials.forEach(material => { material.opacity = 1 })
-    capsule.position.set(0, 0, 20); capsule.rotation.set(0, 0, -Math.PI / 2); capsule.scale.setScalar(lyingScale)
+    capsule.position.set(0, lyingScale * PREPARE_SHAPE.capRadius, 20); capsule.rotation.set(0, 0, -Math.PI / 2); capsule.scale.setScalar(lyingScale)
     engraving.update(1)
     renderer.render(scene, camera)
   }

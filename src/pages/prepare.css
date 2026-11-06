@@ -256,20 +256,19 @@ html:has(.prepare-journey:modal) { overflow: hidden; overscroll-behavior: none; 
   left: 50%;
   display: none;
   width: min(520px, 88vw, 68dvh);
-  aspect-ratio: 2.32;
   overflow: hidden;
   border-radius: 999px;
-  background: linear-gradient(180deg, #ffffff70, transparent 35%, #24123c40 85%), linear-gradient(90deg, var(--color-primary) 50%, #c4b5fd 50%);
+  background: linear-gradient(180deg, #ffffff70, transparent 35%, #24123c40 85%), linear-gradient(90deg, var(--color-primary) var(--prepare-capsule-joint), #c4b5fd var(--prepare-capsule-joint));
   box-shadow: inset 0 2px 4px #ffffff94, inset 0 -4px 9px #28153f66, 0 22px 28px -14px #08051199;
-  transform: translate(-50%, -50%) rotate(3deg);
+  transform: translate(-50%, -100%) rotate(3deg);
 }
-.prepare-capsule-seam { position: absolute; inset: 0 auto 0 50%; width: 2px; background: #f2e5ff8c; box-shadow: -2px 0 3px #331c6440; }
+.prepare-capsule-seam { position: absolute; inset: 0 auto 0 var(--prepare-capsule-joint); width: 2px; background: #f2e5ff8c; box-shadow: -2px 0 3px #331c6440; }
 .prepare-capsule-info, .prepare-capsule-date { position: absolute; top: 50%; overflow: hidden; color: #2e234e; text-align: center; text-shadow: 0 1px 1px #ffffff78, 0 -1px 1px #24123c52; transform: translateY(-50%); }
-.prepare-capsule-info { right: 53%; left: 7%; display: flex; flex-direction: column; gap: 4px; }
+.prepare-capsule-info { right: calc(103% - var(--prepare-capsule-joint)); left: 7%; display: flex; flex-direction: column; gap: 4px; }
 .prepare-capsule-info strong, .prepare-capsule-info span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .prepare-capsule-info strong { font-size: clamp(13px, 3.8vw, 22px); font-weight: 600; }
 .prepare-capsule-info span { font-size: clamp(10px, 2.6vw, 14px); }
-.prepare-capsule-date { right: 6%; left: 55%; font-size: clamp(11px, 3.2vw, 18px); white-space: nowrap; }
+.prepare-capsule-date { right: 6%; left: calc(var(--prepare-capsule-joint) + 5%); font-size: clamp(11px, 3.2vw, 18px); white-space: nowrap; }
 .prepare-departure[data-renderer='fallback'] .prepare-capsule-fallback { display: block; }
 @media (max-width: 767px) {
   .app-dialog.prepare-dialog--folder {

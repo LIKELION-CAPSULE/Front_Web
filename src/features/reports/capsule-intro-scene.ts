@@ -10,7 +10,7 @@ import { designColors, designPalette } from '@/shared/design/tokens'
 import { createChips, createFracture } from './capsule-fracture'
 import { createRibbons, createSparkles } from './capsule-light'
 import { createPost } from './capsule-post'
-import { CAPSULE_RADIUS as R, CAPSULE_CAP_RADIUS as CAP_R, CAPSULE_SEAM_Y as SEAM_Y, createCapsuleShell as shell } from './capsule-shell'
+import { CAPSULE_CAP_RADIUS as CAP_R, CAPSULE_SEAM_Y as SEAM_Y, createCapsuleHalves } from './capsule-shell'
 
 /** The card's four corners in viewport pixels (top left, top right, bottom right, bottom left). */
 export type CardQuad = readonly (readonly [number, number])[]
@@ -76,8 +76,7 @@ export function createCapsuleScene(host: HTMLElement, options: { getCardQuad?: (
   rimLight.position.set(-3, 2.5, -4)
   scene.add(key, rimLight)
 
-  const capShell = shell(designPalette.violet['300'], CAP_R, 0.62, SEAM_Y, true)
-  const bodyShell = shell(designColors.primary, R, -0.62, 0.32, false)
+  const { cap: capShell, body: bodyShell } = createCapsuleHalves(designColors.primary, designPalette.violet['300'])
   const cap = capShell.group
   const body = bodyShell.group
   const pill = new Group()

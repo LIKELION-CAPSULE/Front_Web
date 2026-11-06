@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { capsuleLanding, dotFlight, DOT_BURST_MS, DOT_CLEAR_MS, seededRandom, type DotRoute } from '../src/features/session/prepare-capsule-motion.ts'
+import { capsuleLanding, dotFlight, DOT_BURST_MS, DOT_CLEAR_MS, PREPARE_SHAPE, seededRandom, type DotRoute } from '../src/features/session/prepare-capsule-motion.ts'
 
 test('random routes are repeatable for one scene and vary between scenes', () => {
   const first = seededRandom(23), repeat = seededRandom(23), other = seededRandom(24)
@@ -35,14 +35,14 @@ test('floor contact rebounds, damps and keeps the capsule above the floor in por
 })
 
 const route: DotRoute = {
-  origin: { x: 1.8, y: -.7, z: .2 }, scatter: { x: 1.1, y: .4, z: .4 },
-  delay: 53, scatterMs: 450, flightMs: 950,
+  origin: { x: 1.8, y: -.7, z: 1 }, scatter: { x: -2.1, y: 3.4, z: 1 },
+  delay: 53, scatterMs: 850, flightMs: 1750,
 }
-const target = { x: .05, y: -.16, z: .04 }, approach = { x: .04, y: .02, z: .01 }
+const target = { x: .05, y: -.52, z: .04 }, approach = { x: .04, y: .02, z: .01 }
 
 test('scatter, homing and aperture entry join without position or velocity jumps', () => {
   const firstJoin = DOT_BURST_MS + route.delay + route.scatterMs, step = .05
-  for (const join of [firstJoin, firstJoin + route.flightMs * .65]) {
+  for (const join of [firstJoin, firstJoin + route.flightMs * .45, firstJoin + route.flightMs * .75]) {
     const before = dotFlight(route, join - step, target, approach)
     const at = dotFlight(route, join, target, approach)
     const after = dotFlight(route, join + step, target, approach)
@@ -56,7 +56,7 @@ test('scatter, homing and aperture entry join without position or velocity jumps
 test('all staggered circles reach the capsule and disappear before the lid closes', () => {
   const random = seededRandom(3)
   for (let index = 0; index < 300; index++) {
-    const staggered = { ...route, delay: random() * 140, scatterMs: 360 + random() * 140, flightMs: 850 + random() * 200 }
+    const staggered = { ...route, delay: random() * 200, scatterMs: 700 + random() * 250, flightMs: 1600 + random() * 300 }
     assert.deepEqual(dotFlight(staggered, DOT_CLEAR_MS, target, approach), { ...target, size: 0 })
     for (let ms = DOT_BURST_MS; ms < DOT_CLEAR_MS; ms += 77) {
       const point = dotFlight(staggered, ms, target, approach)
@@ -64,4 +64,15 @@ test('all staggered circles reach the capsule and disappear before the lid close
       assert.ok(point.size >= 0 && point.size <= 1)
     }
   }
+})
+
+test('circles keep their size while crossing the mouth and disappear only deep inside the capsule', () => {
+  for (let progress = .7; progress < 1; progress += .005) {
+    const point = dotFlight(route, DOT_BURST_MS + route.delay + route.scatterMs + route.flightMs * progress, target, approach)
+    assert.equal(point.size, 1)
+    if (point.y <= PREPARE_SHAPE.bodyRim) assert.ok(Math.hypot(point.x, point.z) < .15)
+  }
+  const end = dotFlight(route, DOT_BURST_MS + route.delay + route.scatterMs + route.flightMs, target, approach)
+  assert.ok(end.y < -.4)
+  assert.equal(end.size, 0)
 })
