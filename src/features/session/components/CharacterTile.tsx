@@ -15,6 +15,7 @@ export function CharacterTile({
   speaking,
   status = '공부 중',
   speech,
+  speechKey,
   onActivate,
   onDismiss,
   live2d,
@@ -28,6 +29,8 @@ export function CharacterTile({
   speaking?: boolean
   status?: string
   speech?: string
+  /** Changes for every new line, so the bubble restarts typing even when the text repeats. */
+  speechKey?: number
   onActivate?: () => void
   onDismiss?: () => void
   /** The server character's model is fully prepared before this screen opens. */
@@ -62,7 +65,7 @@ export function CharacterTile({
           aria-expanded={!!focus}
         />
       )}
-      {speech && <CharacterSpeechBubble name={character.name} text={speech} expanded={variant === 'focus' || variant === 'rest'} onDismiss={onDismiss} />}
+      {speech && <CharacterSpeechBubble key={speechKey} name={character.name} text={speech} expanded={variant === 'focus' || variant === 'rest'} onDismiss={onDismiss} />}
       {children}
     </article>
   )
