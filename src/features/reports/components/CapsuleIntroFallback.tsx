@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import type { CardQuad } from '../capsule-intro-scene'
 
 export type CapsuleIntroProps = {
   /** The record has loaded: the pill stops shaking at the end of the current cycle and opens. */
@@ -7,6 +8,8 @@ export type CapsuleIntroProps = {
   onOpen: () => void
   /** The canvas has faded out. */
   onDone: () => void
+  /** The card's corners on screen, so light passing behind the card is hidden; null while it is not shown. */
+  getCardQuad?: () => CardQuad | null
 }
 
 /**

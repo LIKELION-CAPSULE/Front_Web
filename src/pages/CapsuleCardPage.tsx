@@ -26,10 +26,8 @@ import { loadStoryFont } from '@/shared/design/story-font'
 import { fitCardQuote, previewMeasure } from '@/features/reports/card-quote'
 import { isMvpCharacter, isMvpRoom } from '@/features/mvp/policy'
 import MvpUnavailablePage from './MvpUnavailablePage'
-import { CapsuleCardBack } from '@/features/reports/components/CapsuleCardBack'
 import { CapsuleIntroFallback, type CapsuleIntroProps } from '@/features/reports/components/CapsuleIntroFallback'
-import { CountUpText, type CountUpHandle } from '@/features/reports/components/CountUpText'
-import { revealCapsuleCard } from '@/features/reports/capsule-card-reveal'
+import { capsuleCardQuad, revealCapsuleCard } from '@/features/reports/capsule-card-reveal'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import '@/features/reports/capsule-card-reveal.css'
 
@@ -40,7 +38,7 @@ const CapsuleIntro = lazy<ComponentType<CapsuleIntroProps>>(() => import('@/feat
 const colors = capsuleCardColors
 const names = ['보라', '검정', '연보라', '라벤더']
 
-/** Intro phases: the capsule shakes while loading, then opens and the card flips in. */
+/** Intro phases: the capsule shakes while loading, then bursts open and the card turns in. */
 type IntroPhase = 'loading' | 'opening'
 
 export default function CapsuleCardPage() {
@@ -58,6 +56,11 @@ export default function CapsuleCardPage() {
   const available = !!room && (!!room.serverRoom || isMvpRoom(room.id))
   // Without a card to open into (error, unknown or unavailable room), the usual screens show instead.
   const introPhase = intro && !reduced && !error && !(record && !available) ? intro : null
+  const skipped = !!intro && reduced
+  useEffect(() => {
+    // A skipped intro forgets the request as well, so a reload after turning reduced motion off does not play it.
+    if (skipped) navigate(`${window.location.pathname}${window.location.search}`, { replace: true, state: null })
+  }, [skipped, navigate])
   useEffect(() => {
     let alive = true
     void loadStoryFont().then(font => { if (alive) setStoryFont(font) })
@@ -84,7 +87,7 @@ export default function CapsuleCardPage() {
         <>
           <p role="status" className="sr-only">{record ? '캡슐 카드를 열고 있어요…' : '캡슐 카드를 불러오고 있어요…'}</p>
           <Suspense fallback={null}>
-            <CapsuleIntro ready={!!record} onOpen={() => setIntro('opening')} onDone={() => settle('capsule')} />
+            <CapsuleIntro ready={!!record} onOpen={() => setIntro('opening')} onDone={() => settle('capsule')} getCardQuad={capsuleCardQuad} />
           </Suspense>
         </>
       )}
@@ -110,7 +113,6 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
   const cardRoot = useRef<HTMLDivElement>(null)
   const flipper = useRef<HTMLDivElement>(null)
   const panel = useRef<HTMLElement>(null)
-  const studyCount = useRef<CountUpHandle>(null)
   const revealed = useRef(onRevealed)
   useLayoutEffect(() => { revealed.current = onRevealed })
   const opening = intro === 'opening'
@@ -120,12 +122,10 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
       root: cardRoot.current!,
       flipper: flipper.current!,
       panel: panel.current,
-      studySeconds: record.studySeconds,
-      count: seconds => studyCount.current?.show(seconds),
       onComplete: () => revealed.current(),
     })
     return () => { timeline.kill() }
-  }, [opening, record.studySeconds])
+  }, [opening])
   const participants = room.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && record.characterIds.includes(character.id))
   const friends = participants.length ? participants : [room.characters[0]!]
   const character = friends.find(friend => friend.id === params.get('friend')) ?? friends[0]!
@@ -206,7 +206,7 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
               <p className="capsule-card-intro type-body">
                 {withParticle(character.name, '과', '와')} 함께한 공부
               </p>
-              <p className="capsule-study-amount"><CountUpText ref={studyCount} value={record.studySeconds} format={studyAmount} /></p>
+              <p className="capsule-study-amount">{studyAmount(record.studySeconds)}</p>
               <p className="capsule-card-focus type-body-compact">
                 {capsuleFocusCopy(record)}
               </p>
@@ -217,7 +217,6 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
                 {quote.lines.map((line, index) => <span key={index}>{line}</span>)}
               </p>
             </CapsuleCardSurface>
-            {intro && <CapsuleCardBack />}
           </div>
         </div>
       </div>
