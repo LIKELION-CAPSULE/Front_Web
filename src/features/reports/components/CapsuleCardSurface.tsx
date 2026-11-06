@@ -61,6 +61,7 @@ export function CapsuleCardSurface({ children, color, light }: { children: React
       className={cn('capsule-card-stage', light && 'is-light')}
       style={{
         '--card-portrait-height': `${layout.portrait.height}px`,
+        '--card-room-title-width': `${layout.roomTitle.width}px`,
         '--card-intro-top': `${layout.intro.top}px`,
         '--card-study-top': `${layout.study.top}px`,
         '--card-focus-top': `${layout.focus.top}px`,

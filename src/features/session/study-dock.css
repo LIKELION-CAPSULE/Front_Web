@@ -1,11 +1,14 @@
 @layer components {
+  /* Overlay the same grid cell as the character without reserving a footer or remounting controls. */
+  .study-controls { position: relative; z-index: 25; grid-area: 1 / 1; min-width: 0; min-height: 0; container: study-controls / size; pointer-events: none; }
   /* User-requested exception: retain the glass material and colors from before the design-system migration. */
   .study-dock {
+    --study-dock-bottom: 12px;
     --dock-size: 44px;
     --dock-spread: 16px;
     position: absolute;
     z-index: 25;
-    bottom: 20px;
+    bottom: var(--study-dock-bottom);
     left: 50%;
     display: flex;
     width: max-content;
@@ -19,6 +22,7 @@
     box-shadow: 0 8px 30px #0005, inset 0 1px 0 #ffffff45, inset 0 -1px 0 #ffffff0a;
     -webkit-backdrop-filter: blur(24px) saturate(140%);
     backdrop-filter: blur(24px) saturate(140%);
+    pointer-events: auto;
   }
   .study-dock-item {
     --dock-weight: 0;
@@ -95,7 +99,7 @@
     left: 50%;
     width: max-content;
     max-width: calc(100vw - 32px);
-    max-height: calc(100dvh - 144px - env(safe-area-inset-bottom, 0px));
+    max-height: min(calc(100dvh - 144px - env(safe-area-inset-bottom, 0px)), calc(100cqh - var(--study-dock-bottom) - 96px));
     overflow-y: auto;
     overscroll-behavior: contain;
     translate: -50% 0;
@@ -113,8 +117,9 @@
   .study-dock-more > button[aria-pressed='true'] { background: #b993f52b; color: #e5d4ff; }
   .study-dock-more > button:disabled { opacity: .5; cursor: not-allowed; }
   .study-dock-more-background { border-top: 1px solid #ffffff29; margin-top: 4px; padding: 12px 4px 4px; }
-  @media (max-width: 1023px) {
-    .study-workspace > .study-dock { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  /* On narrow stages move the dock, keeping the camera attached to the bottom-right corner. */
+  @container study-controls (max-width: 719px) {
+    .study-controls:not([data-thumbnails='0']) > .study-dock { --study-dock-bottom: calc(12px + 112px * 2 / 3 + 16px); }
   }
   @media (max-width: 699px) {
     .study-dock { --dock-size: 44px; --dock-spread: 0px; gap: 4px; padding: 8px; }
@@ -125,8 +130,8 @@
     .study-dock-item > button > .app-icon { width: 20px; height: 20px; }
   }
   @media (max-width: 359px) {
-    .study-dock { gap: 2px; padding: 6px; }
-    .study-dock-divider { margin-inline: 1px; }
+    .study-dock { max-width: calc(100% - 12px); gap: 2px; padding: 6px; }
+    .study-dock-divider { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     .study-dock-item, .study-dock-item > button, .study-dock-tooltip { transition: none; }

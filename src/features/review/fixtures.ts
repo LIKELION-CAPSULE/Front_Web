@@ -9,6 +9,8 @@ import privacy from '@/features/auth/data/legal/privacy.md?raw'
 import malfoyProfile from '@/assets/characters/malfoy-ts-v1/web/malfoy-ts-study-v1.webp'
 import hogwartsPoster from '@/assets/characters/malfoy-ts-v1/web/hogwarts-night-poster-v1.webp'
 import hogwartsBanner from '@/assets/characters/malfoy-ts-v1/web/hogwarts-night-detail-banner-v1.webp'
+import hogwartsBackground from '@/assets/characters/malfoy-ts-v1/web/hogwarts-night-background-v1.webp'
+import malfoySubject from '@/assets/characters/malfoy-ts-v1/web/malfoy-ts-completion-character-v3.webp'
 import type { ReviewScenario } from './catalog'
 
 export const REVIEW_USER_ID = 990001
@@ -16,12 +18,14 @@ export const REVIEW_SESSION_ID = 9001
 
 export function createReviewTransport(scenario: ReviewScenario, original: typeof fetch): typeof fetch {
   const base = studyRooms.find(room => room.id === 'dawn-library')!
-  const figure = getCharacterArtwork('chaerin').study
+  const malfoyDesk = scenario.id === 'study-malfoy-desk'
+  const malfoyRoom = scenario.id === 'home-malfoy' || malfoyDesk
+  const figure = malfoyDesk ? malfoySubject : getCharacterArtwork('chaerin').study
   const rooms = studyRooms.slice(0, 3).map((room, index) => ({
-    id: 101 + index, name: scenario.id === 'home-malfoy' && index === 0 ? '밤의 호그와트 도서관' : room.name, description: room.description,
-    thumbnailUrl: scenario.id === 'home-malfoy' && index === 0 ? hogwartsPoster : roomPosters[getRoomArtwork(room.id).tone],
-    bannerUrl: scenario.id === 'home-malfoy' && index === 0 ? hogwartsBanner : roomDetailBanners[room.id]!.src,
-    characters: [{ id: 201 + index, name: scenario.id === 'home-malfoy' && index === 0 ? '말포이 TS' : room.characters[0]!.name, profileImageUrl: scenario.id === 'home-malfoy' && index === 0 ? malfoyProfile : getCharacterArtwork(room.characters[0]!.id).study,
+    id: 101 + index, name: malfoyRoom && index === 0 ? '밤의 호그와트 도서관' : room.name, description: room.description,
+    thumbnailUrl: malfoyRoom && index === 0 ? hogwartsPoster : roomPosters[getRoomArtwork(room.id).tone],
+    bannerUrl: malfoyRoom && index === 0 ? hogwartsBanner : roomDetailBanners[room.id]!.src,
+    characters: [{ id: 201 + index, name: malfoyRoom && index === 0 ? '말포이 TS' : room.characters[0]!.name, profileImageUrl: malfoyRoom && index === 0 ? malfoyProfile : getCharacterArtwork(room.characters[0]!.id).study,
       personality: ['조용한', '다정한', '집중하는'], relation: { level: 3, totalStudySeconds: 7200, points: 62, stage: 2, stageName: '친구' } }],
   }))
   const avatars = ['chaerin', 'sua', 'dahee', 'doyun', 'moru', 'aiden', 'elia', 'leon'].map((character, index) => ({ id: 77 + index, name: `아바타 ${String(index + 1).padStart(2, '0')}`, thumbnailUrl: getCharacterArtwork(character).study }))
@@ -39,9 +43,9 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
   ]
   const summary = () => active ? { sessionId: REVIEW_SESSION_ID, roomId: 101, roomName: base.name, characterName: base.characters[0]!.name, startedAt: new Date(Date.now() - 65_000).toISOString() } : null
   const me = () => ({ userId: REVIEW_USER_ID, nickname, onboardingRequired, profileImage, activeSession: summary() })
-  const visuals = () => ({ sessionId: REVIEW_SESSION_ID, targetMinutes: 3, room: { id: 101, name: base.name },
+  const visuals = () => ({ sessionId: REVIEW_SESSION_ID, targetMinutes: 3, room: { id: 101, name: malfoyDesk ? '밤의 호그와트 도서관' : base.name, ...(malfoyDesk ? { backgroundImageUrl: hogwartsBackground } : {}) },
     // The review-only image stage reads this local image URL instead of loading a model.
-    character: { id: 201, name: base.characters[0]!.name, profileImageUrl: figure, modelJsonUrl: scenario.fault === 'model-missing' ? undefined : figure },
+    character: { id: 201, name: malfoyDesk ? '말포이 TS' : base.characters[0]!.name, profileImageUrl: malfoyDesk ? malfoyProfile : figure, modelJsonUrl: scenario.fault === 'model-missing' ? undefined : figure },
     me: { nickname, profileImageUrl: profileImage }, serverTime: new Date().toISOString() })
   const report = () => ({ sessionId: REVIEW_SESSION_ID, roomName: scenario.id === 'report-malfoy' ? '밤의 호그와트 도서관' : base.name, character: { id: 201, name: scenario.id === 'report-malfoy' ? '말포이 TS' : base.characters[0]!.name },
     startedAt: new Date(Date.now() - 1_800_000).toISOString(), endedAt: new Date().toISOString(), endType: 'USER',

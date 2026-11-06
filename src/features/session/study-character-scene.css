@@ -1,0 +1,37 @@
+@layer components {
+  .study-character-scene {
+    /* Use the tile's height for both layers, including portrait and chat layouts. */
+    --study-desk-line: 83cqh;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    container: study-character-scene / size;
+    pointer-events: none;
+    background: var(--color-surface) var(--live2d-background, none) center / cover no-repeat;
+  }
+  .study-character-seated-model {
+    position: absolute;
+    inset: 0 0 auto;
+    height: var(--study-desk-line);
+    overflow: hidden;
+  }
+  .study-character-seated-model > .live2d-host {
+    inset: 4cqh auto auto 50%;
+    width: max(100cqw, 150cqh);
+    height: 90cqh;
+    transform: translateX(-50%);
+    background: transparent;
+  }
+  .study-character-desk {
+    position: absolute;
+    z-index: 1;
+    top: var(--study-desk-line);
+    left: 50%;
+    width: max(102cqw, 153cqh);
+    max-width: none;
+    height: auto;
+    /* The opaque back edge is at row 409 of the original 941px image. */
+    transform: translate(-50%, -43.465%);
+    user-select: none;
+  }
+}

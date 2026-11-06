@@ -21,6 +21,7 @@
   .camera-background-option:has(input:checked) .camera-background-label { color: var(--color-ink); font-weight: 600; }
   .detection-status { margin-top: 16px; font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height);  }
   .detection-status.is-compact { margin-top: 0; font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
-  .study-self-feedback { position: absolute; z-index: 12; top: 12px; right: 12px; left: 12px; display: grid; justify-items: start; gap: 8px; color: white; }
+  .study-self-feedback { position: absolute; z-index: 12; top: 12px; right: 12px; left: 12px; display: grid; justify-items: start; gap: 8px; color: white; pointer-events: none; }
+  .study-self-feedback button { pointer-events: auto; }
   .study-self-feedback .detection-status { width: fit-content; padding: 3px 8px; border-radius: 8px; background: color-mix(in srgb, var(--color-surface) 74.12%, transparent); }
 }

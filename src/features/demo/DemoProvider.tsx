@@ -370,6 +370,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     if (pending.current.has('start')) throw new ApiError('공부를 시작하고 있어요.', 409)
     pending.current.add('start')
     const generation = epoch.current
+    const entryPath = currentPath.current
     try {
       const cached = pendingSession.current
       const dto = cached?.room?.id === adapt.numericId(roomId) && cached.character?.id === adapt.numericId(characterId)
@@ -377,6 +378,8 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
         : await api.request<StartResponse>('/sessions', { method: 'POST', body: { roomId: adapt.numericId(roomId), characterId: adapt.numericId(characterId), targetMinutes: minutes } })
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
       pendingSession.current = dto
+      // A late start response can still be resumed, but must not load a model on the screen the user left for.
+      if (currentPath.current !== entryPath) throw new ApiError('공부 준비가 취소됐어요.', 409)
       return await installSession(dto)
     } finally { pending.current.delete('start') }
   }, [installSession])

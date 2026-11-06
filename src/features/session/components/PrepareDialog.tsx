@@ -1,12 +1,15 @@
 import { useCallback, useId, useRef } from 'react'
-import type { ComponentProps } from 'react'
+import type { ComponentProps, Ref } from 'react'
 import { Dialog } from '@/shared/ui/Dialog'
+import { PrepareDeparture, type PrepareDepartureHandle } from './PrepareDeparture'
 
 // The pocket covers the card's left side, with a rounded opening on the right.
 const pocketPath = 'M .064 .005 H .714 C .758 .005 .792 .032 .792 .078 V .602 C .792 .668 .812 .711 .853 .746 L .906 .788 C .94 .815 .955 .852 .955 .9 V .937 C .955 .973 .932 .995 .896 .995 H .064 C .028 .995 .005 .972 .005 .936 V .065 C .005 .029 .028 .005 .064 .005 Z'
 
-export function PrepareDialog({ children, ...props }: Omit<ComponentProps<typeof Dialog>, 'onOpen' | 'className'>) {
+export function PrepareDialog({ children, departureRef, ...props }: Omit<ComponentProps<typeof Dialog>, 'onOpen' | 'className'> & { departureRef?: Ref<PrepareDepartureHandle> }) {
   const stage = useRef<HTMLDivElement>(null)
+  const finishEntrance = useRef<(() => void) | null>(null)
+  const settleEntrance = useCallback(() => finishEntrance.current?.(), [])
   const clipId = `prepare-pocket-${useId().replace(/:/g, '')}`
   const rimId = `${clipId}-rim`
   const reveal = useCallback((dialog: HTMLDialogElement) => {
@@ -84,7 +87,9 @@ export function PrepareDialog({ children, ...props }: Omit<ComponentProps<typeof
       media.removeEventListener('change', finish)
       dialog.removeEventListener('pointerdown', finish)
       dialog.removeEventListener('keydown', finish)
+      finishEntrance.current = null
     }
+    finishEntrance.current = finish
     entrance.onfinish = finish
     window.addEventListener('resize', finish)
     media.addEventListener('change', finish)
@@ -137,5 +142,6 @@ export function PrepareDialog({ children, ...props }: Omit<ComponentProps<typeof
         </svg>
       </div>
     </div>
+    <PrepareDeparture ref={departureRef} beforePlay={settleEntrance} />
   </Dialog>
 }
