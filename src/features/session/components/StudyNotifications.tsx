@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
 import { enqueueNotification, type NotificationItem } from '@/shared/ui/notification-queue'
 
@@ -23,7 +23,34 @@ function useStudyNotice(
   }, [setItems, id, title, tone, text, retry])
 }
 
-export function StudyNotifications({ presenceUnknown, cameraError, microphoneError, syncError, sessionError, onRetrySync }: {
+function useGoalNotice(setItems: Dispatch<SetStateAction<NotificationItem[]>>, key: string, reached: boolean, enabled: boolean) {
+  const shown = useRef(new Set<string>())
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      if (!enabled || !reached) {
+        setItems(current => current.some(item => item.id === 'study-goal') ? current.filter(item => item.id !== 'study-goal') : current)
+        return
+      }
+      if (shown.current.has(key)) return
+      const storageKey = `capsule-goal-notice:${key}`
+      let alreadyShown = false
+      try { alreadyShown = sessionStorage.getItem(storageKey) === '1' } catch { /* The in-memory guard also works without storage. */ }
+      shown.current.add(key)
+      if (alreadyShown) return
+      try { sessionStorage.setItem(storageKey, '1') } catch { /* Keep the session running when storage is unavailable. */ }
+      setItems(current => enqueueNotification(current.filter(item => item.id !== 'study-goal'), {
+        id: 'study-goal', title: '목표 시간이 다 됐어요', tone: 'success',
+        text: '조금 더 이어갈까요? 쉬거나 마치려면 아래 독에서 선택해 주세요.',
+      }))
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [setItems, key, reached, enabled])
+}
+
+export function StudyNotifications({ goalNoticeKey, goalReached, studying, presenceUnknown, cameraError, microphoneError, syncError, sessionError, onRetrySync }: {
+  goalNoticeKey: string
+  goalReached: boolean
+  studying: boolean
   presenceUnknown: boolean
   cameraError: string
   microphoneError: string
@@ -38,6 +65,7 @@ export function StudyNotifications({ presenceUnknown, cameraError, microphoneErr
   useStudyNotice(setItems, 'study-microphone', '마이크 연결 오류', 'error', microphoneError)
   useStudyNotice(setItems, 'study-sync', '공부 기록 연결 오류', 'error', syncError, onRetrySync)
   useStudyNotice(setItems, 'study-session', '공부 처리 오류', 'error', sessionError)
+  useGoalNotice(setItems, goalNoticeKey, goalReached, studying)
 
   return <NotificationStack items={items} onDismiss={id => setItems(current => current.filter(item => item.id !== id))} />
 }

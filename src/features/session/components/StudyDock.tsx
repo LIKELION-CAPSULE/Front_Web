@@ -57,7 +57,7 @@ export function StudyDock({ chatOpen, onChatToggle, onPhaseToggle, onFinish, cam
   const items: DockItem[] = [
     { key: 'microphone', label: microphoneBusy ? '마이크 연결 중' : microphoneOn ? '마이크 끄기' : '마이크 켜기', hint: microphoneBusy ? '연결 중' : microphoneOn ? '마이크 끄기' : '마이크 켜기', icon: microphoneOn ? 'microphone' : 'microphoneOff', pressed: microphoneOn, device: true, disabled: microphoneBusy, action: onMicrophone },
     { key: 'camera', label: cameraBusy ? '카메라 연결 중' : cameraOn ? '카메라 끄기' : '카메라 켜기', hint: cameraBusy ? '연결 중' : cameraOn ? '카메라 끄기' : '카메라 켜기', icon: cameraOn ? 'video' : 'videoOff', pressed: cameraOn, device: true, disabled: cameraBusy, action: () => { setBackgroundOpen(false); onCamera() } },
-    { key: 'self-view', label: showCamera ? '아바타 보기' : '실제 카메라 보기', hint: showCamera ? '아바타 보기' : '카메라 보기', icon: showCamera ? 'user' : 'camera', pressed: showCamera, disabled: cameraBusy, action: () => { setBackgroundOpen(false); onViewChange() } },
+    { key: 'self-view', label: !cameraOn ? '카메라 켜고 아바타 보기' : showCamera ? '아바타 보기' : '실제 카메라 보기', hint: !cameraOn || showCamera ? '아바타 보기' : '카메라 보기', icon: !cameraOn || showCamera ? 'user' : 'camera', pressed: showCamera, disabled: cameraBusy, action: () => { setBackgroundOpen(false); onViewChange() } },
     { key: 'background', label: '배경 바꾸기', hint: cameraOn ? '배경 변경' : '카메라 필요', icon: 'image', expanded: backgroundVisible, disabled: !cameraOn || cameraBusy, action: () => {
       setBackgroundOpen(!backgroundVisible)
     } },
