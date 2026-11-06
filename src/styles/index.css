@@ -757,7 +757,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .study-stage { position: relative; flex: 1; min-height: 0; }
+  .study-stage { position: relative; flex: 1; min-height: 0; container: study-stage / inline-size; }
   .character-tile,
   .self-tile {
     --study-tile-radius: 16px;

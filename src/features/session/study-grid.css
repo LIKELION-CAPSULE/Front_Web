@@ -9,7 +9,7 @@
   .study-grid.is-one-to-one { grid-template-rows: minmax(0, 1fr); }
   .study-grid.is-focus {
     position: relative;
-    grid-template-columns: minmax(0, 1fr) repeat(var(--study-thumbnail-count), minmax(0, 180px));
+    grid-template-columns: minmax(0, 1fr) repeat(var(--study-thumbnail-count), minmax(0, 260px));
     grid-template-rows: minmax(0, 1fr);
     gap: 8px;
     padding: 16px 16px 112px;
@@ -33,6 +33,10 @@
   .study-grid.is-focus > :nth-child(3) { grid-column: 3; }
   .study-grid.is-focus > :nth-child(4) { grid-column: 4; }
   .study-grid.is-focus > :not(.focus-tile) .character-speech-bubble { display: none; }
+  /* With a single thumbnail on a wide stage, it tucks into the bottom-right corner, clear of the centered dock. */
+  @container study-stage (min-width: 960px) {
+    .study-grid.is-focus:not(:has(> :nth-child(3))) { padding: 12px; }
+  }
 
   @media (max-width: 1023px) {
     .study-grid {
