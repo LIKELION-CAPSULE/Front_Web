@@ -1,8 +1,7 @@
 import { BackSide, Color, DoubleSide, Group, LatheGeometry, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, TorusGeometry, Vector2 } from 'three'
+import { CAPSULE_SHAPE } from './capsule-shape.ts'
 
-export const CAPSULE_RADIUS = 0.34
-export const CAPSULE_CAP_RADIUS = CAPSULE_RADIUS * 1.04
-export const CAPSULE_SEAM_Y = -0.12
+export { CAPSULE_RADIUS, CAPSULE_CAP_RADIUS, CAPSULE_SEAM_Y } from './capsule-shape.ts'
 
 function profile(radius: number, center: number, rim: number, cap: boolean) {
   const arc = Array.from({ length: 33 }, (_, step) => {
@@ -34,4 +33,14 @@ export function createCapsuleShell(hex: string, radius: number, center: number, 
     lip,
   )
   return { group, outer, materials: [outer, inner], radius, color, direction: (cap ? 1 : -1) as 1 | -1 }
+}
+
+/** Both experiences use the same long pill profile and slightly wider overlapping cap. */
+export function createCapsuleHalves(bodyColor: string, capColor: string) {
+  const shape = CAPSULE_SHAPE
+  const cap = createCapsuleShell(capColor, shape.capRadius, shape.center, shape.capRim, true)
+  const body = createCapsuleShell(bodyColor, shape.radius, -shape.center, shape.bodyRim, false)
+  // Keep the concealed body lip inside the cap's inner wall while the sleeve disengages.
+  body.group.children[2]!.scale.setScalar(.994)
+  return { cap, body }
 }

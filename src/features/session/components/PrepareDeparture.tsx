@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react'
+import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from 'react'
 import { capturePreparePaper } from '../prepare-paper-snapshot'
 import type { PrepareCapsulePhase, PrepareCapsuleScene } from '../prepare-capsule-scene'
 import { QuarterRingSpinner } from '@/shared/ui/QuarterRingSpinner'
 import { capsuleInscription, type CapsuleInscription, type PrepareCapsuleInput } from '../prepare-capsule-personalization'
 import { travelToStudy } from '../prepare-capsule-journey'
 import { loadPreparePoster } from '../prepare-poster'
+import { CAPSULE_SHAPE } from '@/features/reports/capsule-shape'
 
 export type PrepareDepartureHandle = { play: (plan: PrepareCapsuleInput) => Promise<void>; depart: (navigate: () => void) => Promise<void>; reset: () => void }
 type SceneModule = typeof import('../prepare-capsule-scene')
@@ -106,10 +107,12 @@ export function PrepareDeparture({ ref, beforePlay }: {
           if (!module) { waiting(true); return }
           try {
             scene = module.createPrepareCapsuleScene(host, paper, label, poster, phase => {
-              if (!cancelled && !settled) setView(current => ({ ...current, phase }))
+              if (!cancelled && !settled) {
+                if (folder && phase === 'halftone') folder.dataset.departing = ''
+                setView(current => ({ ...current, phase }))
+              }
             })
             setView(current => ({ ...current, renderer: 'webgl', phase: 'dropping' }))
-            if (folder) folder.dataset.departing = ''
             void scene.finished.then(() => waiting())
           } catch { waiting(true) }
         })
@@ -120,7 +123,10 @@ export function PrepareDeparture({ ref, beforePlay }: {
 
   return <div ref={root} hidden={!view.active} data-phase={view.phase} data-renderer={view.renderer} tabIndex={-1} className="prepare-departure focus:outline-none" aria-label="공부를 준비하고 있어요" aria-describedby={summaryId}>
     <div ref={canvasHost} className="prepare-departure-scene" aria-hidden="true" />
-    <div className="prepare-capsule-fallback" aria-hidden="true">
+    <div className="prepare-capsule-fallback" aria-hidden="true" style={{
+      aspectRatio: String(CAPSULE_SHAPE.length / (2 * CAPSULE_SHAPE.capRadius)),
+      '--prepare-capsule-joint': `${(CAPSULE_SHAPE.capRim - CAPSULE_SHAPE.minY) / CAPSULE_SHAPE.length * 100}%`,
+    } as CSSProperties}>
       <div className="prepare-capsule-info"><strong>{view.inscription?.nickname}</strong><span>{view.inscription?.detail}</span></div>
       <span className="prepare-capsule-date">{view.inscription?.date}</span>
       <span className="prepare-capsule-seam" />

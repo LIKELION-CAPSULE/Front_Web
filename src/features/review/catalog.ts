@@ -88,7 +88,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'prepare-from-home', group: '스터디룸·준비', title: '홈에서 공부 준비', path: '/', returning: true, steps: [click('이어서 공부하기')], note: '홈을 블러 배경으로 유지하며 필터·스크롤 상태 보존' },
   { id: 'prepare-loading', group: '스터디룸·준비', title: '공부 준비 로딩', path: '/rooms/101/prepare', fault: 'home-pending', loading: 'prepare', note: '목표 시간·공부 설정 영역의 스켈레톤' },
   { id: 'prepare-error', group: '스터디룸·준비', title: '공부 시작 실패', path: '/rooms/101/prepare', fault: 'start', steps: [click('시작하기')], note: '시작 API 실패·재시도' },
-  { id: 'prepare-pending', group: '스터디룸·준비', title: '공부 시작 중', path: '/rooms/101/prepare', fault: 'start-pending', steps: [click('시작하기')], note: '짧은 중앙 분리형 캡슐·분리 후 들기와 회전·고정 모달 도트화·입구를 통한 수납·느린 우측 화면 전환' },
+  { id: 'prepare-pending', group: '스터디룸·준비', title: '공부 시작 중', path: '/rooms/101/prepare', fault: 'start-pending', steps: [click('시작하기')], note: '캡슐 카드 공통 형상·슬리브 분리 후 들기와 회전·고정 모달 도트화·입구를 통한 수납·느린 우측 화면 전환' },
   { id: 'prepare-model-missing', group: '스터디룸·준비', title: 'Live2D 모델 주소 없음', path: '/rooms/101/prepare', fault: 'model-missing', steps: [click('시작하기')], note: '다른 캐릭터로 대체하지 않고 준비 창에서 안내' },
   { id: 'prepare-memory', group: '스터디룸·준비', title: '준비 화면 · 일정 추가', path: '/rooms/101/prepare', steps: [click('일정 추가')], note: '설정의 일정 탭에서 추가 폼을 바로 열고, 닫으면 준비 창으로 복귀' },
   { id: 'study-recover', group: '공부·휴식·대화', title: '공부 이어하기 안내', path: '/study/9001', session: 'recover', note: '새로고침·재접속 뒤의 시작 안내' },
