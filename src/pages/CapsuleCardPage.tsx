@@ -13,7 +13,7 @@ import { Button } from '@/shared/ui/Button'
 import { cn } from '@/shared/lib/cn'
 import { OverlayPage } from '@/shared/ui/OverlayPage'
 import { FeedbackMessage, type FeedbackTone } from '@/shared/ui/FeedbackMessage'
-import { DateTimeWheelField } from '@/shared/ui/DateTimeWheelField'
+import { FormField } from '@/shared/ui/FormField'
 import { clampCalendarDate } from '@/shared/lib/date-limits'
 import { useBackend } from '@/features/backend/backend-context'
 import { useServerReport } from '@/features/backend/use-server-report'
@@ -106,7 +106,6 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
   const [color, setColor] = useState(0)
   const [date, setDate] = useState(() => clampCalendarDate(dayKey(Date.now() + 86400000)))
   const [time, setTime] = useState('20:00')
-  const [openField, setOpenField] = useState<'date' | 'time' | null>(null)
   const [status, setStatus] = useState<{ tone: FeedbackTone; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const [copyFallback, setCopyFallback] = useState(false)
@@ -281,26 +280,15 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
         <hr className="my-4 border-divider" />
         <h2 className="type-section-title">다음 공부 약속</h2>
         <div className="mt-3 space-y-3">
-          <DateTimeWheelField
-            label="날짜 선택"
-            mode="date"
-            value={date}
-            min={dayKey(todayTimestamp)}
-            onChange={setDate}
-            open={openField === 'date'}
-            onOpenChange={(open) => setOpenField(open ? 'date' : null)}
-          />
-          <DateTimeWheelField
-            label="시간"
-            mode="time"
-            value={time}
-            onChange={setTime}
-            open={openField === 'time'}
-            onOpenChange={(open) => setOpenField(open ? 'time' : null)}
-          />
+          <FormField label="날짜 선택">
+            <input className="form-input" name="promiseDate" type="date" min={dayKey(todayTimestamp)} max="9999-12-31" required value={date} onChange={(event) => setDate(event.target.value)} />
+          </FormField>
+          <FormField label="시간">
+            <input className="form-input" name="promiseTime" type="time" required value={time} onChange={(event) => setTime(event.target.value)} />
+          </FormField>
         </div>
         <Button
-          disabled={busy || !date || !time}
+          disabled={busy || !date || !time || date < dayKey(todayTimestamp)}
           onClick={() => { void promise() }}
           className="mt-4 w-full"
         >

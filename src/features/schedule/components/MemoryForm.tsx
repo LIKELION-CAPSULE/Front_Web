@@ -24,7 +24,8 @@ export function MemoryForm({ initialDate, inline = false, onClose, onSaved, onBu
   const [kind, setKind] = useState<Memory['kind']>('시험')
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(() => clampCalendarDate(initialDate ?? dayKey()))
-  const [time, setTime] = useState('20:00')
+  /** The inline form leaves the time empty (all day) until a time is picked; a promise starts at 20:00. */
+  const [time, setTime] = useState(inline ? '' : '20:00')
   const [openField, setOpenField] = useState<'kind' | 'date' | 'time' | null>(null)
   const pending = useRef(false)
   const titleInput = useRef<HTMLInputElement>(null)
@@ -50,7 +51,7 @@ export function MemoryForm({ initialDate, inline = false, onClose, onSaved, onBu
     setOpenField(null)
     setBusy(true); onBusyChange?.(true); setError('')
     try {
-      const saved = await createMemory({ kind, title: title.trim(), date, time: kind === '약속' ? time : '' })
+      const saved = await createMemory({ kind, title: title.trim(), date, time: kind === '약속' || inline ? time : '' })
       onSaved?.(saved)
       onClose()
     } catch (reason) { setError(reason instanceof Error ? reason.message : '일정을 저장하지 못했어요.') }
@@ -63,11 +64,11 @@ export function MemoryForm({ initialDate, inline = false, onClose, onSaved, onBu
           <div className="schedule-editor-kind">
             <span id={kindId} className="field-label">종류</span>
             <div className="schedule-kind-options" role="radiogroup" aria-labelledby={kindId}>
-              {kindOptions.map(option => <label key={option.value} className="schedule-kind-option"><input className="sr-only" type="radio" name={`${kindId}-kind`} value={option.value} checked={kind === option.value} onChange={() => setKind(option.value)} /><span>{option.label}</span></label>)}
+              {kindOptions.map(option => <label key={option.value} className="schedule-kind-option"><input className="sr-only" type="radio" name={`${kindId}-kind`} value={option.value} checked={kind === option.value} onChange={() => { setKind(option.value); if (option.value === '약속' && !time) setTime('20:00') }} /><span>{option.label}</span></label>)}
             </div>
           </div>
           <FormField label="날짜" className="schedule-editor-field"><input className="form-input" name="memoryDate" type="date" min={MIN_CALENDAR_DATE} max="9999-12-31" required value={date} readOnly={busy} onChange={event => setDate(event.target.value)} /></FormField>
-          <FormField label="시간" className="schedule-editor-field"><input className="form-input" name="memoryTime" type={kind === '약속' ? 'time' : 'text'} value={kind === '약속' ? time : '종일'} required={kind === '약속'} disabled={kind !== '약속'} readOnly={busy || kind !== '약속'} onChange={event => setTime(event.target.value)} /></FormField>
+          <FormField label={kind === '약속' ? '시간' : '시간 (선택)'} className="schedule-editor-field"><input className="form-input" name="memoryTime" type="time" value={time} required={kind === '약속'} readOnly={busy} onChange={event => setTime(event.target.value)} /></FormField>
         </> : <>
           <WheelSelectField label="종류" options={kindOptions} value={kind} onChange={setKind} open={openField === 'kind'} onOpenChange={open => setOpenField(open ? 'kind' : null)} />
           {titleField}
