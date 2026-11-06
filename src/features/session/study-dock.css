@@ -132,6 +132,5 @@
     .study-dock-item, .study-dock-item > button, .study-dock-tooltip { transition: none; }
     .study-dock-item { width: var(--dock-size); }
     .study-dock-item > button { transform: none; }
-    .tile-action-symbol { transition: none; }
   }
 }

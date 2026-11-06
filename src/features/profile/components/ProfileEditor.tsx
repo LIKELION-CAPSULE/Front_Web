@@ -7,12 +7,14 @@ import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { AvatarIllustration } from '@/shared/ui/AvatarIllustration'
 import { AvatarDial } from './AvatarDial'
 
-export function ProfileEditor({ onBusyChange }: { onBusyChange?: (busy: boolean) => void } = {}) {
+export function ProfileEditor({ active = true, onBusyChange }: { active?: boolean; onBusyChange?: (busy: boolean) => void } = {}) {
   const headingId = useId()
   const { state } = useDemo()
   const { avatars, saveProfile, ensureAvatars } = useBackend()
   // The choices load when the editor opens; without them only the current portrait is offered.
-  useEffect(() => { void ensureAvatars().catch(() => { /* Keep the current avatar. */ }) }, [ensureAvatars])
+  useEffect(() => {
+    if (active) void ensureAvatars().catch(() => { /* Keep the current avatar. */ })
+  }, [active, ensureAvatars])
   const currentAvatar = state.profile.avatarId ?? avatars.find(avatar => avatar.thumbnailUrl === state.profile.profileImage)?.id
   // Keep an existing custom/default portrait until the user explicitly chooses a server avatar.
   const choices = currentAvatar === undefined
@@ -35,7 +37,7 @@ export function ProfileEditor({ onBusyChange }: { onBusyChange?: (busy: boolean)
       finally { setBusy(false); onBusyChange?.(false) }
     }}>
       <h2 id={headingId} className="account-settings-title">프로필</h2>
-      <AvatarDial compact avatars={choices} value={avatarId ?? 0} disabled={busy} onChange={value => setPicked({ id: value === 0 ? undefined : value })} fallback={<AvatarIllustration settings={state.profile.avatar} />} />
+      <AvatarDial compact avatars={choices} value={avatarId ?? 0} disabled={busy} previewActive={active} onChange={value => setPicked({ id: value === 0 ? undefined : value })} fallback={<AvatarIllustration settings={state.profile.avatar} />} />
       <div className="profile-editor-details">
         <FormField label="닉네임"><input className="form-input" name="nickname" autoComplete="nickname" readOnly={busy} required maxLength={20} value={name} onChange={event => setName(event.target.value)} /></FormField>
         <Button type="submit" className="mt-4 w-full" loading={busy} disabled={busy || !name.trim() || !changed}>프로필 저장</Button>
