@@ -29,3 +29,21 @@ export function escalateAway(flow: EventFlow, now: number): { flow: EventFlow; i
   if (intensity <= away.intensity) return { flow, intensity: null }
   return { flow: { ...flow, away: { ...away, intensity } }, intensity }
 }
+
+/** A reaction line that arrived while a chat reply was still coming in or typing. */
+export type HeldReaction<T> = { value: T; heldAt: number }
+
+/** A held line older than this no longer fits the moment it answered and is dropped. */
+export const REACTION_HOLD_MS = 30_000
+
+/**
+ * Takes the oldest held reaction that is still current, dropping stale and expired ones before it.
+ * Lines leave one at a time so each finishes typing before the next starts.
+ */
+export function takeHeldReaction<T>(held: readonly HeldReaction<T>[], now: number, current: (value: T) => boolean): { next: T | null; rest: HeldReaction<T>[] } {
+  for (let index = 0; index < held.length; index++) {
+    const item = held[index]!
+    if (now - item.heldAt <= REACTION_HOLD_MS && current(item.value)) return { next: item.value, rest: held.slice(index + 1) }
+  }
+  return { next: null, rest: [] }
+}

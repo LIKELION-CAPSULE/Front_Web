@@ -98,6 +98,7 @@ export default function StudyPage() {
   const sync = useSessionSync({
     active: inSession ? active : null, userId: state.profile.userId, observation,
     camera: !!devices.camera.stream, behavior,
+    busy: Object.values(pendingReplies).some(Boolean) || speakingCharacters.size > 0,
     onExpression: cueExpression,
     onReaction: (result: ReactionResponse, event: string) => {
       for (const reply of result.characters ?? []) {

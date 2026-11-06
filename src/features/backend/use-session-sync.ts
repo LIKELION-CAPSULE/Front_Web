@@ -10,7 +10,7 @@ import { useBackend } from './backend-context'
 import type { BehaviorMonitor } from '../media/behavior-monitor'
 import type { ExpressionCue } from '../live2d/expression-scheduler'
 import { pickMotionEvents, type MotionCooldowns, type MotionEventType } from './motion-events'
-import { escalateAway, eventQueued, type EventFlow } from './session-event-flow'
+import { escalateAway, eventQueued, takeHeldReaction, type EventFlow, type HeldReaction } from './session-event-flow'
 import { flushSessionOutbox } from './session-outbox'
 
 export type SessionTotals = { studySeconds: number; presentSeconds: number }
@@ -39,7 +39,10 @@ type Input = {
   /** Immediate faces from API 18 (`stage: 'notice'`). Faces with lines arrive through `onReaction`. */
   onExpression?: (cue: ExpressionCue) => void
   onEnded: () => void
+  /** A chat reply is on its way or still typing. Reaction lines wait until it finishes so they never cut in ahead of it. */
+  busy?: boolean
 }
+type Pending = { result: ReactionResponse; event: string; revision: number; turn?: number }
 type Runtime = {
   sessionId: string; signature: string; clock: PresenceClock; outbox: StateEvent[]; draining: Promise<void> | null
   heartbeat: boolean; lastHeartbeatAt: number; alive: boolean
@@ -48,6 +51,8 @@ type Runtime = {
   motionSentAt: MotionCooldowns
   /** Only the latest motion event may show its reaction. */
   motionTurn: number
+  /** Reaction lines waiting for the chat reply to finish, oldest first. */
+  held: HeldReaction<Pending>[]
 }
 
 export function useSessionSync(input: Input) {
@@ -62,6 +67,10 @@ export function useSessionSync(input: Input) {
     if (reason instanceof ApiError && reason.code === 'SESSION_ENDED') latest.current.onEnded()
     else setError(reason instanceof Error ? reason.message : '상태 기록을 저장하지 못했어요.')
   }, [])
+  /** A state change or a newer gesture since the request makes its line stale. */
+  const stillCurrent = useCallback((current: Runtime, pending: Pending) =>
+    current.alive && runtime.current === current && current.flow.revision === pending.revision
+      && (pending.turn === undefined || current.motionTurn === pending.turn), [])
   const react = useCallback(async (current: Runtime, eventId: number, event: string, intensity = 1, turn?: number) => {
     const revision = current.flow.revision
     const requestId = crypto.randomUUID()
@@ -69,10 +78,19 @@ export function useSessionSync(input: Input) {
       const result = await api.request<ReactionResponse>(`/sessions/${current.sessionId}/events/${eventId}/reaction`, {
         method: 'POST', body: { requestId, intensity, tts: false },
       })
-      const latestTurn = turn === undefined || current.motionTurn === turn
-      if (current.alive && runtime.current === current && current.flow.revision === revision && latestTurn && result.requestId === requestId) latest.current.onReaction(result, event)
+      const pending: Pending = { result, event, revision, turn }
+      if (result.requestId !== requestId || !stillCurrent(current, pending)) return
+      if (latest.current.busy || current.held.length) current.held.push({ value: pending, heldAt: Date.now() })
+      else latest.current.onReaction(result, event)
     } catch (reason) { fail(reason, current) }
-  }, [fail])
+  }, [fail, stillCurrent])
+  /** Shows the next held line once the chat reply has finished; the 250 ms tick lets each line start typing first. */
+  const release = useCallback((current: Runtime) => {
+    if (!current.held.length || latest.current.busy) return
+    const { next, rest } = takeHeldReaction(current.held, Date.now(), value => stillCurrent(current, value))
+    current.held = rest
+    if (next) latest.current.onReaction(next.result, next.event)
+  }, [stillCurrent])
   const notice = useCallback((result: EventResponse, event: string) => {
     for (const character of result.characters ?? []) {
       if (character.characterId) latest.current.onExpression?.({ characterId: character.characterId, expression: character.expression, event, stage: 'notice' })
@@ -185,7 +203,7 @@ export function useSessionSync(input: Input) {
       const baseAway = active.initialAwaySeconds ?? 0
       current = {
         sessionId: active.id, signature, clock: new PresenceClock(baseAway), outbox: [], draining: null, heartbeat: false, lastHeartbeatAt: Date.now(), alive: true,
-        flow: { revision: 0, away: null }, motionSentAt: {}, motionTurn: 0,
+        flow: { revision: 0, away: null }, motionSentAt: {}, motionTurn: 0, held: [],
       }
       runtime.current = current
     }
@@ -208,7 +226,7 @@ export function useSessionSync(input: Input) {
       const occurredAt = new Date(change.at + (now.serverOffsetMs ?? 0)).toISOString()
       for (const type of picked.types) void sendMotion(sync, type, occurredAt)
     })
-    const timer = window.setInterval(() => tick(sync), 250)
+    const timer = window.setInterval(() => { tick(sync); release(sync) }, 250)
     const pulse = window.setInterval(() => { void heartbeat(sync) }, 60_000)
     const visible = () => { tick(sync); if (!document.hidden && Date.now() - sync.lastHeartbeatAt >= 60_000) void heartbeat(sync) }
     document.addEventListener('visibilitychange', visible)
@@ -218,13 +236,13 @@ export function useSessionSync(input: Input) {
       clearInterval(timer); clearInterval(pulse); document.removeEventListener('visibilitychange', visible)
       totalsBySession.delete(active.id); queues.delete(active.id)
     }
-  }, [sessionId, signature, userId, resumed, startedAt, behavior, drain, enqueue, heartbeat, sendMotion, tick, totals])
+  }, [sessionId, signature, userId, resumed, startedAt, behavior, drain, enqueue, heartbeat, release, sendMotion, tick, totals])
   const retry = useCallback(async () => {
     if (runtime.current) await heartbeat(runtime.current)
   }, [heartbeat])
   const cancelReaction = useCallback(() => {
     const current = runtime.current
-    if (current) current.flow = { ...current.flow, revision: current.flow.revision + 1 }
+    if (current) { current.flow = { ...current.flow, revision: current.flow.revision + 1 }; current.held = [] }
   }, [])
   return { error, retry, presentSeconds, cancelReaction }
 }
