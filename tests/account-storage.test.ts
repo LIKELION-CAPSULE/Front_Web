@@ -8,6 +8,7 @@ test('withdrawal removes only the selected account recovery data', () => {
     ['capsule-presence:7:101', 'presence'], ['capsule-session:70:100', 'another account'],
     ['capsule-presence:8:100', 'another account'], ['unrelated-preference', 'keep'],
     ['capsule-saved-rooms:7', '["101"]'], ['capsule-saved-rooms:70', '["102"]'],
+    ['capsule-goal-notice:7:100:180', '1'], ['capsule-goal-notice:70:100:180', '1'],
   ])
   const storage = {
     get length() { return values.size },
@@ -15,5 +16,5 @@ test('withdrawal removes only the selected account recovery data', () => {
     removeItem: (key: string) => { values.delete(key) },
   }
   removeAccountSnapshots(storage, 7)
-  assert.deepEqual([...values.keys()], ['capsule-session:70:100', 'capsule-presence:8:100', 'unrelated-preference', 'capsule-saved-rooms:70'])
+  assert.deepEqual([...values.keys()], ['capsule-session:70:100', 'capsule-presence:8:100', 'unrelated-preference', 'capsule-saved-rooms:70', 'capsule-goal-notice:70:100:180'])
 })

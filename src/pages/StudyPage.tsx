@@ -19,6 +19,8 @@ import { StudyNotifications } from '@/features/session/components/StudyNotificat
 import { StudySelfView } from '@/features/session/components/StudySelfView'
 import { SessionTimer } from '@/features/session/components/SessionTimer'
 import { SessionFocus } from '@/features/session/components/SessionFocus'
+import { SessionAffection } from '@/features/session/components/SessionAffection'
+import { normalizeAffectionScore } from '@/features/characters/affection'
 import { getCharacterArtwork } from '@/features/characters/artwork'
 import { DetectionStatus } from '@/features/media/components/DetectionStatus'
 import { BehaviorBadges } from '@/features/media/components/BehaviorBadges'
@@ -207,6 +209,7 @@ export default function StudyPage() {
   const goal = studyGoalSeconds(active)
   const focusTotals = normalizeFocusTotals(active.focus)
   const focusRate = focusPercent(focusTotals.focusedMs, focusTotals.observedMs)
+  const affection = normalizeAffectionScore(backend.affinities[selected.id]?.points ?? selected.relation?.points)
   const cameraVisible = showCamera && !!devices.camera.stream
   const messages = state.messages.filter(
     (message) => message.sessionId === active.id && message.characterId === selected.id,
@@ -297,10 +300,11 @@ export default function StudyPage() {
     }
   }
   async function toggleCamera() {
+    // Every camera activation starts with the avatar, including reconnection after a dropped track.
+    setShowCamera(false)
     if (devices.camera.stream) {
       flushFocus()
       controller.stop('camera')
-      setShowCamera(false)
       dispatch({ type: 'CAMERA', enabled: false })
     } else {
       const enabled = await controller.request('camera')
@@ -308,13 +312,15 @@ export default function StudyPage() {
     }
   }
   async function toggleSelfView() {
+    if (!devices.camera.stream) {
+      await toggleCamera()
+      return
+    }
     if (cameraVisible) {
       setShowCamera(false)
       return
     }
-    const enabled = await controller.request('camera')
-    dispatch({ type: 'CAMERA', enabled })
-    setShowCamera(enabled)
+    setShowCamera(true)
   }
   function takeBreak() {
     flushFocus()
@@ -398,6 +404,7 @@ export default function StudyPage() {
         <DevicePrivacyInfo />
         </div>
         <div className="study-session-stats">
+          <SessionAffection name={selected.name} score={affection} />
           <SessionFocus rate={focusRate} />
           <SessionTimer
             elapsed={active.phase === 'study' ? sessionStudySeconds(active, now) : elapsed}
@@ -407,6 +414,10 @@ export default function StudyPage() {
         </div>
       </header>
       <StudyNotifications
+        key={`${state.profile.userId}:${active.id}`}
+        goalNoticeKey={`${state.profile.userId}:${active.id}:${goal}`}
+        goalReached={sessionStudySeconds(active, now) >= goal}
+        studying={!resting && active.runningSince !== null && !leaveOpen && params.get('resume') !== '1'}
         presenceUnknown={active.presenceKnown === false}
         cameraError={devices.camera.error}
         microphoneError={devices.microphone.error}
