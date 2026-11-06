@@ -1,11 +1,19 @@
 import {
-  AdditiveBlending, AgXToneMapping, BackSide, CanvasTexture, Color, DirectionalLight, DoubleSide, Group, LatheGeometry, Mesh,
-  MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PMREMGenerator, Scene,
-  Sprite, SpriteMaterial, SRGBColorSpace, TorusGeometry, Vector2, WebGLRenderer,
+  AdditiveBlending, AgXToneMapping, BackSide, BufferAttribute, BufferGeometry, CanvasTexture, Color, DirectionalLight, DoubleSide,
+  Group, InstancedMesh, LatheGeometry, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, PerspectiveCamera, Plane,
+  PlaneGeometry, PMREMGenerator, Points, Raycaster, Scene, Sprite, SpriteMaterial, SRGBColorSpace, TorusGeometry, Vector2, Vector3,
+  WebGLRenderer,
 } from 'three'
 import type { Material, Object3D, Texture } from 'three'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { designColors, designPalette } from '@/shared/design/tokens'
+import { createChips, createFracture } from './capsule-fracture'
+import { createRibbons, createSparkles } from './capsule-light'
+import { createPost } from './capsule-post'
+
+/** The card's four corners in viewport pixels (top left, top right, bottom right, bottom left). */
+export type CardQuad = readonly (readonly [number, number])[]
+export type CapsuleQuality = 'high' | 'normal'
 
 const R = 0.34
 /** The cap is slightly wider so it closes over the body. */
@@ -13,6 +21,12 @@ const CAP_R = R * 1.04
 const SEGMENTS = 96
 const ARC_STEPS = 32
 const SEAM_Y = -0.12
+/** Frames skipped before timing (shader compiles land there), then frames averaged to judge the device. */
+const WARMUP_FRAMES = 5
+const SAMPLE_FRAMES = 30
+const SLOW_FRAME_MS = 25
+
+const rand = (min: number, max: number) => min + Math.random() * (max - min)
 
 /** Lathe profile, ordered bottom to top: a hemisphere and a straight wall up (body) or down (cap) to the rim. */
 function profile(radius: number, center: number, rim: number, cap: boolean) {
@@ -27,23 +41,24 @@ function profile(radius: number, center: number, rim: number, cap: boolean) {
 
 function shell(hex: string, radius: number, center: number, rim: number, cap: boolean) {
   const color = new Color(hex)
+  // Transparent from the start so fading the halves out later needs no material change mid-animation.
   const outer = new MeshPhysicalMaterial({
     color, roughness: 0.2, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.03,
     sheen: 0.35, sheenRoughness: 0.5, sheenColor: color.clone().lerp(new Color('#ffffff'), 0.65),
-    iridescence: 0.3, iridescenceIOR: 1.3, iridescenceThicknessRange: [200, 520],
-    envMapIntensity: 1.25, side: DoubleSide,
+    iridescence: 0.3, iridescenceIOR: 1.3, iridescenceThicknessMinimum: 200, iridescenceThicknessMaximum: 520,
+    envMapIntensity: 1.25, side: DoubleSide, transparent: true,
   })
-  const inner = new MeshStandardMaterial({ color: color.clone().multiplyScalar(0.3), roughness: 0.7, side: BackSide })
-  const half = new Group()
+  const inner = new MeshStandardMaterial({ color: color.clone().multiplyScalar(0.3), roughness: 0.7, side: BackSide, transparent: true })
+  const group = new Group()
   const lip = new Mesh(new TorusGeometry(radius * 0.983, radius * 0.022, 16, SEGMENTS), outer)
   lip.rotation.x = Math.PI / 2
   lip.position.y = rim
-  half.add(
+  group.add(
     new Mesh(new LatheGeometry(profile(radius, center, rim, cap), SEGMENTS), outer),
     new Mesh(new LatheGeometry(profile(radius * 0.965, center, rim, cap), SEGMENTS), inner),
     lip,
   )
-  return half
+  return { group, outer, materials: [outer, inner], radius, color, direction: (cap ? 1 : -1) as 1 | -1 }
 }
 
 function radialTexture(stops: [number, string][]) {
@@ -59,12 +74,24 @@ function radialTexture(stops: [number, string][]) {
   return texture
 }
 
-/** The two-tone pill of the capsule card intro. The caller animates the returned parts; `dispose` frees everything. */
-export function createCapsuleScene(host: HTMLElement) {
+/** Whether the device can likely afford bloom; the frame time check can still lower it later. */
+function initialQuality(): CapsuleQuality {
+  const cores = navigator.hardwareConcurrency
+  return cores !== undefined && cores <= 4 ? 'normal' : 'high'
+}
+
+/**
+ * The capsule card intro scene: a lying two-tone pill that cracks in three blows, splits toward the camera and
+ * releases light ribbons, sparkles and shards. The page's card sits under this transparent canvas, so an invisible
+ * occluder at the card's corners (projected to the z = 0 plane) writes depth and hides whatever passes behind it.
+ */
+export function createCapsuleScene(host: HTMLElement, options: { getCardQuad?: () => CardQuad | null; onQuality?: (quality: CapsuleQuality) => void } = {}) {
   const canvas = document.createElement('canvas')
   host.append(canvas)
+  // three.js needs WebGL2; without it this throws and the intro falls back to the card alone.
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  const pixelRatio = Math.min(window.devicePixelRatio, 2)
+  renderer.setPixelRatio(pixelRatio)
   renderer.toneMapping = AgXToneMapping
   renderer.toneMappingExposure = 1.2
   renderer.setClearColor(0x000000, 0)
@@ -79,7 +106,7 @@ export function createCapsuleScene(host: HTMLElement) {
   const camera = new PerspectiveCamera(30, 1, 0.1, 50)
   /** Animated dolly on top of the aspect-based distance. */
   const dolly = { offset: 0 }
-  let baseZ = 6.4
+  let baseZ = 6.6
 
   const key = new DirectionalLight(0xfff6ec, 1.3)
   key.position.set(2.5, 3.2, 4)
@@ -87,27 +114,25 @@ export function createCapsuleScene(host: HTMLElement) {
   rimLight.position.set(-3, 2.5, -4)
   scene.add(key, rimLight)
 
-  const cap = shell(designPalette.violet['300'], CAP_R, 0.62, SEAM_Y, true)
-  const body = shell(designColors.primary, R, -0.62, 0.32, false)
-  const seam = new Mesh(
-    new TorusGeometry(CAP_R * 1.02, 0.018, 12, SEGMENTS),
-    new MeshBasicMaterial({ color: '#e9e2ff', blending: AdditiveBlending, transparent: true, opacity: 0, depthWrite: false }),
-  )
-  seam.rotation.x = Math.PI / 2
-  seam.position.y = SEAM_Y
+  const capShell = shell(designPalette.violet['300'], CAP_R, 0.62, SEAM_Y, true)
+  const bodyShell = shell(designColors.primary, R, -0.62, 0.32, false)
+  const cap = capShell.group
+  const body = bodyShell.group
   const pill = new Group()
-  pill.rotation.z = -(Math.PI / 2 - 0.48)
-  pill.add(cap, body, seam)
+  // Lying down: local +y (the cap) points to the right of the screen and local -x to the top.
+  pill.rotation.z = -Math.PI / 2 + 0.05
+  pill.add(cap, body)
   const floatG = new Group()
   floatG.add(pill)
   scene.add(floatG)
+  const fracture = createFracture(capShell, bodyShell, SEAM_Y)
 
   const shadow = new Mesh(
-    new PlaneGeometry(3.0, 0.9),
+    new PlaneGeometry(3.2, 0.9),
     new MeshBasicMaterial({ map: radialTexture([[0, 'rgba(0,0,0,0.85)'], [0.45, 'rgba(0,0,0,0.4)'], [1, 'rgba(0,0,0,0)']]), transparent: true, opacity: 0, depthWrite: false }),
   )
   shadow.rotation.x = -Math.PI / 2
-  shadow.position.y = -0.9
+  shadow.position.y = -0.8
   scene.add(shadow)
 
   const glow = new Sprite(new SpriteMaterial({
@@ -118,28 +143,130 @@ export function createCapsuleScene(host: HTMLElement) {
   glow.renderOrder = 10
   scene.add(glow)
 
+  const ribbons = createRibbons()
+  scene.add(ribbons.group)
+  const sparkles = createSparkles(pill, CAP_R, SEAM_Y)
+  scene.add(sparkles.points)
+  const chips = createChips()
+  scene.add(chips.mesh)
+  const seamPoint = new Vector3()
+  const capColor = new Color(designPalette.violet['300'])
+  const bodyColor = new Color(designColors.primary)
+
+  const occluderGeometry = new BufferGeometry()
+  occluderGeometry.setAttribute('position', new BufferAttribute(new Float32Array(12), 3))
+  occluderGeometry.setIndex([0, 1, 2, 0, 2, 3])
+  const occluder = new Mesh(occluderGeometry, new MeshBasicMaterial({ colorWrite: false, side: DoubleSide }))
+  occluder.renderOrder = -1
+  occluder.frustumCulled = false
+  scene.add(occluder)
+  const raycaster = new Raycaster()
+  const cardPlane = new Plane(new Vector3(0, 0, 1), 0)
+  const ndc = new Vector2()
+  const hit = new Vector3()
+
+  const post = initialQuality() === 'high' ? createPost(renderer) : null
+  let quality: CapsuleQuality = post ? 'high' : 'normal'
+  function applyQuality() {
+    const high = quality === 'high'
+    // Slightly less reflection so highlights do not bloom out.
+    capShell.outer.envMapIntensity = bodyShell.outer.envMapIntensity = high ? 1.08 : 1.25
+    ribbons.setHighQuality(high)
+    sparkles.setHighQuality(high)
+    options.onQuality?.(quality)
+  }
+  applyQuality()
+
+  /** Progress values the timeline animates: crack 0 → 1, ribbon 0 → 1.55. */
+  const fx = { crack: 0, ribbon: 0 }
+  let width = 1
+  let height = 1
+
   function resize() {
-    const width = host.clientWidth || window.innerWidth
-    const height = host.clientHeight || window.innerHeight
+    width = host.clientWidth || window.innerWidth
+    height = host.clientHeight || window.innerHeight
     renderer.setSize(width, height, false)
+    post?.setSize(width, height, pixelRatio)
     camera.aspect = width / height
-    baseZ = camera.aspect < 0.85 ? 8.2 : 6.4
+    // Narrow portrait screens back off further so the lying pill keeps clear of the edges even when the camera
+    // dollies in (-0.7) before the split: about 1.2 units of half width must stay visible.
+    const fit = 1.2 / (Math.tan((camera.fov * Math.PI) / 360) * camera.aspect) + 0.7
+    baseZ = camera.aspect < 0.85 ? Math.max(8.8, fit) : 6.6
     camera.updateProjectionMatrix()
   }
+
+  function placeOccluder() {
+    const quad = options.getCardQuad?.()
+    const positions = occluderGeometry.attributes.position as BufferAttribute
+    // Kept drawn (as a zero-area quad while the card is hidden) so its shader is ready before the card appears.
+    if (!quad) {
+      positions.array.fill(0)
+      positions.needsUpdate = true
+      return
+    }
+    quad.forEach(([x, y], index) => {
+      ndc.set((x / width) * 2 - 1, 1 - (y / height) * 2)
+      raycaster.setFromCamera(ndc, camera)
+      if (raycaster.ray.intersectPlane(cardPlane, hit)) positions.setXYZ(index, hit.x, hit.y, hit.z)
+    })
+    positions.needsUpdate = true
+  }
+
   resize()
   window.addEventListener('resize', resize)
-  renderer.setAnimationLoop(() => {
-    camera.position.set(0, 1.1, baseZ + dolly.offset)
+  // Compile every shader up front, in parallel where supported, so effects that first appear mid-animation
+  // (ribbons, shards, the card occluder) do not stall a frame.
+  ;(post ? post.precompile(scene, camera) : renderer.compileAsync(scene, camera)).catch(() => { /* Compiled on first use instead. */ })
+  let last = performance.now()
+  let frame = 0
+  let sampled = 0
+  renderer.setAnimationLoop(time => {
+    const elapsed = time - last
+    last = time
+    // Judge the device on settled frames; bloom is the heavy part, so a slow device drops it for good.
+    frame++
+    if (quality === 'high' && frame > WARMUP_FRAMES && frame <= WARMUP_FRAMES + SAMPLE_FRAMES) {
+      sampled += elapsed
+      if (frame === WARMUP_FRAMES + SAMPLE_FRAMES && sampled / SAMPLE_FRAMES > SLOW_FRAME_MS) {
+        quality = 'normal'
+        applyQuality()
+      }
+    }
+    const dt = Math.max(0, Math.min(elapsed / 1000, 1 / 20))
+    camera.position.set(0, 0.35, baseZ + dolly.offset)
     camera.lookAt(0, 0, 0)
-    renderer.render(scene, camera)
+    camera.updateMatrixWorld()
+    sparkles.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan((camera.fov * Math.PI) / 360))
+    sparkles.uniforms.uFocus.value = camera.position.length()
+    fracture.update(fx.crack)
+    ribbons.update(fx.ribbon)
+    scene.updateMatrixWorld()
+    sparkles.update(dt)
+    chips.update(dt)
+    placeOccluder()
+    if (quality === 'high' && post) post.render(scene, camera)
+    else renderer.render(scene, camera)
   })
+
+  /** Shards off the cracks reached so far. */
+  function breakChips(count: number, power: number) {
+    chips.breakChips(fracture.points, fx.crack, count, power)
+  }
+  /** Shards from the front of the seam as the halves part. */
+  function breakSeam(count: number, power: number) {
+    for (let n = 0; n < count; n++) {
+      const theta = rand(0.35, 2.8)
+      seamPoint.set(CAP_R * Math.cos(theta), SEAM_Y + rand(-0.02, 0.02), CAP_R * Math.sin(theta))
+      chips.spawn(pill.localToWorld(seamPoint), Math.random() < 0.5 ? capColor : bodyColor, power)
+    }
+  }
 
   function dispose() {
     window.removeEventListener('resize', resize)
     renderer.setAnimationLoop(null)
     const materials = new Set<Material>()
     scene.traverse((object: Object3D) => {
-      if (object instanceof Mesh || object instanceof Sprite) {
+      if (object instanceof Mesh || object instanceof Sprite || object instanceof Points || object instanceof InstancedMesh) {
         object.geometry.dispose()
         ;(Array.isArray(object.material) ? object.material : [object.material]).forEach(material => materials.add(material))
       }
@@ -149,6 +276,8 @@ export function createCapsuleScene(host: HTMLElement) {
       map?.dispose()
       material.dispose()
     })
+    chips.mesh.dispose()
+    post?.dispose()
     environment.dispose()
     pmrem.dispose()
     renderer.dispose()
@@ -157,5 +286,15 @@ export function createCapsuleScene(host: HTMLElement) {
     canvas.remove()
   }
 
-  return { canvas, floatG, cap, body, seam, shadow, glow, dolly, dispose }
+  return {
+    floatG, cap, body, shadow, glow, dolly, fx,
+    ribbons: ribbons.group,
+    emitters: sparkles.rates,
+    /** Every material of both halves, cracks and their edges included, for fading them out together. */
+    halfMaterials: [...capShell.materials, ...bodyShell.materials, ...fracture.materials],
+    quality: () => quality,
+    breakChips,
+    breakSeam,
+    dispose,
+  }
 }
