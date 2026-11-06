@@ -39,9 +39,16 @@
   }
   @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .report-glass {
-      background: linear-gradient(135deg, color-mix(in srgb, var(--color-panel) 88%, transparent), color-mix(in srgb, var(--color-canvas) 82%, transparent));
-      -webkit-backdrop-filter: blur(24px) saturate(120%);
-      backdrop-filter: blur(24px) saturate(120%);
+      /* See-through frosted glass: the scene shows through, blurred enough to keep the text readable. */
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-panel) 52%, transparent), color-mix(in srgb, var(--color-canvas) 44%, transparent));
+      border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      backdrop-filter: blur(20px) saturate(140%);
+    }
+    /* The friend's line sits a step lighter than the stats panel. */
+    .report-dialogue.report-glass {
+      --report-dialogue-tint: color-mix(in srgb, var(--color-surface) 88%, var(--color-ink));
+      background: linear-gradient(135deg, color-mix(in srgb, var(--report-dialogue-tint) 72%, transparent), color-mix(in srgb, var(--report-dialogue-tint) 58%, transparent));
     }
   }
   .report-companion {
