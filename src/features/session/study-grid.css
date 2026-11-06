@@ -33,8 +33,6 @@
   .study-grid.is-focus > :nth-child(3) { grid-column: 3; }
   .study-grid.is-focus > :nth-child(4) { grid-column: 4; }
   .study-grid.is-focus > :not(.focus-tile) .character-speech-bubble { display: none; }
-  .study-grid.is-focus > :not(.focus-tile) .tile-action-symbol { width: 32px; height: 32px; }
-  .study-grid.is-focus > :not(.focus-tile) .tile-action-symbol > .app-icon { width: 20px; height: 20px; }
 
   @media (max-width: 1023px) {
     .study-grid {

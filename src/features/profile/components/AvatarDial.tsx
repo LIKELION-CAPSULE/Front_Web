@@ -2,6 +2,7 @@ import { useId, useRef, useState, useSyncExternalStore, type CSSProperties, type
 import { AnimatePresence, motion, useIsPresent } from 'motion/react'
 import type { AvatarItem } from '@/shared/api/types'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
+import { AvatarModelPreview } from './AvatarModelPreview'
 import './avatar-dial.css'
 
 const compactQuery = '(max-width: 767px)'
@@ -56,12 +57,13 @@ function DialOption({ avatar, index, offset, edge, direction, checked, disabled,
   </motion.label>
 }
 
-export function AvatarDial({ avatars, value, onChange, disabled = false, compact: forceCompact = false, fallback }: {
+export function AvatarDial({ avatars, value, onChange, disabled = false, compact: forceCompact = false, previewActive = true, fallback }: {
   avatars: readonly AvatarItem[]
   value?: number
   onChange: (id: number) => void
   disabled?: boolean
   compact?: boolean
+  previewActive?: boolean
   fallback: ReactNode
 }) {
   const viewportCompact = useSyncExternalStore(subscribeCompact, compactSnapshot, () => true)
@@ -70,6 +72,8 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, compact
   const choices = avatars.filter((avatar): avatar is AvatarItem & { id: number } => typeof avatar.id === 'number')
   const selectedIndex = Math.max(0, choices.findIndex(avatar => avatar.id === value))
   const selected = choices[selectedIndex]
+  const model = selected?.model
+  const previewKey = JSON.stringify([selected?.id, model?.modelJsonUrl, model?.scale, model?.offsetX, model?.offsetY])
   // Keep an unbounded position so wrapping from the last avatar to the first slides one step.
   const [anchor, setAnchor] = useState(selectedIndex)
   const [direction, setDirection] = useState(1)
@@ -132,7 +136,11 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, compact
       onPointerDown={startGesture} onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={() => { gesture.current = null }}
       onClickCapture={event => { if (suppressClick.current) { event.preventDefault(); event.stopPropagation(); suppressClick.current = false } }}>
       <figure className="avatar-dial-preview" aria-label={`${selectedName} 미리보기`}>
-        <div className="avatar-dial-portrait"><AvatarPortrait avatar={selected} fallback={fallback} /></div>
+        <div className="avatar-dial-portrait" data-preview={model?.modelJsonUrl ? 'model' : 'portrait'}>
+          {model?.modelJsonUrl
+            ? previewActive && <AvatarModelPreview key={previewKey} model={model} name={selectedName} />
+            : <AvatarPortrait avatar={selected} fallback={fallback} />}
+        </div>
         <figcaption title={selectedName}>{selectedName}</figcaption>
       </figure>
       {!!slots.length && <div className="avatar-dial-orbit" aria-hidden="true" />}

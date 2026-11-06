@@ -95,7 +95,7 @@ export default function AccountSettingsDialog({ onClose, initialView = 'profile'
       <div className={`account-settings-content${view === 'profile' ? ' avatar-background' : ''}`} data-account-content={view}>
         <div ref={main} className="account-settings-main">
           <section role="tabpanel" id={`${prefix}-panel-profile`} aria-labelledby={`${prefix}-tab-profile`} hidden={view !== 'profile'} className="account-settings-panel">
-            <ProfileEditor onBusyChange={setBusy} />
+            <ProfileEditor active={view === 'profile'} onBusyChange={setBusy} />
           </section>
           <section role="tabpanel" id={`${prefix}-panel-schedule`} aria-labelledby={`${prefix}-tab-schedule`} hidden={view !== 'schedule'} className="account-settings-panel account-settings-schedule">
             <h2 className="account-settings-title">일정</h2>

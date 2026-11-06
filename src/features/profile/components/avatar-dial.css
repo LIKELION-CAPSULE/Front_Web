@@ -20,6 +20,13 @@
   .avatar-dial-preview::before { position: absolute; z-index: -1; top: -22px; right: -22px; left: -22px; height: calc(var(--dial-preview-size) + 44px); border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 70%); content: ''; }
   .avatar-dial-image, .avatar-dial-portrait > .avatar-illustration { display: block; width: 100%; height: 100%; object-fit: contain; }
   .avatar-dial-portrait .avatar-dial-image { object-fit: cover; object-position: 50% 24%; }
+  .avatar-dial-portrait[data-preview='model'] { overflow: visible; border: 0; border-radius: 0; background: transparent; }
+  .avatar-dial-model { --dial-model-size: 215%; position: relative; width: 100%; height: 100%; overflow: hidden; }
+  .avatar-dial-model::before { position: absolute; right: 18%; bottom: 0; left: 18%; height: 12%; border-radius: 50%; background: radial-gradient(ellipse, color-mix(in srgb, var(--color-primary) 20%, transparent), transparent 70%); filter: blur(6px); content: ''; }
+  .avatar-dial-model .live2d-host { inset: 0 auto auto 50%; width: var(--dial-model-size); height: var(--dial-model-size); transform: translateX(-50%); background: transparent; }
+  .avatar-dial-model-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; color: var(--color-subtle); font-size: var(--text-caption); line-height: var(--text-caption--line-height); text-align: center; }
+  .avatar-dial-model-retry { min-height: 44px; border-radius: var(--radius-control); padding: 4px 12px; color: var(--color-text-accent); cursor: pointer; }
+  .avatar-dial-model-retry:hover { background: var(--color-primary-soft); }
   .avatar-dial-preview figcaption { max-width: 150px; margin: 10px auto 0; overflow: hidden; color: var(--color-muted); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 500; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
   .avatar-dial-orbit { position: absolute; top: var(--dial-center-y); left: 50%; width: calc(2 * var(--dial-radius-x)); height: calc(2 * var(--dial-radius-y)); border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent); border-radius: 50%; transform: translate(-50%, -50%); clip-path: inset(50% 0 0); pointer-events: none; }
   .avatar-dial-hole {
