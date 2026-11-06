@@ -21,6 +21,13 @@ import { Live2DStage } from '@/features/live2d/live2d-stage'
 import { SessionModel, type SessionModelFactory, type SessionModelStage } from '@/features/live2d/session-model'
 
 type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'signedOutNotice' | 'me' | 'home' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
+/**
+ * Cache lifetimes. Changes made here invalidate their entries right away (ending a study clears home and the room,
+ * saving a schedule clears memories), so these only bound how stale changes from elsewhere can get.
+ */
+const HOME_MAX_AGE = 60_000
+const ROOM_MAX_AGE = 300_000
+const AVATARS_MAX_AGE = 300_000
 const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null, signedOutNotice: null, me: null, home: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : '요청을 처리하지 못했어요.'
 const createLive2DStage: SessionModelFactory = (url, layout) => new Live2DStage(url, layout, new URL(import.meta.env.BASE_URL, location.href).href)
@@ -38,6 +45,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
   const stateRef = useRef(state)
   const epoch = useRef(0)
   const bootstrap = useRef<Promise<void> | null>(null)
+  const termsLoaded = useRef(false)
   const queries = useRef(new QueryCache())
   const userTask = useRef<{ generation: number; task: Promise<MeResponse> } | null>(null)
   const homeTask = useRef<{ generation: number; task: Promise<void> } | null>(null)
@@ -109,12 +117,12 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     const value = await api.request<AvatarsResponse>('/avatars')
     if (!Array.isArray(value.avatars)) throw new ApiError('아바타 정보를 확인하지 못했어요.', 502)
     return value.avatars
-  }, 300_000), [])
+  }, AVATARS_MAX_AGE), [])
   const loadMemories = useCallback(() => queries.current.load('memories', async () => {
     const value = await api.request<MemoryList>('/me/memories?status=ALL')
     if (!Array.isArray(value.memories)) throw new ApiError('일정 정보를 확인하지 못했어요.', 502)
     return value.memories.map(adapt.memory)
-  }, 10_000), [])
+  }, HOME_MAX_AGE), [])
   const loadHome = useCallback(async () => {
     const generation = epoch.current
     const homeVersion = homeRevision.current
@@ -123,12 +131,12 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
       const value = await api.request<HomeResponse>('/home')
       if (!Array.isArray(value.rooms)) throw new ApiError('홈 정보를 확인하지 못했어요.', 502)
       return value
-    }, 10_000)
+    }, HOME_MAX_AGE)
     if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
     if (homeVersion !== homeRevision.current) return { home, rooms: [] }
     const rooms = await Promise.all(home.rooms!.map(value => {
       const roomId = adapt.id(value.id)
-      return cache.load(`room:${roomId}`, async () => adapt.room(await api.request<RoomDetail>(`/rooms/${roomId}`)), 30_000)
+      return cache.load(`room:${roomId}`, async () => adapt.room(await api.request<RoomDetail>(`/rooms/${roomId}`)), ROOM_MAX_AGE)
     }))
     return { home, rooms }
   }, [])
@@ -138,6 +146,10 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     const task = (async () => {
       const revision = memoryRevision.current
       const homeVersion = homeRevision.current
+      // Almost every user has finished onboarding, so home data starts with /me instead of waiting for it.
+      // For a user still onboarding the result is simply not used.
+      const homeData = Promise.all([loadHome(), loadMemories()])
+      homeData.catch(() => { /* Reported below when it is used. */ })
       const me = await api.request<MeResponse>('/me')
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
       const userProfile = adapt.profile(me)
@@ -150,7 +162,8 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
         setMeta(previous => ({ ...previous, status: 'ready', error: null, me, avatars, home: null, activeSummary: null }))
         return me
       }
-      const [{ home, rooms }, memories, avatars] = await Promise.all([loadHome(), loadMemories(), loadAvatars()])
+      // Avatars are only needed by onboarding and the profile editor, which loads them itself.
+      const [{ home, rooms }, memories] = await homeData
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
       if (homeVersion === homeRevision.current) setServerRooms(rooms)
       const previous = stateRef.current
@@ -161,7 +174,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
         ...(revision === memoryRevision.current ? { memories } : {}),
         ...(homeVersion === homeRevision.current ? { firstVisit: (home.todayStudySeconds ?? 0) === 0 && !home.activeSession } : {}),
       })
-      setMeta(previousMeta => ({ ...previousMeta, status: 'ready', error: null, me, avatars,
+      setMeta(previousMeta => ({ ...previousMeta, status: 'ready', error: null, me,
         ...(homeVersion === homeRevision.current ? { home, activeSummary: stateRef.current.activeSession ? null : me.activeSession ?? home.activeSession ?? null } : {}),
       }))
       return me
@@ -172,6 +185,12 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     void task.then(cleanup, cleanup)
     return task
   }, [patch, loadHome, loadMemories, loadAvatars])
+  /** Avatar choices for the profile editor; onboarding has them already. */
+  const ensureAvatars = useCallback(async () => {
+    const generation = epoch.current
+    const avatars = await loadAvatars()
+    if (generation === epoch.current) setMeta(previous => previous.avatars === avatars ? previous : { ...previous, avatars })
+  }, [loadAvatars])
   const reload = useCallback(async () => {
     const generation = epoch.current
     const account = accountScope(() => epoch.current)
@@ -195,10 +214,12 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     return () => api.onExpired(null)
   }, [clear, reload])
   useEffect(() => {
-    // Terms are used on authentication screens, not on every authenticated page reload.
-    if (pathname !== '/login') return
+    // Terms are used on authentication screens, not on every authenticated page reload; once loaded they are kept.
+    if (pathname !== '/login' || termsLoaded.current) return
     void api.request<TermsResponse>('/terms', { auth: false }).then(value => {
-      if (Array.isArray(value.terms)) setMeta(previous => ({ ...previous, terms: value.terms! }))
+      if (!Array.isArray(value.terms)) return
+      termsLoaded.current = true
+      setMeta(previous => ({ ...previous, terms: value.terms! }))
     }).catch(() => { /* Signup offers a separate terms retry. */ })
   }, [pathname])
   useEffect(() => {
@@ -459,7 +480,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
   }, [patch])
   return (
     <DemoContext value={{ state, dispatch, storageAvailable: true }}>
-      <BackendContext value={{ ...meta, live2dStage, reload, refreshHome, updateAffinity, authenticate, logout, withdrawAccount, forgetAuthentication: clear, saveProfile, createMemory, startSession, resumeSession, finishSession, sendMessage, loadReport }}>
+      <BackendContext value={{ ...meta, live2dStage, reload, refreshHome, ensureAvatars, updateAffinity, authenticate, logout, withdrawAccount, forgetAuthentication: clear, saveProfile, createMemory, startSession, resumeSession, finishSession, sendMessage, loadReport }}>
         {children}
       </BackendContext>
     </DemoContext>
