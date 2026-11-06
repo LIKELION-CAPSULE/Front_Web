@@ -40,6 +40,7 @@ import { useExpressionDirector } from '@/features/live2d/use-live2d'
 import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
 import type { ExpressionCue } from '@/features/live2d/expression-scheduler'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
+import { resolveStudyRoute } from '@/features/session/study-route'
 
 const reactions = ['', '…', '잠깐 자리 비운 거야?', '…나랑 공부하기 싫어?']
 
@@ -102,7 +103,7 @@ export default function StudyPage() {
         setReaction(0); setCustomSpeech(reply.content)
       }
     },
-    onEnded: () => { controller.stop(); navigate(`/reports/${active!.id}`, { replace: true }) },
+    onEnded: () => { controller.stop(); if (sessionId) navigate(`/reports/${sessionId}`, { replace: true }) },
   })
   useEffect(() => {
     if (inSession && previousPhase.current === 'break' && active?.phase === 'study') {
@@ -169,7 +170,13 @@ export default function StudyPage() {
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   }, [inSession, resting, focused?.id, selfFocused, selected, defaultFocus, setParams])
-  if ((!active || active.id !== sessionId) && backend.activeSummary && String(backend.activeSummary.sessionId) === sessionId) {
+  const route = resolveStudyRoute({
+    sessionId, activeSessionId: active?.id, summarySessionId: backend.activeSummary?.sessionId,
+    completedSessionIds: state.records.map(record => record.id), finishing,
+  })
+  if (route === 'report') return <Navigate to={`/reports/${sessionId}`} replace />
+  if (route === 'finishing') return null
+  if (route === 'resume' && backend.activeSummary) {
     return <main id="main-content" className="page-container grid min-h-dvh place-items-center">
       <section><h1 className="type-page-title">다시 공부를 시작할까요?</h1><p className="mt-4 text-muted">{backend.activeSummary.roomName}에서 하던 공부를 이어가요.</p>
       {sessionError && <FeedbackMessage tone="error">{sessionError}</FeedbackMessage>}
@@ -275,9 +282,13 @@ export default function StudyPage() {
       // The leave dialog already tells the user how an unrestored baseline is recorded, so pressing finish confirms it.
       const record = await backend.finishSession({ acceptUnknownPresence: true })
       controller.stop()
-      navigate(`/reports/${record.id}`)
-    } catch (reason) { setSessionError(reason instanceof Error ? reason.message : '공부를 마무리하지 못했어요.') }
-    finally { setFinishing(false) }
+      navigate(`/reports/${record.id}`, { replace: true })
+      // Keep the guard active while the lazy report route commits. Clearing it
+      // here would let the old study screen mistake settlement for a lost session.
+    } catch (reason) {
+      setSessionError(reason instanceof Error ? reason.message : '공부를 마무리하지 못했어요.')
+      setFinishing(false)
+    }
   }
   async function toggleCamera() {
     if (devices.camera.stream) {

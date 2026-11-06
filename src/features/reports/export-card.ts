@@ -1,6 +1,6 @@
 import logo from '@/assets/brand/logo.webp'
 import { getCharacterArtwork } from '@/features/characters/artwork'
-import { getRoomArtwork } from '@/features/rooms/artwork'
+import { getRoomArtwork, type RoomArtwork } from '@/features/rooms/artwork'
 import { loadRoomLayers, drawRoomLayers } from '@/features/rooms/draw-artwork'
 import { dateLabel, duration, measuredDuration } from '@/shared/lib/format'
 import type { StudyRecord } from '@/features/demo/types'
@@ -20,12 +20,11 @@ async function loadImage(src: string) {
   return image
 }
 
-export async function exportCard(record: StudyRecord, character: string, color: string, characterId = 'chaerin') {
+export async function exportCard(record: StudyRecord, character: string, color: string, characterId = 'chaerin', roomArt: RoomArtwork = getRoomArtwork(record.roomId)) {
   const [, storyFont] = await Promise.all([document.fonts.load('400 16px Pretendard'), loadStoryFont()])
   await document.fonts.ready
   const art = getCharacterArtwork(characterId)
   const completion = getCompletionArtwork(characterId, character)
-  const roomArt = getRoomArtwork(record.roomId)
   const layers = !completion && (characterId === 'chaerin' || !!art.sceneId) ? await loadRoomLayers(record.roomId) : null
   const [brand, title, portrait] = await Promise.all([
     loadImage(logo),

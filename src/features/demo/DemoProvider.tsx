@@ -11,6 +11,7 @@ import { removeAccountSnapshots } from '@/features/auth/account-storage'
 import type { AffinityChange, AvatarsResponse, CreateMemoryRequest, HomeResponse, MeResponse, MemoryList, MemoryResponse, LoginResponse, RoomDetail, StartResponse, ResumeResponse, ReportResponse, TermsResponse } from '@/shared/api/types'
 import { BackendContext } from '@/features/backend/backend-context'
 import { streamMessage } from '@/features/backend/message-stream'
+import { accountScope } from '@/features/backend/account-scope'
 import * as adapt from '@/features/backend/adapters'
 import { getStudyRooms, registerReportRoom, setServerRooms } from '@/features/rooms/services/room-service'
 import { readSavedRooms, writeSavedRooms } from '@/features/rooms/saved-rooms'
@@ -173,12 +174,13 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
   }, [patch, loadHome, loadMemories, loadAvatars])
   const reload = useCallback(async () => {
     const generation = epoch.current
+    const account = accountScope(() => epoch.current)
     queries.current.invalidate('home')
     queries.current.invalidate('memories')
     setMeta(previous => ({ ...previous, status: 'loading', error: null, loadingStage: previous.status === 'loading' ? previous.loadingStage : 'auth' }))
     try {
       if (stateRef.current.profile.loggedIn) await loadUser()
-      else if (await api.refresh()) await loadUser()
+      else if (await account.wait(api.refresh())) await loadUser()
       else setMeta(previous => ({ ...previous, status: 'ready' }))
     } catch (error) {
       if (generation !== epoch.current) return
@@ -218,8 +220,9 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     }
   }, [loadUser])
   const logout = useCallback(async () => {
-    await api.waitForRefresh()
-    await api.request('/auth/logout', { method: 'POST', auth: false })
+    const account = accountScope(() => epoch.current)
+    await account.wait(api.waitForRefresh())
+    await account.wait(api.request('/auth/logout', { method: 'POST', auth: false }))
     clear()
   }, [clear])
   const withdrawAccount = useCallback(async () => {
@@ -325,10 +328,10 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
         if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
         setServerRooms([...getStudyRooms(), adapt.room(detail)])
       }
-      if (generation !== epoch.current || currentPath.current !== entry.pathname) throw new ApiError('공부 준비가 취소됐어요.', 409)
+      if (generation !== epoch.current || currentPath.current !== entry.pathname || modelEntry.current !== entry) throw new ApiError('공부 준비가 취소됐어요.', 409)
       const stage = await models.prepare(dto.character)
-      if (generation !== epoch.current || currentPath.current !== entry.pathname) {
-        releaseModel()
+      if (generation !== epoch.current || currentPath.current !== entry.pathname || modelEntry.current !== entry) {
+        if (modelEntry.current === entry) releaseModel()
         throw new ApiError('공부 준비가 취소됐어요.', 409)
       }
       setLive2dStage(stage)
@@ -357,10 +360,9 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     } finally { pending.current.delete('start') }
   }, [installSession])
   const resumeSession = useCallback(async (sessionId: string) => {
-    const generation = epoch.current
-    await flushSessionEvents(sessionId)
-    const dto = await api.request<ResumeResponse>(`/sessions/${adapt.numericId(sessionId)}/resume`, { method: 'POST' })
-    if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
+    const account = accountScope(() => epoch.current)
+    await account.wait(flushSessionEvents(sessionId))
+    const dto = await account.wait(api.request<ResumeResponse>(`/sessions/${adapt.numericId(sessionId)}/resume`, { method: 'POST' }))
     return installSession(dto)
   }, [installSession])
   const finishSession = useCallback(async (options: { acceptUnknownPresence?: boolean } = {}) => {
@@ -369,16 +371,15 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     if (!current) throw new ApiError('진행 중인 공부가 없어요.', 400)
     // An unknown baseline already counts earlier study as away; ending then needs the user's explicit confirmation.
     if (current.presenceKnown === false && !options.acceptUnknownPresence) throw new ApiError('이전 자리 지킴 시간을 불러오지 못했어요. 처음 공부한 브라우저에서 이어가 주세요.', 409)
-    const generation = epoch.current
+    const account = accountScope(() => epoch.current)
     pending.current.add('end')
     try {
-      await flushSessionEvents(current.id)
+      await account.wait(flushSessionEvents(current.id))
       const totals = getSessionTotals(current)
-      const dto = await api.request<ReportResponse>(`/sessions/${adapt.numericId(current.id)}/end`, {
+      const dto = await account.wait(api.request<ReportResponse>(`/sessions/${adapt.numericId(current.id)}/end`, {
         method: 'POST', body: { studySeconds: totals.studySeconds, presentSeconds: totals.presentSeconds },
-      })
+      }))
       const record = adapt.report(dto, current.roomId, current.targetSeconds)
-      if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
       record.cameraFocus = normalizeFocusTotals(stateRef.current.activeSession?.focus ?? current.focus)
       try {
         localStorage.setItem(`capsule-session:${stateRef.current.profile.userId}:${current.id}`, JSON.stringify({
