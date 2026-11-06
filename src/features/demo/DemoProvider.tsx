@@ -266,7 +266,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
   }, [clear])
   const updateAffinity = useCallback((characterId: number, value?: AffinityChange) => {
     if (!value || !Number.isSafeInteger(characterId)) return
-    setMeta(previous => ({ ...previous, affinities: { ...previous.affinities, [characterId]: value } }))
+    setMeta(previous => ({ ...previous, affinities: { ...previous.affinities, [characterId]: { ...previous.affinities[characterId], ...value } } }))
   }, [])
   const refreshHome = useCallback(async () => {
     if (!stateRef.current.profile.loggedIn || !stateRef.current.profile.onboarded) return
