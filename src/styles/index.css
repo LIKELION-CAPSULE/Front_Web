@@ -29,6 +29,16 @@
     line-height: var(--text-body--line-height);
     -webkit-font-smoothing: antialiased;
     color-scheme: dark;
+    /* An app, not a document: dragging across the screen must not highlight text or lift images and links. */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  :where(input, textarea, [contenteditable]:not([contenteditable='false'])) {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  :where(img, a) {
+    -webkit-user-drag: none;
   }
   html:has(.app-dialog:modal, .session-chat-panel:modal) {
     overflow: hidden;
