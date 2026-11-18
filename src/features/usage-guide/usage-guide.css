@@ -1,0 +1,324 @@
+@layer components {
+  /* Full-screen native modal; the page behind keeps its scroll (see the html:has rule in index.css). */
+  .usage-guide {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    overflow: hidden;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    opacity: 1;
+    transition: opacity 0.22s ease, display 0.22s allow-discrete, overlay 0.22s allow-discrete;
+  }
+  @starting-style {
+    .usage-guide[open] { opacity: 0; }
+  }
+  .usage-guide[data-closing] { opacity: 0; pointer-events: none; }
+  .usage-guide::backdrop { background: var(--color-canvas); }
+
+  .usage-guide-skip {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    z-index: 3;
+    min-height: 40px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-surface-raised) 80%, transparent);
+    padding: 8px 18px;
+    color: var(--color-muted);
+    font-size: var(--text-button-compact);
+    line-height: var(--text-button-compact--line-height);
+    font-weight: 600;
+    backdrop-filter: blur(8px);
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+  .usage-guide-skip:hover { background: var(--color-control-hover); color: var(--color-ink); }
+
+  /* ---- 3D: scroll inside the overlay drives the scene ---- */
+  .usage-guide-scroller {
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .usage-guide-scroller::-webkit-scrollbar { display: none; }
+  .usage-guide-track { height: calc((var(--guide-length) + 1) * 100%); }
+  .usage-guide-stage {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .usage-guide-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .usage-guide-scroller[data-ready] .usage-guide-canvas { opacity: 1; }
+
+  /* Viewport-sized picture behind the canvas, seen only through the monitor's see-through screen. */
+  .usage-guide-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    will-change: transform;
+  }
+  .usage-guide-screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #000;
+    opacity: var(--guide-screen-dim, 0);
+  }
+
+  .usage-guide-panel {
+    position: absolute;
+    top: 50%;
+    left: max(48px, calc((100% - 1360px) / 2 + 48px));
+    z-index: 2;
+    width: min(360px, 27vw);
+    transform: translateY(-50%);
+  }
+
+  .usage-guide-copy { display: grid; }
+  .usage-guide-copy-item {
+    grid-area: 1 / 1;
+    opacity: 0;
+    transform: translateY(12px);
+    visibility: hidden;
+    transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.35s;
+  }
+  .usage-guide-copy-item[data-active] {
+    opacity: 1;
+    transform: none;
+    visibility: visible;
+    transition-delay: 0.08s, 0.08s, 0s;
+  }
+  .usage-guide-title {
+    margin-top: 12px;
+    font-size: var(--text-page-title);
+    line-height: var(--text-page-title--line-height);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    word-break: keep-all;
+  }
+  .usage-guide-body {
+    margin-top: 16px;
+    color: var(--color-muted);
+    font-size: var(--text-body-compact);
+    line-height: var(--text-body-compact--line-height);
+  }
+  .usage-guide-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 32px;
+  }
+  .usage-guide-dots {
+    display: flex;
+    gap: 6px;
+    margin: 0 0 0 4px;
+    padding: 0;
+    list-style: none;
+  }
+  .usage-guide-dots li {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-control-active);
+    transition: width 0.3s ease, background-color 0.3s ease;
+  }
+  .usage-guide-dots li[data-active] { width: 20px; background: var(--color-primary); }
+  .usage-guide-hint {
+    margin-top: 20px;
+    color: var(--color-subtle);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+    transition: opacity 0.3s ease;
+  }
+  .usage-guide-hint[data-hidden] { opacity: 0; }
+
+  /* ---- The monitor picture, designed at viewport size ---- */
+  .guide-screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--color-canvas);
+  }
+  .guide-screen-page {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .guide-screen-page[data-active] { opacity: 1; }
+
+  .guide-screen-rooms { padding: 7% 7%; }
+  .guide-screen-heading {
+    font-size: clamp(28px, 3.4vw, 52px);
+    line-height: 1.25;
+    font-weight: 700;
+  }
+  .guide-screen-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2.4%;
+    margin-top: 4%;
+  }
+  .guide-screen-room {
+    overflow: hidden;
+    border-radius: 18px;
+    background: var(--color-panel);
+  }
+  .guide-screen-room img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
+  .guide-screen-room span {
+    display: block;
+    padding: 6% 8%;
+    font-size: clamp(16px, 1.6vw, 26px);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .guide-screen-cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .guide-screen-bubble {
+    position: absolute;
+    left: 50%;
+    bottom: 12%;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+    padding: 1.2% 3%;
+    font-size: clamp(22px, 2.6vw, 40px);
+    font-weight: 600;
+    white-space: nowrap;
+    backdrop-filter: blur(10px);
+  }
+  .guide-screen-cam {
+    position: absolute;
+    right: 4%;
+    bottom: 6%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 17%;
+    aspect-ratio: 4 / 3;
+    border: 3px solid color-mix(in srgb, var(--color-ink) 30%, transparent);
+    border-radius: 18px;
+    background: var(--color-panel);
+    color: var(--color-muted);
+    font-size: clamp(16px, 1.6vw, 24px);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .guide-screen-cam-dot { width: 12px; height: 12px; border-radius: 999px; background: #FF5D6C; }
+
+  .guide-screen-capsule {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7%;
+    background: radial-gradient(circle at 30% 50%, color-mix(in srgb, var(--color-primary) 35%, transparent), transparent 60%), var(--color-canvas);
+  }
+  .guide-screen-card {
+    width: 26%;
+    overflow: hidden;
+    border-radius: 28px;
+    background: linear-gradient(160deg, #B9A6FF, #7C5CFF);
+    padding: 1.4%;
+    box-shadow: 0 30px 80px rgb(124 92 255 / 0.45);
+    transform: rotate(-4deg);
+  }
+  .guide-screen-card img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 20px; }
+  .guide-screen-card span {
+    display: block;
+    padding: 6% 4% 3%;
+    color: #fff;
+    font-size: clamp(16px, 1.7vw, 26px);
+    font-weight: 700;
+    text-align: center;
+  }
+  .guide-screen-affection { width: 34%; font-size: clamp(20px, 2.2vw, 34px); font-weight: 700; }
+  .guide-screen-meter {
+    height: 22px;
+    margin-top: 6%;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--color-control);
+  }
+  .guide-screen-meter span {
+    display: block;
+    width: 30%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--color-primary), #FF8FB1);
+    transition: width 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.3s;
+  }
+  .guide-screen-capsule[data-active] .guide-screen-meter span { width: 78%; }
+  .guide-screen-gain { margin-top: 5%; color: var(--color-affection-text); font-size: 0.7em; }
+
+  /* ---- Slides: small screens, reduced motion, no WebGL ---- */
+  .usage-guide-slides {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 48px;
+    width: min(1040px, 100% - 96px);
+    height: 100%;
+    margin: 0 auto;
+    touch-action: pan-y;
+  }
+  .usage-guide-slide-art { grid-row: span 2; }
+  .usage-guide-slides .usage-guide-copy { align-self: end; }
+  .usage-guide-slides .usage-guide-actions { align-self: start; }
+
+  .guide-art { display: block; width: 100%; height: auto; }
+  .guide-art-screen { opacity: 0; }
+  .guide-art[data-step='0'] [data-screen='0'],
+  .guide-art[data-step='1'] [data-screen='1'],
+  .guide-art[data-step='2'] [data-screen='2'],
+  .guide-art[data-step='3'] [data-screen='3'] { opacity: 1; }
+  .guide-art-float { transform-box: fill-box; transform-origin: center; }
+  .guide-art[data-step='2'] .guide-art-float { transform: translate(-150px, 60px) scale(1.35); }
+
+  .usage-guide-slides[data-animated] .guide-art-screen { transition: opacity 0.4s ease; }
+  .usage-guide-slides[data-animated] .guide-art-float { transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+  .usage-guide-slides:not([data-animated]) .usage-guide-copy-item { transition: none; transform: none; }
+
+  @media (max-width: 768px) {
+    .usage-guide-slides {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto auto;
+      align-content: center;
+      gap: 28px;
+      width: calc(100% - 40px);
+    }
+    .usage-guide-slide-art { grid-row: auto; }
+    .usage-guide-slides .usage-guide-title {
+      font-size: var(--text-section-title);
+      line-height: var(--text-section-title--line-height);
+    }
+    .usage-guide-skip { top: 12px; right: 12px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .usage-guide,
+    .usage-guide-copy-item,
+    .guide-screen-page,
+    .guide-screen-meter span { transition: none; }
+  }
+}

@@ -9,7 +9,7 @@ import { welcomeBanners } from '../welcome-banners'
 import { welcomeCopy } from '../welcome-copy'
 import { useBackend } from '@/features/backend/backend-context'
 
-export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
+export function StudyWelcomeBanner({ onExplore, onGuide }: { onExplore: () => void; onGuide: () => void }) {
   const location = useLocation()
   const { state } = useDemo()
   const latest = state.records[0]
@@ -65,6 +65,9 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
                   스터디룸 둘러보기 <Icon name="arrow" size={18} className="rotate-90" />
                 </Button>
               )}
+              <Button variant="secondary" onClick={onGuide} aria-haspopup="dialog">
+                <Icon name="help" size={17} /> 사용법 보기
+              </Button>
             </div>
           </div>
         </>

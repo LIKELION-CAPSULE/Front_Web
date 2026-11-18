@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
@@ -7,9 +7,13 @@ import { RoomCard } from '@/features/rooms/components/RoomCard'
 import { StudyWelcomeBanner } from '@/features/rooms/components/StudyWelcomeBanner'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
 import { useDemo } from '@/features/demo/demo-context'
+import { useUsageGuide } from '@/features/usage-guide/use-usage-guide'
 import { Icon } from '@/shared/ui/Icon'
 import { cn } from '@/shared/lib/cn'
 import { SearchField } from '@/shared/ui/SearchField'
+
+// The guide and its 3D scene load only when it opens.
+const UsageGuideOverlay = lazy(() => import('@/features/usage-guide/components/UsageGuideOverlay'))
 
 export default function HomePage() {
   const location = useLocation()
@@ -72,6 +76,11 @@ export default function HomePage() {
       roomHeading.current?.focus({ preventScroll: true })
     })
   }
+  // Only on the home route itself: home also renders under the room preparation modal, where it must stay quiet.
+  const guide = useUsageGuide({
+    ready: status === 'ready' && state.profile.loggedIn && state.profile.onboarded && window.location.pathname === '/',
+    userId: state.profile.userId,
+  })
   const search = query.trim().toLocaleLowerCase('ko-KR')
   const visible = rooms.filter(
     (room) =>
@@ -88,7 +97,7 @@ export default function HomePage() {
       : { icon: 'search' as const, title: '검색 결과가 없어요', description: '스터디룸이나 친구 이름으로 다시 검색해 보세요.' }
   return (
     <>
-      <StudyWelcomeBanner onExplore={exploreRooms} />
+      <StudyWelcomeBanner onExplore={exploreRooms} onGuide={guide.show} />
       <section className="rooms-section" aria-labelledby="rooms-heading">
         <div className="section-heading">
           <div>
@@ -153,6 +162,16 @@ export default function HomePage() {
           </div>
         )}
       </section>
+      {guide.open && (
+        <Suspense fallback={null}>
+          <UsageGuideOverlay
+            onClose={(reason) => {
+              guide.close()
+              if (reason === 'start') exploreRooms()
+            }}
+          />
+        </Suspense>
+      )}
       <NotificationStack items={notifications} onDismiss={id => setNotifications(current => current.filter(item => item.id !== id))} />
     </>
   )

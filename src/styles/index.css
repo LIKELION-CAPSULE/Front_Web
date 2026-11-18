@@ -40,7 +40,7 @@
   :where(img, a) {
     -webkit-user-drag: none;
   }
-  html:has(.app-dialog:modal, .session-chat-panel:modal) {
+  html:has(.app-dialog:modal, .session-chat-panel:modal, .usage-guide:modal) {
     overflow: hidden;
     overscroll-behavior: none;
     scrollbar-gutter: stable;
