@@ -2,7 +2,6 @@ import type { CSSProperties } from 'react'
 import { AppFrame } from '@/app/layouts/AppFrame'
 import { AppNavigation } from '@/app/components/AppNavigation'
 import { SiteHeader } from '@/app/components/SiteHeader'
-import { MvpGate } from '@/features/mvp/MvpGate'
 import { welcomeCopy } from '@/features/rooms/welcome-copy'
 import type { SkeletonScreen } from '@/shared/lib/loading-screen'
 import { cn } from '@/shared/lib/cn'
@@ -33,12 +32,10 @@ function Line({ className }: { className?: string }) {
 
 function AccountSkeleton() {
   return <div className="header-account ml-auto flex shrink-0 items-center gap-2 sm:gap-5">
-    <MvpGate label="내 크레딧 · 충전" compact inline>
       <span className="credit-chip skeleton-line">
         <Icon name="coin" size={16} className="invisible" />
         <span className="invisible font-sans tabular-nums text-body-compact font-bold text-ink">—</span>
       </span>
-    </MvpGate>
     <div className="flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full">
       <span className="skeleton-line size-9 rounded-full" />
     </div>
@@ -111,7 +108,7 @@ function OnboardingSkeleton() {
 
 function RoomSkeleton() {
   return <div className="min-h-dvh bg-canvas">
-    <SiteHeader navigation={<div className="detail-breadcrumb"><Line className="h-5 w-40" /></div>} account={<AccountSkeleton />} />
+    <SiteHeader sticky navigation={<div className="detail-breadcrumb"><Line className="h-5 w-40" /></div>} account={<AccountSkeleton />} />
     <main id="main-content" className="room-detail-page">
       <section className="room-detail-hero">
         <div className="room-detail-backdrop skeleton-line" />

@@ -152,7 +152,7 @@ export default function LoginPage() {
                 >
                   <Link
                     to={authPath('login')}
-                    className="text-text-accent underline underline-offset-4"
+                    className="underline underline-offset-4"
                   >
                     로그인
                   </Link>

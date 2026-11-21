@@ -26,6 +26,14 @@
     <meta name="theme-color" content="#0c1017" />
     <meta name="description" content="AI 친구와 함께 공부하며 집중을 쌓아 가는 스터디 공간 CAPSULE" />
     <title>CAPSULE · 함께 공부하기</title>
+    <script type="module">
+      if (import.meta.env.DEV && location.hash.includes('figmacapture=')) {
+        const capture = document.createElement('script')
+        capture.src = 'https://mcp.figma.com/mcp/html-to-design/capture.js'
+        capture.async = true
+        document.head.appendChild(capture)
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

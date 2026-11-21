@@ -3,7 +3,7 @@
 @import './scenes.css';
 @import './welcome.css';
 @import './interactions.css';
-@import './mvp.css';
+@import './selection.css';
 
 @font-face {
   font-family: 'Pretendard';
@@ -29,6 +29,7 @@
     line-height: var(--text-body--line-height);
     -webkit-font-smoothing: antialiased;
     color-scheme: dark;
+    scroll-padding-top: calc(var(--site-header-height, 0px) + 16px);
   }
   html:has(.app-dialog:modal, .session-chat-panel:modal) {
     overflow: hidden;
@@ -102,6 +103,12 @@
   .site-header {
     border-bottom: 1px solid var(--color-divider);
     background: var(--color-canvas);
+  }
+  .site-header[data-sticky] {
+    position: sticky;
+    z-index: 40;
+    top: 0;
+    padding-top: env(safe-area-inset-top, 0px);
   }
   .site-header-inner {
     display: grid;
@@ -606,23 +613,6 @@
 
     text-align: center;
   }
-  .gift-recipient {
-    position: relative;
-    height: 150px;
-    overflow: hidden;
-    margin-bottom: 20px;
-    border-radius: 14px;
-  }
-  .gift-recipient > img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: 50% 30%;
-  }
-  .gift-product-icon {
-    background: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--color-text-accent) 14.12%, transparent), var(--color-primary-soft));
-  }
-
   /* First visit. */
   .login-page {
     position: relative;

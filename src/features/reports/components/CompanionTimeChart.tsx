@@ -18,7 +18,7 @@ export function CompanionTimeChart({
   range,
 }: {
   records: readonly StudyRecord[]
-  characters: readonly { id: string; name: string }[]
+  characters: readonly { id: string; name: string; artworkId?: string; avatarUrl?: string }[]
   range: RecordRange
 }) {
   const { buckets, series } = useMemo(
@@ -96,7 +96,7 @@ export function CompanionTimeChart({
               setActive(null)
             }}
           >
-            <CharacterAvatar characterId={item.id} />
+            <CharacterAvatar characterId={characters.find(character => character.id === item.id)?.artworkId ?? item.id} src={characters.find(character => character.id === item.id)?.avatarUrl} />
             <span className="companion-chart-person">
               <strong>{item.name}</strong>
               <small>{duration(item.seconds)}</small>

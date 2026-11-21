@@ -28,6 +28,8 @@ export type LedgerEntry = {
 export type Pass = { name: string; expiresAt: number; premiumDay: string | null }
 export type FocusTotals = { observedMs: number; focusedMs: number; returns: number }
 export type StudyRecord = {
+  /** DUMMY_API:history — sample history or a locally simulated study. */
+  dataSource?: 'dummy'
   serverReport?: import('../../shared/api/types.ts').ReportResponse
   /** Camera measurement, kept separately from the server's presence-based settlement. */
   cameraFocus?: FocusTotals

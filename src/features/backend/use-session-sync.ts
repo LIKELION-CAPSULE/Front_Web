@@ -39,6 +39,8 @@ type Input = {
   /** Immediate faces from API 18 (`stage: 'notice'`). Faces with lines arrive through `onReaction`. */
   onExpression?: (cue: ExpressionCue) => void
   onEnded: () => void
+  /** DUMMY_API:reactions — local studies use scripted lines without numeric server IDs. */
+  onDummyReaction?: (event: string) => void
   /** A chat reply is on its way or still typing. Reaction lines wait until it finishes so they never cut in ahead of it. */
   busy?: boolean
 }
@@ -97,6 +99,7 @@ export function useSessionSync(input: Input) {
     }
   }, [])
   const drain = useCallback(async (current: Runtime) => {
+    if (!latest.current.active?.serverSession) return
     await flushSessionOutbox(current,
       event => api.request<EventResponse>(`/sessions/${current.sessionId}/events`, { method: 'POST', body: event }),
       (result, event, revision) => {
@@ -116,11 +119,13 @@ export function useSessionSync(input: Input) {
   }, [notice, react, updateAffinity])
   const enqueue = useCallback((current: Runtime, event: StateEvent) => {
     current.flow = eventQueued(current.flow, event.type)
+    if (!latest.current.active?.serverSession) { latest.current.onDummyReaction?.(event.type); return }
     current.outbox.push(event)
     void drain(current).catch(reason => fail(reason, current))
   }, [drain, fail])
   /** Motion events go out on their own so a gesture never interrupts the state-event queue or away escalation. */
   const sendMotion = useCallback(async (current: Runtime, type: MotionEventType, occurredAt: string) => {
+    if (!latest.current.active?.serverSession) { latest.current.onDummyReaction?.(type); return }
     // Motion events leave the state flow as it is (no revision bump, the away escalation keeps running).
     current.flow = eventQueued(current.flow, type)
     const revision = current.flow.revision
@@ -168,7 +173,7 @@ export function useSessionSync(input: Input) {
     }
   }, [enqueue, react])
   const heartbeat = useCallback(async (current: Runtime) => {
-    if (current.heartbeat) return
+    if (current.heartbeat || !latest.current.active?.serverSession) return
     current.heartbeat = true
     try {
       tick(current)
@@ -197,7 +202,7 @@ export function useSessionSync(input: Input) {
   const signature = `${sessionId}:${visuals?.serverTime ?? ''}`
   useEffect(() => {
     const active = latest.current.active
-    if (!active?.serverSession) return
+    if (!active) return
     let current = runtime.current
     if (!current || current.signature !== signature) {
       const baseAway = active.initialAwaySeconds ?? 0

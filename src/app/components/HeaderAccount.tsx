@@ -1,11 +1,12 @@
 import { lazy, Suspense, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { accountRequest, closeAccountRequest } from '@/features/profile/account-location'
 import { Avatar } from '@/shared/ui/Avatar'
 import { Dialog } from '@/shared/ui/Dialog'
 import { Icon } from '@/shared/ui/Icon'
 import { QuarterRingSpinner } from '@/shared/ui/QuarterRingSpinner'
-import { MvpGate } from '@/features/mvp/MvpGate'
+import { useDemo } from '@/features/demo/demo-context'
+import { number } from '@/shared/lib/format'
 import '@/features/profile/components/account-settings.css'
 
 const AccountSettingsDialog = lazy(() => import('@/features/profile/components/AccountSettingsDialog'))
@@ -22,6 +23,7 @@ function AccountSettingsLoading({ onClose }: { onClose: () => void }) {
 }
 
 export function HeaderAccount() {
+  const { state } = useDemo()
   const [localOpen, setOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
@@ -35,9 +37,7 @@ export function HeaderAccount() {
   }
   return <>
     <div className="header-account ml-auto flex shrink-0 items-center gap-2 sm:gap-5">
-      <MvpGate label="내 크레딧 · 충전" compact inline>
-        <span className="credit-chip"><Icon name="coin" size={16} /><span className="sr-only">크레딧</span><span className="font-sans tabular-nums text-body-compact font-bold text-ink">—</span></span>
-      </MvpGate>
+      <Link to="/credits" className="credit-chip" aria-label={`내 크레딧 ${number(state.credits)}`}><Icon name="coin" size={16} /><span className="font-sans tabular-nums text-body-compact font-bold text-ink">{number(state.credits)}</span></Link>
       <button ref={trigger} type="button" aria-label="계정 설정 열기" aria-haspopup="dialog" aria-expanded={open} className="flex min-h-11 min-w-11 items-center justify-center rounded-full" onClick={() => setOpen(true)}><Avatar size="md" /></button>
     </div>
     {open && <Suspense fallback={<AccountSettingsLoading onClose={close} />}><AccountSettingsDialog key={requested ? `${requested.view}:${requested.openEditor}` : 'local'} initialView={requested?.view} openScheduleEditor={requested?.openEditor} onClose={close} /></Suspense>}

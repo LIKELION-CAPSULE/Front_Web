@@ -141,14 +141,13 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'withdraw-error', group: '계정·공통', title: '탈퇴 실패', path: '/', fault: 'withdraw', steps: [...withdraw, click('회원탈퇴')], note: '서버 오류·계정 유지' },
   { id: 'withdraw-pending', group: '계정·공통', title: '탈퇴 처리 중', path: '/', fault: 'withdraw-pending', steps: [...withdraw, click('회원탈퇴')], note: '로딩·중복 클릭·닫기 방지' },
   { id: 'withdraw-done', group: '계정·공통', title: '탈퇴 완료', path: '/login?notice=account-withdrawn', guest: true, note: '로그인 화면의 완료 안내' },
-  { id: 'mvp', group: '계정·공통', title: 'MVP 이후 안내', path: '/records', note: '현재 서비스의 제한 화면' },
+  { id: 'full-features', group: '계정·공통', title: '전체 기능 · 내 기록', path: '/records', note: 'MVP 제한 해제 · 더미 내역 안내와 실제 화면' },
   { id: 'not-found', group: '계정·공통', title: '없는 주소 · 홈 안내', path: '/review-not-found', note: '홈으로 이동·우측 상단 알림·한 번만 안내' },
   { id: 'draft-records', group: '보관 화면 · 현재 미노출', title: '공부 기록 원본', path: '/records', draft: true, note: '이전 기록·히트맵·친구별 통계 화면' },
   { id: 'draft-records-empty', group: '보관 화면 · 현재 미노출', title: '공부 기록 · 빈 상태', path: '/records', draft: true, empty: true, note: '기록 없는 원본 화면' },
   { id: 'draft-characters', group: '보관 화면 · 현재 미노출', title: '친구 상세 원본', path: '/characters/chaerin', draft: true, note: '친구 선택·관계·콘텐츠 잠금' },
   { id: 'draft-credits', group: '보관 화면 · 현재 미노출', title: '크레딧 원본', path: '/credits', draft: true, note: '보유·사용·충전 내역·영수증' },
   { id: 'draft-charge', group: '보관 화면 · 현재 미노출', title: '충전 원본', path: '/credits/charge', draft: true, note: '상품·결제 수단·동의·결제 완료' },
-  { id: 'draft-gift', group: '보관 화면 · 현재 미노출', title: '선물·보이스 원본', path: '/characters/chaerin/shop', draft: true, note: '상품·미리듣기·구매 안내' },
 ]
 
 export const reviewGroups = [...new Set(reviewScenarios.map(scenario => scenario.group))]

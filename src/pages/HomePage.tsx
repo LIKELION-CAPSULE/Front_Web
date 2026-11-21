@@ -24,6 +24,8 @@ export default function HomePage() {
       ? { title: '페이지를 찾을 수 없어요', text: '홈으로 이동했어요. 주소를 다시 확인해 주세요.' }
       : location.state?.notice === 'study-not-found'
         ? { title: '진행 중인 공부가 없어요', text: '홈으로 이동했어요. 스터디룸을 골라 새로운 공부를 시작해 주세요.' }
+        : location.state?.notice === 'report-not-found'
+          ? { title: '공부 기록을 찾을 수 없어요', text: '이 계정에서 조회할 수 있는 완료 기록이 없어 홈으로 이동했어요.' }
         : null
     if (!content) return
     const frame = requestAnimationFrame(() => {

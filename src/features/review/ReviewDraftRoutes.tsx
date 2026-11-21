@@ -5,7 +5,6 @@ import RecordsPage from '@/pages/RecordsPage'
 import CharactersPage from '@/pages/CharactersPage'
 import CreditsPage from '@/pages/CreditsPage'
 import ChargePage from '@/pages/ChargePage'
-import GiftShopPage from '@/pages/GiftShopPage'
 import { useDemo } from '@/features/demo/demo-context'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
 import { AppLoading } from '@/shared/ui/AppLoading'
@@ -16,7 +15,7 @@ export function ReviewStudyGate() {
   return state.activeSession ? <App /> : <AppLoading label="캐릭터를 불러오고 있어요." />
 }
 
-/** These source pages are retained for copy review; production routes stay gated. */
+/** These source pages are retained for copy review; production uses the same unlocked pages. */
 export function ReviewDraftRoutes() {
   const { state } = useDemo()
   // A source page may assume legacy IDs exist; wait until ReviewSetup installs its own data.
@@ -25,7 +24,6 @@ export function ReviewDraftRoutes() {
     <Route element={<AppLayout />}>
       <Route path="records" element={<RecordsPage />} />
       <Route path="characters/:characterId" element={<CharactersPage />} />
-      <Route path="characters/:characterId/shop" element={<GiftShopPage />} />
       <Route path="credits" element={<CreditsPage />} />
       <Route path="credits/charge" element={<ChargePage />} />
     </Route>

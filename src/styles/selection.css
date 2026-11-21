@@ -1,0 +1,27 @@
+@layer base {
+  /* Artwork and controls should not turn blue while clicking or performing a pointer gesture. */
+  :where(
+    img, svg[aria-hidden='true'], svg image,
+    button, [role='button'], summary, .ui-button,
+    .site-header-brand, .app-navigation, .detail-breadcrumb,
+    .room-card, .character-picker-item,
+    .avatar-dial-stage, .scratch-media, .wheel-column,
+    .study-session-stats, .tile-label, .prepare-departure,
+    .payment-receipt[data-phase='ready'] .receipt-paper,
+    label:has(input[type='radio'], input[type='checkbox']),
+    [data-no-native-drag]
+  ) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Forms and deliberately copyable text remain selectable even inside a control. */
+  :where(
+    input, textarea,
+    [contenteditable]:not([contenteditable='false']),
+    [data-selectable], [data-native-drag='allow']
+  ) {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}

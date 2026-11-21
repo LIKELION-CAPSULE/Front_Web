@@ -16,6 +16,7 @@ import { duration } from '@/shared/lib/format'
 import { cn } from '@/shared/lib/cn'
 import { Panel } from '@/shared/ui/Panel'
 import { Tabs } from '@/shared/ui/Tabs'
+import { DummyNotice } from '@/features/dummy/DummyNotice'
 import { PageHeading } from '@/shared/ui/PageHeading'
 
 export default function RecordsPage() {
@@ -57,6 +58,7 @@ export default function RecordsPage() {
   return (
     <>
       <PageHeading title="함께 쌓은 공부 기록" eyebrow={null} />
+      <DummyNotice>최근 30일의 샘플 기록과 이 브라우저에서 완료한 공부를 함께 표시해요. 다른 기기의 누적 기록은 아직 연동되지 않았어요.</DummyNotice>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs
           label="기록 보기"
@@ -96,7 +98,7 @@ export default function RecordsPage() {
                     )}
                   >
                     <span className="size-16 shrink-0 overflow-hidden rounded-control bg-surface">
-                      <RoomArtwork roomId={item.id} variant="thumb" />
+                      <RoomArtwork roomId={item.artworkId ?? item.id} variant="thumb" />
                     </span>
                     <span className="min-w-0">
                       <strong className="block text-body-compact">{item.name}</strong>

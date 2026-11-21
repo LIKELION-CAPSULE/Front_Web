@@ -3,6 +3,7 @@ import type { StudyRoom } from '@/features/rooms/types'
 import { getCharacterArtwork } from '@/features/characters/artwork'
 import { getRoomArtwork } from '@/features/rooms/artwork'
 import { roomPosters } from '@/features/rooms/posters'
+import { mergeRoomCatalog } from '@/features/dummy/catalog'
 
 // Keep image imports out of the domain data used by the reducer and its tests.
 const rooms: readonly StudyRoom[] = studyRooms.map((room) => ({
@@ -18,7 +19,7 @@ let serverRooms: readonly StudyRoom[] | null = null
 const reportRooms = new Map<string, StudyRoom>()
 
 export function setServerRooms(value: readonly StudyRoom[]) {
-  serverRooms = value
+  serverRooms = mergeRoomCatalog(value, rooms)
   if (!value.length) reportRooms.clear()
 }
 export function registerReportRoom(room: StudyRoom) { reportRooms.set(room.id, room) }
@@ -27,5 +28,5 @@ export function getStudyRooms(): readonly StudyRoom[] {
   return serverRooms ?? rooms
 }
 export function getStudyRoom(roomId: string): StudyRoom | undefined {
-  return getStudyRooms().find((room) => room.id === roomId) ?? reportRooms.get(roomId)
+  return getStudyRooms().find((room) => room.id === roomId || room.artworkId === roomId) ?? reportRooms.get(roomId)
 }

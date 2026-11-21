@@ -2,8 +2,9 @@ import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState }
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { DemoContext } from './demo-context'
-import { demoReducer } from './reducer'
-import type { DemoState, FocusTotals, Memory, Message } from './types'
+import { demoReducer, tierCost } from './reducer'
+import { alignDummyState, createDummyState, readDummyState, writeDummyState, finishDummySession } from '@/features/dummy/state'
+import type { DemoState, FocusTotals, Memory, Message, TierId } from './types'
 import { normalizeFocusTotals } from '@/features/session/focus'
 import { api, ApiError } from '@/shared/api/client'
 import { QueryCache } from '@/shared/api/query-cache'
@@ -32,10 +33,21 @@ const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : '요청을 처리하지 못했어요.'
 const createLive2DStage: SessionModelFactory = (url, layout) => new Live2DStage(url, layout, new URL(import.meta.env.BASE_URL, location.href).href)
 
-/** Server-backed state. Legacy samples and local login flags are never loaded here. */
+/** Cached reports may belong to rooms no longer returned by /home. */
+function registerCachedReportRooms(records: DemoState['records']) {
+  for (const record of records) {
+    if (!record.serverReport || getStudyRooms().some(room => room.id === record.roomId)) continue
+    registerReportRoom({ id: record.roomId, serverRoom: true, name: record.roomName ?? record.serverReport.roomName ?? '',
+      description: '', introduction: '', contentStatus: 'preview', characters: [{ id: record.characterIds[0]!,
+        name: record.characterName ?? record.serverReport.character?.name ?? '', description: '', serverCharacter: true }],
+    })
+  }
+}
+
+/** Authentication stays server-backed; unsupported features use the scoped DUMMY_API adapter. */
 export function DemoProvider({ children, modelFactory = createLive2DStage }: { children: ReactNode; modelFactory?: SessionModelFactory }) {
   const { pathname } = useLocation()
-  const [state, dispatch] = useReducer(demoReducer, undefined, adapt.emptyState)
+  const [state, reducerDispatch] = useReducer(demoReducer, undefined, adapt.emptyState)
   const [meta, setMeta] = useState<Meta>(initialMeta)
   const [models] = useState(() => new SessionModel(modelFactory))
   const [live2dStage, setLive2dStage] = useState<SessionModelStage | null>(null)
@@ -43,6 +55,11 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
   const modelEntry = useRef<{ pathname: string } | null>(null)
   const currentPath = useRef(pathname)
   const stateRef = useRef(state)
+  const [storageAvailable, setStorageAvailable] = useState(true)
+  const dispatch = useCallback((action: Parameters<typeof demoReducer>[1]) => {
+    stateRef.current = demoReducer(stateRef.current, action)
+    reducerDispatch(action)
+  }, [])
   const epoch = useRef(0)
   const bootstrap = useRef<Promise<void> | null>(null)
   const termsLoaded = useRef(false)
@@ -65,19 +82,23 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     setLive2dStage(null)
   }, [models])
   const patch = useCallback((value: Partial<DemoState>) => {
-    stateRef.current = { ...stateRef.current, ...value }
     dispatch({ type: 'SERVER_SYNC', patch: value })
-  }, [])
+  }, [dispatch])
   useEffect(() => {
     if (state.profile.loggedIn && state.profile.userId) writeSavedRooms(state.profile.userId, state.savedRooms)
   }, [state.profile.loggedIn, state.profile.userId, state.savedRooms])
+  useEffect(() => {
+    if (!state.profile.loggedIn || !state.profile.userId) return
+    try { setStorageAvailable(writeDummyState(localStorage, state.profile.userId, state)) }
+    catch { setStorageAvailable(false) }
+  }, [state])
   useEffect(() => {
     const active = state.activeSession
     if (!active || !state.profile.userId) return
     try {
       localStorage.setItem(`capsule-session:${state.profile.userId}:${active.id}`, JSON.stringify({
         roomId: active.roomId, targetSeconds: active.targetSeconds, startedAt: active.startedAt,
-        focus: normalizeFocusTotals(active.focus),
+        focus: normalizeFocusTotals(active.focus), tier: active.tier, paidCredits: active.paidCredits,
       }))
     } catch { /* Camera measurement still works in memory when storage is unavailable. */ }
   }, [state.activeSession, state.profile.userId])
@@ -86,6 +107,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     previousPath.current = pathname
     const active = stateRef.current.activeSession
     if (!active || before !== `/study/${active.id}` || pathname === before) return
+    if (!active.serverSession) { dispatch({ type: 'PAUSE_SESSION', now: Date.now() }); return }
     // Returning through browser history must use the same server recovery as a reload.
     queueMicrotask(() => {
       if (stateRef.current.activeSession?.id !== active.id) return
@@ -98,7 +120,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
         startedAt: new Date(active.startedAt + (active.serverOffsetMs ?? 0)).toISOString(),
       } }))
     })
-  }, [pathname, patch, releaseModel])
+  }, [pathname, patch, releaseModel, dispatch])
   const clear = useCallback((signedOutNotice: Meta['signedOutNotice'] = null) => {
     epoch.current++
     pendingSession.current = null
@@ -158,7 +180,9 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
         const avatars = await loadAvatars()
         if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
         setServerRooms([])
-        patch({ ...adapt.emptyState(), profile: userProfile, savedRooms: readSavedRooms(me.userId) })
+        let dummy = createDummyState()
+        try { dummy = readDummyState(localStorage, me.userId!) } catch { /* In-memory fixtures. */ }
+        patch({ ...adapt.emptyState(), ...alignDummyState(dummy, getStudyRooms()), profile: userProfile, savedRooms: readSavedRooms(me.userId) })
         setMeta(previous => ({ ...previous, status: 'ready', error: null, me, avatars, home: null, activeSummary: null }))
         return me
       }
@@ -168,8 +192,17 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
       if (homeVersion === homeRevision.current) setServerRooms(rooms)
       const previous = stateRef.current
       const sameUser = previous.profile.userId === me.userId
+      let dummy = createDummyState()
+      if (!sameUser) {
+        try { dummy = readDummyState(localStorage, me.userId!) } catch { /* Use in-memory fixtures. */ }
+      }
+      const supplement = alignDummyState(sameUser ? previous : dummy, getStudyRooms())
+      registerCachedReportRooms(supplement.records)
+      // A live server session wins over a locally saved simulation.
+      if (!sameUser && (me.activeSession || home.activeSession)) supplement.activeSession = null
       patch({
-        ...(sameUser ? {} : adapt.emptyState()), profile: { ...userProfile, avatarId: sameUser ? previous.profile.avatarId : undefined },
+        ...(!sameUser ? { ...adapt.emptyState(), ...supplement } : { affection: supplement.affection, records: supplement.records }),
+        profile: { ...userProfile, avatarId: sameUser ? previous.profile.avatarId : undefined },
         savedRooms: sameUser ? previous.savedRooms : readSavedRooms(me.userId),
         ...(revision === memoryRevision.current ? { memories } : {}),
         ...(homeVersion === homeRevision.current ? { firstVisit: (home.todayStudySeconds ?? 0) === 0 && !home.activeSession } : {}),
@@ -223,9 +256,15 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     }).catch(() => { /* Signup offers a separate terms retry. */ })
   }, [pathname])
   useEffect(() => {
-    const timer = window.setInterval(() => dispatch({ type: 'TICK', now: Date.now() }), 1000)
+    const timer = window.setInterval(() => {
+      dispatch({ type: 'TICK', now: Date.now() })
+      const current = stateRef.current
+      if (current.profile.userId && current.activeSession && !current.activeSession.serverSession) {
+        try { writeDummyState(localStorage, current.profile.userId, current) } catch { /* Memory remains usable. */ }
+      }
+    }, 1000)
     return () => clearInterval(timer)
-  }, [])
+  }, [dispatch])
   const authenticate = useCallback(async (result: LoginResponse) => {
     if (!result.accessToken) throw new ApiError('로그인 응답을 확인하지 못했어요.', 502)
     epoch.current++
@@ -278,7 +317,9 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
       const [{ home, rooms }, memories] = await Promise.all([loadHome(), loadMemories()])
       if (generation !== epoch.current || homeVersion !== homeRevision.current) return
       setServerRooms(rooms)
-      patch({ ...(revision === memoryRevision.current ? { memories } : {}), firstVisit: (home.todayStudySeconds ?? 0) === 0 && !home.activeSession })
+      const supplement = alignDummyState(stateRef.current, getStudyRooms())
+      registerCachedReportRooms(supplement.records)
+      patch({ affection: supplement.affection, records: supplement.records, ...(revision === memoryRevision.current ? { memories } : {}), firstVisit: (home.todayStudySeconds ?? 0) === 0 && !home.activeSession })
       setMeta(previous => ({ ...previous, home, activeSummary: stateRef.current.activeSession ? null : home.activeSession ?? null }))
     })()
     const entry = { generation, task }
@@ -320,6 +361,11 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     modelEntry.current = entry
     try {
       const active = adapt.session(dto)
+      try {
+        const saved = JSON.parse(readSessionStorageItem(`capsule-session:${stateRef.current.profile.userId}:${active.id}`) ?? 'null') as { tier?: TierId; paidCredits?: number } | null
+        if (saved?.tier && ['basic', 'standard', 'premium', 'special'].includes(saved.tier)) active.tier = saved.tier
+        if (typeof saved?.paidCredits === 'number' && saved.paidCredits >= 0) active.paidCredits = saved.paidCredits
+      } catch { /* Missing local conversation settings use basic. */ }
       active.presenceKnown = true
       active.initialAwaySeconds = 0
       if ('studySeconds' in dto) {
@@ -350,7 +396,10 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
         setServerRooms([...getStudyRooms(), adapt.room(detail)])
       }
       if (generation !== epoch.current || currentPath.current !== entry.pathname || modelEntry.current !== entry) throw new ApiError('공부 준비가 취소됐어요.', 409)
-      const stage = await models.prepare(dto.character)
+      // DUMMY_API:model — a not-yet-provided model uses the existing character artwork.
+      const needsModel = !!dto.character?.modelJsonUrl
+      if (!needsModel) releaseModel()
+      const stage = needsModel ? await models.prepare(dto.character) : null
       if (generation !== epoch.current || currentPath.current !== entry.pathname || modelEntry.current !== entry) {
         if (modelEntry.current === entry) releaseModel()
         throw new ApiError('공부 준비가 취소됐어요.', 409)
@@ -361,12 +410,28 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
       invalidateSessionQueries(active.roomId)
       setMeta(previous => ({ ...previous, visuals: dto, activeSummary: null }))
       try {
-        localStorage.setItem(`capsule-session:${stateRef.current.profile.userId}:${active.id}`, JSON.stringify({ roomId: active.roomId, targetSeconds: active.targetSeconds, startedAt: active.startedAt, focus: active.focus }))
+        localStorage.setItem(`capsule-session:${stateRef.current.profile.userId}:${active.id}`, JSON.stringify({ roomId: active.roomId, targetSeconds: active.targetSeconds, startedAt: active.startedAt, focus: active.focus, tier: active.tier, paidCredits: active.paidCredits }))
       } catch { /* Server report still works without browser storage. */ }
       return active
     } finally { if (modelEntry.current === entry) modelEntry.current = null }
   }, [patch, invalidateSessionQueries, models, releaseModel])
-  const startSession = useCallback(async (roomId: string, characterId: string, minutes: number) => {
+  const startSession = useCallback(async (roomId: string, characterId: string, minutes: number, options: { tier?: TierId; characterIds?: string[] } = {}) => {
+    const room = getStudyRooms().find(value => value.id === roomId)
+    const character = room?.characters.find(value => value.id === characterId)
+    const ids = options.characterIds ?? [characterId]
+    if (!room || !character || !ids.length || !ids.includes(characterId) || !ids.every(id => room.characters.some(c => c.id === id))) throw new ApiError('함께할 친구를 선택해 주세요.', 400)
+    if (stateRef.current.activeSession || meta.activeSummary) throw new ApiError('진행 중인 공부를 먼저 이어가 주세요.', 409)
+    const tier = options.tier ?? 'basic'
+    if (tierCost(stateRef.current, tier, Date.now()) > stateRef.current.credits) throw new ApiError('체험용 크레딧이 부족해요. 충전 후 다시 시작해 주세요.', 400)
+    // DUMMY_API:session — missing room/character IDs and group studies never reach the real API.
+    if (!room.serverRoom || !character.serverCharacter || ids.length > 1) {
+      dispatch({ type: 'START', roomId, characterIds: ids, tier, targetMinutes: minutes, camera: stateRef.current.cameraEnabled, now: Date.now() })
+      const active = stateRef.current.activeSession
+      if (!active) throw new ApiError('공부를 시작하지 못했어요.', 400)
+      releaseModel()
+      setMeta(previous => ({ ...previous, visuals: null, activeSummary: null }))
+      return active
+    }
     if (pending.current.has('start')) throw new ApiError('공부를 시작하고 있어요.', 409)
     pending.current.add('start')
     const generation = epoch.current
@@ -380,19 +445,33 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
       pendingSession.current = dto
       // A late start response can still be resumed, but must not load a model on the screen the user left for.
       if (currentPath.current !== entryPath) throw new ApiError('공부 준비가 취소됐어요.', 409)
-      return await installSession(dto)
+      const active = await installSession(dto)
+      // DUMMY_API:tier — charge only the local wallet after the real start succeeded.
+      if (tier !== 'basic') dispatch({ type: 'UPGRADE', tier, now: Date.now() })
+      return stateRef.current.activeSession ?? active
     } finally { pending.current.delete('start') }
-  }, [installSession])
+  }, [installSession, dispatch, releaseModel, meta.activeSummary])
   const resumeSession = useCallback(async (sessionId: string) => {
+    const current = stateRef.current.activeSession
+    if (current?.id === sessionId && !current.serverSession) {
+      dispatch({ type: 'RESUME_SESSION', now: Date.now() })
+      return stateRef.current.activeSession!
+    }
     const account = accountScope(() => epoch.current)
     await account.wait(flushSessionEvents(sessionId))
     const dto = await account.wait(api.request<ResumeResponse>(`/sessions/${adapt.numericId(sessionId)}/resume`, { method: 'POST' }))
     return installSession(dto)
-  }, [installSession])
+  }, [installSession, dispatch])
   const finishSession = useCallback(async (options: { acceptUnknownPresence?: boolean } = {}) => {
     if (pending.current.has('end')) throw new ApiError('공부를 마무리하고 있어요.', 409)
     const current = stateRef.current.activeSession
     if (!current) throw new ApiError('진행 중인 공부가 없어요.', 400)
+    if (!current.serverSession) {
+      const next = finishDummySession(stateRef.current, Date.now(), getSessionTotals(current))
+      patch(next)
+      releaseModel()
+      return next.records[0]!
+    }
     // An unknown baseline already counts earlier study as away; ending then needs the user's explicit confirmation.
     if (current.presenceKnown === false && !options.acceptUnknownPresence) throw new ApiError('이전 자리 지킴 시간을 불러오지 못했어요. 처음 공부한 브라우저에서 이어가 주세요.', 409)
     const account = accountScope(() => epoch.current)
@@ -404,10 +483,11 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
         method: 'POST', body: { studySeconds: totals.studySeconds, presentSeconds: totals.presentSeconds },
       }))
       const record = adapt.report(dto, current.roomId, current.targetSeconds)
+      record.tier = stateRef.current.activeSession?.tier ?? current.tier
       record.cameraFocus = normalizeFocusTotals(stateRef.current.activeSession?.focus ?? current.focus)
       try {
         localStorage.setItem(`capsule-session:${stateRef.current.profile.userId}:${current.id}`, JSON.stringify({
-          roomId: current.roomId, targetSeconds: current.targetSeconds, startedAt: current.startedAt, focus: record.cameraFocus,
+          roomId: current.roomId, targetSeconds: current.targetSeconds, startedAt: current.startedAt, focus: record.cameraFocus, tier: record.tier, paidCredits: current.paidCredits,
         }))
       } catch { /* The current report retains its camera measurement in memory. */ }
       invalidateSessionQueries(current.roomId)
@@ -422,6 +502,13 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
     const current = stateRef.current.activeSession
     if (!current) throw new ApiError('진행 중인 공부가 없어요.', 400)
     if (!content.trim() || content.length > 300) throw new ApiError('메시지는 1~300자로 입력해 주세요.', 400)
+    if (!current.characterIds.includes(characterId)) throw new ApiError('함께 공부 중인 친구를 선택해 주세요.', 400)
+    if (!current.serverSession) {
+      // DUMMY_API:chat — scripted replies, never a fake server success.
+      const character = getStudyRooms().flatMap(room => room.characters).find(c => c.id === characterId)
+      dispatch({ type: 'MESSAGE', characterId, name: character?.name ?? '', text: content, now: Date.now() })
+      return { content: stateRef.current.messages.at(-1)?.text, fallback: true }
+    }
     const key = `message:${current.id}:${characterId}`
     if (pending.current.has(key)) throw new ApiError('답장을 기다려 주세요.', 409)
     const generation = epoch.current
@@ -459,9 +546,10 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
       if (live()) patch({ messages: stateRef.current.messages.filter(value => value.requestId !== requestId) })
       throw error
     } finally { pending.current.delete(key) }
-  }, [patch, updateAffinity])
+  }, [patch, updateAffinity, dispatch])
   const loadReport = useCallback(async (sessionId: string) => {
-    if (stateRef.current.records.some(value => value.id === sessionId && value.serverReport)) return
+    if (stateRef.current.records.some(value => value.id === sessionId)) return
+    if (!/^\d+$/.test(sessionId)) throw new ApiError('이 브라우저에 저장된 공부 기록이 없어요.', 404)
     const generation = epoch.current
     const dto = await api.request<ReportResponse>(`/sessions/${adapt.numericId(sessionId)}/report`)
     if (generation !== epoch.current) return
@@ -470,19 +558,22 @@ export function DemoProvider({ children, modelFactory = createLive2DStage }: { c
       room = { id: `report-${sessionId}`, serverRoom: true, name: dto.roomName ?? '', description: '', introduction: '', contentStatus: 'preview', characters: [{ id: adapt.id(dto.character?.id), name: dto.character?.name ?? '', description: '', serverCharacter: true }] }
       registerReportRoom(room)
     }
+    let tier: TierId = 'basic'
     let target: number | undefined
     let cameraFocus: FocusTotals | undefined
     try {
-      const stored = JSON.parse(readSessionStorageItem(`capsule-session:${stateRef.current.profile.userId}:${sessionId}`) ?? 'null') as { targetSeconds?: number; focus?: FocusTotals } | null
+      const stored = JSON.parse(readSessionStorageItem(`capsule-session:${stateRef.current.profile.userId}:${sessionId}`) ?? 'null') as { targetSeconds?: number; focus?: FocusTotals; tier?: TierId } | null
       if (typeof stored?.targetSeconds === 'number' && stored.targetSeconds > 0) target = stored.targetSeconds
+      if (stored?.tier && ['basic', 'standard', 'premium', 'special'].includes(stored.tier)) tier = stored.tier
       if (stored?.focus) cameraFocus = normalizeFocusTotals(stored.focus)
     } catch { /* Do not invent a target missing from the report. */ }
     const record = adapt.report(dto, room.id, target)
+    record.tier = tier
     record.cameraFocus = cameraFocus
     patch({ records: [...stateRef.current.records.filter(value => value.id !== record.id), record] })
   }, [patch])
   return (
-    <DemoContext value={{ state, dispatch, storageAvailable: true }}>
+    <DemoContext value={{ state, dispatch, storageAvailable }}>
       <BackendContext value={{ ...meta, live2dStage, reload, refreshHome, ensureAvatars, updateAffinity, authenticate, logout, withdrawAccount, forgetAuthentication: clear, saveProfile, createMemory, startSession, resumeSession, finishSession, sendMessage, loadReport }}>
         {children}
       </BackendContext>

@@ -1,3 +1,4 @@
+import { DummyNotice } from '@/features/dummy/DummyNotice'
 import { useState } from 'react'
 import { useDemo } from '@/features/demo/demo-context'
 import type { LedgerEntry } from '@/features/demo/types'
@@ -30,6 +31,7 @@ export default function CreditsPage() {
           충전하기
         </ButtonLink>
       </div>
+      <DummyNotice>체험용 잔액·패스·이용 내역이에요. 실제 결제나 청구는 없어요.</DummyNotice>
       <div className="grid gap-4 md:grid-cols-3">
         <Panel bordered={false} className="bg-surface">
           <p className="text-body-compact text-muted">보유 크레딧</p>

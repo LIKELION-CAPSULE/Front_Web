@@ -37,12 +37,14 @@ import { SessionChatPanel } from '@/features/session/components/SessionChatPanel
 import { clock } from '@/shared/lib/format'
 import { cn } from '@/shared/lib/cn'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
-import { isMvpCharacter } from '@/features/mvp/policy'
 import { useExpressionDirector } from '@/features/live2d/use-live2d'
 import { useAvatarModel } from '@/features/live2d/use-avatar-model'
 import { StudyCharacterFigure } from '@/features/session/components/StudyCharacterFigure'
 import type { ExpressionCue } from '@/features/live2d/expression-scheduler'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
+import { UpgradePanel } from '@/features/session/components/UpgradePanel'
+import { tierById } from '@/features/demo/catalog'
+import { DummyNotice } from '@/features/dummy/DummyNotice'
 import { resolveStudyRoute } from '@/features/session/study-route'
 
 const reactions = ['', '…', '잠깐 자리 비운 거야?', '…나랑 공부하기 싫어?']
@@ -59,6 +61,7 @@ export default function StudyPage() {
   const say = (text: string) => { setCustomSpeech(text); setSpeechKey(key => key + 1) }
   const [showCamera, setShowCamera] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
   const backend = useBackend()
   const [finishing, setFinishing] = useState(false)
   const [sessionError, setSessionError] = useState('')
@@ -80,7 +83,7 @@ export default function StudyPage() {
   const speakingCharacters = new Set(Object.values(speakingMessages))
   const resting = active?.phase === 'break'
   const room = active && getStudyRoom(active.roomId)
-  const characters = room?.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && active?.characterIds.includes(character.id)) ?? []
+  const characters = room?.characters.filter(character => active?.characterIds.includes(character.id)) ?? []
   const defaultFocus = !resting && characters.length === 1 ? characters[0]!.id : undefined
   const focused = characters.find(character => character.id === (params.get('focus') ?? defaultFocus))
   const selfFocused = params.get('focus') === SELF_STUDY_TILE_ID
@@ -110,6 +113,10 @@ export default function StudyPage() {
         dispatch({ type: 'CHARACTER_REPLY', sessionId: active!.id, characterId: String(reply.characterId), text: reply.content, now: Date.now() })
         setReaction(0); say(reply.content)
       }
+    },
+    onDummyReaction: event => {
+      const line = ({ AWAY: '잠깐 자리 비운 거야? 여기서 기다릴게.', RETURN: '돌아왔구나. 다시 같이 해 보자!', BREAK: '수고했어. 잠깐 쉬어 가자.', FOCUS: '좋아, 다시 집중해 보자.', DROWSY: '졸리면 잠깐 스트레칭하고 올까?', YAWN: '조금만 더 해 보고 같이 쉬자.', WAVE: '응, 나 여기 있어!', HEAD_TURN: '다시 책을 같이 볼까?' } as Record<string, string>)[event]
+      if (line) { setReaction(0); say(line) }
     },
     onEnded: () => { controller.stop(); if (sessionId) navigate(`/reports/${sessionId}`, { replace: true }) },
   })
@@ -213,7 +220,7 @@ export default function StudyPage() {
   const goal = studyGoalSeconds(active)
   const focusTotals = normalizeFocusTotals(active.focus)
   const focusRate = focusPercent(focusTotals.focusedMs, focusTotals.observedMs)
-  const affection = normalizeAffectionScore(backend.affinities[selected.id]?.points ?? selected.relation?.points)
+  const affection = normalizeAffectionScore(backend.affinities[selected.id]?.points ?? selected.relation?.points ?? state.affection?.[selected.id])
   const cameraVisible = showCamera && !!devices.camera.stream
   const orderedCharacters = focused
     ? [focused, ...characters.filter(character => character.id !== focused.id)]
@@ -401,6 +408,7 @@ export default function StudyPage() {
           <span className="study-room-name">{room.name}</span>
         </div>
         <div className="study-header-actions">
+        <button type="button" onClick={() => setUpgradeOpen(true)} className="text-caption text-text-accent" disabled={active.tier === 'special'} aria-label="대화 옵션 올리기">{tierById(active.tier).name}{active.tier !== 'special' && ' · 등급 올리기'}</button>
         <DevicePrivacyInfo />
         </div>
         <div className="study-session-stats">
@@ -413,6 +421,9 @@ export default function StudyPage() {
           />
         </div>
       </header>
+      {active.serverSession && backend.visuals?.character && !backend.visuals.character.modelJsonUrl && <DummyNotice>친구의 모델이 준비되기 전까지 기존 이미지를 표시해요. 공부와 대화는 서버에 연결돼요.</DummyNotice>}
+      {!active.serverSession && <DummyNotice>체험용 친구와 공부 중이에요. 대화는 샘플 답변이며 기록은 이 브라우저에 저장돼요.</DummyNotice>}
+      {upgradeOpen && <UpgradePanel now={now} onClose={() => setUpgradeOpen(false)} />}
       <div className="study-workspace" data-chat-open={chatOpen || undefined}>
       {active.phase === 'study' ? (
         <div className="study-stage">
@@ -496,8 +507,8 @@ export default function StudyPage() {
                       className={cn('break-thumbnail', speakingCharacters.has(character.id) && 'is-speaking')}
                       data-speaking={speakingCharacters.has(character.id) || undefined}
                     >
-                      {character.serverCharacter ? character.id === live2dCharacterId && live2d && <StudyCharacterFigure character={character} stage={live2d} background={backend.visuals?.room?.backgroundImageUrl} /> : <img
-                        src={getCharacterArtwork(character.id).affection}
+                      {character.id === live2dCharacterId && live2d ? <StudyCharacterFigure character={character} stage={live2d} background={backend.visuals?.room?.backgroundImageUrl} /> : <img
+                        src={character.avatarUrl ?? getCharacterArtwork(character.artworkId ?? character.id).affection}
                         alt=""
                         className="size-full object-cover"
                       />}

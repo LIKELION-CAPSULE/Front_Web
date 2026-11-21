@@ -1,3 +1,4 @@
+import { DummyNotice } from '@/features/dummy/DummyNotice'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { tiers, tierById } from '@/features/demo/catalog'
@@ -25,6 +26,7 @@ export function UpgradePanel({ onClose, now }: { onClose: () => void; now: numbe
       title={basic ? '대화 옵션을 올리고 계속 이야기할까요?' : '대화 옵션 올리기'}
       closeLabel="대화 옵션 선택 닫기"
     >
+      <DummyNotice>등급·차액은 체험용이에요. AI 모델·보이스·모션은 현재 등급에 따라 바뀌지 않아요.</DummyNotice>
       <div className="space-y-2">
         {choices.map((tier) => (
           <RadioOption

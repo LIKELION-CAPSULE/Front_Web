@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
@@ -8,6 +8,12 @@ import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { getRoomPoster } from '@/features/rooms/room-poster'
 import { RoomCompanions } from '@/features/rooms/components/RoomCompanions'
 import AccountSettingsDialog from '@/features/profile/components/AccountSettingsDialog'
+import type { TierId } from '@/features/demo/types'
+import { useNow } from '@/features/session/use-now'
+import { DEFAULT_GOAL_MINUTES } from '@/features/session/study-goal'
+import { tierCost } from '@/features/demo/reducer'
+import { number } from '@/shared/lib/format'
+import { DummyNotice } from '@/features/dummy/DummyNotice'
 import { TierSelector } from '@/features/session/components/TierSelector'
 import { StudyGoalPicker } from '@/features/session/components/StudyGoalPicker'
 import { Button } from '@/shared/ui/Button'
@@ -15,11 +21,9 @@ import { Dialog } from '@/shared/ui/Dialog'
 import { PrepareDialog } from '@/features/session/components/PrepareDialog'
 import type { PrepareDepartureHandle } from '@/features/session/components/PrepareDeparture'
 import { prepareBackground } from '@/features/session/prepare-location'
+import { AnimatedCheckbox } from '@/shared/ui/AnimatedCheckbox'
 import { Icon } from '@/shared/ui/Icon'
 import NotFoundPage from './NotFoundPage'
-import MvpUnavailablePage from './MvpUnavailablePage'
-import { MvpGate } from '@/features/mvp/MvpGate'
-import { isMvpRoom, MVP_GOAL_MINUTES } from '@/features/mvp/policy'
 import './prepare.css'
 import { loadStudyPage } from '@/app/study-page-loader'
 
@@ -36,10 +40,17 @@ export default function PreparePage() {
   const navigate = useNavigate()
   const closing = useRef(false)
   const scheduleSection = useRef<HTMLElement>(null)
-  const [goalMinutes, setGoalMinutes] = useState(MVP_GOAL_MINUTES)
+  const [goalMinutes, setGoalMinutes] = useState(DEFAULT_GOAL_MINUTES)
+  const [tier, setTier] = useState<TierId>('basic')
+  const [picked, setPicked] = useState<string[] | null>(null)
   const goalHintId = useId()
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const room = getStudyRoom(roomId ?? '')
+  const requestedFriend = new URLSearchParams(location.search).get('friend')
+  const characterIds = picked ?? [room?.characters.find(c => c.id === requestedFriend)?.id ?? room?.characters[0]?.id ?? '']
+  const now = useNow()
+  const cost = tierCost(state, tier, now)
+  const dummySession = !room?.serverRoom || characterIds.length > 1 || characterIds.some(id => !room.characters.find(c => c.id === id)?.serverCharacter)
   useEffect(() => {
     const title = document.title
     document.title = 'CAPSULE · 공부 준비'
@@ -70,7 +81,6 @@ export default function PreparePage() {
         <NotFoundPage />
       </Dialog>
     )
-  if (!room.serverRoom && !isMvpRoom(room.id)) return <Dialog open title="공부 준비" onClose={close} className="prepare-dialog"><MvpUnavailablePage /></Dialog>
   // The server can finish before the plan has entered the capsule.
   if (state.activeSession && !starting) return <Navigate to={`/study/${state.activeSession.id}`} replace />
 
@@ -83,11 +93,11 @@ export default function PreparePage() {
       if (backend.activeSummary?.sessionId) { navigate(`/study/${backend.activeSummary.sessionId}?resume=1`, { replace: true }); return }
       const nextScreen = loadStudyPage()
       const animation = departure.current?.play({
-        nickname: state.profile.name, targetMinutes: MVP_GOAL_MINUTES,
-        characterName: room.characters[0].name, createdAt: Date.now(),
+        nickname: state.profile.name, targetMinutes: goalMinutes,
+        characterName: room.characters.filter(c => characterIds.includes(c.id)).map(c => c.name).join(' · '), createdAt: Date.now(),
         posterUrl: getRoomPoster(room),
       }) ?? Promise.resolve()
-      const [session] = await Promise.all([backend.startSession(room.id, room.characters[0].id, MVP_GOAL_MINUTES), animation, nextScreen])
+      const [session] = await Promise.all([backend.startSession(room.id, characterIds[0]!, goalMinutes, { tier, characterIds }), animation, nextScreen])
       if (!mounted.current) return
       departing = true
       const enterStudy = () => navigate(`/study/${session.id}`, { replace: true })
@@ -124,11 +134,12 @@ export default function PreparePage() {
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h1 tabIndex={-1} data-dialog-initial-focus className="min-w-0 break-keep type-page-title focus:outline-none">목표 시간을 정해요</h1>
         <p id={goalHintId} className="ml-auto text-right text-caption text-subtle">
-          조절값 {goalMinutes}분 · 시연 목표는 {MVP_GOAL_MINUTES}분으로 고정.
+          선택한 {goalMinutes}분이 공부 목표에 반영돼요.
         </p>
       </div>
       <section ref={scheduleSection} aria-label="목표 시간과 일정" className="mt-5 rounded-card bg-panel p-5">
         <StudyGoalPicker
+          disabled={starting}
           value={goalMinutes}
           onChange={setGoalMinutes}
           descriptionId={goalHintId}
@@ -140,14 +151,21 @@ export default function PreparePage() {
           }
         />
       </section>
+      {room.characters.length > 1 && <fieldset disabled={starting} className="mt-5">
+        <legend className="mb-2 type-section-title">함께할 친구</legend>
+        <div className="flex flex-wrap gap-3">{room.characters.map(character => <label key={character.id} className="flex items-center gap-2 rounded-control bg-panel px-3 py-2">
+          <AnimatedCheckbox checked={characterIds.includes(character.id)} onChange={() => setPicked(characterIds.includes(character.id) ? characterIds.filter(id => id !== character.id) : [...characterIds, character.id])} />{character.name}
+        </label>)}</div>
+      </fieldset>}
+      {(dummySession || tier !== 'basic') && <DummyNotice>{dummySession ? '이 친구 구성의 공부·대화·리포트는 이 브라우저에서 체험용으로 저장돼요. ' : ''}대화 등급·크레딧은 체험용이에요. 등급별 AI·보이스 차이는 아직 적용되지 않아요.</DummyNotice>}
       <section aria-labelledby="prepare-conversation-title" className="mt-6">
         <h2 id="prepare-conversation-title" className="mb-3 type-section-title">대화 옵션</h2>
-        <MvpGate label="대화 옵션" className="rounded-card">
-          <TierSelector value="basic" onChange={() => {}} />
-        </MvpGate>
+        <fieldset disabled={starting} className="m-0 border-0 p-0"><TierSelector value={tier} onChange={setTier} /></fieldset>
+        <p className="mt-3 text-caption text-muted">체험용 크레딧 {number(state.credits)} · 이번 사용 {number(cost)}</p>
+        {cost > state.credits && <FeedbackMessage tone="warning">체험용 크레딧이 부족해요. <Link to={`/credits/charge?returnTo=${encodeURIComponent(location.pathname + location.search)}`} className="underline">충전하기</Link></FeedbackMessage>}
       </section>
       {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
-      <Button data-prepare-start className="mt-5 w-full" loading={starting} onClick={() => { void start() }}>시작하기</Button>
+      <Button data-prepare-start disabled={!characterIds.length || cost > state.credits} className="mt-5 w-full" loading={starting} onClick={() => { void start() }}>시작하기</Button>
       {scheduleOpen && <AccountSettingsDialog
         initialView="schedule"
         openScheduleEditor

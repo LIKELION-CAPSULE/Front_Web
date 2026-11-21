@@ -95,6 +95,34 @@ test('provider cancels a resume after the account changes during the event flush
   assert.equal(paths.some(path => path.endsWith('/resume')), false)
 })
 
+for (const entry of ['start', 'resume'] as const) {
+  test(`Malfoy ${entry} prepares the server-provided Live2D model`, async () => {
+    const prepared: string[] = []
+    const backend = mount(url => {
+      prepared.push(url)
+      return {
+        getStatus: () => 'ready', subscribe: () => () => {},
+        attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() {},
+      }
+    })
+    const room = { id: 11, name: 'room' }
+    const character = { id: 42, name: '말포이 TS', modelJsonUrl: '/malfoy.model3.json' }
+    setServerRooms([{ id: '11', name: 'room', serverRoom: true, characters: [{ id: '42', name: character.name, serverCharacter: true }] }])
+    api.request = async <T>(path: string) => {
+      if (path !== '/sessions' && path !== '/sessions/31/resume') throw new Error(`Unexpected request: ${path}`)
+      const now = new Date().toISOString()
+      return { sessionId: 31, room, character, targetMinutes: 3, serverTime: now,
+        ...(entry === 'start' ? { startedAt: now } : { studySeconds: 65 }),
+      } as T
+    }
+    const active = entry === 'start' ? await backend.startSession('11', '42', 3) : await backend.resumeSession('31')
+    assert.equal(active.id, '31')
+    assert.equal(active.serverSession, true)
+    assert.deepEqual(active.characterIds, ['42'])
+    assert.deepEqual(prepared, ['/malfoy.model3.json'])
+  })
+}
+
 test('a cancelled entry cannot destroy the model reused by a newer account entry', async () => {
   let ready = false, destroyed = 0
   const listeners = new Set<() => void>()

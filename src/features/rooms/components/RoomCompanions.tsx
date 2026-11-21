@@ -2,32 +2,16 @@ import type { StudyRoom } from '@/features/rooms/types'
 import { CharacterAvatar } from '@/features/characters/components/CharacterAvatar'
 import { cn } from '@/shared/lib/cn'
 import { withParticle } from '@/shared/lib/korean'
-import { isMvpCharacter } from '@/features/mvp/policy'
-import { MvpGate } from '@/features/mvp/MvpGate'
 
-export function RoomCompanions({
-  characters,
-  className,
-  blurUnavailableCharacters = true,
-}: {
+export function RoomCompanions({ characters, className }: {
   characters: StudyRoom['characters']
   className?: string
-  blurUnavailableCharacters?: boolean
 }) {
-  const available = blurUnavailableCharacters ? characters.filter(character => character.serverCharacter || isMvpCharacter(character.id)) : characters
-  const names = (available.length ? available : characters).map((character) => character.name).join(' · ')
-  return (
-    <div className={cn('room-companions', className)}>
-      <span className="room-card-avatars flex shrink-0 -space-x-2">
-        {characters.map((character) => (
-          !blurUnavailableCharacters || character.serverCharacter || isMvpCharacter(character.id)
-            ? <CharacterAvatar key={character.id} characterId={character.artworkId ?? character.id} src={character.serverCharacter ? character.avatarUrl : undefined} />
-            : <MvpGate key={character.id} label={character.name} className="mvp-avatar" compact inline>
-                <CharacterAvatar characterId={character.id} />
-              </MvpGate>
-        ))}
-      </span>
-      <p>{withParticle(names, '과', '와')} 함께</p>
-    </div>
-  )
+  const names = characters.map(character => character.name).join(' · ')
+  return <div className={cn('room-companions', className)}>
+    <span className="room-card-avatars flex shrink-0 -space-x-2">
+      {characters.map(character => <CharacterAvatar key={character.id} characterId={character.artworkId ?? character.id} src={character.avatarUrl} />)}
+    </span>
+    <p>{withParticle(names, '과', '와')} 함께</p>
+  </div>
 }

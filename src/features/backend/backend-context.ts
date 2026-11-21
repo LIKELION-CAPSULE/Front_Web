@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { ActiveSession, Memory, StudyRecord } from '../demo/types'
+import type { ActiveSession, Memory, StudyRecord, TierId } from '../demo/types'
 import type { ActiveSessionSummary, AffinityChange, AvatarItem, HomeResponse, LoginResponse, MeResponse, MessageResponse, StartResponse, ResumeResponse, TermVersion } from '@/shared/api/types'
 import type { LoadingStage } from '@/shared/lib/loading-screen'
 import type { SessionModelStage } from '@/features/live2d/session-model'
@@ -28,7 +28,7 @@ export type BackendContextValue = {
   forgetAuthentication: () => void
   saveProfile: (nickname: string, avatarId?: number) => Promise<void>
   createMemory: (input: Omit<Memory, 'id'>) => Promise<Memory>
-  startSession: (roomId: string, characterId: string, minutes: number) => Promise<ActiveSession>
+  startSession: (roomId: string, characterId: string, minutes: number, options?: { tier?: TierId; characterIds?: string[] }) => Promise<ActiveSession>
   resumeSession: (sessionId: string) => Promise<ActiveSession>
   /** `acceptUnknownPresence`: the user confirmed ending although earlier presence could not be restored. */
   finishSession: (options?: { acceptUnknownPresence?: boolean }) => Promise<StudyRecord>

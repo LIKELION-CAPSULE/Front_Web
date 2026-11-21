@@ -7,12 +7,15 @@ import HomePage from '@/pages/HomePage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import { RouteLoading } from '@/app/components/RouteLoading'
 import { AccountRedirect } from '@/app/components/AccountRedirect'
-import MvpUnavailablePage from '@/pages/MvpUnavailablePage'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
 import { prepareBackground, prepareRoomId } from '@/features/session/prepare-location'
 import { loadStudyPage, preparedStudyPage } from './study-page-loader'
 
+const RecordsPage = lazy(() => import('@/pages/RecordsPage'))
+const CharactersPage = lazy(() => import('@/pages/CharactersPage'))
+const CreditsPage = lazy(() => import('@/pages/CreditsPage'))
+const ChargePage = lazy(() => import('@/pages/ChargePage'))
 const RoomDetailPage = lazy(() => import('@/pages/RoomDetailPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
@@ -50,9 +53,11 @@ export function App() {
             <Route path="mypage" element={<AccountRedirect />} />
             <Route element={<AppLayout />}>
               <Route index element={<HomePage />} />
-              <Route path="records" element={<MvpUnavailablePage />} />
-              <Route path="characters/*" element={<MvpUnavailablePage />} />
-              <Route path="credits/*" element={<MvpUnavailablePage />} />
+              <Route path="records" element={<RecordsPage />} />
+              <Route path="characters" element={<CharactersPage />} />
+              <Route path="characters/:characterId" element={<CharactersPage />} />
+              <Route path="credits" element={<CreditsPage />} />
+              <Route path="credits/charge" element={<ChargePage />} />
             </Route>
             <Route path="rooms/:roomId/prepare" element={<PreparePage />} />
             <Route path="study/:sessionId" element={<StudyPage />} />

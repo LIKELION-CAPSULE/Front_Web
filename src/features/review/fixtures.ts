@@ -57,6 +57,8 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
   const json = (body: unknown, status = 200) => new Response(status === 204 || body === null ? null : JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
   return async (input, options) => {
     const url = new URL(input instanceof Request ? input.url : String(input), location.href)
+    // Allow an explicitly opened Figma export to submit its design; app APIs remain mocked.
+    if (url.origin === 'https://mcp.figma.com' && url.pathname.startsWith('/mcp/capture/')) return original(input, options)
     const method = (options?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase()
     if (!url.pathname.startsWith('/api/')) {
       if (method !== 'GET' && method !== 'HEAD') throw new TypeError('Review mode blocks external mutations')
