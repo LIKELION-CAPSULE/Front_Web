@@ -68,7 +68,7 @@
   }
   .report-character-art > img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
   .report-dialogue { position: relative; width: 100%; max-width: 560px; padding: 24px 28px; }
-  .report-dialogue > .segmented-control { display: flex; justify-content: center; margin-bottom: 20px; overflow: hidden; }
+  .report-dialogue > .segmented-control { display: flex; justify-content: center; margin-bottom: 20px; }
   .report-dialogue > .segmented-control > button { flex: 1; }
   .completion-portrait { display: block; width: 100%; height: 100%; object-fit: cover; }
   .report-friend-name { margin-bottom: 8px; color: var(--color-affection-text); font-size: var(--text-label); line-height: var(--text-label--line-height); font-weight: 500; }

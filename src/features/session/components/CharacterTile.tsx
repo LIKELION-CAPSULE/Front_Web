@@ -50,7 +50,7 @@ export function CharacterTile({
           {character.name}{variant !== 'small' && ` · ${status}`}
         </span>
       </div>
-      {character.serverCharacter ? live2d && <StudyCharacterFigure character={character} stage={live2d} background={background} /> : <CharacterFigure
+      {live2d ? <StudyCharacterFigure character={character} stage={live2d} background={background} /> : character.serverCharacter && character.avatarUrl ? <img src={character.avatarUrl} alt="" className="absolute inset-0 size-full object-cover" /> : <CharacterFigure
         variant={variant}
         characterId={character.artworkId ?? character.id}
         pose={variant === 'rest' ? 'affection' : active ? 'reaction' : 'study'}

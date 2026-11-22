@@ -12,7 +12,7 @@ import { useBackend } from '@/features/backend/backend-context'
 export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
   const location = useLocation()
   const { state } = useDemo()
-  const latest = state.records[0]
+  const latest = state.records.find(record => !record.id.startsWith('sample-'))
   const { activeSummary, home } = useBackend()
   const room = getStudyRooms()[0]
   const active = state.activeSession ?? (activeSummary?.sessionId ? { id: String(activeSummary.sessionId) } : null)

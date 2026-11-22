@@ -1,12 +1,11 @@
 import { normalizeVerificationCode } from '../../shared/lib/verification-code.ts'
+import { EMAIL_VERIFICATION_RESEND_MS, EMAIL_VERIFICATION_VALIDITY_MS } from '../../shared/api/constraints.ts'
 
 // UI preview only. These values are not an authentication mechanism or a server policy.
 export const PREVIEW_EMAIL_CODE = '123456'
-const validityMs = 10 * 60 * 1000
-const resendCooldownMs = 30 * 1000
 
 export function createEmailVerificationPreview(email: string, now: number) {
-  return { email, expiresAt: now + validityMs, resendAt: now + resendCooldownMs }
+  return { email, expiresAt: now + EMAIL_VERIFICATION_VALIDITY_MS, resendAt: now + EMAIL_VERIFICATION_RESEND_MS }
 }
 
 export function emailVerificationPreviewError(code: string, expiresAt: number, now: number) {

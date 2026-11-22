@@ -16,13 +16,16 @@ import { affectionScore } from '@/features/characters/affection'
 import { PageHeading } from '@/shared/ui/PageHeading'
 import { characterTags } from '@/features/characters/character-tags'
 import { SearchField } from '@/shared/ui/SearchField'
+import { useBackend } from '@/features/backend/backend-context'
+import { DummyNotice } from '@/features/dummy/DummyNotice'
 import { withParticle } from '@/shared/lib/korean'
 import { characterUnlocks } from '@/features/characters/unlocks'
 
 export default function CharactersPage() {
   const location = useLocation()
-  const { characterId = 'chaerin' } = useParams()
+  const { characterId } = useParams()
   const { state } = useDemo()
+  const backend = useBackend()
   const [now] = useState(Date.now)
   const [query, setQuery] = useState('')
   const rooms = getStudyRooms()
@@ -31,10 +34,11 @@ export default function CharactersPage() {
   const filteredCharacters = characters.filter((item) =>
     item.name.replace(/\s+/g, '').toLocaleLowerCase('ko-KR').includes(search),
   )
+  const resolvedId = characters.find(c => c.id === characterId || c.artworkId === characterId)?.id ?? (characterId ? characterId : characters[0]?.id)
   const room = rooms.find((item) =>
-    item.characters.some((character) => character.id === characterId),
+    item.characters.some((character) => character.id === resolvedId),
   )
-  const character = room?.characters.find((item) => item.id === characterId)
+  const character = room?.characters.find((item) => item.id === resolvedId)
   if (!room || !character) return <NotFoundPage />
   const level = studyLevel(state, character.id)
   const allRecords = state.records.filter((record) => record.characterIds.includes(character.id))
@@ -70,7 +74,7 @@ export default function CharactersPage() {
               )}
               aria-current={item.id === character.id ? 'page' : undefined}
             >
-              <CharacterAvatar characterId={item.id} />
+              <CharacterAvatar characterId={item.artworkId ?? item.id} src={item.avatarUrl} />
               {item.name}
             </Link>
           ))}
@@ -83,10 +87,11 @@ export default function CharactersPage() {
           </p>
         )}
       </section>
+      <DummyNotice>함께한 공부와 해금 콘텐츠에는 샘플 기록이 포함돼요. 서버에 없는 친구의 호감도는 체험용 50점이에요.</DummyNotice>
       <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
         <Panel bordered={false} className="character-profile flex min-h-[640px] flex-col rounded-panel">
           <div className="character-profile-portrait">
-            <CharacterArtwork characterId={character.id} pose="affection" variant="portrait" />
+            {character.avatarUrl && character.serverCharacter ? <img src={character.avatarUrl} alt="" className="size-full object-cover" /> : <CharacterArtwork characterId={character.artworkId ?? character.id} pose="affection" variant="portrait" />}
           </div>
           <div className="mt-4 flex items-center justify-between gap-3">
             <h2 className="type-section-title">{character.name}</h2>
@@ -100,8 +105,8 @@ export default function CharactersPage() {
           <ul aria-label="친구 소개" className="character-profile-tags">
             {hashtags.map((tag) => <li key={tag}>{tag}</li>)}
           </ul>
-          <StudyLevelProgress key={character.id} level={level.level} next={level.next} progress={level.progress} />
-          <div className="mt-5"><AffectionStatus name={character.name} score={affectionScore(state, character.id)} /></div>
+          {character.serverCharacter ? <p className="mt-5 type-body-compact">공부 레벨 Lv.{character.relation?.level ?? '—'} · 함께 {Math.floor((character.relation?.totalStudySeconds ?? 0) / 60)}분</p> : <StudyLevelProgress key={character.id} level={level.level} next={level.next} progress={level.progress} />}
+          <div className="mt-5"><AffectionStatus name={character.name} score={character.serverCharacter ? backend.affinities[character.id]?.points ?? character.relation?.points ?? null : affectionScore(state, character.id)} /></div>
           <div className="character-profile-actions mt-auto pt-8">
             <ButtonLink
               state={state.activeSession ? undefined : { prepareBackground: location }}
@@ -110,7 +115,7 @@ export default function CharactersPage() {
               to={
                 state.activeSession
                   ? `/study/${state.activeSession.id}`
-                  : `/rooms/${room.id}/prepare`
+                  : `/rooms/${room.id}/prepare?friend=${character.id}`
               }
               className="w-full border-0"
             >
@@ -118,12 +123,6 @@ export default function CharactersPage() {
                 ? '진행 중인 공부로 돌아가기'
                 : `${withParticle(character.name, '이랑', '랑')} 공부하기`}
             </ButtonLink>
-            <Link
-              to={`/characters/${character.id}/shop`}
-              className="mx-auto mt-4 block w-fit py-1 text-body-compact text-text-accent underline underline-offset-4 hover:text-ink"
-            >
-              선물 · 보이스 보내기
-            </Link>
           </div>
         </Panel>
         <div className="space-y-content">

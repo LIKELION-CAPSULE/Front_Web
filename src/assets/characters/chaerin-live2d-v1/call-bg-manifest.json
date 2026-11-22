@@ -1,0 +1,170 @@
+{
+  "schema_version": "1.0",
+  "service": "CAPSULE",
+  "character": "chaerin",
+  "asset_group": "original video-call backgrounds",
+  "created_at": "2026-11-22T21:23:47+09:00",
+  "generation": {
+    "tool": "image_gen.imagegen",
+    "mode": "built-in",
+    "transparent_background": false,
+    "model": null,
+    "model_status": "not_exposed_by_tool",
+    "model_note": "내장 이미지 생성 도구가 실제 모델 식별자를 반환하지 않아 기록할 수 없습니다.",
+    "seed": null,
+    "seed_status": "not_exposed_or_configurable_by_tool",
+    "seed_note": "내장 이미지 생성 도구는 시드를 입력하거나 조회하는 기능을 제공하지 않습니다.",
+    "reproducibility_note": "실제 사용한 프롬프트와 참조 이미지 관계를 기록했습니다. 모델과 시드가 미제공되어 완전한 동일 결과 재생성은 보장되지 않습니다.",
+    "sequence": [
+      "generate portrait master",
+      "generate landscape companion using original portrait as reference"
+    ]
+  },
+  "art_direction": {
+    "scene": "밤 시험기간의 평범한 한국 고등학생 방 또는 공부 공간",
+    "camera": "seated laptop webcam height, frontal horizontal view",
+    "style": "original painterly anime background with soft shallow-depth-of-field treatment",
+    "palette": {
+      "base": [
+        "#0F0E17",
+        "#2A1F4A"
+      ],
+      "accent": "#7E54F6",
+      "task_light": "warm amber"
+    },
+    "continuity_anchors": [
+      "left wooden bookcase/study surface",
+      "left dark metal adjustable amber task lamp",
+      "blank books and notebooks",
+      "two blank sticky notes",
+      "plain ceramic mug",
+      "right rectangular apartment window and purple curtain",
+      "blurred city apartment lights"
+    ],
+    "character_safe_area": {
+      "description": "central lower region kept low-detail and free of foreground props for an upper-body Live2D overlay",
+      "approx_normalized_bounds": {
+        "left": 0.28,
+        "top": 0.35,
+        "right": 0.72,
+        "bottom": 1.0
+      }
+    },
+    "excluded": [
+      "people and characters",
+      "animals",
+      "readable text and numbers",
+      "real brand logos",
+      "watermarks",
+      "gothic arches",
+      "castles",
+      "magical-school libraries",
+      "dormitory crests",
+      "green-and-silver uniform motifs",
+      "candles",
+      "quills",
+      "wands",
+      "recognizable fantasy-franchise motifs"
+    ]
+  },
+  "visual_review": {
+    "reviewed": true,
+    "people_absent": true,
+    "readable_text_and_logos_absent": true,
+    "modern_rectangular_window": true,
+    "modern_electric_task_lamp": true,
+    "central_lower_character_area_clear": true,
+    "same_room_landmarks_match": true,
+    "requested_webp_dimensions_verified": true
+  },
+  "outputs": [
+    {
+      "file": "chaerin-call-bg-portrait.webp",
+      "orientation": "portrait",
+      "usage": "login portrait video-call window",
+      "width": 1200,
+      "height": 1600,
+      "aspect_ratio": "3:4",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 59806,
+      "sha256": "147cd84b39289fbeb20ea691755309d93afc69080b45dcb2c23985f108739209",
+      "prompt": "Use case: stylized-concept.\nAsset type: production background-only raster asset for the CAPSULE web service's Live2D video-call window. This is the PORTRAIT master image, requested 1200 x 1600 pixels, aspect ratio 3:4, full bleed.\nPrimary request: An original painterly anime background showing the ordinary room of a contemporary South Korean high-school student during exam season at night, viewed straight ahead from a laptop webcam at a seated person's eye height. Only an empty room: no character will be painted because an animated character is composited later.\nScene / continuity anchors: a modest modern apartment student bedroom/study corner, plain dark navy-violet painted wall at the center; a small low wooden bookcase/study surface on the LEFT with ordinary unbranded textbooks and notebooks, a few blank sticky notes above it, and a modern adjustable task lamp casting a soft warm amber pool; a plain ceramic mug at the far left edge of the study surface. A simple rectangular contemporary apartment window on the RIGHT shows very soft distant Korean-city apartment lights and dark blue night, with a plain curtain at its outer edge. One or two subtle violet light blooms near the side wall, with no visible neon sign. Keep these asymmetric room landmarks coherent so this exact room can later be shown with a wider landscape lens.\nComposition / character-safe area: calm EMPTY lower central area reserved for a future upper-body Live2D overlay, approximately horizontal 25%-75% and vertical 35%-100%. It should contain low-detail dark wall / softly shaded unobtrusive room tones; keep furniture, books, lamp, mug and sticky notes in the peripheral left and right areas. Do not place a chair, person, monitor, plant, bright lamp, book stack, or window highlight in this central silhouette area. Do not leave a literal cutout or transparent patch. The camera looks horizontally into the room, not down at an overhead desktop. Straight verticals, intimate ordinary room scale, natural seated-webcam perspective.\nStyle / medium: polished original anime background painting, soft painted edges, delicate brush texture and gentle shallow-depth-of-field blur throughout the background. Suited to compositing behind a cel-shaded anime character with bright blonde hair, a white shirt and black tie, but DO NOT render any character or clothing. Softly recognizable room props; no crisp distracting microdetails. Cozy late-night exam-study mood, contemporary and everyday, not luxurious, not fantasy.\nPalette: dominant dark indigo-purple #0F0E17 through #2A1F4A; restrained one or two purple #7E54F6 light blooms, warm amber task-lamp light. Preserve dark low-contrast negative space behind the future character.\nText: NONE. All book spines, sticky notes, paper and mug surfaces must be blank or use indistinct nonlinguistic texture. No readable Korean, English, digits, logos, watermarks, signatures, interface, video-call borders, split panels, collage, or labels.\nAvoid absolutely: people, faces, silhouettes, body parts, animals; Gothic or arched windows; castle or magical-school library; dormitory crests, emblems, shields; green-and-silver uniform motifs; candles, quills, wands or any recognizable fantasy-franchise cues. Use a rectangular ordinary apartment window and a modern electric study lamp only.\nGenerate a single standalone portrait illustration, not a mockup, no inset, no border.",
+      "model": null,
+      "seed": null,
+      "reference": null,
+      "generated_source": {
+        "file": "exec-0f1b956d-1d88-4904-ba24-683fc387141a.png",
+        "width": 1086,
+        "height": 1448,
+        "sha256": "d89e4af310fed01ea00d89ad62388747342e530f6a7f4c87ece99b7cce02c6bc"
+      },
+      "postprocessing": {
+        "tool": "cwebp",
+        "version": "1.6.0",
+        "quality": 92,
+        "method": 6,
+        "sharp_yuv": true,
+        "metadata": "icc",
+        "resize": {
+          "width": 1200,
+          "height": 1600
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      }
+    },
+    {
+      "file": "chaerin-call-bg-landscape.webp",
+      "orientation": "landscape",
+      "usage": "home hero landscape video-call window",
+      "width": 1600,
+      "height": 1200,
+      "aspect_ratio": "4:3",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 52772,
+      "sha256": "1e71fdeba5596d5464952bb096730c64cb5f95d38e58c2f938beebf966f1d2bc",
+      "prompt": "Use case: stylized-concept, reference-guided companion composition.\nAsset type: production background-only raster asset for the CAPSULE web service's Live2D video-call window. This is the LANDSCAPE companion image, requested 1600 x 1200 pixels, aspect ratio 4:3, full bleed.\nInput image 1: scene-continuity reference and original portrait master. Preserve its exact room identity, architecture, prop designs, lighting, palette, softness and painterly anime style. Reframe the SAME room from the SAME seated-laptop-webcam position and horizontal frontal direction, with a WIDER horizontal field of view for the home hero. This must not become a different room.\nContinuity anchors to preserve: plain dark indigo-violet center wall and ceiling trim; low wooden bookcase/study surface on the left with blank unbranded books and notebooks; dark metal adjustable electric task lamp with warm amber light on the left; plain ceramic mug and a small notebook stack on that left surface; two blank sticky notes above the surface; ordinary rectangular sliding apartment window on the right showing softly blurred Korean-city apartment lights at night; plain muted purple curtain at the outer right. Maintain these objects on the same sides and preserve their relative arrangement. Reveal a little more of the ordinary study corner at the outer edges to make the wider lens plausible, but do not add new furniture or decorative subjects.\nComposition: one standalone 4:3 landscape illustration, not a diptych or collage. A large, calm EMPTY dark low-detail wall area through the middle and especially the LOWER CENTER for a future animated character upper body, approximately x=28%-72% and y=32%-100%. Keep all bright lamp/window highlights, books, mug and sticky notes at the left and right edges outside this character-safe silhouette. Do not render a chair or any foreground object covering the lower center. No literal cutout or transparent patch. Natural eye-height webcam perspective; not an overhead desktop view; straight vertical architecture.\nStyle: original painterly anime background, soft painted edges, gentle shallow-depth-of-field background softness, warm familiar ordinary Korean high-school student's room during exam season at night. It will sit behind a bright-blonde cel-shaded character in a white shirt and black tie, but render NO character or clothing.\nPalette: dominant dark navy-purple #0F0E17 through #2A1F4A, one or two restrained #7E54F6 violet light blooms at the sides, warm amber lamp glow. Preserve the portrait's color harmony and low-contrast negative space.\nText and logos: NONE. Blank book spines and sticky notes, no legible letters or numbers, no brands, no watermark, no signature, no UI or borders.\nAvoid absolutely: people, faces, silhouettes, body parts, animals; Gothic or arched windows; castles or magical-school libraries; dormitory crests, shields or emblems; green-and-silver uniform motifs; candles, quills, wands, fantasy-franchise cues. The environment is a modest contemporary apartment student room.\nOutput a single matching landscape background, not a mockup.",
+      "model": null,
+      "seed": null,
+      "reference": {
+        "source": "original portrait generation PNG",
+        "file": "exec-0f1b956d-1d88-4904-ba24-683fc387141a.png",
+        "sha256": "d89e4af310fed01ea00d89ad62388747342e530f6a7f4c87ece99b7cce02c6bc",
+        "corresponding_final_asset": "chaerin-call-bg-portrait.webp",
+        "purpose": "same-room continuity, layout, palette, lighting and painterly style"
+      },
+      "generated_source": {
+        "file": "exec-991d87c8-1b0c-45de-bfea-cc53431d3dd9.png",
+        "width": 1448,
+        "height": 1086,
+        "sha256": "62b9fc035193883583111f793c19c58042301806057bf5e7cedd60a2c48a225d"
+      },
+      "postprocessing": {
+        "tool": "cwebp",
+        "version": "1.6.0",
+        "quality": 92,
+        "method": 6,
+        "sharp_yuv": true,
+        "metadata": "icc",
+        "resize": {
+          "width": 1600,
+          "height": 1200
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      }
+    }
+  ]
+}

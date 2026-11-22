@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 import { Icon } from '@/shared/ui/Icon'
+import '../chat-composer.css'
 
 function resizeInput(field: HTMLTextAreaElement) {
   if (field.clientWidth === 0) return

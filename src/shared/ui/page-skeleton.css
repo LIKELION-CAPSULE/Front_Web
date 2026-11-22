@@ -5,6 +5,13 @@
   .page-skeleton :is(.report-glass, .overlay-content, .capsule-share-page > section) .skeleton-line { background: var(--color-surface); }
   .skeleton-report-portrait { height: min(56svh, 540px); }
   .skeleton-capsule-card { width: min(360px, 100%); height: auto; aspect-ratio: 3 / 5; flex: none; }
+  .onboarding-skeleton-inner { display: flex; flex-direction: column; gap: 12px; }
+  .onboarding-skeleton-dial { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 6px 0 4px; }
+  .onboarding-skeleton-avatar { width: 152px; height: 152px; }
+  .onboarding-skeleton-thumbs { display: flex; align-items: center; justify-content: center; gap: 14px; }
+  @media (max-height: 820px) {
+    .onboarding-skeleton-avatar { width: 132px; height: 132px; }
+  }
   @media (max-width: 767px) {
     .skeleton-avatar-option { --dial-position: calc(var(--skeleton-index) - 2); }
     .skeleton-avatar-option:nth-last-child(-n + 2) { display: none; }

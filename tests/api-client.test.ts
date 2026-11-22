@@ -1,8 +1,49 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { ApiClient, ApiError } from '../src/shared/api/client.ts'
+import { ApiClient, ApiError, toApiError } from '../src/shared/api/client.ts'
 
-const json = (body: unknown, status = 200) => Response.json(body, { status })
+const json = (body: unknown, status = 200) => Response.json(status < 300 ? { success: true, data: body } : body, { status })
+
+test('current API envelopes expose the payload for public reads, login and session creation', async () => {
+  const responses = new Map<string, { status: number; data: unknown }>([
+    ['/terms', { status: 200, data: { terms: [{ termVersionId: 1, required: true }] } }],
+    ['/auth/email/login', { status: 200, data: { accessToken: 'login-token', userId: 7 } }],
+    ['/sessions', { status: 201, data: { sessionId: 31, targetMinutes: 50 } }],
+  ])
+  const client = new ApiClient(async url => {
+    const response = responses.get(String(url).replace('/api/backend', ''))!
+    return json(response.data, response.status)
+  })
+  assert.deepEqual(await client.request('/terms', { auth: false }), responses.get('/terms')!.data)
+  for (const path of ['/auth/email/login', '/sessions']) {
+    assert.deepEqual(await client.request(path, { method: 'POST', auth: false, body: {} }), responses.get(path)!.data)
+  }
+})
+
+test('payload data fields are preserved and legacy responses remain compatible', async () => {
+  const payload = { data: { value: 42 }, success: false }
+  const wrapped = new ApiClient(async () => json(payload))
+  assert.deepEqual(await wrapped.request('/home'), payload)
+  const legacy = new ApiClient(async () => Response.json({ userId: 7 }))
+  assert.deepEqual(await legacy.request('/me'), { userId: 7 })
+})
+
+test('empty successful envelopes complete without inventing response fields', async () => {
+  for (const response of [{ success: true, data: null }, { success: true }]) {
+    const client = new ApiClient(async () => Response.json(response))
+    assert.equal(await client.request('/auth/logout', { method: 'POST', auth: false }), null)
+  }
+})
+
+test('failed API envelopes preserve the backend code and details even with HTTP 200', async () => {
+  for (const status of [200, 409]) {
+    const client = new ApiClient(async () => Response.json({ success: false, code: 'SESSION_ALREADY_IN_PROGRESS',
+      message: 'SESSION_ALREADY_IN_PROGRESS', detail: { sessionId: 31 } }, { status }))
+    await assert.rejects(client.request('/sessions', { method: 'POST', body: {} }), error =>
+      error instanceof ApiError && error.status === (status === 200 ? 502 : status)
+      && error.code === 'SESSION_ALREADY_IN_PROGRESS' && error.detail.sessionId === 31)
+  }
+})
 
 test('concurrent GETs share one request, while later reads still reach the server', async () => {
   let calls = 0
@@ -167,6 +208,23 @@ test('mutations are not retried for server errors and preserve conflict details'
   const client = new ApiClient(async () => { calls++; return json({ code: 'SESSION_ALREADY_IN_PROGRESS', detail: { sessionId: 123 } }, 409) })
   await assert.rejects(client.request('/sessions', { method: 'POST', body: {} }), error => error instanceof ApiError && error.detail.sessionId === 123)
   assert.equal(calls, 1)
+})
+
+test('public API error codes remain inspectable while their wire messages become readable', () => {
+  for (const [status, code] of [[400, 'INVALID_TARGET_MINUTES'], [400, 'CHARACTER_NOT_IN_ROOM'], [403, 'ONBOARDING_REQUIRED'], [404, 'ROOM_NOT_FOUND'], [500, 'INTERNAL_ERROR']] as const) {
+    const error = toApiError(status, { success: false, code, message: code, detail: { sessionId: 31 } })
+    assert.equal(error.status, status)
+    assert.equal(error.code, code)
+    assert.deepEqual(error.detail, { sessionId: 31 })
+    assert.notEqual(error.message, code)
+    assert.match(error.message, /[가-힣]/)
+  }
+  assert.equal(toApiError(503, { code: 'FUTURE_CODE', message: '서버에서 제공한 안내' }).message, '서버에서 제공한 안내')
+  for (const code of ['FUTURE_CODE', 'constructor', '__proto__']) {
+    const error = toApiError(503, { code, message: code })
+    assert.equal(error.code, code)
+    assert.equal(error.message, '요청을 처리하지 못했어요. (503)')
+  }
 })
 
 test('network and malformed success responses cannot be treated as success', async () => {

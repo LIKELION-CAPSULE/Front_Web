@@ -2,7 +2,7 @@ import type { ActiveSession, DemoState, Memory, StudyRecord } from '../demo/type
 import type { StudyRoom } from '../rooms/types.ts'
 import type { HomeRoom, MemoryResponse, RoomDetail, StartResponse, ResumeResponse, ReportResponse, MeResponse } from '../../shared/api/types.ts'
 import { ApiError } from '../../shared/api/client.ts'
-import { studyRooms } from '../rooms/data/rooms.ts'
+import { mateProfileByName } from '../mates/catalog.ts'
 
 export function id(value: unknown): string {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) throw new ApiError('서버 식별자를 확인하지 못했어요.', 502)
@@ -20,7 +20,7 @@ export function timestamp(value: string | undefined): number {
   return result
 }
 export function seconds(value: unknown): number {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) throw new ApiError('서버의 공부 시간을 확인하지 못했어요.', 502)
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) throw new ApiError('서버의 연결 시간을 확인하지 못했어요.', 502)
   return value
 }
 export function emptyState(): DemoState {
@@ -34,18 +34,20 @@ export function emptyState(): DemoState {
 export function profile(me: MeResponse, previous = emptyState().profile) {
   id(me.userId)
   if (!me.nickname || typeof me.onboardingRequired !== 'boolean') throw new ApiError('프로필 응답을 확인하지 못했어요.', 502)
-  return { ...previous, userId: me.userId, name: me.nickname, loggedIn: true, onboarded: !me.onboardingRequired, profileImage: me.profileImage }
+  const avatarId = typeof me.avatarId === 'number' && Number.isSafeInteger(me.avatarId) && me.avatarId > 0
+    ? me.avatarId
+    : previous.avatarId
+  return { ...previous, userId: me.userId, name: me.nickname, avatarId, loggedIn: true, onboarded: !me.onboardingRequired, profileImage: me.profileImage }
 }
 export function room(dto: HomeRoom | RoomDetail): StudyRoom {
-  if (!dto.name || !Array.isArray(dto.characters)) throw new ApiError('스터디룸 정보를 확인하지 못했어요.', 502)
+  if (!dto.name || !Array.isArray(dto.characters)) throw new ApiError('메이트 정보를 확인하지 못했어요.', 502)
   return {
     id: id(dto.id), serverRoom: true, name: dto.name, coverUrl: dto.thumbnailUrl,
     bannerUrl: 'bannerUrl' in dto ? dto.bannerUrl : undefined,
-    artworkId: studyRooms.find(value => value.name === dto.name)?.id,
     description: 'description' in dto ? dto.description ?? '' : '', introduction: '', contentStatus: 'preview',
     characters: dto.characters.map(character => ({
-      id: id(character.id), name: character.name ?? '', avatarUrl: character.profileImageUrl,
-      artworkId: studyRooms.flatMap(value => value.characters).find(value => value.name === character.name)?.id,
+      id: id(character.id), name: mateProfileByName(character.name)?.name ?? character.name ?? '', avatarUrl: character.profileImageUrl,
+      artworkId: mateProfileByName(character.name)?.id,
       description: 'personality' in character ? character.personality?.join(' · ') ?? '' : '',
       relation: 'relation' in character ? character.relation : undefined, serverCharacter: true,
     })),
@@ -57,23 +59,23 @@ export function memory(dto: MemoryResponse): Memory {
   return { id: id(dto.memoryId), kind: kind[dto.type], title: dto.title, date: dto.dueDate ?? '', time: dto.dueTime?.slice(0, 5) ?? '' }
 }
 export function session(dto: StartResponse | ResumeResponse, now = Date.now()): ActiveSession {
-  if (!dto.room || !dto.character || typeof dto.targetMinutes !== 'number' || !Number.isFinite(dto.targetMinutes) || dto.targetMinutes <= 0) throw new ApiError('공부 시작 응답을 확인하지 못했어요.', 502)
+  if (!dto.room || !dto.character) throw new ApiError('연결 응답을 확인하지 못했어요.', 502)
   const offset = timestamp(dto.serverTime) - now
   const start = 'startedAt' in dto ? timestamp(dto.startedAt) - offset : undefined
   const study = start === undefined ? seconds((dto as ResumeResponse).studySeconds) : Math.max(0, (now - start) / 1000)
   return {
     id: id(dto.sessionId), roomId: id(dto.room.id), characterIds: [id(dto.character.id)], serverSession: true, serverOffsetMs: offset,
     tier: 'basic', paidCredits: 0, phase: 'study', elapsedMs: study * 1000, runningSince: now,
-    studySeconds: study, targetSeconds: dto.targetMinutes * 60,
+    studySeconds: study,
     startedAt: start ?? now - study * 1000,
     camera: false, focus: { observedMs: 0, focusedMs: 0, returns: 0 },
   }
 }
 export function report(dto: ReportResponse, roomId: string, targetSeconds?: number): StudyRecord {
-  if (!dto.character) throw new ApiError('리포트의 친구 정보를 확인하지 못했어요.', 502)
+  if (!dto.character) throw new ApiError('연결 기록의 메이트 정보를 확인하지 못했어요.', 502)
   return {
     id: id(dto.sessionId), roomId, characterIds: [id(dto.character.id)], tier: 'basic',
-    roomName: dto.roomName, characterName: dto.character.name, serverReport: dto,
+    roomName: dto.roomName, characterName: mateProfileByName(dto.character.name)?.name ?? dto.character.name, serverReport: dto,
     targetSeconds, startedAt: timestamp(dto.startedAt), endedAt: timestamp(dto.endedAt),
     studySeconds: seconds(dto.studySeconds), focusSeconds: seconds(dto.presentSeconds), awaySeconds: seconds(dto.awaySeconds),
     observedSeconds: undefined, returns: seconds(dto.returnCount),

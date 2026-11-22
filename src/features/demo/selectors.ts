@@ -4,7 +4,7 @@ export function recordSeconds(records: StudyRecord[]) {
   return records.reduce((sum, record) => sum + record.studySeconds, 0)
 }
 
-// The existing demo threshold stays until the backend supplies level thresholds.
+// DUMMY_API:levels — the existing demo threshold stays until the backend supplies level thresholds.
 export const STUDY_LEVEL_MINUTES = 600
 export const MAX_STUDY_LEVEL = 5
 

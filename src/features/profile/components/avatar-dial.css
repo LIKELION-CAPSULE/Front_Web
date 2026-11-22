@@ -56,6 +56,26 @@
   .avatar-dial-thumbnail > .avatar-illustration { width: 100%; height: 100%; }
   .avatar-dial-hole[inert] { pointer-events: none; }
   .avatar-dial-empty { position: absolute; right: 0; bottom: 44px; left: 0; color: var(--color-subtle); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); text-align: center; }
+  .avatar-dial[data-compact='true'] {
+    --dial-option-size: 48px;
+    --dial-preview-size: 160px;
+    --dial-radius-x: min(176px, calc(50% - var(--dial-option-size) / 2 - 4px));
+    --dial-radius-y: 52px;
+    --dial-center-y: 160px;
+    --dial-step: 34deg;
+  }
+  .avatar-dial[data-compact='true'] .avatar-dial-stage { height: 238px; }
+  .avatar-dial[data-compact='true'] .avatar-dial-preview::before { top: -14px; right: -14px; left: -14px; height: calc(var(--dial-preview-size) + 28px); }
+  .avatar-dial[data-compact='true'] .avatar-dial-preview figcaption { margin-top: 6px; font-size: 13px; line-height: 18px; }
+  @media (max-height: 820px) {
+    .avatar-dial[data-compact='true'] {
+      --dial-option-size: 44px;
+      --dial-preview-size: 138px;
+      --dial-radius-y: 44px;
+      --dial-center-y: 140px;
+    }
+    .avatar-dial[data-compact='true'] .avatar-dial-stage { height: 208px; }
+  }
   @media (max-width: 767px) {
     .avatar-dial { --dial-option-size: 60px; --dial-preview-size: 224px; --dial-radius-y: 90px; --dial-center-y: 232px; --dial-step: 37.5deg; }
     .avatar-dial-stage { height: 370px; }

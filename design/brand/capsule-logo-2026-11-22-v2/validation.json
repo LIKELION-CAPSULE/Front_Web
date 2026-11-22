@@ -1,0 +1,256 @@
+{
+  "result": "pass",
+  "svgCount": 12,
+  "gradientIdsUniqueAcrossFiles": true,
+  "colors": [
+    "#000000",
+    "#7E54F6",
+    "#8053F2",
+    "#B396FC",
+    "#B397FC",
+    "#CAB2F9",
+    "#D4C3FA",
+    "#FFFFFF"
+  ],
+  "files": [
+    {
+      "file": "capsule-glyph-black.svg",
+      "viewBox": "0 0 335 266",
+      "bytes": 372,
+      "paths": 1,
+      "ids": [],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    },
+    {
+      "file": "capsule-glyph-color.svg",
+      "viewBox": "0 0 335 266",
+      "bytes": 1073,
+      "paths": 3,
+      "ids": [
+        "capsule-v2-glyph-color-body-left",
+        "capsule-v2-glyph-color-body-right",
+        "capsule-v2-glyph-color-seam"
+      ],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    },
+    {
+      "file": "capsule-glyph-white.svg",
+      "viewBox": "0 0 335 266",
+      "bytes": 372,
+      "paths": 1,
+      "ids": [],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    },
+    {
+      "file": "capsule-horizontal-black.svg",
+      "viewBox": "0 0 1992 456",
+      "bytes": 7855,
+      "paths": 8,
+      "ids": [],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    },
+    {
+      "file": "capsule-horizontal-color.svg",
+      "viewBox": "0 0 1992 456",
+      "bytes": 8812,
+      "paths": 11,
+      "ids": [
+        "capsule-v2-horizontal-color-body-left",
+        "capsule-v2-horizontal-color-body-right",
+        "capsule-v2-horizontal-color-seam",
+        "capsule-v2-horizontal-color-tile"
+      ],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    },
+    {
+      "file": "capsule-horizontal-white.svg",
+      "viewBox": "0 0 1992 456",
+      "bytes": 7855,
+      "paths": 8,
+      "ids": [],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    },
+    {
+      "file": "capsule-symbol-black.svg",
+      "viewBox": "0 0 472 456",
+      "bytes": 440,
+      "paths": 1,
+      "ids": [],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    },
+    {
+      "file": "capsule-symbol-color.svg",
+      "viewBox": "0 0 472 456",
+      "bytes": 1365,
+      "paths": 4,
+      "ids": [
+        "capsule-v2-symbol-color-body-left",
+        "capsule-v2-symbol-color-body-right",
+        "capsule-v2-symbol-color-seam",
+        "capsule-v2-symbol-color-tile"
+      ],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    },
+    {
+      "file": "capsule-symbol-white.svg",
+      "viewBox": "0 0 472 456",
+      "bytes": 440,
+      "paths": 1,
+      "ids": [],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    },
+    {
+      "file": "capsule-wordmark-black.svg",
+      "viewBox": "0 0 1464 239",
+      "bytes": 7458,
+      "paths": 7,
+      "ids": [],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    },
+    {
+      "file": "capsule-wordmark-color.svg",
+      "viewBox": "0 0 1464 239",
+      "bytes": 7458,
+      "paths": 7,
+      "ids": [],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    },
+    {
+      "file": "capsule-wordmark-white.svg",
+      "viewBox": "0 0 1464 239",
+      "bytes": 7458,
+      "paths": 7,
+      "ids": [],
+      "viewBoxOnly": true,
+      "selfContainedVector": true,
+      "paletteUnchanged": true
+    }
+  ],
+  "rasterComparisonsAtSourceSize": {
+    "wordmark": {
+      "alphaMaskIoU": 0.993344,
+      "areaChangePercent": 0.0027,
+      "edgeDistanceP95SourcePx": 1.0,
+      "edgeDistanceMaxSourcePx": 1.4142135623730951
+    },
+    "symbol": {
+      "alphaMaskIoU": 0.988625,
+      "areaChangePercent": 1.1367,
+      "edgeDistanceP95SourcePx": 6.0,
+      "edgeDistanceMaxSourcePx": 8.0
+    }
+  },
+  "pngs": [
+    {
+      "file": "previews/figma-guide.png",
+      "width": 1800,
+      "height": 2929
+    },
+    {
+      "file": "previews/menu-bar-16-18.png",
+      "width": 1464,
+      "height": 201
+    },
+    {
+      "file": "previews/small-size-check.png",
+      "width": 1560,
+      "height": 1654
+    },
+    {
+      "file": "previews/symbol-black-16.png",
+      "width": 16,
+      "height": 16
+    },
+    {
+      "file": "previews/symbol-black-32.png",
+      "width": 32,
+      "height": 32
+    },
+    {
+      "file": "previews/symbol-black-64.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "file": "previews/symbol-color-16.png",
+      "width": 16,
+      "height": 16
+    },
+    {
+      "file": "previews/symbol-color-32.png",
+      "width": 32,
+      "height": 32
+    },
+    {
+      "file": "previews/symbol-color-64.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "file": "previews/symbol-white-16.png",
+      "width": 16,
+      "height": 16
+    },
+    {
+      "file": "previews/symbol-white-32.png",
+      "width": 32,
+      "height": 32
+    },
+    {
+      "file": "previews/symbol-white-64.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "file": "previews/trace-vs-v2-overlay.png",
+      "width": 1560,
+      "height": 1574
+    }
+  ],
+  "smallSizeReview": {
+    "dpr": 1,
+    "symbolCanvasPx": [
+      16,
+      32,
+      64
+    ],
+    "menuWordmarkHeightPx": [
+      16,
+      18
+    ],
+    "horizontalMinWidthPx": 100,
+    "result": "pass: visible silhouette and seam; no clipping; color glyph visible on #7E54F6 and #0F0E17"
+  },
+  "preserved": {
+    "checkedFileCount": 791,
+    "oldLogoFolderUnchanged": true,
+    "sourceFilesWrittenByLogoTask": [],
+    "concurrentSourceChangesObserved": [
+      "Front_Web/src/features/auth/login-backgrounds/desktop/DesktopWallpaper.tsx"
+    ],
+    "concurrentSourceAdditionsOrRemovalsObserved": [],
+    "logoWebpAndBrandUnchanged": true
+  }
+}

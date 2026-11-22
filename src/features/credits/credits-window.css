@@ -1,0 +1,510 @@
+/* Shared Desktop App Window for Credits & Invite (/credits, /credits/charge, /invite) */
+.credits-window.desktop-window {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 100%;
+  overflow: hidden;
+}
+
+.credits-window-body {
+  padding: 22px 28px 32px;
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--color-surface-raised) 96%, transparent),
+    color-mix(in srgb, var(--color-panel) 98%, transparent)
+  );
+}
+
+.credits-window-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.credits-tab-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-canvas) 76%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
+}
+
+.credits-tab-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.credits-tab-link:hover {
+  color: var(--color-ink);
+}
+
+.credits-tab-link[aria-current='page'] {
+  background: color-mix(in srgb, var(--color-primary) 26%, var(--color-surface-raised));
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.credits-tab-content {
+  margin-top: 24px;
+}
+
+/* Credits Tab */
+.credits-summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.credits-stat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 20px 22px;
+  border-radius: 14px;
+  border: 1px solid rgba(196, 185, 243, 0.14);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+.credits-stat-card--primary {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-primary) 16%, var(--color-surface)),
+    color-mix(in srgb, var(--color-surface) 92%, transparent)
+  );
+  border-color: rgba(196, 185, 243, 0.24);
+}
+
+.credits-stat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.credits-stat-card h2 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.credits-stat-tag {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--color-text-accent);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+.credits-stat-value {
+  margin: 10px 0 0;
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.15;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.credits-stat-card--primary .credits-stat-value {
+  font-size: clamp(34px, 3.6vw, 44px);
+}
+
+.credits-attendance-track {
+  margin-top: 14px;
+  height: 7px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
+}
+
+.credits-attendance-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-text-accent));
+  transition: width 240ms ease;
+}
+
+.credits-attendance-meta {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+}
+
+.credits-pricing-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-top: 16px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
+  font-size: 12.5px;
+  color: var(--color-muted);
+}
+
+.credits-pricing-label {
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-right: 4px;
+}
+
+.credits-pricing-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.credits-pricing-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+/* Credits Ledger List */
+.credits-history {
+  margin-top: 26px;
+}
+
+.credits-history-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.credits-date-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.credits-date-heading {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-subtle);
+  padding-bottom: 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.credits-entry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.credits-entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+
+.credits-entry-row:last-child {
+  border-bottom: 0;
+}
+
+.credits-entry-left {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.credits-entry-desc {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--color-ink);
+  word-break: keep-all;
+}
+
+.credits-entry-time {
+  font-size: 12px;
+  color: var(--color-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.credits-entry-right {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.credits-entry-change {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.credits-entry-change[data-positive='true'] {
+  color: var(--color-text-accent);
+}
+
+.credits-entry-balance {
+  font-size: 12px;
+  color: var(--color-subtle);
+}
+
+.credits-empty-box {
+  margin-top: 16px;
+  padding: 36px 20px;
+  text-align: center;
+  border-radius: 14px;
+  border: 1px dashed color-mix(in srgb, var(--color-ink) 12%, transparent);
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+/* Invite Tab */
+.invite-intro {
+  margin: 0 0 22px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--color-muted);
+  word-break: keep-all;
+}
+
+.invite-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 16px;
+}
+
+.invite-card {
+  padding: 22px 24px;
+  border-radius: 14px;
+  border: 1px solid rgba(196, 185, 243, 0.14);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+.invite-card h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+/* Capsule Pill Ticket (left violet half, right translucent half — single clipped pill surface) */
+.invite-capsule-ticket {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 18px 0;
+  min-height: 76px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(196, 185, 243, 0.34);
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 0%,
+    color-mix(in srgb, var(--color-primary) 76%, #5b3cc4) 50%,
+    rgba(242, 237, 255, 0.1) 50%,
+    rgba(242, 237, 255, 0.1) 100%
+  );
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.invite-capsule-code {
+  padding: 0 24px;
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(15, 12, 30, 0.45);
+  word-break: break-all;
+}
+
+.invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.invite-code-pending {
+  margin: 18px 0 0;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+/* Visible border for ReferralCodeField input inside Invite window */
+.credits-window .form-input {
+  border: 1px solid rgba(196, 185, 243, 0.3);
+  background: color-mix(in srgb, var(--color-canvas) 82%, transparent);
+}
+
+.credits-window .form-input:focus {
+  border-color: var(--color-primary);
+}
+
+.invite-registered-note {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+/* 10 Capsule Slots Progress */
+.invite-progress-card {
+  margin-top: 16px;
+}
+
+.invite-capsule-slots {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: clamp(6px, 1.2vw, 12px);
+  margin-top: 16px;
+  align-items: center;
+}
+
+.invite-capsule-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(22px, 3vw, 28px);
+  border-radius: 999px;
+  border: 1px solid rgba(196, 185, 243, 0.22);
+  background: color-mix(in srgb, var(--color-canvas) 75%, transparent);
+  overflow: hidden;
+  position: relative;
+}
+
+.invite-capsule-slot[data-filled='true'] {
+  border-color: rgba(196, 185, 243, 0.52);
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 0%,
+    var(--color-primary) 50%,
+    rgba(242, 237, 255, 0.24) 50%,
+    rgba(242, 237, 255, 0.14) 100%
+  );
+  box-shadow: 0 3px 10px rgba(124, 92, 255, 0.28);
+}
+
+.invite-progress-summary {
+  margin: 14px 0 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.invite-progress-complete {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--color-text-accent);
+}
+
+/* Error & Skeleton States */
+.credits-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 260px;
+  padding: 36px 20px;
+  text-align: center;
+}
+
+.credits-state-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.credits-skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.credits-skeleton-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.credits-skeleton-card {
+  height: 120px;
+  border-radius: 14px;
+}
+
+.credits-skeleton-line {
+  height: 22px;
+  border-radius: 8px;
+}
+
+.credits-skeleton-line--wide {
+  width: 100%;
+  height: 48px;
+}
+
+.credits-skeleton-line--mid {
+  width: 65%;
+}
+
+/* Responsive: 960 keeps 1 large + 2 small in one row; < 960 stacks vertically */
+@media (max-width: 959px) {
+  .credits-window-body {
+    padding: 18px 20px 26px;
+  }
+  .credits-summary-grid,
+  .credits-skeleton-row,
+  .invite-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .credits-window-body {
+    padding: 16px 16px 24px;
+  }
+  .invite-capsule-slots {
+    gap: 5px;
+  }
+  .invite-capsule-slot {
+    height: 18px;
+  }
+}

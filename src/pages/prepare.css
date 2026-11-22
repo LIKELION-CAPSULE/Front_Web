@@ -121,6 +121,7 @@
   max-height: inherit;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scroll-padding: 8px;
   padding: 36px 40px;
 }
 .prepare-folder-paper {

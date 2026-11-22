@@ -2,9 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { validateEmailAuth } from '../src/features/auth/email-validation.ts'
 
-const valid = { email: 'study@example.com', password: 'test-password', confirmPassword: 'test-password', nickname: '공부친구', agreeTerms: true, agreePrivacy: true }
+const valid = { email: 'study@example.com', password: 'test-password', confirmPassword: 'test-password', nickname: '공부친구', birthDate: '2000-01-01', agreeTerms: true, agreePrivacy: true }
 test('signup reports each missing field and agreement without accepting the form', () => {
-  assert.deepEqual(Object.keys(validateEmailAuth({ email: '', password: '', confirmPassword: '', nickname: '', agreeTerms: false, agreePrivacy: false }, true, false)), ['email', 'password', 'confirmPassword', 'nickname', 'agreeTerms', 'agreePrivacy'])
+  assert.deepEqual(Object.keys(validateEmailAuth({ email: '', password: '', confirmPassword: '', nickname: '', birthDate: '', agreeTerms: false, agreePrivacy: false }, true, false)), ['email', 'password', 'confirmPassword', 'nickname', 'birthDate', 'agreeTerms', 'agreePrivacy'])
 })
 test('signup rejects a short password and a different confirmation', () => {
   const errors = validateEmailAuth({ ...valid, password: 'short' }, true, true)
@@ -37,6 +37,15 @@ test('signup validates the server password byte limit before requesting email ve
   }
   for (const password of ['a'.repeat(73), '가'.repeat(25), '😀'.repeat(19)]) {
     assert.match(validateEmailAuth({ ...valid, password, confirmPassword: password }, true, true).password!, /72바이트/)
+  }
+})
+
+test('nickname length follows the server Unicode code point limit, including astral characters', () => {
+  for (const nickname of ['😀'.repeat(20), '가'.repeat(19) + '😀', '  😀  ']) {
+    assert.equal(validateEmailAuth({ ...valid, nickname }, true, true).nickname, undefined)
+  }
+  for (const nickname of ['😀'.repeat(21), '가'.repeat(20) + '😀']) {
+    assert.ok(validateEmailAuth({ ...valid, nickname }, true, true).nickname)
   }
 })
 

@@ -1,0 +1,17 @@
+@layer components {
+  .session-chat-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; border-radius: 32px; background: var(--color-surface); padding: 9px 10px 9px 16px; box-shadow: 0 3px 14px #0002; transition: border-radius 180ms, box-shadow 180ms; }
+  .session-chat-composer > textarea { width: 100%; min-width: 0; height: 24px; min-height: 24px; max-height: 120px; resize: none; overflow-y: auto; border: 0; outline: 0; background: transparent; padding: 0; color: var(--color-ink); font-size: var(--text-control); line-height: var(--text-control--line-height); overscroll-behavior: contain; scrollbar-width: thin; }
+  .session-chat-composer > textarea::placeholder { color: var(--color-placeholder); }
+  .session-chat-composer-tools { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+  .session-chat-composer-tools > button { display: grid; width: 32px; height: 32px; flex: none; place-items: center; border: 0; border-radius: 50%; background: var(--color-control); color: var(--color-ink); }
+  .session-chat-composer-tools > .session-chat-send { background: var(--color-primary); color: var(--color-on-solid); }
+  .session-chat-send > .app-icon { rotate: -90deg; }
+  .session-chat-footer:focus-within .session-chat-composer, .session-chat-composer:focus-within, .session-chat-composer[data-has-text] { border-radius: 22px; padding: 14px; }
+  .session-chat-footer:focus-within .session-chat-composer > textarea, .session-chat-composer:focus-within > textarea, .session-chat-composer[data-has-text] > textarea { grid-column: 1 / -1; }
+  .session-chat-footer:focus-within .session-chat-composer-tools, .session-chat-composer:focus-within .session-chat-composer-tools, .session-chat-composer[data-has-text] .session-chat-composer-tools { grid-column: 1 / -1; margin-top: 8px; }
+  .session-chat-composer:focus-within { box-shadow: 0 0 0 2px var(--color-focus-ring); }
+  .session-chat-composer-tools > .session-chat-send:not(:disabled):hover { background: var(--color-primary-hover); }
+  .session-chat-composer-tools > .session-chat-send:not(:disabled):active { background: var(--color-primary-active); }
+  .session-chat-composer-tools > button:disabled, .session-chat-composer-tools > .session-chat-send:disabled { background: var(--color-disabled); color: var(--color-text-disabled); opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .session-chat-composer { transition: none; } }
+}

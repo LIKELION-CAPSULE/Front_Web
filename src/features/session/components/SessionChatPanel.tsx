@@ -9,6 +9,7 @@ import { Tabs } from '@/shared/ui/Tabs'
 import { ChatComposer } from './ChatComposer'
 import { TypingMessage } from './TypingMessage'
 import { TypingIndicator } from './TypingIndicator'
+import { tierById } from '@/features/demo/catalog'
 import { sendChatDraft } from '../chat-draft'
 import '../session-chat.css'
 
@@ -107,7 +108,7 @@ export function SessionChatPanel({ open, onClose, characters, selected, onSelect
             <button ref={closeButton} type="button" onClick={dismiss} aria-label="대화창 닫기"><Icon name="close" size={19} /></button>
           </header>
           <div className="session-chat-plan">
-            <span>자유 대화 · 횟수 제한 없음</span>
+            <span>{tierById(active.tier).name} · {active.serverSession ? '자유 대화' : '샘플 답변'} · 횟수 제한 없음</span>
           </div>
           <div
             ref={list}

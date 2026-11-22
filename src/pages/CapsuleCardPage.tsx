@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ComponentType } from 'react'
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { CompletionPortrait } from '@/features/reports/components/CompletionPortrait'
@@ -12,6 +12,7 @@ import { dateLabel, dayKey, duration, measuredDuration } from '@/shared/lib/form
 import { Button } from '@/shared/ui/Button'
 import { cn } from '@/shared/lib/cn'
 import { OverlayPage } from '@/shared/ui/OverlayPage'
+import { DummyNotice } from '@/features/dummy/DummyNotice'
 import { FeedbackMessage, type FeedbackTone } from '@/shared/ui/FeedbackMessage'
 import { FormField } from '@/shared/ui/FormField'
 import { clampCalendarDate } from '@/shared/lib/date-limits'
@@ -24,8 +25,6 @@ import { capsuleCardColors } from '@/features/reports/capsule-card-layout'
 import { getCapsuleRoomArtwork } from '@/features/reports/capsule-room-artwork'
 import { loadStoryFont } from '@/shared/design/story-font'
 import { fitCardQuote, previewMeasure } from '@/features/reports/card-quote'
-import { isMvpCharacter, isMvpRoom } from '@/features/mvp/policy'
-import MvpUnavailablePage from './MvpUnavailablePage'
 import { CapsuleIntroFallback, type CapsuleIntroProps } from '@/features/reports/components/CapsuleIntroFallback'
 import { capsuleCardQuad, revealCapsuleCard } from '@/features/reports/capsule-card-reveal'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
@@ -51,9 +50,9 @@ export default function CapsuleCardPage() {
   const settled = useRef({ capsule: false, card: false })
   const [storyFont, setStoryFont] = useState('Pretendard')
   const [, setFontsReady] = useState(false)
-  const { record, error, retry } = useServerReport(recordId)
+  const { record, error, retry, redirectTo } = useServerReport(recordId)
   const room = record && getStudyRoom(record.roomId)
-  const available = !!room && (!!room.serverRoom || isMvpRoom(room.id))
+  const available = !!room
   // Without a card to open into (error, unknown or unavailable room), the usual screens show instead.
   const introPhase = intro && !reduced && !error && !(record && !available) ? intro : null
   const skipped = !!intro && reduced
@@ -75,12 +74,13 @@ export default function CapsuleCardPage() {
     // Forget the request so a reload does not play the intro again.
     navigate(`${window.location.pathname}${window.location.search}`, { replace: true, state: null })
   }
+  if (redirectTo) return <Navigate to={redirectTo} replace state={redirectTo === '/' ? { notice: 'report-not-found' } : undefined} />
   let content
   if (!record || !room) content = error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : introPhase ? null : <PageSkeleton screen="capsule" />
-  else if (!available) content = <OverlayPage><MvpUnavailablePage /></OverlayPage>
   else content = <CapsuleCardView record={record} room={room} storyFont={storyFont} intro={introPhase} onRevealed={() => settle('card')} />
   return (
     <>
+      {record?.dataSource === 'dummy' && <div className="page-container"><DummyNotice>체험용 공부 기록으로 만든 카드예요.</DummyNotice></div>}
       {content}
       {/* Rendered beside the content, not inside its branches, so the capsule keeps playing when the record arrives. */}
       {introPhase && (
@@ -125,7 +125,7 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
     })
     return () => { timeline.kill() }
   }, [opening])
-  const participants = room.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && record.characterIds.includes(character.id))
+  const participants = room.characters.filter(character => record.characterIds.includes(character.id))
   const friends = participants.length ? participants : [room.characters[0]!]
   const character = friends.find(friend => friend.id === params.get('friend')) ?? friends[0]!
   const roomArtwork = getCapsuleRoomArtwork(room)
@@ -174,7 +174,9 @@ function CapsuleCardView({ record, room, storyFont, intro, onRevealed }: { recor
   async function copy() {
     try {
       await navigator.clipboard.writeText(window.location.href)
-      setStatus({ tone: 'success', text: '링크를 복사했어요. 같은 계정으로 로그인하면 이 카드를 다시 볼 수 있어요.' })
+      setStatus({ tone: 'success', text: record.dataSource === 'dummy'
+        ? '링크를 복사했어요. 체험 카드는 이 브라우저에서 같은 계정으로 다시 볼 수 있어요.'
+        : '링크를 복사했어요. 같은 계정으로 로그인하면 이 카드를 다시 볼 수 있어요.' })
     } catch {
       setCopyFallback(true)
       setStatus({ tone: 'warning', text: '아래 주소를 직접 복사해 주세요.' })

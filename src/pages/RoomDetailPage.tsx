@@ -11,29 +11,26 @@ import { BookmarkButton } from '@/shared/ui/BookmarkButton'
 import { Icon } from '@/shared/ui/Icon'
 import { useDemo } from '@/features/demo/demo-context'
 import NotFoundPage from '@/pages/NotFoundPage'
-import MvpUnavailablePage from '@/pages/MvpUnavailablePage'
-import { isMvpCharacter, isMvpRoom } from '@/features/mvp/policy'
-import { MvpGate } from '@/features/mvp/MvpGate'
 
 export default function RoomDetailPage() {
   const { roomId } = useParams()
   const location = useLocation()
   const { state, dispatch } = useDemo()
   const room = roomId ? getStudyRoom(roomId) : undefined
-  if (!room || room.contentStatus === 'coming-soon')
+  if (!room)
     return (
       <div className="page-container py-7">
         <NotFoundPage />
       </div>
     )
-  if (!room.serverRoom && !isMvpRoom(room.id)) return <MvpUnavailablePage />
   const poster = getRoomPoster(room)
-  const relatedRooms = getStudyRooms().filter(value => value.id !== room.id && value.contentStatus === 'preview' && (value.serverRoom || isMvpRoom(value.id))).slice(0, 3)
+  const relatedRooms = getStudyRooms().filter(value => value.id !== room.id).slice(0, 3)
   const studyPath = state.activeSession ? `/study/${state.activeSession.id}` : `/rooms/${room.id}/prepare`
   const saved = state.savedRooms.includes(room.id)
   return (
     <>
       <SiteHeader
+        sticky
         navigation={(
           <nav aria-label="현재 위치" className="detail-breadcrumb">
             <span aria-hidden="true" className="hidden h-5 w-px shrink-0 bg-divider md:block" />
@@ -100,13 +97,7 @@ export default function RoomDetailPage() {
                 </h2>
               </div>
               <div className="room-detail-characters" data-single={room.characters.length === 1 || undefined}>
-                {room.characters.map((character) => (
-                  (character.serverCharacter || isMvpCharacter(character.id))
-                    ? <CharacterCard key={character.id} character={character} />
-                    : <MvpGate key={character.id} label={character.name} className="mvp-friend">
-                        <CharacterCard character={character} />
-                      </MvpGate>
-                ))}
+                {room.characters.map(character => <CharacterCard key={character.id} character={character} />)}
               </div>
             </section>
           </div>

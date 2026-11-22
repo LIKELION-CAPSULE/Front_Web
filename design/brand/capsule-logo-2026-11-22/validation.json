@@ -1,0 +1,69 @@
+{
+  "files": [
+    {
+      "file": "capsule-horizontal-black.svg",
+      "bytes": 22662,
+      "pathCount": 8,
+      "embeddedRaster": false,
+      "fontDependent": false
+    },
+    {
+      "file": "capsule-horizontal-color.svg",
+      "bytes": 20458,
+      "pathCount": 11,
+      "embeddedRaster": false,
+      "fontDependent": false
+    },
+    {
+      "file": "capsule-horizontal-white.svg",
+      "bytes": 22662,
+      "pathCount": 8,
+      "embeddedRaster": false,
+      "fontDependent": false
+    },
+    {
+      "file": "capsule-symbol-black.svg",
+      "bytes": 7780,
+      "pathCount": 1,
+      "embeddedRaster": false,
+      "fontDependent": false
+    },
+    {
+      "file": "capsule-symbol-color.svg",
+      "bytes": 5576,
+      "pathCount": 4,
+      "embeddedRaster": false,
+      "fontDependent": false
+    },
+    {
+      "file": "capsule-symbol-white.svg",
+      "bytes": 7780,
+      "pathCount": 1,
+      "embeddedRaster": false,
+      "fontDependent": false
+    },
+    {
+      "file": "capsule-wordmark-black.svg",
+      "bytes": 14949,
+      "pathCount": 7,
+      "embeddedRaster": false,
+      "fontDependent": false
+    },
+    {
+      "file": "capsule-wordmark-color.svg",
+      "bytes": 14949,
+      "pathCount": 7,
+      "embeddedRaster": false,
+      "fontDependent": false
+    },
+    {
+      "file": "capsule-wordmark-white.svg",
+      "bytes": 14949,
+      "pathCount": 7,
+      "embeddedRaster": false,
+      "fontDependent": false
+    }
+  ],
+  "trueSingleInkVariants": 6,
+  "figmaGuide": "2935:309"
+}

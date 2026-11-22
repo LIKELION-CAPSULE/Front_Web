@@ -1,5 +1,5 @@
 export type LoadingStage = 'auth' | 'onboarding' | 'page'
-export type SkeletonScreen = 'home' | 'onboarding' | 'room' | 'prepare' | 'study' | 'report' | 'capsule'
+export type SkeletonScreen = 'home' | 'onboarding' | 'mate' | 'connection' | 'connection-record' | 'room' | 'prepare' | 'study' | 'report' | 'capsule'
 
 /** A screen preview is shown only after the server has resolved the account's destination. */
 export function resolveLoadingScreen(destination: string | null, state: {
@@ -21,12 +21,15 @@ export function resolveLoadingScreen(destination: string | null, state: {
     if (!state.loggedIn) return null
     if (!state.onboarded) return 'onboarding'
   }
-  if (path === '/' || path === '/mypage') return 'home'
+  if (path === '/' || path === '/mypage' || path === '/mates/me' || path.startsWith('/characters')) return 'home'
   if (path === '/onboarding') return 'onboarding'
-  if (/^\/rooms\/[^/]+\/prepare$/.test(path)) return 'prepare'
-  if (/^\/rooms\/[^/]+$/.test(path)) return 'room'
-  if (/^\/study\/[^/]+$/.test(path)) return 'study'
-  if (/^\/reports\/[^/]+$/.test(path)) return 'report'
-  if (/^\/capsules\/[^/]+$/.test(path)) return 'capsule'
+  if (/^\/rooms\/[^/]+\/prepare$/.test(path)) return 'mate'
+  if (/^\/rooms\/[^/]+$/.test(path)) return 'mate'
+  if (/^\/study\/[^/]+$/.test(path)) return 'connection'
+  if (/^\/reports\/[^/]+$/.test(path)) return 'connection-record'
+  if (/^\/capsules\/[^/]+$/.test(path)) return 'connection-record'
+  if (/^\/mates\/[^/]+$/.test(path)) return 'mate'
+  if (/^\/connect\/[^/]+$/.test(path)) return 'connection'
+  if (/^\/connections\/[^/]+$/.test(path)) return 'connection-record'
   return null
 }

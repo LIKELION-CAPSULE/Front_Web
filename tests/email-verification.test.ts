@@ -22,9 +22,9 @@ test('preview verification rejects partial, incorrect and expired codes', () => 
 test('renewing a preview challenge renews both expiry and cooldown without storing credentials', () => {
   const first = createEmailVerificationPreview('study@example.com', 1000)
   const renewed = createEmailVerificationPreview(first.email, first.resendAt)
-  assert.equal(first.resendAt, 31000)
-  assert.equal(first.expiresAt, 601000)
-  assert.equal(renewed.resendAt - first.resendAt, 30000)
-  assert.equal(renewed.expiresAt - first.expiresAt, 30000)
+  assert.equal(first.resendAt, 61000)
+  assert.equal(first.expiresAt, 301000)
+  assert.equal(renewed.resendAt - first.resendAt, 60000)
+  assert.equal(renewed.expiresAt - first.expiresAt, 60000)
   assert.deepEqual(Object.keys(renewed).sort(), ['email', 'expiresAt', 'resendAt'])
 })
