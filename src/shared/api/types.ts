@@ -1,10 +1,18 @@
-// Matches the backend OpenAPI (https://backendlab-production-3052.up.railway.app/v3/api-docs), checked 2026-11-06.
-// Fields without required remain optional; adapters validate the fields needed by the UI.
+// Matches the backend OpenAPI (https://api.capsule.ai.kr/v3/api-docs), checked 2026-11-22.
+// Responses follow OpenAPI; requests also reflect service-level validation in Backend_lab de5aa98.
+// See docs/API_AUDIT_2026-11-22.md for differences not expressed by OpenAPI `required`.
+
+/** Wire response. ApiClient returns the inner payload types below; empty completions resolve to null. */
+export type ApiResponse<T> = {
+  success?: boolean
+  data?: T
+}
 
 export type StartRequest = {
   roomId: number
   characterId: number
-  targetMinutes?: number
+  /** Required by SessionService.start, despite being optional in OpenAPI. */
+  targetMinutes: number
 }
 
 export type Figure = {
@@ -98,13 +106,13 @@ export type MotionRef = {
 }
 
 export type HeartbeatRequest = {
-  studySeconds?: number
-  presentSeconds?: number
+  studySeconds: number
+  presentSeconds: number
 }
 
 export type EventRequest = {
-  type?: string
-  occurredAt?: string
+  type: 'FOCUS' | 'AWAY' | 'RETURN' | 'BREAK' | 'DROWSY' | 'YAWN' | 'WAVE' | 'HEAD_TURN'
+  occurredAt: string
 }
 
 export type EventCharacter = {
@@ -141,8 +149,8 @@ export type ReactionResponse = {
 }
 
 export type EndRequest = {
-  studySeconds?: number
-  presentSeconds?: number
+  studySeconds: number
+  presentSeconds: number
 }
 
 export type CharacterRef = {
@@ -156,10 +164,12 @@ export type ReportResponse = {
   startedAt?: string
   endedAt?: string
   endType?: string
+  mode?: 'BASIC' | 'ADVANCED' | string
   studySeconds?: number
   presentSeconds?: number
   awaySeconds?: number
   returnCount?: number
+  dialogueCount?: number
   character?: CharacterRef
   relation?: StudySettlement
   closingLine?: string
@@ -177,7 +187,12 @@ export type StudySettlement = {
   levelUp?: boolean
   stage?: number
   stageName?: string
+  previousStageName?: string
+  nextStageName?: string
   nextLevelSeconds?: number
+  stageProgress?: number
+  stageSeconds?: number
+  stageTargetSeconds?: number
 }
 
 export type CreateMemoryRequest = {
@@ -197,8 +212,8 @@ export type MemoryResponse = {
 }
 
 export type KakaoRequest = {
-  code?: string
-  redirectUri?: string
+  code: string
+  redirectUri: string
 }
 
 export type KakaoResponse = {
@@ -213,12 +228,12 @@ export type AccessTokenResponse = {
 }
 
 export type PasswordResetRequest = {
-  token?: string
-  newPassword?: string
+  token: string
+  newPassword: string
 }
 
 export type EmailRequest = {
-  email?: string
+  email: string
 }
 
 export type ExpiresResponse = {
@@ -226,8 +241,8 @@ export type ExpiresResponse = {
 }
 
 export type ConfirmRequest = {
-  email?: string
-  code?: string
+  email: string
+  code: string
 }
 
 export type VerificationResponse = {
@@ -235,10 +250,10 @@ export type VerificationResponse = {
 }
 
 export type SignupRequest = {
-  verificationToken?: string
-  password?: string
-  nickname?: string
-  agreedTermVersionIds?: (number)[]
+  verificationToken: string
+  password: string
+  nickname: string
+  agreedTermVersionIds: (number)[]
 }
 
 export type LoginResponse = {
@@ -248,8 +263,8 @@ export type LoginResponse = {
 }
 
 export type LoginRequest = {
-  email?: string
-  password?: string
+  email: string
+  password: string
 }
 
 export type UpdateMeRequest = {
@@ -269,6 +284,7 @@ export type MeResponse = {
   userId?: number
   nickname?: string
   email?: string
+  avatarId?: number
   onboardingRequired?: boolean
   activeSession?: ActiveSessionSummary
   profileImage?: string

@@ -6,8 +6,8 @@ import { SessionModel, type SessionModelFactory, type SessionModelStage } from '
 const createStage: SessionModelFactory = (url, layout) => new Live2DStage(url, layout, new URL(import.meta.env.BASE_URL, location.href).href)
 export type AvatarModelStatus = 'missing' | 'loading' | 'ready' | 'error'
 
-/** Owns an avatar independently of the companion; changing its host never reloads the model. */
-export function useAvatarModel(model: ModelInfo | undefined, scope = '') {
+/** Owns a preview independently of the connection model; changing its host never reloads it. */
+export function useAvatarModel(model: ModelInfo | undefined, scope = '', factory = createStage) {
   const { modelJsonUrl, scale, offsetX, offsetY } = model ?? {}
   const [attempt, setAttempt] = useState(0)
   const key = JSON.stringify([scope, modelJsonUrl, scale, offsetX, offsetY, attempt])
@@ -19,7 +19,7 @@ export function useAvatarModel(model: ModelInfo | undefined, scope = '') {
 
   useEffect(() => {
     if (!modelJsonUrl) return
-    const loader = new SessionModel(createStage)
+    const loader = new SessionModel(factory)
     let alive = true
     void loader.prepare({ modelJsonUrl, scale, offsetX, offsetY }).then(value => {
       if (alive) setResult({ key, stage: value })
@@ -27,7 +27,7 @@ export function useAvatarModel(model: ModelInfo | undefined, scope = '') {
       if (alive) setResult({ key, stage: null })
     })
     return () => { alive = false; loader.release() }
-  }, [key, modelJsonUrl, scale, offsetX, offsetY])
+  }, [key, modelJsonUrl, scale, offsetX, offsetY, factory])
 
   return { stage, status, retry }
 }

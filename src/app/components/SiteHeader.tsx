@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { Link } from 'react-router'
+import { DESKTOP_LOGIN_ASSETS } from '@/features/auth/login-backgrounds/desktop/desktop-config'
 import { Brand } from '@/shared/ui/Brand'
 
 let stickyHeader: HTMLElement | null = null
@@ -32,7 +33,16 @@ export function SiteHeader({ navigation, account, sticky = false }: { navigation
     <header ref={ref} className="site-header" data-sticky={sticky || undefined}>
       <div className="page-container site-header-inner">
         <Link to="/" aria-label="CAPSULE 홈" className="site-header-brand">
-          <Brand />
+          <img
+            src={DESKTOP_LOGIN_ASSETS.logo.symbol}
+            alt=""
+            aria-hidden="true"
+            className="site-header-symbol"
+            draggable={false}
+          />
+          <span className="site-header-mobile-brand">
+            <Brand />
+          </span>
         </Link>
         {navigation}
         <div className="site-header-account">{account}</div>

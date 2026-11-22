@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import type { Dispatch } from 'react'
 import type { ActiveSession, FocusTotals } from '../demo/types'
-import { sessionStudySeconds, type DemoAction } from '../demo/reducer'
+import { sessionStudySeconds } from '../session/connection-time'
+import type { DemoAction } from '../demo/reducer'
 import { normalizeFocusTotals } from '../session/focus'
 import { FaceFocusTracker, MAX_FACE_SAMPLE_GAP_MS } from './face-focus-tracker'
 import type { Observation } from './types'
+import { isConnectionVisible } from '@/features/mates/document-pip'
 
 export function useFaceFocus({ session, enabled, observation, dispatch }: {
   session: ActiveSession | null
@@ -33,7 +35,7 @@ export function useFaceFocus({ session, enabled, observation, dispatch }: {
       published.current = initial
     }
     const tracker = trackerRef.current
-    if (!enabled || !observation || document.hidden) {
+    if (!enabled || !observation || !isConnectionVisible()) {
       if (session.phase === 'break') tracker.close(performance.now(), session.studySeconds * 1000)
       else tracker.interrupt()
       publish()
@@ -50,14 +52,14 @@ export function useFaceFocus({ session, enabled, observation, dispatch }: {
   useEffect(() => {
     const interval = window.setInterval(publish, 1000)
     const hidden = () => {
-      if (document.hidden) { trackerRef.current?.interrupt(); publish() }
+      if (!isConnectionVisible()) { trackerRef.current?.interrupt(); publish() }
     }
     document.addEventListener('visibilitychange', hidden)
     return () => { clearInterval(interval); document.removeEventListener('visibilitychange', hidden) }
   }, [publish])
 
   return useCallback(() => {
-    if (session && enabled && !document.hidden && trackerRef.current?.sessionId === session.id)
+    if (session && enabled && isConnectionVisible() && trackerRef.current?.sessionId === session.id)
       trackerRef.current.close(performance.now(), sessionStudySeconds(session, Date.now()) * 1000)
     publish()
   }, [session, enabled, publish])

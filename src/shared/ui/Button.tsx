@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react'
 import { Link, type LinkProps } from 'react-router'
 import { cn } from '@/shared/lib/cn'
 import { QuarterRingSpinner } from './QuarterRingSpinner'
@@ -32,7 +32,7 @@ function controlClasses(variant: Variant, size: Size, className?: string) {
 }
 
 type ControlProps = { variant?: Variant; size?: Size; loading?: boolean }
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & ControlProps
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & ControlProps & { ref?: Ref<HTMLButtonElement> }
 
 function ButtonContent({ loading, children }: { loading: boolean; children: ReactNode }) {
   if (!loading) return children
@@ -43,7 +43,7 @@ function ButtonContent({ loading, children }: { loading: boolean; children: Reac
 }
 
 export function Button({ variant = 'primary', size = 'lg', loading = false, disabled, children, className, type = 'button', ...props }: ButtonProps) {
-  return <button {...props} type={type} disabled={disabled || loading} aria-busy={loading || undefined} data-loading={loading || undefined} className={controlClasses(variant, size, className)}><ButtonContent loading={loading}>{children}</ButtonContent></button>
+  return <button {...props} type={type} disabled={disabled || loading} aria-busy={loading || props['aria-busy'] || undefined} data-loading={loading || undefined} className={controlClasses(variant, size, className)}><ButtonContent loading={loading}>{children}</ButtonContent></button>
 }
 
 type ButtonLinkProps = Omit<LinkProps, 'children'> & ControlProps & { children: ReactNode }

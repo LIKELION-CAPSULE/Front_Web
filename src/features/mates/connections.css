@@ -1,0 +1,1073 @@
+/* Pre-connection Entry Screen (vertical desktop call window over dimmed static wallpaper) */
+.connection-entry {
+  display: flex;
+  min-height: 100dvh;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.connection-entry-window.desktop-window {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: min(410px, 100%);
+  overflow: hidden;
+}
+
+.connection-entry-stage {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  overflow: hidden;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 7%, transparent);
+}
+
+.connection-entry-portrait {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.connection-entry-portrait > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  display: block;
+}
+
+.connection-entry-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px 24px 22px;
+  text-align: center;
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--color-surface-raised) 96%, transparent),
+    color-mix(in srgb, var(--color-panel) 98%, transparent)
+  );
+}
+
+.connection-entry-body h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-ink);
+  word-break: keep-all;
+}
+
+.connection-entry-sub {
+  margin: -6px 0 2px;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.connection-entry-body .mate-connect-action {
+  margin-top: 4px;
+  width: 100%;
+  justify-items: center;
+}
+
+/* Maximized Call Window */
+.connection-page {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 600px;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+.connection-titlebar.desktop-window-titlebar {
+  flex: none;
+  height: 41px;
+  padding: 0 16px;
+  gap: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
+  background: color-mix(in srgb, var(--color-panel) 94%, transparent);
+}
+
+.connection-titlebar-left,
+.connection-titlebar-center,
+.connection-titlebar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.connection-titlebar-left {
+  flex: 1 1 0;
+}
+
+.connection-titlebar-left h1 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.connection-timer {
+  font-size: 13.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+  padding-left: 6px;
+  border-left: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+
+.connection-titlebar-center {
+  flex: none;
+  justify-content: center;
+}
+
+.connection-mode-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+  background: color-mix(in srgb, var(--color-canvas) 75%, transparent);
+}
+
+.connection-mode-option {
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 15px;
+  white-space: nowrap;
+  color: var(--color-muted);
+  background: transparent;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.connection-mode-option[data-active='true'] {
+  background: color-mix(in srgb, var(--color-primary) 28%, var(--color-surface-raised));
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.connection-mode-option:not(:disabled):hover {
+  color: var(--color-ink);
+}
+
+.connection-mode-option:disabled {
+  cursor: default;
+}
+
+.connection-titlebar-right {
+  flex: 1 1 0;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.connection-titlebar-chip {
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--color-muted);
+}
+
+.connection-window-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: 4px;
+}
+
+.connection-dot {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.connection-dot:hover:not(:disabled) {
+  transform: scale(1.12);
+  filter: brightness(1.12);
+}
+
+.connection-dot:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.connection-dot:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.connection-dot--red {
+  background: #ff5f57;
+}
+
+.connection-dot--yellow {
+  background: #febc2e;
+}
+
+.connection-dot--green {
+  background: #28c840;
+}
+
+/* Main Split Workspace: Stage + Right Chat Window */
+.connection-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0px;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px 16px;
+}
+
+.connection-content[data-chat] {
+  grid-template-columns: minmax(0, 1fr) clamp(310px, 25vw, 360px);
+  gap: 14px;
+}
+
+.connection-stage-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.connection-stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.connection-mate,
+.connection-self {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(196, 185, 243, 0.16);
+}
+
+.connection-mate-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  display: block;
+}
+
+.connection-mate-figure {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.connection-mate-figure .live2d-host {
+  background: transparent;
+}
+
+.connection-mate-fallback-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  display: block;
+}
+
+.connection-mate[data-speaking]::after {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--color-success);
+  pointer-events: none;
+  content: '';
+}
+
+/* Bottom-center pill speech bubble (strictly above floating glass dock, below tie knot, clear of self tile) */
+.connection-speech-slot {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: clamp(92px, 11.5%, 108px);
+  z-index: 12;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  transition: transform 180ms cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Shift speech bubble upward while dock is hovered or keyboard-focused so tooltips never obscure it */
+.connection-stage-wrap:has(.connection-controls:hover) .connection-speech-slot,
+.connection-stage-wrap:has(.connection-controls button:focus-visible) .connection-speech-slot {
+  transform: translateY(-44px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connection-speech-slot {
+    transition: none;
+  }
+}
+
+.connection-stage .connection-speech-slot .character-speech-bubble--pill {
+  max-width: min(460px, calc(100% - 26% - 48px));
+}
+
+.connection-speech-slot .character-speech-bubble--pill {
+  position: static;
+  top: auto;
+  right: auto;
+  left: auto;
+  margin: 0;
+  max-width: min(560px, 100%);
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(250, 250, 253, 0.16);
+  background: rgba(15, 14, 23, 0.84);
+  backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
+  color: var(--color-ink);
+  font-size: 14px;
+  line-height: 1.45;
+  pointer-events: auto;
+}
+
+.connection-speech-slot .character-speech-bubble--pill::before {
+  display: none;
+}
+
+.connection-speech-slot .character-speech-bubble--pill .character-speech-bubble-text {
+  text-shadow: none;
+}
+
+/* "나" Self Tile = Mini Desktop Window */
+.connection-self.desktop-window {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.connection-self-titlebar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0 11px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  background: color-mix(in srgb, var(--color-panel) 92%, transparent);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.connection-self-camera-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-subtle);
+}
+
+.connection-self-camera-state[data-camera-on='true'] {
+  color: var(--color-success);
+}
+
+.connection-self-camera-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.connection-self-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-canvas));
+}
+
+.connection-self-body > video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.connection-stage .connection-self.desktop-window {
+  position: absolute;
+  right: 16px;
+  bottom: clamp(92px, 11.5%, 108px);
+  z-index: 15;
+  width: clamp(160px, 21%, 220px);
+  height: clamp(118px, 19%, 160px);
+}
+
+.connection-avatar {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-canvas);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+}
+
+.connection-avatar > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+/* Floating Desktop Notices (top-right over stage) */
+.connection-floating-notices {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: min(380px, calc(100% - 28px));
+  pointer-events: none;
+}
+
+.connection-notice-card {
+  pointer-events: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(250, 250, 253, 0.14);
+  background: rgba(20, 19, 30, 0.9);
+  padding: 10px 14px;
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.48);
+}
+
+/* Floating Bottom-Center Glass Dock */
+.connection-controls.glass-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 25;
+}
+
+/* Right Chat Desktop Window */
+.connection-chat.desktop-window {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.connection-chat h2 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.connection-chat-close.ui-button {
+  min-height: 28px;
+  width: 28px;
+  padding: 0;
+}
+
+.connection-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 14px;
+}
+
+.connection-messages article {
+  margin-bottom: 18px;
+}
+
+.connection-messages article small {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--color-subtle);
+  font-size: 12px;
+}
+
+.connection-messages article p {
+  width: fit-content;
+  max-width: 90%;
+  padding: 11px 15px;
+  border-radius: 0 14px 14px;
+  background: var(--color-canvas);
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.connection-messages article[data-sender='user'] {
+  display: grid;
+  justify-items: end;
+}
+
+.connection-messages article[data-sender='user'] p {
+  border-radius: 14px 0 14px 14px;
+  background: var(--color-primary);
+  color: var(--color-on-solid);
+}
+
+.connection-chat-error {
+  flex: none;
+  padding: 0 12px 6px;
+}
+
+.connection-chat .session-chat-composer {
+  flex: none;
+  margin: 0 12px 12px;
+  border: 1px solid var(--color-divider);
+  background: var(--color-canvas);
+}
+
+.connection-chat .session-chat-composer:focus-within {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+/* Leave Confirmation Mate Quote */
+.connection-leave-quote {
+  margin-top: 14px;
+  padding: 12px 15px;
+  border-radius: 14px;
+  border: 1px solid rgba(196, 185, 243, 0.16);
+  background: color-mix(in srgb, var(--color-canvas) 82%, transparent);
+}
+
+.connection-leave-quote-name {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-accent);
+}
+
+.connection-leave-quote p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-ink);
+}
+
+/* Connection Record Window ("채린 · 연결 끊음 · 25분", reuses MateDetail window shell) */
+.desktop-mate-dot--offline {
+  background: var(--color-subtle);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .connection-record-stage {
+    view-transition-name: connection-stage-to-record;
+  }
+}
+
+.connection-record-speech-slot {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 6;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.connection-record-speech-slot .character-speech-bubble--pill {
+  position: static;
+  top: auto;
+  right: auto;
+  left: auto;
+  margin: 0;
+  max-width: 100%;
+  padding: 9px 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(250, 250, 253, 0.16);
+  background: rgba(15, 14, 23, 0.84);
+  backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
+  color: var(--color-ink);
+  font-size: 13.5px;
+  line-height: 1.45;
+  pointer-events: auto;
+}
+
+.connection-record-speech-slot .character-speech-bubble--pill::before {
+  display: none;
+}
+
+.connection-record-speech-slot .character-speech-bubble--pill .character-speech-bubble-text {
+  text-shadow: none;
+}
+
+.connection-record-copy h1 {
+  margin: 0;
+  font-size: clamp(26px, 3vw, 38px);
+  line-height: 1.26;
+  font-weight: 600;
+  color: var(--color-ink);
+  word-break: keep-all;
+}
+
+.connection-record-subtitle {
+  margin: 10px 0 0;
+  color: var(--color-muted);
+  font-size: 14.5px;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.connection-record-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 28px;
+  margin: 28px 0 0;
+}
+
+.connection-record-stat {
+  min-width: 120px;
+}
+
+.connection-record-stat dt {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.connection-record-stat dd {
+  margin: 6px 0 0;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.connection-record-stat-empty {
+  display: inline-block;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--color-subtle);
+  word-break: keep-all;
+}
+
+.connection-record-affinity {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.connection-record-affinity-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.connection-record-affinity-label {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.connection-record-affinity-stage {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.connection-record-levelup {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 48%, transparent);
+  color: var(--color-text-accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.connection-record-affinity-progress {
+  margin-top: 12px;
+}
+
+.connection-record-progress-track {
+  height: 6px;
+  width: 100%;
+  max-width: 340px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
+}
+
+.connection-record-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-text-accent));
+}
+
+.connection-record-progress-caption {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.connection-record-credit-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  margin-top: 20px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(196, 185, 243, 0.18);
+  background: color-mix(in srgb, var(--color-surface) 84%, transparent);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.connection-record-invite-link {
+  color: var(--color-text-accent);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.connection-record-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.connection-record-actions .mate-connect-action {
+  margin-top: 0;
+}
+
+.connection-record-actions .ui-button {
+  min-height: 44px;
+}
+
+.connection-record-error-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  padding: 48px 24px;
+  text-align: center;
+  border-radius: 0 0 15px 15px;
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--color-surface-raised) 96%, transparent),
+    color-mix(in srgb, var(--color-panel) 98%, transparent)
+  );
+}
+
+.connection-record-error-title {
+  margin: 0;
+  font-size: clamp(22px, 2.4vw, 28px);
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--color-ink);
+  word-break: keep-all;
+}
+
+.connection-record-error-sub {
+  margin: 10px 0 0;
+  font-size: 14.5px;
+  color: var(--color-muted);
+}
+
+.connection-record-skeleton-stage {
+  background: linear-gradient(155deg, rgba(46, 36, 76, 0.65), rgba(21, 19, 34, 0.92));
+}
+
+.connection-record-skeleton-title {
+  height: 36px;
+  width: 68%;
+  border-radius: 10px;
+}
+
+.connection-record-skeleton-sub {
+  margin-top: 12px;
+  height: 18px;
+  width: 52%;
+  border-radius: 8px;
+}
+
+.connection-record-skeleton-stat {
+  height: 52px;
+  width: 130px;
+  border-radius: 10px;
+}
+
+.connection-record-skeleton-bar {
+  margin-top: 26px;
+  height: 44px;
+  width: 78%;
+  border-radius: 10px;
+}
+
+.connection-record-skeleton-btn {
+  height: 44px;
+  width: 128px;
+  border-radius: 12px;
+}
+
+/* 960px keeps side-by-side layout with adjusted ratio; < 960px stacks vertically */
+@media (max-width: 960px) and (min-width: 960px) {
+  .connection-record-body.mate-detail-window-body {
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  }
+  .connection-record-body .mate-detail-portrait {
+    aspect-ratio: 3 / 4;
+    height: auto;
+    max-height: none;
+    min-height: 420px;
+    border-right: 1px solid color-mix(in srgb, var(--color-ink) 7%, transparent);
+    border-bottom: 0;
+  }
+  .connection-record-copy.mate-detail-copy {
+    padding: 30px 32px;
+  }
+}
+
+@media (max-width: 959px) {
+  .connection-record-speech-slot {
+    bottom: 10px;
+    left: 12px;
+    right: 12px;
+  }
+  .connection-record-speech-slot .character-speech-bubble--pill {
+    padding: 7px 13px;
+    font-size: 13px;
+  }
+  .connection-record-copy h1 {
+    font-size: 26px;
+    line-height: 1.3;
+  }
+  .connection-record-stats {
+    margin-top: 20px;
+    gap: 12px 22px;
+  }
+  .connection-record-actions {
+    margin-top: 22px;
+  }
+}
+
+.connection-titlebar-more-wrap {
+  position: relative;
+  display: none;
+  align-items: center;
+}
+
+.connection-titlebar-more-menu {
+  min-width: 196px;
+  padding: 8px 10px;
+}
+
+.connection-titlebar-more-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px;
+  font-size: 12.5px;
+  color: var(--color-muted);
+}
+
+.connection-titlebar-more-item strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+@media (max-width: 1120px) {
+  .connection-titlebar-chip {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+}
+
+/* 861px ~ 960px (960 half-screen): chat sits side-by-side without covering stage or dock;
+   GlassDock switches to compact mode (⋯) automatically when stage width < 700px. */
+@media (max-width: 960px) {
+  .connection-titlebar.desktop-window-titlebar {
+    height: auto;
+    min-height: 41px;
+    flex-wrap: wrap;
+    padding: 5px 12px;
+    gap: 8px;
+  }
+  .connection-content {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 10px 12px 12px;
+  }
+  .connection-content[data-chat] {
+    grid-template-columns: minmax(0, 1fr) clamp(280px, 31vw, 312px);
+    gap: 12px;
+  }
+}
+
+/* <= 860px (720, 640): chat rises from bottom (45% height), glass dock stays right above chat panel,
+   so neither Chaerin's face nor the leave button is ever obscured. */
+@media (max-width: 860px) {
+  .connection-content,
+  .connection-content[data-chat] {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px 12px;
+  }
+  .connection-stage-wrap {
+    flex: 1 1 0;
+    min-height: 0;
+    gap: 8px;
+  }
+  .connection-controls.glass-dock {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    margin: 0 auto;
+    max-width: 100%;
+    flex: none;
+  }
+  .connection-content[data-chat] .connection-chat.desktop-window {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    flex: 0 0 45%;
+    height: 45%;
+    min-height: 220px;
+    width: 100%;
+    box-shadow: none;
+  }
+  .connection-speech-slot {
+    bottom: 12px;
+  }
+  .connection-stage .connection-self.desktop-window {
+    bottom: 12px;
+  }
+}
+
+@media (max-width: 720px) {
+  .connection-titlebar-chip {
+    display: none;
+  }
+  .connection-titlebar-more-wrap {
+    display: inline-flex;
+  }
+  .connection-titlebar-center {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 680px) {
+  .connection-stage .connection-self.desktop-window {
+    right: 12px;
+    bottom: 12px;
+    width: 120px;
+    height: 96px;
+  }
+  .connection-self.desktop-window .connection-avatar {
+    width: 44px;
+    height: 44px;
+  }
+  .connection-stage .connection-speech-slot {
+    left: 12px;
+    right: 144px;
+    justify-content: flex-start;
+  }
+  .connection-stage .connection-speech-slot .character-speech-bubble--pill {
+    max-width: 100%;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .connection-content {
+    transition: grid-template-columns 260ms cubic-bezier(.2, .8, .2, 1), gap 260ms;
+  }
+  .connection-chat {
+    animation: connection-chat-enter 260ms cubic-bezier(.2, .8, .2, 1) both;
+  }
+}
+
+@keyframes connection-chat-enter {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

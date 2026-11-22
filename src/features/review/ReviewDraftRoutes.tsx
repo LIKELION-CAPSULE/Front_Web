@@ -1,9 +1,6 @@
 import { Route, Routes } from 'react-router'
 import { App } from '@/app/App'
 import { AppLayout } from '@/app/layouts/AppLayout'
-import RecordsPage from '@/pages/RecordsPage'
-import CharactersPage from '@/pages/CharactersPage'
-import CreditsPage from '@/pages/CreditsPage'
 import ChargePage from '@/pages/ChargePage'
 import { useDemo } from '@/features/demo/demo-context'
 import { getStudyRooms } from '@/features/rooms/services/room-service'
@@ -15,16 +12,13 @@ export function ReviewStudyGate() {
   return state.activeSession ? <App /> : <AppLoading label="캐릭터를 불러오고 있어요." />
 }
 
-/** These source pages are retained for copy review; production uses the same unlocked pages. */
+/** Archived source pages are available only in development review scenarios. */
 export function ReviewDraftRoutes() {
   const { state } = useDemo()
   // A source page may assume legacy IDs exist; wait until ReviewSetup installs its own data.
   if (!state.profile.loggedIn || !getStudyRooms().some(room => room.id === 'dawn-library')) return <AppLoading />
   return <Routes>
     <Route element={<AppLayout />}>
-      <Route path="records" element={<RecordsPage />} />
-      <Route path="characters/:characterId" element={<CharactersPage />} />
-      <Route path="credits" element={<CreditsPage />} />
       <Route path="credits/charge" element={<ChargePage />} />
     </Route>
     <Route path="*" element={<App />} />

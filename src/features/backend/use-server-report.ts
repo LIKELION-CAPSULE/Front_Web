@@ -17,7 +17,7 @@ export function useServerReport(sessionId?: string) {
     if (!sessionId || record || redirectTo) return
     let alive = true
     void loadReport(sessionId).catch(reason => {
-      if (alive) setFailure({ id: sessionId, message: reason instanceof Error ? reason.message : '리포트를 불러오지 못했어요.', status: reason instanceof ApiError ? reason.status : undefined })
+      if (alive) setFailure({ id: sessionId, message: reason instanceof Error ? reason.message : '연결 기록을 불러오지 못했어요.', status: reason instanceof ApiError ? reason.status : undefined })
     })
     return () => { alive = false }
   }, [sessionId, record, loadReport, attempt, redirectTo])

@@ -2,34 +2,49 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router'
 
 const titles: Record<string, string> = {
-  '/': '함께 공부하기',
+  '/': '홈',
   '/records': '내 기록',
-  '/characters': '친구',
+  '/characters': '내 메이트',
+  '/mates/me': '내 메이트',
   '/credits': '내 크레딧',
-  '/credits/charge': '크레딧 · 패스',
-  '/login': '같이 공부할 친구가 기다리고 있어요',
+  '/credits/charge': '친구 초대',
+  '/login': '나만의 메이트가 기다리고 있어요',
   '/onboarding': '프로필 선택',
+  '/password/reset': '비밀번호 재설정',
+  '/reset-password': '비밀번호 재설정',
+  '/oauth/kakao': '카카오 로그인',
 }
 
-/** Mount within the layout so a lazy page has committed before moving focus. */
+/** Mount inside the route Suspense boundary so the actual page is ready before moving focus. */
 export function PageNavigation() {
   const { pathname } = useLocation()
 
   useEffect(() => {
-    const fallback = pathname.startsWith('/rooms/')
-      ? '스터디룸'
-      : pathname.startsWith('/study/')
-        ? '함께 공부하기'
-        : pathname.startsWith('/reports/')
-          ? '공부 기록'
+    const fallback = pathname.startsWith('/rooms/') || pathname.startsWith('/mates/')
+      ? '메이트'
+      : pathname.startsWith('/study/') || pathname.startsWith('/connect/')
+        ? '연결'
+        : pathname.startsWith('/reports/') || pathname.startsWith('/connections/')
+          ? '연결 기록'
           : pathname.startsWith('/capsules/')
-            ? '캡슐 카드'
+            ? '연결 기록'
             : pathname.startsWith('/characters/')
-              ? '친구와의 관계'
+              ? '내 메이트'
               : '페이지를 찾을 수 없어요'
     document.title = `CAPSULE · ${titles[pathname] ?? fallback}`
     window.scrollTo(0, 0)
-    document.getElementById('main-content')?.focus({ preventScroll: true })
+    const focus = () => {
+      const main = document.getElementById('main-content')
+      if (!main || main.closest('[data-loading-screen]')) return false
+      main.tabIndex = -1
+      main.focus({ preventScroll: true })
+      return true
+    }
+    if (focus()) return
+    // Initial authentication can resolve after this route has committed its loading screen.
+    const observer = new MutationObserver(() => { if (focus()) observer.disconnect() })
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
   }, [pathname])
 
   return null

@@ -1,84 +1,177 @@
-import { DummyNotice } from '@/features/dummy/DummyNotice'
-import { useState } from 'react'
-import { useDemo } from '@/features/demo/demo-context'
-import type { LedgerEntry } from '@/features/demo/types'
-import { dateLabel, number } from '@/shared/lib/format'
-import { PageHeading } from '@/shared/ui/PageHeading'
-import { CreditLedger } from '@/features/credits/components/CreditLedger'
-import { ButtonLink } from '@/shared/ui/Button'
+import { useEffect, useState } from 'react'
+import { useBackend } from '@/features/backend/backend-context'
+import { CreditsAppWindow } from '@/features/credits/components/CreditsAppWindow'
+import {
+  CREDIT_PRICING,
+  attendanceBarRatio,
+  formatSeoulTime,
+  groupCreditEntriesByDate,
+} from '@/features/credits/credit-utils'
+import { useNow } from '@/features/session/use-now'
+import { Button } from '@/shared/ui/Button'
 import { Tabs } from '@/shared/ui/Tabs'
-import { Dialog } from '@/shared/ui/Dialog'
-import { Panel } from '@/shared/ui/Panel'
+import { clock, number } from '@/shared/lib/format'
+
+function isReviewCreditsLoading(): boolean {
+  return (
+    import.meta.env.DEV &&
+    typeof document !== 'undefined' &&
+    document.documentElement.dataset.reviewScenario === 'credits-loading'
+  )
+}
 
 export default function CreditsPage() {
-  const { state } = useDemo()
+  const { wallet, status, reload } = useBackend()
+  const now = useNow()
   const [filter, setFilter] = useState('all')
-  const [receipt, setReceipt] = useState<LedgerEntry | null>(null)
-  const rows = state.ledger.filter((entry) =>
-    filter === 'all' ||
-    (filter === 'charge'
-      ? entry.kind === 'charge' || entry.kind === 'payment'
-      : entry.kind === filter),
+  const loading = status === 'loading' || isReviewCreditsLoading()
+
+  useEffect(() => {
+    void import('@/pages/InvitePage')
+  }, [])
+
+  if (loading) {
+    return (
+      <CreditsAppWindow activeTab="credits" loadingScreen="credits">
+        <div className="credits-skeleton-stack" aria-busy="true">
+          <span className="sr-only" role="status">
+            크레딧 정보를 불러오고 있어요.
+          </span>
+          <div className="credits-skeleton-row" aria-hidden="true">
+            <span className="skeleton-line credits-skeleton-card" />
+            <span className="skeleton-line credits-skeleton-card" />
+            <span className="skeleton-line credits-skeleton-card" />
+          </div>
+          <span className="skeleton-line credits-skeleton-line credits-skeleton-line--wide" aria-hidden="true" />
+          <span className="skeleton-line credits-skeleton-line credits-skeleton-line--mid" aria-hidden="true" />
+          <span className="skeleton-line credits-skeleton-line credits-skeleton-line--wide" aria-hidden="true" />
+        </div>
+      </CreditsAppWindow>
+    )
+  }
+
+  if (!wallet) {
+    return (
+      <CreditsAppWindow activeTab="credits">
+        <div className="credits-state-box" role="alert">
+          <p className="credits-state-title">크레딧 정보를 불러오지 못했어요.</p>
+          <Button
+            onClick={() => {
+              void reload()
+            }}
+          >
+            다시 시도
+          </Button>
+        </div>
+      </CreditsAppWindow>
+    )
+  }
+
+  const totalRemaining = wallet.attendance + wallet.invitation
+  const attendancePct = Math.round(attendanceBarRatio(wallet.attendance) * 100)
+  const remainingSeconds = Math.max(0, (wallet.attendanceExpiresAt - now) / 1000)
+
+  const filteredEntries = wallet.entries.filter(
+    (entry) =>
+      filter === 'all' ||
+      entry.kind === filter ||
+      (filter === 'attendance' && entry.kind === 'expiration'),
   )
-  const used = state.ledger
-    .filter((entry) => entry.kind === 'use')
-    .reduce((sum, entry) => sum - entry.change, 0)
+  const groupedEntries = groupCreditEntriesByDate(filteredEntries)
+
   return (
-    <>
-      <div className="credits-page-header mb-8 flex flex-wrap items-center justify-between gap-4 [&_.page-heading]:mb-0">
-        <PageHeading title="내 크레딧" eyebrow={null} />
-        <ButtonLink to="/credits/charge" size="md">
-          충전하기
-        </ButtonLink>
+    <CreditsAppWindow activeTab="credits">
+      <div className="credits-summary-grid">
+        <section className="credits-stat-card credits-stat-card--primary" aria-label="오늘 남은 크레딧">
+          <div className="credits-stat-head">
+            <h2>오늘 남은 크레딧</h2>
+          </div>
+          <p className="credits-stat-value">{number(totalRemaining)}</p>
+          <div className="credits-attendance-track" aria-hidden="true">
+            <div className="credits-attendance-fill" style={{ width: `${attendancePct}%` }} />
+          </div>
+          <p className="credits-attendance-meta">
+            출석분 {number(wallet.attendance)} · 오전 5시까지 {clock(remainingSeconds)}
+          </p>
+        </section>
+
+        <section className="credits-stat-card" aria-label="초대 크레딧">
+          <div className="credits-stat-head">
+            <h2>초대 크레딧</h2>
+            <span className="credits-stat-tag">쌓임</span>
+          </div>
+          <p className="credits-stat-value">{number(wallet.invitation)}</p>
+        </section>
+
+        <section className="credits-stat-card" aria-label="오늘 쓴 크레딧">
+          <div className="credits-stat-head">
+            <h2>오늘 쓴 크레딧</h2>
+          </div>
+          <p className="credits-stat-value">{number(wallet.usedToday)}</p>
+        </section>
       </div>
-      <DummyNotice>체험용 잔액·패스·이용 내역이에요. 실제 결제나 청구는 없어요.</DummyNotice>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Panel bordered={false} className="bg-surface">
-          <p className="text-body-compact text-muted">보유 크레딧</p>
-          <p className="mt-2 type-stat">{number(state.credits)}</p>
-        </Panel>
-        <Panel bordered={false} className="bg-primary-soft">
-          <p className="text-body-compact text-muted">이용 중인 패스</p>
-          <h2 className="mt-2 type-section-title">
-            {state.pass ? state.pass.name : '아직 이용 중인 패스가 없어요'}
-          </h2>
-          {state.pass && (
-            <p className="mt-2 text-caption text-muted">
-              {dateLabel(state.pass.expiresAt)}까지 · 자동 갱신 없음
-            </p>
-          )}
-        </Panel>
-        <Panel bordered={false} className="bg-surface">
-          <p className="text-body-compact text-muted">사용한 크레딧</p>
-          <p className="mt-2 type-stat">{number(used)}</p>
-        </Panel>
+
+      <div className="credits-pricing-strip" aria-label="크레딧 사용 안내">
+        <span className="credits-pricing-label">어디에 쓰이나요</span>
+        <div className="credits-pricing-chips">
+          <span className="credits-pricing-chip">기본 채팅 {CREDIT_PRICING.basicChat}</span>
+          <span className="credits-pricing-chip">보이스 {CREDIT_PRICING.voice}</span>
+          <span className="credits-pricing-chip">고급 {CREDIT_PRICING.advanced}</span>
+          <span className="credits-pricing-chip">보이스+고급 {CREDIT_PRICING.voiceAndAdvanced}</span>
+        </div>
       </div>
-      <div className="mt-6">
+
+      <section className="credits-history" aria-label="크레딧 내역">
         <Tabs
           label="크레딧 내역 필터"
           value={filter}
           onChange={setFilter}
           options={[
             { id: 'all', label: '전체' },
-            { id: 'charge', label: '충전' },
+            { id: 'attendance', label: '출석' },
+            { id: 'invite', label: '초대' },
             { id: 'use', label: '사용' },
-            { id: 'bonus', label: '보너스' },
           ]}
         />
-      </div>
-      <CreditLedger entries={rows} onReceipt={setReceipt} />
-      <Dialog open={!!receipt} onClose={() => setReceipt(null)} title="결제 내역">
-        {receipt && (
-          <div className="space-y-3 text-body-compact">
-            <p>{receipt.description}</p>
-            <p className="text-muted">결제 시각 {dateLabel(receipt.at, true)}</p>
-            <p className="font-bold">{number(receipt.amount ?? 0)}원</p>
-            <p className="rounded-control bg-surface p-3 leading-6 text-muted">
-              체험용 결제 내역이에요. 실제 결제 영수증은 발급되지 않아요.
-            </p>
+
+        {wallet.entries.length === 0 ? (
+          <p className="credits-empty-box">
+            아직 내역이 없어요. 매일 오전 5시에 출석 크레딧 {number(CREDIT_PRICING.dailyAttendance)}이 들어와요.
+          </p>
+        ) : filteredEntries.length === 0 ? (
+          <p className="credits-empty-box">선택한 항목의 내역이 없어요.</p>
+        ) : (
+          <div className="credits-history-list">
+            {groupedEntries.map((group) => (
+              <div key={group.dateKey} className="credits-date-group">
+                <h3 className="credits-date-heading">{group.dateHeading}</h3>
+                <ul className="credits-entry-list">
+                  {group.entries.map((entry) => {
+                    const positive = entry.change > 0
+                    return (
+                      <li key={entry.id} className="credits-entry-row">
+                        <div className="credits-entry-left">
+                          <span className="credits-entry-desc">{entry.description}</span>
+                          <time className="credits-entry-time" dateTime={new Date(entry.at).toISOString()}>
+                            {formatSeoulTime(entry.at)}
+                          </time>
+                        </div>
+                        <div className="credits-entry-right">
+                          <span className="credits-entry-change" data-positive={positive || undefined}>
+                            {positive ? '+' : '−'}
+                            {number(Math.abs(entry.change))}
+                          </span>
+                          <span className="credits-entry-balance">잔액 {number(entry.balance)}</span>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ))}
           </div>
         )}
-      </Dialog>
-    </>
+      </section>
+    </CreditsAppWindow>
   )
 }

@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { sceneArtwork, type SceneId } from '@/features/rooms/artwork'
 import { RoomArtwork } from '@/features/rooms/components/RoomArtwork'
-import { authPosters } from '@/features/auth/posters'
+import { roomPosters } from '@/features/rooms/posters'
 import '@/styles/index.css'
 import './preview.css'
 
 const ids = Object.keys(sceneArtwork) as SceneId[]
-const sources = new Map(authPosters.map((poster) => [poster.id, poster.src]))
+const sources = new Map(Object.entries(roomPosters))
 const ratios = { landscape: '가로 16:9', card: '카드 4:3', portrait: '세로 3:4' }
 type Ratio = keyof typeof ratios
 

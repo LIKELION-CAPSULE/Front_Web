@@ -1,161 +1,135 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
+import { availableMates } from '@/features/mates/catalog'
+import { MateCard } from '@/features/mates/components/MateCard'
+import { MateWelcome } from '@/features/mates/components/MateWelcome'
+import { MateTutorial } from '@/features/mates/components/MateTutorial'
+import { accountRequest } from '@/features/profile/account-location'
+import { Button } from '@/shared/ui/Button'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
 import { enqueueNotification, type NotificationItem } from '@/shared/ui/notification-queue'
-import { RoomCard } from '@/features/rooms/components/RoomCard'
-import { StudyWelcomeBanner } from '@/features/rooms/components/StudyWelcomeBanner'
-import { getStudyRooms } from '@/features/rooms/services/room-service'
-import { useDemo } from '@/features/demo/demo-context'
-import { Icon } from '@/shared/ui/Icon'
-import { cn } from '@/shared/lib/cn'
-import { SearchField } from '@/shared/ui/SearchField'
+import '@/features/mates/mates.css'
 
 export default function HomePage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const rooms = getStudyRooms()
-  const { state } = useDemo()
-  const { refreshHome, reload, status, error, home } = useBackend()
-  const [refreshError, setRefreshError] = useState('')
+  const { refreshHome, reload, status, error, home, homeContentVersion } = useBackend()
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const heading = useRef<HTMLHeadingElement>(null)
+  const tutorialTrigger = useRef<HTMLButtonElement>(null)
+  const tutorialFocus = useRef<'trigger' | 'mates'>('trigger')
+  const tutorialOpen = new URLSearchParams(location.search).get('tutorial') === '1' && !accountRequest(location.search)
+  const tutorialWasOpen = useRef(false)
+  const mates = availableMates(home)
+  const explore = useCallback(() => {
+    heading.current?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+    heading.current?.focus({ preventScroll: true })
+  }, [])
+  function showTutorial() {
+    const params = new URLSearchParams(location.search)
+    params.set('tutorial', '1')
+    tutorialFocus.current = 'trigger'
+    navigate({ pathname: '/', search: `?${params}`, hash: location.hash }, { preventScrollReset: true })
+  }
+  function closeTutorial(complete = false) {
+    const params = new URLSearchParams(location.search)
+    params.delete('tutorial')
+    tutorialFocus.current = complete ? 'mates' : 'trigger'
+    navigate({ pathname: '/', search: params.size ? `?${params}` : '', hash: location.hash }, { replace: true, preventScrollReset: true })
+  }
   useEffect(() => {
-    const content = location.state?.notice === 'page-not-found'
-      ? { title: '페이지를 찾을 수 없어요', text: '홈으로 이동했어요. 주소를 다시 확인해 주세요.' }
-      : location.state?.notice === 'study-not-found'
-        ? { title: '진행 중인 공부가 없어요', text: '홈으로 이동했어요. 스터디룸을 골라 새로운 공부를 시작해 주세요.' }
-        : location.state?.notice === 'report-not-found'
-          ? { title: '공부 기록을 찾을 수 없어요', text: '이 계정에서 조회할 수 있는 완료 기록이 없어 홈으로 이동했어요.' }
-        : null
-    if (!content) return
+    const wasOpen = tutorialWasOpen.current
+    tutorialWasOpen.current = tutorialOpen
+    if (!wasOpen || tutorialOpen) return
+    const frame = requestAnimationFrame(() => { if (tutorialFocus.current === 'mates') explore(); else tutorialTrigger.current?.focus({ preventScroll: true }) })
+    return () => cancelAnimationFrame(frame)
+  }, [tutorialOpen, explore])
+  const showError = useCallback((text: string) => {
+    const notice: NotificationItem = { id: 'home-connection', tone: 'error', title: '앱 연결 실패', text }
+    setNotifications(current => enqueueNotification(current, notice))
+  }, [])
+  useEffect(() => {
+    const notice = location.state?.notice
+    if (!notice) return
+    const content = notice === 'study-not-found'
+      ? { title: '진행 중인 연결이 없어요', text: '홈으로 이동했어요.' }
+      : notice === 'report-not-found'
+        ? { title: '연결 기록을 찾을 수 없어요', text: '이 계정에서 조회할 수 있는 완료 기록이 없어 홈으로 이동했어요.' }
+        : { title: '페이지를 찾을 수 없어요', text: '홈으로 이동했어요. 주소를 다시 확인해 주세요.' }
     const frame = requestAnimationFrame(() => {
-      const notice: NotificationItem = { id: crypto.randomUUID(), tone: 'warning', ...content }
-      setNotifications(current => enqueueNotification(current, notice))
+      setNotifications(current => enqueueNotification(current, { id: 'route-notice', tone: 'warning', ...content }))
       navigate({ pathname: location.pathname, search: location.search, hash: location.hash }, { replace: true, state: null, preventScrollReset: true })
     })
     return () => cancelAnimationFrame(frame)
   }, [location, navigate])
-  const showConnectionError = useCallback((text: string) => {
-    const item: NotificationItem = { id: crypto.randomUUID(), tone: 'error', title: '앱 연결 실패', text, action: { label: '다시 연결하기', onClick: () => { void reload() } } }
-    setNotifications(current => enqueueNotification(current, item))
-  }, [reload, setNotifications])
   useEffect(() => {
     if (status !== 'error') return
-    const frame = requestAnimationFrame(() => showConnectionError(error || '앱에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.'))
+    const frame = requestAnimationFrame(() => showError(error || '앱에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.'))
     return () => cancelAnimationFrame(frame)
-  }, [status, error, showConnectionError])
+  }, [status, error, showError])
   useEffect(() => {
-    // A failed bootstrap stays on home until the user explicitly retries.
     if (status !== 'ready') return
     let alive = true
-    void refreshHome().catch(reason => {
-      if (!alive) return
-      const message = reason instanceof Error ? reason.message : '홈을 새로 불러오지 못했어요.'
-      setRefreshError(message)
-      showConnectionError(message)
-    })
+    void refreshHome().catch(reason => { if (alive) showError(reason instanceof Error ? reason.message : '홈을 새로 불러오지 못했어요.') })
     return () => { alive = false }
-  }, [refreshHome, status, showConnectionError])
-  const connectionFailed = status === 'error' || !!refreshError
-  const roomsUnavailable = connectionFailed && !home
-  const [filter, setFilter] = useState('all')
-  const [query, setQuery] = useState('')
-  const roomHeading = useRef<HTMLHeadingElement>(null)
-  function exploreRooms() {
-    setFilter('all')
-    setQuery('')
-    requestAnimationFrame(() => {
-      roomHeading.current?.scrollIntoView({
-        block: 'start',
-        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-          ? 'instant'
-          : 'smooth',
-      })
-      roomHeading.current?.focus({ preventScroll: true })
-    })
-  }
-  const search = query.trim().toLocaleLowerCase('ko-KR')
-  const visible = rooms.filter(
-    (room) =>
-      (filter !== 'saved' || state.savedRooms.includes(room.id)) &&
-      (!search ||
-        `${room.name} ${room.description} ${room.characters.map((c) => c.name).join(' ')}`
-          .toLocaleLowerCase('ko-KR')
-          .includes(search)),
-  )
-  const emptyState = !rooms.length
-    ? { icon: 'book' as const, title: '아직 등록된 스터디룸이 없어요', description: '스터디룸이 등록되면 이곳에 표시돼요.' }
-    : filter === 'saved' && !search
-      ? { icon: 'bookmark' as const, title: '아직 저장한 스터디룸이 없어요', description: '마음에 드는 스터디룸을 저장해 보세요.' }
-      : { icon: 'search' as const, title: '검색 결과가 없어요', description: '스터디룸이나 친구 이름으로 다시 검색해 보세요.' }
-  return (
-    <>
-      <StudyWelcomeBanner onExplore={exploreRooms} />
-      <section className="rooms-section" aria-labelledby="rooms-heading">
-        <div className="section-heading">
-          <div>
-            <h2
-              ref={roomHeading}
-              tabIndex={-1}
-              id="rooms-heading"
-              className="scroll-mt-6 type-section-title"
-            >
-              오늘은 어디서 공부할까요?{' '}
-              {!roomsUnavailable && <span className="ml-1 text-label font-normal text-subtle">{rooms.length}</span>}
-            </h2>
-          </div>
-          <div className="room-toolbar">
-            <div role="group" aria-label="스터디룸 필터" className="room-filters">
-              {[
-                { id: 'all', label: '모든 스터디룸', icon: 'book' as const },
-                { id: 'saved', label: '저장한 스터디룸', icon: 'bookmark' as const },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setFilter(item.id)}
-                  aria-pressed={filter === item.id}
-                  className={cn(filter === item.id && 'is-active')}
-                >
-                  <Icon name={item.icon} size={15} />
-                  {item.label}
-                  {item.id === 'saved' && (
-                    <span className="filter-count" aria-hidden="true">
-                      {state.savedRooms.length}
-                    </span>
-                  )}
-                </button>
-              ))}
+  }, [status, homeContentVersion, refreshHome, showError])
+  return <>
+    <MateWelcome mates={mates} onExplore={explore} />
+    <section className="mate-section" aria-labelledby="mates-heading">
+      <div className="section-heading mate-section-heading">
+        <div>
+          <h2 ref={heading} tabIndex={-1} id="mates-heading" className="type-section-title mate-section-title">
+            오늘은 누구와 함께할까요?
+          </h2>
+        </div>
+        <Button ref={tutorialTrigger} variant="ghost" size="sm" className="mate-tutorial-trigger" aria-haspopup="dialog" onClick={showTutorial}>
+          사용법 보기
+        </Button>
+      </div>
+      {mates.length === 0 ? (
+        <section className="desktop-window desktop-window--active mate-empty-window" aria-label="메이트 목록 비어 있음">
+          <div className="desktop-window-titlebar mate-window-titlebar-static">
+            <div className="desktop-window-title-left">CAPSULE — 메이트</div>
+            <div className="desktop-window-title-right">
+              <div className="desktop-window-controls" aria-hidden="true">
+                <span className="desktop-window-dot" />
+                <span className="desktop-window-dot" />
+                <span className="desktop-window-dot" />
+              </div>
             </div>
-            <SearchField label="스터디룸 검색" placeholder="스터디룸·친구 이름 검색" value={query} onChange={setQuery} className="room-search" />
           </div>
-        </div>
-        {search && !roomsUnavailable && rooms.length > 0 && filter !== 'saved' && (
-          <p role="status" className="search-result-count">
-            스터디룸 {visible.length}개를 찾았어요.
-          </p>
-        )}
-        <div className="rooms-grid">
-          {visible.map((room) => (
-            <RoomCard key={room.id} room={room} />
-          ))}
-        </div>
-        {!roomsUnavailable && !visible.length && (
-          <div className="room-empty">
-            <Icon
-              name={emptyState.icon}
-              size={30}
-              className="mx-auto mb-4 text-text-accent"
-            />
-            <h3 className="type-card-title">
-              {emptyState.title}
-            </h3>
-            <p className="mt-2 text-body-compact text-muted">
-              {emptyState.description}
-            </p>
+          <div className="desktop-window-body mate-empty-window-body">
+            <p className="mate-empty-title">메이트를 불러오지 못했어요</p>
+            <Button variant="secondary" size="sm" onClick={() => { void reload() }}>
+              다시 시도
+            </Button>
           </div>
-        )}
-      </section>
-      <NotificationStack items={notifications} onDismiss={id => setNotifications(current => current.filter(item => item.id !== id))} />
-    </>
-  )
+        </section>
+      ) : (
+        <div className="mate-grid">
+          {mates.map(mate => <MateCard key={mate.id} mate={mate} />)}
+          {mates.length === 1 && (
+            <div className="mate-card mate-card--upcoming desktop-window" aria-label="남학생 메이트 준비 중">
+              <div className="desktop-window-titlebar mate-card-titlebar">
+                <div className="desktop-window-title-left">
+                  <span className="mate-card-status-dot mate-card-status-dot--offline" aria-hidden="true" />
+                  <span className="mate-card-name">남학생</span>
+                  <span className="mate-card-status-label">준비 중</span>
+                </div>
+                <div className="desktop-window-title-right">
+                  <span className="mate-age-badge">전연령</span>
+                </div>
+              </div>
+              <div className="mate-card-image mate-card-image--upcoming">
+                <span className="mate-card-upcoming-pill">곧 만나요</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+    <NotificationStack items={notifications} onDismiss={id => setNotifications(current => current.filter(item => item.id !== id))} />
+    {tutorialOpen && <MateTutorial mates={mates} onClose={() => closeTutorial()} onComplete={() => closeTutorial(true)} />}
+  </>
 }

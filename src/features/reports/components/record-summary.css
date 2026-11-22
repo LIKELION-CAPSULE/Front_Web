@@ -61,8 +61,7 @@
   align-items: start;
 }
 .records-history-overview {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: block;
   align-items: start;
   gap: 20px;
 }
@@ -182,7 +181,7 @@
   width: 100%;
   max-width: 426px;
   margin-inline: auto;
-  --heatmap-cell: min(54px, calc((100cqw - 48px) / 7));
+  --heatmap-cell: min(54px, calc((100cqw - 2 * var(--heatmap-inset) - 6 * var(--heatmap-gap)) / 7));
 }
 .records-summary-focus {
   display: flex;

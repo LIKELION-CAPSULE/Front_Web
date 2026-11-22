@@ -7,7 +7,6 @@ import { ApiError } from '@/shared/api/client'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
 import { getRoomPoster } from '@/features/rooms/room-poster'
 import { RoomCompanions } from '@/features/rooms/components/RoomCompanions'
-import AccountSettingsDialog from '@/features/profile/components/AccountSettingsDialog'
 import type { TierId } from '@/features/demo/types'
 import { useNow } from '@/features/session/use-now'
 import { DEFAULT_GOAL_MINUTES } from '@/features/session/study-goal'
@@ -39,12 +38,10 @@ export default function PreparePage() {
   const mounted = useRef(true)
   const navigate = useNavigate()
   const closing = useRef(false)
-  const scheduleSection = useRef<HTMLElement>(null)
   const [goalMinutes, setGoalMinutes] = useState(DEFAULT_GOAL_MINUTES)
   const [tier, setTier] = useState<TierId>('basic')
   const [picked, setPicked] = useState<string[] | null>(null)
   const goalHintId = useId()
-  const [scheduleOpen, setScheduleOpen] = useState(false)
   const room = getStudyRoom(roomId ?? '')
   const requestedFriend = new URLSearchParams(location.search).get('friend')
   const characterIds = picked ?? [room?.characters.find(c => c.id === requestedFriend)?.id ?? room?.characters[0]?.id ?? '']
@@ -70,10 +67,6 @@ export default function PreparePage() {
     closing.current = true
     if (prepareBackground(location.state)) navigate(-1)
     else navigate(room ? `/rooms/${room.id}` : '/', { replace: true })
-  }
-  function closeSchedule() {
-    setScheduleOpen(false)
-    requestAnimationFrame(() => scheduleSection.current?.querySelector('button')?.focus({ preventScroll: true }))
   }
   if (!room)
     return (
@@ -137,18 +130,13 @@ export default function PreparePage() {
           선택한 {goalMinutes}분이 공부 목표에 반영돼요.
         </p>
       </div>
-      <section ref={scheduleSection} aria-label="목표 시간과 일정" className="mt-5 rounded-card bg-panel p-5">
+      <section aria-label="목표 시간" className="mt-5 rounded-card bg-panel p-5">
         <StudyGoalPicker
           disabled={starting}
           value={goalMinutes}
           onChange={setGoalMinutes}
           descriptionId={goalHintId}
           className="m-0 min-w-0 rounded-none border-0 bg-transparent p-0"
-          headerAction={
-            <Button size="sm" variant="secondary" disabled={starting} aria-haspopup="dialog" className="whitespace-nowrap px-3" onClick={() => setScheduleOpen(true)}>
-              <Icon name="calendar" size={16} /> 일정 추가
-            </Button>
-          }
         />
       </section>
       {room.characters.length > 1 && <fieldset disabled={starting} className="mt-5">
@@ -166,11 +154,6 @@ export default function PreparePage() {
       </section>
       {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
       <Button data-prepare-start disabled={!characterIds.length || cost > state.credits} className="mt-5 w-full" loading={starting} onClick={() => { void start() }}>시작하기</Button>
-      {scheduleOpen && <AccountSettingsDialog
-        initialView="schedule"
-        openScheduleEditor
-        onClose={closeSchedule}
-      />}
     </PrepareDialog>
   )
 }

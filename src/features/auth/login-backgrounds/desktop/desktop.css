@@ -1,0 +1,769 @@
+.shared-desktop-wallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: background 600ms ease;
+}
+
+.shared-desktop-wallpaper[data-wallpaper-dimmed='true'] .desktop-wallpaper-static-img {
+  filter: brightness(0.7);
+}
+
+.shared-desktop-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+}
+
+.desktop-login-root {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background: transparent;
+  user-select: none;
+}
+
+.desktop-wallpaper-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  transition: background 600ms ease;
+}
+
+.desktop-wallpaper-static-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  display: block;
+  opacity: 1;
+  transition: opacity 380ms ease;
+}
+
+.desktop-wallpaper-static-img[data-fading='true'] {
+  opacity: 0;
+}
+
+.desktop-wallpaper-3d-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 380ms ease;
+}
+
+.desktop-wallpaper-3d-layer[data-ready='true'] {
+  opacity: 1;
+}
+
+.desktop-wallpaper-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  transition: background 600ms ease;
+}
+
+.desktop-wallpaper-canvas-host {
+  position: absolute;
+  inset: 0;
+}
+
+.desktop-wallpaper-canvas-host canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 1) Menu Bar (32px) — dark translucent panel ensures >= 4.5:1 contrast in all time-of-day palettes */
+.desktop-menubar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
+  background: color-mix(in srgb, var(--color-panel) 84%, transparent);
+  padding: 0 16px;
+  backdrop-filter: blur(18px) saturate(135%);
+  color: var(--color-ink);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.desktop-menubar-left,
+.desktop-menubar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.desktop-menubar-symbol {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 5px;
+  height: 24px;
+}
+
+.desktop-menubar-symbol-img {
+  height: 18px;
+  width: auto;
+  display: block;
+}
+
+/* Horizontal color SVG lockup inside login window (H/4 clear space, >=100px wide) */
+.desktop-login-brand {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.desktop-login-brand-img {
+  height: 36px;
+  width: auto;
+  min-width: 108px;
+  display: block;
+}
+
+.desktop-menubar-time {
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.desktop-menubar-icon {
+  color: var(--color-muted);
+}
+
+.desktop-menubar-motion-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-muted);
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.desktop-menubar-motion-btn:hover {
+  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  color: var(--color-ink);
+}
+
+.desktop-menubar-motion-btn[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--color-primary) 26%, transparent);
+  color: var(--color-text-accent);
+}
+
+.desktop-menubar-motion-btn:focus-visible {
+  outline: 2px solid var(--color-primary-bright, #ac95f8);
+  outline-offset: 1px;
+}
+
+/* 2) Desktop Icons */
+.desktop-icons {
+  position: absolute;
+  top: 52px;
+  left: 24px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 108px;
+}
+
+.desktop-icon-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  padding: 8px 6px;
+  color: var(--color-ink);
+  text-align: center;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.desktop-icon-btn:hover {
+  background: color-mix(in srgb, var(--color-panel) 54%, transparent);
+}
+
+.desktop-icon-btn:focus-visible {
+  outline: 2px solid var(--color-primary-bright, #ac95f8);
+  outline-offset: 2px;
+  background: color-mix(in srgb, var(--color-panel) 62%, transparent);
+}
+
+.desktop-icon-btn[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--color-primary) 65%, transparent);
+  background: color-mix(in srgb, var(--color-primary-soft) 80%, transparent);
+}
+
+.desktop-icon-glyph {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.42));
+}
+
+/* Subtle dark translucent pill behind icon labels guarantees readability in morning/daytime gradients */
+.desktop-icon-label {
+  border-radius: 6px;
+  background: rgba(15, 14, 23, 0.56);
+  padding: 2px 6px;
+  backdrop-filter: blur(6px);
+  font-size: 11px;
+  line-height: 15px;
+  font-weight: 500;
+  color: var(--color-ink);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+/* 3) Draggable Desktop Window */
+.desktop-window {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(250, 250, 253, 0.08);
+  border-radius: 16px;
+  background: var(--color-surface-raised);
+  box-shadow:
+    0 24px 72px rgba(0, 0, 0, 0.54),
+    0 4px 18px rgba(0, 0, 0, 0.3);
+  user-select: text;
+}
+
+.desktop-window--active {
+  border-color: rgba(196, 185, 243, 0.16);
+  box-shadow:
+    0 28px 84px rgba(0, 0, 0, 0.66),
+    0 6px 24px rgba(15, 14, 23, 0.45);
+}
+
+.desktop-window--shake {
+  animation: desktop-window-shake 280ms ease;
+}
+
+.desktop-window--route-enter {
+  animation: desktop-window-route-enter 350ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.desktop-window--route-exit {
+  animation: desktop-window-route-exit 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.desktop-window--home-enter {
+  animation: desktop-window-home-enter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes desktop-window-route-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.93) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes desktop-window-route-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+}
+
+@keyframes desktop-window-home-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes desktop-window-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.desktop-window-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 40px;
+  flex: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
+  background: var(--color-panel);
+  padding: 0 14px;
+  cursor: grab;
+  user-select: none;
+}
+
+.desktop-window-titlebar:active {
+  cursor: grabbing;
+}
+
+.desktop-window-title-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.desktop-window-title-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.desktop-window-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.desktop-window-dot {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-muted) 28%, transparent);
+  color: transparent;
+  font-size: 9px;
+  line-height: 1;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.desktop-window-dot--close:hover,
+.desktop-window-dot--close:focus-visible {
+  background: color-mix(in srgb, var(--color-muted) 42%, transparent);
+  color: var(--color-ink);
+}
+
+.desktop-window-dot--close {
+  cursor: pointer;
+}
+
+.desktop-window-dot--close:focus-visible {
+  outline: 2px solid var(--color-primary-bright, #ac95f8);
+  outline-offset: 2px;
+}
+
+.desktop-legal-title {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  outline: none;
+}
+
+.desktop-legal-window-body {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--color-surface-raised) 97%, transparent),
+    color-mix(in srgb, var(--color-panel) 99%, transparent)
+  );
+  padding: 24px 28px 32px;
+}
+
+.desktop-window-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Login App Window body: internal scrolling for long signup form */
+.desktop-login-window-body {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--color-surface-raised) 96%, transparent),
+    color-mix(in srgb, var(--color-panel) 98%, transparent)
+  );
+  padding: 28px 32px 32px;
+}
+
+.desktop-login-window-body--onboarding {
+  padding: 16px 26px 18px;
+}
+
+@media (max-height: 820px) {
+  .desktop-login-window-body--onboarding {
+    padding: 12px 24px 14px;
+  }
+  .onboarding-compact-form {
+    margin-top: 6px;
+  }
+  .onboarding-compact-form > :not(:last-child) {
+    margin-bottom: 8px;
+  }
+}
+
+.onboarding-compact-form .field-label {
+  margin-bottom: 4px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.onboarding-compact-form .form-input {
+  min-height: 38px;
+  padding: 7px 12px;
+  font-size: 14px;
+}
+
+.desktop-login-form-host {
+  width: 100%;
+}
+
+/* 4) Mate Call Window — full-bleed video stage directly below title bar (no double frame) */
+.desktop-mate-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.desktop-mate-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-success);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-success) 75%, transparent);
+  animation: desktop-dot-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes desktop-dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.48;
+    transform: scale(0.86);
+  }
+}
+
+.desktop-mate-ai-badge {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  padding: 2px 8px;
+  color: var(--color-subtle);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.desktop-mate-body {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-canvas);
+  padding: 0;
+}
+
+.desktop-mate-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--color-canvas);
+}
+
+.desktop-mate-live2d-slot {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.desktop-mate-live2d-slot[data-visible='true'] {
+  opacity: 1;
+}
+
+.desktop-mate-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  pointer-events: none;
+  display: block;
+}
+
+.desktop-mate-fallback {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+
+.desktop-mate-fallback-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  display: block;
+}
+
+/* Bottom-center subtitle speech bubble (max 80% width, stays well below upper 55% face region) */
+.desktop-mate-bubble-slot {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  width: max-content;
+  max-width: 80%;
+  pointer-events: none;
+}
+
+.desktop-mate-bubble-slot[data-align='left'] {
+  left: 12px;
+  transform: none;
+  justify-content: flex-start;
+}
+
+.desktop-mate-bubble-slot[data-align='right'] {
+  left: auto;
+  right: 12px;
+  transform: none;
+  justify-content: flex-end;
+}
+
+.desktop-mate-bubble {
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 12px;
+  background: rgba(15, 14, 23, 0.82);
+  padding: 7px 14px;
+  backdrop-filter: blur(14px) saturate(135%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.44);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19px;
+  text-align: center;
+  word-break: keep-all;
+}
+
+/* Compact 96×72 self-cam tile placed in top-right corner so body & subtitles stay unobstructed */
+.desktop-mate-selfcam {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 72px;
+  border: 1px solid rgba(250, 250, 253, 0.12);
+  border-radius: 10px;
+  background: rgba(25, 24, 35, 0.84);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.36);
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.desktop-mate-selfcam-avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+}
+
+.desktop-mate-selfcam-tag {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  line-height: 12px;
+  color: var(--color-subtle);
+}
+
+/* Position pause button below the 32px menu bar (sits behind desktop windows as a wallpaper control) */
+.desktop-motion-toggle-slot .poster-mosaic-motion-toggle {
+  position: fixed;
+  top: 44px;
+  right: 20px;
+  left: auto;
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  border: 1px solid rgba(250, 250, 253, 0.14);
+  border-radius: 999px;
+  background: rgba(25, 24, 35, 0.78);
+  padding: 0 12px;
+  backdrop-filter: blur(12px);
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.desktop-motion-toggle-slot .poster-mosaic-motion-toggle:hover {
+  background: rgba(38, 36, 52, 0.9);
+  border-color: rgba(196, 185, 243, 0.35);
+}
+
+.desktop-motion-toggle-slot .poster-mosaic-motion-toggle:focus-visible {
+  outline: 2px solid var(--color-primary-bright, #ac95f8);
+  outline-offset: 2px;
+}
+
+/* Dev panel desktop extensions */
+.login-bg-dev-tabs--five {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.desktop-dev-state-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.desktop-dev-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.desktop-dev-exp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.desktop-dev-select {
+  width: 100%;
+  min-height: 28px;
+  border: 1px solid color-mix(in srgb, var(--color-divider) 85%, transparent);
+  border-radius: 8px;
+  background: var(--color-surface);
+  padding: 3px 8px;
+  color: var(--color-ink);
+  font-size: 11px;
+}
+
+.desktop-dev-actions {
+  gap: 6px;
+}
+
+.desktop-window-titlebar--static,
+.desktop-window-titlebar--static:active {
+  cursor: default;
+}
+
+/* Half-screen <= 720px stacked layout for Login / Onboarding / Password Reset */
+.desktop-login-root[data-compact-stack='true'] {
+  height: auto;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.desktop-compact-stack {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: calc(32px + 14px) 16px 24px;
+  width: 100%;
+}
+
+.desktop-compact-stack > .desktop-window {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  width: min(520px, 100%) !important;
+  max-height: none !important;
+}
+
+.desktop-mate-window--compact .desktop-mate-selfcam {
+  display: none;
+}
+
+.desktop-mate-window--compact .desktop-mate-portrait-img {
+  object-position: center 14%;
+}
+
+.desktop-mate-window--compact .desktop-mate-bubble-slot {
+  bottom: 10px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-window--shake,
+  .desktop-window--route-enter,
+  .desktop-window--route-exit,
+  .desktop-window--home-enter,
+  .desktop-mate-dot {
+    animation: none;
+  }
+  .desktop-wallpaper-root,
+  .desktop-mate-live2d-slot,
+  .desktop-icon-btn,
+  .desktop-window-dot {
+    transition: none;
+  }
+}

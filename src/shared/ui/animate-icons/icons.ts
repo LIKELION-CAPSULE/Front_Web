@@ -14,6 +14,7 @@ import { CoinsIcon } from './coins-icon'
 import { PlayIcon } from './play-icon'
 import { PauseIcon } from './pause-icon'
 import { SquareIcon } from './square-icon'
+import { PhoneOffIcon } from './phone-off-icon'
 import { ZoomInIcon } from './zoom-in-icon'
 import { MessageCircleIcon } from './message-circle-icon'
 import { GiftIcon } from './gift-icon'
@@ -57,6 +58,7 @@ export const animatedIcons = {
   play: PlayIcon,
   pause: PauseIcon,
   stop: SquareIcon,
+  phoneOff: PhoneOffIcon,
   zoomIn: ZoomInIcon,
   chat: MessageCircleIcon,
   gift: GiftIcon,

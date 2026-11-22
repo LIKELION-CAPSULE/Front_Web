@@ -129,7 +129,7 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, compact
     if (Math.abs(dx) >= 36) choose(wrap(selectedIndex + (dx < 0 ? 1 : -1), choices.length), true)
   }
 
-  return <fieldset ref={root} disabled={disabled} className="avatar-dial" aria-describedby={choices.length > 1 ? hintId : undefined}>
+  return <fieldset ref={root} disabled={disabled} className="avatar-dial" data-compact={forceCompact ? 'true' : undefined} aria-describedby={choices.length > 1 ? hintId : undefined}>
     <legend className="sr-only">내 아바타 선택</legend>
     {choices.length > 1 && <p id={hintId} className="sr-only">아바타를 선택하면 중앙으로 이동해요. 좌우로 밀거나 방향키로 다른 아바타를 선택할 수 있어요.</p>}
     <div className="avatar-dial-stage" data-draggable={!disabled && choices.length > 1 || undefined}

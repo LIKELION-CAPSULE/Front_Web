@@ -53,7 +53,7 @@ async function runStep(step: ReviewStep) {
 }
 
 export function ReviewSetup({ scenario }: { scenario: ReviewScenario }) {
-  const { status, resumeSession } = useBackend()
+  const { status, resumeSession, loadReport } = useBackend()
   const { state, dispatch } = useDemo()
   const initialized = useRef(false)
   useEffect(() => {
@@ -71,6 +71,7 @@ export function ReviewSetup({ scenario }: { scenario: ReviewScenario }) {
         if (scenario.session === 'break') dispatch({ type: 'TAKE_BREAK', now: Date.now() })
         await new Promise(resolve => setTimeout(resolve, 160))
       }
+      for (const id of scenario.reports ?? []) await loadReport(String(id))
       await waitForScreen(scenario.loading)
       for (const step of scenario.steps ?? []) await runStep(step)
       await new Promise(resolve => setTimeout(resolve, scenario.fault === 'verification-expired' ? 1200 : 200))
@@ -81,7 +82,7 @@ export function ReviewSetup({ scenario }: { scenario: ReviewScenario }) {
     void run().catch(error => {
       parent.postMessage({ type: 'capsule-review:notice', text: error instanceof Error ? error.message : '자동 준비를 마치지 못했어요. 화면에서 직접 조작할 수 있어요.' }, location.origin)
     })
-  }, [status, resumeSession, dispatch, scenario])
+  }, [status, resumeSession, loadReport, dispatch, scenario])
 
   useEffect(() => {
     let last = ''

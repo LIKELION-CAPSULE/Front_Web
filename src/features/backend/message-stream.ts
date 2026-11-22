@@ -1,4 +1,4 @@
-import { ApiError, toApiError, type ApiClient } from '../../shared/api/client.ts'
+import { ApiError, toApiError, unwrapApiResponse, type ApiClient } from '../../shared/api/client.ts'
 import type { MessageRequest, MessageResponse, MessageStreamReply } from '../../shared/api/types.ts'
 
 /** First send plus two resends with the same `requestId`. */
@@ -8,9 +8,14 @@ function parseJson(data: string): unknown {
   try { return JSON.parse(data) } catch { return null }
 }
 
+function messagePayload(value: unknown): MessageResponse {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new ApiError('답장 응답을 확인하지 못했어요.', 502)
+  return value as MessageResponse
+}
+
 /** User-facing text for `error` event codes; the backend's `message` repeats the code. */
 const streamErrorMessages: Record<string, string> = {
-  SESSION_ENDED: '답장을 받는 사이 공부가 끝났어요. 리포트를 확인해 주세요.',
+  SESSION_ENDED: '답장을 받는 사이 연결이 끝났어요. 연결 기록을 확인해 주세요.',
   INTERNAL_ERROR: '답장을 만들지 못했어요. 잠시 후 다시 보내 주세요.',
 }
 
@@ -22,10 +27,9 @@ const streamErrorMessages: Record<string, string> = {
 export function streamEventError(data: string) {
   const body = parseJson(data)
   if (body && typeof body === 'object') {
-    const error = toApiError(502, body)
+    const error = toApiError(502, body, '답장을 받지 못했어요.')
     if (error.code && streamErrorMessages[error.code]) return new ApiError(streamErrorMessages[error.code]!, 502, error.code, error.detail)
-    // `message` equals `code` for unknown codes too, which is not readable.
-    return error.message === error.code ? new ApiError('답장을 받지 못했어요.', 502, error.code, error.detail) : error
+    return error
   }
   return new ApiError(data.trim() || '답장을 받지 못했어요.', 502, 'STREAM_ERROR')
 }
@@ -59,13 +63,11 @@ export async function streamMessage(client: Pick<ApiClient, 'stream'>, sessionId
           const reply = parseJson(event.data) as MessageStreamReply | null
           if (typeof reply?.content === 'string' && reply.content) handlers.onReply(reply.content)
         } else if (event.event === 'done') {
-          const value = parseJson(event.data)
-          if (!value || typeof value !== 'object') throw new ApiError('답장 응답을 확인하지 못했어요.', 502)
-          received.done = value as MessageResponse
+          received.done = messagePayload(unwrapApiResponse<MessageResponse>(parseJson(event.data)))
         } else if (event.event === 'error') throw streamEventError(event.data)
       })
-      // `/messages/stream` always answers with SSE once it opens; a plain JSON success would still be the API 20 shape.
-      if (outcome.type === 'json') return outcome.data
+      // A JSON fallback was already unwrapped by ApiClient; SSE done accepts both the payload and its envelope.
+      if (outcome.type === 'json') return messagePayload(outcome.data)
       if (received.done) return received.done
       throw new ApiError('답장이 중간에 끊겼어요. 다시 시도해 주세요.', 0, 'STREAM_INTERRUPTED')
     } catch (error) {

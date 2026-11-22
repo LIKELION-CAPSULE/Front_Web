@@ -1,84 +1,122 @@
-import { lazy, Suspense, useState } from 'react'
-import { Route, Routes, useLocation } from 'react-router'
+import { lazy, Suspense, useEffect } from 'react'
+import { Route, Routes, useLocation, useNavigate } from 'react-router'
 import { AppLayout } from '@/app/layouts/AppLayout'
 import { DetailLayout } from '@/app/layouts/DetailLayout'
 import { RequireDemo } from '@/app/layouts/RequireDemo'
 import HomePage from '@/pages/HomePage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import { RouteLoading } from '@/app/components/RouteLoading'
+import { MobileAccessGate } from '@/app/components/MobileAccessGate'
+import { SharedDesktopWallpaperProvider } from '@/app/components/SharedDesktopWallpaper'
 import { AccountRedirect } from '@/app/components/AccountRedirect'
-import { useDemo } from '@/features/demo/demo-context'
-import { useBackend } from '@/features/backend/backend-context'
-import { prepareBackground, prepareRoomId } from '@/features/session/prepare-location'
-import { loadStudyPage, preparedStudyPage } from './study-page-loader'
+import { BetaLegacyRedirect } from '@/app/components/BetaLegacyRedirect'
+import { PageNavigation } from '@/app/PageNavigation'
+import { saveStoredReferralCode } from '@/features/auth/referral-code'
 
 const RecordsPage = lazy(() => import('@/pages/RecordsPage'))
-const CharactersPage = lazy(() => import('@/pages/CharactersPage'))
 const CreditsPage = lazy(() => import('@/pages/CreditsPage'))
-const ChargePage = lazy(() => import('@/pages/ChargePage'))
-const RoomDetailPage = lazy(() => import('@/pages/RoomDetailPage'))
+const InvitePage = lazy(() => import('@/pages/InvitePage'))
+const MateDetailPage = lazy(() => import('@/pages/MateDetailPage'))
+const ConnectionPage = lazy(() => import('@/pages/ConnectionPage'))
+const MyMatesPage = lazy(() => import('@/pages/MyMatesPage'))
+const ConnectionRecordPage = lazy(() => import('@/pages/ConnectionRecordPage'))
+const DesktopAuthLayout = lazy(
+  () => import('@/features/auth/login-backgrounds/desktop/DesktopAuthLayout'),
+)
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
-const PreparePage = lazy(() => import('@/pages/PreparePage'))
-const LazyStudyPage = lazy(loadStudyPage)
-const ReportPage = lazy(() => import('@/pages/ReportPage'))
-const CapsuleCardPage = lazy(() => import('@/pages/CapsuleCardPage'))
 const KakaoCallbackPage = lazy(() => import('@/pages/KakaoCallbackPage'))
 const PasswordResetPage = lazy(() => import('@/pages/PasswordResetPage'))
 
-function StudyPage() {
-  // Keep one component type for this route's lifetime, including direct visits that use Suspense.
-  const [Page] = useState(() => preparedStudyPage() ?? LazyStudyPage)
-  return <Page />
+function isDesktopAuthPath(pathname: string): boolean {
+  return (
+    pathname === '/login' ||
+    pathname === '/onboarding' ||
+    pathname === '/password/reset' ||
+    pathname === '/reset-password'
+  )
+}
+
+function isCreditsPath(pathname: string): boolean {
+  const clean = pathname.replace(/\/$/, '') || '/'
+  return clean === '/credits' || clean === '/credits/charge' || clean === '/invite'
+}
+
+/** Captures ?ref=<code> on any route entry, stores for 7 days in localStorage, and strips ref from URL. */
+function ReferralLinkCapture() {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const search = new URLSearchParams(location.search)
+    const rawRef = search.get('ref')
+    if (!rawRef) return
+    saveStoredReferralCode(rawRef)
+    search.delete('ref')
+    navigate(
+      {
+        pathname: location.pathname,
+        search: search.size ? `?${search}` : '',
+        hash: location.hash,
+      },
+      { replace: true, state: location.state },
+    )
+  }, [location.pathname, location.search, location.hash, location.state, navigate])
+
+  return null
 }
 
 export function App() {
   const location = useLocation()
-  const { state } = useDemo()
-  const { status } = useBackend()
-  const roomId = prepareRoomId(location.pathname)
-  const background = roomId && status === 'ready' && state.profile.loggedIn && state.profile.onboarded
-    ? prepareBackground(location.state) ?? { ...location, pathname: `/rooms/${roomId}`, search: '', hash: '', state: null }
-    : null
+  const suspenseKey = isDesktopAuthPath(location.pathname)
+    ? 'desktop-auth'
+    : isCreditsPath(location.pathname)
+      ? 'credits'
+      : location.pathname
+
   return (
-    <>
-      <Suspense key={background?.pathname ?? location.pathname} fallback={<RouteLoading />}>
-        <Routes location={background ?? location}>
-          <Route path="login" element={<LoginPage />} />
-          <Route path="password/reset" element={<PasswordResetPage />} />
-          <Route path="reset-password" element={<PasswordResetPage />} />
-          <Route path="oauth/kakao" element={<KakaoCallbackPage />} />
-          <Route element={<RequireDemo />}>
-            <Route path="onboarding" element={<OnboardingPage />} />
-            <Route path="mypage" element={<AccountRedirect />} />
-            <Route element={<AppLayout />}>
-              <Route index element={<HomePage />} />
-              <Route path="records" element={<RecordsPage />} />
-              <Route path="characters" element={<CharactersPage />} />
-              <Route path="characters/:characterId" element={<CharactersPage />} />
-              <Route path="credits" element={<CreditsPage />} />
-              <Route path="credits/charge" element={<ChargePage />} />
+    <MobileAccessGate>
+      <SharedDesktopWallpaperProvider>
+        <Suspense key={suspenseKey} fallback={<RouteLoading />}>
+          <ReferralLinkCapture />
+          <PageNavigation />
+          <Routes>
+            <Route element={<DesktopAuthLayout />}>
+              <Route path="login" element={<LoginPage />} />
+              <Route path="password/reset" element={<PasswordResetPage />} />
+              <Route path="reset-password" element={<PasswordResetPage />} />
+              <Route element={<RequireDemo />}>
+                <Route path="onboarding" element={<OnboardingPage />} />
+              </Route>
             </Route>
-            <Route path="rooms/:roomId/prepare" element={<PreparePage />} />
-            <Route path="study/:sessionId" element={<StudyPage />} />
-            <Route path="reports/:recordId" element={<ReportPage />} />
-            <Route path="capsules/:recordId" element={<CapsuleCardPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Route>
-          <Route element={<RequireDemo />}>
-            <Route element={<DetailLayout />}>
-              <Route path="rooms/:roomId" element={<RoomDetailPage />} />
+            <Route path="oauth/kakao" element={<KakaoCallbackPage />} />
+            <Route element={<RequireDemo />}>
+              <Route path="mypage" element={<AccountRedirect />} />
+              <Route element={<AppLayout />}>
+                <Route index element={<HomePage />} />
+                <Route path="records" element={<RecordsPage />} />
+                <Route path="mates/me" element={<MyMatesPage />} />
+                <Route path="credits" element={<CreditsPage />} />
+                <Route path="credits/charge" element={<InvitePage />} />
+                <Route path="invite" element={<InvitePage />} />
+              </Route>
+              <Route element={<DetailLayout />}>
+                <Route path="mates/:mateId" element={<MateDetailPage />} />
+                <Route path="connections/:connectionId" element={<ConnectionRecordPage />} />
+              </Route>
+              <Route path="connect/:mateId" element={<ConnectionPage />} />
+              <Route path="rooms/:roomId" element={<BetaLegacyRedirect />} />
+              <Route path="rooms/:roomId/prepare" element={<BetaLegacyRedirect />} />
+              <Route path="study/:sessionId" element={<BetaLegacyRedirect />} />
+              <Route path="reports/:recordId" element={<BetaLegacyRedirect />} />
+              <Route path="capsules/:recordId" element={<BetaLegacyRedirect />} />
+              <Route path="characters" element={<BetaLegacyRedirect />} />
+              <Route path="characters/:characterId" element={<BetaLegacyRedirect />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Route>
-          </Route>
-        </Routes>
-      </Suspense>
-      {background && <Suspense fallback={null}>
-        <Routes>
-          <Route element={<RequireDemo />}>
-            <Route path="rooms/:roomId/prepare" element={<PreparePage />} />
-          </Route>
-        </Routes>
-      </Suspense>}
-    </>
+          </Routes>
+        </Suspense>
+      </SharedDesktopWallpaperProvider>
+    </MobileAccessGate>
   )
 }

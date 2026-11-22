@@ -1,0 +1,206 @@
+{
+  "fileKey": "HpoEbOqfoDUwPq4zvYa6LL",
+  "pageId": "44:125",
+  "sectionId": "2941:491",
+  "guideId": "2942:632",
+  "guideUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL?node-id=2942-632",
+  "sets": {
+    "glyph": "2941:493",
+    "wordmark": "2941:508",
+    "symbol": "2941:536",
+    "horizontal": "2941:557"
+  },
+  "components": {
+    "glyph-color": "2941:499",
+    "glyph-white": "2941:503",
+    "glyph-black": "2941:507",
+    "wordmark-color": "2941:517",
+    "wordmark-white": "2941:526",
+    "wordmark-black": "2941:535",
+    "symbol-color": "2941:537",
+    "symbol-white": "2941:545",
+    "symbol-black": "2941:551",
+    "horizontal-color": "2941:558",
+    "horizontal-white": "2941:575",
+    "horizontal-black": "2941:590"
+  },
+  "registryId": "2941:492",
+  "specimenSetId": "2942:481",
+  "cardComponents": {
+    "symbol-color": "2942:482",
+    "glyph-color": "2942:494",
+    "wordmark-color": "2942:503",
+    "horizontal-color": "2942:515",
+    "symbol-white": "2942:536",
+    "glyph-white": "2942:546",
+    "wordmark-white": "2942:553",
+    "horizontal-white": "2942:565",
+    "symbol-black": "2942:584",
+    "glyph-black": "2942:594",
+    "wordmark-black": "2942:601",
+    "horizontal-black": "2942:613"
+  },
+  "masterAudit": [
+    {
+      "id": "2941:499",
+      "name": "CAPSULE Logo v2 / Glyph / Tone=Color",
+      "width": 83.75,
+      "height": 66.5,
+      "bytes": 2325,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 0,
+      "nested": 0
+    },
+    {
+      "id": "2941:503",
+      "name": "CAPSULE Logo v2 / Glyph / Tone=White",
+      "width": 83.75,
+      "height": 66.5,
+      "bytes": 1520,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 1,
+      "nested": 0
+    },
+    {
+      "id": "2941:507",
+      "name": "CAPSULE Logo v2 / Glyph / Tone=Black",
+      "width": 83.75,
+      "height": 66.5,
+      "bytes": 1520,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 1,
+      "nested": 0
+    },
+    {
+      "id": "2941:517",
+      "name": "CAPSULE Logo v2 / Wordmark / Tone=Color",
+      "width": 366,
+      "height": 59.75,
+      "bytes": 7571,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 7,
+      "nested": 0
+    },
+    {
+      "id": "2941:526",
+      "name": "CAPSULE Logo v2 / Wordmark / Tone=White",
+      "width": 366,
+      "height": 59.75,
+      "bytes": 7557,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 7,
+      "nested": 0
+    },
+    {
+      "id": "2941:535",
+      "name": "CAPSULE Logo v2 / Wordmark / Tone=Black",
+      "width": 366,
+      "height": 59.75,
+      "bytes": 7557,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 7,
+      "nested": 0
+    },
+    {
+      "id": "2941:537",
+      "name": "CAPSULE Logo v2 / Symbol / Tone=Color",
+      "width": 118,
+      "height": 114,
+      "bytes": 3262,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 0,
+      "nested": 1
+    },
+    {
+      "id": "2941:545",
+      "name": "CAPSULE Logo v2 / Symbol / Tone=White",
+      "width": 118,
+      "height": 114,
+      "bytes": 1482,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 1,
+      "nested": 1
+    },
+    {
+      "id": "2941:551",
+      "name": "CAPSULE Logo v2 / Symbol / Tone=Black",
+      "width": 118,
+      "height": 114,
+      "bytes": 1482,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 1,
+      "nested": 1
+    },
+    {
+      "id": "2941:558",
+      "name": "CAPSULE Logo v2 / Horizontal / Tone=Color",
+      "width": 498,
+      "height": 114,
+      "bytes": 10811,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 7,
+      "nested": 3
+    },
+    {
+      "id": "2941:575",
+      "name": "CAPSULE Logo v2 / Horizontal / Tone=White",
+      "width": 498,
+      "height": 114,
+      "bytes": 9032,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 8,
+      "nested": 3
+    },
+    {
+      "id": "2941:590",
+      "name": "CAPSULE Logo v2 / Horizontal / Tone=Black",
+      "width": 498,
+      "height": 114,
+      "bytes": 9032,
+      "raster": false,
+      "text": false,
+      "script": false,
+      "fillsBound": 8,
+      "nested": 3
+    }
+  ],
+  "gradientStopsBound": [
+    {
+      "id": "2941:496",
+      "variableId": "VariableID:2933:176"
+    },
+    {
+      "id": "2941:497",
+      "variableId": "VariableID:2933:176"
+    },
+    {
+      "id": "2941:539",
+      "variableId": "VariableID:2479:10667"
+    }
+  ],
+  "imageFills": 0,
+  "legacySectionPreserved": "2933:180",
+  "legacyGuidePreserved": "2935:309"
+}

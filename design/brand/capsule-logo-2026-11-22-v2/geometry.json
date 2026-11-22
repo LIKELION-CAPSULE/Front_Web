@@ -1,0 +1,79 @@
+{
+  "tile": {
+    "width": 472,
+    "height": 456,
+    "radius": 110
+  },
+  "capsule": {
+    "cx": 242.64,
+    "cy": 236.73,
+    "angleDegrees": -31.12,
+    "halfStraight": 102.07,
+    "radius": 79.95,
+    "length": 364.04,
+    "height": 159.9
+  },
+  "seam": {
+    "cx": 260.91,
+    "cy": 225.7,
+    "rx": 47.2,
+    "ry": 78.86,
+    "angle": -26.3
+  },
+  "glyphCanvas": {
+    "x": 75,
+    "y": 104,
+    "width": 335,
+    "height": 266
+  },
+  "horizontal": {
+    "width": 1992,
+    "height": 456,
+    "wordmarkX": 528,
+    "wordmarkY": 105,
+    "gap": 56
+  },
+  "wordmark": {
+    "oldSegments": 360,
+    "newCubics": 148,
+    "letters": [
+      {
+        "oldSegments": 68,
+        "newCubics": 25,
+        "loops": 2
+      },
+      {
+        "oldSegments": 54,
+        "newCubics": 21,
+        "loops": 1
+      },
+      {
+        "oldSegments": 50,
+        "newCubics": 17,
+        "loops": 1
+      },
+      {
+        "oldSegments": 64,
+        "newCubics": 31,
+        "loops": 1
+      },
+      {
+        "oldSegments": 41,
+        "newCubics": 19,
+        "loops": 1
+      },
+      {
+        "oldSegments": 30,
+        "newCubics": 13,
+        "loops": 1
+      },
+      {
+        "oldSegments": 53,
+        "newCubics": 22,
+        "loops": 2
+      }
+    ],
+    "smoothingRadiusSourcePx": 2.0,
+    "cubicFitToleranceSourcePx": 0.8
+  }
+}

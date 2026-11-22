@@ -1,6 +1,7 @@
 import type { DeviceKind, DeviceState, MediaSnapshot } from './types.ts'
 
 const idleDevice = (): DeviceState => ({ status: 'idle', stream: null, error: '' })
+export type DeviceSelection = Readonly<Record<DeviceKind, string>>
 
 export function deviceErrorMessage(error: unknown, kind: DeviceKind) {
   const label = kind === 'camera' ? '카메라' : '마이크'
@@ -21,11 +22,16 @@ export class DeviceController {
   private generations: Record<DeviceKind, number> = { camera: 0, microphone: 0 }
   private pending: Partial<Record<DeviceKind, Promise<boolean>>> = {}
   private allGeneration = 0
+  private selected: DeviceSelection
   private readonly acquire: ((constraints: MediaStreamConstraints) => Promise<MediaStream>) | null
 
-  constructor(acquire: ((constraints: MediaStreamConstraints) => Promise<MediaStream>) | null) { this.acquire = acquire }
+  constructor(acquire: ((constraints: MediaStreamConstraints) => Promise<MediaStream>) | null, selected: DeviceSelection = { camera: '', microphone: '' }) {
+    this.acquire = acquire
+    this.selected = { ...selected }
+  }
 
   getSnapshot = () => this.snapshot
+  getSelection = () => this.selected
   subscribe = (listener: () => void) => {
     this.listeners.add(listener)
     return () => { this.listeners.delete(listener) }
@@ -33,6 +39,16 @@ export class DeviceController {
   private update(kind: DeviceKind, value: DeviceState) {
     this.snapshot = { ...this.snapshot, [kind]: value }
     this.listeners.forEach((listener) => listener())
+  }
+  /** Choosing an idle device never opens a permission prompt. Only a live/pending device restarts. */
+  select = (kind: DeviceKind, deviceId: string): Promise<boolean> => {
+    if (this.selected[kind] === deviceId) return this.pending[kind] ?? Promise.resolve(true)
+    const reconnect = this.snapshot[kind].status === 'requesting' || !!this.snapshot[kind].stream
+    this.selected = { ...this.selected, [kind]: deviceId }
+    this.listeners.forEach(listener => listener())
+    if (!reconnect) return Promise.resolve(true)
+    this.stop(kind)
+    return this.request(kind)
   }
   request = (kind: DeviceKind): Promise<boolean> => {
     if (this.snapshot[kind].stream?.getTracks().some((track) => track.readyState === 'live'))
@@ -55,9 +71,10 @@ export class DeviceController {
         })
         return false
       }
+      const deviceId = this.selected[kind]
       const stream = await this.acquire(kind === 'camera'
-        ? { video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user', frameRate: { ideal: 15, max: 24 } }, audio: false }
-        : { video: false, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+        ? { video: { width: { ideal: 640 }, height: { ideal: 480 }, ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'user' }), frameRate: { ideal: 15, max: 24 } }, audio: false }
+        : { video: false, audio: { ...(deviceId ? { deviceId: { exact: deviceId } } : {}), echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
       if (generation !== this.generations[kind]) {
         stream.getTracks().forEach((track) => track.stop())
         return false

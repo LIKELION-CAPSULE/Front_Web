@@ -62,7 +62,8 @@ export default function ChargePage() {
         open={checkout !== 'closed'}
         onClose={closeCheckout}
         title={checkout === 'success' ? '체험 충전 완료' : '체험 결제 정보'}
-        className="charge-checkout-dialog max-w-[560px]"
+        showHeader={checkout !== 'success'}
+        className={checkout === 'success' ? 'charge-checkout-dialog charge-checkout-dialog--receipt' : 'charge-checkout-dialog max-w-[560px]'}
       >
         {checkout === 'details' && (
           <form
@@ -129,6 +130,9 @@ export default function ChargePage() {
         )}
         {checkout === 'success' && (
           <>
+            <button type="button" className="charge-receipt-close" aria-label="영수증 닫기" onClick={closeCheckout}>
+              <Icon name="close" size={20} />
+            </button>
             <PaymentReceipt
               product={selected}
               method={method}
@@ -136,16 +140,18 @@ export default function ChargePage() {
               paidAt={paidAt ?? now}
               expiresAt={pass ? state.pass?.expiresAt : undefined}
             />
-            <ButtonLink to={returnTo} className="mt-5 w-full" onClick={closeCheckout}>
-              이전 화면으로 돌아가기
-            </ButtonLink>
-            <Link
-              to="/credits"
-              onClick={closeCheckout}
-              className="mt-3 block text-center text-body-compact text-text-accent underline"
-            >
-              내 크레딧 확인
-            </Link>
+            <div className="charge-receipt-actions">
+              <ButtonLink to={returnTo} variant="ghost" className="mt-5 w-full" onClick={closeCheckout}>
+                이전 화면으로 돌아가기
+              </ButtonLink>
+              <Link
+                to="/credits"
+                onClick={closeCheckout}
+                className="mt-3 block text-center text-body-compact text-text-accent underline"
+              >
+                내 크레딧 확인
+              </Link>
+            </div>
           </>
         )}
       </Dialog>

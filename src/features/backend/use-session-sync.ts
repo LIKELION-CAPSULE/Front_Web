@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { connectionInterval, isConnectionVisible } from '@/features/mates/document-pip'
 import { api, ApiError } from '@/shared/api/client'
-import type { EventResponse, ReactionResponse } from '@/shared/api/types'
+import type { EventRequest, EventResponse, HeartbeatRequest, ReactionRequest, ReactionResponse } from '@/shared/api/types'
 import type { ActiveSession } from '../demo/types'
 import type { Observation } from '../media/types'
-import { sessionStudySeconds } from '../demo/reducer'
+import { sessionStudySeconds } from '../session/connection-time'
 import { PresenceClock } from './presence-clock'
 import type { StateEvent } from './presence-clock'
 import { useBackend } from './backend-context'
@@ -19,7 +20,7 @@ const queues = new Map<string, () => Promise<void>>()
 const initialized = new Set<string>()
 export function getSessionTotals(active: ActiveSession): SessionTotals {
   const getter = totalsBySession.get(active.id)
-  if (!getter) throw new Error('공부 시간 동기화를 확인하지 못했어요.')
+  if (!getter) throw new Error('연결 시간 동기화를 확인하지 못했어요.')
   return getter()
 }
 export async function flushSessionEvents(sessionId: string) { await queues.get(sessionId)?.() }
@@ -78,7 +79,7 @@ export function useSessionSync(input: Input) {
     const requestId = crypto.randomUUID()
     try {
       const result = await api.request<ReactionResponse>(`/sessions/${current.sessionId}/events/${eventId}/reaction`, {
-        method: 'POST', body: { requestId, intensity, tts: false },
+        method: 'POST', body: { requestId, intensity, tts: false } satisfies ReactionRequest,
       })
       const pending: Pending = { result, event, revision, turn }
       if (result.requestId !== requestId || !stillCurrent(current, pending)) return
@@ -101,7 +102,7 @@ export function useSessionSync(input: Input) {
   const drain = useCallback(async (current: Runtime) => {
     if (!latest.current.active?.serverSession) return
     await flushSessionOutbox(current,
-      event => api.request<EventResponse>(`/sessions/${current.sessionId}/events`, { method: 'POST', body: event }),
+      event => api.request<EventResponse>(`/sessions/${current.sessionId}/events`, { method: 'POST', body: event satisfies EventRequest }),
       (result, event, revision) => {
         for (const character of result.characters ?? []) {
           if (character.characterId) updateAffinity(character.characterId, character.affinity)
@@ -131,7 +132,7 @@ export function useSessionSync(input: Input) {
     const revision = current.flow.revision
     const turn = ++current.motionTurn
     try {
-      const result = await api.request<EventResponse>(`/sessions/${current.sessionId}/events`, { method: 'POST', body: { type, occurredAt } })
+      const result = await api.request<EventResponse>(`/sessions/${current.sessionId}/events`, { method: 'POST', body: { type, occurredAt } satisfies EventRequest })
       if (!current.alive || runtime.current !== current) return
       for (const character of result.characters ?? []) {
         if (character.characterId) updateAffinity(character.characterId, character.affinity)
@@ -156,7 +157,7 @@ export function useSessionSync(input: Input) {
     const now = Date.now()
     const study = sessionStudySeconds(active, now)
     const fresh = observation && now - (performance.timeOrigin + observation.at) < 1500
-    const presence = !camera ? 'off' : !document.hidden && fresh ? observation.faceCount > 0 ? 'present' : 'absent' : 'unknown'
+    const presence = !camera ? 'off' : isConnectionVisible() && fresh ? observation.faceCount > 0 ? 'present' : 'absent' : 'unknown'
     for (const event of current.clock.sample(study, now, presence, active.phase, active.runningSince !== null)) {
       enqueue(current, { ...event, occurredAt: new Date(Date.parse(event.occurredAt) + (active.serverOffsetMs ?? 0)).toISOString() })
     }
@@ -180,7 +181,10 @@ export function useSessionSync(input: Input) {
       await drain(current)
       if (!current.alive) return
       const count = totals(current)
-      await api.request(`/sessions/${current.sessionId}/heartbeat`, { method: 'POST', body: latest.current.active?.presenceKnown === false ? undefined : { studySeconds: count.studySeconds, presentSeconds: count.presentSeconds } })
+      // An unknown restored baseline is already counted as away by installSession. Send the
+      // conservative totals too: the current service rejects bodyless heartbeats with 400.
+      const body: HeartbeatRequest = { studySeconds: count.studySeconds, presentSeconds: count.presentSeconds }
+      await api.request(`/sessions/${current.sessionId}/heartbeat`, { method: 'POST', body })
       current.lastHeartbeatAt = Date.now()
       if (current.alive) setError('')
     } catch (reason) { fail(reason, current) }
@@ -231,14 +235,14 @@ export function useSessionSync(input: Input) {
       const occurredAt = new Date(change.at + (now.serverOffsetMs ?? 0)).toISOString()
       for (const type of picked.types) void sendMotion(sync, type, occurredAt)
     })
-    const timer = window.setInterval(() => { tick(sync); release(sync) }, 250)
-    const pulse = window.setInterval(() => { void heartbeat(sync) }, 60_000)
-    const visible = () => { tick(sync); if (!document.hidden && Date.now() - sync.lastHeartbeatAt >= 60_000) void heartbeat(sync) }
+    const stopTimer = connectionInterval(() => { tick(sync); release(sync) }, 250)
+    const stopPulse = connectionInterval(() => { void heartbeat(sync) }, 60_000)
+    const visible = () => { tick(sync); if (isConnectionVisible() && Date.now() - sync.lastHeartbeatAt >= 60_000) void heartbeat(sync) }
     document.addEventListener('visibilitychange', visible)
     return () => {
       sync.alive = false
       stopBehavior?.()
-      clearInterval(timer); clearInterval(pulse); document.removeEventListener('visibilitychange', visible)
+      stopTimer(); stopPulse(); document.removeEventListener('visibilitychange', visible)
       totalsBySession.delete(active.id); queues.delete(active.id)
     }
   }, [sessionId, signature, userId, resumed, startedAt, behavior, drain, enqueue, heartbeat, release, sendMotion, tick, totals])

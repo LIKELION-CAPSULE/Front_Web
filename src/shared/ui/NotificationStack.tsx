@@ -1,14 +1,12 @@
 import { useRef, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useIsPresent } from 'motion/react'
+import symbolColorUrl from '../../../design/brand/capsule-logo-2026-11-22-v2/capsule-symbol-color.svg'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
-import { Icon, type IconName } from './Icon'
+import { Icon } from './Icon'
 import { Button } from './Button'
-import type { FeedbackTone } from './FeedbackMessage'
 import type { NotificationItem } from './notification-queue'
 import './notification-stack.css'
-
-const icons: Record<FeedbackTone, IconName> = { success: 'check', warning: 'warning', error: 'warning', info: 'info' }
 
 function NotificationCard({ item, onDismiss }: { item: NotificationItem; onDismiss: (id: string) => void }) {
   const reduced = useReducedMotion()
@@ -29,37 +27,50 @@ function NotificationCard({ item, onDismiss }: { item: NotificationItem; onDismi
     onDismiss(item.id)
   }
 
-  return <motion.div
-    ref={card}
-    role={item.tone === 'error' || item.tone === 'warning' ? 'alert' : 'status'}
-    aria-atomic="true"
-    aria-labelledby={`${item.id}-title`}
-    aria-describedby={`${item.id}-description`}
-    aria-hidden={!present || undefined}
-    inert={!present}
-    data-feedback={item.tone}
-    className="notification-card"
-    layout={reduced ? false : 'position'}
-    initial={reduced ? false : { x: 72, opacity: 0, scale: 0.96 }}
-    animate={{ x: 0, opacity: 1, scale: 1 }}
-    exit={{ x: reduced ? 0 : 72, opacity: 0, transition: { duration: reduced ? 0 : 0.18 } }}
-    transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 38 }}
-  >
-    <span className="notification-icon"><Icon name={icons[item.tone]} size={21} /></span>
-    <div className="notification-content">
-      <p id={`${item.id}-title`} className="notification-title">{item.title}</p>
-      <p id={`${item.id}-description`} className="notification-description">{item.text}</p>
-      {item.action && <Button variant="ghost" size="sm" className="notification-action" onFocus={rememberFocus} onClick={item.action.onClick}>{item.action.label}</Button>}
-    </div>
-    <button type="button" className="notification-close" aria-label={`${item.title} 알림 닫기`} onFocus={rememberFocus} onClick={dismiss}><Icon name="close" size={16} /></button>
-  </motion.div>
+  return (
+    <motion.div
+      ref={card}
+      role={item.tone === 'error' || item.tone === 'warning' ? 'alert' : 'status'}
+      aria-atomic="true"
+      aria-labelledby={`${item.id}-title`}
+      aria-describedby={`${item.id}-description`}
+      aria-hidden={!present || undefined}
+      inert={!present}
+      data-feedback={item.tone}
+      className="notification-card"
+      layout={reduced ? false : 'position'}
+      initial={reduced ? false : { y: -12, opacity: 0, scale: 0.97 }}
+      animate={{ y: 0, opacity: 1, scale: 1 }}
+      exit={{ y: reduced ? 0 : -10, opacity: 0, transition: { duration: reduced ? 0 : 0.16 } }}
+      transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+    >
+      <span className="notification-app-icon" aria-hidden="true">
+        <img src={symbolColorUrl} alt="" className="notification-app-icon-img" draggable={false} />
+        <span className="notification-tone-dot" />
+      </span>
+      <div className="notification-content">
+        <p id={`${item.id}-title`} className="notification-title">{item.title}</p>
+        <p id={`${item.id}-description`} className="notification-description">{item.text}</p>
+        {item.action && (
+          <Button variant="ghost" size="sm" className="notification-action" onFocus={rememberFocus} onClick={item.action.onClick}>
+            {item.action.label}
+          </Button>
+        )}
+      </div>
+      <button type="button" className="notification-close" aria-label={`${item.title} 알림 닫기`} onFocus={rememberFocus} onClick={dismiss}>
+        <Icon name="close" size={14} />
+      </button>
+    </motion.div>
+  )
 }
 
 export function NotificationStack({ items, onDismiss, placement = 'viewport' }: { items: readonly NotificationItem[]; onDismiss: (id: string) => void; placement?: 'viewport' | 'container' }) {
-  const stack = <aside className="notification-stack" data-placement={placement} aria-label="알림" aria-hidden={!items.length || undefined}>
-    <AnimatePresence initial={false}>
-      {items.map(item => <NotificationCard key={item.id} item={item} onDismiss={onDismiss} />)}
-    </AnimatePresence>
-  </aside>
+  const stack = (
+    <aside className="notification-stack" data-placement={placement} aria-label="알림" aria-hidden={!items.length || undefined}>
+      <AnimatePresence initial={false}>
+        {items.map(item => <NotificationCard key={item.id} item={item} onDismiss={onDismiss} />)}
+      </AnimatePresence>
+    </aside>
+  )
   return placement === 'container' ? stack : createPortal(stack, document.body)
 }

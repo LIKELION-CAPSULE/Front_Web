@@ -1,24 +1,82 @@
-import { useId } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useBackend } from '@/features/backend/backend-context'
 import { AccountWithdrawalContent } from '@/features/auth/components/AccountWithdrawalDialog'
 import { PasswordRecoveryForm } from '@/features/auth/components/PasswordRecoveryForm'
+import { Button } from '@/shared/ui/Button'
 
-export function AccountSecurityPanel({ busy, onBusyChange }: { busy: boolean; onBusyChange: (busy: boolean) => void }) {
+export function AccountSecurityPanel({
+  busy,
+  onBusyChange,
+}: {
+  busy: boolean
+  onBusyChange: (busy: boolean) => void
+}) {
   const { me } = useBackend()
   const passwordId = useId()
-  return <>
-    <h2 className="account-settings-title">보안</h2>
-    <fieldset disabled={busy} className="account-security-fields">
-      <section className="account-security-row" aria-labelledby={`${passwordId}-heading`}>
-        <h3 id={`${passwordId}-heading`} className="account-security-label">비밀번호 재설정</h3>
-        <div className="account-security-content account-password-form">
-          <PasswordRecoveryForm defaultEmail={me?.email} onBusyChange={onBusyChange} />
-        </div>
-      </section>
-      <section className="account-security-row" aria-labelledby={`${passwordId}-withdrawal`}>
-        <h3 id={`${passwordId}-withdrawal`} className="account-security-label">회원탈퇴</h3>
-        <div className="account-settings-action-card"><AccountWithdrawalContent onBusyChange={onBusyChange} /></div>
-      </section>
-    </fieldset>
-  </>
+  const [withdrawOpen, setWithdrawOpen] = useState(false)
+  const withdrawCardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!withdrawOpen) return
+    const card = withdrawCardRef.current
+    if (!card) return
+    const reduced =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const frame = requestAnimationFrame(() => {
+      card.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
+      card
+        .querySelector<HTMLInputElement>('input[name="withdrawalConfirmation"]')
+        ?.focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [withdrawOpen])
+
+  return (
+    <>
+      <h2 className="account-settings-title">보안</h2>
+      <fieldset disabled={busy} className="account-security-fields">
+        <section className="account-security-row" aria-labelledby={`${passwordId}-heading`}>
+          <h3 id={`${passwordId}-heading`} className="account-security-label">
+            비밀번호 재설정
+          </h3>
+          <div className="account-security-content account-password-form">
+            <PasswordRecoveryForm defaultEmail={me?.email} onBusyChange={onBusyChange} />
+          </div>
+        </section>
+
+        <section className="account-security-row" aria-labelledby={`${passwordId}-withdrawal`}>
+          <h3 id={`${passwordId}-withdrawal`} className="account-security-label">
+            회원탈퇴
+          </h3>
+          <div className="account-security-content">
+            {withdrawOpen ? (
+              <div ref={withdrawCardRef} className="account-settings-action-card">
+                <AccountWithdrawalContent
+                  onCancel={() => setWithdrawOpen(false)}
+                  onBusyChange={onBusyChange}
+                />
+              </div>
+            ) : (
+              <div className="account-withdraw-summary">
+                <p className="text-body-compact text-muted">
+                  탈퇴하면 대화 기록과 친밀도가 삭제되고 되돌릴 수 없어요.
+                </p>
+                <Button
+                  variant="danger"
+                  size="md"
+                  className="mt-4 account-withdraw-trigger"
+                  onClick={() => setWithdrawOpen(true)}
+                  data-withdraw-trigger
+                >
+                  회원탈퇴
+                </Button>
+              </div>
+            )}
+          </div>
+        </section>
+      </fieldset>
+    </>
+  )
 }
