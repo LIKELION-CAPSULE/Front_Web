@@ -145,3 +145,42 @@ test('a transient hidden host keeps its last frame until its next nonzero size',
     assert.equal(view.pose.x, 400)
   })
 })
+
+test('PiP moves the same canvas and drives its ticker on the PiP window, then restores the original ticker', () => {
+  withStage(view => {
+    const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
+    const frames = new Map<number, FrameRequestCallback>()
+    let id = 0, updates = 0, starts = 0
+    const pipWindow = {
+      requestAnimationFrame(callback: FrameRequestCallback) { frames.set(++id, callback); return id },
+      cancelAnimationFrame(value: number) { frames.delete(value) },
+    }
+    const pipHost = {
+      clientWidth: 360, clientHeight: 400,
+      ownerDocument: { defaultView: pipWindow },
+      append(canvas: typeof view.canvas) { canvas.parentElement = this },
+    } as unknown as HTMLElement
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: {} })
+    Object.assign(view.app.ticker, { start() { starts++ }, update() { updates++ } })
+    try {
+      view.stage.attach(pipHost)
+      assert.equal(view.canvas.parentElement, pipHost)
+      assert.equal(frames.size, 1)
+      const frameId = frames.keys().next().value!
+      const frame = frames.get(frameId)!
+      frames.delete(frameId)
+      frame(performance.now())
+      assert.equal(updates, 1)
+      assert.equal(frames.size, 1)
+      view.stage.detach(pipHost)
+      assert.equal(view.canvas.parentElement, view.host)
+      assert.equal(frames.size, 0)
+      assert.equal(starts, 1)
+      frame(performance.now())
+      assert.equal(updates, 1, 'an obsolete PiP frame must not restart the loop')
+    } finally {
+      if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow)
+      else Reflect.deleteProperty(globalThis, 'window')
+    }
+  })
+})

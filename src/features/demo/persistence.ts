@@ -18,7 +18,7 @@ const strings = (value: unknown): value is string[] =>
 const finite = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value)
 
-function validState(value: unknown): value is DemoState {
+export function validState(value: unknown): value is DemoState {
   if (
     !object(value) ||
     value.version !== 1 ||

@@ -2,13 +2,16 @@
   position: relative;
   min-width: 0;
   container-type: inline-size;
-  --heatmap-cell: clamp(24px, calc((100cqw - 48px) / 7), 48px);
+  --heatmap-inset: 10px;
+  --heatmap-cell: clamp(24px, calc((100cqw - 2 * var(--heatmap-inset) - 6 * var(--heatmap-gap)) / 7), 48px);
   --heatmap-gap: 7px;
 }
 .heatmap-scroll {
   max-width: 100%;
   overflow-x: auto;
-  padding: 5px 3px 9px;
+  /* Keep the selected/focused ring and the hover scale inside the scrollport, including its end edges. */
+  padding: var(--heatmap-inset);
+  scroll-padding: var(--heatmap-inset);
   scrollbar-width: thin;
   scrollbar-color: var(--color-primary) transparent;
 }
@@ -42,6 +45,7 @@
   animation-delay: var(--heatmap-delay);
 }
 .heatmap-cell[data-selected='true'] {
+  z-index: 2;
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 4px;
 }
@@ -56,20 +60,18 @@
   color: var(--color-text-disabled);
   cursor: default;
 }
-.study-heatmap[data-hovering='true'] .heatmap-cell:not([data-active='true']):not(:disabled) {
-  background: var(--color-surface);
-  color: var(--color-subtle);
-}
 .heatmap-cell[data-active='true'] {
   transform: scale(1.08);
   z-index: 1;
 }
 .heatmap-cell:focus-visible {
+  z-index: 2;
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 4px;
 }
 .heatmap-body {
   display: flex;
+  width: max-content;
   gap: 8px;
 }
 .heatmap-months {
@@ -93,7 +95,7 @@
 .study-heatmap--year {
   --heatmap-cell: clamp(
     11px,
-    calc((100cqw - 32px - (var(--heatmap-columns) - 1) * 3px) / var(--heatmap-columns)),
+    calc((100cqw - 26px - 2 * var(--heatmap-inset) - (var(--heatmap-columns) - 1) * 3px) / var(--heatmap-columns)),
     18px
   );
   --heatmap-gap: 3px;
@@ -159,7 +161,7 @@
 }
 @media (max-width: 767px) {
   .study-heatmap:not(.study-heatmap--year) {
-    --heatmap-cell: min(34px, calc((100cqw - 48px) / 7));
+    --heatmap-cell: min(34px, calc((100cqw - 2 * var(--heatmap-inset) - 6 * var(--heatmap-gap)) / 7));
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -8,16 +8,24 @@ import '../character-speech-bubble.css'
  * The line types out with pauses at punctuation; a click shows it at once. Mount with a new `key` for each line so a
  * new line restarts from the beginning.
  */
-export function CharacterSpeechBubble({ name, text, expanded = false, onDismiss }: {
+export function CharacterSpeechBubble({ name, text, expanded = false, variant = 'default', speakerLabel, onDismiss }: {
   name: string
   text: string
   expanded?: boolean
+  variant?: 'default' | 'pill'
+  speakerLabel?: string
   onDismiss?: () => void
 }) {
   const reduced = useReducedMotion()
   const [typed, { skip, isFinished }] = useWindupString(text, { pace: speechPace, skipped: reduced })
-  return <blockquote className="character-speech-bubble" aria-label={`${name}의 한마디`} data-expanded={expanded || undefined}
-    data-typing={!isFinished || undefined} onClick={isFinished ? undefined : skip}>
+  return <blockquote
+    className={variant === 'pill' ? 'character-speech-bubble character-speech-bubble--pill' : 'character-speech-bubble'}
+    aria-label={`${name}의 한마디`}
+    data-expanded={expanded || undefined}
+    data-typing={!isFinished || undefined}
+    onClick={isFinished ? undefined : skip}
+  >
+    {speakerLabel && <span className="character-speech-bubble-speaker">{speakerLabel}</span>}
     <p className="character-speech-bubble-text">
       <span className="sr-only">{text}</span>
       {/* The full line reserves the final size so the bubble does not grow while typing. */}

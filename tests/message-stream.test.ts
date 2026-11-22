@@ -6,7 +6,7 @@ import type { MessageRequest } from '../src/shared/api/types.ts'
 
 const body: MessageRequest = { requestId: 'r-1', characterId: 3, content: '졸려', inputType: 'TEXT', tts: false }
 const done = { requestId: 'r-1', characterId: 3, content: '물 마시고 와.', expression: { file: 'exp/smile.exp3.json' }, affinity: { delta: 1 } }
-const json = (value: unknown, status = 200) => Response.json(value, { status })
+const json = (value: unknown, status = 200) => Response.json(status < 300 ? { success: true, data: value } : value, { status })
 /** An SSE response whose body arrives in the given chunks; `cut` breaks the connection after them. */
 function sse(chunks: string[], cut = false) {
   const encoder = new TextEncoder()
@@ -53,6 +53,23 @@ test('a done without any reply still resolves', async () => {
   assert.equal(result.content, done.content)
 })
 
+test('a wrapped SSE done exposes the message payload and keeps streamed replies', async () => {
+  const replies: string[] = []
+  const result = await streamMessage(client([() => sse([event('reply', { content: '물' }), event('done', { success: true, data: done })])]),
+    12, body, { onReply: text => replies.push(text) })
+  assert.deepEqual(result, done)
+  assert.deepEqual(replies, ['물'])
+})
+
+test('failed or empty SSE done envelopes never complete as a chat reply', async () => {
+  for (const payload of [{ success: false, code: 'SESSION_ENDED', detail: { sessionId: 12 } }, { success: true, data: null }]) {
+    const seen: { url: string; init: RequestInit }[] = []
+    await assert.rejects(streamMessage(client([() => sse([event('done', payload)])], seen), 12, body, { onReply() {} }),
+      (error: unknown) => error instanceof ApiError && error.status === 502)
+    assert.equal(seen.length, 1)
+  }
+})
+
 test('JSON errors before the stream opens throw like other requests and are not resent', async () => {
   const seen: { url: string; init: RequestInit }[] = []
   await assert.rejects(
@@ -66,12 +83,17 @@ test('a successful plain JSON reply is used as the done payload', async () => {
   assert.deepEqual(await streamMessage(client([() => json(done)]), 12, body, { onReply() {} }), done)
 })
 
+test('an empty JSON envelope cannot complete as a message', async () => {
+  await assert.rejects(streamMessage(client([() => json(null)]), 12, body, { onReply() {} }),
+    (error: unknown) => error instanceof ApiError && error.status === 502)
+})
+
 test('error events are told apart by code (message repeats the code) and are not resent', async () => {
   const seen: { url: string; init: RequestInit }[] = []
   const ended = { code: 'SESSION_ENDED', message: 'SESSION_ENDED', detail: {} }
   await assert.rejects(
     streamMessage(client([() => sse([event('reply', { content: '물' }), event('error', ended)])], seen), 12, body, { onReply() {} }),
-    (error: unknown) => error instanceof ApiError && error.code === 'SESSION_ENDED' && error.message === '답장을 받는 사이 공부가 끝났어요. 리포트를 확인해 주세요.',
+    (error: unknown) => error instanceof ApiError && error.code === 'SESSION_ENDED' && error.message === '답장을 받는 사이 연결이 끝났어요. 연결 기록을 확인해 주세요.',
   )
   assert.equal(seen.length, 1)
   assert.equal(streamEventError(JSON.stringify({ code: 'INTERNAL_ERROR', message: 'INTERNAL_ERROR', detail: {} })).message, '답장을 만들지 못했어요. 잠시 후 다시 보내 주세요.')

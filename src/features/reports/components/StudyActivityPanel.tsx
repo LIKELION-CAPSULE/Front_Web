@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { StudyRecord } from '@/features/demo/types'
-import { dayKey, duration } from '@/shared/lib/format'
-import { recordSummary, type RecordRange } from '../record-period'
+import { dayKey, measuredDuration as duration } from '@/shared/lib/format'
+import { type RecordRange } from '../record-period'
+import { cameraRecords, connectionSummary } from '../connection-records'
 import { ActivityHeatmap } from './ActivityHeatmap'
 import { Panel } from '@/shared/ui/Panel'
 import './record-summary.css'
@@ -27,12 +28,12 @@ export function StudyActivityPanel({
       ? selection
       : fallbackDay
   const selectedRecords = records.filter((record) => dayKey(record.endedAt) === selected)
-  const selectedSummary = recordSummary(selectedRecords)
+  const selectedSummary = connectionSummary(selectedRecords)
   const selectedLabel = `${Number(selected.slice(5, 7))}월 ${Number(selected.slice(8))}일${selected === range.today ? ' · 오늘' : ''}`
   return (
     <Panel bordered={false} className="study-activity-panel" aria-label="달력과 선택한 날짜 기록">
       <ActivityHeatmap
-        records={records}
+        records={cameraRecords(records)}
         range={range}
         selected={selected}
         onSelect={setSelection}
@@ -47,19 +48,19 @@ export function StudyActivityPanel({
         aria-live="polite"
       >
         <p className="records-summary-label">{selectedLabel}</p>
-        <strong>{duration(selectedSummary.seconds)}</strong>
+        <strong>{selectedSummary.cameraSeconds === null ? '—' : duration(selectedSummary.cameraSeconds)}</strong>
         {selectedSummary.sessions ? (
           <dl className="records-selected-stats">
             <div>
-              <dt>공부 횟수</dt>
+              <dt>연결 횟수</dt>
               <dd>
                 {selectedSummary.sessions}<small>회</small>
               </dd>
             </div>
             <div>
-              <dt>자리 지킴률</dt>
+              <dt>연결 시간</dt>
               <dd>
-                {selectedSummary.focusRate === null ? '—' : <>{selectedSummary.focusRate}<small>%</small></>}
+                {selectedSummary.connectionSeconds === null ? '—' : duration(selectedSummary.connectionSeconds)}
               </dd>
             </div>
           </dl>

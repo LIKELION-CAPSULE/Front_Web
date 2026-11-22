@@ -17,7 +17,7 @@
 .schedule-calendar-day[data-today='true'] { background: color-mix(in srgb, var(--color-ink) 3.53%, transparent); color: var(--color-ink); font-weight: 700; }
 .schedule-calendar-day[data-today='true'][data-has-events='false']::after { position: absolute; bottom: 8px; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: currentColor; transform: translateX(-50%); content: ''; }
 .schedule-calendar-day[aria-pressed='true'] { background: var(--color-selected); color: var(--color-selected-text); font-weight: 600; }
-.schedule-calendar-day:focus-visible, .schedule-calendar-navigation > button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+.schedule-calendar-day:focus-visible, .schedule-calendar-navigation > button:focus-visible, .schedule-calendar-heading > button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
 .schedule-calendar-marker { position: absolute; bottom: 8px; left: 50%; width: 5px; height: 5px; border-radius: 50%; background: var(--color-text-accent); transform: translateX(-50%); }
 .schedule-calendar-marker.is-count { bottom: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--color-primary); color: var(--color-on-solid); text-align: center; font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
 .schedule-details { --schedule-toolbar-height: 52px; --schedule-toolbar-spacing: 12px; container-type: inline-size; display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 12px; overflow: hidden; border: 0; border-radius: var(--radius-card); background: var(--color-canvas); padding: 20px; }

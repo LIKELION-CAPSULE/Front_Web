@@ -180,3 +180,8 @@ docs/*
 !docs/archive/
 docs/archive/*
 !docs/archive/DESIGN_SYSTEM_2026-10-26.md
+
+# Live2D runtime model for local dev only (licensed asset; not published in this public repo).
+# Get the files from the team drive and place them under local-assets/chaerin/.
+local-assets/*
+!local-assets/README.md

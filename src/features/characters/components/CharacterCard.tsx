@@ -5,7 +5,7 @@ import { duration } from '@/shared/lib/format'
 import { Icon } from '@/shared/ui/Icon'
 import { CharacterArtwork } from './CharacterArtwork'
 import { characterTags } from '../character-tags'
-import { MvpGate } from '@/features/mvp/MvpGate'
+import { Link } from 'react-router'
 import { affectionScore } from '../affection'
 import { useBackend } from '@/features/backend/backend-context'
 
@@ -27,9 +27,9 @@ export function CharacterCard({ character }: { character: Character }) {
           <h3 className="type-card-title">
             {character.name}
           </h3>
-          <MvpGate label={`${character.name} 친구 · 선물 · 보이스`} compact inline>
-            <span className="text-caption text-muted">친구 · 선물 · 보이스 <Icon name="arrow" size={14} /></span>
-          </MvpGate>
+          <Link to={`/characters/${character.id}`} aria-label={`${character.name} 자세히 보기`}>
+            <span className="text-caption text-muted">자세히 보기 <Icon name="arrow" size={14} /></span>
+          </Link>
         </div>
         <ul className="friend-card-tags" aria-label={`${character.name} 소개`}>
           {characterTags(character.description).map((tag) => <li key={tag}>{tag}</li>)}

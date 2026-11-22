@@ -9,7 +9,26 @@ import { captureReviewMessages } from './capture-messages'
 type CopyEntry = ReviewMessageEntry
 type RequestEntry = { method: string; path: string; status: number }
 type Tab = 'preview' | 'messages' | 'visible' | 'source' | 'requests'
-const sizes = [360, 390, 768, 1280, 1440]
+type SizePreset = {
+  key: string
+  width: number
+  label: string
+  scenarioId?: string
+}
+
+const sizePresets: readonly SizePreset[] = [
+  { key: '1440', width: 1440, label: '1440 · 데스크톱' },
+  { key: '1280', width: 1280, label: '1280 · 데스크톱' },
+  { key: '960', width: 960, label: '960 · 반쪽 화면' },
+  { key: '720', width: 720, label: '720 · 반쪽 화면' },
+  { key: '640', width: 640, label: '640 · 반쪽 화면' },
+  { key: 'mobile', width: 390, label: '휴대폰 · 접속 안내', scenarioId: 'mobile-notice' },
+]
+
+function resolvePreset(raw: string | null): SizePreset {
+  if (raw === 'mobile' || raw === '390') return sizePresets[sizePresets.length - 1]!
+  return sizePresets.find((preset) => preset.key === raw) ?? sizePresets[1]!
+}
 const progressKey = 'capsule-ui-review:checked:v1'
 const params = () => new URLSearchParams(location.search)
 function savedChecks(): Set<string> {
@@ -21,7 +40,9 @@ function savedChecks(): Set<string> {
 
 export function ReviewWorkbench() {
   const [selected, setSelected] = useState(() => findReviewScenario(params().get('case')).id)
-  const [width, setWidth] = useState(() => sizes.find(size => size === Number(params().get('width'))) ?? 1280)
+  const [sizeKey, setSizeKey] = useState(() => resolvePreset(params().get('width')).key)
+  const activePreset = sizePresets.find((preset) => preset.key === sizeKey) ?? sizePresets[1]!
+  const width = activePreset.width
   const [tab, setTab] = useState<Tab>('preview')
   const [search, setSearch] = useState('')
   const [copySearch, setCopySearch] = useState('')
@@ -51,12 +72,27 @@ export function ReviewWorkbench() {
   function select(id: string) {
     setSelected(id); setRevision(value => value + 1); setReady(false); setNotice(''); setTexts([]); setMessages([]); setRequests([]); setPath(''); setTab('preview')
     const url = new URL(location.href)
-    url.searchParams.set('case', id); url.searchParams.set('width', String(width))
+    url.searchParams.set('case', id); url.searchParams.set('width', sizeKey)
     history.replaceState(null, '', url)
   }
-  function resize(value: number) {
-    setWidth(value)
-    const url = new URL(location.href); url.searchParams.set('width', String(value)); history.replaceState(null, '', url)
+  function resize(nextKey: string) {
+    const preset = resolvePreset(nextKey)
+    setSizeKey(preset.key)
+    const url = new URL(location.href)
+    url.searchParams.set('width', preset.key)
+    if (preset.scenarioId) {
+      setSelected(preset.scenarioId)
+      setRevision(value => value + 1)
+      setReady(false)
+      setNotice('')
+      setTexts([])
+      setMessages([])
+      setRequests([])
+      setPath('')
+      setTab('preview')
+      url.searchParams.set('case', preset.scenarioId)
+    }
+    history.replaceState(null, '', url)
   }
   function reload() { setReady(false); setNotice(''); setMessages([]); setRequests([]); setRevision(value => value + 1) }
   function toggleCheck() {
@@ -163,7 +199,7 @@ export function ReviewWorkbench() {
             {([['preview', '화면'], ['messages', `상태 문구${messages.length ? ` ${messages.length}` : ''}`], ['visible', `현재 문구 ${texts.length}`], ['source', '전체 문구 검색'], ['requests', `가상 요청 ${requests.length}`]] as const).map(([id, title]) => <button key={id} role="tab" tabIndex={tab === id ? 0 : -1} aria-selected={tab === id} aria-controls={`review-panel-${id}`} id={`review-tab-${id}`} onClick={() => changeTab(id)}>{title}</button>)}
           </div>
           <div className="review-size-controls">
-            <label><span className="sr-only">미리보기 너비</span><select value={width} onChange={event => resize(Number(event.target.value))}>{sizes.map(size => <option value={size} key={size}>{size}px{size === 390 ? ' · 모바일' : size === 768 ? ' · 태블릿' : size === 1280 ? ' · 데스크톱' : ''}</option>)}</select></label>
+            <label><span className="sr-only">미리보기 너비</span><select value={sizeKey} onChange={event => resize(event.target.value)}>{sizePresets.map(preset => <option value={preset.key} key={preset.key}>{preset.label}</option>)}</select></label>
             <button className="review-button" onClick={reload}>상태 초기화</button>
             <button className="review-button" onClick={() => { void copy(location.href) }}>링크 복사</button>
           </div>

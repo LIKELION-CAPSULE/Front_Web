@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 import { Icon } from '@/shared/ui/Icon'
 import { FloatingSurface } from '@/shared/ui/FloatingSurface'
-import { MvpGate } from '@/features/mvp/MvpGate'
 
 export function StudyDemoControls({ studying, onBreak, onReaction, onReturn }: {
   studying: boolean
@@ -41,7 +40,7 @@ export function StudyDemoControls({ studying, onBreak, onReaction, onReturn }: {
             <button type="button" onClick={() => run(onReturn)}>공부 복귀</button>
           </>}
           <Link to="/" onClick={close}>홈으로</Link>
-          <MvpGate label="내 크레딧" compact inline><span>내 크레딧</span></MvpGate>
+          <Link to="/credits" onClick={close}>내 크레딧</Link>
         </div>
       </FloatingSurface>
     </details>

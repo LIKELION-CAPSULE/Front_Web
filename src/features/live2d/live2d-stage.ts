@@ -1,12 +1,21 @@
 import type { Application } from 'pixi.js'
 import type { Live2DModel } from 'untitled-pixi-live2d-engine/cubism'
 import { createBlinkState, stepBlink, type BlinkState } from './blink.ts'
+import { computeStagePlacement } from './call-framing.ts'
 import {
-  BREATH_DEPTH, CUBISM_CORE_PATH, FALLBACK_EYE_BLINK_IDS, FOCUS_ORIGIN_Y, FOCUS_STRENGTH, OFFSET_PERCENT,
+  BREATH_DEPTH, CUBISM_CORE_PATH, FALLBACK_EYE_BLINK_IDS, FOCUS_ORIGIN_Y, FOCUS_STRENGTH,
 } from './live2d-constants.ts'
 
 export type Live2DLayout = { scale: number; offsetX: number; offsetY: number }
 export type Live2DStatus = 'loading' | 'ready' | 'error'
+export type Live2DLookOptions = {
+  /** Multiplier for head movement relative to gaze target (default 1). */
+  headScale?: number
+  /** Multiplier for eye-ball movement relative to gaze target (default 1). */
+  eyeScale?: number
+  /** Optional head tilt angle (ParamAngleZ) in degrees (default 0). */
+  tiltDeg?: number
+}
 
 type Engine = typeof import('untitled-pixi-live2d-engine/cubism')
 type Pixi = typeof import('pixi.js')
@@ -83,8 +92,13 @@ export class Live2DStage {
   /** The host the drawing buffer was last sized for; a new host is sized at once. */
   private sizedHost: HTMLElement | null = null
   private settleTimer: ReturnType<typeof setTimeout> | undefined
+  private frameWindow: Window | null = null
+  private externalFrame: number | null = null
   private destroyed = false
   private tracking = false
+  private paused = false
+  private lookOverride: { x: number; y: number; headScale: number; eyeScale: number; tiltDeg: number } | null = null
+  private lookAnim = { extraEyeX: 0, extraEyeY: 0, tiltDeg: 0 }
   private expression: string | null = null
   private blink: BlinkState = createBlinkState(performance.now())
   private readonly modelJsonUrl: string
@@ -147,6 +161,12 @@ export class Live2DStage {
     app.stage.addChild(model)
     this.startBlinking(model, settings)
     this.mount()
+    if (this.lookOverride) {
+      this.look(
+        clamp(this.lookOverride.x * this.lookOverride.headScale),
+        clamp(this.lookOverride.y * this.lookOverride.headScale),
+      )
+    }
     if (this.expression) void this.applyExpression()
     this.setStatus('ready')
   }
@@ -156,15 +176,49 @@ export class Live2DStage {
     const ids = group?.Ids?.length ? group.Ids : FALLBACK_EYE_BLINK_IDS
     const core = (model.internalModel as unknown as { coreModel: CoreModel }).coreModel
     const eyes: number[] = []
+    let eyeBallXIndex = -1
+    let eyeBallYIndex = -1
+    let angleZIndex = -1
     for (let index = 0; index < core.getParameterCount(); index++) {
-      if (ids.includes(core.getParameterId(index).getString().s)) eyes.push(index)
+      const id = core.getParameterId(index).getString().s
+      if (ids.includes(id)) eyes.push(index)
+      else if (id === 'ParamEyeBallX') eyeBallXIndex = index
+      else if (id === 'ParamEyeBallY') eyeBallYIndex = index
+      else if (id === 'ParamAngleZ') angleZIndex = index
     }
-    if (!eyes.length) return
     model.internalModel.on('beforeModelUpdate', () => {
-      const step = stepBlink(this.blink, performance.now())
-      this.blink = step.state
-      if (step.factor >= 1) return
-      for (const index of eyes) core.setParameterValueByIndex(index, core.getParameterValueByIndex(index) * step.factor)
+      if (eyes.length) {
+        const step = stepBlink(this.blink, performance.now())
+        this.blink = step.state
+        if (step.factor < 1) {
+          for (const index of eyes) core.setParameterValueByIndex(index, core.getParameterValueByIndex(index) * step.factor)
+        }
+      }
+      // Only apply extra eye/tilt offsets when lookAt() override is used (zero effect on existing callers).
+      const ov = this.lookOverride
+      const targetExtraX = ov ? clamp(ov.x * ov.eyeScale) - clamp(ov.x * ov.headScale) : 0
+      const targetExtraY = ov ? clamp(ov.y * ov.eyeScale) - clamp(ov.y * ov.headScale) : 0
+      const targetTilt = ov ? ov.tiltDeg : 0
+      if (
+        ov ||
+        Math.abs(this.lookAnim.extraEyeX) > 0.002 ||
+        Math.abs(this.lookAnim.extraEyeY) > 0.002 ||
+        Math.abs(this.lookAnim.tiltDeg) > 0.02
+      ) {
+        const ease = 0.16
+        this.lookAnim.extraEyeX += (targetExtraX - this.lookAnim.extraEyeX) * ease
+        this.lookAnim.extraEyeY += (targetExtraY - this.lookAnim.extraEyeY) * ease
+        this.lookAnim.tiltDeg += (targetTilt - this.lookAnim.tiltDeg) * ease
+        if (eyeBallXIndex >= 0 && Math.abs(this.lookAnim.extraEyeX) > 0.001) {
+          core.setParameterValueByIndex(eyeBallXIndex, clamp(core.getParameterValueByIndex(eyeBallXIndex) + this.lookAnim.extraEyeX))
+        }
+        if (eyeBallYIndex >= 0 && Math.abs(this.lookAnim.extraEyeY) > 0.001) {
+          core.setParameterValueByIndex(eyeBallYIndex, clamp(core.getParameterValueByIndex(eyeBallYIndex) + this.lookAnim.extraEyeY))
+        }
+        if (angleZIndex >= 0 && Math.abs(this.lookAnim.tiltDeg) > 0.01) {
+          core.setParameterValueByIndex(angleZIndex, core.getParameterValueByIndex(angleZIndex) + this.lookAnim.tiltDeg)
+        }
+      }
     })
   }
 
@@ -182,6 +236,7 @@ export class Live2DStage {
     const app = this.app
     const host = this.hosts.at(-1)
     this.observer?.disconnect()
+    this.stopExternalFrames()
     if (!app || !this.model) return
     if (!host) {
       app.canvas.remove()
@@ -191,8 +246,26 @@ export class Live2DStage {
     if (app.canvas.parentElement !== host) host.append(app.canvas)
     this.observer ??= new ResizeObserver(() => this.place())
     this.observer.observe(host)
-    app.ticker.start()
+    const view = host.ownerDocument?.defaultView
+    if (view && typeof window !== 'undefined' && view !== window) {
+      // The model and canvas are shared. PiP's visible window drives the same ticker
+      // so background throttling of the original tab does not freeze the character.
+      app.ticker.stop()
+      this.frameWindow = view
+      const tick = () => {
+        if (this.frameWindow !== view || this.destroyed) return
+        app.ticker.update(performance.now())
+        this.externalFrame = view.requestAnimationFrame(tick)
+      }
+      this.externalFrame = view.requestAnimationFrame(tick)
+    } else if (!this.paused) app.ticker.start()
     this.place()
+  }
+
+  private stopExternalFrames() {
+    if (this.frameWindow && typeof this.externalFrame === 'number') this.frameWindow.cancelAnimationFrame(this.externalFrame)
+    this.frameWindow = null
+    this.externalFrame = null
   }
 
   /**
@@ -218,13 +291,23 @@ export class Live2DStage {
       }
     }
     const { originalWidth, originalHeight } = model.internalModel
-    const fit = Math.min(width / originalWidth, height / originalHeight) * this.layout.scale
-    model.scale.set(fit)
+    const isCallTile =
+      typeof host.closest === 'function' &&
+      Boolean(host.closest('.connection-mate, .desktop-mate-stage, .mate-detail-portrait, .mate-welcome-stage'))
+    const placement = computeStagePlacement(
+      width,
+      height,
+      originalWidth,
+      originalHeight,
+      this.layout,
+      isCallTile ? 'call-height' : 'contain',
+    )
+    model.scale.set(placement.scale)
     model.anchor.set(0.5, 0.5)
     // Canvas coordinates: the canvas is centered on the tile, so its center is the tile's center.
     model.position.set(
-      app.renderer.width / 2 + (this.layout.offsetX / OFFSET_PERCENT) * width,
-      app.renderer.height / 2 + (this.layout.offsetY / OFFSET_PERCENT) * height,
+      app.renderer.width / 2 + (placement.centerX - width / 2),
+      app.renderer.height / 2 + (placement.centerY - height / 2),
     )
     // ResizeObserver runs after the ticker's animation frame. Resizing clears
     // the canvas, so repaint the newly placed model before the browser presents it.
@@ -238,11 +321,38 @@ export class Live2DStage {
     if (enabled) window.addEventListener('pointermove', this.onPointerMove, { passive: true })
     else {
       window.removeEventListener('pointermove', this.onPointerMove)
-      this.look(0, 0)
+      if (!this.lookOverride) this.look(0, 0)
     }
   }
 
+  /** Overrides cursor tracking with a fixed normalized gaze target (-1..1) and optional eye/head split. */
+  lookAt(x: number, y: number, options?: Live2DLookOptions) {
+    const headScale = options?.headScale ?? 1
+    const eyeScale = options?.eyeScale ?? 1
+    const tiltDeg = options?.tiltDeg ?? 0
+    this.lookOverride = { x: clamp(x), y: clamp(y), headScale, eyeScale, tiltDeg }
+    this.look(clamp(this.lookOverride.x * headScale), clamp(this.lookOverride.y * headScale))
+  }
+
+  /** Clears a fixed gaze override and resumes cursor tracking (or returns to front if tracking is off). */
+  clearLookOverride() {
+    if (!this.lookOverride) return
+    this.lookOverride = null
+    if (!this.tracking) this.look(0, 0)
+  }
+
+  /** Pauses or resumes the Pixi ticker when the tab is hidden. */
+  setPaused(paused: boolean) {
+    if (this.paused === paused) return
+    this.paused = paused
+    const app = this.app
+    if (!app || !this.hosts.length || this.frameWindow) return
+    if (paused) app.ticker.stop()
+    else app.ticker.start()
+  }
+
   private onPointerMove = (event: PointerEvent) => {
+    if (this.lookOverride) return
     const canvas = this.app?.canvas
     if (!canvas?.isConnected) return
     const rect = canvas.getBoundingClientRect()
@@ -284,6 +394,7 @@ export class Live2DStage {
   }
 
   private teardown() {
+    this.stopExternalFrames()
     window.removeEventListener('pointermove', this.onPointerMove)
     clearTimeout(this.settleTimer)
     this.settleTimer = undefined

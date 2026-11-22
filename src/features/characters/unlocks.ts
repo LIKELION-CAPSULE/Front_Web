@@ -8,6 +8,7 @@ type Content = {
   lockedDescription?: string
 }
 
+/** DUMMY_API:unlocks — provisional content and introductory unlock rules. */
 const contents: readonly Content[] = [
   { kind: '대사', name: '“내일도 와라”', description: '함께한 공부 시간', opensAfterStudy: true, lockedDescription: '함께 공부하면 열려요' },
   { kind: '모션', name: '손 흔들기', description: '첫 공부 완료', opensAfterStudy: true, lockedDescription: '첫 공부를 마치면 열려요' },

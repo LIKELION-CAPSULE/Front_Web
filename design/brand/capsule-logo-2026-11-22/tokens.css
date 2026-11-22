@@ -1,0 +1,6 @@
+:root {
+  --capsule-logo-black-primitive: #000000;
+  --capsule-logo-black: var(--capsule-logo-black-primitive);
+  --capsule-logo-white: #ffffff;
+  --capsule-guide-ink: #17171c;
+}

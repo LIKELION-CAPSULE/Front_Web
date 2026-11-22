@@ -1,5 +1,9 @@
 // Keep global CSS first in development; index.html also pins layer order before production CSS chunks.
 import '@/styles/index.css'
+import { captureReferralFromLocation } from '@/features/auth/referral-code'
+
+// Capture ?ref=<code> synchronously before React renders so forms auto-fill on direct entry.
+captureReferralFromLocation()
 
 const root = document.getElementById('root')
 
@@ -11,6 +15,8 @@ if (import.meta.env.DEV) {
   const named = window.name.startsWith('capsule-ui-review:') ? window.name.slice('capsule-ui-review:'.length) : null
   if (location.pathname === '/__review' || query || named) {
     void import('@/features/review/bootstrap').then(module => module.mountReview(root, query || named))
+  } else if (import.meta.env.VITE_DATA_SOURCE !== 'api') {
+    void import('@/features/local-demo/bootstrap').then(module => module.mountLocalDemo(root))
   } else {
     void Promise.all([import('@/app/bootstrap'), import('@/features/review/ReviewLauncher')])
       .then(([app, review]) => app.mountApp(root, <review.ReviewLauncher />))

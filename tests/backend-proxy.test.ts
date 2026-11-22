@@ -2,6 +2,15 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { proxyBackend } from '../server/backend-proxy.ts'
 
+test('gateway uses the current public API domain by default and preserves its wire envelope', async t => {
+  t.mock.method(globalThis, 'fetch', async (url: URL) => {
+    assert.equal(String(url), 'https://api.capsule.ai.kr/api/terms')
+    return Response.json({ success: true, data: { terms: [] } })
+  })
+  const response = await proxyBackend(new Request('https://front.example/api/backend/terms'), {})
+  assert.deepEqual(await response.json(), { success: true, data: { terms: [] } })
+})
+
 test('gateway maps only API paths and forwards only the refresh cookie and required headers', async t => {
   let target = ''
   let options: RequestInit | undefined

@@ -12,10 +12,21 @@ export class ApiError extends Error {
 }
 
 import { createSseParser, type SseEvent } from './sse.ts'
+import type { ApiResponse } from './types.ts'
 
 type Options = { method?: string; body?: unknown; auth?: boolean; signal?: AbortSignal }
 /** `events`: the reply was an event stream and every event was delivered. `json`: the server answered with plain JSON. */
 export type StreamResult<T> = { type: 'events' } | { type: 'json'; data: T }
+
+/** Decode the current wire envelope once. Raw payloads still support older servers and SSE done events. */
+export function unwrapApiResponse<T>(value: unknown): T {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const body = value as ApiResponse<T>
+    if (body.success === false) throw toApiError(502, value)
+    if (body.success === true) return (body.data ?? null) as T
+  }
+  return value as T
+}
 
 /** Access tokens stay in memory; refresh is serialized and uses an HttpOnly cookie. */
 export class ApiClient {
@@ -128,39 +139,53 @@ export class ApiClient {
     }
     return response
   }
-  /** Parses a JSON reply, throwing `ApiError` for error statuses. */
+  /** Parses the JSON envelope, throwing `ApiError` for HTTP or application failures. */
   private async read<T>(response: Response, options: Options): Promise<T> {
     const raw = await response.text()
     let data: unknown = null
     try { data = raw ? JSON.parse(raw) : null } catch { /* Error pages can be HTML. */ }
     if (!response.ok) throw toApiError(response.status, data)
     if (raw && data === null) throw new ApiError('서버 응답 형식을 확인하지 못했어요.', 502)
+    const payload = unwrapApiResponse<T>(data)
     // A read started before a successful write must not serve as the write's follow-up read.
     if (!['GET', 'HEAD'].includes((options.method ?? 'GET').toUpperCase())) this.reads.clear()
-    return data as T
+    return payload
   }
 }
 
 /** Builds the user-facing error for an error body (`{ code, message, detail }`) and status. */
-export function toApiError(status: number, data: unknown) {
+export function toApiError(status: number, data: unknown, fallbackMessage?: string) {
   const body = data && typeof data === 'object' ? data as Record<string, unknown> : {}
-  const message = typeof body.message === 'string' ? body.message : typeof body.error === 'string' ? body.error :
-    status === 401 ? '로그인이 필요해요.' : status === 403 ? '접근할 수 없어요.' :
-    status === 429 ? '요청이 많아요. 잠시 후 다시 시도해 주세요.' : `요청을 처리하지 못했어요. (${status})`
+  const fallback = fallbackMessage ?? (status === 401 ? '로그인이 필요해요.' : status === 403 ? '접근할 수 없어요.' :
+    status === 429 ? '요청이 많아요. 잠시 후 다시 시도해 주세요.' : `요청을 처리하지 못했어요. (${status})`)
+  const message = typeof body.message === 'string' ? body.message : typeof body.error === 'string' ? body.error : fallback
   const code = typeof body.code === 'string' ? body.code : undefined
   const detail = body.detail && typeof body.detail === 'object' ? body.detail as Record<string, unknown> : {}
-  return new ApiError(code && errorMessages[code] ? errorMessages[code] : message, status, code, detail)
+  const translated = code && Object.hasOwn(errorMessages, code) ? errorMessages[code] : undefined
+  return new ApiError(translated ?? (message === code ? fallback : message), status, code, detail)
 }
 
 const errorMessages: Record<string, string> = {
+  INVALID_REQUEST: '요청 내용을 확인해 주세요.', UNAUTHORIZED: '로그인이 필요해요.',
+  AUTH_TOKEN_EXPIRED: '로그인이 만료됐어요. 다시 로그인해 주세요.', REFRESH_TOKEN_INVALID: '다시 로그인해 주세요.',
+  NOT_FOUND: '요청한 정보를 찾지 못했어요.', METHOD_NOT_ALLOWED: '지원하지 않는 요청이에요.',
+  INTERNAL_ERROR: '서버에서 요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.',
+  INVALID_SETTING: '현재 설정을 사용할 수 없어요. 잠시 후 다시 시도해 주세요.',
   INVALID_CREDENTIALS: '이메일 또는 비밀번호를 확인해 주세요.', LOGIN_LOCKED: '로그인을 여러 번 실패했어요. 5분 뒤 다시 시도해 주세요.',
   INVALID_EMAIL: '이메일 주소를 확인해 주세요.', EMAIL_ALREADY_USED: '이미 가입한 이메일이에요.', INVALID_PASSWORD: '비밀번호는 8자 이상, 72바이트 이하로 입력해 주세요.',
   INVALID_NICKNAME: '닉네임은 1~20자로 입력해 주세요.', INVALID_CODE: '인증번호가 올바르지 않아요.', CODE_EXPIRED: '인증번호의 유효 시간이 지났어요.',
   VERIFICATION_EXPIRED: '이메일 인증이 만료됐어요. 인증번호를 다시 받아 주세요.', TERMS_REQUIRED: '필수 약관에 동의해 주세요.',
   TOO_MANY_REQUESTS: '요청이 많아요. 잠시 후 다시 시도해 주세요.', TOO_MANY_ATTEMPTS: '인증 시도 횟수를 초과했어요. 새 인증번호를 받아 주세요.',
-  INVALID_TARGET_MINUTES: '서버에서 이 목표 시간을 허용하지 않아요.', SESSION_ALREADY_IN_PROGRESS: '이미 진행 중인 공부가 있어요.',
-  SESSION_ENDED: '이미 종료된 공부예요. 리포트를 확인해 주세요.', INVALID_STUDY_TIME: '서버에서 공부 시간을 확인하지 못했어요.',
-  INVALID_MEMORY: '일정 이름과 날짜를 확인해 주세요.', SESSION_IN_PROGRESS: '아직 공부가 진행 중이에요.',
+  SOCIAL_AUTH_FAILED: '카카오 로그인을 완료하지 못했어요. 다시 시도해 주세요.', RESET_TOKEN_INVALID: '재설정 링크가 만료됐거나 이미 사용됐어요.',
+  AVATAR_NOT_FOUND: '선택한 아바타를 찾지 못했어요. 다시 선택해 주세요.',
+  ROOM_NOT_FOUND: '선택한 메이트를 찾지 못했어요.', SESSION_NOT_FOUND: '연결 정보를 찾지 못했어요.',
+  CHARACTER_NOT_IN_ROOM: '선택한 메이트와 연결할 수 없어요. 다시 선택해 주세요.',
+  CHARACTER_NOT_IN_SESSION: '현재 연결 중인 메이트에게만 보낼 수 있어요.',
+  ONBOARDING_REQUIRED: '프로필 설정을 완료해 주세요.', EVENT_NOT_FOUND: '상태 기록을 찾지 못했어요.',
+  INVALID_EVENT: '상태 기록을 저장하지 못했어요. 다시 시도해 주세요.', EMPTY_MESSAGE: '메시지를 입력해 주세요.',
+  INVALID_TARGET_MINUTES: '연결 시작에 필요한 시간 설정이 올바르지 않아요.', SESSION_ALREADY_IN_PROGRESS: '이미 진행 중인 연결이 있어요.',
+  SESSION_ENDED: '이미 종료된 연결이에요. 연결 기록을 확인해 주세요.', INVALID_STUDY_TIME: '서버에서 연결 시간을 확인하지 못했어요.',
+  INVALID_MEMORY: '일정 이름과 날짜를 확인해 주세요.', INVALID_DATE_RANGE: '조회 기간을 확인해 주세요.', SESSION_IN_PROGRESS: '아직 연결이 진행 중이에요.',
 }
 
 export const api = new ApiClient()

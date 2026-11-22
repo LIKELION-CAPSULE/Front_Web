@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { DeviceController, deviceErrorMessage } from '../src/features/media/device-controller.ts'
+import { readDevicePreferences, saveDevicePreferences } from '../src/features/media/device-preferences.ts'
 
 function fixture() {
   const track = new EventTarget() as MediaStreamTrack
@@ -93,4 +94,69 @@ test('unsupported contexts and device failures have actionable messages', async 
   assert.match(controller.getSnapshot().camera.error, /HTTPS/)
   assert.match(deviceErrorMessage(new DOMException('', 'NotFoundError'), 'camera'), /연결/)
   assert.match(deviceErrorMessage(new DOMException('', 'NotReadableError'), 'microphone'), /다른 앱/)
+})
+
+test('selecting idle devices stores the choice without permission requests, and requests use the exact device', async () => {
+  const calls: MediaStreamConstraints[] = []
+  const controller = new DeviceController(async constraints => { calls.push(constraints); return fixture().stream })
+  await controller.select('camera', 'usb-camera')
+  await controller.select('microphone', 'headset')
+  assert.equal(calls.length, 0)
+  await controller.requestBoth()
+  assert.deepEqual((calls[0]!.video as MediaTrackConstraints).deviceId, { exact: 'usb-camera' })
+  assert.deepEqual((calls[1]!.audio as MediaTrackConstraints).deviceId, { exact: 'headset' })
+  controller.stop()
+  assert.deepEqual(controller.getSelection(), { camera: 'usb-camera', microphone: 'headset' })
+})
+
+test('switching a live camera releases that camera and leaves the microphone running', async () => {
+  const camera = fixture(), replacement = fixture(), microphone = fixture()
+  const controller = new DeviceController(async constraints => constraints.audio ? microphone.stream
+    : (constraints.video as MediaTrackConstraints).deviceId ? replacement.stream : camera.stream)
+  await controller.requestBoth()
+  await controller.select('camera', 'usb-camera')
+  assert.equal(camera.stops(), 1)
+  assert.equal(controller.getSnapshot().camera.stream, replacement.stream)
+  assert.equal(controller.getSnapshot().microphone.stream, microphone.stream)
+  assert.equal(microphone.stops(), 0)
+  controller.stop()
+})
+
+test('changing a device during a pending request stops late tracks and preserves only the latest selection', async () => {
+  const first = deferred(), second = deferred(), stale = fixture(), current = fixture()
+  let calls = 0
+  const controller = new DeviceController(() => ++calls === 1 ? first.promise : second.promise)
+  const before = controller.request('camera')
+  const after = controller.select('camera', 'usb-camera')
+  second.resolve(current.stream)
+  assert.equal(await after, true)
+  first.resolve(stale.stream)
+  assert.equal(await before, false)
+  assert.equal(stale.stops(), 1)
+  assert.equal(controller.getSnapshot().camera.stream, current.stream)
+  controller.stop()
+})
+
+test('failed device switches report the failure without falling back to an unselected camera', async () => {
+  const camera = fixture()
+  const controller = new DeviceController(async constraints => {
+    if ((constraints.video as MediaTrackConstraints).deviceId) throw new DOMException('', 'OverconstrainedError')
+    return camera.stream
+  })
+  await controller.request('camera')
+  assert.equal(await controller.select('camera', 'removed-camera'), false)
+  assert.equal(camera.stops(), 1)
+  assert.equal(controller.getSnapshot().camera.status, 'error')
+  assert.equal(controller.getSnapshot().camera.stream, null)
+  assert.equal(controller.getSelection().camera, 'removed-camera')
+})
+
+test('device preferences reject malformed values and keep working when storage is unavailable', () => {
+  assert.deepEqual(readDevicePreferences({ getItem: () => '{' }), { camera: '', microphone: '' })
+  assert.deepEqual(readDevicePreferences({ getItem: () => JSON.stringify({ camera: [], microphone: 'headset' }) }), { camera: '', microphone: 'headset' })
+  assert.deepEqual(readDevicePreferences({ getItem: () => JSON.stringify({ camera: 'a'.repeat(1025), microphone: false }) }), { camera: '', microphone: '' })
+  let saved = ''
+  saveDevicePreferences({ setItem: (_key, value) => { saved = value } }, { camera: 'usb', microphone: 'headset' })
+  assert.deepEqual(readDevicePreferences({ getItem: () => saved }), { camera: 'usb', microphone: 'headset' })
+  assert.doesNotThrow(() => saveDevicePreferences({ setItem: () => { throw new Error('blocked') } }, { camera: '', microphone: '' }))
 })

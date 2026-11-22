@@ -1,5 +1,5 @@
 export type BackendEnv = { BACKEND_API_ORIGIN?: string }
-const DEFAULT_ORIGIN = 'https://backendlab-production-3052.up.railway.app'
+const DEFAULT_ORIGIN = 'https://api.capsule.ai.kr'
 const PREFIX = '/api/backend'
 
 /** Same-origin gateway: the browser keeps the backend refresh cookie HttpOnly. */

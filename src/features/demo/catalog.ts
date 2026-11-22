@@ -1,5 +1,6 @@
 import type { TierId } from './types'
 
+/** DUMMY_API:tier — provisional prices/features; no model or voice routing contract yet. */
 export const tiers: {
   id: TierId
   name: string
@@ -52,6 +53,7 @@ export const tiers: {
 export const tierById = (id: TierId) => tiers.find((tier) => tier.id === id) ?? tiers[0]!
 export const isTier = (id: unknown): id is TierId => tiers.some((tier) => tier.id === id)
 
+/** DUMMY_API:shop — legacy gift data retained after removal of the sending screen. */
 export const products = [
   {
     id: 'cheer',
@@ -103,6 +105,7 @@ export const products = [
   },
 ] as const
 
+/** DUMMY_API:payments — local credit/pass simulation, without a payment provider. */
 export const chargeProducts = [
   { id: 'charge-1000', name: '1,000 크레딧', amount: 1000, credits: 1000, bonus: 0, days: 0 },
   { id: 'charge-4900', name: '4,900 크레딧', amount: 4900, credits: 4900, bonus: 0, days: 0 },

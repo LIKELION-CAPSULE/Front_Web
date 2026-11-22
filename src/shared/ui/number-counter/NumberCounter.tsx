@@ -23,8 +23,10 @@ export function NumberCounter({ value, delay = 0, duration = 1.8, instant = fals
   const rootRef = useRef<HTMLSpanElement>(null)
   const played = useRef(false)
   const [displayValue, setDisplayValue] = useState(0)
+  const [settledTarget, setSettledTarget] = useState<number | null>(null)
   const reduced = useReducedMotion()
   const target = Number.isFinite(value) ? value : 0
+  const isSettled = reduced || target === 0 || (displayValue === target && settledTarget === target)
   const numberFormat = { useGrouping: true, ...format }
   const formatter = new Intl.NumberFormat('ko-KR', numberFormat)
   const parts = formatter.formatToParts(target)
@@ -58,7 +60,7 @@ export function NumberCounter({ value, delay = 0, duration = 1.8, instant = fals
 
   const durationMs = reduced ? 0 : Math.max(0, duration) * 1000
   return (
-    <span ref={rootRef} data-counter-trigger className={cn('number-counter', className)} {...props}>
+    <span ref={rootRef} data-counter-trigger data-counter-settled={isSettled ? 'true' : undefined} className={cn('number-counter', className)} {...props}>
       <span className="sr-only">{finalText}</span>
       <span className="number-counter-reserve" aria-hidden="true">{finalText}</span>
       <NumberFlow
@@ -72,6 +74,7 @@ export function NumberCounter({ value, delay = 0, duration = 1.8, instant = fals
         transformTiming={{ duration: durationMs, easing: 'ease-out' }}
         spinTiming={{ duration: durationMs, easing: 'ease-out' }}
         opacityTiming={{ duration: reduced ? 0 : Math.max(250, duration * 450), easing: 'ease-out' }}
+        onAnimationsFinish={() => setSettledTarget(target)}
       />
     </span>
   )

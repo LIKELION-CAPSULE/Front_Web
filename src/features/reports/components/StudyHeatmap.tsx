@@ -1,6 +1,6 @@
 import { FloatingSurface } from '@/shared/ui/FloatingSurface'
-import { useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
-import { duration } from '@/shared/lib/format'
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { measuredDuration as duration } from '@/shared/lib/format'
 import type { studyHeatmap } from '../heatmap-data'
 import './study-heatmap.css'
 
@@ -22,6 +22,22 @@ export function StudyHeatmap({
   const [level, setLevel] = useState<number | null>(null)
   const tooltipId = useId()
   const hovered = data.cells.find((cell) => cell.day === hover?.day)
+  useLayoutEffect(() => {
+    const scroll = rootRef.current?.querySelector<HTMLElement>('.heatmap-scroll')
+    if (!data.annual || !scroll) return
+    const reveal = () => {
+      const cell = scroll.querySelector<HTMLButtonElement>('[data-selected="true"]')
+      if (!cell?.getClientRects().length) return
+      const bounds = scroll.getBoundingClientRect(), target = cell.getBoundingClientRect()
+      const inset = parseFloat(getComputedStyle(scroll).paddingLeft) || 10
+      if (target.left < bounds.left + inset) scroll.scrollLeft += target.left - bounds.left - inset
+      else if (target.right > bounds.left + scroll.clientWidth - inset) scroll.scrollLeft += target.right - bounds.left - scroll.clientWidth + inset
+    }
+    reveal()
+    const observer = new ResizeObserver(reveal)
+    observer.observe(scroll)
+    return () => observer.disconnect()
+  }, [data.annual, selected])
   function show(cell: Cell, target: HTMLButtonElement) {
     const root = rootRef.current!.getBoundingClientRect(),
       box = target.getBoundingClientRect()
@@ -58,14 +74,13 @@ export function StudyHeatmap({
       ref={rootRef}
       className={`study-heatmap${data.annual ? ' study-heatmap--year' : ''}`}
       style={style}
-      data-hovering={!!hover}
       data-highlight-level={level ?? undefined}
     >
       <div
         className="heatmap-scroll"
         tabIndex={data.annual ? 0 : undefined}
         role="region"
-        aria-label={data.annual ? '연간 공부 히트맵' : '공부 시간 히트맵'}
+        aria-label={data.annual ? '연간 함께한 시간 히트맵' : '함께한 시간 히트맵'}
         onScroll={() => setHover(null)}
       >
         {data.annual ? (
@@ -101,7 +116,7 @@ export function StudyHeatmap({
           <div
             className="heatmap-cells"
             role="group"
-            aria-label="날짜별 공부 기록"
+            aria-label="날짜별 함께한 기록"
             onPointerLeave={() => setHover(null)}
           >
             {data.cells.map((cell) => (
@@ -116,7 +131,7 @@ export function StudyHeatmap({
                 disabled={cell.disabled}
                 tabIndex={selected === cell.day ? 0 : -1}
                 aria-pressed={selected === cell.day}
-                aria-label={`${cell.day.replaceAll('-', '.')} · ${cell.seconds ? duration(cell.seconds) : '공부 기록 없음'}`}
+                aria-label={`${cell.day.replaceAll('-', '.')} · ${cell.seconds ? duration(cell.seconds) : '기록 없음'}`}
                 aria-describedby={hover?.day === cell.day ? tooltipId : undefined}
                 style={
                   {
@@ -140,7 +155,7 @@ export function StudyHeatmap({
       <div
         className="heatmap-scale"
         role="group"
-        aria-label="공부 시간 색상 범례"
+        aria-label="함께한 시간 색상 범례"
         onPointerLeave={() => setLevel(null)}
       >
         <span>적게</span>

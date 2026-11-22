@@ -49,3 +49,13 @@ test('network failures stay available to the original operation error handler', 
   const failure = new Error('offline')
   await assert.rejects(accountScope(() => 1).wait(Promise.reject(failure)), error => error === failure)
 })
+
+test('an old rejection cannot reach the new account conflict handler', async () => {
+  let generation = 1, reject!: (reason: Error) => void
+  const pending = new Promise<void>((_resolve, fail) => { reject = fail })
+  const operation = accountScope(() => generation).wait(pending)
+  const rejection = assert.rejects(operation, { code: 'AUTH_SESSION_CHANGED', status: 401 })
+  generation++
+  reject(Object.assign(new Error('old conflict'), { status: 409 }))
+  await rejection
+})

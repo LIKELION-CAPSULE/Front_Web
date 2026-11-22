@@ -1,10 +1,10 @@
-export type AccountRequest = { view: 'profile' | 'schedule'; openEditor: boolean }
+export type AccountRequest = { view: 'profile' | 'settings' }
 
 export function accountRequest(search: string): AccountRequest | null {
   const params = new URLSearchParams(search)
   const view = params.get('account')
-  return view === 'profile' || view === 'schedule'
-    ? { view, openEditor: view === 'schedule' && params.get('add') === '1' }
+  return view === 'profile' || view === 'settings' || view === 'schedule'
+    ? { view: view === 'schedule' ? 'settings' : view }
     : null
 }
 
@@ -13,14 +13,13 @@ export function closeAccountRequest(search: string): string {
   if (!request) return search
   const params = new URLSearchParams(search)
   params.delete('account')
-  if (request.openEditor) params.delete('add')
+  if (new URLSearchParams(search).get('account') === 'schedule') params.delete('add')
   return params.size ? `?${params}` : ''
 }
 
-/** Preserve old profile/calendar links without keeping a separate account page. */
+/** Retired calendar links open settings without reviving schedule creation. */
 export function legacyAccountDestination(search: string, hash: string): string {
   const add = new URLSearchParams(search).get('add') === '1'
-  const params = new URLSearchParams({ account: add || hash === '#schedule' ? 'schedule' : 'profile' })
-  if (add) params.set('add', '1')
+  const params = new URLSearchParams({ account: add || hash === '#schedule' ? 'settings' : 'profile' })
   return `/?${params}`
 }

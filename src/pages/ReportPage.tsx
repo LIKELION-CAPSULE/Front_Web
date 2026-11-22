@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useParams, useSearchParams } from 'react-router'
+import { Navigate, useParams, useSearchParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { PageNavigation } from '@/app/PageNavigation'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
@@ -17,27 +17,29 @@ import { ButtonLink } from '@/shared/ui/Button'
 import { OverlayPage } from '@/shared/ui/OverlayPage'
 import { Tabs } from '@/shared/ui/Tabs'
 import { Icon } from '@/shared/ui/Icon'
+import { useBackend } from '@/features/backend/backend-context'
 import { useServerReport } from '@/features/backend/use-server-report'
 import { PageSkeleton } from '@/shared/ui/PageSkeleton'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Button } from '@/shared/ui/Button'
 import { ServerStudySettlement } from '@/features/reports/components/ServerStudySettlement'
+import { tierById } from '@/features/demo/catalog'
+import { DummyNotice } from '@/features/dummy/DummyNotice'
 import { ProgressRing } from '@/shared/ui/ProgressRing'
 import { recordFocusPercent } from '@/features/session/focus'
 import '@/features/reports/report-completion.css'
-import { isMvpCharacter, isMvpRoom } from '@/features/mvp/policy'
-import MvpUnavailablePage from './MvpUnavailablePage'
 
 export default function ReportPage() {
   const { recordId } = useParams()
   const [params, setParams] = useSearchParams()
   const { state } = useDemo()
-  const { record, error, retry } = useServerReport(recordId)
+  const backend = useBackend()
+  const { record, error, retry, redirectTo } = useServerReport(recordId)
   const room = record && getStudyRoom(record.roomId)
   const gains = useMemo(() => record ? Object.fromEntries(record.characterIds.map(id => [id, reportStudyLevel(state.records, record, id)])) : {}, [record, state.records])
+  if (redirectTo) return <Navigate to={redirectTo} replace state={redirectTo === '/' ? { notice: 'report-not-found' } : undefined} />
   if (!record || !room) return error ? <OverlayPage><FeedbackMessage tone="error">{error}</FeedbackMessage><Button onClick={retry}>다시 시도</Button></OverlayPage> : <PageSkeleton screen="report" />
-  if (!room.serverRoom && !isMvpRoom(room.id)) return <OverlayPage><MvpUnavailablePage /></OverlayPage>
-  const participants = room.characters.filter(character => (character.serverCharacter || isMvpCharacter(character.id)) && record.characterIds.includes(character.id))
+  const participants = room.characters.filter(character => record.characterIds.includes(character.id))
   const friends = participants.length ? participants : [room.characters[0]!]
   const character = friends.find(friend => friend.id === params.get('friend')) ?? friends[0]!
   const measured = !!record.serverReport || record.observedSeconds !== undefined
@@ -64,6 +66,7 @@ export default function ReportPage() {
           </section>
         </div>
         <section className="report-content report-glass" aria-labelledby="report-title">
+          {record.dataSource === 'dummy' && <DummyNotice>체험용 공부 기록이에요. 서버에 저장되지 않아요.</DummyNotice>}
           <header className="report-overview">
             <div className="report-summary">
               <h1 id="report-title" className="type-page-title">공부를 마쳤어요</h1>
@@ -73,7 +76,7 @@ export default function ReportPage() {
             <div className="report-context">
               <p className="report-room-name">{room.name}</p>
               <div className="report-session-meta">
-                {/* Conversation options can join this row when they return after MVP. */}
+                <span>{tierById(record.tier).name}</span>
                 <span><Icon name="clock" size={14} /><time dateTime={new Date(record.endedAt).toISOString()}>{dateLabel(record.endedAt, true)} 완료</time></span>
               </div>
               <div className="report-focus"><ProgressRing value={focusPercent} label="이번 공부 자리 지킴률"><strong>{focusPercent === null ? '—' : <><NumberCounter value={focusPercent} format={{ maximumFractionDigits: 1 }} /><small>%</small></>}</strong></ProgressRing><span>자리 지킴률</span></div>
@@ -88,7 +91,7 @@ export default function ReportPage() {
             {record.serverReport ? record.serverReport.relation && <ServerStudySettlement relation={record.serverReport.relation} studySeconds={record.studySeconds} name={character.name} /> : friends.map(friend => gains[friend.id] && <StudyLevelGain key={`${record.id}:${friend.id}`} name={friend.name} gain={gains[friend.id]!} />)}
           </div>
           {!record.serverReport && <div className="report-affection">
-            {friends.map(friend => <AffectionStatus key={friend.id} name={friend.name} score={affectionScore(state, friend.id)} current animate />)}
+            {friends.map(friend => <AffectionStatus key={friend.id} name={friend.name} score={friend.serverCharacter ? backend.affinities[friend.id]?.points ?? friend.relation?.points ?? null : affectionScore(state, friend.id)} current animate />)}
           </div>}
           <div className="report-actions"><ButtonLink to="/" variant="secondary">홈으로</ButtonLink><ButtonLink to={`/capsules/${record.id}?friend=${character.id}`} state={{ capsuleIntro: true }} className="report-capsule-cta"><span>캡슐 카드 만들기</span></ButtonLink></div>
         </section>

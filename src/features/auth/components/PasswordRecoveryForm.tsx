@@ -4,6 +4,7 @@ import { Button } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { FormField } from '@/shared/ui/FormField'
 import { api, ApiError } from '@/shared/api/client'
+import type { EmailRequest, PasswordResetRequest } from '@/shared/api/types'
 
 export function PasswordRecoveryForm({ token, onReset, defaultEmail, onBusyChange }: { token?: string; onReset?: () => void; defaultEmail?: string; onBusyChange?: (busy: boolean) => void } = {}) {
   const id = useId()
@@ -11,7 +12,7 @@ export function PasswordRecoveryForm({ token, onReset, defaultEmail, onBusyChang
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [invalidToken, setInvalidToken] = useState(false)
-  return <form className="mt-6 space-y-5" onSubmit={async event => {
+  return <form className="mt-6 space-y-5 [--form-input-border:var(--color-input-border)]" onSubmit={async event => {
     event.preventDefault()
     if (busy) return
     const data = new FormData(event.currentTarget)
@@ -21,7 +22,7 @@ export function PasswordRecoveryForm({ token, onReset, defaultEmail, onBusyChang
     setBusy(true); onBusyChange?.(true); setError('')
     try {
       await api.request(token ? '/auth/password/reset' : '/auth/password/reset-request', {
-        method: 'POST', auth: false, body: token ? { token, newPassword: password } : { email: String(data.get('email')).trim() },
+        method: 'POST', auth: false, body: token ? { token, newPassword: password } satisfies PasswordResetRequest : { email: String(data.get('email')).trim() } satisfies EmailRequest,
       })
       setDone(true)
       if (token) onReset?.()

@@ -31,13 +31,13 @@ test('room details retain the server banner separately from the list thumbnail',
   assert.equal(room({ id: 11, name: '이전 룸', characters: [] }).bannerUrl, undefined)
 })
 
-test('server time corrects a skewed local clock and retains the three minute goal', () => {
+test('server time corrects a skewed local clock without restoring the retired study goal', () => {
   const localNow = Date.parse('2026-11-05T02:55:02Z')
   const active = session({ ...base, startedAt }, localNow)
   assert.equal(active.serverOffsetMs, 300_000)
   assert.equal(active.elapsedMs, 2000)
   assert.equal(active.startedAt, Date.parse('2026-11-05T02:55:00Z'))
-  assert.equal(active.targetSeconds, 180)
+  assert.equal(active.targetSeconds, undefined)
 })
 
 test('resume starts at returned study time and never includes server break time', () => {
@@ -57,4 +57,20 @@ test('report values and closing line come from the server without a fabricated t
   assert.equal(result.focusSeconds, 1)
   assert.equal(result.targetSeconds, undefined)
   assert.equal(result.serverReport?.closingLine, '서버 완료 대사')
+})
+
+test('temporary display names leave source room, model identity and report data untouched', () => {
+  const character = { id: 42, name: '말포이 TS', profileImageUrl: '/original.webp' }
+  const sourceRoom = { id: 11, name: '기존 룸', characters: [character] }
+  const adaptedRoom = room(sourceRoom)
+  assert.equal(adaptedRoom.characters[0]?.id, '42')
+  assert.equal(adaptedRoom.characters[0]?.name, '채린')
+  assert.equal(adaptedRoom.characters[0]?.artworkId, 'chaerin')
+  assert.equal(sourceRoom.characters[0]?.name, '말포이 TS')
+  const sourceReport = { sessionId: 512, character, startedAt, endedAt: serverTime, studySeconds: 2, presentSeconds: 1, awaySeconds: 1, returnCount: 0 }
+  const adaptedReport = report(sourceReport, '11')
+  assert.equal(adaptedReport.characterName, '채린')
+  assert.deepEqual(adaptedReport.characterIds, ['42'])
+  assert.equal(adaptedReport.serverReport, sourceReport)
+  assert.equal(adaptedReport.serverReport?.character?.name, '말포이 TS')
 })

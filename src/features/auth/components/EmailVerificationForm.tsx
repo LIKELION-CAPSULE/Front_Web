@@ -5,9 +5,8 @@ import { useNow } from '@/features/session/use-now'
 import { Icon } from '@/shared/ui/Icon'
 import { Button } from '@/shared/ui/Button'
 import { api } from '@/shared/api/client'
-import type { ExpiresResponse, VerificationResponse } from '@/shared/api/types'
-
-const resendCooldownMs = 30_000
+import type { ConfirmRequest, EmailRequest, ExpiresResponse, VerificationResponse } from '@/shared/api/types'
+import { EMAIL_VERIFICATION_RESEND_MS } from '@/shared/api/constraints'
 
 export function EmailVerificationForm({ email, expiresAt: initialExpiresAt, onBack, onVerified }: {
   email: string
@@ -16,7 +15,7 @@ export function EmailVerificationForm({ email, expiresAt: initialExpiresAt, onBa
   onVerified: (token: string) => Promise<void>
 }) {
   const [expiresAt, setExpiresAt] = useState(initialExpiresAt)
-  const [resendAt, setResendAt] = useState(() => Date.now() + resendCooldownMs)
+  const [resendAt, setResendAt] = useState(() => Date.now() + EMAIL_VERIFICATION_RESEND_MS)
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState<'verify' | 'signup' | 'resend' | null>(null)
   const pending = useRef(false)
@@ -38,7 +37,7 @@ export function EmailVerificationForm({ email, expiresAt: initialExpiresAt, onBa
     pending.current = true
     setBusy('verify'); setError(''); setNotice('')
     try {
-      const result = await api.request<VerificationResponse>('/auth/email/verification/confirm', { method: 'POST', auth: false, body: { email, code: value } })
+      const result = await api.request<VerificationResponse>('/auth/email/verification/confirm', { method: 'POST', auth: false, body: { email, code: value } satisfies ConfirmRequest })
       if (!result.verificationToken) throw new Error('인증 응답을 확인하지 못했어요.')
       if (!mounted.current) return
       setBusy('signup')
@@ -53,11 +52,11 @@ export function EmailVerificationForm({ email, expiresAt: initialExpiresAt, onBa
     pending.current = true
     setBusy('resend'); setError(''); setNotice('')
     try {
-      const result = await api.request<ExpiresResponse>('/auth/email/verification', { method: 'POST', auth: false, body: { email } })
+      const result = await api.request<ExpiresResponse>('/auth/email/verification', { method: 'POST', auth: false, body: { email } satisfies EmailRequest })
       if (!result.expiresInSeconds) throw new Error('인증 유효 시간을 확인하지 못했어요.')
       const sentAt = Date.now()
       setExpiresAt(sentAt + result.expiresInSeconds * 1000)
-      setResendAt(sentAt + resendCooldownMs)
+      setResendAt(sentAt + EMAIL_VERIFICATION_RESEND_MS)
       setCode(''); setNotice('인증번호를 다시 보냈어요.')
     } catch (reason) { setError(reason instanceof Error ? reason.message : '재전송하지 못했어요.') }
     finally { pending.current = false; setBusy(null) }
@@ -79,7 +78,7 @@ export function EmailVerificationForm({ email, expiresAt: initialExpiresAt, onBa
       {error && <FeedbackMessage id={`${id}-error`} tone="error">{error}</FeedbackMessage>}
       {notice && <FeedbackMessage tone="info">{notice}</FeedbackMessage>}
       <Button type="submit" className="w-full" loading={busy === 'verify' || busy === 'signup'} disabled={!!busy || code.length !== 6 || seconds === 0}>인증하고 가입하기</Button>
-      <button type="button" disabled={!!busy || resendCoolingDown} title={resendCoolingDown ? '인증번호를 받은 뒤 30초 후에 다시 받을 수 있어요.' : undefined} onClick={() => { void resend() }} className="min-h-11 w-full text-body-compact text-muted underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-40">인증번호 다시 받기</button>
+      <button type="button" disabled={!!busy || resendCoolingDown} title={resendCoolingDown ? '인증번호를 받은 뒤 60초 후에 다시 받을 수 있어요.' : undefined} onClick={() => { void resend() }} className="min-h-11 w-full text-body-compact text-muted underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-40">인증번호 다시 받기</button>
     </form>
   </>
 }

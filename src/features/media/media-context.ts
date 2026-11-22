@@ -1,11 +1,12 @@
 import { createContext, useContext } from 'react'
-import type { DeviceController } from './device-controller'
+import type { DeviceController, DeviceSelection } from './device-controller'
 import type { SegmentationClient } from './segmentation-client'
 import type { BehaviorMonitor } from './behavior-monitor'
 import type { MediaSnapshot, Observation, VisionStatus } from './types'
 
 export const MediaContext = createContext<{
   devices: MediaSnapshot
+  selectedDevices: DeviceSelection
   controller: DeviceController
   vision: VisionStatus | null
   observation: Observation | null

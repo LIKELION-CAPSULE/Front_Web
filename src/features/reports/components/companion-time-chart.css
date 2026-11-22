@@ -74,6 +74,10 @@
 .companion-chart-legend button:hover {
   opacity: 1;
 }
+.companion-chart-legend button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
 .companion-chart-person {
   min-width: 54px;
 }
