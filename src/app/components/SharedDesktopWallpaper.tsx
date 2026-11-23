@@ -143,6 +143,8 @@ export function SharedDesktopWallpaperProvider({ children }: { children: ReactNo
 
   const isMobile = viewport.w < 768
   const canRender3D = webgl2Available && !reducedMotion && !isMobile && !lowPower
+  // Mate engine does not depend on viewport width (half-screen >=640 is supported; phones are gated by SCR-40)
+  const canRenderMate = webgl2Available && !reducedMotion && !lowPower
   const effectivePaused =
     routeMode === 'paused-static' ||
     degradationStage >= 2 ||
@@ -240,12 +242,13 @@ export function SharedDesktopWallpaperProvider({ children }: { children: ReactNo
       isMobile,
       lowPower,
       canRender3D,
+      canRenderMate,
       degradationStage,
       setDegradationStage,
       fps,
       setAuthOverride,
     }),
-    [webgl2Available, reducedMotion, isMobile, lowPower, canRender3D, degradationStage, fps, setAuthOverride],
+    [webgl2Available, reducedMotion, isMobile, lowPower, canRender3D, canRenderMate, degradationStage, fps, setAuthOverride],
   )
 
   const showStaticOverlay = !canRender3D || routeMode === 'paused-static'

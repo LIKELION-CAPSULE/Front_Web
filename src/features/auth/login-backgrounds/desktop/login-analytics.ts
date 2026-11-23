@@ -13,6 +13,9 @@ export type LoginDesktopEvent =
   | { name: 'login_desktop_icon_opened'; payload: { iconId: string } }
   | { name: 'login_photos_unlocked'; payload: { taps: number } }
   | { name: 'login_photo_viewed'; payload: { photoId: string } }
+  | { name: 'login_assemble_started'; payload: { method: 'drag' | 'click' | 'keyboard' } }
+  | { name: 'login_assemble_completed'; payload: { result: 'live' | 'static' } }
+  | { name: 'login_assemble_replayed'; payload: Record<string, never> }
 
 type LoginEventListener = (event: LoginDesktopEvent) => void
 

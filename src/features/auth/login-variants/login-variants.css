@@ -102,6 +102,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 300ms ease, visibility 300ms ease;
+}
+.login-variant-mate-caption[data-caption-visible='false'] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.login-variant-mate-caption[data-caption-immediate='true'] {
+  transition: none;
 }
 .login-variant-mate-name {
   display: inline-flex;
@@ -291,11 +302,17 @@
   .login-variant-mate-caption {
     display: none;
   }
+  [data-login-variant='assemble'] .login-variant-mate-caption[data-caption-visible='true'] {
+    display: flex;
+    top: 14px;
+    left: 14px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .login-variant-portrait-live2d,
-  .login-variant-portrait-stage[data-mate-mode='live2d'] .login-variant-portrait-fallback {
+  .login-variant-portrait-stage[data-mate-mode='live2d'] .login-variant-portrait-fallback,
+  .login-variant-mate-caption {
     transition: none;
   }
 }

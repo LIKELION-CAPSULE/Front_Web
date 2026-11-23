@@ -22,6 +22,8 @@ import {
 import { Dialog } from '@/shared/ui/Dialog'
 import { LOGIN_VARIANT_ASSET_DIR, loginVariantAssets } from './login-variant-assets'
 import { LOGIN_VARIANTS, LOGIN_VARIANT_LABELS, LOGIN_VARIANT_PARAM, type LoginVariant } from './login-variant'
+import { AssembleMateStage } from './assemble/AssembleMateStage'
+import type { AssembleForcePhase, AssemblePhase } from './assemble/assemble-machine'
 import { VariantMateStage } from './VariantMateStage'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import './login-variants.css'
@@ -44,7 +46,7 @@ function usePrefersReducedMotion(): boolean {
 }
 
 /** Mate reactions for the concept screens: greet, field focus, error, success. Same lines as the desktop login. */
-function useVariantReactions() {
+function useVariantReactions(autoGreet: boolean) {
   const [state, setState] = useState<MateReactionState>('idle')
   const [nonce, setNonce] = useState(0)
   const [speech, setSpeech] = useState<string | null>(null)
@@ -102,18 +104,20 @@ function useVariantReactions() {
   }, [])
 
   useEffect(() => {
-    const greet = setTimeout(() => {
-      if (stateRef.current === 'idle') apply('greet', { revertAfterMs: 4600 })
-    }, 1000)
+    const greet = autoGreet
+      ? setTimeout(() => {
+          if (stateRef.current === 'idle') apply('greet', { revertAfterMs: 4600 })
+        }, 1000)
+      : undefined
     const onSuccess = () => apply('success', { force: true, revertAfterMs: 1200 })
     window.addEventListener('capsule-desktop:login-success', onSuccess)
     return () => {
-      clearTimeout(greet)
+      if (greet) clearTimeout(greet)
       clearTimeout(bubbleTimer.current)
       clearTimeout(revertTimer.current)
       window.removeEventListener('capsule-desktop:login-success', onSuccess)
     }
-  }, [apply])
+  }, [apply, autoGreet])
 
   return { state, nonce, speech, apply, onFocusIn, onFocusOut }
 }
@@ -160,6 +164,26 @@ function IllustrationBackground({ showNote = true }: { showNote?: boolean }) {
   )
 }
 
+function parseAssembleForcePhase(search: string): AssembleForcePhase {
+  const raw = new URLSearchParams(search).get('assemble')?.trim().toLowerCase()
+  if (
+    raw === 'idle' ||
+    raw === 'live' ||
+    raw === 'exploding' ||
+    raw === 'meshing' ||
+    raw === 'assembling' ||
+    raw === 'static'
+  ) {
+    return raw
+  }
+  return null
+}
+
+function parseAssembleDisableEngine(search: string): boolean {
+  const raw = new URLSearchParams(search).get('assembleEngine')?.trim().toLowerCase()
+  return raw === 'none' || raw === '0' || raw === 'false'
+}
+
 export default function LoginVariantLayout({
   variant,
   showSwitcher,
@@ -167,14 +191,36 @@ export default function LoginVariantLayout({
   variant: Exclude<LoginVariant, 'desktop'>
   showSwitcher: boolean
 }) {
+  const location = useLocation()
   const sharedWallpaper = useSharedWallpaper()
   const localReducedMotion = usePrefersReducedMotion()
   const reducedMotion = sharedWallpaper?.reducedMotion ?? localReducedMotion
-  const canRender3D = sharedWallpaper?.canRender3D ?? !reducedMotion
+  const canRenderMate = sharedWallpaper?.canRenderMate ?? !reducedMotion
   const [mate] = useState(() => createLoginMateSource().selectMate())
   const [config, setConfig] = useState<DesktopShellWindowConfig | null>(null)
-  const reactions = useVariantReactions()
+  const reactions = useVariantReactions(variant !== 'assemble')
   const { apply } = reactions
+  const assembleForcePhase = useMemo(
+    () => (variant === 'assemble' ? parseAssembleForcePhase(location.search) : null),
+    [variant, location.search],
+  )
+  const assembleDisableEngine = useMemo(
+    () => (variant === 'assemble' ? parseAssembleDisableEngine(location.search) : false),
+    [variant, location.search],
+  )
+  const handleAssembleGreetBubble = useCallback(() => {
+    apply('greet', { revertAfterMs: 4600 })
+  }, [apply])
+  const [assembleCaption, setAssembleCaption] = useState<{ visible: boolean; immediate: boolean }>(() => ({
+    visible: assembleForcePhase === 'live' || assembleForcePhase === 'static',
+    immediate: assembleForcePhase === 'live' || assembleForcePhase === 'static' || reducedMotion,
+  }))
+  const handleAssemblePhaseChange = useCallback((phase: AssemblePhase, immediate: boolean) => {
+    const visible = phase === 'live' || phase === 'static'
+    setAssembleCaption({ visible, immediate })
+  }, [])
+  const captionVisible = variant !== 'assemble' || assembleCaption.visible
+  const captionImmediate = variant !== 'assemble' || assembleCaption.immediate || reducedMotion
 
   // The 3D desktop wallpaper sits behind every auth route; these concepts cover it, so stop rendering it.
   useEffect(() => {
@@ -217,7 +263,7 @@ export default function LoginVariantLayout({
               <img src={loginVariantAssets.fallbackBackground} alt="" aria-hidden="true" className="login-variant-bg-media login-variant-portrait-room" draggable={false} />
               <VariantMateStage
                 mate={mate}
-                allowLive2D={canRender3D}
+                allowLive2D={canRenderMate}
                 reactionState={reactions.state}
                 reactionNonce={reactions.nonce}
                 speech={reactions.speech}
@@ -225,10 +271,31 @@ export default function LoginVariantLayout({
               />
             </>
           )}
+          {variant === 'assemble' && (
+            <>
+              <img src={loginVariantAssets.fallbackBackground} alt="" aria-hidden="true" className="login-variant-bg-media login-variant-portrait-room" draggable={false} />
+              <AssembleMateStage
+                mate={mate}
+                allowLive2D={canRenderMate}
+                reducedMotion={reducedMotion}
+                reactionState={reactions.state}
+                reactionNonce={reactions.nonce}
+                forcePhase={assembleForcePhase}
+                disableEngine={assembleDisableEngine}
+                onGreetBubbleReady={handleAssembleGreetBubble}
+                onPhaseChange={handleAssemblePhaseChange}
+              />
+            </>
+          )}
           <div className="login-variant-scrim" />
         </div>
 
-        <div className="login-variant-mate-caption">
+        <div
+          className="login-variant-mate-caption"
+          data-caption-visible={captionVisible ? 'true' : 'false'}
+          data-caption-immediate={captionImmediate ? 'true' : undefined}
+          aria-hidden={!captionVisible || undefined}
+        >
           <span className="login-variant-mate-name">
             <span className="desktop-mate-dot" aria-hidden="true" />
             {mate.name}

@@ -1,0 +1,323 @@
+{
+  "model": "chaerin-v2 (Aliving2D)",
+  "outfit": "default",
+  "frame": {
+    "width": 3840,
+    "height": 3840,
+    "modelCanvas": [
+      1280,
+      1280
+    ],
+    "scale": 3,
+    "note": "Rendered with engine.js at 3x the model canvas (1280x1280 -> 3840x3840), neutral params, view setView(1, 640, 640). Model px = frame px / 3."
+  },
+  "layers": [
+    {
+      "id": "back-hair",
+      "label": "뒷머리",
+      "z": 0,
+      "image": "back-hair.webp",
+      "x": 1005,
+      "y": 84,
+      "width": 1821,
+      "height": 2799,
+      "mesh": {
+        "image": "back-hair.mesh.webp",
+        "x": 998,
+        "y": 77,
+        "width": 1835,
+        "height": 2788,
+        "grids": 1
+      },
+      "poly": {
+        "image": "back-hair.poly.svg",
+        "vertices": 1069,
+        "edges": 2606,
+        "box": "same as layer"
+      }
+    },
+    {
+      "id": "skirt",
+      "label": "치마",
+      "z": 1,
+      "image": "skirt.webp",
+      "x": 1149,
+      "y": 2307,
+      "width": 1530,
+      "height": 1182,
+      "mesh": {
+        "image": "skirt.mesh.webp",
+        "x": 1186,
+        "y": 2300,
+        "width": 1473,
+        "height": 1196,
+        "grids": 1
+      },
+      "poly": {
+        "image": "skirt.poly.svg",
+        "vertices": 367,
+        "edges": 942,
+        "box": "same as layer"
+      }
+    },
+    {
+      "id": "body",
+      "label": "셔츠·넥타이·목·손",
+      "z": 2,
+      "image": "body.webp",
+      "x": 852,
+      "y": 762,
+      "width": 2124,
+      "height": 2988,
+      "mesh": {
+        "image": "body.mesh.webp",
+        "x": 863,
+        "y": 755,
+        "width": 2102,
+        "height": 2916,
+        "grids": 3
+      },
+      "poly": {
+        "image": "body.poly.svg",
+        "vertices": 870,
+        "edges": 2030,
+        "box": "same as layer"
+      }
+    },
+    {
+      "id": "face",
+      "label": "얼굴·귀·코·볼터치",
+      "z": 3,
+      "image": "face.webp",
+      "x": 1567,
+      "y": 341,
+      "width": 712,
+      "height": 701,
+      "mesh": {
+        "image": "face.mesh.webp",
+        "x": 1561,
+        "y": 334,
+        "width": 725,
+        "height": 703,
+        "grids": 4
+      },
+      "poly": {
+        "image": "face.poly.svg",
+        "vertices": 126,
+        "edges": 287,
+        "box": "same as layer"
+      }
+    },
+    {
+      "id": "mouth",
+      "label": "입",
+      "z": 4,
+      "image": "mouth.webp",
+      "x": 1878,
+      "y": 897,
+      "width": 88,
+      "height": 25,
+      "mesh": {
+        "image": "mouth.mesh.webp",
+        "x": 1871,
+        "y": 891,
+        "width": 101,
+        "height": 38,
+        "grids": 1
+      },
+      "poly": {
+        "image": "mouth.poly.svg",
+        "vertices": 12,
+        "edges": 21,
+        "box": "same as layer"
+      }
+    },
+    {
+      "id": "eyes",
+      "label": "흰자·눈동자",
+      "z": 5,
+      "image": "eyes.webp",
+      "x": 1688,
+      "y": 665,
+      "width": 461,
+      "height": 96,
+      "mesh": {
+        "image": "eyes.mesh.webp",
+        "x": 1682,
+        "y": 659,
+        "width": 473,
+        "height": 108,
+        "grids": 9
+      },
+      "poly": {
+        "image": "eyes.poly.svg",
+        "vertices": 84,
+        "edges": 186,
+        "box": "same as layer"
+      }
+    },
+    {
+      "id": "lashes",
+      "label": "눈꺼풀·속눈썹",
+      "z": 6,
+      "image": "lashes.webp",
+      "x": 1624,
+      "y": 646,
+      "width": 583,
+      "height": 127,
+      "mesh": {
+        "image": "lashes.mesh.webp",
+        "x": 1624,
+        "y": 640,
+        "width": 590,
+        "height": 140,
+        "grids": 8
+      },
+      "poly": {
+        "image": "lashes.poly.svg",
+        "vertices": 141,
+        "edges": 318,
+        "box": "same as layer"
+      }
+    },
+    {
+      "id": "brows",
+      "label": "눈썹",
+      "z": 7,
+      "image": "brows.webp",
+      "x": 1653,
+      "y": 593,
+      "width": 523,
+      "height": 49,
+      "mesh": {
+        "image": "brows.mesh.webp",
+        "x": 1648,
+        "y": 587,
+        "width": 535,
+        "height": 51,
+        "grids": 2
+      },
+      "poly": {
+        "image": "brows.poly.svg",
+        "vertices": 62,
+        "edges": 115,
+        "box": "same as layer"
+      }
+    },
+    {
+      "id": "front-hair",
+      "label": "앞머리(+머리 위 눈썹)",
+      "z": 8,
+      "image": "front-hair.webp",
+      "x": 1276,
+      "y": 88,
+      "width": 1244,
+      "height": 1246,
+      "mesh": {
+        "image": "front-hair.mesh.webp",
+        "x": 1283,
+        "y": 84,
+        "width": 1230,
+        "height": 1249,
+        "grids": 3
+      },
+      "poly": {
+        "image": "front-hair.poly.svg",
+        "vertices": 506,
+        "edges": 1102,
+        "box": "same as layer"
+      }
+    }
+  ],
+  "full": {
+    "image": "full.webp",
+    "x": 860,
+    "y": 92,
+    "width": 2108,
+    "height": 3650
+  },
+  "rig": {
+    "note": "Decorative rig overlay (estimated joints in the neutral pose, 3x frame px). Not the engine deformation.",
+    "joints": {
+      "head": [
+        1920,
+        750
+      ],
+      "neck": [
+        1920,
+        1155
+      ],
+      "chest": [
+        1920,
+        1560
+      ],
+      "hip": [
+        1920,
+        2310
+      ],
+      "shoulderL": [
+        1335,
+        1350
+      ],
+      "shoulderR": [
+        2505,
+        1350
+      ],
+      "elbowL": [
+        1215,
+        2310
+      ],
+      "elbowR": [
+        2625,
+        2310
+      ],
+      "wristL": [
+        1014,
+        3270
+      ],
+      "wristR": [
+        2826,
+        3270
+      ]
+    },
+    "bones": [
+      [
+        "head",
+        "neck"
+      ],
+      [
+        "neck",
+        "chest"
+      ],
+      [
+        "chest",
+        "hip"
+      ],
+      [
+        "neck",
+        "shoulderL"
+      ],
+      [
+        "neck",
+        "shoulderR"
+      ],
+      [
+        "shoulderL",
+        "elbowL"
+      ],
+      [
+        "elbowL",
+        "wristL"
+      ],
+      [
+        "shoulderR",
+        "elbowR"
+      ],
+      [
+        "elbowR",
+        "wristR"
+      ]
+    ]
+  },
+  "polyNote": "*.poly.svg = decorative contour-following triangle mesh (Live2D ArtMesh look) generated from each layer alpha; viewBox = layer box. Edges are sorted top->bottom for a draw-on sweep."
+}

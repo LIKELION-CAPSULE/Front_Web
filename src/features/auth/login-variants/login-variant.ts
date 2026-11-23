@@ -1,16 +1,20 @@
 /**
  * Login screen concepts for PM comparison.
- * - desktop: the shipped "laptop desktop" login (default)
+ * - assemble: DMG-style Chaerin assembly into full-bleed Live2D (default)
+ * - desktop: the previous "laptop desktop" login
  * - illustration: full-bleed illustration with the form on the right
  * - portrait: the mate's face fills the screen (Live2D close-up)
  *
  * Selected with `?login=<variant>` and remembered for the tab (sessionStorage) so that
- * moving between 시작하기 / 로그인 / 회원가입 keeps the same concept. `?login=desktop` clears it.
+ * moving between 시작하기 / 로그인 / 회원가입 keeps the same concept. `?login=assemble` resets to default.
  */
-export const LOGIN_VARIANTS = ['desktop', 'illustration', 'portrait'] as const
+export const LOGIN_VARIANTS = ['assemble', 'desktop', 'illustration', 'portrait'] as const
 export type LoginVariant = (typeof LOGIN_VARIANTS)[number]
 
+export const DEFAULT_LOGIN_VARIANT: LoginVariant = 'assemble'
+
 export const LOGIN_VARIANT_LABELS: Record<LoginVariant, string> = {
+  assemble: '조립',
   desktop: '바탕화면',
   illustration: '일러스트',
   portrait: '얼굴 크게',
@@ -29,13 +33,13 @@ type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
 /**
  * Resolves the variant from the query first, then the remembered value.
- * Writes the query value to storage (or clears it for `desktop`) so later in-app navigations keep it.
+ * Writes the query value to storage (or clears it for the default `assemble`) so later in-app navigations keep it.
  */
 export function resolveLoginVariant(search: string, storage: StorageLike | null): LoginVariant {
   const fromQuery = parseLoginVariant(new URLSearchParams(search).get(LOGIN_VARIANT_PARAM))
   if (fromQuery) {
     try {
-      if (fromQuery === 'desktop') storage?.removeItem(LOGIN_VARIANT_STORAGE_KEY)
+      if (fromQuery === DEFAULT_LOGIN_VARIANT) storage?.removeItem(LOGIN_VARIANT_STORAGE_KEY)
       else storage?.setItem(LOGIN_VARIANT_STORAGE_KEY, fromQuery)
     } catch {
       // Storage blocked: the query still applies for this render.
@@ -43,9 +47,9 @@ export function resolveLoginVariant(search: string, storage: StorageLike | null)
     return fromQuery
   }
   try {
-    return parseLoginVariant(storage?.getItem(LOGIN_VARIANT_STORAGE_KEY)) ?? 'desktop'
+    return parseLoginVariant(storage?.getItem(LOGIN_VARIANT_STORAGE_KEY)) ?? DEFAULT_LOGIN_VARIANT
   } catch {
-    return 'desktop'
+    return DEFAULT_LOGIN_VARIANT
   }
 }
 

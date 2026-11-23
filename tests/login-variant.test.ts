@@ -19,21 +19,25 @@ function memoryStorage() {
 }
 
 test('parseLoginVariant accepts known variants case-insensitively and rejects others', () => {
+  assert.equal(parseLoginVariant('Assemble'), 'assemble')
   assert.equal(parseLoginVariant('Portrait'), 'portrait')
   assert.equal(parseLoginVariant(' illustration '), 'illustration')
+  assert.equal(parseLoginVariant('desktop'), 'desktop')
   assert.equal(parseLoginVariant('video'), null)
   assert.equal(parseLoginVariant('poster'), null)
   assert.equal(parseLoginVariant(null), null)
 })
 
-test('resolveLoginVariant prefers the query, remembers it, and clears it for desktop', () => {
+test('resolveLoginVariant defaults to assemble, remembers overrides, and clears on assemble', () => {
   const storage = memoryStorage()
-  assert.equal(resolveLoginVariant('', storage), 'desktop')
+  assert.equal(resolveLoginVariant('', storage), 'assemble')
   assert.equal(resolveLoginVariant('?login=illustration', storage), 'illustration')
   assert.equal(storage.map.get(LOGIN_VARIANT_STORAGE_KEY), 'illustration')
   assert.equal(resolveLoginVariant('?mode=signup', storage), 'illustration')
   assert.equal(hasExplicitLoginVariant('?mode=signup', storage), true)
   assert.equal(resolveLoginVariant('?login=desktop', storage), 'desktop')
+  assert.equal(storage.map.get(LOGIN_VARIANT_STORAGE_KEY), 'desktop')
+  assert.equal(resolveLoginVariant('?login=assemble', storage), 'assemble')
   assert.equal(storage.map.has(LOGIN_VARIANT_STORAGE_KEY), false)
   assert.equal(hasExplicitLoginVariant('', storage), false)
 })
@@ -45,8 +49,8 @@ test('resolveLoginVariant survives blocked storage', () => {
     removeItem: () => { throw new Error('blocked') },
   }
   assert.equal(resolveLoginVariant('?login=portrait', blocked), 'portrait')
-  assert.equal(resolveLoginVariant('', blocked), 'desktop')
-  assert.equal(resolveLoginVariant('', null), 'desktop')
+  assert.equal(resolveLoginVariant('', blocked), 'assemble')
+  assert.equal(resolveLoginVariant('', null), 'assemble')
 })
 
 test('only /login switches concepts', () => {

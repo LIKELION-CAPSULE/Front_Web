@@ -19,6 +19,7 @@ export interface SharedWallpaperContextValue {
   isMobile: boolean
   lowPower: boolean
   canRender3D: boolean
+  canRenderMate: boolean
   degradationStage: 0 | 1 | 2 | 3
   setDegradationStage: (stage: 0 | 1 | 2 | 3) => void
   fps: number | null

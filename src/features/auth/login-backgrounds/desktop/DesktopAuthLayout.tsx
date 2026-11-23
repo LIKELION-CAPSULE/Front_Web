@@ -863,8 +863,9 @@ export default function DesktopAuthLayout() {
   const activeWindowId: DesktopWindowId = visibleWindows[visibleWindows.length - 1] ?? 'login'
 
   const canRender3D = sharedWallpaper?.canRender3D ?? (webgl2Available && !reducedMotion)
+  const canRenderMate = sharedWallpaper?.canRenderMate ?? (webgl2Available && !reducedMotion)
   const allowLive2D =
-    canRender3D && degradationStage < 3 && controls.live2dEnabled && mate.model !== null
+    canRenderMate && degradationStage < 3 && controls.live2dEnabled && mate.model !== null
 
   const relativeLoginDir =
     appRect.x + appRect.width / 2 - (rects.mate.x + rects.mate.width / 2)

@@ -5,7 +5,7 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['.temp/**', 'dist/**', '.vercel/**', 'node_modules/**', 'public/runtime/**', 'public/live2d/**'] },
+  { ignores: ['.temp/**', 'dist/**', '.vercel/**', 'node_modules/**', 'public/runtime/**', 'public/live2d/**', 'local-assets/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

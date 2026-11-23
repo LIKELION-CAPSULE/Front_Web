@@ -39,6 +39,9 @@ export function VariantMateStage({
   reactionNonce,
   speech,
   expressions,
+  hideFallback = false,
+  visibleOverride,
+  onStatusChange,
 }: {
   mate: LoginMateProfile
   allowLive2D: boolean
@@ -46,16 +49,29 @@ export function VariantMateStage({
   reactionNonce: number
   speech: string | null
   expressions: ExpressionMapping
+  hideFallback?: boolean
+  visibleOverride?: boolean
+  onStatusChange?: (status: Live2DStatus) => void
 }) {
   const hostRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Live2DStage | null>(null)
   const [status, setStatus] = useState<Live2DStatus>('loading')
   const latest = useRef({ reactionState, speech, expressions })
+  const onStatusChangeRef = useRef(onStatusChange)
   useEffect(() => {
     latest.current = { reactionState, speech, expressions }
   }, [reactionState, speech, expressions])
+  useEffect(() => {
+    onStatusChangeRef.current = onStatusChange
+  }, [onStatusChange])
 
   const shouldLoad = allowLive2D && mate.model !== null
+
+  useEffect(() => {
+    if (!shouldLoad) {
+      onStatusChangeRef.current?.('error')
+    }
+  }, [shouldLoad])
 
   useEffect(() => {
     const host = hostRef.current
@@ -78,13 +94,17 @@ export function VariantMateStage({
         unsubscribe = stage.subscribe(() => {
           const next = stage!.getStatus()
           setStatus(next)
+          onStatusChangeRef.current?.(next)
           if (next === 'ready') applyState(stage!, latest.current)
         })
         document.addEventListener('visibilitychange', onVisibility)
         onVisibility()
       })
       .catch(() => {
-        if (!cancelled) setStatus('error')
+        if (!cancelled) {
+          setStatus('error')
+          onStatusChangeRef.current?.('error')
+        }
       })
     return () => {
       cancelled = true
@@ -105,12 +125,15 @@ export function VariantMateStage({
   }, [reactionState, reactionNonce, speech, expressions, status])
 
   const ready = shouldLoad && status === 'ready'
+  const isVisible = visibleOverride !== undefined ? visibleOverride && ready : ready
 
   return (
-    <div className="login-variant-portrait-stage" data-mate-mode={ready ? 'live2d' : 'static'}>
-      <img src={mate.portraitImage} alt="" aria-hidden="true" className="login-variant-portrait-fallback" draggable={false} />
+    <div className="login-variant-portrait-stage" data-mate-mode={isVisible ? 'live2d' : 'static'}>
+      {!hideFallback && (
+        <img src={mate.portraitImage} alt="" aria-hidden="true" className="login-variant-portrait-fallback" draggable={false} />
+      )}
       {shouldLoad && (
-        <div className="login-variant-portrait-live2d" data-visible={ready}>
+        <div className="login-variant-portrait-live2d" data-visible={isVisible}>
           <div ref={hostRef} aria-hidden="true" className="live2d-host" data-status={status} style={{ background: 'transparent' }} />
         </div>
       )}
