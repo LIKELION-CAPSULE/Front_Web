@@ -32,6 +32,8 @@ export type MateReactionState =
   | 'legalReading'
   | 'secretFound'
   | 'shinyFound'
+  | 'photosPeek'
+  | 'photosOpen'
   | 'onboardingGreet'
   | 'avatarPicked'
   | 'nicknameSet'
@@ -51,6 +53,8 @@ export const MATE_REACTION_STATES: readonly MateReactionState[] = [
   'legalReading',
   'secretFound',
   'shinyFound',
+  'photosPeek',
+  'photosOpen',
   'onboardingGreet',
   'avatarPicked',
   'nicknameSet',
@@ -71,6 +75,8 @@ export const MATE_REACTION_LABELS: Record<MateReactionState, string> = {
   legalReading: '약관 읽기',
   secretFound: '숨은 글자',
   shinyFound: '이로치 발견',
+  photosPeek: '사진 폴더 연타',
+  photosOpen: '사진 공개',
   onboardingGreet: '온보딩 인사',
   avatarPicked: '아바타 선택',
   nicknameSet: '닉네임 설정',
@@ -113,62 +119,63 @@ export interface TimePalette {
   tubeContrastBoost: number
 }
 
-/** Time-of-day wallpaper palettes strictly within CAPSULE Violet / Blush / Neutral spectrum. */
+/** Time-of-day wallpaper palettes: night matches matte-silk violet reference (#5b2bd6 / #b9a3ff / #d6c8ff / #120a26),
+ * while morning (cool blue-lavender), day (bright airy lavender), sunset (warm rose-peach), and dawn are clearly distinct. */
 export const TIME_OF_DAY_PALETTES: Record<TimeOfDayBand, TimePalette> = {
   dawn: {
-    top: '#0B0A16',
-    mid: '#191433',
-    bottom: '#261C4A',
-    glow: '#502D96',
-    tubeBase: '#1E173B',
-    tubeSpec: '#9C7AF8',
-    rimColor: '#C4B9F3',
-    defaultLightAngle: 35,
-    tubeContrastBoost: 8,
+    top: '#150f29',
+    mid: '#231945',
+    bottom: '#342661',
+    glow: '#7858c2',
+    tubeBase: '#5c3fa3',
+    tubeSpec: '#c7b5f2',
+    rimColor: '#e2d7ff',
+    defaultLightAngle: 48,
+    tubeContrastBoost: 6,
   },
   morning: {
-    top: '#241B42',
-    mid: '#4C367C',
-    bottom: '#775393',
-    glow: '#D999BC',
-    tubeBase: '#453172',
-    tubeSpec: '#F4A9C9',
-    rimColor: '#F5F4F8',
-    defaultLightAngle: 68,
+    top: '#1a2444',
+    mid: '#2b3b69',
+    bottom: '#42568c',
+    glow: '#84a8f0',
+    tubeBase: '#5c72c4',
+    tubeSpec: '#bed4ff',
+    rimColor: '#e3eeff',
+    defaultLightAngle: 72,
     tubeContrastBoost: 0,
   },
   day: {
-    top: '#221948',
-    mid: '#4C3194',
-    bottom: '#6F4BD0',
-    glow: '#AC95F8',
-    tubeBase: '#452D88',
-    tubeSpec: '#D9D5F1',
-    rimColor: '#FAFAFD',
+    top: '#4e417d',
+    mid: '#7465ab',
+    bottom: '#9d90d4',
+    glow: '#d9d0ff',
+    tubeBase: '#8778c9',
+    tubeSpec: '#ebe5ff',
+    rimColor: '#ffffff',
     defaultLightAngle: 112,
     tubeContrastBoost: 0,
   },
   sunset: {
-    top: '#1B1330',
-    mid: '#52296F',
-    bottom: '#9A437E',
-    glow: '#F971B3',
-    tubeBase: '#4A2566',
-    tubeSpec: '#F4A9C9',
-    rimColor: '#F971B3',
+    top: '#1d0f24',
+    mid: '#341942',
+    bottom: '#56265c',
+    glow: '#e878a4',
+    tubeBase: '#7a3b8f',
+    tubeSpec: '#ff9fb8',
+    rimColor: '#ffc8a8',
     defaultLightAngle: 152,
     tubeContrastBoost: 0,
   },
   night: {
-    top: '#0D0C19',
-    mid: '#1C163A',
-    bottom: '#32205E',
-    glow: '#6B2CD1',
-    tubeBase: '#261D4C',
-    tubeSpec: '#B092FC',
-    rimColor: '#C4B9F3',
-    defaultLightAngle: 215,
-    tubeContrastBoost: 11,
+    top: '#120a26',
+    mid: '#170d30',
+    bottom: '#0e081f',
+    glow: '#5b2bd6',
+    tubeBase: '#5b2bd6',
+    tubeSpec: '#b9a3ff',
+    rimColor: '#d6c8ff',
+    defaultLightAngle: 205,
+    tubeContrastBoost: 8,
   },
 }
 
@@ -319,6 +326,8 @@ export const DEFAULT_EXPRESSION_MAPPING: ExpressionMapping = {
   legalReading: 'files/009.exp3.json',
   secretFound: 'files/010.exp3.json',
   shinyFound: 'files/006.exp3.json',
+  photosPeek: 'files/006.exp3.json',
+  photosOpen: 'files/009.exp3.json',
   onboardingGreet: 'files/009.exp3.json',
   avatarPicked: 'files/009.exp3.json',
   nicknameSet: 'files/009.exp3.json',
@@ -339,6 +348,8 @@ export const DEFAULT_REACTION_LINES: Record<MateReactionState, string | null> = 
   legalReading: '꼼꼼하네!',
   secretFound: '찾았네? 😏',
   shinyFound: '헉, 그거 엄청 드문 건데!',
+  photosPeek: '…왜 자꾸 눌러?',
+  photosOpen: '아 진짜, 알았어. 딱 몇 장만이야.',
   onboardingGreet: '이제 너에 대해 알려 줘!',
   avatarPicked: '오, 그거 잘 어울린다!',
   nicknameSet: '반가워!',
@@ -347,76 +358,88 @@ export const DEFAULT_REACTION_LINES: Record<MateReactionState, string | null> = 
 }
 
 /**
- * Tube geometry defaults (Apple Pro wallpaper aesthetic):
- * - Thin semi-gloss tubes (0.095, ~58% of v3's 0.165)
- * - Concentric parallel bundles (gap ≈ 0.78× tubeRadius, pitch = 2.78× tubeRadius)
+ * Layered matte-silk ribbon geometry defaults (macOS wallpaper reference aesthetic):
+ * - Broad flat-bevel ribbons stacked in 5–7 parallel layers with a crisp dark crevice between layers
  */
 export const TUBE_STYLE_DEFAULTS = {
   radius: 0.095,
-  gapRatio: 0.78, // gap between adjacent parallel tubes = 0.78 * radius
+  gapRatio: 0.78,
+} as const
+
+export const RIBBON_STYLE_DEFAULTS = {
+  ribbonWidth: 0.34,
+  ribbonDepth: 0.085,
+  layerGapRatio: 0.15,
+  decoyLayers: 5,
+  wordmarkLayers: 3,
 } as const
 
 /**
- * Orthogonal straight lines + exact 90°/180° circular arcs spelling "CAPSULE"
- * across 2 stacked rows (CAP / SULE), each integrated as a clean geometric ribbon.
+ * Looser, sweeping rounded ribbon paths spelling "CAPSULE" subtly across 2 rows (CAP / SULE).
+ * Very quiet in the dark background so it never clutters windows and is discovered only on close inspection.
  */
 export const HIDDEN_WORDMARK_SPECS: readonly RoundedPolylineSpec[] = [
-  // C (exact 90° corners, rounded)
+  // C
   {
     points: [
       [-1.42, 0.82],
-      [-1.96, 0.82],
-      [-1.96, 0.12],
+      [-1.98, 0.82],
+      [-1.98, 0.12],
       [-1.42, 0.12],
     ],
-    cornerRadius: 0.24,
-    tracks: 1,
+    cornerRadius: 0.34,
+    tracks: 3,
+    zBias: -0.18,
   },
-  // A (clean arch + horizontal bar)
+  // A
   {
     points: [
       [-1.14, 0.12],
-      [-1.14, 0.82],
-      [-0.58, 0.82],
-      [-0.58, 0.12],
+      [-1.14, 0.84],
+      [-0.56, 0.84],
+      [-0.56, 0.12],
     ],
-    cornerRadius: 0.24,
-    tracks: 1,
+    cornerRadius: 0.32,
+    tracks: 3,
+    zBias: -0.18,
   },
   {
     points: [
-      [-1.12, 0.44],
+      [-1.1, 0.44],
       [-0.6, 0.44],
     ],
-    cornerRadius: 0.1,
-    tracks: 1,
+    cornerRadius: 0.14,
+    tracks: 2,
+    zBias: -0.2,
   },
-  // P (exact stem + 90° rounded bowl)
+  // P
   {
     points: [
       [-0.26, 0.12],
-      [-0.26, 0.82],
-      [0.34, 0.82],
-      [0.34, 0.44],
+      [-0.26, 0.84],
+      [0.36, 0.84],
+      [0.36, 0.44],
       [-0.24, 0.44],
     ],
-    cornerRadius: 0.18,
-    tracks: 1,
+    cornerRadius: 0.24,
+    tracks: 3,
+    zBias: -0.18,
   },
-  // S (clean orthogonal S-bend with exact 90° fillets)
+  // S
   {
     points: [
       [-1.38, -0.14],
-      [-1.94, -0.14],
-      [-1.94, -0.48],
-      [-1.38, -0.48],
+      [-1.96, -0.14],
+      [-1.96, -0.49],
+      [-1.38, -0.49],
       [-1.38, -0.84],
-      [-1.94, -0.84],
+      [-1.96, -0.84],
     ],
-    cornerRadius: 0.16,
-    tracks: 1,
+    cornerRadius: 0.22,
+    tracks: 3,
+    zBias: -0.18,
   },
-  // U (clean 180° U-turn)
+  // U
   {
     points: [
       [-1.08, -0.14],
@@ -424,20 +447,22 @@ export const HIDDEN_WORDMARK_SPECS: readonly RoundedPolylineSpec[] = [
       [-0.52, -0.84],
       [-0.52, -0.14],
     ],
-    cornerRadius: 0.24,
-    tracks: 1,
+    cornerRadius: 0.32,
+    tracks: 3,
+    zBias: -0.18,
   },
-  // L (exact 90° elbow)
+  // L
   {
     points: [
       [-0.22, -0.14],
       [-0.22, -0.84],
       [0.34, -0.84],
     ],
-    cornerRadius: 0.2,
-    tracks: 1,
+    cornerRadius: 0.28,
+    tracks: 3,
+    zBias: -0.18,
   },
-  // E (spine + top/bottom + middle bar)
+  // E
   {
     points: [
       [1.22, -0.14],
@@ -445,169 +470,102 @@ export const HIDDEN_WORDMARK_SPECS: readonly RoundedPolylineSpec[] = [
       [0.64, -0.84],
       [1.22, -0.84],
     ],
-    cornerRadius: 0.18,
-    tracks: 1,
+    cornerRadius: 0.26,
+    tracks: 3,
+    zBias: -0.18,
   },
   {
     points: [
       [0.66, -0.49],
       [1.14, -0.49],
     ],
-    cornerRadius: 0.1,
-    tracks: 1,
+    cornerRadius: 0.14,
+    tracks: 2,
+    zBias: -0.2,
   },
 ]
 
 /**
- * Concentric 2-3 track parallel decoy bundles (straight lines + exact 90°/180° arcs)
- * framing and echoing the wordmark strokes across the entire viewport so "CAPSULE"
- * reads purely as an Apple-Pro-style geometric architectural ribbon pattern at default contrast.
+ * 4 large, sweeping edge-framing flat matte-silk ribbon bundles (4–5 parallel layers each).
+ * Wide single arcs (curvature radius > 35–50% of viewport height) entering & exiting screen edges,
+ * intentionally leaving >45% of the viewport (especially behind Login, Mate, and central app windows)
+ * as calm open dark space.
  */
 export const HIDDEN_DECOY_BUNDLES: readonly RoundedPolylineSpec[] = [
-  // Top horizontal 3-track framing bundle spanning full width
+  // 1. Top-left grand sweeping arch entering left edge and exiting upper edge
   {
     points: [
-      [-2.9, 1.16],
-      [0.58, 1.16],
-      [0.58, 0.82],
-      [2.9, 0.82],
+      [-2.85, 0.24],
+      [-1.55, 0.96],
+      [-0.22, 1.18],
+      [1.35, 1.66],
     ],
-    cornerRadius: 0.2,
-    tracks: 3,
+    cornerRadius: 0.85,
+    tracks: 5,
     offsetSign: 1,
+    zBias: 0.14,
+    smooth: true,
   },
-  // Upper-right architectural 3-track U-loop behind login window
+  // 2. Bottom-left grand sweeping curve framing the lower-left edge
   {
     points: [
-      [0.72, 0.12],
-      [0.72, 0.56],
-      [1.52, 0.56],
-      [1.52, 0.12],
-      [2.85, 0.12],
+      [-2.85, -0.44],
+      [-1.62, -0.92],
+      [-0.26, -1.16],
+      [1.15, -1.62],
     ],
-    cornerRadius: 0.2,
-    tracks: 3,
-    offsetSign: 1,
-  },
-  // Left edge 3-track vertical-to-horizontal return
-  {
-    points: [
-      [-2.9, 0.82],
-      [-2.36, 0.82],
-      [-2.36, -0.14],
-      [-2.9, -0.14],
-    ],
-    cornerRadius: 0.22,
-    tracks: 3,
+    cornerRadius: 0.85,
+    tracks: 5,
     offsetSign: -1,
+    zBias: 0.16,
+    smooth: true,
   },
-  // Mid-band horizontal 2-track divider weaving between Row 1 and Row 2
+  // 3. Right-edge grand sweeping curve framing the right margin
   {
     points: [
-      [-2.9, -0.01],
-      [-0.38, -0.01],
-      [-0.38, 0.12],
-      [0.46, 0.12],
-      [0.46, -0.01],
-      [2.9, -0.01],
+      [2.45, 1.62],
+      [1.62, 0.42],
+      [1.48, -0.56],
+      [2.38, -1.62],
     ],
-    cornerRadius: 0.08,
-    tracks: 2,
+    cornerRadius: 0.85,
+    tracks: 5,
     offsetSign: 1,
+    zBias: 0.18,
+    smooth: true,
   },
-  // Bottom horizontal 3-track framing bundle spanning full width
+  // 4. Far top-right subtle fold adding depth to the upper-right corner
   {
     points: [
-      [-2.9, -1.18],
-      [-0.4, -1.18],
-      [-0.4, -1.08],
-      [2.9, -1.08],
+      [0.82, 1.62],
+      [1.76, 1.02],
+      [2.85, 0.52],
     ],
-    cornerRadius: 0.16,
-    tracks: 3,
+    cornerRadius: 0.85,
+    tracks: 4,
+    offsetSign: 1,
+    zBias: 0.08,
+    smooth: true,
+  },
+]
+
+/**
+ * Auth-only lower-center ribbon sweep passing gently beneath the Mate & Login windows
+ * to reduce bottom-center emptiness on Login/Signup while keeping calm app screens unchanged.
+ */
+export const AUTH_LOWER_RIBBON_SPECS: readonly RoundedPolylineSpec[] = [
+  {
+    points: [
+      [-1.75, -1.32],
+      [-0.55, -0.88],
+      [0.68, -0.92],
+      [2.05, -1.34],
+    ],
+    cornerRadius: 0.95,
+    tracks: 4,
     offsetSign: -1,
-  },
-  // Far-right vertical 3-track return
-  {
-    points: [
-      [2.85, -0.14],
-      [1.62, -0.14],
-      [1.62, -0.84],
-      [2.85, -0.84],
-    ],
-    cornerRadius: 0.22,
-    tracks: 3,
-    offsetSign: 1,
-  },
-  // Inner concentric echoes wrapping C & A
-  {
-    points: [
-      [-1.42, 0.6],
-      [-1.72, 0.6],
-      [-1.72, 0.34],
-      [-1.42, 0.34],
-    ],
-    cornerRadius: 0.12,
-    tracks: 2,
-    offsetSign: 1,
-  },
-  // Inner concentric echo inside P & between A/P
-  {
-    points: [
-      [0.02, 0.12],
-      [0.02, 0.26],
-      [0.52, 0.26],
-      [0.52, 0.68],
-      [1.26, 0.68],
-    ],
-    cornerRadius: 0.14,
-    tracks: 2,
-    offsetSign: -1,
-  },
-  // Lower-left 2-track elbow beneath S
-  {
-    points: [
-      [-2.9, -0.48],
-      [-2.32, -0.48],
-      [-2.32, -0.84],
-      [-2.9, -0.84],
-    ],
-    cornerRadius: 0.16,
-    tracks: 2,
-    offsetSign: 1,
-  },
-  // Inner concentric U & L companion tracks
-  {
-    points: [
-      [-0.86, -0.14],
-      [-0.86, -0.62],
-      [-0.74, -0.62],
-      [-0.74, -0.14],
-    ],
-    cornerRadius: 0.08,
-    tracks: 2,
-    offsetSign: 1,
-  },
-  {
-    points: [
-      [0.04, -0.14],
-      [0.04, -0.62],
-      [0.44, -0.62],
-    ],
-    cornerRadius: 0.14,
-    tracks: 2,
-    offsetSign: 1,
-  },
-  // Far-right upper-edge 2-track framing
-  {
-    points: [
-      [1.86, 1.24],
-      [1.86, 0.44],
-      [2.85, 0.44],
-    ],
-    cornerRadius: 0.2,
-    tracks: 2,
-    offsetSign: -1,
+    zBias: 0.1,
+    smooth: true,
   },
 ]
 
@@ -875,3 +833,25 @@ export function writeDesktopParams(base: URLSearchParams, controls: DesktopContr
   }
   return next
 }
+
+/**
+ * 사진 폴더 이스터에그: 1.2초 안에 이어서 누른 횟수로 단계가 바뀐다.
+ * 2번(더블클릭) = 기존 "사진은 비밀이야." / 4번 = 당황 / 6번 = 폴더 열림.
+ */
+export const PHOTO_UNLOCK_CONFIG = {
+  folderId: 'photos-folder',
+  tapGapMs: 1200,
+  peekAt: 4,
+  openAt: 6,
+} as const
+
+/** 셀카 순서와 채린의 한마디. 파일은 src/assets/characters/chaerin-live2d-v1/selfies/selfie-01~04.webp */
+export const CHAERIN_SELFIES: readonly { id: string; title: string; line: string }[] = [
+  { id: 'selfie-01', title: '시험 끝난 날', line: '그거 시험 끝난 날이야. 해방!' },
+  { id: 'selfie-02', title: '창가 노을', line: '노을 예쁘길래. 너도 봤어야 했는데.' },
+  { id: 'selfie-03', title: '동네 고양이', line: '얘가 먼저 다가왔어. 진짜야.' },
+  { id: 'selfie-04', title: '딸기 라테', line: '이건… 그냥 맛있어서 찍은 거야.' },
+] as const
+
+export const PHOTO_LOCKED_LINE = '나머지는 더 친해지면.'
+

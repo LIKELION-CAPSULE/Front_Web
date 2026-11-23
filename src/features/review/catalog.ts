@@ -52,6 +52,8 @@ const passwordRequest = [...security, fill('input[name="email"]', 'review@exampl
 export const reviewScenarios: ReviewScenario[] = [
   { id: 'welcome', group: '로그인·가입', title: '로그인 시작', path: '/login', guest: true, note: '카카오·이메일 선택과 약관 안내' },
   { id: 'login', group: '로그인·가입', title: '이메일 로그인', path: '/login?mode=login', guest: true, note: '기본 입력·비밀번호 찾기' },
+  { id: 'login-alt-illustration', group: '로그인·가입', title: '로그인 시안 · 일러스트', path: '/login?login=illustration', guest: true, note: 'PM 비교용 시안. 일러스트 파일이 없으면 방 배경 + 메이트 렌더로 대체. 오른쪽 아래에서 시안 전환' },
+  { id: 'login-alt-portrait', group: '로그인·가입', title: '로그인 시안 · 얼굴 크게', path: '/login?login=portrait', guest: true, note: 'PM 비교용 시안. Live2D 얼굴 클로즈업, 비밀번호 입력 시 눈 감기 등 같은 반응' },
   { id: 'login-error', group: '로그인·가입', title: '로그인 실패', path: '/login?mode=login', guest: true, fault: 'login', steps: login, note: '잘못된 인증정보 안내' },
   { id: 'login-locked', group: '로그인·가입', title: '로그인 잠금', path: '/login?mode=login', guest: true, fault: 'locked', steps: login, note: '반복 실패·5분 뒤 재시도' },
   { id: 'signup', group: '로그인·가입', title: '회원가입', path: '/login?mode=signup', guest: true, note: '입력 항목·필수 약관 동의' },

@@ -18,6 +18,8 @@ export const REACTION_PRIORITY: Record<MateReactionState, number> = {
   nicknameSet: 4,
   secretFound: 5,
   shinyFound: 5,
+  photosPeek: 5,
+  photosOpen: 5,
   referralValid: 5,
   dragged: 6,
   passwordFocus: 7,
@@ -89,6 +91,7 @@ export function resolveGazeForState(
       }
     }
     case 'iconOpen':
+    case 'photosPeek':
       return {
         kind: 'fixed',
         x: -0.85,
@@ -107,6 +110,7 @@ export function resolveGazeForState(
         options: { eyeScale: 1, headScale: 0.7, tiltDeg: 0 },
       }
     case 'greet':
+    case 'photosOpen':
     case 'error':
     case 'success':
     case 'onboardingGreet':
@@ -137,6 +141,8 @@ export const REACTION_COOLDOWN_MS: Record<MateReactionState, number> = {
   legalReading: Number.POSITIVE_INFINITY, // once per visit
   secretFound: 6_000,
   shinyFound: 6_000,
+  photosPeek: 0,
+  photosOpen: 0,
   onboardingGreet: Number.POSITIVE_INFINITY, // once on open
   avatarPicked: 5_000,
   nicknameSet: 2_000,
@@ -166,6 +172,8 @@ export function buildExpressionRequestForState(
           state === 'avatarPicked' ||
           state === 'nicknameSet' ||
           state === 'referralValid' ||
+          state === 'photosPeek' ||
+          state === 'photosOpen' ||
           state === 'emailFocus'
         ? 'speech'
         : 'motion'

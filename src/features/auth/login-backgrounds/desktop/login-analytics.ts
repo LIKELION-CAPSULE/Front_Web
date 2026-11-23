@@ -11,6 +11,8 @@ export type LoginDesktopEvent =
   | { name: 'login_shiny_capsule_found'; payload: { x: number; y: number } }
   | { name: 'login_mate_window_moved'; payload: { x: number; y: number } }
   | { name: 'login_desktop_icon_opened'; payload: { iconId: string } }
+  | { name: 'login_photos_unlocked'; payload: { taps: number } }
+  | { name: 'login_photo_viewed'; payload: { photoId: string } }
 
 type LoginEventListener = (event: LoginDesktopEvent) => void
 

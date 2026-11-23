@@ -1,0 +1,301 @@
+/* PM comparison concepts for /login: illustration · portrait (big face).
+   Same form as the desktop login; only the stage around it changes. */
+
+.login-variant-root {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  container: login-variant / inline-size;
+  background: #0f0e17;
+  color: var(--color-ink);
+}
+
+/* ---------- Background layer ---------- */
+.login-variant-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.login-variant-bg-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 35% center;
+  user-select: none;
+}
+
+/* Right-side scrim keeps the form readable over any image. */
+.login-variant-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(15, 14, 23, 0) 38%, rgba(15, 14, 23, 0.55) 62%, rgba(15, 14, 23, 0.86) 100%),
+    linear-gradient(0deg, rgba(15, 14, 23, 0.55) 0%, rgba(15, 14, 23, 0) 28%);
+}
+
+/* Illustration fallback: room scene + mate render composed like a key visual */
+.login-variant-illustration-fallback .login-variant-bg-media {
+  filter: saturate(1.05);
+}
+.login-variant-illustration-mate {
+  position: absolute;
+  bottom: 0;
+  left: 30%;
+  height: min(94dvh, 1000px);
+  transform: translateX(-50%);
+  width: auto;
+  filter: drop-shadow(0 24px 60px rgba(0, 0, 0, 0.45));
+  user-select: none;
+}
+
+/* Portrait (big face): Live2D close-up fills the left ~62% */
+.login-variant-portrait-room {
+  filter: blur(6px) brightness(0.62) saturate(1.1);
+  transform: scale(1.06);
+}
+.login-variant-portrait-stage {
+  position: absolute;
+  inset: 0 38% 0 0;
+  overflow: hidden;
+}
+.login-variant-portrait-fallback {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  height: 210%;
+  width: auto;
+  max-width: none;
+  transform: translate(-50%, -6%);
+  user-select: none;
+}
+.login-variant-portrait-live2d {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+.login-variant-portrait-live2d[data-visible='true'] {
+  opacity: 1;
+}
+.login-variant-portrait-stage[data-mate-mode='live2d'] .login-variant-portrait-fallback {
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+[data-login-variant='portrait'] .login-variant-scrim {
+  background:
+    linear-gradient(90deg, rgba(15, 14, 23, 0) 52%, rgba(15, 14, 23, 0.7) 68%, rgba(15, 14, 23, 0.92) 100%),
+    linear-gradient(0deg, rgba(15, 14, 23, 0.5) 0%, rgba(15, 14, 23, 0) 22%);
+}
+
+/* ---------- Mate caption + speech bubble (bottom-left, over the mate) ---------- */
+.login-variant-mate-caption {
+  position: fixed;
+  top: 24px;
+  left: 28px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.login-variant-mate-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  background: rgba(15, 14, 23, 0.66);
+  padding: 5px 12px 5px 10px;
+  backdrop-filter: blur(12px);
+  font-size: 13px;
+  font-weight: 600;
+}
+.login-variant-ai-badge {
+  border-radius: 999px;
+  background: rgba(15, 14, 23, 0.66);
+  padding: 4px 10px;
+  backdrop-filter: blur(12px);
+  color: var(--color-subtle);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.login-variant-bubble-slot {
+  position: fixed;
+  bottom: clamp(28px, 7dvh, 72px);
+  left: clamp(24px, 30vw - 200px, 30vw);
+  z-index: 3;
+  width: min(420px, calc(100vw - 48px));
+  pointer-events: none;
+}
+[data-login-variant='portrait'] .login-variant-bubble-slot {
+  left: calc(31vw - 210px);
+}
+.login-variant-bubble {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 100%;
+  border-radius: 14px;
+  background: rgba(15, 14, 23, 0.84);
+  padding: 9px 16px 10px;
+  backdrop-filter: blur(14px) saturate(135%);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 22px;
+  word-break: keep-all;
+}
+.login-variant-bubble-name {
+  color: #c7b5ed;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+/* ---------- Form panel (right) ---------- */
+.login-variant-panel-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 32px clamp(24px, 6vw, 112px) 32px 24px;
+  /* the empty area must not swallow clicks meant for the background controls */
+  pointer-events: none;
+}
+.login-variant-panel-wrap > * {
+  pointer-events: auto;
+}
+.login-variant-panel {
+  width: min(440px, 100%);
+  max-height: calc(100dvh - 64px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgba(250, 250, 253, 0.1);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-surface-raised) 86%, transparent);
+  padding: 32px 34px 34px;
+  backdrop-filter: blur(22px) saturate(140%);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
+  user-select: text;
+}
+
+.login-variant-asset-note {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(240, 78, 102, 0.18);
+  padding: 5px 12px;
+  color: #ffc2cc;
+  font-size: 12px;
+}
+.login-variant-asset-note code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+/* ---------- Comparison switcher (only after ?login=… was used) ---------- */
+.login-variant-switcher {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(250, 250, 253, 0.12);
+  border-radius: 999px;
+  background: rgba(15, 14, 23, 0.82);
+  padding: 4px;
+  backdrop-filter: blur(14px);
+  font-size: 12px;
+}
+.login-variant-switcher-label {
+  padding: 0 6px 0 10px;
+  color: var(--color-subtle);
+}
+.login-variant-switcher-link {
+  border-radius: 999px;
+  padding: 5px 11px;
+  color: var(--color-muted);
+}
+.login-variant-switcher-link:hover {
+  color: var(--color-ink);
+}
+.login-variant-switcher-link[aria-current='true'] {
+  background: #7c5cf0;
+  color: #fff;
+}
+
+/* ---------- Half screen (container width) ---------- */
+@container login-variant (max-width: 959px) {
+  /* Half screen: mate fills the top half, the form follows below and the page scrolls. */
+  .login-variant-panel-wrap {
+    justify-content: center;
+    align-items: flex-start;
+    min-height: auto;
+    padding: max(46dvh, 300px) 20px 40px;
+  }
+  .login-variant-panel {
+    max-height: none;
+    overflow: visible;
+  }
+  .login-variant-scrim,
+  [data-login-variant='portrait'] .login-variant-scrim {
+    background: linear-gradient(0deg, rgba(15, 14, 23, 0.94) 0%, rgba(15, 14, 23, 0.72) 42%, rgba(15, 14, 23, 0) 64%);
+  }
+  .login-variant-portrait-stage {
+    inset: 0 0 auto 0;
+    height: max(60dvh, 380px);
+    transform: translateY(-14dvh);
+  }
+  .login-variant-asset-note {
+    top: 64px;
+    max-width: calc(100% - 32px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .login-variant-illustration-mate {
+    left: 50%;
+    top: 48px;
+    bottom: auto;
+    height: max(56dvh, 360px);
+  }
+  .login-variant-bg-media {
+    object-position: center 30%;
+  }
+  /* Delivered illustration: the mate sits at ~36% of the frame, keep her centered when cropped */
+  .login-variant-illustration-img {
+    object-position: 25% center;
+  }
+  .login-variant-bubble-slot,
+  [data-login-variant='portrait'] .login-variant-bubble-slot {
+    top: calc(max(46dvh, 300px) - 64px);
+    bottom: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(420px, calc(100% - 40px));
+    text-align: center;
+  }
+  .login-variant-mate-caption {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-variant-portrait-live2d,
+  .login-variant-portrait-stage[data-mate-mode='live2d'] .login-variant-portrait-fallback {
+    transition: none;
+  }
+}

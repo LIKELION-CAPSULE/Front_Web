@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "layout": {
+    "top": "CAP",
+    "bottom": "SULE"
+  },
+  "original": {
+    "file": "capsule-wallpaper-v2-original.png",
+    "size": [
+      1672,
+      941
+    ],
+    "bytes": 1828830
+  },
+  "webp": {
+    "file": "capsule-wallpaper-v2.webp",
+    "width": 2560,
+    "height": 1440,
+    "bytes": 278696
+  },
+  "processing": "Resized generated original and encoded WebP; no creative image edits outside imagegen",
+  "generator": "built-in imagegen",
+  "previousVersionPreserved": true
+}

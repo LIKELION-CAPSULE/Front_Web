@@ -1,14 +1,18 @@
 import * as THREE from 'three'
 
 export interface RoundedPolylineSpec {
-  /** Axis-aligned or clean geometric waypoints in 2D (world units before scale). */
+  /** Waypoints in 2D (world units before scale). */
   points: ReadonlyArray<readonly [number, number]>
-  /** Corner fillet radius for 90°/180° turns. */
+  /** Corner fillet radius for rounded polylines. */
   cornerRadius: number
-  /** Number of parallel concentric tracks in this bundle (1..3). */
+  /** Number of parallel concentric tracks/layers in this bundle (1..8). */
   tracks?: number
   /** Offset direction multiplier (+1 or -1) for multi-track bundles. */
   offsetSign?: 1 | -1
+  /** Optional Z depth bias so foreground ribbons can weave slightly in front of hidden wordmark strokes. */
+  zBias?: number
+  /** When true, uses a sweeping Catmull-Rom spline instead of orthogonal fillets (macOS silk ribbon wave). */
+  smooth?: boolean
 }
 
 /**
@@ -249,6 +253,172 @@ export function buildConcentricTubeBundles(
       const endCap = new THREE.Mesh(capGeo, material)
       endCap.position.copy(built.end)
       bundle.add(endCap)
+    }
+
+    group.add(bundle)
+    bundleGroups.push(bundle)
+  }
+
+  return { group, bundleGroups, geometries }
+}
+
+/**
+ * 6-point terraced flat matte-silk ribbon cross-section (width:depth ≈ 4:1):
+ * - Inner edge sits lower/recessed (-0.58 -> 0.08) and steps upward toward the outer rim (0.34 -> 0.48 -> 0.52)
+ *   so stacked sub-ribbons read like a cascading silk staircase.
+ */
+const RIBBON_PROFILE: ReadonlyArray<readonly [number, number, number]> = [
+  [-0.5, -0.58, 0.0],
+  [-0.46, 0.08, 0.12],
+  [-0.22, 0.34, 0.36],
+  [0.24, 0.48, 0.70],
+  [0.46, 0.52, 0.90],
+  [0.5, -0.45, 1.0],
+]
+
+/**
+ * Builds MacBook-style multi-layered parallel flat-bevel ribbons (5–8 layers per bundle),
+ * merging all layers of each bundle into a single BufferGeometry for low draw-call overhead.
+ * Stores per-vertex `aLayer` (0..1 normalized layer index) and `uv` (length, cross-section).
+ */
+export function buildLayeredRibbonBundles(
+  specs: ReadonlyArray<RoundedPolylineSpec>,
+  material: THREE.Material,
+  options: {
+    ribbonWidth: number
+    ribbonDepth: number
+    layerGapRatio: number
+    defaultLayers: number
+    worldScale?: number
+  },
+): {
+  group: THREE.Group
+  bundleGroups: THREE.Group[]
+  geometries: THREE.BufferGeometry[]
+} {
+  const {
+    ribbonWidth,
+    ribbonDepth,
+    layerGapRatio,
+    defaultLayers,
+    worldScale = 2.35,
+  } = options
+
+  const pitch = ribbonWidth * (1 + layerGapRatio)
+  const profileCount = RIBBON_PROFILE.length
+  const group = new THREE.Group()
+  const bundleGroups: THREE.Group[] = []
+  const geometries: THREE.BufferGeometry[] = []
+
+  const tmpPos = new THREE.Vector3()
+  const tmpTan = new THREE.Vector3()
+
+  for (const spec of specs) {
+    const bundle = new THREE.Group()
+    const layerCount = Math.max(1, spec.tracks ?? defaultLayers)
+    const sign = spec.offsetSign ?? 1
+    const zBias = spec.zBias ?? 0
+    const scaledPts = spec.points.map(([x, y]) => [x * worldScale, y * worldScale] as const)
+    const baseR = spec.cornerRadius * worldScale
+
+    const positions: number[] = []
+    const normals: number[] = []
+    const uvs: number[] = []
+    const layers: number[] = []
+    const indices: number[] = []
+    let vertexOffset = 0
+
+    for (let k = 0; k < layerCount; k++) {
+      const layerNorm = layerCount > 1 ? k / (layerCount - 1) : 0.5
+      const centeredIdx = k - (layerCount - 1) * 0.5
+      const dist = centeredIdx * pitch * sign
+      const offsetPts = offsetPolyline2D(scaledPts, dist)
+
+      const curve: THREE.Curve<THREE.Vector3> | null =
+        spec.smooth && offsetPts.length >= 3
+          ? new THREE.CatmullRomCurve3(
+              offsetPts.map(([x, y]) => new THREE.Vector3(x, y, 0)),
+              false,
+              'centripetal',
+              0.5,
+            )
+          : buildExactRoundedCurvePath(offsetPts, Math.max(ribbonWidth * 1.15, baseR - dist * 0.25))?.path ?? null
+      if (!curve) continue
+
+      const approxLen = curve.getLength()
+      const segments = Math.max(20, Math.min(48, Math.round(approxLen * 5.5)))
+      // Gentle Z-cascade so stacked flat silk ribbons layer cleanly without heavy parallax drift
+      const layerZ = zBias + layerNorm * 0.14 - 0.07
+
+      // Precompute smoothed curve points & tangents
+      const ringCenters: Array<{ x: number; y: number; nx: number; ny: number; uLen: number }> = []
+      for (let i = 0; i <= segments; i++) {
+        const u = i / segments
+        curve.getPointAt(u, tmpPos)
+        curve.getTangentAt(u, tmpTan)
+        const tLen = Math.hypot(tmpTan.x, tmpTan.y) || 1
+        const tx = tmpTan.x / tLen
+        const ty = tmpTan.y / tLen
+        // In-plane normal perpendicular to curve tangent
+        ringCenters.push({ x: tmpPos.x, y: tmpPos.y, nx: -ty, ny: tx, uLen: u })
+      }
+
+      for (let i = 0; i <= segments; i++) {
+        const c = ringCenters[i]!
+        // Subtle depth taper only at very ends so flat ribbons enter/exit screen edges smoothly
+        const endFade = Math.min(1, c.uLen / 0.05, (1 - c.uLen) / 0.05)
+        // RIBBON_PROFILE spans [-0.5 .. +0.5], so multiplying by ribbonWidth produces exact ribbonWidth (4:1 vs ribbonDepth) and 15% layer gap
+        const halfW = ribbonWidth
+        const depth = ribbonDepth * (0.4 + 0.6 * endFade)
+
+        for (let p = 0; p < profileCount; p++) {
+          const [latFactor, zFactor, uV] = RIBBON_PROFILE[p]!
+          const lat = latFactor * halfW
+          const px = c.x + c.nx * lat
+          const py = c.y + c.ny * lat
+          const pz = layerZ + zFactor * depth
+
+          positions.push(px, py, pz)
+          // Analytical cross-section normal (approximate smooth silk bevel)
+          const prevP = RIBBON_PROFILE[Math.max(0, p - 1)]!
+          const nextP = RIBBON_PROFILE[Math.min(profileCount - 1, p + 1)]!
+          const dLat = (nextP[0] - prevP[0]) * halfW
+          const dZ = (nextP[1] - prevP[1]) * depth
+          // Normal in (lateral, Z) plane rotated 90° toward +Z
+          const nLat = -dZ
+          const nZ = dLat
+          const nLen = Math.hypot(nLat, nZ) || 1
+          const worldNx = (c.nx * nLat) / nLen
+          const worldNy = (c.ny * nLat) / nLen
+          const worldNz = nZ / nLen
+          normals.push(worldNx, worldNy, worldNz)
+          uvs.push(c.uLen, uV)
+          layers.push(layerNorm)
+        }
+      }
+
+      for (let i = 0; i < segments; i++) {
+        for (let p = 0; p < profileCount - 1; p++) {
+          const a = vertexOffset + i * profileCount + p
+          const b = a + 1
+          const cIdx = a + profileCount
+          const d = cIdx + 1
+          indices.push(a, cIdx, b, b, cIdx, d)
+        }
+      }
+      vertexOffset += (segments + 1) * profileCount
+    }
+
+    if (positions.length > 0) {
+      const geo = new THREE.BufferGeometry()
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+      geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3))
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
+      geo.setAttribute('aLayer', new THREE.Float32BufferAttribute(layers, 1))
+      geo.setIndex(indices)
+      geo.computeBoundingSphere()
+      geometries.push(geo)
+      bundle.add(new THREE.Mesh(geo, material))
     }
 
     group.add(bundle)
