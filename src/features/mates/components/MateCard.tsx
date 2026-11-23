@@ -43,17 +43,7 @@ export function MateCard({ mate }: { mate: AvailableMate }) {
   }
 
   return (
-    <Link to={target} className="mate-card desktop-window" onClick={handleClick}>
-      <div className="desktop-window-titlebar mate-card-titlebar">
-        <div className="desktop-window-title-left">
-          <span className="mate-card-status-dot mate-card-status-dot--online" aria-hidden="true" />
-          <h3 className="mate-card-name">{mate.name}</h3>
-          <span className="mate-card-status-label">연결 가능</span>
-        </div>
-        <div className="desktop-window-title-right">
-          <span className="mate-age-badge">전연령</span>
-        </div>
-      </div>
+    <Link to={target} className="mate-card" onClick={handleClick}>
       <div className="mate-card-image">
         {!bgFailed && (
           <img
@@ -69,6 +59,8 @@ export function MateCard({ mate }: { mate: AvailableMate }) {
         )}
         <img
           src={matePortrait(mate.id, mate.image)}
+          width={800}
+          height={600}
           alt=""
           className="mate-card-char-img"
           loading="lazy"
@@ -77,6 +69,11 @@ export function MateCard({ mate }: { mate: AvailableMate }) {
         />
       </div>
       <div className="mate-card-copy">
+        <div className="mate-card-heading">
+          <h3 className="type-card-title">{mate.name}</h3>
+          <span className="mate-card-status-label mate-card-status-label--online">연결 가능</span>
+        </div>
+        <span className="mate-age-badge">전연령</span>
         {mate.introduction && <p>{mate.introduction}</p>}
         {mate.tags.length > 0 && (
           <div className="mate-tags">

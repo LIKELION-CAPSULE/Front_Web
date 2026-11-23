@@ -1,3 +1,4 @@
+import { AppPanel } from '@/shared/ui/AppPanel'
 import { useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
@@ -48,29 +49,9 @@ function RecordsWindowFrame({
   loadingScreen?: 'records'
   children: React.ReactNode
 }) {
-  return (
-    <section
-      className="records-window desktop-window desktop-window--active"
-      aria-labelledby="records-window-title"
-      data-loading-screen={loadingScreen}
-    >
-      <div className="desktop-window-titlebar mate-window-titlebar-static">
-        <div className="desktop-window-title-left">
-          <span id="records-window-title" className="desktop-mate-title">
-            CAPSULE — 함께한 기록
-          </span>
-        </div>
-        <div className="desktop-window-title-right">
-          <div className="desktop-window-controls" aria-hidden="true">
-            <span className="desktop-window-dot" />
-            <span className="desktop-window-dot" />
-            <span className="desktop-window-dot" />
-          </div>
-        </div>
-      </div>
-      <div className="desktop-window-body records-window-body">{children}</div>
-    </section>
-  )
+  return <AppPanel title="함께한 기록" className="records-window" loadingScreen={loadingScreen} bodyClassName="records-window-body">
+    {children}
+  </AppPanel>
 }
 
 function formatBarTooltip(bucket: BarBucket): string {

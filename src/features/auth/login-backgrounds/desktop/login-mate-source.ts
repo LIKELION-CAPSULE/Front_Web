@@ -1,3 +1,4 @@
+import loginChaerinHero from '@/assets/characters/chaerin-live2d-v1/chaerin-hero.webp'
 import {
   LOCAL_MODEL_URL,
   LOCAL_V2_ENGINE_URL,
@@ -56,7 +57,7 @@ function createDefaultChaerin(includeLocalModel: boolean): LoginMateProfile {
     id: 'chaerin',
     name: '채린',
     ageRating: '전연령',
-    portraitImage: chaerinArtwork.hero,
+    portraitImage: loginChaerinHero,
     callBackgroundImage: chaerinArtwork.callBackground.portrait,
     model: includeLocalModel
       ? {

@@ -278,7 +278,7 @@ export default function ConnectionPage() {
             )}
             {heroSrc && (
               <div className="connection-entry-portrait">
-                <img src={heroSrc} alt={mate.name} draggable={false} />
+                <img src={heroSrc} width={760} height={900} alt={mate.name} draggable={false} />
               </div>
             )}
           </div>
@@ -445,30 +445,30 @@ export default function ConnectionPage() {
             )}
           </div>
           <span className="desktop-mate-ai-badge">AI 캐릭터입니다</span>
-          <div className="connection-window-dots">
-            <button
-              type="button"
-              className="connection-dot connection-dot--red"
+          <div className="connection-window-actions">
+            <Button
+              variant="ghost"
+              size="sm"
               aria-label="연결 끊기 창 열기"
               title="연결 끊기"
               disabled={finishing}
               onClick={() => setLeaveOpen(true)}
-            />
-            <button
-              type="button"
-              className="connection-dot connection-dot--yellow"
+            ><Icon name="phoneOff" size={18} /></Button>
+            <Button
+              variant="ghost"
+              size="sm"
               aria-label="PIP 창으로 띄우기"
               title="PIP로 띄우기"
               disabled={pip.status === 'opening'}
               onClick={() => { void pip.open() }}
-            />
-            <button
-              type="button"
-              className="connection-dot connection-dot--green"
+            ><Icon name="shrink" size={18} /></Button>
+            <Button
+              variant="ghost"
+              size="sm"
               aria-label={isFullscreen ? '전체화면 종료' : '전체화면 전환'}
               title={isFullscreen ? '전체화면 종료' : '전체화면 전환'}
               onClick={toggleFullscreen}
-            />
+            ><Icon name="expand" size={18} /></Button>
           </div>
         </div>
       </header>
@@ -495,11 +495,11 @@ export default function ConnectionPage() {
               <div className="connection-mate-figure">
                 {backend.live2dStage ? (
                   <>
-                    {pip.window && <img src={matePortrait(mate.id, mate.image)} alt="" className="connection-mate-fallback-img" />}
+                    {pip.window && <img src={matePortrait(mate.id, mate.image)} width={800} height={600} alt="" className="connection-mate-fallback-img" />}
                     <Live2DFigure stage={backend.live2dStage} />
                   </>
                 ) : (
-                  <img src={matePortrait(mate.id, mate.image)} alt="" className="connection-mate-fallback-img" />
+                  <img src={matePortrait(mate.id, mate.image)} width={800} height={600} alt="" className="connection-mate-fallback-img" />
                 )}
               </div>
               {speech.text && (

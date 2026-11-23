@@ -4,7 +4,6 @@ import { Button } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
 import { launchMates, type AvailableMate } from '../catalog'
 import { chaerinArtwork, matePortrait } from '../artwork'
-import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '../mate-tutorial.css'
 
 const steps = [
@@ -23,17 +22,10 @@ export function MateTutorial({ mates, onClose, onComplete }: { mates: readonly A
   const mate = mates[0] ?? launchMates[0]!
   const image = matePortrait(mate.id, mates[0]?.image)
   return (
-    <Dialog open title="캡슐 사용법" onClose={onClose} onOpen={focusHeading} showHeader={false} className="mate-tutorial mate-tutorial--desktop">
-      <header className="desktop-window-titlebar mate-tutorial-titlebar">
-        <div className="desktop-window-title-left">CAPSULE — 사용법</div>
-        <div className="desktop-window-title-right">
-          <Button variant="ghost" size="sm" className="mate-tutorial-skip" onClick={onClose}>건너뛰기</Button>
-          <div className="desktop-window-controls" aria-hidden="true">
-            <span className="desktop-window-dot" />
-            <span className="desktop-window-dot" />
-            <span className="desktop-window-dot" />
-          </div>
-        </div>
+    <Dialog open title="캡슐 사용법" onClose={onClose} onOpen={focusHeading} showHeader={false} className="mate-tutorial">
+      <header className="mate-tutorial-header">
+        <h2 className="type-dialog-title">캡슐 사용법</h2>
+        <Button variant="ghost" size="sm" className="mate-tutorial-skip" onClick={onClose}>건너뛰기</Button>
       </header>
       <div className="mate-tutorial-body">
         <ol className="mate-tutorial-progress" aria-label="진행 단계">
@@ -61,7 +53,7 @@ export function MateTutorial({ mates, onClose, onComplete }: { mates: readonly A
                   draggable={false}
                 />
                 {image ? (
-                  <img src={image} alt="" className="mate-tutorial-mini-char" draggable={false} />
+                  <img src={image} width={800} height={600} alt="" className="mate-tutorial-mini-char" draggable={false} />
                 ) : (
                   <Icon name="user" size={56} />
                 )}

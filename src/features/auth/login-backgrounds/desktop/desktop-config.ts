@@ -1,3 +1,4 @@
+import loginChaerinHero from '@/assets/characters/chaerin-live2d-v1/chaerin-hero.webp'
 import symbolColorUrl from '../../../../../design/brand/capsule-logo-2026-11-22-v2/capsule-symbol-color.svg'
 import symbolWhiteUrl from '../../../../../design/brand/capsule-logo-2026-11-22-v2/capsule-symbol-white.svg'
 import wordmarkColorUrl from '../../../../../design/brand/capsule-logo-2026-11-22-v2/capsule-wordmark-color.svg'
@@ -269,7 +270,7 @@ export const DESKTOP_LOGIN_ASSETS = {
   },
   mateName: '채린',
   modelUrl: LOCAL_MODEL_URL,
-  fallbackPortrait: chaerinArtwork.hero,
+  fallbackPortrait: loginChaerinHero,
   backgroundImage: chaerinArtwork.callBackground.portrait,
   modelLayout: {
     scale: 1.54,

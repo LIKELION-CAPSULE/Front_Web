@@ -1,3 +1,4 @@
+import { AppPanel } from '@/shared/ui/AppPanel'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
@@ -41,29 +42,9 @@ function MyMatesWindowFrame({
   loadingScreen?: 'my-mates'
   children: React.ReactNode
 }) {
-  return (
-    <section
-      className="my-mates-window desktop-window desktop-window--active"
-      aria-labelledby="my-mates-window-title"
-      data-loading-screen={loadingScreen}
-    >
-      <div className="desktop-window-titlebar mate-window-titlebar-static">
-        <div className="desktop-window-title-left">
-          <span id="my-mates-window-title" className="desktop-mate-title">
-            CAPSULE — 내 메이트
-          </span>
-        </div>
-        <div className="desktop-window-title-right">
-          <div className="desktop-window-controls" aria-hidden="true">
-            <span className="desktop-window-dot" />
-            <span className="desktop-window-dot" />
-            <span className="desktop-window-dot" />
-          </div>
-        </div>
-      </div>
-      <div className="desktop-window-body my-mates-window-body">{children}</div>
-    </section>
-  )
+  return <AppPanel title="내 메이트" className="my-mates-window" loadingScreen={loadingScreen} bodyClassName="my-mates-window-body">
+    {children}
+  </AppPanel>
 }
 
 export default function MyMatesPage() {
@@ -268,10 +249,10 @@ export default function MyMatesPage() {
         />
 
         <div className="my-mates-info">
-          <h1 className="my-mates-heading">
+          <h2 className="my-mates-heading">
             <span>{selectedMate.name}</span>
             {stageName && <span className="my-mates-stage-name">· {stageName}</span>}
-          </h1>
+          </h2>
 
           {(progressPct !== null || nextStageCaption !== null) && (
             <div className="my-mates-progress">
