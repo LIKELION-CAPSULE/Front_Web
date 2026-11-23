@@ -9,7 +9,6 @@ import { Icon, type IconName } from '@/shared/ui/Icon'
 import { ProfileEditor } from './ProfileEditor'
 import { AccountSecurityPanel } from './AccountSecurityPanel'
 import { ConnectionSettingsPanel } from './ConnectionSettingsPanel'
-import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
 import '../account-content.css'
 import './account-settings.css'
@@ -145,27 +144,9 @@ export default function AccountSettingsDialog({
       className="account-settings-dialog"
     >
       <div ref={windowRef} className="account-settings-window">
-        <header className="desktop-window-titlebar mate-window-titlebar-static account-window-titlebar">
-          <div className="desktop-window-title-left">
-            <span className="desktop-mate-title">CAPSULE — 계정 설정</span>
-          </div>
-          <div className="desktop-window-title-right">
-            <div className="desktop-window-controls" aria-hidden="true">
-              <span className="desktop-window-dot" />
-              <span className="desktop-window-dot" />
-              <span className="desktop-window-dot" />
-            </div>
-            <button
-              type="button"
-              disabled={busy}
-              className="account-settings-close"
-              aria-label="계정 설정 닫기"
-              onClick={onClose}
-            >
-              <Icon name="close" size={16} />
-            </button>
-          </div>
-        </header>
+        <button type="button" disabled={busy} className="account-settings-close" aria-label="계정 설정 닫기" onClick={onClose}>
+          <Icon name="close" size={20} />
+        </button>
 
         <div className="account-settings-layout">
           <aside className="account-settings-sidebar">

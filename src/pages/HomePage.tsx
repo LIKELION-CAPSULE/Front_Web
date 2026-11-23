@@ -88,41 +88,23 @@ export default function HomePage() {
         </Button>
       </div>
       {mates.length === 0 ? (
-        <section className="desktop-window desktop-window--active mate-empty-window" aria-label="메이트 목록 비어 있음">
-          <div className="desktop-window-titlebar mate-window-titlebar-static">
-            <div className="desktop-window-title-left">CAPSULE — 메이트</div>
-            <div className="desktop-window-title-right">
-              <div className="desktop-window-controls" aria-hidden="true">
-                <span className="desktop-window-dot" />
-                <span className="desktop-window-dot" />
-                <span className="desktop-window-dot" />
-              </div>
-            </div>
-          </div>
-          <div className="desktop-window-body mate-empty-window-body">
+        <section className="app-panel mate-empty-window" aria-label="메이트 목록 비어 있음">
+          <div className="mate-empty-window-body">
             <p className="mate-empty-title">메이트를 불러오지 못했어요</p>
-            <Button variant="secondary" size="sm" onClick={() => { void reload() }}>
-              다시 시도
-            </Button>
+            <Button variant="secondary" size="sm" onClick={() => { void reload() }}>다시 시도</Button>
           </div>
         </section>
       ) : (
         <div className="mate-grid">
           {mates.map(mate => <MateCard key={mate.id} mate={mate} />)}
           {mates.length === 1 && (
-            <div className="mate-card mate-card--upcoming desktop-window" aria-label="남학생 메이트 준비 중">
-              <div className="desktop-window-titlebar mate-card-titlebar">
-                <div className="desktop-window-title-left">
-                  <span className="mate-card-status-dot mate-card-status-dot--offline" aria-hidden="true" />
-                  <span className="mate-card-name">남학생</span>
-                  <span className="mate-card-status-label">준비 중</span>
-                </div>
-                <div className="desktop-window-title-right">
-                  <span className="mate-age-badge">전연령</span>
-                </div>
-              </div>
+            <div className="mate-card mate-card--upcoming" aria-label="남학생 메이트 준비 중">
               <div className="mate-card-image mate-card-image--upcoming">
                 <span className="mate-card-upcoming-pill">곧 만나요</span>
+              </div>
+              <div className="mate-card-copy">
+                <div className="mate-card-heading"><h3 className="type-card-title">남학생</h3><span className="mate-card-status-label">준비 중</span></div>
+                <span className="mate-age-badge">전연령</span>
               </div>
             </div>
           )}

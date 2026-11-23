@@ -1,5 +1,7 @@
-import chaerinCard from '@/assets/characters/chaerin-live2d-v1/chaerin-card.webp'
-import chaerinHero from '@/assets/characters/chaerin-live2d-v1/chaerin-hero.webp'
+import chaerinCard from '@/assets/characters/chaerin-v2/chaerin-v2-card.webp'
+import chaerinHero from '@/assets/characters/chaerin-v2/chaerin-v2-hero.webp'
+import chaerinAvatar from '@/assets/characters/chaerin-v2/chaerin-v2-avatar.webp'
+import chaerinFull from '@/assets/characters/chaerin-v2/chaerin-v2-full.webp'
 import chaerinCallBgPortrait from '@/assets/characters/chaerin-live2d-v1/chaerin-call-bg-portrait.webp'
 import chaerinCallBgLandscape from '@/assets/characters/chaerin-live2d-v1/chaerin-call-bg-landscape.webp'
 
@@ -18,6 +20,8 @@ export const chaerinArtwork = {
   portrait: chaerinCard,
   card: chaerinCard,
   hero: chaerinHero,
+  avatar: chaerinAvatar,
+  full: chaerinFull,
   callBackground: {
     portrait: chaerinCallBgPortrait,
     landscape: chaerinCallBgLandscape,
@@ -26,6 +30,10 @@ export const chaerinArtwork = {
 
 export function matePortrait(id: string, serverImage?: string) {
   return portraits[id] || serverImage
+}
+
+export function mateAvatar(id: string, serverImage?: string) {
+  return id === 'chaerin' ? chaerinAvatar : portraits[id] || serverImage
 }
 
 export function mateHeroPortrait(id: string, serverImage?: string) {

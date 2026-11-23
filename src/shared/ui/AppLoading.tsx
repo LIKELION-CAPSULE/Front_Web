@@ -1,3 +1,4 @@
+import { useLocation } from 'react-router'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { MenuBar } from '@/features/auth/login-backgrounds/desktop/MenuBar'
 import {
@@ -26,7 +27,13 @@ function getInitialTimeBand(): TimeOfDayBand {
 }
 
 export function AppLoading({ label = '화면을 불러오고 있어요.' }: { label?: string }) {
+  const { pathname } = useLocation()
   const reduced = useReducedMotion()
+  if (pathname !== '/login') {
+    return <main id="main-content" className="app-loading-stage" data-loading-screen="auth" role="status" aria-busy="true">
+      <div className="app-panel app-loading-body"><QuarterRingSpinner /><p className="app-loading-label">{label}</p></div>
+    </main>
+  }
   const band = getInitialTimeBand()
   const palette = TIME_OF_DAY_PALETTES[band]
   const wallpaperUrl = STATIC_FIRST_PAINT_WALLPAPERS[band]
