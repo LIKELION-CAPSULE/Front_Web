@@ -20,9 +20,8 @@ const MateDetailPage = lazy(() => import('@/pages/MateDetailPage'))
 const ConnectionPage = lazy(() => import('@/pages/ConnectionPage'))
 const MyMatesPage = lazy(() => import('@/pages/MyMatesPage'))
 const ConnectionRecordPage = lazy(() => import('@/pages/ConnectionRecordPage'))
-const DesktopAuthLayout = lazy(
-  () => import('@/features/auth/login-backgrounds/desktop/DesktopAuthLayout'),
-)
+// /login can show PM comparison concepts (?login=illustration|portrait|video); other auth routes keep the desktop shell.
+const DesktopAuthLayout = lazy(() => import('@/features/auth/login-variants/AuthLayoutSwitch'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
 const KakaoCallbackPage = lazy(() => import('@/pages/KakaoCallbackPage'))

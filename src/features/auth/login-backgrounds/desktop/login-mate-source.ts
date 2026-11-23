@@ -1,4 +1,10 @@
-import { LOCAL_MODEL_URL } from '@/features/local-demo/store'
+import {
+  LOCAL_MODEL_URL,
+  LOCAL_V2_ENGINE_URL,
+  LOCAL_V2_MODEL_URL,
+  LOCAL_V2_PLAYER_URL,
+  LOCAL_V2_REACTIONS_URL,
+} from '@/features/local-demo/store'
 import { chaerinArtwork } from '@/features/mates/artwork'
 import {
   DEFAULT_BUBBLE_POSITION,
@@ -11,6 +17,13 @@ export interface LoginMateModelConfig {
   scale: number
   offsetX: number
   offsetY: number
+}
+
+export interface LoginMateV2ModelConfig {
+  modelJsonUrl: string
+  engineUrl: string
+  playerUrl?: string
+  reactionsUrl?: string
 }
 
 export interface LoginMateBubblePosition {
@@ -26,6 +39,7 @@ export interface LoginMateProfile {
   portraitImage: string
   callBackgroundImage: string | null
   model: LoginMateModelConfig | null
+  v2Model?: LoginMateV2ModelConfig | null
   expressions: ExpressionMapping
   bubblePosition: LoginMateBubblePosition
 }
@@ -50,6 +64,14 @@ function createDefaultChaerin(includeLocalModel: boolean): LoginMateProfile {
           scale: 1.54,
           offsetX: 0,
           offsetY: 20,
+        }
+      : null,
+    v2Model: includeLocalModel
+      ? {
+          modelJsonUrl: LOCAL_V2_MODEL_URL,
+          engineUrl: LOCAL_V2_ENGINE_URL,
+          playerUrl: LOCAL_V2_PLAYER_URL,
+          reactionsUrl: LOCAL_V2_REACTIONS_URL,
         }
       : null,
     expressions: { ...DEFAULT_EXPRESSION_MAPPING },

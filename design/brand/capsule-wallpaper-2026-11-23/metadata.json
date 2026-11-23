@@ -1,0 +1,20 @@
+{
+  "original": {
+    "file": "capsule-wallpaper-original.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1762695
+  },
+  "wallpaper": {
+    "file": "capsule-wallpaper.webp",
+    "width": 2560,
+    "height": 1440,
+    "bytes": 255010,
+    "format": "WEBP",
+    "quality": 94,
+    "processing": "Resized from generated original for delivery"
+  },
+  "generator": "built-in imagegen",
+  "concept": "CAPS / ULE concealed in layered violet capsule-shaped curved ribs",
+  "appIntegration": "No app asset or code replaced"
+}

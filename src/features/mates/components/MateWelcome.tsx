@@ -168,7 +168,7 @@ function HeroMateStage({
     mateId === 'chaerin' &&
     loginMate.model !== null &&
     !fallbackScenario &&
-    (sharedWallpaper ? sharedWallpaper.canRender3D && sharedWallpaper.degradationStage < 3 : true)
+    (sharedWallpaper ? sharedWallpaper.canRenderMate && sharedWallpaper.degradationStage < 3 : true)
 
   const applyHeroReaction = useCallback((next: MateReactionState, showLine = true) => {
     reactionStateRef.current = next
