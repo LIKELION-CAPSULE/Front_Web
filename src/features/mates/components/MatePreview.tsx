@@ -248,7 +248,7 @@ export function MatePreview({
       {/* Static transparent portrait fallback (visible when Live2D is absent, loading, failed, or reduced-motion) */}
       {!showLive2D && fallbackSrc && (
         <div className="mate-detail-fallback">
-          <img src={fallbackSrc} alt={name} className="mate-detail-fallback-img" draggable={false} />
+          <img src={fallbackSrc} width={760} height={900} alt={name} className="mate-detail-fallback-img" draggable={false} />
         </div>
       )}
 

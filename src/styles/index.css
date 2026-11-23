@@ -4,6 +4,7 @@
 @import './welcome.css';
 @import './interactions.css';
 @import './selection.css';
+@import './app-surfaces.css';
 
 @font-face {
   font-family: 'Pretendard';
@@ -100,12 +101,11 @@
     letter-spacing: 2px;
   }
   .app-shell {
-    background: transparent;
+    background: var(--color-canvas);
   }
   .site-header {
-    border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
-    background: color-mix(in srgb, var(--color-panel) 84%, transparent);
-    backdrop-filter: blur(18px) saturate(135%);
+    border-bottom: 1px solid var(--color-divider);
+    background: var(--color-canvas);
   }
   .site-header[data-sticky] {
     position: sticky;
@@ -116,58 +116,30 @@
   .site-header-inner {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
-    min-height: 40px;
+    min-height: 82px;
     align-items: center;
-    gap: 24px;
+    gap: 48px;
   }
-  .site-header-brand {
-    display: inline-flex;
-    align-items: center;
-    justify-self: start;
-    padding: 4px 2px;
-    border-radius: 6px;
-  }
-  .site-header-symbol {
-    display: block;
-    height: 18px;
-    width: auto;
-  }
-  .site-header-mobile-brand {
-    display: none;
-  }
+  .site-header-brand { justify-self: start; }
   .site-header-account { min-width: 0; justify-self: end; }
-  .site-header-clock {
-    color: var(--color-ink);
-    font-variant-numeric: tabular-nums;
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 18px;
-  }
-  .header-avatar-btn {
-    min-width: 30px;
-    min-height: 30px;
-    padding: 2px;
-  }
   .app-navigation {
     display: flex;
     align-self: stretch;
-    gap: 20px;
+    gap: 28px;
   }
   .app-nav-item {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding-inline: 4px;
-    color: var(--color-muted);
-    font-size: 13px;
-    line-height: 18px;
+    gap: 8px;
+    padding-inline: 2px;
+    color: var(--color-subtle);
+    font-size: var(--text-label); line-height: var(--text-label--line-height);
     transition: color 0.2s;
-    font-weight: 500;
-  }
+   font-weight: 500; }
   .app-nav-item:hover,
   .app-nav-item.is-active {
-    color: var(--color-ink);
+    color: var(--color-text-accent);
   }
   .app-nav-item.is-active::after {
     position: absolute;
@@ -184,35 +156,29 @@
   .credit-chip {
     display: flex;
     align-items: center;
-    gap: 6px;
-    border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+    gap: 8px;
+    border: 0;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--color-surface) 75%, transparent);
-    padding: 3px 10px;
+    background: transparent;
+    padding: 8px 13px;
     color: var(--color-text-accent);
-    transition: color 0.2s, border-color 0.2s;
+    transition: color 0.2s;
   }
   .credit-chip:hover {
     color: var(--color-ink);
-    border-color: color-mix(in srgb, var(--color-text-accent) 45%, transparent);
   }
   .app-main {
-    padding-block: 28px 48px;
-    min-height: calc(100dvh - 120px);
+    padding-block: 36px 56px;
+    min-height: calc(100dvh - 170px);
   }
   .app-footer {
     display: flex;
     justify-content: space-between;
     gap: 16px;
-    border-top: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
-    background: linear-gradient(180deg, transparent 0%, rgba(11, 10, 20, 0.42) 100%);
-    padding-block: 20px;
-    color: var(--color-ink);
-    font-size: var(--text-caption);
-    line-height: var(--text-caption--line-height);
-    text-shadow:
-      0 1px 4px rgba(10, 9, 18, 0.88),
-      0 2px 12px rgba(10, 9, 18, 0.72);
+    border-top: 1px solid var(--color-divider);
+    padding-block: 24px;
+    color: var(--color-subtle);
+    font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   }
   .ui-button, .button-subtle { border: 0; }
   .button-primary { background: var(--color-primary); color: var(--color-on-solid); }
@@ -1197,16 +1163,6 @@
     column-gap: 12px;
     row-gap: 0;
     padding-top: 4px;
-  }
-  .site-header-symbol {
-    display: none;
-  }
-  .site-header-mobile-brand {
-    display: inline-flex;
-    align-items: center;
-  }
-  .site-header-clock {
-    display: none;
   }
   .header-avatar-btn {
     min-width: 44px;

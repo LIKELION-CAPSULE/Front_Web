@@ -9,6 +9,7 @@ import {
   resolveTimeBand,
 } from '@/features/auth/login-backgrounds/desktop/desktop-config'
 import { CALL_STAGE_GRADIENT, chaerinArtwork } from '@/features/mates/artwork'
+import mobileGateHero from '@/assets/characters/chaerin-live2d-v1/chaerin-hero.webp'
 import { isMobileGateAllowedPath, isPhoneDevice, isReviewMobileNoticeForced } from '@/shared/lib/mobile-gate'
 import { Button } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
@@ -144,7 +145,7 @@ function MobileNoticeScreen() {
                 />
               )}
               <img
-                src={chaerinArtwork.hero}
+                src={mobileGateHero}
                 alt="채린"
                 className="mobile-notice-avatar-img"
                 draggable={false}

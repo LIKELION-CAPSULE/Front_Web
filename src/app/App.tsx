@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router'
+import { AuthPanelLayout } from '@/app/layouts/AuthPanelLayout'
+import { resolveLoginVariant } from '@/features/auth/login-variants/login-variant'
 import { AppLayout } from '@/app/layouts/AppLayout'
 import { DetailLayout } from '@/app/layouts/DetailLayout'
 import { RequireDemo } from '@/app/layouts/RequireDemo'
@@ -20,7 +22,7 @@ const MateDetailPage = lazy(() => import('@/pages/MateDetailPage'))
 const ConnectionPage = lazy(() => import('@/pages/ConnectionPage'))
 const MyMatesPage = lazy(() => import('@/pages/MyMatesPage'))
 const ConnectionRecordPage = lazy(() => import('@/pages/ConnectionRecordPage'))
-// /login can show PM comparison concepts (?login=illustration|portrait|video); other auth routes keep the desktop shell.
+// Only /login uses the login concepts; app forms have a plain panel shell.
 const DesktopAuthLayout = lazy(() => import('@/features/auth/login-variants/AuthLayoutSwitch'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
@@ -73,49 +75,59 @@ export function App() {
       ? 'credits'
       : location.pathname
 
-  return (
-    <MobileAccessGate>
-      <SharedDesktopWallpaperProvider>
-        <Suspense key={suspenseKey} fallback={<RouteLoading />}>
-          <ReferralLinkCapture />
-          <PageNavigation />
-          <Routes>
-            <Route element={<DesktopAuthLayout />}>
-              <Route path="login" element={<LoginPage />} />
-              <Route path="password/reset" element={<PasswordResetPage />} />
-              <Route path="reset-password" element={<PasswordResetPage />} />
-              <Route element={<RequireDemo />}>
-                <Route path="onboarding" element={<OnboardingPage />} />
-              </Route>
+  let desktopLogin = false
+  if (location.pathname === '/login') {
+    let storage: Storage | null = null
+    try { storage = window.sessionStorage } catch { /* Storage may be blocked. */ }
+    desktopLogin = resolveLoginVariant(location.search, storage) === 'desktop'
+  }
+
+  const content = (
+    <div className={location.pathname === '/login' ? undefined : 'app-surface'}>
+      <Suspense key={suspenseKey} fallback={<RouteLoading />}>
+        <ReferralLinkCapture />
+        <PageNavigation />
+        <Routes>
+          <Route element={<DesktopAuthLayout />}>
+            <Route path="login" element={<LoginPage />} />
+          </Route>
+          <Route element={<AuthPanelLayout />}>
+            <Route path="password/reset" element={<PasswordResetPage />} />
+            <Route path="reset-password" element={<PasswordResetPage />} />
+          </Route>
+          <Route path="oauth/kakao" element={<KakaoCallbackPage />} />
+          <Route element={<RequireDemo />}>
+            <Route element={<AuthPanelLayout />}>
+              <Route path="onboarding" element={<OnboardingPage />} />
             </Route>
-            <Route path="oauth/kakao" element={<KakaoCallbackPage />} />
-            <Route element={<RequireDemo />}>
-              <Route path="mypage" element={<AccountRedirect />} />
-              <Route element={<AppLayout />}>
-                <Route index element={<HomePage />} />
-                <Route path="records" element={<RecordsPage />} />
-                <Route path="mates/me" element={<MyMatesPage />} />
-                <Route path="credits" element={<CreditsPage />} />
-                <Route path="credits/charge" element={<InvitePage />} />
-                <Route path="invite" element={<InvitePage />} />
-              </Route>
-              <Route element={<DetailLayout />}>
-                <Route path="mates/:mateId" element={<MateDetailPage />} />
-                <Route path="connections/:connectionId" element={<ConnectionRecordPage />} />
-              </Route>
-              <Route path="connect/:mateId" element={<ConnectionPage />} />
-              <Route path="rooms/:roomId" element={<BetaLegacyRedirect />} />
-              <Route path="rooms/:roomId/prepare" element={<BetaLegacyRedirect />} />
-              <Route path="study/:sessionId" element={<BetaLegacyRedirect />} />
-              <Route path="reports/:recordId" element={<BetaLegacyRedirect />} />
-              <Route path="capsules/:recordId" element={<BetaLegacyRedirect />} />
-              <Route path="characters" element={<BetaLegacyRedirect />} />
-              <Route path="characters/:characterId" element={<BetaLegacyRedirect />} />
-              <Route path="*" element={<NotFoundPage />} />
+            <Route path="mypage" element={<AccountRedirect />} />
+            <Route element={<AppLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path="records" element={<RecordsPage />} />
+              <Route path="mates/me" element={<MyMatesPage />} />
+              <Route path="credits" element={<CreditsPage />} />
+              <Route path="credits/charge" element={<InvitePage />} />
+              <Route path="invite" element={<InvitePage />} />
             </Route>
-          </Routes>
-        </Suspense>
-      </SharedDesktopWallpaperProvider>
-    </MobileAccessGate>
+            <Route element={<DetailLayout />}>
+              <Route path="mates/:mateId" element={<MateDetailPage />} />
+              <Route path="connections/:connectionId" element={<ConnectionRecordPage />} />
+            </Route>
+            <Route path="connect/:mateId" element={<ConnectionPage />} />
+            <Route path="rooms/:roomId" element={<BetaLegacyRedirect />} />
+            <Route path="rooms/:roomId/prepare" element={<BetaLegacyRedirect />} />
+            <Route path="study/:sessionId" element={<BetaLegacyRedirect />} />
+            <Route path="reports/:recordId" element={<BetaLegacyRedirect />} />
+            <Route path="capsules/:recordId" element={<BetaLegacyRedirect />} />
+            <Route path="characters" element={<BetaLegacyRedirect />} />
+            <Route path="characters/:characterId" element={<BetaLegacyRedirect />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </div>
   )
+  return <MobileAccessGate>
+    {desktopLogin ? <SharedDesktopWallpaperProvider>{content}</SharedDesktopWallpaperProvider> : content}
+  </MobileAccessGate>
 }

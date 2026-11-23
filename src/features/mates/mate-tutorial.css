@@ -1,31 +1,15 @@
-.app-dialog.mate-tutorial--desktop {
+.app-dialog.mate-tutorial {
   width: min(640px, calc(100% - 32px));
   max-width: 640px;
   padding: 0;
   overflow: hidden;
-  border: 1px solid rgba(196, 185, 243, 0.18);
-  border-radius: 16px;
+  border: 0;
+  border-radius: var(--radius-panel);
   background: var(--color-surface-raised);
-  box-shadow:
-    0 28px 84px rgba(0, 0, 0, 0.68),
-    0 6px 24px rgba(15, 14, 23, 0.45);
+  box-shadow: none;
 }
 
-.mate-tutorial-titlebar,
-.mate-tutorial-titlebar:active {
-  cursor: default;
-}
-
-.mate-tutorial-skip.ui-button {
-  min-height: 26px;
-  padding: 2px 8px;
-  font-size: 12px;
-  color: var(--color-muted);
-}
-
-.mate-tutorial-skip.ui-button:hover {
-  color: var(--color-ink);
-}
+.mate-tutorial-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 28px 0; }
 
 .mate-tutorial-body {
   padding: 24px 28px 28px;
@@ -87,18 +71,18 @@
 .mate-tutorial-mini-card {
   width: 204px;
   overflow: hidden;
-  border: 1px solid rgba(196, 185, 243, 0.22);
+  border: 0;
   border-radius: 12px;
   background: var(--color-surface-raised);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+
 }
 
 .mate-tutorial-mini-titlebar {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 28px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 6%, transparent);
+  min-height: 36px;
+
   background: var(--color-panel);
   padding: 0 10px;
 }
