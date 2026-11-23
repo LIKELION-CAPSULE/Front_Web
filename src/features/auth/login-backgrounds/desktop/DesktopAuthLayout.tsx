@@ -17,6 +17,8 @@ import { DesktopIcons } from './DesktopIcons'
 import { DesktopWindow } from './DesktopWindow'
 import { MateCallWindow } from './MateCallWindow'
 import { MenuBar } from './MenuBar'
+import { PhotosWindow } from './PhotosWindow'
+import { INITIAL_PHOTO_TAP_STATE, registerPhotoTap } from './photo-unlock'
 import {
   DEFAULT_DESKTOP_CONTROLS,
   MENU_BAR_HEIGHT,
@@ -31,6 +33,7 @@ import {
   type DesktopIconItem,
   type MateReactionState,
 } from './desktop-config'
+import { PHOTO_LOCKED_LINE, PHOTO_UNLOCK_CONFIG, type DesktopIconItem as PhotoIconItem } from './desktop-config'
 import {
   DesktopShellContext,
   type DesktopShellWindowConfig,
@@ -49,7 +52,7 @@ const LazyDesktopDevPanel = import.meta.env.DEV
   ? lazy(() => import('./DesktopDevPanel'))
   : null
 
-type DesktopWindowId = 'mate' | 'login' | 'legal'
+type DesktopWindowId = 'mate' | 'login' | 'legal' | 'photos'
 
 const NOOP = () => {}
 
@@ -196,8 +199,15 @@ export default function DesktopAuthLayout() {
   const [paused, setPaused] = useState(false)
   const [selectedIconId, setSelectedIconId] = useState<string | null>(null)
   const [inputFocused, setInputFocused] = useState(false)
-  const [windowOrder, setWindowOrder] = useState<DesktopWindowId[]>(['mate', 'login', 'legal'])
+  const [windowOrder, setWindowOrder] = useState<DesktopWindowId[]>(['mate', 'login', 'legal', 'photos'])
   const [legalPosOverride, setLegalPosOverride] = useState<{ x: number; y: number } | null>(null)
+  const [photosOpen, setPhotosOpen] = useState(false)
+  const [photosPos, setPhotosPos] = useState<{ x: number; y: number } | null>(null)
+  const photoTapRef = useRef(INITIAL_PHOTO_TAP_STATE)
+  const photosOpenRef = useRef(false)
+  useEffect(() => {
+    photosOpenRef.current = photosOpen
+  }, [photosOpen])
   const [shinyTriggerNonce, setShinyTriggerNonce] = useState(0)
   const [secretTarget, setSecretTarget] = useState<{ x: number; y: number } | null>(null)
 
@@ -622,6 +632,14 @@ export default function DesktopAuthLayout() {
 
   const handleOpenDesktopIcon = useCallback(
     (item: DesktopIconItem) => {
+      // While the photos folder is being tapped repeatedly (or is open), its own reactions win over the
+      // browser's extra dblclick events, which would otherwise repeat "사진은 비밀이야.".
+      if (
+        item.id === PHOTO_UNLOCK_CONFIG.folderId &&
+        (photosOpenRef.current || photoTapRef.current.count >= 3)
+      ) {
+        return
+      }
       emitLoginDesktopEvent({ name: 'login_desktop_icon_opened', payload: { iconId: item.id } })
       applyReaction('iconOpen', {
         line: item.reactionLine,
@@ -633,6 +651,33 @@ export default function DesktopAuthLayout() {
       })
     },
     [applyReaction],
+  )
+
+  // 사진 폴더 이스터에그: 연타 4번 = 당황, 6번 = 폴더 열림 (2번째 더블클릭은 기존 "사진은 비밀이야.")
+  const handleDesktopIconTap = useCallback(
+    (item: PhotoIconItem) => {
+      if (item.id !== PHOTO_UNLOCK_CONFIG.folderId) return
+      if (photosOpen) {
+        bringToFront('photos')
+        return
+      }
+      const result = registerPhotoTap(photoTapRef.current, performance.now(), PHOTO_UNLOCK_CONFIG)
+      photoTapRef.current = result.state
+      const blocked =
+        reactionStateRef.current === 'success' ||
+        reactionStateRef.current === 'onboardingDone' ||
+        reactionStateRef.current === 'passwordFocus'
+      if (result.stage === 'peek' && !blocked) {
+        applyReaction('photosPeek', { force: true, revertAfterMs: 4200 })
+      } else if (result.stage === 'open') {
+        emitLoginDesktopEvent({ name: 'login_photos_unlocked', payload: { taps: PHOTO_UNLOCK_CONFIG.openAt } })
+        photosOpenRef.current = true
+        setPhotosOpen(true)
+        bringToFront('photos')
+        if (!blocked) applyReaction('photosOpen', { force: true, revertAfterMs: 5200 })
+      }
+    },
+    [photosOpen, applyReaction, bringToFront],
   )
 
   const computeGazeTarget = useCallback(
@@ -812,14 +857,15 @@ export default function DesktopAuthLayout() {
   )
 
   const windowZ = (id: DesktopWindowId) => 10 + windowOrder.indexOf(id) * 2
-  const activeWindowId: DesktopWindowId =
-    legalDocument === null && windowOrder[windowOrder.length - 1] === 'legal'
-      ? windowOrder[windowOrder.length - 2] ?? 'login'
-      : windowOrder[windowOrder.length - 1] ?? 'login'
+  const visibleWindows = windowOrder.filter(
+    (id) => (id !== 'legal' || legalDocument !== null) && (id !== 'photos' || photosOpen),
+  )
+  const activeWindowId: DesktopWindowId = visibleWindows[visibleWindows.length - 1] ?? 'login'
 
   const canRender3D = sharedWallpaper?.canRender3D ?? (webgl2Available && !reducedMotion)
+  const canRenderMate = sharedWallpaper?.canRenderMate ?? (webgl2Available && !reducedMotion)
   const allowLive2D =
-    canRender3D && degradationStage < 3 && controls.live2dEnabled && mate.model !== null
+    canRenderMate && degradationStage < 3 && controls.live2dEnabled && mate.model !== null
 
   const relativeLoginDir =
     appRect.x + appRect.width / 2 - (rects.mate.x + rects.mate.width / 2)
@@ -1008,12 +1054,36 @@ export default function DesktopAuthLayout() {
               </DesktopWindow>
             )}
 
+            {/* Layer 3b: 사진 폴더 (easter egg; only where desktop icons are shown) */}
+            {photosOpen && showDesktopIcons && (
+              <PhotosWindow
+                x={photosPos?.x ?? 156}
+                y={photosPos?.y ?? MENU_BAR_HEIGHT + 24}
+                width={Math.min(380, viewport.w - 180)}
+                zIndex={windowZ('photos')}
+                active={activeWindowId === 'photos'}
+                onMove={(x, y) => setPhotosPos({ x, y })}
+                onFocus={() => bringToFront('photos')}
+                onClose={() => {
+                  photosOpenRef.current = false
+                  setPhotosOpen(false)
+                  document.querySelector<HTMLButtonElement>('.desktop-icon-btn[aria-pressed="true"]')?.focus()
+                }}
+                onView={(photo) => {
+                  emitLoginDesktopEvent({ name: 'login_photo_viewed', payload: { photoId: photo.id } })
+                  applyReaction('photosOpen', { line: photo.line, force: reactionStateRef.current !== 'passwordFocus', revertAfterMs: 4600 })
+                }}
+                onLocked={() => applyReaction('photosPeek', { line: PHOTO_LOCKED_LINE, force: true, revertAfterMs: 3600 })}
+              />
+            )}
+
             {/* Layer 5: Desktop Icons (hidden at <= 1040px so half-screen stays clean) */}
             {showDesktopIcons && (
               <DesktopIcons
                 selectedId={selectedIconId}
                 onSelect={setSelectedIconId}
                 onOpen={handleOpenDesktopIcon}
+                onTap={handleDesktopIconTap}
               />
             )}
 

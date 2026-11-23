@@ -1,20 +1,21 @@
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import {
+  AUTH_LOWER_RIBBON_SPECS,
   CAPSULE_V2_GEOMETRY,
   HIDDEN_DECOY_BUNDLES,
   HIDDEN_WORDMARK_SPECS,
   LOW_FPS_DEGRADATION,
+  RIBBON_STYLE_DEFAULTS,
   SECRET_HOVER_TRIGGER_MS,
   SHINY_CAPSULE_CONFIG,
   TIME_OF_DAY_PALETTES,
-  TUBE_STYLE_DEFAULTS,
   type TimeOfDayBand,
   type TimeOfDayMode,
   type TimePalette,
   type WindowRect,
 } from './desktop-config'
-import { buildConcentricTubeBundles } from './tube-geometry'
+import { buildLayeredRibbonBundles } from './tube-geometry'
 
 export interface DesktopWallpaperProps {
   capsuleCount: number
@@ -307,6 +308,213 @@ function distToSegmentSq(px: number, py: number, ax: number, ay: number, bx: num
   return dx * dx + dy * dy
 }
 
+const RIBBON_VERTEX_SHADER = /* glsl */ `
+  attribute float aLayer;
+  varying vec3 vNormalView;
+  varying vec3 vViewPos;
+  varying vec2 vUv;
+  varying float vLayer;
+  varying vec2 vScreenUv;
+
+  void main() {
+    vUv = uv;
+    vLayer = aLayer;
+    vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+    vViewPos = -mvPos.xyz;
+    vNormalView = normalize(normalMatrix * normal);
+    vec4 clipPos = projectionMatrix * mvPos;
+    vScreenUv = (clipPos.xy / clipPos.w) * 0.5 + 0.5;
+    gl_Position = clipPos;
+  }
+`
+
+const RIBBON_FRAGMENT_SHADER = /* glsl */ `
+  uniform vec3 uBaseColor;
+  uniform vec3 uHighlightColor;
+  uniform vec3 uRimColor;
+  uniform vec3 uShadowColor;
+  uniform vec3 uLightDir;
+  uniform float uGain;
+  uniform float uOpacity;
+  uniform vec4 uWinMate;
+  uniform vec4 uWinLogin;
+  uniform float uCalmDim;
+  uniform float uBloomStrength;
+
+  varying vec3 vNormalView;
+  varying vec3 vViewPos;
+  varying vec2 vUv;
+  varying float vLayer;
+  varying vec2 vScreenUv;
+
+  float softBoxMask(vec2 uv, vec4 rect, float feather) {
+    if (rect.z <= rect.x || rect.w <= rect.y) return 0.0;
+    float mx = smoothstep(rect.x - feather, rect.x + feather * 0.5, uv.x)
+             * (1.0 - smoothstep(rect.z - feather * 0.5, rect.z + feather, uv.x));
+    float my = smoothstep(rect.y - feather, rect.y + feather * 0.5, uv.y)
+             * (1.0 - smoothstep(rect.w - feather * 0.5, rect.w + feather, uv.y));
+    return mx * my;
+  }
+
+  void main() {
+    vec3 N = normalize(vNormalView);
+    vec3 V = normalize(vViewPos);
+    vec3 L = normalize(uLightDir);
+
+    // Subdivide each ribbon cross-section into 6 stepped thin silk strips (staircase profile)
+    const float SUB_LAYERS = 6.0;
+    float uCross = clamp((vUv.y - 0.04) / 0.92, 0.0, 0.9999);
+    float subF = uCross * SUB_LAYERS;
+    float subIdx = floor(subF) / (SUB_LAYERS - 1.0); // 0 = inner/lower step, 1 = outer/upper step
+    float subPos = fract(subF);                      // 0..1 across each thin strip
+
+    // Thin dark shadow seam between adjacent stepped strips + deep outer bundle crevice
+    float outerCrevice = smoothstep(0.0, 0.07, vUv.y) * smoothstep(1.0, 0.93, vUv.y);
+    float stripSeam = smoothstep(0.0, 0.16, subPos) * smoothstep(1.0, 0.88, subPos);
+    float stripBody = smoothstep(0.10, 0.34, subPos) * smoothstep(0.96, 0.78, subPos);
+
+    // Analytical stepped bevel normal per thin strip so fresnel rim catches each strip's outer lip
+    float stepSlope = (smoothstep(0.55, 0.92, subPos) - smoothstep(0.18, 0.0, subPos)) * 0.68;
+    vec3 crossTangent = normalize(vec3(N.y, -N.x, 0.001));
+    vec3 Nstep = normalize(N + crossTangent * stepSlope);
+
+    // Matte-silk diffuse (roughness ~0.62, metalness 0, clearcoat 0)
+    float wrapDiff = smoothstep(-0.55, 1.0, dot(Nstep, L));
+
+    // Broad, velvet-soft top-facing lavender highlight (#b9a3ff) across upper curves
+    vec3 topDir = normalize(vec3(-0.10, 0.58, 0.80));
+    float topHighlight = smoothstep(0.14, 0.95, dot(N, topDir));
+
+    // Thin bright Fresnel rim light on the outer edge of each stepped strip
+    float stepFresnel = pow(1.0 - clamp(abs(dot(Nstep, V)), 0.0, 1.0), 1.85);
+    float stripOuterRim = smoothstep(0.66, 0.84, subPos) * smoothstep(0.96, 0.86, subPos);
+
+    // Staircase depth cascade: inner strips sit deeper/darker, outer strips step forward brighter
+    float stairRamp = mix(0.46, 1.14, pow(subIdx, 0.82));
+    float layerCascade = mix(0.62, 1.06, vLayer) * stairRamp;
+
+    // Matte-silk stepped ribbon color: deep shadow -> base -> soft top wash -> crisp per-strip rim
+    vec3 col = mix(uShadowColor, uBaseColor, (0.24 + 0.76 * wrapDiff) * stripSeam * outerCrevice);
+    col *= layerCascade;
+    col = mix(col, uHighlightColor, topHighlight * stripBody * 0.42 * layerCascade);
+    col += uRimColor * (stripOuterRim * (0.44 + 0.36 * topHighlight) + stepFresnel * 0.32 * stripSeam) * (0.52 + 0.48 * subIdx) * (0.65 + 0.35 * vLayer);
+
+    // High-threshold subtle bloom lift on brightest highlight/rim peaks (OFF when degradationStage >= 1)
+    vec3 bloomExcess = max(col - vec3(0.58), vec3(0.0));
+    col += bloomExcess * uBloomStrength * 1.15;
+
+    // Deep dark bottom floor falloff
+    float bottomFalloff = mix(0.36, 1.0, smoothstep(0.0, 0.22, vScreenUv.y));
+    col = mix(uShadowColor, col, bottomFalloff);
+
+    // Readability dimming:
+    // - Calm/app routes: wide center vignette (70% darker at center -> 0% at edges)
+    // - Auth routes: dim behind Mate & Login windows by 58% (<= 42% brightness) + subtle center vignette
+    float mateDim = softBoxMask(vScreenUv, uWinMate, 0.08) * 0.58;
+    float loginDim = softBoxMask(vScreenUv, uWinLogin, 0.08) * 0.58;
+    float centerDist = length((vScreenUv - vec2(0.5, 0.48)) * vec2(1.05, 1.25));
+    float centerMask = 1.0 - smoothstep(0.18, 0.76, centerDist);
+    float calmVignette = centerMask * uCalmDim * 0.70;
+    float authVignette = centerMask * (1.0 - uCalmDim) * 0.26;
+    float dimAmount = clamp(max(max(mateDim, loginDim), max(calmVignette, authVignette)), 0.0, 0.72);
+    float windowAttenuation = 1.0 - dimAmount;
+
+    // End-of-ribbon soft fade
+    float endFade = smoothstep(0.0, 0.04, vUv.x) * smoothstep(1.0, 0.96, vUv.x);
+
+    col *= uGain * windowAttenuation;
+    float alpha = clamp(uOpacity * (0.38 + 0.62 * outerCrevice) * endFade * (0.28 + 0.72 * windowAttenuation), 0.0, 1.0);
+    gl_FragColor = vec4(col, alpha);
+  }
+`
+
+const BLOOM_HALO_FRAGMENT_SHADER = /* glsl */ `
+  uniform vec3 uHighlightColor;
+  uniform vec3 uRimColor;
+  uniform float uBloomStrength;
+  uniform vec4 uWinMate;
+  uniform vec4 uWinLogin;
+  uniform float uCalmDim;
+
+  varying vec3 vNormalView;
+  varying vec2 vUv;
+  varying float vLayer;
+  varying vec2 vScreenUv;
+
+  float softBoxMask(vec2 uv, vec4 rect, float feather) {
+    if (rect.z <= rect.x || rect.w <= rect.y) return 0.0;
+    float mx = smoothstep(rect.x - feather, rect.x + feather * 0.5, uv.x)
+             * (1.0 - smoothstep(rect.z - feather * 0.5, rect.z + feather, uv.x));
+    float my = smoothstep(rect.y - feather, rect.y + feather * 0.5, uv.y)
+             * (1.0 - smoothstep(rect.w - feather * 0.5, rect.w + feather, uv.y));
+    return mx * my;
+  }
+
+  void main() {
+    vec3 N = normalize(vNormalView);
+    vec3 topDir = normalize(vec3(-0.10, 0.58, 0.80));
+    float topHighlight = smoothstep(0.32, 0.96, dot(N, topDir));
+    // Soft bell-curve halo fading smoothly to 0 at edges
+    float halo = sin(clamp(vUv.y, 0.0, 1.0) * 3.14159265);
+    halo = pow(halo, 1.8);
+    float endFade = smoothstep(0.0, 0.08, vUv.x) * smoothstep(1.0, 0.92, vUv.x);
+
+    float mateDim = softBoxMask(vScreenUv, uWinMate, 0.09) * 0.72;
+    float loginDim = softBoxMask(vScreenUv, uWinLogin, 0.09) * 0.72;
+    float centerDist = length((vScreenUv - vec2(0.5, 0.48)) * vec2(1.05, 1.25));
+    float centerMask = 1.0 - smoothstep(0.18, 0.76, centerDist);
+    float dimAmount = clamp(max(max(mateDim, loginDim), centerMask * (uCalmDim * 0.80 + (1.0 - uCalmDim) * 0.35)), 0.0, 0.85);
+    float atten = 1.0 - dimAmount;
+
+    vec3 glowCol = mix(uHighlightColor, uRimColor, 0.35) * topHighlight * halo * endFade * atten * uBloomStrength * (0.55 + 0.45 * vLayer);
+    float glowAlpha = clamp(max(glowCol.r, max(glowCol.g, glowCol.b)), 0.0, 1.0);
+    gl_FragColor = vec4(glowCol, glowAlpha);
+  }
+`
+
+function createRibbonMaterial(palette: TimePalette, gain: number): THREE.ShaderMaterial {
+  const shadow = new THREE.Color(palette.top).multiplyScalar(0.68)
+  return new THREE.ShaderMaterial({
+    vertexShader: RIBBON_VERTEX_SHADER,
+    fragmentShader: RIBBON_FRAGMENT_SHADER,
+    uniforms: {
+      uBaseColor: { value: new THREE.Color(palette.tubeBase) },
+      uHighlightColor: { value: new THREE.Color(palette.tubeSpec) },
+      uRimColor: { value: new THREE.Color(palette.rimColor) },
+      uShadowColor: { value: shadow },
+      uLightDir: { value: new THREE.Vector3(-0.4, 0.72, 0.56).normalize() },
+      uGain: { value: gain },
+      uOpacity: { value: 0.94 },
+      uWinMate: { value: new THREE.Vector4(0, 0, 0, 0) },
+      uWinLogin: { value: new THREE.Vector4(0, 0, 0, 0) },
+      uCalmDim: { value: 0 },
+      uBloomStrength: { value: 0.25 },
+    },
+    transparent: true,
+    depthWrite: true,
+    side: THREE.FrontSide,
+  })
+}
+
+function createBloomHaloMaterial(palette: TimePalette): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    vertexShader: RIBBON_VERTEX_SHADER,
+    fragmentShader: BLOOM_HALO_FRAGMENT_SHADER,
+    uniforms: {
+      uHighlightColor: { value: new THREE.Color(palette.tubeSpec) },
+      uRimColor: { value: new THREE.Color(palette.rimColor) },
+      uBloomStrength: { value: 0.24 },
+      uWinMate: { value: new THREE.Vector4(0, 0, 0, 0) },
+      uWinLogin: { value: new THREE.Vector4(0, 0, 0, 0) },
+      uCalmDim: { value: 0 },
+    },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.FrontSide,
+  })
+}
+
 export default function DesktopWallpaper({
   capsuleCount,
   capsuleSpeed,
@@ -472,28 +680,52 @@ export default function DesktopWallpaper({
     ribbonRoot.position.set(0, 0, -3.5)
     scene.add(ribbonRoot)
 
-    const wordmarkMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(propsRef.current.palette.tubeBase),
-      emissive: new THREE.Color(propsRef.current.palette.tubeSpec),
-      emissiveIntensity: 0.03,
-      roughness: 0.3,
-      metalness: 0.22,
-      clearcoat: 0.72,
-      clearcoatRoughness: 0.22,
-      sheen: 0.45,
-      sheenColor: new THREE.Color(propsRef.current.palette.tubeSpec),
-      transparent: true,
-      opacity: 0.24,
-    })
-    const decoyMat = wordmarkMat.clone()
+    const wordmarkMat = createRibbonMaterial(propsRef.current.palette, 0.72)
+    const decoyMat = createRibbonMaterial(propsRef.current.palette, 0.96)
+    const bloomHaloMat = createBloomHaloMaterial(propsRef.current.palette)
 
-    const tubeRadius = TUBE_STYLE_DEFAULTS.radius
-    const trackPitch = tubeRadius * (2 + TUBE_STYLE_DEFAULTS.gapRatio)
-    const wordmarkBuilt = buildConcentricTubeBundles(HIDDEN_WORDMARK_SPECS, wordmarkMat, tubeRadius, trackPitch)
-    const decoyBuilt = buildConcentricTubeBundles(HIDDEN_DECOY_BUNDLES, decoyMat, tubeRadius, trackPitch)
-    decoyBuilt.group.position.z = -0.1
-    ribbonRoot.add(decoyBuilt.group)
+    const wordmarkBuilt = buildLayeredRibbonBundles(HIDDEN_WORDMARK_SPECS, wordmarkMat, {
+      ribbonWidth: RIBBON_STYLE_DEFAULTS.ribbonWidth * 0.92,
+      ribbonDepth: RIBBON_STYLE_DEFAULTS.ribbonDepth * 0.88,
+      layerGapRatio: RIBBON_STYLE_DEFAULTS.layerGapRatio,
+      defaultLayers: RIBBON_STYLE_DEFAULTS.wordmarkLayers,
+    })
+    const decoyBuilt = buildLayeredRibbonBundles(HIDDEN_DECOY_BUNDLES, decoyMat, {
+      ribbonWidth: RIBBON_STYLE_DEFAULTS.ribbonWidth,
+      ribbonDepth: RIBBON_STYLE_DEFAULTS.ribbonDepth,
+      layerGapRatio: RIBBON_STYLE_DEFAULTS.layerGapRatio,
+      defaultLayers: RIBBON_STYLE_DEFAULTS.decoyLayers,
+    })
+    const authLowerBuilt = buildLayeredRibbonBundles(AUTH_LOWER_RIBBON_SPECS, decoyMat, {
+      ribbonWidth: RIBBON_STYLE_DEFAULTS.ribbonWidth,
+      ribbonDepth: RIBBON_STYLE_DEFAULTS.ribbonDepth,
+      layerGapRatio: RIBBON_STYLE_DEFAULTS.layerGapRatio,
+      defaultLayers: 4,
+    })
+    // Lightweight additive optical bloom halo over foreground ribbons (disabled at degradationStage >= 1)
+    const bloomHaloBuilt = buildLayeredRibbonBundles(HIDDEN_DECOY_BUNDLES, bloomHaloMat, {
+      ribbonWidth: RIBBON_STYLE_DEFAULTS.ribbonWidth * 1.38,
+      ribbonDepth: RIBBON_STYLE_DEFAULTS.ribbonDepth * 0.5,
+      layerGapRatio: RIBBON_STYLE_DEFAULTS.layerGapRatio,
+      defaultLayers: 3,
+    })
+    bloomHaloBuilt.group.position.z = 0.06
     ribbonRoot.add(wordmarkBuilt.group)
+    ribbonRoot.add(decoyBuilt.group)
+    ribbonRoot.add(authLowerBuilt.group)
+    ribbonRoot.add(bloomHaloBuilt.group)
+
+    // Smoothed shader colors for silky time-of-day palette transitions
+    const smoothColors = {
+      base: new THREE.Color(propsRef.current.palette.tubeBase),
+      highlight: new THREE.Color(propsRef.current.palette.tubeSpec),
+      rim: new THREE.Color(propsRef.current.palette.rimColor),
+      shadow: new THREE.Color(propsRef.current.palette.top).multiplyScalar(0.45),
+      targetBase: new THREE.Color(),
+      targetHighlight: new THREE.Color(),
+      targetRim: new THREE.Color(),
+      targetShadow: new THREE.Color(),
+    }
 
     const topGeo = buildCapsuleHalfGeometry('top')
     const bottomGeo = buildCapsuleHalfGeometry('bottom')
@@ -1012,25 +1244,82 @@ export default function DesktopWallpaper({
       keyLight.position.set(Math.cos(lightRad) * 6.8, Math.sin(lightRad) * 6.0 + 1.4, 4.8)
       rimLight.color.set(cfg.palette.rimColor)
 
-      // Apply subtle night/dawn tube contrast boost so dark bands keep sleek 3D depth without revealing letters
+      // Smoothly transition ribbon shader colors across time-of-day palettes
+      smoothColors.targetBase.set(cfg.palette.tubeBase)
+      smoothColors.targetHighlight.set(cfg.palette.tubeSpec)
+      smoothColors.targetRim.set(cfg.palette.rimColor)
+      smoothColors.targetShadow.set(cfg.palette.top).multiplyScalar(0.68)
+      const colorLerp = dt > 0 ? Math.min(1, 1 - Math.exp(-dt * 4.5)) : 1
+      smoothColors.base.lerp(smoothColors.targetBase, colorLerp)
+      smoothColors.highlight.lerp(smoothColors.targetHighlight, colorLerp)
+      smoothColors.rim.lerp(smoothColors.targetRim, colorLerp)
+      smoothColors.shadow.lerp(smoothColors.targetShadow, colorLerp)
+
+      const lightDirX = Math.cos(lightRad) * 0.55
+      const lightDirY = Math.sin(lightRad) * 0.55 + 0.55
+      const lightDirZ = 0.62
+
       const boostedContrast = Math.min(100, cfg.hiddenContrast + cfg.palette.tubeContrastBoost)
       const contrastNorm = Math.max(0, Math.min(1, boostedContrast / 100))
-      wordmarkMat.color.set(cfg.palette.tubeBase)
-      wordmarkMat.emissive.set(cfg.palette.tubeSpec)
-      wordmarkMat.emissiveIntensity = 0.015 + contrastNorm * 0.36
-      wordmarkMat.sheenColor.set(cfg.palette.tubeSpec)
-      wordmarkMat.opacity = 0.16 + contrastNorm * 0.78
-      wordmarkMat.roughness = 0.31 - contrastNorm * 0.14
-
-      // Identical material at default low contrast; slightly softer decoy at high inspection contrast (>70%)
       const rawNorm = Math.max(0, Math.min(1, cfg.hiddenContrast / 100))
       const inspectionSoften = rawNorm > 0.7 ? (rawNorm - 0.7) / 0.3 : 0
-      decoyMat.color.set(cfg.palette.tubeBase)
-      decoyMat.emissive.set(cfg.palette.tubeSpec)
-      decoyMat.emissiveIntensity = wordmarkMat.emissiveIntensity * (1 - inspectionSoften * 0.62)
-      decoyMat.sheenColor.set(cfg.palette.tubeSpec)
-      decoyMat.opacity = wordmarkMat.opacity * (1 - inspectionSoften * 0.5)
-      decoyMat.roughness = wordmarkMat.roughness + inspectionSoften * 0.1
+
+      // Calm/app routes (capsuleCount <= 10) dim the central app-window band for text readability
+      const isCalmAppRoute = cfg.capsuleCount > 0 && cfg.capsuleCount <= 10
+      const calmDimTarget = isCalmAppRoute ? 1.0 : 0.0
+      const vw = Math.max(1, sizeRef.w)
+      const vh = Math.max(1, sizeRef.h)
+      const toScreenRect = (r: WindowRect, fallbackH: number): [number, number, number, number] => {
+        if (isCalmAppRoute) return [0, 0, 0, 0]
+        const h = r.height ?? fallbackH
+        const x0 = Math.max(0, r.x / vw)
+        const x1 = Math.min(1, (r.x + r.width) / vw)
+        const y0 = Math.max(0, 1 - (r.y + h) / vh)
+        const y1 = Math.min(1, 1 - r.y / vh)
+        return [x0, y0, x1, y1]
+      }
+      const mateScreenRect = toScreenRect(cfg.windowRects.mate, 540)
+      const loginScreenRect = toScreenRect(cfg.windowRects.login, 560)
+
+      // Keep hidden wordmark very quiet so the center remains calm dark space ("눈여겨봐야 보일 정도")
+      const decoyGain = 1.02 + contrastNorm * 0.14
+      const wordmarkGain = (0.72 + contrastNorm * 0.25) * (1 + inspectionSoften * 0.25)
+      const decoyOpacity = (0.96 - inspectionSoften * 0.35) * (isCalmAppRoute ? 0.88 : 1)
+      const wordmarkOpacity = (0.14 + contrastNorm * 0.28) * (isCalmAppRoute ? 0.35 : 1)
+
+      // Subtle bloom (strength ~0.24, high threshold) — turned OFF at degradationStage >= 1
+      const bloomStrength = cfg.degradationStage === 0 ? 0.24 : 0.0
+
+      for (const [mat, gain, opacity] of [
+        [decoyMat, decoyGain * (1 - inspectionSoften * 0.45), decoyOpacity],
+        [wordmarkMat, wordmarkGain, wordmarkOpacity],
+      ] as const) {
+        ;(mat.uniforms.uBaseColor!.value as THREE.Color).copy(smoothColors.base)
+        ;(mat.uniforms.uHighlightColor!.value as THREE.Color).copy(smoothColors.highlight)
+        ;(mat.uniforms.uRimColor!.value as THREE.Color).copy(smoothColors.rim)
+        ;(mat.uniforms.uShadowColor!.value as THREE.Color).copy(smoothColors.shadow)
+        ;(mat.uniforms.uLightDir!.value as THREE.Vector3).set(lightDirX, lightDirY, lightDirZ).normalize()
+        mat.uniforms.uGain!.value = gain
+        mat.uniforms.uOpacity!.value = opacity
+        ;(mat.uniforms.uWinMate!.value as THREE.Vector4).set(...mateScreenRect)
+        ;(mat.uniforms.uWinLogin!.value as THREE.Vector4).set(...loginScreenRect)
+        mat.uniforms.uCalmDim!.value = calmDimTarget
+        mat.uniforms.uBloomStrength!.value = bloomStrength
+      }
+
+      // Sync additive bloom halo (strictly OFF when degradationStage >= 1)
+      bloomHaloBuilt.group.visible = bloomStrength > 0
+      if (bloomHaloBuilt.group.visible) {
+        ;(bloomHaloMat.uniforms.uHighlightColor!.value as THREE.Color).copy(smoothColors.highlight)
+        ;(bloomHaloMat.uniforms.uRimColor!.value as THREE.Color).copy(smoothColors.rim)
+        bloomHaloMat.uniforms.uBloomStrength!.value = bloomStrength * 0.72
+        ;(bloomHaloMat.uniforms.uWinMate!.value as THREE.Vector4).set(...mateScreenRect)
+        ;(bloomHaloMat.uniforms.uWinLogin!.value as THREE.Vector4).set(...loginScreenRect)
+        bloomHaloMat.uniforms.uCalmDim!.value = calmDimTarget
+      }
+
+      // Auth-only lower-center ribbon sweep (hidden on calm app screens like Home & Records)
+      authLowerBuilt.group.visible = !isCalmAppRoute && cfg.decoyDensity > 0
 
       const visibleDecoys = Math.round(
         (Math.max(0, Math.min(3, cfg.decoyDensity)) / 3) * decoyBuilt.bundleGroups.length,
@@ -1039,9 +1328,11 @@ export default function DesktopWallpaper({
         decoyBuilt.bundleGroups[i]!.visible = i < visibleDecoys
       }
 
-      ribbonRoot.scale.setScalar(cfg.hiddenScale)
+      // Responsive half-screen framing (960/720/640): fit ribbon spread cleanly to narrow aspect ratios
+      const aspectFit = aspect < 1.35 ? Math.max(0.66, Math.pow(aspect / 1.35, 0.72)) : 1
+      ribbonRoot.scale.setScalar(cfg.hiddenScale * aspectFit)
       ribbonRoot.position.set(
-        (cfg.hiddenOffsetX / 100) * 6.5,
+        (cfg.hiddenOffsetX / 100) * 6.5 * aspectFit,
         (cfg.hiddenOffsetY / 100) * 4.0,
         -3.5,
       )
@@ -1401,8 +1692,11 @@ export default function DesktopWallpaper({
       reducedMedia.removeEventListener('change', onReducedChange)
       wordmarkBuilt.geometries.forEach((g) => g.dispose())
       decoyBuilt.geometries.forEach((g) => g.dispose())
+      authLowerBuilt.geometries.forEach((g) => g.dispose())
+      bloomHaloBuilt.geometries.forEach((g) => g.dispose())
       wordmarkMat.dispose()
       decoyMat.dispose()
+      bloomHaloMat.dispose()
       topGeo.dispose()
       bottomGeo.dispose()
       seamDiscGeo.dispose()

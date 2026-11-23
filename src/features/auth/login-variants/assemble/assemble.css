@@ -1,0 +1,932 @@
+/* "채린이 조립" v2 (/login): Aliving2D engine + Shot A -> explode -> mesh -> Shot A -> Shot B zoom */
+
+.assemble-stage-root {
+  position: absolute;
+  inset: 0 38% 0 0;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Soft right-edge mask eliminates harsh vertical edge against the dark right scrim */
+.assemble-stage-mask {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 120px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 120px), transparent);
+}
+
+/* Shared camera wrapper holding Aliving2D canvas, 9 layers, and static full.webp in exact lockstep */
+.assemble-camera {
+  position: absolute;
+  transform-origin: 50% 50%;
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.assemble-camera[data-camera-transition='zoom-b'] {
+  transition: transform 1200ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.assemble-camera[data-camera-transition='assemble'] {
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.assemble-camera[data-camera-pose='explode'] {
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Aliving2D WebGL2 canvas host */
+.assemble-engine-host {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  pointer-events: none;
+}
+
+.assemble-engine-host[data-visible='true'] {
+  opacity: 1;
+}
+
+/* ---------- 9-layer 3D watch-exploded rig (DOM-ordered flat slots prevent back-hair Z-overlap) ---------- */
+.assemble-rig-viewport {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+.assemble-rig-viewport[data-visible='true'] {
+  opacity: 1;
+}
+
+/* Flat stacking context guarantees strict DOM z 0->8 painting order so snapped back-hair never covers waiting parts */
+.assemble-rig-pivot {
+  position: absolute;
+  inset: 0;
+  transform-style: flat;
+}
+
+.assemble-layer-slot {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform-style: flat;
+}
+
+/* Shared stage-center perspective + rotation per slot: unwinds over 900ms during assembling */
+.assemble-layer-rot {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  transform-style: preserve-3d;
+  transform: perspective(1500px) rotateX(0deg) rotateY(0deg);
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.assemble-rig-viewport[data-exploded='true'] .assemble-layer-rot {
+  transform: perspective(1500px) rotateX(-10deg) rotateY(-32deg);
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Per-layer depth separation: snaps back one-by-one with non-uniform timing (face->front-hair <= 200ms) */
+.assemble-layer-z {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  transform: translate3d(0, 0, 0);
+  transition: transform var(--assemble-dur, 320ms) cubic-bezier(0.34, 1.56, 0.64, 1) var(--assemble-delay, 0ms);
+  will-change: transform;
+}
+
+.assemble-rig-viewport[data-exploded='true'] .assemble-layer-z {
+  transform: translate3d(0, 0, var(--ez));
+  transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--z) * 30ms);
+}
+
+.assemble-layer {
+  position: absolute;
+}
+
+.assemble-layer-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+/* ---------- Inline Polygon Mesh Overlay (*.poly.svg) ---------- */
+.assemble-poly-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+  visibility: hidden;
+  transition: visibility 1ms linear var(--mesh-draw-delay, 0ms);
+}
+
+.assemble-poly-svg[data-active='true'] {
+  visibility: visible;
+}
+
+.assemble-poly-svg .mesh-edges {
+  stroke: #d6c8ff;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0.55;
+  will-change: stroke-dashoffset, opacity;
+}
+
+/* Meshing (0..450ms): edges draw top-to-bottom per layer with 25ms z-stagger */
+.assemble-rig-viewport[data-meshing='true'] .mesh-edges {
+  animation: assemble-poly-draw 250ms cubic-bezier(0.25, 0.8, 0.35, 1) both;
+  animation-delay: var(--mesh-draw-delay, 0ms);
+}
+
+/* Assembling: layer's mesh stays drawn until snap moment, then glows (0.55 -> peak -> 0 over 200ms) */
+.assemble-rig-viewport[data-assembling='true'] .mesh-edges {
+  stroke-dashoffset: 0;
+  animation: assemble-poly-snap 200ms ease-out forwards;
+  animation-delay: var(--mesh-snap-delay, 0ms);
+}
+
+/* Vertex bands (4 Y-groups): pop in as the edge sweep passes each band */
+.assemble-poly-svg .mesh-vert-band {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.assemble-rig-viewport[data-meshing='true'] .mesh-vert-band {
+  animation: assemble-vert-pop 100ms cubic-bezier(0.22, 1.35, 0.36, 1) forwards;
+  animation-delay: calc(var(--mesh-draw-delay, 0ms) + var(--band, 0) * 60ms);
+}
+
+.assemble-rig-viewport[data-assembling='true'] .mesh-vert-band {
+  opacity: 0.85;
+  animation: assemble-vert-fade 200ms ease-out forwards;
+  animation-delay: var(--mesh-snap-delay, 0ms);
+}
+
+/* Frozen preview helper for deterministic meshing capture */
+.assemble-stage-root[data-assemble-frozen='true'] .assemble-rig-viewport[data-phase='meshing'] .mesh-edges {
+  animation: none;
+  stroke-dashoffset: 0;
+  opacity: 0.55;
+}
+
+.assemble-stage-root[data-assemble-frozen='true'] .assemble-rig-viewport[data-phase='meshing'] .mesh-vert-band {
+  animation: none;
+  opacity: 0.85;
+}
+
+@keyframes assemble-poly-draw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0.4;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.55;
+  }
+}
+
+@keyframes assemble-poly-snap {
+  0% {
+    opacity: 0.55;
+  }
+  40% {
+    opacity: var(--mesh-peak, 0.5);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes assemble-vert-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+}
+
+@keyframes assemble-vert-fade {
+  0% {
+    opacity: 0.85;
+  }
+  40% {
+    opacity: var(--mesh-peak, 0.5);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- Gold Skeleton Rigging Overlay (Shot A front plane, depth 0; assembling +150ms) ---------- */
+.assemble-skeleton-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 12;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0;
+}
+
+.assemble-skeleton-svg[data-phase='assembling'] {
+  opacity: 1;
+}
+
+.assemble-rig-bone {
+  stroke: #ffd678;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px rgba(255, 214, 120, 0.45));
+}
+
+/* Bones draw +150ms..600ms, then fade out over 200ms as front-hair starts snapping (+650ms..850ms) */
+.assemble-skeleton-svg[data-phase='assembling'] .assemble-rig-bone {
+  animation:
+    assemble-bone-draw var(--bone-dur, 140ms) ease-out var(--bone-delay, 150ms) both,
+    assemble-bone-fade 200ms ease-out 650ms forwards;
+}
+
+.assemble-rig-joint {
+  fill: transparent;
+  stroke: #ffd678;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* Non-sparkle joint (chest): pops in when bone arrives, fades out with bones at +650ms..850ms */
+.assemble-skeleton-svg[data-phase='assembling'] .assemble-rig-joint {
+  animation:
+    assemble-joint-pop 110ms cubic-bezier(0.22, 1.4, 0.36, 1) var(--joint-delay, 280ms) both,
+    assemble-bone-fade 200ms ease-out 650ms forwards;
+}
+
+/* 7 sparkle joints (shoulderL/R, elbowL/R, wristL/R, hip): pop in, then sparkle 120ms right after bones fade (+850ms..970ms) */
+.assemble-skeleton-svg[data-phase='assembling'] .assemble-rig-joint[data-sparkle='true'] {
+  animation:
+    assemble-joint-pop 110ms cubic-bezier(0.22, 1.4, 0.36, 1) var(--joint-delay, 340ms) both,
+    assemble-joint-sparkle 120ms ease-out 850ms forwards;
+}
+
+@keyframes assemble-bone-draw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.92;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.92;
+  }
+}
+
+@keyframes assemble-bone-fade {
+  0% {
+    opacity: 0.92;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes assemble-joint-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes assemble-joint-sparkle {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    stroke: #ffd678;
+    fill: transparent;
+    filter: drop-shadow(0 0 4px rgba(255, 214, 120, 0.6));
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.6);
+    stroke: #e2d4ff;
+    fill: rgba(185, 163, 255, 0.55);
+    filter: drop-shadow(0 0 12px rgba(185, 163, 255, 0.95));
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0);
+    stroke: #e2d4ff;
+    fill: transparent;
+  }
+}
+
+/* ---------- Static full.webp fallback ---------- */
+.assemble-static-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.assemble-static-layer[data-visible='true'] {
+  opacity: 1;
+}
+
+.assemble-static-img {
+  position: absolute;
+  display: block;
+  transform-origin: 50% 60%;
+  will-change: transform;
+}
+
+.assemble-static-layer[data-breathing='true'] .assemble-static-img {
+  animation: assemble-static-breathe 5s ease-in-out infinite;
+}
+
+@keyframes assemble-static-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.006);
+  }
+}
+
+/* ---------- macOS Glass Window Drag-and-Drop Dock ---------- */
+.assemble-dmg-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  /* Exact visible left-column width to the left of the right login panel (440px + right padding) */
+  width: min(100%, calc(100vw - 440px - clamp(24px, 6vw, 112px)));
+  container-type: inline-size;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: 20px 0;
+  transition: opacity 250ms ease;
+}
+
+.assemble-dmg-overlay[data-phase='dropped'] {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.assemble-dmg-win {
+  position: relative;
+  width: min(640px, calc(100cqw - 48px));
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+/* Allow dragged card to lift freely above the window bounds while dragging */
+.assemble-dmg-overlay[data-dragging='true'] .assemble-dmg-win {
+  overflow: visible;
+}
+
+.assemble-win-bar {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  color: rgba(250, 250, 253, 0.72);
+}
+
+.assemble-win-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.assemble-win-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: block;
+}
+
+.assemble-win-dot--close {
+  background: #ff5f57;
+}
+
+.assemble-win-dot--min {
+  background: #febc2e;
+}
+
+.assemble-win-dot--max {
+  background: #28c840;
+}
+
+.assemble-win-title {
+  flex: 1;
+  text-align: center;
+  margin-right: 49px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.assemble-dmg-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: clamp(20px, 4.5cqw, 34px) clamp(16px, 5cqw, 40px) clamp(14px, 3cqw, 22px);
+  gap: clamp(6px, 1.5cqw, 10px);
+}
+
+/* Shared item labels under card & icon */
+.assemble-item-name {
+  color: #fafafd;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.assemble-item-sub {
+  color: rgba(250, 250, 253, 0.6);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  margin-top: -8px;
+}
+
+/* Left tilted photo card (200x266, radius 18, inset white border 3px, floating 3.2s) */
+.assemble-card-btn {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  transform: translate3d(0, 0, 0);
+  transition: transform 340ms cubic-bezier(0.22, 1.28, 0.36, 1), opacity 240ms ease;
+  will-change: transform, opacity;
+}
+
+.assemble-card-btn:focus-visible {
+  outline: 2px solid #b9a3ff;
+  outline-offset: 8px;
+  border-radius: 18px;
+}
+
+.assemble-card-btn[data-dragging='true'] {
+  cursor: grabbing;
+  z-index: 10;
+  transform: translate3d(var(--drag-x), var(--drag-y), 0) scale(1.03);
+  transition: none;
+}
+
+.assemble-card-btn[data-dropped='true'] {
+  transform: translate3d(var(--drag-x), var(--drag-y), 0) scale(0.18);
+  opacity: 0;
+  transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1), opacity 220ms ease;
+}
+
+.assemble-photo-frame {
+  position: relative;
+  display: block;
+  width: clamp(130px, 31cqw, 200px);
+  aspect-ratio: 3 / 4;
+  border-radius: 18px;
+  background: radial-gradient(120% 90% at 50% 15%, #3a2a6b 0%, #1d1736 70%);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+  transform: rotate(-4deg);
+  animation: assemble-card-float 3.2s ease-in-out infinite;
+  transition: transform 240ms cubic-bezier(0.22, 1.28, 0.36, 1);
+  will-change: transform;
+}
+
+.assemble-photo-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+
+.assemble-card-btn:hover .assemble-photo-frame {
+  transform: rotate(-2deg) translateY(-4px);
+}
+
+.assemble-card-btn[data-dragging='true'] .assemble-photo-frame,
+.assemble-card-btn[data-dropped='true'] .assemble-photo-frame {
+  animation: none;
+  transform: rotate(-1deg);
+}
+
+@keyframes assemble-card-float {
+  0%,
+  100% {
+    transform: rotate(-4deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-4deg) translateY(-6px);
+  }
+}
+
+.assemble-photo-img {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  height: 104%;
+  width: auto;
+  max-width: none;
+  transform: translateX(-50%);
+  display: block;
+  pointer-events: none;
+}
+
+/* Center animated 3-chevron flow (#c9b6ff, 1.2s cycle, 150ms stagger) */
+.assemble-drop-flow {
+  display: flex;
+  gap: clamp(3px, 0.9cqw, 6px);
+  align-items: center;
+  justify-content: center;
+  padding: 0 clamp(2px, 0.8cqw, 6px);
+}
+
+.assemble-drop-flow i {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-right: 2.5px solid #c9b6ff;
+  border-top: 2.5px solid #c9b6ff;
+  transform: rotate(45deg);
+  opacity: 0.25;
+  animation: assemble-chevron-flow 1.2s infinite;
+}
+
+.assemble-drop-flow i:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.assemble-drop-flow i:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+.assemble-drop-flow[data-active='true'] i {
+  border-color: #e4d9ff;
+}
+
+@keyframes assemble-chevron-flow {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+/* Right official CAPSULE symbol drop target (132px + breathing radial purple glow) */
+.assemble-icon-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 220ms cubic-bezier(0.22, 1.35, 0.36, 1);
+  will-change: transform;
+}
+
+.assemble-icon-btn:focus-visible {
+  outline: 2px solid #b9a3ff;
+  outline-offset: 8px;
+  border-radius: 26px;
+}
+
+.assemble-icon-btn[data-dropped='true'] {
+  animation: assemble-icon-bounce 250ms cubic-bezier(0.22, 1.4, 0.36, 1) forwards;
+}
+
+@keyframes assemble-icon-bounce {
+  0% {
+    transform: scale(1.08);
+  }
+  45% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(0.92);
+  }
+}
+
+.assemble-icon-dropzone {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(88px, 20cqw, 132px);
+  height: clamp(88px, 20cqw, 132px);
+}
+
+.assemble-icon-dropzone::before {
+  content: '';
+  position: absolute;
+  inset: -18px;
+  border-radius: 44px;
+  background: radial-gradient(closest-side, rgba(150, 110, 255, 0.45), transparent);
+  animation: assemble-icon-glow 2.4s ease-in-out infinite;
+  transition: opacity 180ms ease, transform 200ms ease, background 180ms ease;
+  pointer-events: none;
+}
+
+.assemble-icon-btn[data-drop-hover='true'] .assemble-icon-dropzone::before {
+  animation: none;
+  opacity: 1;
+  inset: -26px;
+  background: radial-gradient(closest-side, rgba(150, 110, 255, 0.82), rgba(124, 92, 240, 0.25) 55%, transparent);
+  transform: scale(1.08);
+}
+
+@keyframes assemble-icon-glow {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.94);
+  }
+}
+
+.assemble-app-icon-img {
+  position: relative;
+  width: clamp(88px, 20cqw, 132px);
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 14px 28px rgba(60, 20, 160, 0.55));
+  transition: transform 200ms cubic-bezier(0.22, 1.35, 0.36, 1), filter 200ms ease;
+  pointer-events: none;
+}
+
+.assemble-icon-btn:hover .assemble-app-icon-img {
+  transform: scale(1.04);
+}
+
+.assemble-icon-btn[data-drop-hover='true'] .assemble-app-icon-img {
+  transform: scale(1.08);
+  filter: drop-shadow(0 16px 34px rgba(124, 92, 240, 0.78));
+}
+
+/* Footer guidance row (top hairline, inline <b>CAPSULE</b> without flex gap) */
+.assemble-dmg-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: 8px;
+  row-gap: 2px;
+  padding: 14px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+  color: rgba(250, 250, 253, 0.86);
+  text-align: center;
+}
+
+.assemble-dmg-foot-main b {
+  color: #d6c8ff;
+  font-weight: 600;
+}
+
+.assemble-dmg-kbd {
+  font-size: 12px;
+  color: rgba(250, 250, 253, 0.5);
+}
+
+/* ---------- 6-second idle demo ghost cursor ---------- */
+.assemble-demo-cursor {
+  position: absolute;
+  left: 26%;
+  top: 48%;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+  animation: assemble-demo-drag 2.2s cubic-bezier(0.35, 0, 0.25, 1) forwards;
+}
+
+@keyframes assemble-demo-drag {
+  0% {
+    opacity: 0;
+    transform: translate3d(-12px, 16px, 0) scale(1);
+  }
+  16% {
+    opacity: 0.85;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  26% {
+    opacity: 0.92;
+    transform: translate3d(0, 0, 0) scale(0.92);
+  }
+  76% {
+    opacity: 0.92;
+    transform: translate3d(clamp(130px, 16vw, 220px), -4px, 0) scale(0.92);
+  }
+  88% {
+    opacity: 0.82;
+    transform: translate3d(clamp(130px, 16vw, 220px), -4px, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(clamp(138px, 16.8vw, 230px), 8px, 0) scale(1);
+  }
+}
+
+/* ---------- Replay button (offset right of dev panel toggle at left: 72px) ---------- */
+.assemble-replay-btn {
+  position: absolute;
+  left: 72px;
+  bottom: 22px;
+  z-index: 5;
+  border: 1px solid rgba(250, 250, 253, 0.14);
+  border-radius: 999px;
+  background: rgba(15, 14, 23, 0.56);
+  padding: 5px 12px;
+  backdrop-filter: blur(10px);
+  color: rgba(250, 250, 253, 0.72);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.assemble-replay-btn:hover {
+  color: #ffffff;
+  background: rgba(15, 14, 23, 0.78);
+  border-color: rgba(214, 200, 255, 0.35);
+}
+
+.assemble-replay-btn:focus-visible {
+  outline: 2px solid #b9a3ff;
+  outline-offset: 2px;
+}
+
+/* Match portrait scrim & bubble positioning for assemble variant */
+[data-login-variant='assemble'] .login-variant-scrim {
+  background:
+    linear-gradient(90deg, rgba(15, 14, 23, 0) 52%, rgba(15, 14, 23, 0.7) 68%, rgba(15, 14, 23, 0.92) 100%),
+    linear-gradient(0deg, rgba(15, 14, 23, 0.5) 0%, rgba(15, 14, 23, 0) 22%);
+}
+
+[data-login-variant='assemble'] .login-variant-bubble-slot {
+  left: calc(31vw - 210px);
+}
+
+/* ---------- Half screen (container ≤ 959px, down to 640px) ---------- */
+@container login-variant (max-width: 959px) {
+  .assemble-stage-root {
+    inset: 0 0 auto 0;
+    height: max(46dvh, 360px);
+  }
+
+  .assemble-stage-mask {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .assemble-dmg-overlay {
+    width: 100%;
+    padding: 12px 0;
+  }
+
+  .assemble-dmg-win {
+    width: min(560px, calc(100cqw - 32px));
+    border-radius: 20px;
+  }
+
+  .assemble-win-bar {
+    height: 34px;
+    font-size: 12px;
+  }
+
+  .assemble-dmg-body {
+    padding: 18px 20px 14px;
+    gap: 8px;
+  }
+
+  .assemble-photo-frame {
+    width: 150px;
+    height: 200px;
+    border-radius: 15px;
+  }
+
+  .assemble-photo-frame::after {
+    border-radius: 15px;
+  }
+
+  .assemble-icon-dropzone {
+    width: 100px;
+    height: 100px;
+  }
+
+  .assemble-app-icon-img {
+    width: 100px;
+  }
+
+  .assemble-item-name {
+    font-size: 14px;
+  }
+
+  .assemble-item-sub {
+    font-size: 11px;
+  }
+
+  .assemble-dmg-foot {
+    padding: 11px 14px;
+    font-size: 13px;
+  }
+
+  .assemble-replay-btn {
+    left: 14px;
+    bottom: 12px;
+  }
+
+  [data-login-variant='assemble'] .login-variant-scrim {
+    background: linear-gradient(0deg, rgba(15, 14, 23, 0.94) 0%, rgba(15, 14, 23, 0.72) 42%, rgba(15, 14, 23, 0) 64%);
+  }
+
+  [data-login-variant='assemble'] .login-variant-bubble-slot {
+    top: calc(max(46dvh, 360px) - 64px);
+    bottom: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(420px, calc(100% - 40px));
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assemble-camera,
+  .assemble-layer-rot,
+  .assemble-layer-z,
+  .assemble-card-btn,
+  .assemble-icon-btn {
+    transition: none;
+  }
+  .assemble-static-layer[data-breathing='true'] .assemble-static-img,
+  .assemble-demo-cursor,
+  .assemble-photo-frame,
+  .assemble-icon-dropzone::before {
+    animation: none;
+  }
+  .assemble-drop-flow i {
+    animation: none;
+    opacity: 0.6;
+  }
+}

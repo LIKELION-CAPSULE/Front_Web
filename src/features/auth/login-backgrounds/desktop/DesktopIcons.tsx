@@ -16,6 +16,8 @@ interface DesktopIconsProps {
   selectedId: string | null
   onSelect: (id: string) => void
   onOpen: (item: DesktopIconItem) => void
+  /** Every single click / Enter press (used by the photos-folder easter egg). */
+  onTap?: (item: DesktopIconItem) => void
 }
 
 function DesktopIconGraphic({ kind }: { kind: DesktopIconItem['kind'] }) {
@@ -64,7 +66,7 @@ function DesktopIconGraphic({ kind }: { kind: DesktopIconItem['kind'] }) {
   )
 }
 
-export function DesktopIcons({ selectedId, onSelect, onOpen }: DesktopIconsProps) {
+export function DesktopIcons({ selectedId, onSelect, onOpen, onTap }: DesktopIconsProps) {
   return (
     <div className="desktop-icons" role="group" aria-label="바탕화면 아이콘">
       {DESKTOP_ICONS.map((item) => {
@@ -79,6 +81,7 @@ export function DesktopIcons({ selectedId, onSelect, onOpen }: DesktopIconsProps
             onClick={(e) => {
               e.stopPropagation()
               onSelect(item.id)
+              onTap?.(item)
             }}
             onDoubleClick={(e) => {
               e.stopPropagation()
@@ -88,8 +91,10 @@ export function DesktopIcons({ selectedId, onSelect, onOpen }: DesktopIconsProps
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()
+                if (e.repeat) return
                 onSelect(item.id)
                 onOpen(item)
+                onTap?.(item)
               }
             }}
           >
