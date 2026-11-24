@@ -16,6 +16,8 @@ interface CapsuleV2PlayerLike {
   setExpression(name: string): boolean
   playMotion(name: string): boolean
   talk(ms: number): boolean
+  /** Reaction table lookup (`reactions.default.json`): expression + hold + talk for a backend trigger. */
+  react?(trigger: string, intensity?: number): unknown
   lookAt(x: number, y: number): void
   setView(zoom: number, cx: number, cy: number): void
   destroy(): void
@@ -82,9 +84,13 @@ export class AlivingRenderer implements MateRenderer {
   private view: AlivingView | null = null
   private paused = false
   private destroyed = false
+  private booting = false
   private pendingExpression: string | null | undefined = undefined
   private pendingLook: { x: number; y: number } | null = null
   private onVisibilityChange: (() => void) | null = null
+  private visibilityDocument: Document | null = null
+  /** Window whose requestAnimationFrame drives the player (the host's window: a Document PiP window when moved). */
+  private loopWindow: Window | null = null
 
   constructor(options: {
     modelUrl: string
@@ -125,7 +131,7 @@ export class AlivingRenderer implements MateRenderer {
     // has a skewed bounding box, and a buffer of that shape would stretch the model.
     const cssW = Math.max(1, host.clientWidth)
     const cssH = Math.max(1, host.clientHeight)
-    const dpr = Math.min((window.devicePixelRatio || 1) * this.pixelScale, this.maxPixelRatio)
+    const dpr = Math.min((this.hostWindow().devicePixelRatio || 1) * this.pixelScale, this.maxPixelRatio)
     const bufW = Math.max(1, Math.round(cssW * dpr))
     const bufH = Math.max(1, Math.round(cssH * dpr))
     if (canvas.width !== bufW) canvas.width = bufW
@@ -135,27 +141,47 @@ export class AlivingRenderer implements MateRenderer {
     }
   }
 
+  private hostWindow(): Window {
+    return this.host?.ownerDocument?.defaultView ?? window
+  }
+
+  private stopLoop() {
+    const player = this.player
+    if (!player) return
+    if (player.running) {
+      player.running = false
+      // The player's own first loop runs on the main window; later loops on `loopWindow`.
+      ;(this.loopWindow ?? window).cancelAnimationFrame(player.raf)
+    }
+    this.loopWindow = null
+  }
+
+  /**
+   * Runs the player's frames on the host's window. A canvas moved into a Document Picture-in-Picture window keeps
+   * animating there even while the original tab is hidden or throttled.
+   */
   private applyPauseState() {
     const player = this.player
     if (!player) return
-    const shouldPause = this.paused || document.hidden
+    const host = this.host
+    const shouldPause = this.paused || !host || Boolean(host.ownerDocument?.hidden)
     if (shouldPause) {
-      if (player.running) {
-        player.running = false
-        cancelAnimationFrame(player.raf)
-      }
+      this.stopLoop()
       return
     }
-    if (!player.running && !this.destroyed) {
-      player.running = true
-      player.last = performance.now()
-      const tick = (now: number) => {
-        if (!player.running || this.destroyed) return
-        player.frame(now)
-        player.raf = requestAnimationFrame(tick)
-      }
-      player.raf = requestAnimationFrame(tick)
+    const win = this.hostWindow()
+    if (player.running && this.loopWindow === win) return
+    this.stopLoop()
+    if (this.destroyed) return
+    player.running = true
+    player.last = performance.now()
+    this.loopWindow = win
+    const tick = (now: number) => {
+      if (!player.running || this.destroyed || this.loopWindow !== win) return
+      player.frame(now)
+      player.raf = win.requestAnimationFrame(tick)
     }
+    player.raf = win.requestAnimationFrame(tick)
   }
 
   private async boot(canvas: HTMLCanvasElement) {
@@ -200,42 +226,76 @@ export class AlivingRenderer implements MateRenderer {
     }
   }
 
+  /**
+   * Shows the model in `host`. The canvas (and its WebGL context and player) is created once and moved between hosts,
+   * including into another document (Document PiP), so a move never reloads the model.
+   */
   attach(host: HTMLElement): void {
     if (this.destroyed) return
+    if (this.host === host && this.canvas?.parentElement === host) return
     this.detach()
     this.host = host
 
+    const canvas = this.ensureCanvas()
+    host.append(canvas)
+
+    this.syncCanvasSize()
+    this.resizeObserver = new ResizeObserver(() => this.syncCanvasSize())
+    this.resizeObserver.observe(host)
+
+    const doc = host.ownerDocument ?? document
+    this.onVisibilityChange = () => this.applyPauseState()
+    this.visibilityDocument = doc
+    doc.addEventListener('visibilitychange', this.onVisibilityChange)
+
+    if (!this.player) {
+      this.startBoot(canvas)
+    } else {
+      this.applyPauseState()
+      // Moving clears nothing on its own, but a resized buffer is blank until the next frame: draw at once.
+      try { this.player.model.draw() } catch { /* Drawn on the next frame. */ }
+    }
+  }
+
+  private ensureCanvas(): HTMLCanvasElement {
+    if (this.canvas) return this.canvas
     const canvas = document.createElement('canvas')
     canvas.style.width = '100%'
     canvas.style.height = '100%'
     canvas.style.display = 'block'
     canvas.style.background = 'transparent'
     canvas.setAttribute('aria-hidden', 'true')
-    host.append(canvas)
     this.canvas = canvas
-
-    this.syncCanvasSize()
-    this.resizeObserver = new ResizeObserver(() => this.syncCanvasSize())
-    this.resizeObserver.observe(host)
-
-    this.onVisibilityChange = () => this.applyPauseState()
-    document.addEventListener('visibilitychange', this.onVisibilityChange)
-
-    if (!this.player) {
-      void this.boot(canvas)
-    }
+    return canvas
   }
 
+  private startBoot(canvas: HTMLCanvasElement) {
+    if (this.booting || this.player || this.destroyed) return
+    this.booting = true
+    void this.boot(canvas)
+  }
+
+  /**
+   * Loads the engine and model before any host exists (the connection prepares the model before the call screen
+   * mounts). The canvas stays offscreen and does not animate until `attach`.
+   */
+  preload(): void {
+    if (this.destroyed) return
+    this.startBoot(this.ensureCanvas())
+  }
+
+  /** Takes the canvas out of its host and stops drawing; the model stays loaded for the next `attach`. */
   detach(): void {
     this.resizeObserver?.disconnect()
     this.resizeObserver = null
     if (this.onVisibilityChange) {
-      document.removeEventListener('visibilitychange', this.onVisibilityChange)
+      this.visibilityDocument?.removeEventListener('visibilitychange', this.onVisibilityChange)
       this.onVisibilityChange = null
+      this.visibilityDocument = null
     }
     this.canvas?.remove()
-    this.canvas = null
     this.host = null
+    this.stopLoop()
   }
 
   destroy(): void {
@@ -251,6 +311,7 @@ export class AlivingRenderer implements MateRenderer {
       }
     }
     this.detach()
+    this.canvas = null
     this.listeners.clear()
   }
 
@@ -282,6 +343,17 @@ export class AlivingRenderer implements MateRenderer {
 
   talk(ms: number): void {
     if (ms > 0) this.player?.talk(ms)
+  }
+
+  /** Plays a reaction from the reaction table; false when the player has no table or no matching trigger. */
+  react(trigger: string, intensity = 1): boolean {
+    const player = this.player
+    if (!player?.react || !this.reactionsUrl) return false
+    try {
+      return player.react(trigger, intensity) !== false
+    } catch {
+      return false
+    }
   }
 
   setView(zoom: number, cx: number, cy: number): void {

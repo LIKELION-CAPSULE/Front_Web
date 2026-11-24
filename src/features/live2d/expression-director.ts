@@ -1,8 +1,9 @@
 import {
   advanceExpression, cancelPendingExpression, createExpressionSchedule, expressionRequest, nextExpressionDeadline, requestExpression,
   type ExpressionCommand, type ExpressionCue, type ExpressionSchedule,
-} from './expression-scheduler'
-import type { SessionModelStage } from './session-model'
+} from './expression-scheduler.ts'
+import type { SessionModelStage } from './session-model.ts'
+import { talkDurationMs } from './talk-duration.ts'
 
 /** Runs the pure scheduler on a timer and forwards its commands to the current stage. */
 export class ExpressionDirector {
@@ -23,8 +24,16 @@ export class ExpressionDirector {
   }
 
   cue(cue: ExpressionCue) {
-    const request = expressionRequest(cue)
+    const stage = this.stage
+    // v2 stages draw by expression name: let the stage turn the server reference into its key first.
+    const keyed = stage?.expressionKey ? { ...cue, expression: toKeyed(stage.expressionKey(cue.expression)) } : cue
+    const request = expressionRequest(keyed)
     if (request) this.run(requestExpression(this.schedule, request, this.now()))
+    // A line on screen: move the mouth while the bubble types it (v2 only; Cubism has no talk motion here).
+    if (cue.stage === 'speech' && cue.text) {
+      const ms = talkDurationMs(cue.text)
+      if (ms > 0) stage?.talk?.(ms)
+    }
   }
 
   cancelPending() {
@@ -49,4 +58,8 @@ export class ExpressionDirector {
     window.clearTimeout(this.timer)
     this.stage = null
   }
+}
+
+function toKeyed(key: string | null) {
+  return key ? { file: key } : null
 }

@@ -247,3 +247,15 @@ export function computePreviewView(cw: number, ch: number): AlivingView {
   const box = computeContainedImageBox(cw, ch, render.size.width, render.size.height, 1)
   return computeStillMatchedView(cw, ch, render, box)
 }
+
+/**
+ * Call camera for the connection screen and its Picture-in-Picture window. Both show the card still (head → chest,
+ * the video-call bust) with `object-fit: contain; object-position: center bottom` as their fallback, and the Live2D
+ * view reproduces that framing, so the still shown in the main window while the model sits in PiP, the degraded
+ * still and the live model all line up.
+ */
+export function computeCallView(cw: number, ch: number): AlivingView {
+  const render = CHAERIN_V2_RENDERS.card
+  const box = computeContainedImageBox(cw, ch, render.size.width, render.size.height, 1)
+  return computeStillMatchedView(cw, ch, render, box)
+}

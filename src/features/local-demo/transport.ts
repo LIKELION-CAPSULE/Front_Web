@@ -1,19 +1,41 @@
 import { chaerinArtwork } from '../mates/artwork'
-import { CALL_STAGE_LIVE2D_LAYOUT } from '../live2d/call-framing'
 import { createMockAvatars } from '../review/mock-avatars'
 import terms from '../auth/data/legal/terms.md?raw'
 import privacy from '../auth/data/legal/privacy.md?raw'
-import { LOCAL_CHARACTER_ID, LOCAL_MODEL_URL, LOCAL_ROOM_ID, type LocalBetaStore } from './store'
+import { LOCAL_CHARACTER_ID, LOCAL_ROOM_ID, type LocalBetaStore } from './store'
+import { LOCAL_V2_ENGINE_URL, LOCAL_V2_MODEL_URL, LOCAL_V2_PLAYER_URL, LOCAL_V2_REACTIONS_URL } from './local-asset-urls'
+
+/**
+ * Scripted local reactions in the shape the backend sends: the expression is the v2 model's Korean label
+ * (`live2d_expressions.name`), mirroring the backend seed table (reactions.default.json v3). Lines are local copy.
+ */
+const LOCAL_REACTIONS: Record<string, { expression: string; line: string }> = {
+  AWAY: { expression: '삐짐', line: '어디 갔어? 금방 와.' },
+  RETURN: { expression: '웃음', line: '왔네! 다시 해 보자.' },
+  BREAK: { expression: '행복', line: '잠깐 쉬자. 물 한 잔 어때?' },
+  FOCUS: { expression: '집중', line: '좋아, 다시 집중!' },
+  DROWSY: { expression: '하품', line: '졸려 보여… 기지개 한 번 켜자.' },
+  YAWN: { expression: '하품', line: '하암… 나도 졸려.' },
+  WAVE: { expression: '웃음', line: '응, 나 여기 있어!' },
+  HEAD_TURN: { expression: '경멸', line: '어디 봐? 여기야.' },
+}
+const LOCAL_REPLY_EXPRESSION = { name: '웃음' }
 
 /** Legacy compatibility at the existing client boundary; beta-only operations use UI ports. */
 export function createLocalTransport(store: LocalBetaStore, original: typeof fetch, origin: string): typeof fetch {
   const failures = new Set<string>()
+  const eventTypes = new Map<number, string>()
+  let nextEventId = Date.now()
   const avatars = createMockAvatars(990401)
   const image = () => avatars.find(avatar => avatar.id === store.data.avatarId)?.thumbnailUrl ?? avatars[0]!.thumbnailUrl
   const room = () => ({ id: LOCAL_ROOM_ID, name: '채린', description: '', thumbnailUrl: chaerinArtwork.card, bannerUrl: chaerinArtwork.hero,
     characters: [{ id: LOCAL_CHARACTER_ID, name: '채린', profileImageUrl: chaerinArtwork.card, personality: [], relation: store.affinity() }] })
   const visuals = () => ({ sessionId: store.data.active!.id, room: { id: LOCAL_ROOM_ID, name: '채린' },
-    character: { id: LOCAL_CHARACTER_ID, name: '채린', profileImageUrl: chaerinArtwork.card, modelJsonUrl: LOCAL_MODEL_URL, ...CALL_STAGE_LIVE2D_LAYOUT },
+    // v2 (Aliving2D) model with the draft contract fields (docs/MATE_MODEL_V2_CONTRACT.md).
+    character: {
+      id: LOCAL_CHARACTER_ID, name: '채린', profileImageUrl: chaerinArtwork.card, format: 'aliving2d', modelJsonUrl: LOCAL_V2_MODEL_URL,
+      engineUrl: LOCAL_V2_ENGINE_URL, playerUrl: LOCAL_V2_PLAYER_URL, reactionsUrl: LOCAL_V2_REACTIONS_URL,
+    },
     me: { nickname: store.data.nickname, profileImageUrl: image() }, serverTime: new Date().toISOString() })
   return async (input, options) => {
     const url = new URL(input instanceof Request ? input.url : String(input), origin)
@@ -76,12 +98,21 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       if (operation === 'heartbeat') { store.heartbeat(Number(body.studySeconds), Number(body.presentSeconds)); return reply(null, 204) }
       const result = store.finish(Number(body.studySeconds), Number(body.presentSeconds)); store.rewardFirstConnection(); return reply(result)
     }
-    if (operation === 'events') return reply({ eventId: Date.now(), characters: [{ characterId: LOCAL_CHARACTER_ID, affinity: store.affinity() }] }, 201)
-    if (/^events\/\d+\/reaction$/.test(operation)) return reply({ requestId: body.requestId, characters: [{ characterId: LOCAL_CHARACTER_ID }] })
+    if (operation === 'events') {
+      const eventId = ++nextEventId
+      const type = typeof body.type === 'string' ? body.type : ''
+      eventTypes.set(eventId, type)
+      const face = LOCAL_REACTIONS[type]
+      return reply({ eventId, characters: [{ characterId: LOCAL_CHARACTER_ID, affinity: store.affinity(), ...(face ? { expression: { name: face.expression } } : {}) }] }, 201)
+    }
+    if (/^events\/\d+\/reaction$/.test(operation)) {
+      const face = LOCAL_REACTIONS[eventTypes.get(Number(operation.split('/')[1])) ?? '']
+      return reply({ requestId: body.requestId, characters: [{ characterId: LOCAL_CHARACTER_ID, ...(face ? { content: face.line, expression: { name: face.expression } } : {}) }] })
+    }
     if (operation === 'messages/stream' || operation === 'messages') {
       if (body.characterId !== LOCAL_CHARACTER_ID || typeof body.requestId !== 'string' || typeof body.content !== 'string' || !body.content.trim()) return error('INVALID_INPUT', 400)
       store.expireAttendance()
-      const result = { requestId: body.requestId, characterId: LOCAL_CHARACTER_ID, ...store.reply(body.requestId, body.content) }
+      const result = { requestId: body.requestId, characterId: LOCAL_CHARACTER_ID, ...store.reply(body.requestId, body.content), expression: LOCAL_REPLY_EXPRESSION }
       if (operation === 'messages') return reply(result)
       const stream = new ReadableStream<Uint8Array>({ async start(controller) {
         const encoder = new TextEncoder()

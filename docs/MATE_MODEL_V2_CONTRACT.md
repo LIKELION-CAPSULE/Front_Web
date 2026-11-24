@@ -1,8 +1,6 @@
 # 메이트 모델(v2) API 필드 계약 초안
 
-작성일: 2026-11-24 · 상태: **초안(백엔드 미확정)** · 적용 범위: 내 메이트·메이트 상세·연결 기록 미리보기(1단계)
-
-연결 화면·PIP(`SessionModel`)는 아직 Cubism 경로이며 2단계에서 같은 필드로 옮길 예정이에요.
+작성일: 2026-11-24 · 상태: **초안(백엔드 미확정)** · 적용 범위: 미리보기(1단계: 내 메이트·메이트 상세·연결 기록), 연결 화면·PIP(2단계)
 
 ## 프런트가 읽는 위치
 
@@ -27,17 +25,55 @@
 | `format` | 아니요 | 형식 힌트. 없으면 URL 끝(`/model.json` → v2, `.model3.json` → Cubism)으로 판정. 해시 붙은 CDN 파일명이면 꼭 보내 주세요 |
 | `engineUrl` | v2면 예 | `engine.js`. 없으면 Live2D를 띄우지 않고 v2 정지 이미지를 보여요 |
 | `playerUrl` | 아니요 | `player.js`. 없으면 `engineUrl`과 같은 폴더의 `player.js` |
-| `reactionsUrl` | 아니요 | 반응 표(`capsule-reactions` v2+). 미리보기는 쓰지 않지만 2단계 연결 화면에서 사용 |
+| `reactionsUrl` | 아니요 | 반응 표(`capsule-reactions` v2+). 앱은 서버가 보낸 표정을 쓰므로 지금은 불러오기만 하고 호출하지 않음(아래 "반응") |
 | `scale`, `offsetX`, `offsetY` | 아니요 | Cubism 전용 배치값. v2는 무시(구도는 프런트가 계산) |
+
+## 연결 화면·PIP (2단계): 세션 시작·재개 응답의 `character`
+
+`POST /sessions`, `POST /sessions/{id}/resume` 응답의 `character`(`Figure`)에 **같은 필드**를 넣어 주세요. 프런트는 원본 응답에서 바로 읽어요(`SessionFigure`, `src/features/live2d/session-model.ts`).
+
+```jsonc
+"character": {
+  "id": 3, "name": "채린", "profileImageUrl": "…",
+  "format": "aliving2d",
+  "modelJsonUrl": "https://api.example.com/assets/chaerin-v2/model/model.json",
+  "engineUrl": "https://api.example.com/assets/aliving2d/v4/engine.js",
+  "playerUrl": "https://api.example.com/assets/aliving2d/v4/player.js",     // 선택
+  "reactionsUrl": "https://api.example.com/assets/aliving2d/v4/reactions.json" // 선택
+}
+```
+
+| 상황 | 연결 화면 동작 |
+|---|---|
+| `modelJsonUrl` 없음 | 지금처럼 연결 진입을 막고 오류·다시 시도(기존 계약 유지) |
+| Cubism(`.model3.json`) | 기존 Cubism 화면(호환 경로) |
+| v2 + 허용된 `engineUrl` | v2 모델. 준비가 끝나야 화면 진입(최대 20초) |
+| v2인데 `engineUrl` 없음·출처 불허 | 엔진을 받지 않고 **정지 이미지로 연결 진행**(말풍선 반응만) |
+| v2 엔진·모델 로드 실패·20초 초과 | **정지 이미지로 연결 진행**(연결 자체는 막지 않음) |
+
+### 표정·반응·말하기
+
+- **표정**: 이벤트 응답(`EventResponse.characters[].expression`)·반응 응답(`ReactionResponse.characters[].expression`)·대화 응답(`MessageResponse.expression`)의 `ExpressionRef`를 그대로 써요. v2에서는 `name`(한국어 라벨, 예: `삐짐`)이나 v2 이름(`sulky`)을 읽고, `file`이 옛 Cubism 파일(`files/004.exp3.json`)이면 대응표로 바꿔요. 둘 다 없으면 표정을 바꾸지 않아요. Cubism 모델에는 지금처럼 `file`만 써요.
+- **반응(트리거)**: 앱은 서버가 반응마다 보내 주는 표정·대사를 그대로 그려요. 엔진의 반응표(`react(trigger, intensity)`, `reactionsUrl`)는 **앱에서 호출하지 않아요**(서버 결정과 이중으로 표정을 바꾸지 않도록). 스테이지에 `react()`는 구현해 두었으니 서버가 표정을 보내지 않기로 바뀌면 그때 연결해요.
+- **말하기**: 대사(대화 답장, 반응 대사)가 화면에 나오면 입 모양 모션(`talk(ms)`)을 재생해요. 음성이 아직 없어 말풍선 타이핑 속도(`speechPace`)로 길이를 계산해요(0.6~8초). 음성(TTS)이 생기면 오디오 길이로 바꿀 예정이에요.
+- **우선순위**: 표정 스케줄러 규칙은 그대로예요(상태 변화 > 대사 > 몸짓). 예: 집중(상태) 표정이 유지되는 동안 온 대화 답장은 표정을 바꾸지 않고 입만 움직여요.
+
+### 구도·시선·움직임 줄이기
+
+- 구도: 통화 타일과 PIP 모두 카드 정지 이미지(`chaerin-v2-card`, 머리→가슴)를 `contain`·하단 정렬로 놓은 자리와 같게 그려요(`computeCallView`). 그래서 PIP로 옮겼을 때 본 화면에 남는 정지 이미지, 실패 시 정지 이미지, 살아 있는 모델의 위치가 같아요. `scale`·`offsetX`·`offsetY`는 v2에서 무시해요.
+- 시선: 통화 중에는 지금처럼 정면을 봐요(커서 추적 없음). 웹캠 얼굴 방향을 모델에 옮기는 기능(`track()`)은 아직 없어요.
+- PIP: 같은 모델(캔버스·WebGL·플레이어)을 PIP 창으로 옮기고 돌아올 때 다시 옮겨요. 다시 불러오지 않고, PIP 창의 프레임으로 계속 움직여요.
+- 움직임 줄이기: 표정은 바뀌고, 입 모양 모션과 커서 추적은 꺼요.
 
 ## 규칙
 
 - **엔진 스크립트 출처 제한**: `engineUrl`·`playerUrl`·`reactionsUrl`은 웹 페이지와 같은 출처이거나 `VITE_API_BASE_URL`의 출처여야 해요(`isAllowedEngineUrl`). 다른 CDN 출처면 정지 이미지로 대체해요. 엔진을 별도 CDN에 둘 계획이면 허용 목록 확장이 필요해요.
 - `model.json`·파츠 PNG는 플레이어가 `fetch`로 읽으므로 다른 출처라면 CORS 허용이 필요해요.
 - 값이 문자열이 아니거나 http(s)가 아닌 v2 필드는 조용히 버리고 정지 이미지로 대체해요(상세 전체를 실패시키지 않음). `modelJsonUrl` 자체가 잘못되면 기존처럼 상세가 502 오류예요.
+- 엔진 파일은 **버전이 들어간 고정 주소**로 주세요(`docs/DESIGN_CHANGE_NOTICE_BACKEND.md` §11).
 - 표정: v2 플레이어는 `model.json`의 `expressions[].name`(영문) 또는 `label`(한글)을 받아요. 해금 표정 목록(`expressionFile`)이 옛 Cubism 파일명이어도 프런트가 `src/features/mate-render/expression-map.ts`로 바꿔요. 새로 정한다면 v2 이름(`happy`) 또는 라벨(`행복`)을 보내 주세요.
 
-## 대체(폴백) 순서
+## 미리보기 대체(폴백) 순서
 
 1. 움직임 줄이기 설정 → 정지 이미지(엔진 요청 없음)
 2. `model` 없음 / `modelJsonUrl` 없음 → 정지 이미지
@@ -49,4 +85,6 @@
 
 ## 로컬 mock
 
-`src/features/local-demo/ports.ts`가 `LOCAL_V2_*_URL`(`/__local-assets/chaerin-v2/...`)을 위 형태로 돌려줘요. dev 서버(`server/local-assets.ts`)에서만 제공되며 운영 번들의 미리보기 경로에는 들어가지 않아요.
+- 미리보기: `src/features/local-demo/ports.ts`가 `LOCAL_V2_*_URL`(`/__local-assets/chaerin-v2/...`)을 위 형태로 돌려줘요.
+- 연결: `src/features/local-demo/transport.ts`가 세션 `character`에 같은 필드를 넣고, 이벤트·반응·대화 응답에 백엔드 시드와 같은 한국어 표정 이름(`집중`, `삐짐`, `웃음` …)과 짧은 대사를 넣어요.
+- dev 서버(`server/local-assets.ts`)에서만 제공되며 운영 번들에는 `__local-assets` 경로가 없어요(빌드 결과 검색으로 확인).
