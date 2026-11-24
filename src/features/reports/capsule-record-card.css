@@ -1,0 +1,1006 @@
+/*
+ * Connection record (CapsuleRecordCard.tsx, SCR-21/22). The mate fills the left column straight on the page
+ * background and fades into it, with hearts and sparkles around them; the result card floats centred in the
+ * right column over a soft glow. Colours come from the design tokens only.
+ */
+.capsule-record {
+  --capsule-record-glass: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --capsule-record-glass-line: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  --capsule-record-line: color-mix(in srgb, var(--color-text-accent) 34%, transparent);
+  --capsule-record-gradient-text: linear-gradient(180deg, var(--color-text-accent-hover) 0%, var(--color-text-accent) 45%, var(--color-primary) 100%);
+  --capsule-record-height: max(640px, calc(100dvh - var(--site-header-height, 83px)));
+  display: grid;
+  grid-template-columns: 46fr 54fr;
+  min-height: var(--capsule-record-height);
+  color: var(--color-ink);
+}
+
+/* ─── Mate column ─── */
+.capsule-record-mate {
+  position: relative;
+  min-height: var(--capsule-record-height);
+  overflow: hidden;
+}
+
+.capsule-record-mate-art {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image:
+    linear-gradient(90deg, #000 58%, transparent 100%),
+    linear-gradient(180deg, #000 70%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, #000 58%, transparent 100%),
+    linear-gradient(180deg, #000 70%, transparent 100%);
+  mask-composite: intersect;
+}
+
+/* The shared preview fills the column instead of its detail-page 3:4 frame; the face stays in view. */
+.capsule-record-mate .mate-detail-portrait {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+  border: 0;
+  background: transparent !important;
+}
+
+.capsule-record-mate .mate-detail-fallback-img {
+  object-fit: cover;
+  object-position: center top;
+}
+
+.capsule-record-mate-skeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(155deg, color-mix(in srgb, var(--color-primary-soft) 80%, transparent), transparent 75%);
+}
+
+/* Hearts and sparkles around the mate, kept off the face (centre top) and the closing line (bottom). */
+.capsule-record-mate-decor,
+.capsule-record-result-decor,
+.capsule-record-card-decor {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.capsule-record-heart {
+  position: absolute;
+  width: clamp(22px, 2vw, 30px);
+  height: clamp(22px, 2vw, 30px);
+  color: var(--color-text-accent);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 80%, transparent));
+}
+
+.capsule-record-heart--a { left: 12%; top: 16%; rotate: -12deg; }
+.capsule-record-heart--b { right: 16%; top: 30%; rotate: 12deg; width: clamp(18px, 1.6vw, 24px); height: clamp(18px, 1.6vw, 24px); }
+.capsule-record-heart--c { left: 7%; top: 40%; rotate: -18deg; }
+.capsule-record-heart--d { left: 3%; top: 24%; rotate: 16deg; width: clamp(18px, 1.6vw, 24px); height: clamp(18px, 1.6vw, 24px); }
+
+.capsule-record-spark {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  color: var(--color-ink);
+  filter: drop-shadow(0 0 6px var(--color-text-accent));
+}
+
+.capsule-record-spark--a { left: 22%; top: 9%; }
+.capsule-record-spark--b { right: 24%; top: 12%; width: 10px; height: 10px; }
+.capsule-record-spark--c { left: 9%; top: 62%; width: 9px; height: 9px; }
+.capsule-record-spark--d { right: 30%; top: 6%; width: 14px; height: 14px; }
+
+/* ⑥ The mate's closing line, centred under the mate. */
+.capsule-record-quote {
+  position: absolute;
+  left: clamp(20px, 3.6vw, 56px);
+  right: clamp(20px, 3.6vw, 56px);
+  bottom: clamp(20px, 5vh, 56px);
+  z-index: 3;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: clamp(18px, 1.6vw, 24px) clamp(20px, 2vw, 28px);
+  border: 1px solid color-mix(in srgb, var(--color-text-accent) 38%, transparent);
+  border-radius: 22px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-primary) 10%, transparent), color-mix(in srgb, var(--color-primary) 10%, transparent)),
+    color-mix(in srgb, var(--color-canvas) 62%, transparent);
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--color-canvas) 40%, transparent);
+  backdrop-filter: blur(20px);
+  text-align: center;
+}
+
+.capsule-record-quote figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-accent);
+}
+
+.capsule-record-quote blockquote {
+  margin: 8px 0 0;
+}
+
+.capsule-record-quote p {
+  margin: 0;
+  font-family: var(--font-story);
+  font-size: clamp(20px, 1.65vw, 26px);
+  line-height: 1.5;
+  font-weight: 500;
+  color: var(--color-ink);
+  word-break: keep-all;
+}
+
+/* ─── Result column ─── */
+.capsule-record-result {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: clamp(28px, 4vw, 72px) clamp(24px, 4vw, 80px) clamp(28px, 4vw, 72px) clamp(8px, 1vw, 24px);
+}
+
+/* A soft purple glow behind the card so it floats. */
+.capsule-record-result::before {
+  position: absolute;
+  inset: 8% 4%;
+  z-index: 0;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-primary) 26%, transparent), transparent);
+  filter: blur(12px);
+  pointer-events: none;
+  content: '';
+}
+
+/* The orbit line with its star, crossing the column's top-right corner, outside the card. */
+.capsule-record-orbit {
+  position: absolute;
+  top: 3%;
+  right: 2%;
+  width: clamp(150px, 14vw, 240px);
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-text-accent) 34%, transparent);
+  stroke-width: 1;
+}
+
+.capsule-record-orbit-star {
+  fill: var(--color-ink);
+  stroke: none;
+  filter: drop-shadow(0 0 4px var(--color-text-accent));
+}
+
+.capsule-record-spark--e { left: 6%; bottom: 10%; width: 10px; height: 10px; opacity: 0.85; }
+.capsule-record-spark--f { right: 5%; bottom: 22%; width: 8px; height: 8px; opacity: 0.7; }
+
+.capsule-record-card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, clamp(540px, 40vw, 720px));
+  padding: clamp(28px, 2.3vw, 44px);
+  overflow: hidden;
+  border: 1px solid var(--capsule-record-line);
+  border-radius: 28px;
+  background:
+    radial-gradient(120% 90% at 10% 0%, color-mix(in srgb, var(--color-primary) 22%, transparent), transparent 60%),
+    linear-gradient(130deg, color-mix(in srgb, var(--color-primary-soft) 85%, transparent), color-mix(in srgb, var(--color-panel) 88%, transparent) 60%);
+  box-shadow:
+    0 24px 60px color-mix(in srgb, var(--color-canvas) 55%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent);
+  backdrop-filter: blur(20px) saturate(1.15);
+}
+
+.capsule-record-card--levelup {
+  --capsule-record-line: color-mix(in srgb, var(--color-text-accent) 72%, transparent);
+  background:
+    radial-gradient(90% 110% at 20% 30%, color-mix(in srgb, var(--color-primary) 36%, transparent), transparent 62%),
+    linear-gradient(130deg, color-mix(in srgb, var(--color-primary-soft-hover) 88%, transparent), color-mix(in srgb, var(--color-primary-soft) 90%, transparent) 60%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-text-accent) 22%, transparent),
+    0 0 40px color-mix(in srgb, var(--color-primary) 45%, transparent),
+    0 24px 60px color-mix(in srgb, var(--color-canvas) 55%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent);
+}
+
+.capsule-record-card-decor,
+.capsule-record-result-decor {
+  z-index: 0;
+}
+
+.capsule-record-spark--g { right: 34%; top: 16px; width: 9px; height: 9px; opacity: 0.8; }
+.capsule-record-spark--h { right: 14px; bottom: 12px; width: 10px; height: 10px; opacity: 0.7; }
+
+.capsule-record-card > :not(.capsule-record-card-decor) {
+  position: relative;
+}
+
+/* Brand line and badge */
+.capsule-record-brand-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.capsule-record-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--color-text-accent);
+}
+
+.capsule-record-brand img {
+  display: block;
+  width: 22px;
+  height: auto;
+}
+
+.capsule-record-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border: 1px solid var(--capsule-record-glass-line);
+  border-radius: 999px;
+  background: var(--capsule-record-glass);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-ink);
+  backdrop-filter: blur(8px);
+}
+
+.capsule-record-badge--levelup {
+  border-color: color-mix(in srgb, var(--color-text-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  font-weight: 600;
+}
+
+.capsule-record-star {
+  color: var(--color-warning);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-warning) 55%, transparent));
+}
+
+/* ① Header */
+.capsule-record-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+.capsule-record-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: clamp(28px, 2.2vw, 36px);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  word-break: keep-all;
+}
+
+.capsule-record-title-heart {
+  flex: none;
+  color: var(--color-text-accent);
+}
+
+.capsule-record-subtitle {
+  margin: 10px 0 0;
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--color-muted);
+  word-break: keep-all;
+}
+
+.capsule-record-summary {
+  margin: 16px 0 0;
+  font-size: 16px;
+  color: var(--color-muted);
+}
+
+.capsule-record-summary strong {
+  margin: 0 2px;
+  font-size: clamp(30px, 2.3vw, 38px);
+  line-height: 1;
+  font-weight: 700;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.capsule-record-summary small {
+  font-size: 0.62em;
+  font-weight: 700;
+}
+
+.capsule-record-meta {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  text-align: right;
+}
+
+.capsule-record-meta p {
+  margin: 0;
+}
+
+.capsule-record-meta-mate {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-accent);
+}
+
+.capsule-record-meta-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--color-subtle);
+}
+
+.capsule-record-ring {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* ② Results */
+.capsule-record-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 22px 0 0;
+  padding: 20px 0;
+  border-block: 1px solid var(--capsule-record-glass-line);
+}
+
+.capsule-record-stat {
+  min-width: 0;
+  padding: 0 clamp(14px, 1.4vw, 24px);
+}
+
+.capsule-record-stat:first-child {
+  padding-left: 0;
+}
+
+.capsule-record-stat + .capsule-record-stat {
+  border-left: 1px solid var(--capsule-record-glass-line);
+}
+
+.capsule-record-stat dt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.capsule-record-stat dd {
+  margin: 10px 0 0;
+}
+
+.capsule-record-stat-value {
+  display: inline-block;
+  font-size: clamp(34px, 2.8vw, 46px);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  background: var(--capsule-record-gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.capsule-record-stat-value small {
+  margin-left: 3px;
+  font-size: 0.6em;
+  font-weight: 700;
+}
+
+.capsule-record-stat-note {
+  display: block;
+  padding-top: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-subtle);
+  word-break: keep-all;
+}
+
+/* ③ Affinity (regular record) */
+.capsule-record-affinity {
+  margin-top: 20px;
+}
+
+.capsule-record-affinity h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.capsule-record-affinity-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.capsule-record-affinity-row p {
+  margin: 0;
+}
+
+.capsule-record-stage-text {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.capsule-record-next {
+  flex: none;
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-subtle);
+}
+
+.capsule-record-progress {
+  height: 6px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--capsule-record-glass);
+}
+
+.capsule-record-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-text-accent));
+}
+
+/* ③ Stage-up: pills, LEVEL UP!, progress and the expression that opened */
+.capsule-record-levelup-block {
+  margin-top: 22px;
+}
+
+.capsule-record-stage-change {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 1.6vw, 24px);
+}
+
+.capsule-record-stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.capsule-record-stage--previous {
+  padding: 11px 24px;
+  border: 1px solid var(--capsule-record-glass-line);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.capsule-record-stage-arrow {
+  display: inline-flex;
+  color: var(--color-ink);
+}
+
+.capsule-record-stage--current {
+  padding: 11px 30px;
+  border: 2px solid color-mix(in srgb, var(--color-text-accent-hover) 90%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 62%, transparent), color-mix(in srgb, var(--color-primary-hover) 52%, transparent));
+  box-shadow:
+    0 0 26px color-mix(in srgb, var(--color-primary) 75%, transparent),
+    inset 0 0 14px color-mix(in srgb, var(--color-ink) 16%, transparent);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-on-solid);
+}
+
+.capsule-record-levelup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 16px 0 0;
+}
+
+.capsule-record-levelup-text {
+  /* Italic glyphs lean past their box; the padding keeps the clipped gradient from cutting the "!". */
+  padding: 0 0.16em 0 0.04em;
+  font-size: clamp(30px, 2.4vw, 38px);
+  line-height: 1.1;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  background: linear-gradient(180deg, var(--color-ink) 0%, var(--color-text-accent-hover) 45%, var(--color-text-accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter:
+    drop-shadow(0 0 10px color-mix(in srgb, var(--color-text-accent) 85%, transparent))
+    drop-shadow(0 0 22px color-mix(in srgb, var(--color-primary) 55%, transparent));
+}
+
+.capsule-record-levelup-spark {
+  width: 20px;
+  height: 20px;
+  color: var(--color-ink);
+  filter: drop-shadow(0 0 6px var(--color-text-accent-hover));
+}
+
+.capsule-record-levelup-spark--left { translate: 0 6px; }
+.capsule-record-levelup-spark--right { width: 16px; height: 16px; translate: 0 8px; }
+
+.capsule-record-levelup-progress {
+  margin-top: 16px;
+}
+
+.capsule-record-levelup-progress .capsule-record-next {
+  text-align: right;
+}
+
+.capsule-record-unlock {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--color-text-accent) 42%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.capsule-record-unlock-icon {
+  display: grid;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  color: var(--color-ink);
+}
+
+.capsule-record-unlock-copy {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+}
+
+.capsule-record-unlock-copy strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-accent);
+}
+
+.capsule-record-unlock-copy span {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-muted);
+  word-break: keep-all;
+}
+
+.capsule-record-unlock-view {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid color-mix(in srgb, var(--color-text-accent) 60%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+/* Expressions play on the Live2D model; with only the still portrait there is nothing to show, so no button. */
+.capsule-record:has(.mate-detail-portrait:not([data-mate-mode='live2d'])) .capsule-record-unlock-view {
+  display: none;
+}
+
+.capsule-record-unlock-view:hover,
+.capsule-record-unlock-view[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--color-primary) 48%, transparent);
+}
+
+/* ④ What the mate remembered */
+.capsule-record-remembered {
+  margin: 16px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-ink);
+}
+
+.capsule-record-remembered span {
+  color: var(--color-text-accent);
+}
+
+.capsule-record-notice {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.capsule-record-notice .connection-record-invite-link {
+  margin-left: 8px;
+}
+
+/* ⑤ Actions, about 1 : 2 */
+.capsule-record-actions {
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) 2fr;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.capsule-record-home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 0 20px;
+  border: 1px solid var(--capsule-record-glass-line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-ink);
+  transition: background 160ms ease;
+}
+
+.capsule-record-home:hover {
+  background: color-mix(in srgb, var(--color-ink) 11%, transparent);
+}
+
+.capsule-record-home:focus-visible,
+.capsule-record-unlock-view:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.capsule-record-reconnect .mate-connect-action {
+  display: grid;
+  margin: 0;
+}
+
+.capsule-record-reconnect .ui-button {
+  width: 100%;
+  min-height: 56px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--color-text-accent), var(--color-primary) 55%, var(--color-primary-hover));
+  box-shadow:
+    0 12px 28px color-mix(in srgb, var(--color-primary) 45%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-ink) 25%, transparent);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-on-solid);
+}
+
+/* Loading and error share the frame. */
+.capsule-record-skeleton {
+  display: block;
+  border-radius: 10px;
+}
+
+.capsule-record-error-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Under 1024px: the mate on top (about 55vh, closing line over it), the card below at full width. */
+@media (max-width: 1023px) {
+  .capsule-record {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .capsule-record-mate {
+    height: 55vh;
+    min-height: 360px;
+  }
+
+  .capsule-record-mate-art {
+    -webkit-mask-image: linear-gradient(180deg, #000 72%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 72%, transparent 100%);
+  }
+
+  .capsule-record-result {
+    padding: 0 16px 40px;
+  }
+
+  /* The shorter mate area leaves no room low down beside the closing line. */
+  .capsule-record-result-decor,
+  .capsule-record-spark--c,
+  .capsule-record-heart--c {
+    display: none;
+  }
+
+  .capsule-record-card {
+    width: 100%;
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 599px) {
+  .capsule-record-head {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .capsule-record-meta {
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-items: start;
+    align-items: center;
+    text-align: left;
+  }
+
+  .capsule-record-ring {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin-top: 0;
+  }
+
+  .capsule-record-stat {
+    padding: 0 10px;
+  }
+
+  .capsule-record-stat dt {
+    font-size: 12.5px;
+  }
+
+  .capsule-record-stat-value {
+    font-size: 30px;
+  }
+
+  .capsule-record-affinity-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .capsule-record-stage--previous {
+    padding: 9px 16px;
+    font-size: 15px;
+  }
+
+  .capsule-record-stage--current {
+    padding: 9px 20px;
+    font-size: 17px;
+  }
+
+  .capsule-record-unlock {
+    flex-wrap: wrap;
+  }
+
+  .capsule-record-unlock-view {
+    margin-left: 58px;
+  }
+
+  .capsule-record-home {
+    padding: 0 16px;
+  }
+
+  .capsule-record-brand-row {
+    gap: 10px;
+  }
+
+  .capsule-record-brand {
+    gap: 7px;
+    font-size: 12.5px;
+  }
+
+  .capsule-record-brand img {
+    width: 18px;
+  }
+
+  .capsule-record-badge {
+    padding: 6px 11px;
+    font-size: 13px;
+  }
+}
+
+/*
+ * Opening: the content rises in order (brand → header → results → affinity → actions). After the hang-up the card
+ * itself scales in first (connections.css), so the steps start later.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .capsule-record {
+    --reveal-base: 120ms;
+  }
+
+  .connection-record-page[data-entrance='hangup'] .capsule-record {
+    --reveal-base: 900ms;
+  }
+
+  .capsule-record [data-reveal] {
+    animation: capsule-record-rise 560ms cubic-bezier(.22, 1, .36, 1) both;
+    animation-delay: calc(var(--reveal-base) + var(--reveal-step, 0) * 140ms);
+  }
+
+  /* Stage-up accents once its block is in: arrow, the new stage pops with a glow, LEVEL UP! flares, sparkles twinkle. */
+  .capsule-record-stage-arrow {
+    animation: capsule-record-arrow-in 420ms cubic-bezier(.22, 1, .36, 1) both;
+    animation-delay: calc(var(--reveal-base) + 3 * 140ms + 260ms);
+  }
+
+  .capsule-record-stage--current {
+    animation: capsule-record-stage-pop 700ms cubic-bezier(.34, 1.56, .64, 1) both;
+    animation-delay: calc(var(--reveal-base) + 3 * 140ms + 420ms);
+  }
+
+  .capsule-record-stage--previous {
+    animation: capsule-record-stage-dim 500ms ease both;
+    animation-delay: calc(var(--reveal-base) + 3 * 140ms + 420ms);
+  }
+
+  .capsule-record-levelup-text {
+    animation: capsule-record-levelup-flare 1100ms cubic-bezier(.22, 1, .36, 1) both;
+    animation-delay: calc(var(--reveal-base) + 3 * 140ms + 620ms);
+  }
+
+  .capsule-record-levelup-spark {
+    animation: capsule-record-twinkle 900ms ease-in-out 2 both;
+    animation-delay: calc(var(--reveal-base) + 3 * 140ms + 720ms);
+  }
+
+  .capsule-record-levelup-spark--right {
+    animation-delay: calc(var(--reveal-base) + 3 * 140ms + 880ms);
+  }
+
+  .capsule-record-unlock {
+    animation: capsule-record-unlock-in 700ms cubic-bezier(.34, 1.56, .64, 1) both;
+    animation-delay: calc(var(--reveal-base) + 3 * 140ms + 900ms);
+  }
+}
+
+@keyframes capsule-record-rise {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes capsule-record-arrow-in {
+  from {
+    opacity: 0;
+    translate: -14px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes capsule-record-stage-pop {
+  0% {
+    opacity: 0;
+    scale: 0.7;
+  }
+  55% {
+    opacity: 1;
+    scale: 1.08;
+    box-shadow:
+      0 0 44px var(--color-text-accent),
+      inset 0 0 14px color-mix(in srgb, var(--color-ink) 30%, transparent);
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes capsule-record-stage-dim {
+  from { opacity: 1; }
+  to { opacity: 0.72; }
+}
+
+@keyframes capsule-record-levelup-flare {
+  0% {
+    opacity: 0;
+    scale: 0.86;
+  }
+  45% {
+    opacity: 1;
+    scale: 1.06;
+    filter:
+      drop-shadow(0 0 16px var(--color-text-accent-hover))
+      drop-shadow(0 0 36px var(--color-primary));
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes capsule-record-twinkle {
+  0%, 100% {
+    opacity: 1;
+    scale: 1;
+  }
+  50% {
+    opacity: 0.45;
+    scale: 0.6;
+  }
+}
+
+@keyframes capsule-record-unlock-in {
+  0% {
+    opacity: 0;
+    scale: 0.94;
+  }
+  55% {
+    opacity: 1;
+    scale: 1.02;
+    box-shadow: 0 0 28px color-mix(in srgb, var(--color-primary) 70%, transparent);
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* Dev server only (ConnectionRecordPage): switch between the regular and stage-up states. */
+.capsule-record-dev-toggle {
+  position: fixed;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 8px;
+  border: 1px dashed color-mix(in srgb, var(--color-text-accent) 60%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--color-canvas) 60%, transparent);
+  backdrop-filter: blur(12px);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.capsule-record-dev-toggle span {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--color-text-accent);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--color-canvas);
+}
+
+.capsule-record-dev-toggle:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
