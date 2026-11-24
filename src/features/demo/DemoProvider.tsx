@@ -24,6 +24,7 @@ import { SessionModel, type AlivingStageFactory, type SessionModelFactory, type 
 import { AlivingSessionStage } from '@/features/mate-render/AlivingSessionStage'
 import { availableMates, mateByName } from '@/features/mates/catalog'
 import { isSessionSurface } from '@/features/mates/session-surface'
+import { matePortrait } from '@/features/mates/artwork'
 import type { BetaAccountPort, BetaAccountResult, BetaOnboardingInput, BetaProfileInput, BetaSignupInput } from '@/features/auth/beta-account'
 import { checkedAccountDetails } from '@/features/auth/beta-account'
 import { birthDateError } from '@/features/auth/birth-date'
@@ -44,7 +45,7 @@ const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : '요청을 처리하지 못했어요.'
 const createLive2DStage: SessionModelFactory = (url, layout) => new Live2DStage(url, layout, new URL(import.meta.env.BASE_URL, location.href).href)
 /** v2 (Aliving2D) session models; engine scripts run only from this page's origin or the API origin. */
-const createAlivingStage: AlivingStageFactory = source => new AlivingSessionStage(source)
+const createAlivingStage: AlivingStageFactory = (source, options) => new AlivingSessionStage(source, { stillImage: options.stillImage })
 const engineAllowlist = () => ({ pageOrigin: location.origin, apiBaseUrl: import.meta.env.VITE_API_BASE_URL })
 
 /** Cached reports may belong to rooms no longer returned by /home. */
@@ -535,7 +536,8 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
         setServerRooms([...getStudyRooms(), adapt.room(detail)])
       }
       if (generation !== epoch.current || currentPath.current !== entry.pathname || modelEntry.current !== entry) throw new ApiError('연결이 취소됐어요.', 409)
-      const stage = await models.prepare(dto.character)
+      // The same still the call screen shows without a model (matePortrait), used if the v2 model breaks mid-call.
+      const stage = await models.prepare(dto.character, { stillImage: matePortrait(active.mateId ?? '', dto.character?.profileImageUrl) })
       if (generation !== epoch.current || currentPath.current !== entry.pathname || modelEntry.current !== entry) {
         if (modelEntry.current === entry) releaseModel()
         throw new ApiError('연결이 취소됐어요.', 409)

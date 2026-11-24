@@ -39,6 +39,8 @@ export const CUBISM_TO_V2_EXPRESSION: Readonly<Record<string, V2ExpressionName>>
 }
 
 const V2_NAMES = new Set<string>(V2_EXPRESSIONS.map((item) => item.name))
+/** Map lookup, so names like 'constructor' or 'toString' never hit `Object.prototype`. */
+const CUBISM_FILES = new Map<string, V2ExpressionName>(Object.entries(CUBISM_TO_V2_EXPRESSION))
 const V2_LABELS = new Map<string, V2ExpressionName>(V2_EXPRESSIONS.map((item) => [item.label, item.name]))
 
 function normalizeCubismFile(value: string): string {
@@ -53,13 +55,16 @@ function normalizeCubismFile(value: string): string {
  * - `null` / empty -> `null` (neutral face)
  * - Cubism file (`files/009.exp3.json`) -> mapped v2 name (`laugh`)
  * - v2 name (`happy`) or Korean label (`행복`) -> v2 name
- * - anything else -> `undefined` (unknown: the caller keeps the current face instead of guessing)
+ * - anything else, including non-string server values -> `undefined` (unknown: the caller keeps the current face
+ *   instead of guessing)
  */
-export function toV2ExpressionName(value: string | null | undefined): V2ExpressionName | null | undefined {
-  const trimmed = value?.trim() ?? ''
+export function toV2ExpressionName(value: unknown): V2ExpressionName | null | undefined {
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
   if (!trimmed || trimmed === 'neutral') return null
   if (V2_NAMES.has(trimmed)) return trimmed as V2ExpressionName
   const byLabel = V2_LABELS.get(trimmed)
   if (byLabel) return byLabel
-  return CUBISM_TO_V2_EXPRESSION[normalizeCubismFile(trimmed)]
+  return CUBISM_FILES.get(normalizeCubismFile(trimmed))
 }

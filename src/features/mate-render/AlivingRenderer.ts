@@ -1,5 +1,6 @@
 import type { AlivingView } from './aliving-view'
 import type { MateRenderStatus, MateRenderer } from './types'
+import { loadScriptOnce } from './script-loader.ts'
 
 interface CapsuleV2ModelLike {
   background: [number, number, number, number]
@@ -7,7 +8,7 @@ interface CapsuleV2ModelLike {
   draw(): void
 }
 
-interface CapsuleV2PlayerLike {
+export interface CapsuleV2PlayerLike {
   model: CapsuleV2ModelLike
   running: boolean
   raf: number
@@ -16,6 +17,8 @@ interface CapsuleV2PlayerLike {
   setExpression(name: string): boolean
   playMotion(name: string): boolean
   talk(ms: number): boolean
+  /** Fades the playing motion out and drops queued ones (used to end talking early). */
+  stopMotion?(): void
   /** Reaction table lookup (`reactions.default.json`): expression + hold + talk for a backend trigger. */
   react?(trigger: string, intensity?: number): unknown
   lookAt(x: number, y: number): void
@@ -23,7 +26,7 @@ interface CapsuleV2PlayerLike {
   destroy(): void
 }
 
-interface CapsuleV2PlayerGlobal {
+export interface CapsuleV2PlayerGlobal {
   create(
     canvas: HTMLCanvasElement,
     modelUrl: string,
@@ -31,40 +34,27 @@ interface CapsuleV2PlayerGlobal {
   ): Promise<CapsuleV2PlayerLike>
 }
 
-const scriptPromises = new Map<string, Promise<void>>()
-
-/**
- * Loads an external runtime script once per URL via `<script>` tag.
- * Engine scripts are never imported or bundled into the public repository.
- */
-export function loadScriptOnce(url: string): Promise<void> {
-  const existing = scriptPromises.get(url)
-  if (existing) return existing
-  const promise = new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = url
-    script.async = false
-    script.onload = () => resolve()
-    script.onerror = () => {
-      scriptPromises.delete(url)
-      script.remove()
-      reject(new Error(`엔진 스크립트를 불러오지 못했어요: ${url}`))
-    }
-    document.head.append(script)
-  })
-  scriptPromises.set(url, promise)
-  return promise
-}
+export { loadScriptOnce }
 
 function getPlayerGlobal(): CapsuleV2PlayerGlobal | null {
   const w = window as unknown as { CapsuleV2Player?: CapsuleV2PlayerGlobal }
   return w.CapsuleV2Player ?? null
 }
 
+/** One `talk` motion request while talking; the next one is queued shortly before it ends. */
+export const TALK_CHUNK_MS = 1_200
+/** Talking never runs longer than this without a new start (a hidden tab can leave typing "on"). */
+export const TALK_CAP_MS = 12_000
+
+type WindowWithObserver = Window & { ResizeObserver?: typeof ResizeObserver }
+
 /**
  * Aliving2D (chaerin-v2) WebGL2 renderer adapter.
  * Loads `engine.js` -> `player.js` dynamically via `<script>`, sizes the canvas with DPR <= 2,
  * clears background to transparent `[0,0,0,0]`, and pauses RAF when hidden.
+ *
+ * The canvas (with its WebGL context and player) is created once and moved between hosts, including into a Document
+ * Picture-in-Picture window; frames, size observation and pixel-ratio changes then follow the host's window.
  */
 export class AlivingRenderer implements MateRenderer {
   private readonly modelUrl: string
@@ -74,7 +64,11 @@ export class AlivingRenderer implements MateRenderer {
   private readonly idle: boolean
   private readonly pixelScale: number
   private readonly maxPixelRatio: number
+  private readonly loadScript: (url: string, signal?: AbortSignal) => Promise<void>
+  private readonly getPlayer: () => CapsuleV2PlayerGlobal | null
   private readonly listeners = new Set<() => void>()
+  /** Ends this renderer's wait on shared script loads when it is destroyed. */
+  private readonly bootAbort = new AbortController()
 
   private status: MateRenderStatus = 'loading'
   private host: HTMLElement | null = null
@@ -91,6 +85,10 @@ export class AlivingRenderer implements MateRenderer {
   private visibilityDocument: Document | null = null
   /** Window whose requestAnimationFrame drives the player (the host's window: a Document PiP window when moved). */
   private loopWindow: Window | null = null
+  private pixelRatioQuery: MediaQueryList | null = null
+  private talking = false
+  private talkStartedAt = 0
+  private talkTimer: ReturnType<typeof setTimeout> | undefined
 
   constructor(options: {
     modelUrl: string
@@ -106,6 +104,9 @@ export class AlivingRenderer implements MateRenderer {
      */
     pixelScale?: number
     maxPixelRatio?: number
+    /** Test seams: script loading and the player global. */
+    loadScript?: (url: string, signal?: AbortSignal) => Promise<void>
+    getPlayer?: () => CapsuleV2PlayerGlobal | null
   }) {
     this.modelUrl = options.modelUrl
     this.engineUrl = options.engineUrl
@@ -115,6 +116,8 @@ export class AlivingRenderer implements MateRenderer {
     this.idle = options.idle ?? false
     this.pixelScale = options.pixelScale ?? 1
     this.maxPixelRatio = options.maxPixelRatio ?? 2
+    this.loadScript = options.loadScript ?? loadScriptOnce
+    this.getPlayer = options.getPlayer ?? getPlayerGlobal
   }
 
   private setStatus(next: MateRenderStatus) {
@@ -145,10 +148,32 @@ export class AlivingRenderer implements MateRenderer {
     return this.host?.ownerDocument?.defaultView ?? window
   }
 
+  /**
+   * Re-sizes the buffer when the host window's pixel ratio changes (a PiP window dragged to another screen, browser
+   * zoom). `(resolution: Xdppx)` matches only the current ratio, so the query is renewed after every change.
+   */
+  private watchPixelRatio() {
+    this.unwatchPixelRatio()
+    const win = this.host?.ownerDocument?.defaultView
+    if (!win || typeof win.matchMedia !== 'function') return
+    const query = win.matchMedia(`(resolution: ${win.devicePixelRatio || 1}dppx)`)
+    query.addEventListener('change', this.onPixelRatioChange)
+    this.pixelRatioQuery = query
+  }
+
+  private unwatchPixelRatio() {
+    this.pixelRatioQuery?.removeEventListener('change', this.onPixelRatioChange)
+    this.pixelRatioQuery = null
+  }
+
+  private onPixelRatioChange = () => {
+    this.syncCanvasSize()
+    this.watchPixelRatio()
+  }
+
   private stopLoop() {
     const player = this.player
-    if (!player) return
-    if (player.running) {
+    if (player?.running) {
       player.running = false
       // The player's own first loop runs on the main window; later loops on `loopWindow`.
       ;(this.loopWindow ?? window).cancelAnimationFrame(player.raf)
@@ -162,7 +187,7 @@ export class AlivingRenderer implements MateRenderer {
    */
   private applyPauseState() {
     const player = this.player
-    if (!player) return
+    if (!player || this.status === 'error') return
     const host = this.host
     const shouldPause = this.paused || !host || Boolean(host.ownerDocument?.hidden)
     if (shouldPause) {
@@ -178,20 +203,34 @@ export class AlivingRenderer implements MateRenderer {
     this.loopWindow = win
     const tick = (now: number) => {
       if (!player.running || this.destroyed || this.loopWindow !== win) return
-      player.frame(now)
+      try {
+        player.frame(now)
+      } catch (error) {
+        this.failRendering(error)
+        return
+      }
       player.raf = win.requestAnimationFrame(tick)
     }
     player.raf = win.requestAnimationFrame(tick)
   }
 
+  /** A frame threw: stop drawing and report `error` so the screen falls back to the still image. */
+  private failRendering(error: unknown) {
+    console.warn('v2 모델을 그리지 못했어요.', error)
+    this.stopLoop()
+    this.setTalking(false)
+    this.setStatus('error')
+  }
+
   private async boot(canvas: HTMLCanvasElement) {
+    const signal = this.bootAbort.signal
     try {
-      await loadScriptOnce(this.engineUrl)
+      await this.loadScript(this.engineUrl, signal)
       if (this.destroyed) return
-      await loadScriptOnce(this.playerUrl)
+      await this.loadScript(this.playerUrl, signal)
       if (this.destroyed) return
 
-      const api = getPlayerGlobal()
+      const api = this.getPlayer()
       if (!api) throw new Error('CapsuleV2Player global not found after loading scripts')
 
       this.syncCanvasSize()
@@ -201,6 +240,8 @@ export class AlivingRenderer implements MateRenderer {
         ...(this.view ? { zoom: this.view.zoom, cx: this.view.cx, cy: this.view.cy } : {}),
       })
       if (this.destroyed) {
+        // Created after the renderer was dropped: stop its own loop and free it.
+        player.running = false
         player.destroy()
         return
       }
@@ -219,8 +260,9 @@ export class AlivingRenderer implements MateRenderer {
         player.lookAt(this.pendingLook.x, this.pendingLook.y)
       }
 
-      this.applyPauseState()
       this.setStatus('ready')
+      this.applyPauseState()
+      if (this.talking) this.talkChunk()
     } catch {
       if (!this.destroyed) this.setStatus('error')
     }
@@ -240,8 +282,12 @@ export class AlivingRenderer implements MateRenderer {
     host.append(canvas)
 
     this.syncCanvasSize()
-    this.resizeObserver = new ResizeObserver(() => this.syncCanvasSize())
+    // The observer comes from the host's window: one from the original tab stops reporting a PiP window's resizes
+    // while that tab is hidden.
+    const Observer = (host.ownerDocument?.defaultView as WindowWithObserver | null)?.ResizeObserver ?? ResizeObserver
+    this.resizeObserver = new Observer(() => this.syncCanvasSize())
     this.resizeObserver.observe(host)
+    this.watchPixelRatio()
 
     const doc = host.ownerDocument ?? document
     this.onVisibilityChange = () => this.applyPauseState()
@@ -252,7 +298,7 @@ export class AlivingRenderer implements MateRenderer {
       this.startBoot(canvas)
     } else {
       this.applyPauseState()
-      // Moving clears nothing on its own, but a resized buffer is blank until the next frame: draw at once.
+      // A moved or resized buffer is blank until the next frame: draw at once.
       try { this.player.model.draw() } catch { /* Drawn on the next frame. */ }
     }
   }
@@ -288,6 +334,7 @@ export class AlivingRenderer implements MateRenderer {
   detach(): void {
     this.resizeObserver?.disconnect()
     this.resizeObserver = null
+    this.unwatchPixelRatio()
     if (this.onVisibilityChange) {
       this.visibilityDocument?.removeEventListener('visibilitychange', this.onVisibilityChange)
       this.onVisibilityChange = null
@@ -301,8 +348,18 @@ export class AlivingRenderer implements MateRenderer {
   destroy(): void {
     if (this.destroyed) return
     this.destroyed = true
-    this.player?.destroy()
+    this.bootAbort.abort()
+    this.setTalking(false)
+    // Stop the loop while the player (and the window its frame was requested on) is still known.
+    this.stopLoop()
+    this.detach()
+    const player = this.player
     this.player = null
+    try {
+      player?.destroy()
+    } catch {
+      // Already torn down.
+    }
     if (this.canvas) {
       try {
         this.canvas.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext()
@@ -310,7 +367,6 @@ export class AlivingRenderer implements MateRenderer {
         // Ignore if context is already lost
       }
     }
-    this.detach()
     this.canvas = null
     this.listeners.clear()
   }
@@ -343,6 +399,45 @@ export class AlivingRenderer implements MateRenderer {
 
   talk(ms: number): void {
     if (ms > 0) this.player?.talk(ms)
+  }
+
+  /**
+   * Moves the mouth for as long as a line is being shown: on while text types, off when it finishes, is skipped or
+   * cancelled. Talking runs as short queued `talk` chunks, so turning it off (or the cap) ends it within a chunk.
+   */
+  setTalking(active: boolean): void {
+    if (this.destroyed && active) return
+    if (active === this.talking) {
+      // A new line while talking restarts the cap.
+      if (active) this.talkStartedAt = performance.now()
+      return
+    }
+    this.talking = active
+    clearTimeout(this.talkTimer)
+    this.talkTimer = undefined
+    if (active) {
+      this.talkStartedAt = performance.now()
+      this.talkChunk()
+    } else {
+      try { this.player?.stopMotion?.() } catch { /* The motion ends on its own. */ }
+    }
+  }
+
+  isTalking(): boolean {
+    return this.talking
+  }
+
+  private talkChunk() {
+    clearTimeout(this.talkTimer)
+    this.talkTimer = undefined
+    if (!this.talking || this.destroyed) return
+    if (performance.now() - this.talkStartedAt >= TALK_CAP_MS) {
+      this.talking = false
+      return
+    }
+    // Before the model is ready the timer keeps time; the first chunk plays once the player exists.
+    if (this.status !== 'error') this.player?.talk(TALK_CHUNK_MS)
+    this.talkTimer = setTimeout(() => this.talkChunk(), TALK_CHUNK_MS - 150)
   }
 
   /** Plays a reaction from the reaction table; false when the player has no table or no matching trigger. */

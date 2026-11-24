@@ -61,6 +61,8 @@ export default function ConnectionPage() {
   const [speech, setSpeech] = useState({ id: 0, at: 0, text: '' })
   const [speakingMessages, setSpeakingMessages] = useState<ReadonlySet<string>>(new Set())
   const speaking = speakingMessages.size > 0
+  /** The event bubble's line is typing (CharacterSpeechBubble: on while letters appear, off when done/skipped/gone). */
+  const [bubbleTyping, setBubbleTyping] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [privacySeen, setPrivacySeen] = useState(false)
@@ -132,6 +134,14 @@ export default function ConnectionPage() {
     })
   }, [])
   const expressions = useExpressionDirector(backend.live2dStage)
+  // The mouth moves exactly while a line is typing on screen: a chat reply (also while it streams in) or the event
+  // bubble. v2 stages only; Cubism stages have no `setTalking`.
+  const talking = speaking || bubbleTyping
+  useEffect(() => {
+    const stage = backend.live2dStage
+    stage?.setTalking?.(talking)
+    return () => stage?.setTalking?.(false)
+  }, [backend.live2dStage, talking])
   const cue = useCallback((input: Parameters<typeof expressions.cue>[0]) => expressions.cue(input), [expressions])
   const navigateToRecord = useCallback((recordId: string) => {
     const target = `/connections/${recordId}`
@@ -510,6 +520,7 @@ export default function ConnectionPage() {
                     text={speech.text}
                     expanded
                     variant="pill"
+                    onTypingChange={setBubbleTyping}
                   />
                 </div>
               )}

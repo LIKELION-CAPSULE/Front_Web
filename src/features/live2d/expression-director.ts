@@ -3,7 +3,6 @@ import {
   type ExpressionCommand, type ExpressionCue, type ExpressionSchedule,
 } from './expression-scheduler.ts'
 import type { SessionModelStage } from './session-model.ts'
-import { talkDurationMs } from './talk-duration.ts'
 
 /** Runs the pure scheduler on a timer and forwards its commands to the current stage. */
 export class ExpressionDirector {
@@ -29,11 +28,7 @@ export class ExpressionDirector {
     const keyed = stage?.expressionKey ? { ...cue, expression: toKeyed(stage.expressionKey(cue.expression)) } : cue
     const request = expressionRequest(keyed)
     if (request) this.run(requestExpression(this.schedule, request, this.now()))
-    // A line on screen: move the mouth while the bubble types it (v2 only; Cubism has no talk motion here).
-    if (cue.stage === 'speech' && cue.text) {
-      const ms = talkDurationMs(cue.text)
-      if (ms > 0) stage?.talk?.(ms)
-    }
+    // Talking follows the text actually typing on screen (ConnectionPage → stage.setTalking), not the cue.
   }
 
   cancelPending() {

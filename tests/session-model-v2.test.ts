@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { SessionModel, type AlivingSessionSource, type SessionModelStage } from '../src/features/live2d/session-model.ts'
 import { ExpressionDirector } from '../src/features/live2d/expression-director.ts'
-import { TALK_MAX_MS, TALK_MIN_MS, talkDurationMs } from '../src/features/live2d/talk-duration.ts'
 import { CHAERIN_V2_LANDMARKS, CHAERIN_V2_RENDERS, computeCallView, computeContainedImageBox, modelPointToScreen } from '../src/features/mate-render/aliving-view.ts'
 
 function fakeStage(extra: Partial<SessionModelStage> = {}) {
@@ -94,7 +93,7 @@ test('a newer preparation cancels a pending v2 stage: the old entry rejects and 
   loader.release()
 })
 
-test('the director keys v2 faces by name, keeps Cubism keyed by file, and talks while a line shows', () => {
+test('the director keys v2 faces by name and keeps Cubism keyed by file; talking is left to the typing text', () => {
   const g = globalThis as unknown as { window?: unknown }
   const hadWindow = 'window' in g
   if (!hadWindow) g.window = globalThis
@@ -102,20 +101,19 @@ test('the director keys v2 faces by name, keeps Cubism keyed by file, and talks 
     const talks: number[] = []
     const v2Stage = fakeStage({
       expressionKey: expression => (expression?.name === '삐짐' ? 'sulky' : expression?.file === 'files/009.exp3.json' ? 'laugh' : null),
-      talk: ms => { talks.push(ms) },
+      setTalking: active => { talks.push(active ? 1 : 0) },
     })
     let now = 0
     const director = new ExpressionDirector(() => now)
     director.setStage(v2Stage.stage)
     director.cue({ characterId: 1, expression: { name: '삐짐' }, event: 'MESSAGE', stage: 'speech', text: '어디 갔어?' })
     assert.equal(v2Stage.expressions.at(-1), 'sulky')
-    assert.deepEqual(talks, [talkDurationMs('어디 갔어?')])
+    assert.deepEqual(talks, [], 'the director never drives the mouth (ConnectionPage follows the typing text)')
     now = 10_000
     director.cue({ characterId: 1, expression: { file: 'files/009.exp3.json' }, event: 'MESSAGE', stage: 'speech', text: '좋아' })
     assert.equal(v2Stage.expressions.at(-1), 'laugh')
-    // A notice (no line) never talks
     director.cue({ characterId: 1, expression: { name: '삐짐' }, event: 'WAVE', stage: 'notice' })
-    assert.equal(talks.length, 2)
+    assert.equal(talks.length, 0)
     director.dispose()
 
     const cubism = fakeStage()
@@ -129,14 +127,6 @@ test('the director keys v2 faces by name, keeps Cubism keyed by file, and talks 
   } finally {
     if (!hadWindow) delete g.window
   }
-})
-
-test('talkDurationMs follows the bubble typing pace and stays within bounds', () => {
-  assert.equal(talkDurationMs(''), 0)
-  assert.equal(talkDurationMs(null), 0)
-  assert.equal(talkDurationMs('응'), TALK_MIN_MS)
-  assert.equal(talkDurationMs('안녕하세요 반가워요'), Math.max(TALK_MIN_MS, 9 * 45 + 20))
-  assert.equal(talkDurationMs('가'.repeat(500)), TALK_MAX_MS)
 })
 
 test('computeCallView matches the card still (contain, bottom) on wide call tiles and small PiP windows', () => {

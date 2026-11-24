@@ -9,16 +9,23 @@ export type SessionModelStage = Pick<Live2DStage, 'subscribe' | 'getStatus' | 'a
    * (the Korean label the backend sends) to a v2 name; `null` when it has no matching face.
    */
   expressionKey?(expression: ExpressionRef | null | undefined): string | null
-  /** v2 only: mouth movement for `ms` while a line is shown (text-length based until voice exists). */
-  talk?(ms: number): void
+  /**
+   * v2 only: mouth movement while a line is typing on screen. The screen turns it on when text starts appearing and
+   * off when it finishes, is skipped or is cancelled (until voice exists, the visible typing is the speech).
+   */
+  setTalking?(active: boolean): void
   /** v2 only: plays a backend trigger from the model's reaction table (`reactionsUrl`). False when it has none. */
   react?(trigger: string, intensity?: number): boolean
 }
 /** Legacy stage (Cubism `.model3.json`, or the review workbench's image stage). */
 export type SessionModelFactory = (url: string, layout: Live2DLayout) => SessionModelStage
 export type AlivingSessionSource = Extract<PreviewMateSource, { kind: 'aliving' }>
+export type SessionModelOptions = {
+  /** Still image the v2 stage shows if the live model breaks after it was ready (the screen's own fallback image). */
+  stillImage?: string
+}
 /** v2 (Aliving2D) stage. Injected by the app so this module stays free of DOM/engine code. */
-export type AlivingStageFactory = (source: AlivingSessionSource) => SessionModelStage
+export type AlivingStageFactory = (source: AlivingSessionSource, options: SessionModelOptions) => SessionModelStage
 
 /**
  * The session's character (`Figure`) plus the draft v2 fields (docs/MATE_MODEL_V2_CONTRACT.md). Read from the raw
@@ -89,7 +96,7 @@ export class SessionModel {
     this.alivingTimeoutMs = Math.min(timeoutMs, options.alivingTimeoutMs ?? 20_000)
   }
 
-  prepare(figure: SessionFigure | undefined): Promise<SessionModelStage | null> {
+  prepare(figure: SessionFigure | undefined, options: SessionModelOptions = {}): Promise<SessionModelStage | null> {
     if (!figure?.modelJsonUrl) return Promise.reject(new Error('캐릭터 모델 정보를 불러오지 못했어요. 다시 시도해 주세요.'))
     const format = text(figure.format)
     if (detectModelFormat(figure.modelJsonUrl, format) === 'aliving2d') {
@@ -97,7 +104,7 @@ export class SessionModel {
         modelJsonUrl: figure.modelJsonUrl, format: 'aliving2d',
         engineUrl: text(figure.engineUrl), playerUrl: text(figure.playerUrl), reactionsUrl: text(figure.reactionsUrl),
       }, this.allowlist())
-      return this.prepareAliving(source)
+      return this.prepareAliving(source, options)
     }
     const scale = finite(figure.scale, 1)
     const layout = { scale: scale > 0 ? scale : 1, offsetX: finite(figure.offsetX, 0), offsetY: finite(figure.offsetY, 0) }
@@ -121,7 +128,7 @@ export class SessionModel {
     return pending
   }
 
-  private prepareAliving(source: PreviewMateSource): Promise<SessionModelStage | null> {
+  private prepareAliving(source: PreviewMateSource, options: SessionModelOptions): Promise<SessionModelStage | null> {
     const create = this.createAliving
     if (source.kind !== 'aliving' || !create) {
       // Nothing to load: the screen shows the still image.
@@ -134,7 +141,7 @@ export class SessionModel {
       if (this.stage.getStatus() === 'ready') return Promise.resolve(this.stage)
     }
     this.release()
-    const stage = create(source)
+    const stage = create(source, options)
     const controller = new AbortController()
     this.stage = stage
     this.key = key
