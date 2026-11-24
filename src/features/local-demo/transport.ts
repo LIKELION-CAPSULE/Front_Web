@@ -1,5 +1,5 @@
 import { chaerinArtwork } from '../mates/artwork'
-import { createMockAvatars } from '../review/mock-avatars'
+import { localAvatarImage, localAvatarItems, resolveLocalAvatarThumbnails } from './local-avatars'
 import terms from '../auth/data/legal/terms.md?raw'
 import privacy from '../auth/data/legal/privacy.md?raw'
 import { LOCAL_CHARACTER_ID, LOCAL_ROOM_ID, type LocalBetaStore } from './store'
@@ -26,8 +26,7 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
   const failures = new Set<string>()
   const eventTypes = new Map<number, string>()
   let nextEventId = Date.now()
-  const avatars = createMockAvatars(990401)
-  const image = () => avatars.find(avatar => avatar.id === store.data.avatarId)?.thumbnailUrl ?? avatars[0]!.thumbnailUrl
+  const image = () => localAvatarImage(store.data.avatarId)
   const room = () => ({ id: LOCAL_ROOM_ID, name: '채린', description: '', thumbnailUrl: chaerinArtwork.card, bannerUrl: chaerinArtwork.hero,
     characters: [{ id: LOCAL_CHARACTER_ID, name: '채린', profileImageUrl: chaerinArtwork.card, personality: [], relation: store.affinity() }] })
   const visuals = () => ({ sessionId: store.data.active!.id, room: { id: LOCAL_ROOM_ID, name: '채린' },
@@ -75,7 +74,14 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
     if (path === '/me' && method === 'DELETE') { store.reset('guest'); return reply(null, 204) }
     if (path === '/me' && method === 'PATCH') return reply({ ...store.profile(String(body.nickname), typeof body.avatarId === 'number' ? body.avatarId : undefined), profileImage: image() })
     if (path === '/me') return reply(store.me(image()))
-    if (path === '/avatars') return reply({ avatars })
+    if (path === '/avatars') {
+      // Generated thumbnails replace the silhouettes once they exist (scripts/capture-avatar-thumbnails.mjs).
+      await resolveLocalAvatarThumbnails(original, origin)
+      // QA: `sessionStorage['capsule-local-avatars'] = 'empty'` shows the empty-list state.
+      let empty = false
+      try { empty = globalThis.sessionStorage?.getItem('capsule-local-avatars') === 'empty' } catch { /* Storage blocked. */ }
+      return reply({ avatars: empty ? [] : localAvatarItems() })
+    }
     if (path === '/home') return reply({ rooms: [room()], activeSession: store.summary(), todayStudySeconds: store.data.records.filter(record => new Date(record.endedAt).toDateString() === new Date().toDateString()).reduce((total, record) => total + record.studySeconds, 0) })
     if (path === `/rooms/${LOCAL_ROOM_ID}`) return reply(room())
     if (path === '/sessions' && method === 'POST') {

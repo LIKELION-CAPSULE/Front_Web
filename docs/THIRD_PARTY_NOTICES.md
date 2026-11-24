@@ -26,6 +26,8 @@ User-supplied and generated illustration assets retain their existing provenance
 - **[PixiJS 8.21.0](https://pixijs.com/)** — MIT · Copyright (c) 2013-2023 Mathew Groves, Chad Engler. [Original notice](../public/licenses/PixiJS-MIT.txt). Its dependencies eventemitter3, ismobilejs, parse-svg-path, @xmldom/xmldom, gifuct-js, js-binary-schema-parser and @pixi/colord are MIT; earcut is ISC; tiny-lru is BSD-3-Clause.
 - **[@pixi/sound 6.0.2](https://github.com/pixijs/sound)** — MIT · Copyright (c) 2017 Matt Karl, LLC. Installed as an engine dependency and only loaded for motion sounds or lip sync, which CAPSULE does not use. [Original notice](../public/licenses/PixiSound-MIT.txt).
 
+- **Live2D sample models (user avatars)** — Hiyori PRO, Haru (greeter), Natori PRO, Chitose PRO, Epsilon PRO and Wanko, under the Live2D Free Material License Agreement, license type "Live2D Original Character" ([terms](https://www.live2d.com/ko/learn/sample/model-terms/)). Used unmodified for the avatar picker; the required credit ("본 서비스의 아바타 캐릭터에는 주식회사 Live2D의 저작물이 이용되었습니다.") is shown under the picker in onboarding and account settings. The model files are not in this repository: production serves them from the backend (`GET /api/avatars`), local development from the git-ignored `local-assets/avatars/`.
+
 PixiJS and the engine load while preparing a study session, in a separate `live2d` chunk. Live2D model files come from the backend's storage (`modelJsonUrl`) and are not distributed from this repository.
 
 ## Capsule card opening (3D intro)

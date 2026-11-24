@@ -12,7 +12,6 @@ import { ConnectionSettingsPanel } from './ConnectionSettingsPanel'
 import '@/features/mates/mates.css'
 import '../account-content.css'
 import './account-settings.css'
-import './avatar-background.css'
 
 const menus = [
   { id: 'profile', label: '프로필', icon: 'user' },
@@ -188,7 +187,7 @@ export default function AccountSettingsDialog({
           </aside>
 
           <div
-            className={`account-settings-content${view === 'profile' ? ' avatar-background' : ''}`}
+            className="account-settings-content"
             data-account-content={view}
           >
             <section

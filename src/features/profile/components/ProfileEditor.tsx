@@ -89,14 +89,10 @@ export function ProfileEditor({
             }
           }}
         >
-          <h2 id={headingId} className="account-settings-title">
-            프로필
-          </h2>
-
           <div className="profile-editor-grid">
             <div className="profile-editor-dial-col">
               <AvatarDial
-                compact
+                size="compact"
                 avatars={choices}
                 value={avatarId ?? 0}
                 disabled={busy}
@@ -107,6 +103,9 @@ export function ProfileEditor({
             </div>
 
             <div className="profile-editor-details">
+              <h2 id={headingId} className="account-settings-title">
+                프로필
+              </h2>
               <FormField label="닉네임" error={nameError} errorId={`${headingId}-nickname-error`}>
                 <input
                   className="form-input"
@@ -165,23 +164,22 @@ export function ProfileEditor({
                   {error}
                 </FeedbackMessage>
               )}
+
+              <div className="profile-editor-footer">
+                <Button
+                  type="submit"
+                  size="md"
+                  loading={busy}
+                  disabled={busy || !name.trim() || !changed}
+                >
+                  프로필 저장
+                </Button>
+              </div>
             </div>
           </div>
         </form>
 
         {narrowFooter && <div className="account-settings-mobile-logout">{narrowFooter}</div>}
-      </div>
-
-      <div className="profile-editor-footer">
-        <Button
-          type="submit"
-          form={formId}
-          size="md"
-          loading={busy}
-          disabled={busy || !name.trim() || !changed}
-        >
-          프로필 저장
-        </Button>
       </div>
     </section>
   )

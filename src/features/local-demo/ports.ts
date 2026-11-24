@@ -10,12 +10,11 @@ import {
   LOCAL_V2_REACTIONS_URL,
   type LocalBetaStore,
 } from './store'
-import { MOCK_AVATAR_URLS } from '../review/mock-avatars'
+import { localAvatarImage } from './local-avatars'
 
 export function createLocalPorts(store: LocalBetaStore) {
   let failedProfile = false
-  const images = MOCK_AVATAR_URLS
-  const me = () => store.me(images[(store.data.avatarId ?? 990401) - 990401] ?? images[0])
+  const me = () => store.me(localAvatarImage(store.data.avatarId))
   const accountPort: BetaAccountPort = {
     read: async () => ({ ...store.data.details }),
     validateReferralCode: async (code) =>

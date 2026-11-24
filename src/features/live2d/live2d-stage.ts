@@ -71,6 +71,14 @@ function loadEngine(baseUrl: string) {
   return enginePromise
 }
 
+/** Destroys a Pixi app and releases its WebGL context at once, so switching models never piles up contexts. */
+function destroyApp(app: Application) {
+  const gl = (app.renderer as { gl?: WebGLRenderingContext } | undefined)?.gl
+  app.destroy({ removeView: true }, { children: true, texture: true, textureSource: true })
+  // Release the context explicitly so GPU memory frees as soon as the page is left.
+  if (gl && !gl.isContextLost()) gl.getExtension('WEBGL_lose_context')?.loseContext()
+}
+
 const clamp = (value: number) => Math.max(-1, Math.min(1, value))
 /**
  * While a tile keeps changing size (the chat panel sliding open), the drawing buffer is reallocated once this long
@@ -142,7 +150,7 @@ export class Live2DStage {
       preference: 'webgl', backgroundAlpha: 0, antialias: true, autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2), width: 1, height: 1,
     })
-    if (this.destroyed) { app.destroy({ removeView: true }, { children: true, texture: true, textureSource: true }); return }
+    if (this.destroyed) { destroyApp(app); return }
     this.app = app
     app.canvas.className = 'live2d-canvas'
     app.canvas.setAttribute('aria-hidden', 'true')
@@ -410,11 +418,7 @@ export class Live2DStage {
         model.parent?.removeChild(model)
         model.destroy({ children: true })
       }
-      if (!app) return
-      const gl = (app.renderer as { gl?: WebGLRenderingContext }).gl
-      app.destroy({ removeView: true }, { children: true, texture: true, textureSource: true })
-      // Release the context explicitly so GPU memory frees as soon as the page is left.
-      if (gl && !gl.isContextLost()) gl.getExtension('WEBGL_lose_context')?.loseContext()
+      if (app) destroyApp(app)
     } catch (error) {
       console.warn('Live2D 정리 중 문제가 있었어요.', error)
     }
