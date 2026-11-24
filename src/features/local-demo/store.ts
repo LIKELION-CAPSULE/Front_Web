@@ -17,8 +17,27 @@ export {
 export const LOCAL_USER_ID = 990101
 export const LOCAL_ROOM_ID = 990201
 export const LOCAL_CHARACTER_ID = 990301
+/** 서도현 (second mate, model bundle `seojin`): like the published API, one room per character. */
+export const LOCAL_DOHYUN_ROOM_ID = 990202
+export const LOCAL_DOHYUN_CHARACTER_ID = 990302
 export const LOCAL_STORAGE_KEY = 'capsule-local-beta:v1'
 export const LOCAL_REPLY = '좋아, 우리 조금만 더 집중해 보자!'
+const CHAERIN_CLOSING_LINE = '오늘도 같이 있어서 좋았어. 다음에도 여기서 만나자.'
+
+/**
+ * The local mates, in the server's shape (character id, room id, server name). `mateId` is the front-end catalog id.
+ * Replies and closing lines are each mate's own (서도현's from his persona, mate-lines.ts), never mixed.
+ */
+export const LOCAL_MATES = [
+  { characterId: LOCAL_CHARACTER_ID, roomId: LOCAL_ROOM_ID, name: '채린', mateId: 'chaerin', reply: LOCAL_REPLY, closingLine: CHAERIN_CLOSING_LINE },
+  { characterId: LOCAL_DOHYUN_CHARACTER_ID, roomId: LOCAL_DOHYUN_ROOM_ID, name: '서도현', mateId: 'dohyun',
+    reply: '잠깐 봐봐. …아, 이거네. 여기부터 다시 해.', closingLine: '다 했네. 오늘 좀 열심히 했다? 수고했어.' },
+] as const
+export type LocalMate = (typeof LOCAL_MATES)[number]
+/** The local mate of a character id (채린 for unknown ids, as in data saved before 서도현 existed). */
+export function localMate(characterId: number | string | undefined): LocalMate {
+  return LOCAL_MATES.find(mate => String(mate.characterId) === String(characterId)) ?? LOCAL_MATES[0]
+}
 const HISTORY_MESSAGE_ID = 'local-history-1'
 /**
  * Sample affinity the local mock reports (stage numbers and names as in affinity-stages.ts): 3단계 · 친구, 8.5 of the
@@ -35,7 +54,7 @@ export const LOCAL_AFFINITY = {
 } as const
 export const localScenarios = ['normal', 'empty', 'loading', 'failure', 'exhausted', 'guest'] as const
 export type LocalScenario = typeof localScenarios[number]
-type Session = { id: number; startedAt: number; studySeconds: number; presentSeconds: number; targetMinutes: number }
+type Session = { id: number; startedAt: number; studySeconds: number; presentSeconds: number; targetMinutes: number; characterId?: number }
 type LocalData = {
   version: 1; authenticated: boolean; nickname: string; onboardingRequired: boolean; avatarId?: number
   details: BetaAccountDetails; scenario: LocalScenario; nextSessionId: number; active: Session | null
@@ -43,8 +62,6 @@ type LocalData = {
   points: number; settings: { voice: boolean; advanced: boolean }; rewardedCodes: string[]
   /** QA record pattern; absent in data saved before patterns existed. */
   recordPattern?: RecordPattern
-  /** QA: a made-up second mate takes every third generated connection (records page 「전체」 / mate colours). */
-  virtualMate?: boolean
 }
 type StoragePort = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>
 
@@ -56,32 +73,34 @@ export function nextAttendanceExpiry(now: number) {
   return boundary.getTime()
 }
 
-/** Local QA only: a made-up second mate (a 남학생 draft) for the records page's several-mates rules. */
-export const VIRTUAL_MATE = { id: 990777, name: '남학생(시안)' } as const
-
-function patternRecords(pattern: RecordPattern, now: number, virtualMate = false): StudyRecord[] {
+/**
+ * Generated history: every third connection is with 서도현 (the second mate), so 내 기록 「전체」 shows two mate colours
+ * and the mate filter, and 내 메이트 has capsules for both. (This replaced the 「가상 메이트(남학생 시안)」 QA switch.)
+ */
+function patternRecords(pattern: RecordPattern, now: number): StudyRecord[] {
   return patternSessions(pattern, now).map((session, index) => {
-    const virtual = virtualMate && index % 3 === 1
-    const character = virtual ? VIRTUAL_MATE : { id: LOCAL_CHARACTER_ID, name: '채린' }
-    // Its own id (still a pattern id): the app keeps cached reports by id, so a reused id would keep 채린.
-    const sessionId = virtual ? PATTERN_ID_BASE + ((session.id - PATTERN_ID_BASE + 45_000_000) % 90_000_000) : session.id
-    const report: ReportResponse = { sessionId, roomName: character.name, character: { id: character.id, name: character.name },
+    const mate = index % 3 === 1 ? LOCAL_MATES[1] : LOCAL_MATES[0]
+    // 서도현's records get their own (still pattern) ids: the app keeps cached reports by id.
+    const sessionId = mate.characterId === LOCAL_CHARACTER_ID ? session.id : PATTERN_ID_BASE + ((session.id - PATTERN_ID_BASE + 45_000_000) % 90_000_000)
+    const report: ReportResponse = { sessionId, roomName: mate.name, character: { id: mate.characterId, name: mate.name },
       startedAt: new Date(session.startedAt).toISOString(), endedAt: new Date(session.endedAt).toISOString(), endType: 'USER',
       studySeconds: session.seconds, presentSeconds: session.seconds - 60, awaySeconds: 60, returnCount: 1,
       relation: { levelBefore: 3, levelAfter: 3, pointsBefore: 61, pointsAfter: 62, ...LOCAL_AFFINITY },
-      closingLine: '오늘도 같이 있어서 좋았어. 다음에도 여기서 만나자.' }
-    const record = toRecord(report)
-    return character.id === LOCAL_CHARACTER_ID ? record : { ...record, characterIds: [String(character.id)], roomName: character.name, characterName: character.name }
+      closingLine: mate.closingLine }
+    return toRecord(report)
   })
 }
 
 /** Pattern records are regenerated relative to today; locally finished connections are kept. */
-function withPatternRecords(data: Pick<LocalData, 'records' | 'messages' | 'recordPattern' | 'virtualMate'>, now: number): Pick<LocalData, 'records' | 'messages'> {
-  const generated = patternRecords(data.recordPattern ?? 'none', now, data.virtualMate)
+function withPatternRecords(data: Pick<LocalData, 'records' | 'messages' | 'recordPattern'>, now: number): Pick<LocalData, 'records' | 'messages'> {
+  const generated = patternRecords(data.recordPattern ?? 'none', now)
   const records = [...data.records.filter(record => !isPatternRecordId(record.id)), ...generated].sort((a, b) => b.endedAt - a.endedAt)
   const latest = generated[0]
   const messages = data.messages.filter(message => message.id !== HISTORY_MESSAGE_ID)
-  if (latest) messages.unshift({ id: HISTORY_MESSAGE_ID, sessionId: latest.id, characterId: String(LOCAL_CHARACTER_ID), sender: 'character', text: LOCAL_REPLY, voice: false, delivery: 'confirmed', createdAt: latest.endedAt })
+  if (latest) {
+    const mate = localMate(latest.characterIds[0])
+    messages.unshift({ id: HISTORY_MESSAGE_ID, sessionId: latest.id, characterId: String(mate.characterId), sender: 'character', text: mate.reply, voice: false, delivery: 'confirmed', createdAt: latest.endedAt })
+  }
   return { records, messages }
 }
 
@@ -98,8 +117,9 @@ function seed(now: number, recordPattern: RecordPattern = 'steady'): LocalData {
 
 function toRecord(report: ReportResponse): StudyRecord {
   const seconds = report.studySeconds ?? 0
-  return { id: String(report.sessionId), roomId: String(LOCAL_ROOM_ID), characterIds: [String(LOCAL_CHARACTER_ID)], tier: 'basic',
-    roomName: '채린', characterName: '채린', serverReport: report, startedAt: Date.parse(report.startedAt!), endedAt: Date.parse(report.endedAt!),
+  const mate = localMate(report.character?.id)
+  return { id: String(report.sessionId), roomId: String(mate.roomId), characterIds: [String(mate.characterId)], tier: 'basic',
+    roomName: mate.name, characterName: mate.name, serverReport: report, startedAt: Date.parse(report.startedAt!), endedAt: Date.parse(report.endedAt!),
     studySeconds: seconds, focusSeconds: report.presentSeconds ?? 0, awaySeconds: report.awaySeconds ?? 0, returns: report.returnCount ?? 0,
     cameraFocus: { observedMs: seconds * 1000, focusedMs: Math.floor(seconds * .8) * 1000, returns: 1 }, completed: false, automatic: false }
 }
@@ -150,10 +170,16 @@ export class LocalBetaStore {
     this.changed()
   }
   snapshot = () => ({ wallet: structuredClone(this.data.wallet), invitation: structuredClone(this.data.invitation), records: structuredClone(this.data.records),
-    messages: structuredClone(this.data.messages), affinities: { [LOCAL_CHARACTER_ID]: this.affinity() }, settings: { ...this.data.settings } })
+    messages: structuredClone(this.data.messages), affinities: Object.fromEntries(LOCAL_MATES.map(mate => [mate.characterId, this.affinity()])), settings: { ...this.data.settings } })
   affinity = (): AffinityChange => ({ points: this.data.points, level: 3, stage: LOCAL_AFFINITY.stage, stageName: LOCAL_AFFINITY.stageName })
   me = (image?: string): MeResponse => ({ userId: LOCAL_USER_ID, nickname: this.data.nickname, onboardingRequired: this.data.onboardingRequired, profileImage: image, activeSession: this.summary() ?? undefined })
-  summary = () => this.data.active ? { sessionId: this.data.active.id, roomId: LOCAL_ROOM_ID, roomName: '채린', characterName: '채린', startedAt: new Date(this.data.active.startedAt).toISOString() } : null
+  /** The mate of the running connection (채린 for sessions saved before 서도현 existed). */
+  activeMate = () => localMate(this.data.active?.characterId)
+  summary = () => {
+    if (!this.data.active) return null
+    const mate = this.activeMate()
+    return { sessionId: this.data.active.id, roomId: mate.roomId, roomName: mate.name, characterName: mate.name, startedAt: new Date(this.data.active.startedAt).toISOString() }
+  }
   login() { this.data.authenticated = true; this.changed(); return { accessToken: 'local-beta-access', ...this.me() } }
   beginOnboarding() {
     this.reset('empty'); this.data.details = { callName: '', aboutMe: '' }; this.data.onboardingRequired = true
@@ -166,18 +192,12 @@ export class LocalBetaStore {
     Object.assign(this.data, withPatternRecords(this.data, this.now()))
     this.changed()
   }
-  /** QA only: a made-up second mate takes every third generated connection. */
-  setVirtualMate(on: boolean) {
-    this.data.virtualMate = on
-    Object.assign(this.data, withPatternRecords(this.data, this.now()))
-    this.changed()
-  }
   logout() { this.data.authenticated = false; this.changed() }
   profile(nickname: string, avatarId?: number) { this.data.nickname = nickname; this.data.avatarId = avatarId; this.data.onboardingRequired = false; this.changed(); return this.me() }
   setSettings = (settings: Partial<LocalData['settings']>) => { this.data.settings = { ...this.data.settings, ...settings }; this.changed() }
-  start(targetMinutes: number) {
+  start(targetMinutes: number, characterId: number = LOCAL_CHARACTER_ID) {
     if (this.data.active) return this.data.active
-    this.data.active = { id: this.data.nextSessionId++, startedAt: this.now(), studySeconds: 0, presentSeconds: 0, targetMinutes }
+    this.data.active = { id: this.data.nextSessionId++, startedAt: this.now(), studySeconds: 0, presentSeconds: 0, targetMinutes, characterId }
     this.changed()
     return this.data.active
   }
@@ -196,18 +216,20 @@ export class LocalBetaStore {
       wallet.attendance -= attendance; wallet.invitation -= cost - attendance; wallet.usedToday += cost
       this.ledger('use', -cost, this.data.settings.voice && this.data.settings.advanced ? '음성 · 고급 대화' : this.data.settings.voice ? '음성 대화' : '고급 대화')
     } else if (cost) this.data.settings = { voice: false, advanced: false }
-    const sessionId = String(this.data.active!.id), characterId = String(LOCAL_CHARACTER_ID)
+    const mate = this.activeMate()
+    const sessionId = String(this.data.active!.id), characterId = String(mate.characterId)
     this.data.messages.push({ id: `local-user-${requestId}`, requestId, sessionId, characterId, sender: 'user', text: content, voice: false, delivery: 'confirmed', createdAt: this.now() },
-      { id: `local-reply-${requestId}`, requestId, sessionId, characterId, sender: 'character', text: LOCAL_REPLY, voice: false, delivery: 'confirmed', createdAt: this.now() })
-    const result = { content: LOCAL_REPLY, affinity: this.affinity() }
+      { id: `local-reply-${requestId}`, requestId, sessionId, characterId, sender: 'character', text: mate.reply, voice: false, delivery: 'confirmed', createdAt: this.now() })
+    const result = { content: mate.reply, affinity: this.affinity() }
     this.replies.set(requestId, result); this.changed(); return result
   }
   finish(studySeconds: number, presentSeconds: number) {
     const active = this.data.active!
-    const report: ReportResponse = { sessionId: active.id, roomName: '채린', character: { id: LOCAL_CHARACTER_ID, name: '채린' }, startedAt: new Date(active.startedAt).toISOString(), endedAt: new Date(this.now()).toISOString(), endType: 'USER',
+    const mate = this.activeMate()
+    const report: ReportResponse = { sessionId: active.id, roomName: mate.name, character: { id: mate.characterId, name: mate.name }, startedAt: new Date(active.startedAt).toISOString(), endedAt: new Date(this.now()).toISOString(), endType: 'USER',
       studySeconds, presentSeconds, awaySeconds: Math.max(0, studySeconds - presentSeconds), returnCount: 0,
       relation: { levelBefore: 3, levelAfter: 3, pointsBefore: this.data.points, pointsAfter: this.data.points, ...LOCAL_AFFINITY },
-      closingLine: '오늘도 같이 있어서 좋았어. 다음에도 여기서 만나자.' }
+      closingLine: mate.closingLine }
     const record = toRecord(report)
     // New camera measurements belong to MediaProvider, never to a generated percentage.
     delete record.cameraFocus

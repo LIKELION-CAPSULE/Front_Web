@@ -8,3 +8,15 @@ export const LOCAL_V2_MODEL_URL = '/__local-assets/chaerin-v2/model/model.json'
 export const LOCAL_V2_ENGINE_URL = '/__local-assets/chaerin-v2/engine/engine.js'
 export const LOCAL_V2_PLAYER_URL = '/__local-assets/chaerin-v2/engine/player.js'
 export const LOCAL_V2_REACTIONS_URL = '/__local-assets/chaerin-v2/engine/reactions.default.json'
+
+/** 서도현's v2 bundle (model folder `seojin`; the engine files are byte-identical to chaerin-v2's). */
+export const LOCAL_DOHYUN_V2_MODEL_URL = '/__local-assets/seojin/model/model.json'
+export const LOCAL_DOHYUN_V2_ENGINE_URL = '/__local-assets/seojin/engine/engine.js'
+export const LOCAL_DOHYUN_V2_PLAYER_URL = '/__local-assets/seojin/engine/player.js'
+export const LOCAL_DOHYUN_V2_REACTIONS_URL = '/__local-assets/seojin/engine/reactions.default.json'
+
+/** The v2 model fields (docs/MATE_MODEL_V2_CONTRACT.md) of each local mate, by catalog id. */
+export const LOCAL_V2_MODELS = {
+  chaerin: { format: 'aliving2d', modelJsonUrl: LOCAL_V2_MODEL_URL, engineUrl: LOCAL_V2_ENGINE_URL, playerUrl: LOCAL_V2_PLAYER_URL, reactionsUrl: LOCAL_V2_REACTIONS_URL },
+  dohyun: { format: 'aliving2d', modelJsonUrl: LOCAL_DOHYUN_V2_MODEL_URL, engineUrl: LOCAL_DOHYUN_V2_ENGINE_URL, playerUrl: LOCAL_DOHYUN_V2_PLAYER_URL, reactionsUrl: LOCAL_DOHYUN_V2_REACTIONS_URL },
+} as const

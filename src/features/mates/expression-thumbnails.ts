@@ -1,34 +1,23 @@
-import { toV2ExpressionName, type V2ExpressionName } from '@/features/mate-render/expression-map'
-import angry from '@/assets/characters/chaerin-v2/expressions/angry.webp'
-import contempt from '@/assets/characters/chaerin-v2/expressions/contempt.webp'
-import focus from '@/assets/characters/chaerin-v2/expressions/focus.webp'
-import happy from '@/assets/characters/chaerin-v2/expressions/happy.webp'
-import laugh from '@/assets/characters/chaerin-v2/expressions/laugh.webp'
-import neutral from '@/assets/characters/chaerin-v2/expressions/neutral.webp'
-import shy from '@/assets/characters/chaerin-v2/expressions/shy.webp'
-import sulky from '@/assets/characters/chaerin-v2/expressions/sulky.webp'
-import yawn from '@/assets/characters/chaerin-v2/expressions/yawn.webp'
+import { toV2ExpressionName } from '@/features/mate-render/expression-map'
 
 /**
- * Face thumbnails of each expression, rendered from the real v2 model (see the README in the asset folder and
- * scripts/render-chaerin-expressions.mjs). Only 채린 has them for now; other mates show the label alone.
+ * Face thumbnails of each expression, rendered from each mate's real v2 model (192×192, the same face crop for every
+ * mate: scripts/render-chaerin-expressions.mjs for 채린, scripts/render-mate-stills.mjs for the others). Small files,
+ * bundled eagerly. A mate without thumbnails shows the label alone.
  */
-const CHAERIN: Readonly<Record<V2ExpressionName | 'neutral', string>> = {
-  angry,
-  contempt,
-  focus,
-  happy,
-  laugh,
-  neutral,
-  shy,
-  sulky,
-  yawn,
-}
+const FILES = import.meta.glob<string>('../../assets/characters/{chaerin-v2,seojin}/expressions/*.webp', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+})
+/** Mate id → its model bundle's asset folder. */
+const FOLDERS: Readonly<Record<string, string>> = { chaerin: 'chaerin-v2', dohyun: 'seojin' }
 
 /** Thumbnail for an expression reference (Cubism file, v2 name or Korean label), or undefined. */
 export function expressionThumbnail(mateId: string, expression: string | null): string | undefined {
-  if (mateId !== 'chaerin') return undefined
+  const folder = FOLDERS[mateId]
+  if (!folder) return undefined
   const name = toV2ExpressionName(expression)
   if (name === undefined) return undefined
-  return CHAERIN[name ?? 'neutral']
+  return FILES[`../../assets/characters/${folder}/expressions/${name ?? 'neutral'}.webp`]
 }

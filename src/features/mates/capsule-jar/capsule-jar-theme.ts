@@ -57,8 +57,8 @@ export const MATE_HUE_RANGE = { min: 225, max: 320 } as const
 /** Registered mate colours (catalog ids). Add a mate here when it launches. */
 const MATE_JAR_THEMES: Readonly<Record<string, CapsuleJarTheme>> = {
   chaerin: CHAERIN_JAR_THEME,
-  // 남학생 (추가 예정, MyMatesPage `upcoming-boy`): blue-violet. Move the entry to the real catalog id at launch.
-  'upcoming-boy': mateThemeFromHue(230),
+  // 서도현 (2026-11-25): the blue-violet kept for the 남학생 placeholder until he launched.
+  dohyun: mateThemeFromHue(230),
 }
 
 /** Hues for mates without a registered colour: inside the range and clear of 채린's violet. */

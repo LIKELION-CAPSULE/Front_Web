@@ -2,7 +2,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
-import { availableMates } from '@/features/mates/catalog'
+import { ageRatingLabel, availableMates } from '@/features/mates/catalog'
 import { ConnectMateButton } from '@/features/mates/components/ConnectMateButton'
 import { matePortrait } from '@/features/mates/artwork'
 import { HeaderAccount } from '@/app/components/HeaderAccount'
@@ -148,6 +148,7 @@ export default function MateDetailPage() {
             </h1>
             {introduction && <p className="mate-hero-tagline">{introduction}</p>}
             {intro && <p className="mate-hero-situation">{intro}</p>}
+            {mate.firstLine && <p className="mate-hero-description mate-hero-first-line">“{mate.firstLine}”</p>}
             {description && <p className="mate-hero-description">{description}</p>}
             {role && <p className="mate-hero-role">내 역할 · {role}</p>}
 
@@ -156,7 +157,7 @@ export default function MateDetailPage() {
                 <span className="mate-hero-tile-caption">연령 등급</span>
                 <div className="mate-hero-tile">
                   <Icon name="check" size={30} />
-                  <strong>전연령</strong>
+                  <strong>{ageRatingLabel(mate.ageRating)}</strong>
                 </div>
               </div>
               <div className="mate-hero-tile-group">

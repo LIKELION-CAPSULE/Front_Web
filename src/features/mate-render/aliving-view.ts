@@ -1,5 +1,7 @@
 /**
- * Shared Aliving2D view projection & bust camera framing math for chaerin-v2 (1280×1280 model canvas).
+ * Shared Aliving2D view projection & bust camera framing math for the v2 mates (1280×1280 model canvas). Written for
+ * chaerin-v2; 서도현 (`seojin` bundle) stands in the same place on the canvas (head top ≈ y 31, eyes ≈ 17 px higher),
+ * so his stills are rendered with the same views (`CHAERIN_V2_RENDERS`) and every framing below fits both.
  * Used by both AlivingRenderer (`setView`) and AssembleMateStage (9-layer overlay & camera rig)
  * so WebGL and DOM layers overlap pixel-for-pixel at every viewport size.
  */

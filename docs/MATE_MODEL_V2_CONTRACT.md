@@ -83,8 +83,27 @@
 
 정지 이미지: 채린은 `src/assets/characters/chaerin-v2/chaerin-v2-hero.webp`, 다른 메이트는 서버 이미지.
 
+## 서도현 (두 번째 메이트, 2026-11-25)
+
+모델 묶음 이름은 `seojin`, 화면 이름은 서도현, 프런트 카탈로그 id는 `dohyun`이에요. 서버 캐릭터 이름 「서도현」(또는 「도현」)으로 연결돼요(`catalog.ts`의 `sourceNames`).
+
+| 필드 | 값(서버가 보낼 것) |
+|---|---|
+| `format` | `aliving2d` |
+| `modelJsonUrl` | 서버 저장소의 `seojin/model/model.json`(같은 폴더에 `parts/*.png`) |
+| `engineUrl` / `playerUrl` | 채린 v2와 같은 `engine.js` / `player.js`(바이트 단위 동일. 같은 주소를 써도 돼요) |
+| `reactionsUrl` | `reactions.default.json`(채린 v2와 동일) |
+| 표정 | `expressions[].name` 8개가 채린 v2와 같아요: sulky, happy, contempt, yawn, angry, laugh, shy, focus. 한국어 라벨 대응도 같아요(`expression-map.ts`) |
+| 모션 | idle, talk |
+| 의상(`outfits`) | 없음. README에는 `setOutfit` 사용법이 있지만 이 모델의 model.json에는 `outfits`가 없어요 |
+| 연령 등급 | 15세 이용가(프런트 `ageRating: '15'`). 로그인 화면에는 전연령 메이트만 나와요 |
+
+- 해금 표정 4개(페르소나): 기본(무표정) → 기본 얼굴, 옅은 미소 → `laugh`(`happy`는 눈을 감고 크게 웃는 얼굴), 어이없음(장난) → `contempt`, 멋쩍음 → `shy`. 서버 해금 표에 이 매핑을 써 주세요.
+- 정지 이미지(카드·히어로·아바타·전신, 표정 썸네일·흉상)는 모델 렌더 임시본이에요(`src/assets/characters/seojin/`, 채린 v2와 같은 뷰). 정식 일러스트가 오면 교체해요. 서버 `profileImageUrl`도 같은 카드 구도(머리→가슴, 4:3)면 맞아요.
+- 시스템 프롬프트·세계관·키워드북은 서버 페르소나예요. 프런트에는 표시 문구(소개·역할·시작 상황·첫 대사)와 로컬 mock 대사만 있어요.
+
 ## 로컬 mock
 
-- 미리보기: `src/features/local-demo/ports.ts`가 `LOCAL_V2_*_URL`(`/__local-assets/chaerin-v2/...`)을 위 형태로 돌려줘요.
+- 미리보기: `src/features/local-demo/ports.ts`가 캐릭터 id에 맞는 `LOCAL_V2_MODELS`(`/__local-assets/chaerin-v2/...`, `/__local-assets/seojin/...`)를 위 형태로 돌려줘요.
 - 연결: `src/features/local-demo/transport.ts`가 세션 `character`에 같은 필드를 넣고, 이벤트·반응·대화 응답에 백엔드 시드와 같은 한국어 표정 이름(`집중`, `삐짐`, `웃음` …)과 짧은 대사를 넣어요.
 - dev 서버(`server/local-assets.ts`)에서만 제공되며 운영 번들에는 `__local-assets` 경로가 없어요(빌드 결과 검색으로 확인).

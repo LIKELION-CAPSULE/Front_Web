@@ -1,5 +1,7 @@
 /**
- * Single source of truth for Chaerin expression names across the two model formats.
+ * Single source of truth for v2 mate expression names across the two model formats. Every v2 mate model shares the
+ * same eight `expressions[].name` (채린 `chaerin-v2`, 서도현 `seojin`, checked 2026-11-25), so one table serves all.
+ * (History: the table started with 채린.)
  * Dependency-free so Node's `--experimental-strip-types` runner can test it directly.
  *
  * - Legacy Cubism model (`chaerin`, `model.model3.json`): expressions are files `files/004..011.exp3.json`

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
-import { chaerinArtwork, mateHeroPortrait } from '@/features/mates/artwork'
+import { mateCallBackground, mateHeroPortrait } from '@/features/mates/artwork'
 import { getDefaultLineForState, reactionBubbleDurationMs } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
+import { mateLineForState } from '../mate-lines'
 import { Button } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
 import { withParticle } from '@/shared/lib/korean'
@@ -17,7 +18,7 @@ export function MateWelcome({ mates, onExplore }: { mates: readonly AvailableMat
   const heroMate = last ?? mates[0] ?? null
 
   return <section className={`mate-welcome${heroMate ? '' : ' mate-welcome--empty'}`} aria-labelledby="mate-welcome-title">
-    <img src={chaerinArtwork.callBackground.landscape} alt="" className="mate-welcome-bg-img" draggable={false} />
+    <img src={mateCallBackground(heroMate?.id).landscape} alt="" className="mate-welcome-bg-img" draggable={false} />
     <div className="mate-welcome-body">
       <div className="mate-welcome-copy">
         <h1 id="mate-welcome-title">
@@ -28,22 +29,22 @@ export function MateWelcome({ mates, onExplore }: { mates: readonly AvailableMat
           {last ? <ConnectMateButton mate={last} label="다시 연결하기" /> : <Button onClick={onExplore}>메이트 둘러보기 <Icon name="arrow" size={18} className="rotate-90" /></Button>}
         </div>
       </div>
-      {heroMate && <HeroMateStage key={heroMate.id} image={mateHeroPortrait(heroMate.id, heroMate.image)} />}
+      {heroMate && <HeroMateStage key={heroMate.id} mateId={heroMate.id} image={mateHeroPortrait(heroMate.id, heroMate.image)} />}
     </div>
   </section>
 }
 
 /** Home deliberately uses a still image. The backend model remains exclusive to connection/preview screens. */
-function HeroMateStage({ image }: { image?: string }) {
+function HeroMateStage({ mateId, image }: { mateId: string; image?: string }) {
   const [speechBubble, setSpeechBubble] = useState<string | null>(null)
   const bubbleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const showLine = useCallback((state: 'greet' | 'idleLong') => {
-    const line = getDefaultLineForState(state)
+    const line = mateLineForState(mateId, state, getDefaultLineForState)
     if (!line) return
     clearTimeout(bubbleTimer.current)
     setSpeechBubble(line)
     bubbleTimer.current = setTimeout(() => setSpeechBubble(null), reactionBubbleDurationMs(line))
-  }, [])
+  }, [mateId])
   useEffect(() => {
     const greet = setTimeout(() => showLine('greet'), 650)
     let idle: ReturnType<typeof setTimeout>

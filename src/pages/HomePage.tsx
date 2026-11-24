@@ -97,17 +97,6 @@ export default function HomePage() {
       ) : (
         <div className="mate-grid">
           {mates.map(mate => <MateCard key={mate.id} mate={mate} />)}
-          {mates.length === 1 && (
-            <div className="mate-card mate-card--upcoming" aria-label="남학생 메이트 준비 중">
-              <div className="mate-card-image mate-card-image--upcoming">
-                <span className="mate-card-upcoming-pill">곧 만나요</span>
-              </div>
-              <div className="mate-card-copy">
-                <div className="mate-card-heading"><h3 className="type-card-title">남학생</h3><span className="mate-card-status-label">준비 중</span></div>
-                <span className="mate-age-badge">전연령</span>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </section>
