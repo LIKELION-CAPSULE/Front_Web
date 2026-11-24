@@ -1,0 +1,49 @@
+/* Development-only preview controls of the board (CapsuleBoardPreview). */
+.capsule-board-preview-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.capsule-board-preview-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.capsule-board-preview-controls select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--color-input-border, #ffffff22);
+  border-radius: 8px;
+  background: var(--color-panel);
+  color: var(--color-ink);
+}
+
+.capsule-board-preview-note {
+  margin-left: auto;
+  color: var(--color-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.capsule-board-block {
+  margin-top: 16px;
+}
+
+.capsule-board-mates {
+  padding-top: 0;
+}
+
+.capsule-board-mates .records-mate-chip {
+  height: 30px;
+  font-size: 13px;
+}
+
+.capsule-board-legend {
+  margin: 0;
+  color: var(--color-subtle);
+  font-size: 12px;
+}

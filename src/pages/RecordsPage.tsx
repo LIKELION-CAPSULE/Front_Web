@@ -1,5 +1,5 @@
 import { AppPanel } from '@/shared/ui/AppPanel'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
@@ -90,7 +90,32 @@ function barPercent(seconds: number, maxSeconds: number) {
   return seconds > 0 ? Math.max(3, Math.min(100, (seconds / maxSeconds) * 100)) : 0
 }
 
+/**
+ * Board preview (`/records?board=preview`): development and local mock mode only. In production builds
+ * `import.meta.env.DEV` is false, so the preview module and its chunk are left out entirely.
+ */
+const CapsuleBoardPreview = import.meta.env.DEV
+  ? lazy(() => import('@/features/records/capsule-board/CapsuleBoardPreview'))
+  : null
+
 export default function RecordsPage() {
+  const [searchParams] = useSearchParams()
+  const boardPreview =
+    CapsuleBoardPreview !== null &&
+    searchParams.get('board') === 'preview' &&
+    typeof document !== 'undefined' &&
+    document.body.dataset.localDemo === 'true'
+  if (boardPreview && CapsuleBoardPreview) {
+    return (
+      <Suspense fallback={null}>
+        <CapsuleBoardPreview />
+      </Suspense>
+    )
+  }
+  return <RecordsPageContent />
+}
+
+function RecordsPageContent() {
   const { state } = useDemo()
   const { home, status } = useBackend()
   const [searchParams, setSearchParams] = useSearchParams()
