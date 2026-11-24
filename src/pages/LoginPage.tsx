@@ -20,6 +20,10 @@ import { clearStoredReferralCode } from '@/features/auth/referral-code'
 import DesktopBrand from '@/features/auth/login-backgrounds/desktop/DesktopBrand'
 import { useDesktopShell } from '@/features/auth/login-backgrounds/desktop/desktop-shell-context'
 
+/** Text links in the login form: one neutral tone; only 회원가입 keeps the accent color. Focus uses the global ring. */
+const neutralLinkClass = 'inline-flex min-h-11 items-center text-muted underline underline-offset-4 transition-colors hover:text-ink'
+const signupLinkClass = 'inline-flex min-h-11 items-center text-text-accent underline underline-offset-4'
+
 function loginWindowTitle(
   view: 'welcome' | 'login' | 'signup' | 'forgot-password',
   verifying: boolean,
@@ -64,7 +68,7 @@ export default function LoginPage() {
     desktopShell?.triggerReaction('referralValid', { revertAfterMs: 4600 })
   }, [desktopShell])
 
-  // Sync window title, legal document, and error state to the persistent DesktopAuthLayout
+  // Sync window title, legal document, and error state to the login layout (LoginVariantLayout provides the shell)
   useEffect(() => {
     if (!desktopShell) return
     desktopShell.setWindowConfig({
@@ -253,16 +257,13 @@ export default function LoginPage() {
               aria-label="이메일 계정 메뉴"
               className="mt-5 flex items-center justify-center gap-4 text-body-compact"
             >
-              <Link to={authPath('login')} className="underline underline-offset-4">
+              <Link to={authPath('login')} className={neutralLinkClass}>
                 로그인
               </Link>
               <span aria-hidden="true" className="text-divider">
                 |
               </span>
-              <Link
-                to={authPath('signup')}
-                className="text-text-accent underline underline-offset-4"
-              >
+              <Link to={authPath('signup')} className={signupLinkClass}>
                 회원가입
               </Link>
             </nav>
@@ -271,7 +272,7 @@ export default function LoginPage() {
           <>
             <Link
               to={authPath(view === 'forgot-password' ? 'login' : undefined)}
-              className="flex min-h-11 w-fit items-center gap-2 text-body-compact text-muted hover:text-text-accent"
+              className="flex min-h-11 w-fit items-center gap-2 text-body-compact text-muted transition-colors hover:text-ink"
             >
               <Icon name="arrow" size={15} className="rotate-180" />
               {view === 'forgot-password' ? '로그인' : '처음으로'}
@@ -320,7 +321,7 @@ export default function LoginPage() {
                   >
                     <Link
                       to={authPath('forgot-password')}
-                      className="inline-flex min-h-11 items-center text-text-accent underline underline-offset-4"
+                      className={neutralLinkClass}
                     >
                       비밀번호 찾기
                     </Link>
@@ -329,7 +330,7 @@ export default function LoginPage() {
                     </span>
                     <Link
                       to={authPath('signup')}
-                      className="inline-flex min-h-11 items-center text-text-accent underline underline-offset-4"
+                      className={signupLinkClass}
                     >
                       회원가입
                     </Link>
@@ -337,10 +338,7 @@ export default function LoginPage() {
                 ) : (
                   <p className="mt-7 text-center text-body-compact text-muted">
                     이미 계정이 있나요?{' '}
-                    <Link
-                      to={authPath('login')}
-                      className="ml-1 text-text-accent underline underline-offset-4"
-                    >
+                    <Link to={authPath('login')} className={`ml-1 ${neutralLinkClass}`}>
                       로그인
                     </Link>
                   </p>

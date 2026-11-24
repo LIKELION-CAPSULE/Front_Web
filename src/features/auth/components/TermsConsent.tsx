@@ -47,7 +47,7 @@ export function TermsConsent({
                 type="button"
                 aria-label={`${legalDocuments[document].title} 보기`}
                 onClick={() => onOpenDocument(document)}
-                className="min-h-11 shrink-0 px-2 text-caption leading-5 text-subtle underline underline-offset-4 hover:text-text-accent"
+                className="min-h-11 shrink-0 px-2 text-caption leading-5 text-muted underline underline-offset-4 transition-colors hover:text-ink"
               >
                 보기
               </button>
