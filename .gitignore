@@ -167,21 +167,11 @@ Desktop.ini
 # Local image asset package for backend/Figma handoff
 /backend-asset-handoff-*/
 
-# Keep API documentation, reviews and OpenAPI snapshots local.
-# Only the shared non-API documents below are tracked.
-docs/*
-!docs/REFERENCE_COMMERCIAL_USE.md
-!docs/THIRD_PARTY_NOTICES.md
-!docs/DESIGN_CODE_AUDIT.md
-!docs/DESIGN_SYSTEM.md
-!docs/DESIGN_TOKENS.json
-!docs/REPORT_COMPLETION_REVIEW_2026-11-05.md
-!docs/README.md
-!docs/archive/
-docs/archive/*
-!docs/archive/DESIGN_SYSTEM_2026-10-26.md
-
 # Live2D runtime model for local dev only (licensed asset; not published in this public repo).
 # Get the files from the team drive and place them under local-assets/chaerin/.
 local-assets/*
 !local-assets/README.md
+
+# Local AI agent pointers to the Second Brain vault (personal; not shared)
+CLAUDE.md
+AGENTS.md

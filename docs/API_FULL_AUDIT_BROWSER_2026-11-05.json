@@ -1,0 +1,412 @@
+{
+  "session": {
+    "mode": "mock-api, browser StrictMode, virtual clock",
+    "rooms": 3,
+    "optionalMemoryFieldsValidated": true,
+    "resumeRequests": 1,
+    "messageRequests": 1,
+    "initial": [
+      {
+        "method": "POST",
+        "path": "/auth/refresh"
+      },
+      {
+        "method": "GET",
+        "path": "/terms"
+      },
+      {
+        "method": "POST",
+        "path": "/auth/email/login"
+      },
+      {
+        "method": "GET",
+        "path": "/me"
+      },
+      {
+        "method": "GET",
+        "path": "/home"
+      },
+      {
+        "method": "GET",
+        "path": "/me/memories"
+      },
+      {
+        "method": "GET",
+        "path": "/avatars"
+      },
+      {
+        "method": "GET",
+        "path": "/rooms/11"
+      },
+      {
+        "method": "GET",
+        "path": "/rooms/12"
+      },
+      {
+        "method": "GET",
+        "path": "/rooms/13"
+      }
+    ],
+    "immediateReturn": [],
+    "afterHomeExpiry": [
+      {
+        "method": "GET",
+        "path": "/home"
+      },
+      {
+        "method": "GET",
+        "path": "/me/memories"
+      }
+    ],
+    "afterRoomExpiry": [
+      {
+        "method": "GET",
+        "path": "/home"
+      },
+      {
+        "method": "GET",
+        "path": "/me/memories"
+      },
+      {
+        "method": "GET",
+        "path": "/rooms/11"
+      },
+      {
+        "method": "GET",
+        "path": "/rooms/12"
+      },
+      {
+        "method": "GET",
+        "path": "/rooms/13"
+      }
+    ],
+    "afterMemorySave": [
+      {
+        "method": "GET",
+        "path": "/me/memories"
+      }
+    ],
+    "heartbeats": [
+      {
+        "method": "POST",
+        "path": "/sessions/9001/heartbeat",
+        "body": {
+          "studySeconds": 65,
+          "presentSeconds": 65
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/sessions/9001/heartbeat",
+        "body": {
+          "studySeconds": 65,
+          "presentSeconds": 65
+        }
+      }
+    ],
+    "reportGets": 1,
+    "secondAccount": [
+      {
+        "method": "POST",
+        "path": "/auth/email/login"
+      },
+      {
+        "method": "GET",
+        "path": "/me"
+      },
+      {
+        "method": "GET",
+        "path": "/home"
+      },
+      {
+        "method": "GET",
+        "path": "/me/memories"
+      },
+      {
+        "method": "GET",
+        "path": "/avatars"
+      },
+      {
+        "method": "GET",
+        "path": "/rooms/11"
+      },
+      {
+        "method": "GET",
+        "path": "/rooms/12"
+      },
+      {
+        "method": "GET",
+        "path": "/rooms/13"
+      }
+    ],
+    "afterQuickSessionEnd": [
+      {
+        "method": "GET",
+        "path": "/home"
+      },
+      {
+        "method": "GET",
+        "path": "/rooms/11"
+      }
+    ],
+    "accountIsolation": true,
+    "mutationInvalidation": true
+  },
+  "auth": {
+    "mode": "mock APIs and OAuth provider only",
+    "signupAndResend": true,
+    "leadingZeroCode": true,
+    "currentTermVersionIds": true,
+    "onboardingAvatarAndNickname": true,
+    "resetRequest202": true,
+    "reset204": true,
+    "resetTokenRemovedFromUrl": true,
+    "kakaoAuthorizationCodeExchange": true,
+    "kakaoExchangeCount": 1,
+    "calls": [
+      {
+        "path": "/auth/refresh",
+        "method": "POST"
+      },
+      {
+        "path": "/terms",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/email/verification",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/email/verification",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/email/verification/confirm",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/email/signup",
+        "method": "POST"
+      },
+      {
+        "path": "/me",
+        "method": "GET"
+      },
+      {
+        "path": "/avatars",
+        "method": "GET"
+      },
+      {
+        "path": "/me",
+        "method": "PATCH"
+      },
+      {
+        "path": "/me",
+        "method": "GET"
+      },
+      {
+        "path": "/home",
+        "method": "GET"
+      },
+      {
+        "path": "/me/memories",
+        "method": "GET"
+      },
+      {
+        "path": "/rooms/11",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST"
+      },
+      {
+        "path": "/terms",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/refresh",
+        "method": "POST"
+      },
+      {
+        "path": "/terms",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/password/reset-request",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/refresh",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/password/reset",
+        "method": "POST"
+      },
+      {
+        "path": "/terms",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/refresh",
+        "method": "POST"
+      },
+      {
+        "path": "/terms",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/refresh",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/social/KAKAO",
+        "method": "POST"
+      },
+      {
+        "path": "/me",
+        "method": "GET"
+      },
+      {
+        "path": "/home",
+        "method": "GET"
+      },
+      {
+        "path": "/me/memories",
+        "method": "GET"
+      },
+      {
+        "path": "/avatars",
+        "method": "GET"
+      },
+      {
+        "path": "/rooms/11",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST"
+      }
+    ],
+    "javascriptErrors": []
+  },
+  "withdrawal": {
+    "mode": "mock APIs only",
+    "cancelRequests": 0,
+    "statuses": [
+      409,
+      500,
+      200
+    ],
+    "totalDeleteRequests": 3,
+    "bearerAndEmptyBody": true,
+    "pendingDismissalBlocked": true,
+    "successNotice": true,
+    "secondAccountHasNoOldMemories": true,
+    "viewportWidths": [
+      1280,
+      390
+    ],
+    "javascriptErrors": [],
+    "screenshots": [
+      "/tmp/capsule-withdrawal-menu-desktop.png",
+      "/tmp/capsule-withdrawal-dialog-mobile.png"
+    ]
+  },
+  "live": {
+    "mode": "live frontend and backend, login/read/logout only",
+    "calls": [
+      {
+        "path": "/auth/refresh",
+        "method": "POST",
+        "status": 401
+      },
+      {
+        "path": "/terms",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/auth/email/login",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/me",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/me/memories",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/home",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/rooms/1",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/avatars",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/auth/refresh",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/me",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/me/memories",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/avatars",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/home",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/rooms/1",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/sessions/7/report",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST",
+        "status": 204
+      }
+    ],
+    "rooms": 1,
+    "banner": {
+      "loaded": true,
+      "width": 2167,
+      "height": 726
+    },
+    "profileVisible": true,
+    "scheduleVisible": true,
+    "reportVisible": true,
+    "javascriptErrors": []
+  }
+}

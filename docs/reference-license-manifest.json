@@ -1,0 +1,11 @@
+{
+  "reviewedAt": "2026-10-28",
+  "references": [
+    {
+      "name": "uiBeats",
+      "source": "https://github.com/nikhils4/ui-beats/blob/main/LICENSE.md",
+      "licenseBlobSha": "a432d9f19af11c74f0f63dc81f91bd6fa60d9574",
+      "evidence": "docs/license-evidence/uiBeats-LICENSE.txt"
+    }
+  ]
+}

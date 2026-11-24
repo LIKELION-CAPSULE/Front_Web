@@ -1,0 +1,1084 @@
+{
+  "date": "2026-11-17",
+  "fileKey": "HpoEbOqfoDUwPq4zvYa6LL",
+  "pageId": "1053:172",
+  "sectionId": "2479:10678",
+  "sectionName": "WF J · Front_Web 최신 디자인 · MVP 이후 포함 · 2026.11.17",
+  "state": "incomplete_figma_connection_unavailable",
+  "summary": {
+    "total": 49,
+    "webCaptures": 49,
+    "validFigmaComparisons": 37,
+    "majorLayoutMatches": 10,
+    "differencesFound": 27,
+    "figmaRecapturesRequired": 3,
+    "figmaCapturesPending": 9
+  },
+  "method": "실제 Front_Web 페이지·컴포넌트를 __review 가상 데이터로 렌더링. 데스크톱 1440×1000, 모바일 390×844. fonts.ready 이후 reduced-motion으로 캡처. 긴 페이지는 전체 높이, 모달은 지정 뷰포트에서 비교.",
+  "limitations": [
+    "실제 계정/API/카메라/마이크/WebGL 모델의 동작 검증이 아님.",
+    "시간·날짜·타이머·타이핑·애니메이션 시점 차이는 정적 레이아웃 판정과 구분.",
+    "major_layout_matches는 주요 배치 대조 결과이며 픽셀 단위 동일 판정이 아님.",
+    "Figma 이미지 40개 중 로그인 3개는 1×1로 반환되어 유효 비교에서 제외.",
+    "회전·행 클리핑 수정 후 이미지는 Figma 연결 복구 뒤 재검증해야 함."
+  ],
+  "appliedBeforeDisconnection": [
+    {
+      "change": "화면 행 클리핑 해제 및 폭 고정",
+      "count": 15,
+      "reverified": false
+    },
+    {
+      "change": "로그인 계열 모자이크 그리드 -10도 회전 복원",
+      "count": 6,
+      "reverified": false
+    }
+  ],
+  "artifactRoot": "/tmp/capsule-figma-audit-20261117",
+  "screens": [
+    {
+      "id": "entry-1",
+      "title": "로그인 시작",
+      "group": "entry",
+      "path": "/login",
+      "scenario": "welcome",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2486:10913",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2486-10913",
+      "sourceUrl": "http://localhost:3000/login?__review=welcome",
+      "status": "differences_found",
+      "findings": [
+        "로그인 배경 모자이크 회전은 수정 적용됨. 수정 후 재캡처 필요.",
+        "폼 테두리가 실제 웹보다 밝게 표시되어 투명도 확인 필요."
+      ]
+    },
+    {
+      "id": "entry-2",
+      "title": "이메일 로그인",
+      "group": "entry",
+      "path": "/login?mode=login",
+      "scenario": "login",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2496:14194",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2496-14194",
+      "sourceUrl": "http://localhost:3000/login?mode=login&__review=login",
+      "status": "recapture_required",
+      "findings": [
+        "기존 Figma 캡처가 1×1로 반환됨. 상위 행 클리핑 수정 후 재캡처 필요."
+      ]
+    },
+    {
+      "id": "entry-3",
+      "title": "회원가입",
+      "group": "entry",
+      "path": "/login?mode=signup",
+      "scenario": "signup",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2496:14433",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2496-14433",
+      "sourceUrl": "http://localhost:3000/login?mode=signup&__review=signup",
+      "status": "recapture_required",
+      "findings": [
+        "기존 Figma 캡처가 1×1로 반환됨. 상위 행 클리핑 수정 후 재캡처 필요."
+      ]
+    },
+    {
+      "id": "entry-4",
+      "title": "이메일 인증",
+      "group": "entry",
+      "path": "/login?mode=signup",
+      "scenario": "verification",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2496:14705",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2496-14705",
+      "sourceUrl": "http://localhost:3000/login?mode=signup&__review=verification",
+      "status": "recapture_required",
+      "findings": [
+        "기존 Figma 캡처가 1×1로 반환됨. 상위 행 클리핑 수정 후 재캡처 필요."
+      ]
+    },
+    {
+      "id": "entry-5",
+      "title": "비밀번호 찾기",
+      "group": "entry",
+      "path": "/login?mode=forgot-password",
+      "scenario": "reset-request",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2505:10938",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2505-10938",
+      "sourceUrl": "http://localhost:3000/login?mode=forgot-password&__review=reset-request",
+      "status": "differences_found",
+      "findings": [
+        "로그인 배경 모자이크 회전은 수정 적용됨. 수정 후 재캡처 필요.",
+        "폼 테두리 투명도 확인 필요."
+      ]
+    },
+    {
+      "id": "entry-6",
+      "title": "새 비밀번호",
+      "group": "entry",
+      "path": "/password/reset?token=review-reset",
+      "scenario": "reset-form",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2505:11164",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2505-11164",
+      "sourceUrl": "http://localhost:3000/password/reset?token=review-reset&__review=reset-form",
+      "status": "major_layout_matches",
+      "findings": [
+        "주요 배치·문구·버튼·배경 일치."
+      ]
+    },
+    {
+      "id": "home-1",
+      "title": "아바타 선택",
+      "group": "home",
+      "path": "/onboarding",
+      "scenario": "onboarding",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2505:11190",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2505-11190",
+      "sourceUrl": "http://localhost:3000/onboarding?__review=onboarding",
+      "status": "differences_found",
+      "findings": [
+        "실제 웹에 보이지 않는 아바타 궤도 테두리가 Figma에 표시됨."
+      ]
+    },
+    {
+      "id": "home-2",
+      "title": "홈 · 첫 방문",
+      "group": "home",
+      "path": "/",
+      "scenario": "home-first",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2486:11166",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2486-11166",
+      "sourceUrl": "http://localhost:3000/?__review=home-first",
+      "status": "differences_found",
+      "findings": [
+        "룸 카드 북마크 배경의 색·투명도 차이."
+      ]
+    },
+    {
+      "id": "home-3",
+      "title": "홈 · 재방문",
+      "group": "home",
+      "path": "/",
+      "scenario": "home-return",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2505:11257",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2505-11257",
+      "sourceUrl": "http://localhost:3000/?__review=home-return",
+      "status": "differences_found",
+      "findings": [
+        "룸 카드 북마크 배경의 색·투명도 차이."
+      ]
+    },
+    {
+      "id": "home-4",
+      "title": "사용법 · 친구와 룸",
+      "group": "home",
+      "path": "/?tutorial=1",
+      "scenario": "tutorial",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2505:11834",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2505-11834",
+      "sourceUrl": "http://localhost:3000/?tutorial=1&__review=tutorial",
+      "status": "differences_found",
+      "findings": [
+        "모달 배경 어둡게 처리 및 8px 흐림 누락.",
+        "하단 룸 카드가 모달 앞에 그려지는 겹침 순서 오류."
+      ]
+    },
+    {
+      "id": "home-5",
+      "title": "사용법 · 공부하기",
+      "group": "home",
+      "path": "/?tutorial=1",
+      "scenario": "tutorial-study",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2505:13893",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2505-13893",
+      "sourceUrl": "http://localhost:3000/?tutorial=1&__review=tutorial-study",
+      "status": "differences_found",
+      "findings": [
+        "모달 배경 어둡게 처리 및 8px 흐림 누락.",
+        "하단 룸 카드와 모달의 겹침 순서 수정 필요."
+      ]
+    },
+    {
+      "id": "home-6",
+      "title": "사용법 · 기록과 카드",
+      "group": "home",
+      "path": "/?tutorial=1",
+      "scenario": "tutorial-record",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2505:14279",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2505-14279",
+      "sourceUrl": "http://localhost:3000/?tutorial=1&__review=tutorial-record",
+      "status": "differences_found",
+      "findings": [
+        "모달 배경 어둡게 처리 및 8px 흐림 누락.",
+        "하단 룸 카드와 모달의 겹침 순서 수정 필요."
+      ]
+    },
+    {
+      "id": "prepare-1",
+      "title": "스터디룸 상세",
+      "group": "prepare",
+      "path": "/rooms/101",
+      "scenario": "room",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2505:14667",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2505-14667",
+      "sourceUrl": "http://localhost:3000/rooms/101?__review=room",
+      "status": "differences_found",
+      "findings": [
+        "룸 제목의 줄바꿈이 실제 웹과 다름.",
+        "하단 장식 테이프의 회전 누락."
+      ]
+    },
+    {
+      "id": "prepare-2",
+      "title": "공부 준비 · 목표와 대화",
+      "group": "prepare",
+      "path": "/rooms/101/prepare",
+      "scenario": "prepare",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2505:15086",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2505-15086",
+      "sourceUrl": "http://localhost:3000/rooms/101/prepare?__review=prepare",
+      "status": "differences_found",
+      "findings": [
+        "준비 모달 배경 어둡게 처리 및 12px 흐림 누락."
+      ]
+    },
+    {
+      "id": "prepare-3",
+      "title": "공부 준비 · 일정 추가",
+      "group": "prepare",
+      "path": "/rooms/101/prepare",
+      "scenario": "prepare-memory",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2505:15656",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2505-15656",
+      "sourceUrl": "http://localhost:3000/rooms/101/prepare?__review=prepare-memory",
+      "status": "differences_found",
+      "findings": [
+        "일정 추가 창이 준비 화면에 가려지고 위치가 다름.",
+        "준비 모달 → 배경 처리 → 계정 모달 순서로 복원 필요."
+      ]
+    },
+    {
+      "id": "study-1",
+      "title": "공부 중 · 친구 확대",
+      "group": "study",
+      "path": "/study/9001",
+      "scenario": "study",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2505:16456",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2505-16456",
+      "sourceUrl": "http://localhost:3000/study/9001?__review=study",
+      "status": "major_layout_matches",
+      "findings": [
+        "주요 배치·이미지·컨트롤 일치. 타이머는 캡처 시점에 따라 다름."
+      ]
+    },
+    {
+      "id": "study-2",
+      "title": "공부 중 · 호그와트 책상",
+      "group": "study",
+      "path": "/study/9001",
+      "scenario": "study-malfoy-desk",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2509:12126",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2509-12126",
+      "sourceUrl": "http://localhost:3000/study/9001?__review=study-malfoy-desk",
+      "status": "major_layout_matches",
+      "findings": [
+        "주요 배치·이미지·컨트롤 일치. 타이머는 캡처 시점에 따라 다름."
+      ]
+    },
+    {
+      "id": "study-3",
+      "title": "공부 중 · 분할 보기",
+      "group": "study",
+      "path": "/study/9001?focus=grid",
+      "scenario": "study-grid",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2509:12266",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2509-12266",
+      "sourceUrl": "http://localhost:3000/study/9001?focus=grid&__review=study-grid",
+      "status": "major_layout_matches",
+      "findings": [
+        "분할 배치·이미지·컨트롤 일치. 타이머는 캡처 시점에 따라 다름."
+      ]
+    },
+    {
+      "id": "study-4",
+      "title": "공부 중 · 내 화면 확대",
+      "group": "study",
+      "path": "/study/9001?focus=self",
+      "scenario": "study-self-focus",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2509:12404",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2509-12404",
+      "sourceUrl": "http://localhost:3000/study/9001?focus=self&__review=study-self-focus",
+      "status": "major_layout_matches",
+      "findings": [
+        "내 화면·작은 친구 화면·컨트롤 배치 일치. 타이머는 캡처 시점에 따라 다름."
+      ]
+    },
+    {
+      "id": "study-5",
+      "title": "공부 중 · 대화창",
+      "group": "study",
+      "path": "/study/9001?chat=1",
+      "scenario": "study-chat",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2509:12543",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2509-12543",
+      "sourceUrl": "http://localhost:3000/study/9001?chat=1&__review=study-chat",
+      "status": "major_layout_matches",
+      "findings": [
+        "대화창·공부 화면·컨트롤 배치 일치. 타이머는 캡처 시점에 따라 다름."
+      ]
+    },
+    {
+      "id": "study-6",
+      "title": "쉬는 시간",
+      "group": "study",
+      "path": "/study/9001",
+      "scenario": "study-break",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2509:12751",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2509-12751",
+      "sourceUrl": "http://localhost:3000/study/9001?__review=study-break",
+      "status": "major_layout_matches",
+      "findings": [
+        "휴식 화면·대화창·컨트롤 배치 일치. 타이머는 캡처 시점에 따라 다름."
+      ]
+    },
+    {
+      "id": "study-7",
+      "title": "공부 이어하기",
+      "group": "study",
+      "path": "/study/9001",
+      "scenario": "study-recover",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2509:12905",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2509-12905",
+      "sourceUrl": "http://localhost:3000/study/9001?__review=study-recover",
+      "status": "major_layout_matches",
+      "findings": [
+        "주요 배치·문구·버튼·배경 일치."
+      ]
+    },
+    {
+      "id": "study-8",
+      "title": "공부 종료 확인",
+      "group": "study",
+      "path": "/study/9001",
+      "scenario": "study-finish",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2509:12921",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2509-12921",
+      "sourceUrl": "http://localhost:3000/study/9001?__review=study-finish",
+      "status": "differences_found",
+      "findings": [
+        "종료 확인 모달 배경 어둡게 처리 및 8px 흐림 누락."
+      ]
+    },
+    {
+      "id": "report-1",
+      "title": "공부 완료 리포트",
+      "group": "report",
+      "path": "/reports/9001",
+      "scenario": "report",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2509:13079",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2509-13079",
+      "sourceUrl": "http://localhost:3000/reports/9001?__review=report",
+      "status": "differences_found",
+      "findings": [
+        "자리 지킴률 원형 지표의 위치·진행량 표시 오류.",
+        "유리 패널 테두리가 실제 웹보다 밝음.",
+        "친구 대사의 줄바꿈 차이."
+      ]
+    },
+    {
+      "id": "report-2",
+      "title": "호그와트 완료 리포트",
+      "group": "report",
+      "path": "/reports/9001",
+      "scenario": "report-malfoy",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2525:12173",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2525-12173",
+      "sourceUrl": "http://localhost:3000/reports/9001?__review=report-malfoy",
+      "status": "differences_found",
+      "findings": [
+        "자리 지킴률 원형 지표의 위치·진행량 표시 오류.",
+        "유리 패널 테두리 투명도 및 대사 줄바꿈 차이."
+      ]
+    },
+    {
+      "id": "report-3",
+      "title": "레벨 상승 리포트",
+      "group": "report",
+      "path": "/reports/9001",
+      "scenario": "report-levelup",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2525:12328",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2525-12328",
+      "sourceUrl": "http://localhost:3000/reports/9001?__review=report-levelup",
+      "status": "differences_found",
+      "findings": [
+        "자리 지킴률 원형 지표의 위치·진행량 표시 오류.",
+        "유리 패널 테두리 투명도 및 대사 줄바꿈 차이."
+      ]
+    },
+    {
+      "id": "report-4",
+      "title": "캡슐 카드 · 보라",
+      "group": "report",
+      "path": "/capsules/9001",
+      "scenario": "card",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2525:12483",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2525-12483",
+      "sourceUrl": "http://localhost:3000/capsules/9001?__review=card",
+      "status": "differences_found",
+      "findings": [
+        "CSS 마스크 로고가 흰 사각형으로 표시됨.",
+        "완료 이미지의 object-position(50% 10%)이 보존되지 않아 크롭이 다름.",
+        "날짜·시간 입력의 표시 값과 아이콘 누락."
+      ]
+    },
+    {
+      "id": "report-5",
+      "title": "캡슐 카드 · 검정",
+      "group": "report",
+      "path": "/capsules/9001",
+      "scenario": "card",
+      "actions": [
+        {
+          "role": "button",
+          "name": "검정 카드"
+        }
+      ],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2525:12560",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2525-12560",
+      "sourceUrl": "http://localhost:3000/capsules/9001?__review=card",
+      "status": "differences_found",
+      "findings": [
+        "CSS 마스크 로고가 흰 사각형으로 표시됨.",
+        "완료 이미지 크롭 차이.",
+        "날짜·시간 입력의 표시 값과 아이콘 누락."
+      ]
+    },
+    {
+      "id": "account-1",
+      "title": "계정 설정 · 프로필",
+      "group": "account",
+      "path": "/",
+      "scenario": "account-profile",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2525:12627",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2525-12627",
+      "sourceUrl": "http://localhost:3000/?__review=account-profile",
+      "status": "differences_found",
+      "findings": [
+        "계정 모달이 홈 화면 뒤에 가려지는 겹침 순서 오류.",
+        "모달을 최상단으로 옮기고 배경 어둡게 처리 및 8px 흐림 복원 필요."
+      ]
+    },
+    {
+      "id": "account-2",
+      "title": "계정 설정 · 일정",
+      "group": "account",
+      "path": "/",
+      "scenario": "account-schedule",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2525:13410",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2525-13410",
+      "sourceUrl": "http://localhost:3000/?__review=account-schedule",
+      "status": "differences_found",
+      "findings": [
+        "계정 모달이 홈 화면 뒤에 가려지는 겹침 순서 오류.",
+        "배경 어둡게 처리·흐림 및 일정 폼 재확인 필요."
+      ]
+    },
+    {
+      "id": "account-3",
+      "title": "계정 설정 · 일정 추가",
+      "group": "account",
+      "path": "/",
+      "scenario": "account-schedule-add",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2525:14249",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2525-14249",
+      "sourceUrl": "http://localhost:3000/?__review=account-schedule-add",
+      "status": "differences_found",
+      "findings": [
+        "계정 모달이 홈 화면 뒤에 가려지는 겹침 순서 오류.",
+        "배경 어둡게 처리·흐림 및 날짜·시간 입력 표시 재확인 필요."
+      ]
+    },
+    {
+      "id": "account-4",
+      "title": "계정 설정 · 보안",
+      "group": "account",
+      "path": "/",
+      "scenario": "account-security",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2531:13642",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2531-13642",
+      "sourceUrl": "http://localhost:3000/?__review=account-security",
+      "status": "differences_found",
+      "findings": [
+        "계정 모달이 홈 화면 뒤에 가려지는 겹침 순서 오류.",
+        "배경 어둡게 처리 및 8px 흐림 복원 필요."
+      ]
+    },
+    {
+      "id": "post-1",
+      "title": "내 기록 · 주간",
+      "group": "post",
+      "path": "/records",
+      "scenario": "draft-records",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2531:14180",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2531-14180",
+      "sourceUrl": "http://localhost:3000/records?__review=draft-records",
+      "status": "differences_found",
+      "findings": [
+        "자리 지킴률 SVG 원이 숫자보다 아래로 내려가고 부분 진행량이 전체 원으로 표시됨."
+      ]
+    },
+    {
+      "id": "post-2",
+      "title": "내 기록 · 월간",
+      "group": "post",
+      "path": "/records",
+      "scenario": "draft-records",
+      "actions": [
+        {
+          "role": "button",
+          "name": "월"
+        }
+      ],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2531:14920",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2531-14920",
+      "sourceUrl": "http://localhost:3000/records?__review=draft-records",
+      "status": "differences_found",
+      "findings": [
+        "자리 지킴률 SVG 원의 위치·부분 진행량 표시 오류."
+      ]
+    },
+    {
+      "id": "post-3",
+      "title": "내 기록 · 스터디룸별",
+      "group": "post",
+      "path": "/records",
+      "scenario": "draft-records",
+      "actions": [
+        {
+          "role": "button",
+          "name": "스터디룸별"
+        }
+      ],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2531:15730",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2531-15730",
+      "sourceUrl": "http://localhost:3000/records?__review=draft-records",
+      "status": "differences_found",
+      "findings": [
+        "자리 지킴률 SVG 원의 위치·부분 진행량 표시 오류."
+      ]
+    },
+    {
+      "id": "post-4",
+      "title": "친구 · 관계와 해금 콘텐츠",
+      "group": "post",
+      "path": "/characters/chaerin",
+      "scenario": "draft-characters",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2531:16413",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2531-16413",
+      "sourceUrl": "http://localhost:3000/characters/chaerin?__review=draft-characters",
+      "status": "differences_found",
+      "findings": [
+        "친구 소개 문장의 말줄임이 풀려 두 줄로 표시됨.",
+        "소개 문장 아래 카드 높이·버튼 세로 위치 차이."
+      ]
+    },
+    {
+      "id": "post-5",
+      "title": "선물 · 보이스 · 보관함",
+      "group": "post",
+      "path": "/characters/chaerin/shop",
+      "scenario": "draft-gift",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2533:15409",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2533-15409",
+      "sourceUrl": "http://localhost:3000/characters/chaerin/shop?__review=draft-gift",
+      "status": "major_layout_matches",
+      "findings": [
+        "주요 배치·문구·이미지·버튼 일치."
+      ]
+    },
+    {
+      "id": "post-6",
+      "title": "보이스 글 미리보기",
+      "group": "post",
+      "path": "/characters/chaerin/shop",
+      "scenario": "draft-gift",
+      "actions": [
+        {
+          "role": "button",
+          "name": "보이스 글 보기",
+          "first": true
+        }
+      ],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2533:15784",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2533-15784",
+      "sourceUrl": "http://localhost:3000/characters/chaerin/shop?__review=draft-gift",
+      "status": "differences_found",
+      "findings": [
+        "보이스 미리보기 모달 배경 어둡게 처리 및 8px 흐림 누락."
+      ]
+    },
+    {
+      "id": "pay-1",
+      "title": "내 크레딧 · 이용 내역",
+      "group": "pay",
+      "path": "/credits",
+      "scenario": "draft-credits",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2533:16119",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2533-16119",
+      "sourceUrl": "http://localhost:3000/credits?__review=draft-credits",
+      "status": "major_layout_matches",
+      "findings": [
+        "주요 배치·문구·이용 내역 표·버튼 일치."
+      ]
+    },
+    {
+      "id": "pay-2",
+      "title": "패스 상품",
+      "group": "pay",
+      "path": "/credits/charge",
+      "scenario": "draft-charge",
+      "actions": [],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2533:16443",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2533-16443",
+      "sourceUrl": "http://localhost:3000/credits/charge?__review=draft-charge",
+      "status": "differences_found",
+      "findings": [
+        "친구 패스 카드의 대각선 홀로그램 빛 표현이 실제 웹과 다름."
+      ]
+    },
+    {
+      "id": "pay-3",
+      "title": "크레딧 상품",
+      "group": "pay",
+      "path": "/credits/charge",
+      "scenario": "draft-charge",
+      "actions": [
+        {
+          "role": "button",
+          "name": "크레딧",
+          "exact": true
+        }
+      ],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": true,
+      "figmaNodeId": "2533:16637",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2533-16637",
+      "sourceUrl": "http://localhost:3000/credits/charge?__review=draft-charge",
+      "status": "pending_figma_capture",
+      "findings": [
+        "웹 기준 이미지 확보. Figma 비교 이미지 미수집."
+      ]
+    },
+    {
+      "id": "pay-4",
+      "title": "체험 결제 정보",
+      "group": "pay",
+      "path": "/credits/charge",
+      "scenario": "draft-charge",
+      "actions": [
+        {
+          "role": "button",
+          "name": "친구 패스 결제하기"
+        }
+      ],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2533:16796",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2533-16796",
+      "sourceUrl": "http://localhost:3000/credits/charge?__review=draft-charge",
+      "status": "pending_figma_capture",
+      "findings": [
+        "웹 기준 이미지·모달 치수·배경 처리 값 확보. Figma 비교 이미지 미수집."
+      ]
+    },
+    {
+      "id": "pay-5",
+      "title": "체험 충전 완료 · 영수증",
+      "group": "pay",
+      "path": "/credits/charge",
+      "scenario": "draft-charge",
+      "actions": [
+        {
+          "role": "button",
+          "name": "친구 패스 결제하기"
+        },
+        {
+          "check": "dialog input[type=checkbox]"
+        },
+        {
+          "role": "button",
+          "name": "9,900원 체험 결제하기"
+        }
+      ],
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "fullPage": false,
+      "figmaNodeId": "2536:16064",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2536-16064",
+      "sourceUrl": "http://localhost:3000/credits/charge?__review=draft-charge",
+      "status": "pending_figma_capture",
+      "findings": [
+        "웹 기준 이미지·모달 치수·배경 처리 값 확보. Figma 비교 이미지 미수집."
+      ]
+    },
+    {
+      "id": "mobile-1",
+      "title": "모바일 · 로그인",
+      "group": "mobile",
+      "path": "/login",
+      "scenario": "welcome",
+      "actions": [],
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "fullPage": true,
+      "figmaNodeId": "2536:16316",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2536-16316",
+      "sourceUrl": "http://localhost:3000/login?__review=welcome",
+      "status": "pending_figma_capture",
+      "findings": [
+        "웹 기준 이미지 확보. 배경 회전 수정 후 Figma 재검증 필요."
+      ]
+    },
+    {
+      "id": "mobile-2",
+      "title": "모바일 · 홈",
+      "group": "mobile",
+      "path": "/",
+      "scenario": "home-first",
+      "actions": [],
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "fullPage": true,
+      "figmaNodeId": "2536:16567",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2536-16567",
+      "sourceUrl": "http://localhost:3000/?__review=home-first",
+      "status": "pending_figma_capture",
+      "findings": [
+        "웹 기준 이미지 확보. Figma 비교 이미지 미수집."
+      ]
+    },
+    {
+      "id": "mobile-3",
+      "title": "모바일 · 공부 준비",
+      "group": "mobile",
+      "path": "/rooms/101/prepare",
+      "scenario": "prepare",
+      "actions": [],
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "fullPage": false,
+      "figmaNodeId": "2536:17149",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2536-17149",
+      "sourceUrl": "http://localhost:3000/rooms/101/prepare?__review=prepare",
+      "status": "pending_figma_capture",
+      "findings": [
+        "웹 기준 이미지·모달 치수·배경 처리 값 확보. Figma 비교 이미지 미수집."
+      ]
+    },
+    {
+      "id": "mobile-4",
+      "title": "모바일 · 공부와 대화",
+      "group": "mobile",
+      "path": "/study/9001?chat=1",
+      "scenario": "study-chat",
+      "actions": [],
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "fullPage": true,
+      "figmaNodeId": "2536:17735",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2536-17735",
+      "sourceUrl": "http://localhost:3000/study/9001?chat=1&__review=study-chat",
+      "status": "pending_figma_capture",
+      "findings": [
+        "이전 작업에서 모달 위치·배경 처리 수정됨. 이번 전체 대조의 최종 이미지 재검증 필요."
+      ]
+    },
+    {
+      "id": "mobile-5",
+      "title": "모바일 · 완료 리포트",
+      "group": "mobile",
+      "path": "/reports/9001",
+      "scenario": "report",
+      "actions": [],
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "fullPage": true,
+      "figmaNodeId": "2536:17942",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2536-17942",
+      "sourceUrl": "http://localhost:3000/reports/9001?__review=report",
+      "status": "pending_figma_capture",
+      "findings": [
+        "웹 기준 이미지 확보. Figma 비교 이미지 미수집."
+      ]
+    },
+    {
+      "id": "mobile-6",
+      "title": "모바일 · 충전",
+      "group": "mobile",
+      "path": "/credits/charge",
+      "scenario": "draft-charge",
+      "actions": [],
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "fullPage": true,
+      "figmaNodeId": "2536:18095",
+      "figmaUrl": "https://www.figma.com/design/HpoEbOqfoDUwPq4zvYa6LL/?node-id=2536-18095",
+      "sourceUrl": "http://localhost:3000/credits/charge?__review=draft-charge",
+      "status": "pending_figma_capture",
+      "findings": [
+        "웹 기준 이미지 확보. Figma 비교 이미지 미수집."
+      ]
+    }
+  ]
+}

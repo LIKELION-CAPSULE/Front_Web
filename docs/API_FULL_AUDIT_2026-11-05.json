@@ -1,0 +1,1471 @@
+{
+  "operations": [
+    {
+      "number": 1,
+      "method": "GET",
+      "path": "/api/terms",
+      "summary": "1. 약관 조회",
+      "calls": [
+        {
+          "method": "GET",
+          "path": "/api/terms",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 159
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 1,
+          "label": "terms",
+          "status": 200,
+          "responseKeys": [
+            "terms"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 2,
+      "method": "POST",
+      "path": "/api/auth/email/verification",
+      "summary": "2. 이메일 인증번호 요청",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/auth/email/verification",
+          "file": "src/features/auth/components/EmailVerificationForm.tsx",
+          "line": 38
+        },
+        {
+          "method": "POST",
+          "path": "/api/auth/email/verification",
+          "file": "src/pages/LoginPage.tsx",
+          "line": 166
+        }
+      ],
+      "currentLiveSuccess": false,
+      "liveChecks": [
+        {
+          "number": 2,
+          "label": "anonymous-invalid-or-guard",
+          "status": 400,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "INVALID_EMAIL",
+          "result": "expected-rejection",
+          "error": "INVALID_EMAIL"
+        }
+      ],
+      "mockEvidence": "auth"
+    },
+    {
+      "number": 3,
+      "method": "POST",
+      "path": "/api/auth/email/verification/confirm",
+      "summary": "3. 이메일 인증 확인",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/auth/email/verification/confirm",
+          "file": "src/features/auth/components/EmailVerificationForm.tsx",
+          "line": 28
+        }
+      ],
+      "currentLiveSuccess": false,
+      "liveChecks": [
+        {
+          "number": 3,
+          "label": "anonymous-invalid-or-guard",
+          "status": 400,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "CODE_EXPIRED",
+          "result": "expected-rejection",
+          "error": "CODE_EXPIRED"
+        }
+      ],
+      "mockEvidence": "auth"
+    },
+    {
+      "number": 4,
+      "method": "POST",
+      "path": "/api/auth/email/signup",
+      "summary": "4. 회원가입",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/auth/email/signup",
+          "file": "src/pages/LoginPage.tsx",
+          "line": 95
+        }
+      ],
+      "currentLiveSuccess": false,
+      "liveChecks": [
+        {
+          "number": 4,
+          "label": "anonymous-invalid-or-guard",
+          "status": 400,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "VERIFICATION_EXPIRED",
+          "result": "expected-rejection",
+          "error": "VERIFICATION_EXPIRED"
+        }
+      ],
+      "mockEvidence": "auth"
+    },
+    {
+      "number": 5,
+      "method": "POST",
+      "path": "/api/auth/email/login",
+      "summary": "5. 이메일 로그인",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/auth/email/login",
+          "file": "src/pages/LoginPage.tsx",
+          "line": 170
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 5,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "INVALID_CREDENTIALS",
+          "result": "expected-rejection",
+          "error": "INVALID_CREDENTIALS"
+        },
+        {
+          "number": 5,
+          "label": "account-login",
+          "status": 200,
+          "responseKeys": [
+            "accessToken",
+            "userId",
+            "onboardingRequired"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 6,
+      "method": "POST",
+      "path": "/api/auth/social/KAKAO",
+      "summary": "6. 카카오 로그인 · 가입",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/auth/social/KAKAO",
+          "file": "src/pages/KakaoCallbackPage.tsx",
+          "line": 22
+        }
+      ],
+      "currentLiveSuccess": false,
+      "liveChecks": [
+        {
+          "number": 6,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "SOCIAL_AUTH_FAILED",
+          "result": "expected-rejection",
+          "error": "SOCIAL_AUTH_FAILED"
+        }
+      ],
+      "mockEvidence": "auth"
+    },
+    {
+      "number": 7,
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "summary": "7. 토큰 갱신",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/auth/refresh",
+          "file": "src/shared/api/client.ts",
+          "line": 39
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 7,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "REFRESH_TOKEN_INVALID",
+          "result": "expected-rejection",
+          "error": "REFRESH_TOKEN_INVALID"
+        },
+        {
+          "number": 7,
+          "label": "account-refresh",
+          "status": 200,
+          "responseKeys": [
+            "accessToken"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 7,
+          "label": "refresh-after-logout",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "REFRESH_TOKEN_INVALID",
+          "result": "expected-rejection",
+          "error": "REFRESH_TOKEN_INVALID"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 8,
+      "method": "GET",
+      "path": "/api/me",
+      "summary": "8. 내 정보 조회",
+      "calls": [
+        {
+          "method": "GET",
+          "path": "/api/me",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 103
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 8,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 8,
+          "label": "account-me",
+          "status": 200,
+          "responseKeys": [
+            "userId",
+            "nickname",
+            "email",
+            "onboardingRequired",
+            "activeSession",
+            "profileImage"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 8,
+          "label": "after-refresh-me",
+          "status": 200,
+          "responseKeys": [
+            "userId",
+            "nickname",
+            "email",
+            "onboardingRequired",
+            "activeSession",
+            "profileImage"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 9,
+      "method": "GET",
+      "path": "/api/avatars",
+      "summary": "9. 아바타 목록 조회",
+      "calls": [
+        {
+          "method": "GET",
+          "path": "/api/avatars",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 71
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 9,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 9,
+          "label": "account-avatars",
+          "status": 200,
+          "responseKeys": [
+            "avatars"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 10,
+      "method": "PATCH",
+      "path": "/api/me",
+      "summary": "10. 프로필 설정",
+      "calls": [
+        {
+          "method": "PATCH",
+          "path": "/api/me",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 232
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 10,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 10,
+          "label": "save-unchanged-profile",
+          "status": 200,
+          "responseKeys": [
+            "userId",
+            "nickname",
+            "email",
+            "onboardingRequired",
+            "activeSession",
+            "profileImage"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "auth"
+    },
+    {
+      "number": 11,
+      "method": "GET",
+      "path": "/api/home",
+      "summary": "11. 홈 조회",
+      "calls": [
+        {
+          "method": "GET",
+          "path": "/api/home",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 85
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 11,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 11,
+          "label": "account-home",
+          "status": 200,
+          "responseKeys": [
+            "todayStudySeconds",
+            "activeSession",
+            "rooms"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 12,
+      "method": "GET",
+      "path": "/api/rooms/{roomId}",
+      "summary": "12. 스터디룸 상세 조회",
+      "calls": [
+        {
+          "method": "GET",
+          "path": "/api/rooms/{}",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 93
+        },
+        {
+          "method": "GET",
+          "path": "/api/rooms/{}",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 273
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 12,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 12,
+          "label": "account-room",
+          "status": 200,
+          "responseKeys": [
+            "id",
+            "name",
+            "description",
+            "thumbnailUrl",
+            "bannerUrl",
+            "characters",
+            "activeSessionId"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 13,
+      "method": "POST",
+      "path": "/api/me/memories",
+      "summary": "13. 일정 저장",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/me/memories",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 239
+        }
+      ],
+      "currentLiveSuccess": false,
+      "liveChecks": [
+        {
+          "number": 13,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 14,
+      "method": "GET",
+      "path": "/api/me/memories",
+      "summary": "14. 내 일정 조회",
+      "calls": [
+        {
+          "method": "GET",
+          "path": "/api/me/memories",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 76
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 14,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 14,
+          "label": "account-memories",
+          "status": 200,
+          "responseKeys": [
+            "memories",
+            "datesWithMemories"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 16,
+      "method": "POST",
+      "path": "/api/sessions",
+      "summary": "16. 공부 시작",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/sessions",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 289
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 16,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 16,
+          "label": "start-test-session",
+          "status": 201,
+          "responseKeys": [
+            "sessionId",
+            "startedAt",
+            "targetMinutes",
+            "room",
+            "character",
+            "avatar",
+            "me",
+            "serverTime"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 17,
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/resume",
+      "summary": "17. 세션 이어하기",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/sessions/{}/resume",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 297
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 17,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 17,
+          "label": "resume-test-session",
+          "status": 200,
+          "responseKeys": [
+            "sessionId",
+            "targetMinutes",
+            "room",
+            "character",
+            "avatar",
+            "me",
+            "studySeconds",
+            "breakSeconds",
+            "serverTime"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 18,
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/events",
+      "summary": "18. 공부 상태 기록",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/sessions/{}/events",
+          "file": "src/features/backend/use-session-sync.ts",
+          "line": 86
+        },
+        {
+          "method": "POST",
+          "path": "/api/sessions/{}/events",
+          "file": "src/features/backend/use-session-sync.ts",
+          "line": 115
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 18,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 18,
+          "label": "event-FOCUS",
+          "status": 201,
+          "responseKeys": [
+            "eventId",
+            "characters"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 18,
+          "label": "event-DROWSY",
+          "status": 201,
+          "responseKeys": [
+            "eventId",
+            "characters"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 18,
+          "label": "event-YAWN",
+          "status": 201,
+          "responseKeys": [
+            "eventId",
+            "characters"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 18,
+          "label": "event-WAVE",
+          "status": 201,
+          "responseKeys": [
+            "eventId",
+            "characters"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 18,
+          "label": "event-HEAD_TURN",
+          "status": 201,
+          "responseKeys": [
+            "eventId",
+            "characters"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 18,
+          "label": "event-AWAY",
+          "status": 201,
+          "responseKeys": [
+            "eventId",
+            "characters"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 18,
+          "label": "event-RETURN",
+          "status": 201,
+          "responseKeys": [
+            "eventId",
+            "characters"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 18,
+          "label": "event-BREAK",
+          "status": 201,
+          "responseKeys": [
+            "eventId",
+            "characters"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 18,
+          "label": "event-FOCUS",
+          "status": 201,
+          "responseKeys": [
+            "eventId",
+            "characters"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 19,
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/events/{eventId}/reaction",
+      "summary": "19. 상태 반응 받기",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/sessions/{}/events/{}/reaction",
+          "file": "src/features/backend/use-session-sync.ts",
+          "line": 68
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 19,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 19,
+          "label": "reaction-FOCUS",
+          "status": 200,
+          "responseKeys": [
+            "requestId",
+            "characters"
+          ],
+          "result": "success",
+          "eventCharacterResponseFields": [
+            [
+              "characterId",
+              "motion",
+              "expression",
+              "affinity"
+            ]
+          ],
+          "reactionCharacterResponseFields": [
+            [
+              "characterId",
+              "content",
+              "emotion",
+              "motion",
+              "expression",
+              "fallback",
+              "audioBase64"
+            ]
+          ]
+        },
+        {
+          "number": 19,
+          "label": "reaction-DROWSY",
+          "status": 200,
+          "responseKeys": [
+            "requestId",
+            "characters"
+          ],
+          "result": "success",
+          "eventCharacterResponseFields": [
+            [
+              "characterId",
+              "motion",
+              "expression",
+              "affinity"
+            ]
+          ],
+          "reactionCharacterResponseFields": [
+            [
+              "characterId",
+              "content",
+              "emotion",
+              "motion",
+              "expression",
+              "fallback",
+              "audioBase64"
+            ]
+          ]
+        },
+        {
+          "number": 19,
+          "label": "reaction-YAWN",
+          "status": 200,
+          "responseKeys": [
+            "requestId",
+            "characters"
+          ],
+          "result": "success",
+          "eventCharacterResponseFields": [
+            [
+              "characterId",
+              "motion",
+              "expression",
+              "affinity"
+            ]
+          ],
+          "reactionCharacterResponseFields": [
+            [
+              "characterId",
+              "content",
+              "emotion",
+              "motion",
+              "expression",
+              "fallback",
+              "audioBase64"
+            ]
+          ]
+        },
+        {
+          "number": 19,
+          "label": "reaction-WAVE",
+          "status": 200,
+          "responseKeys": [
+            "requestId",
+            "characters"
+          ],
+          "result": "success",
+          "eventCharacterResponseFields": [
+            [
+              "characterId",
+              "motion",
+              "expression",
+              "affinity"
+            ]
+          ],
+          "reactionCharacterResponseFields": [
+            [
+              "characterId",
+              "content",
+              "emotion",
+              "motion",
+              "expression",
+              "fallback",
+              "audioBase64"
+            ]
+          ]
+        },
+        {
+          "number": 19,
+          "label": "reaction-HEAD_TURN",
+          "status": 200,
+          "responseKeys": [
+            "requestId",
+            "characters"
+          ],
+          "result": "success",
+          "eventCharacterResponseFields": [
+            [
+              "characterId",
+              "motion",
+              "expression",
+              "affinity"
+            ]
+          ],
+          "reactionCharacterResponseFields": [
+            [
+              "characterId",
+              "content",
+              "emotion",
+              "motion",
+              "expression",
+              "fallback",
+              "audioBase64"
+            ]
+          ]
+        },
+        {
+          "number": 19,
+          "label": "reaction-AWAY",
+          "status": 200,
+          "responseKeys": [
+            "requestId",
+            "characters"
+          ],
+          "result": "success",
+          "eventCharacterResponseFields": [
+            [
+              "characterId",
+              "motion",
+              "expression",
+              "affinity"
+            ]
+          ],
+          "reactionCharacterResponseFields": [
+            [
+              "characterId",
+              "content",
+              "emotion",
+              "motion",
+              "expression",
+              "fallback",
+              "audioBase64"
+            ]
+          ]
+        },
+        {
+          "number": 19,
+          "label": "reaction-RETURN",
+          "status": 200,
+          "responseKeys": [
+            "requestId",
+            "characters"
+          ],
+          "result": "success",
+          "eventCharacterResponseFields": [
+            [
+              "characterId",
+              "motion",
+              "expression",
+              "affinity"
+            ]
+          ],
+          "reactionCharacterResponseFields": [
+            [
+              "characterId",
+              "content",
+              "emotion",
+              "motion",
+              "expression",
+              "fallback",
+              "audioBase64"
+            ]
+          ]
+        },
+        {
+          "number": 19,
+          "label": "reaction-BREAK",
+          "status": 200,
+          "responseKeys": [
+            "requestId",
+            "characters"
+          ],
+          "result": "success",
+          "eventCharacterResponseFields": [
+            [
+              "characterId",
+              "motion",
+              "expression",
+              "affinity"
+            ]
+          ],
+          "reactionCharacterResponseFields": [
+            [
+              "characterId",
+              "content",
+              "emotion",
+              "motion",
+              "expression",
+              "fallback",
+              "audioBase64"
+            ]
+          ]
+        },
+        {
+          "number": 19,
+          "label": "reaction-FOCUS",
+          "status": 200,
+          "responseKeys": [
+            "requestId",
+            "characters"
+          ],
+          "result": "success",
+          "eventCharacterResponseFields": [
+            [
+              "characterId",
+              "motion",
+              "expression",
+              "affinity"
+            ]
+          ],
+          "reactionCharacterResponseFields": [
+            [
+              "characterId",
+              "content",
+              "emotion",
+              "motion",
+              "expression",
+              "fallback",
+              "audioBase64"
+            ]
+          ]
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 20,
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/messages",
+      "summary": "20. 메시지 전송",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/sessions/{}/messages",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 336
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 20,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 20,
+          "label": "message-TEXT",
+          "status": 200,
+          "responseKeys": [
+            "requestId",
+            "characterId",
+            "content",
+            "emotion",
+            "motion",
+            "expression",
+            "affinity",
+            "fallback",
+            "audioBase64"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 20,
+          "label": "message-QUICK",
+          "status": 200,
+          "responseKeys": [
+            "requestId",
+            "characterId",
+            "content",
+            "emotion",
+            "motion",
+            "expression",
+            "affinity",
+            "fallback",
+            "audioBase64"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 21,
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/heartbeat",
+      "summary": "21. heartbeat",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/sessions/{}/heartbeat",
+          "file": "src/features/backend/use-session-sync.ts",
+          "line": 163
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 21,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 21,
+          "label": "heartbeat",
+          "status": 204,
+          "responseKeys": [],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 22,
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/end",
+      "summary": "22. 공부 종료",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/sessions/{}/end",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 312
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 22,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 22,
+          "label": "end-test-session",
+          "status": 200,
+          "responseKeys": [
+            "sessionId",
+            "roomName",
+            "startedAt",
+            "endedAt",
+            "endType",
+            "studySeconds",
+            "presentSeconds",
+            "awaySeconds",
+            "returnCount",
+            "character",
+            "relation",
+            "closingLine"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 23,
+      "method": "GET",
+      "path": "/api/sessions/{sessionId}/report",
+      "summary": "23. 리포트 조회",
+      "calls": [
+        {
+          "method": "GET",
+          "path": "/api/sessions/{}/report",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 354
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 23,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "number": 23,
+          "label": "prior-test-report",
+          "status": 200,
+          "responseKeys": [
+            "sessionId",
+            "roomName",
+            "startedAt",
+            "endedAt",
+            "endType",
+            "studySeconds",
+            "presentSeconds",
+            "awaySeconds",
+            "returnCount",
+            "character",
+            "relation",
+            "closingLine"
+          ],
+          "result": "success"
+        },
+        {
+          "number": 23,
+          "label": "test-session-report",
+          "status": 200,
+          "responseKeys": [
+            "sessionId",
+            "roomName",
+            "startedAt",
+            "endedAt",
+            "endType",
+            "studySeconds",
+            "presentSeconds",
+            "awaySeconds",
+            "returnCount",
+            "character",
+            "relation",
+            "closingLine"
+          ],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 24,
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "summary": "24. 로그아웃",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/auth/logout",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 182
+        }
+      ],
+      "currentLiveSuccess": true,
+      "liveChecks": [
+        {
+          "number": 24,
+          "label": "anonymous-invalid-or-guard",
+          "status": 204,
+          "responseKeys": [],
+          "result": "success"
+        },
+        {
+          "number": 24,
+          "label": "logout-audit-session",
+          "status": 204,
+          "responseKeys": [],
+          "result": "success"
+        }
+      ],
+      "mockEvidence": "session"
+    },
+    {
+      "number": 25,
+      "method": "POST",
+      "path": "/api/auth/password/reset-request",
+      "summary": "25. 비밀번호 재설정 메일 요청",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/auth/password/reset-request",
+          "file": "src/features/auth/components/PasswordRecoveryForm.tsx",
+          "line": 23
+        }
+      ],
+      "currentLiveSuccess": false,
+      "liveChecks": [
+        {
+          "number": 25,
+          "label": "anonymous-invalid-or-guard",
+          "status": 400,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "INVALID_EMAIL",
+          "result": "expected-rejection",
+          "error": "INVALID_EMAIL"
+        }
+      ],
+      "mockEvidence": "auth"
+    },
+    {
+      "number": 26,
+      "method": "POST",
+      "path": "/api/auth/password/reset",
+      "summary": "26. 비밀번호 재설정",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/api/auth/password/reset",
+          "file": "src/features/auth/components/PasswordRecoveryForm.tsx",
+          "line": 23
+        }
+      ],
+      "currentLiveSuccess": false,
+      "liveChecks": [
+        {
+          "number": 26,
+          "label": "anonymous-invalid-or-guard",
+          "status": 400,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "INVALID_PASSWORD",
+          "result": "expected-rejection",
+          "error": "INVALID_PASSWORD"
+        }
+      ],
+      "mockEvidence": "auth"
+    },
+    {
+      "number": 27,
+      "method": "DELETE",
+      "path": "/api/me",
+      "summary": "27. 회원 탈퇴",
+      "calls": [
+        {
+          "method": "DELETE",
+          "path": "/api/me",
+          "file": "src/features/demo/DemoProvider.tsx",
+          "line": 194
+        }
+      ],
+      "currentLiveSuccess": false,
+      "liveChecks": [
+        {
+          "number": 27,
+          "label": "anonymous-invalid-or-guard",
+          "status": 401,
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "result": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        }
+      ],
+      "mockEvidence": "withdrawal"
+    }
+  ],
+  "schemas": 50,
+  "dtoDifferences": [],
+  "missingOperations": [],
+  "checkedAt": "2026-11-05T12:28:34.982Z",
+  "openApiSha256": "482039b8a103f028d21d5343e8554c38596133d09182e02193f68a2032df39d5",
+  "currentLiveSuccessCount": 18,
+  "mockSuccessOnlyNumbers": [
+    2,
+    3,
+    4,
+    6,
+    13,
+    25,
+    26,
+    27
+  ],
+  "liveHttpRequestChecks": 63,
+  "nullableContractWarnings": [
+    "MeResponse.activeSession",
+    "HomeResponse.activeSession",
+    "MemoryList.memories[].dueTime",
+    "RoomDetail.activeSessionId",
+    "ReportResponse.relation.nextLevelPoints",
+    "ReactionResponse.characters[].motion",
+    "ReactionResponse.characters[].audioBase64",
+    "MessageResponse.motion",
+    "MessageResponse.audioBase64"
+  ],
+  "productionProxy": [
+    {
+      "method": "GET",
+      "path": "/api/backend/terms",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/backend/auth/refresh",
+      "status": 401,
+      "condition": "no refresh cookie"
+    }
+  ]
+}
