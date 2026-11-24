@@ -25,6 +25,8 @@ import {
   modelPointToScreen,
 } from '@/features/mate-render/aliving-view'
 import { resolveMateSource } from '@/features/mate-render/mate-source'
+import { mateWarmPool } from '@/features/mate-render/warm-pool'
+import { warmKey } from '@/features/mate-render/warm-renderer'
 import type { MateRenderStatus, MateRenderer } from '@/features/mate-render/types'
 import {
   ASSEMBLE_APP_ICON_URL,
@@ -297,7 +299,11 @@ export function AssembleMateStage({
     // A (new) renderer starts out loading; resync from any earlier source.
     engineStatusRef.current = 'loading'
     setEngineStatus('loading')
-    const renderer = new AlivingRenderer({
+    // The renderer outlives this screen: on unmount it goes to the shared warm pool, and the first mate preview of the
+    // same model (내 메이트, 메이트 상세) takes it instead of loading the model again (warm-renderer.ts). Remounting
+    // here (StrictMode, coming back to /login) takes it back the same way.
+    const poolKey = warmKey(resolvedSource)
+    const renderer = mateWarmPool.claim(poolKey) ?? new AlivingRenderer({
       modelUrl: resolvedSource.modelUrl,
       engineUrl: resolvedSource.engineUrl,
       playerUrl: resolvedSource.playerUrl,
@@ -305,7 +311,7 @@ export function AssembleMateStage({
     })
     rendererRef.current = renderer
     renderer.attach(host)
-    const unsub = renderer.subscribe(() => {
+    const sync = () => {
       const next = toReadiness(renderer.getStatus(), true)
       engineStatusRef.current = next
       setEngineStatus(next)
@@ -314,11 +320,16 @@ export function AssembleMateStage({
       setMachine((prev) =>
         transitionAssembleState(prev, { type: 'LIVE2D_STATUS_CHANGE', live2dStatus: next }),
       )
-    })
+    }
+    const unsub = renderer.subscribe(sync)
+    // A renderer taken back may already be ready: no status change will follow.
+    if (renderer.getStatus() !== 'loading') queueMicrotask(sync)
     return () => {
       unsub()
-      renderer.destroy()
       rendererRef.current = null
+      // Detaches (canvas, frames, observers, visibility listener), resets face and gaze, and keeps the model loaded
+      // for up to WARM_TTL_MS; a failed renderer is destroyed instead. Page unloads (Kakao) never get here.
+      mateWarmPool.park(poolKey, renderer)
     }
   }, [resolvedSource])
 

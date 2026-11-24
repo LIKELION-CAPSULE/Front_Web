@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { canPrewarm, createWarmPool, warmKey, type AlivingSource, type WarmableRenderer } from '../src/features/mate-render/warm-renderer.ts'
+import { resolveMateSource, resolvePreviewSource } from '../src/features/mate-render/mate-source.ts'
 
 const source: AlivingSource = { kind: 'aliving', modelUrl: '/m/model.json', engineUrl: '/e/engine.js', playerUrl: '/e/player.js' }
 
@@ -81,6 +82,53 @@ test('a source a preview is showing right now is not prewarmed again', () => {
   release()
   assert.equal(pool.prewarm(source), true)
   assert.equal(created.length, 1)
+})
+
+test('login hand-over: the wake-up renderer is parked and the mate preview with the same source takes it', () => {
+  const { pool, created, fire } = harness()
+  const v2 = {
+    modelJsonUrl: '/__local-assets/chaerin-v2/model/model.json',
+    engineUrl: '/__local-assets/chaerin-v2/engine/engine.js',
+    playerUrl: '/__local-assets/chaerin-v2/engine/player.js',
+    reactionsUrl: '/__local-assets/chaerin-v2/engine/reactions.default.json',
+  }
+  const options = { pageOrigin: 'http://local.test' }
+  // Login resolves its source with resolveMateSource; the mate screens with resolvePreviewSource (API `model`).
+  const login = resolveMateSource({ modelUrl: v2.modelJsonUrl, engineUrl: v2.engineUrl, playerUrl: v2.playerUrl, reactionsUrl: v2.reactionsUrl }, options)
+  const mate = resolvePreviewSource({ ...v2, format: 'aliving2d' }, options)
+  assert.equal(login.kind, 'aliving')
+  assert.equal(mate.kind, 'aliving')
+  if (login.kind !== 'aliving' || mate.kind !== 'aliving') return
+  assert.equal(warmKey(login), warmKey(mate), 'same files → same key')
+
+  const wakeUp = new FakeRenderer()
+  wakeUp.status = 'ready'
+  wakeUp.calls.push('expression:happy', 'look:0.22,0') // what the login screen left on it
+  pool.park(warmKey(login), wakeUp)
+  assert.deepEqual(wakeUp.calls.slice(2), ['detach', 'talking:false', 'expression:null', 'look:0,0'], 'detached and reset')
+  assert.equal(pool.prewarm(mate), false, 'home does not load a second copy')
+  assert.equal(created.length, 0)
+  assert.equal(pool.claim(warmKey(mate)), wakeUp, 'the mate preview takes the login renderer')
+  assert.ok(!wakeUp.calls.includes('destroy'))
+
+  // Different API files (another model or engine build): nothing is taken; home's prewarm replaces it and the login
+  // renderer is destroyed (or the TTL does it when nothing prewarms).
+  const other = { ...mate, engineUrl: '/cdn/engine-2.js' }
+  const leftOver = new FakeRenderer()
+  pool.park(warmKey(login), leftOver)
+  assert.equal(pool.claim(warmKey(other)), null)
+  pool.prewarm(other)
+  assert.ok(leftOver.calls.includes('destroy'), 'replaced by the API model')
+  const unclaimed = new FakeRenderer()
+  pool.park(warmKey(login), unclaimed)
+  fire()
+  assert.ok(unclaimed.calls.includes('destroy'), 'TTL')
+
+  // Logging out drops it.
+  const loggedOut = new FakeRenderer()
+  pool.park(warmKey(login), loggedOut)
+  pool.discard()
+  assert.ok(loggedOut.calls.includes('destroy'))
 })
 
 test('prewarming is skipped on phones, touch-first devices, Data Saver and reduced motion', () => {
