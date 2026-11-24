@@ -10,6 +10,7 @@ import {
   capsuleColors,
   capsulesPerConnection,
   dayCapsuleCount,
+  isMonthSelectable,
   offsetContaining,
   stackDay,
   yearSlot,
@@ -22,6 +23,10 @@ import {
   defaultBoardView,
   isBoardView,
   parseStoredBoardViews,
+  requestView,
+  settleViewRequest,
+  yearMonthNeighbor,
+  type ViewRequestState,
   yearColumnsFor,
 } from '../src/features/records/capsule-board/capsule-board-view.ts'
 
@@ -216,4 +221,77 @@ test('transitions: a new period around the same days morphs, a mate or another r
   assert.equal(boardTransition(week, lastWeek), 'rise')
   assert.equal(boardTransition(week, buildCapsuleBoard(records, getRecordRange('week', NOW))), 'none')
   assert.equal(boardTransition(week, buildCapsuleBoard(records, getRecordRange('week', NOW), { colorMode: 'mate' })), 'rise')
+})
+
+test('capsules are shared by each connection’s share of the whole day (30 + 90 min → 1 + 3)', () => {
+  assert.deepEqual(capsulesPerConnection([30 * 60, 90 * 60]), [1, 3])
+  assert.deepEqual(capsulesPerConnection([90 * 60, 30 * 60]), [3, 1])
+  assert.deepEqual(capsulesPerConnection([30 * 60, 30 * 60, 120 * 60]), [1, 1, 4])
+  // The minimum of one comes from the largest count.
+  assert.deepEqual(capsulesPerConnection([5 * 60, 5 * 60, 170 * 60]), [1, 1, 4])
+  // Order does not change a connection's count (only its place); exact ties go to the earlier connection.
+  for (const list of [[30, 90], [40, 50, 30], [10, 60, 140], [20, 25, 35, 100]]) {
+    const forward = capsulesPerConnection(list.map((minutes) => minutes * 60))
+    const backward = capsulesPerConnection([...list].reverse().map((minutes) => minutes * 60)).reverse()
+    assert.deepEqual(forward, backward, list.join('+'))
+  }
+})
+
+test('the 「전체」 column and the mate filter agree on each mate’s capsules', () => {
+  const mateOf = (item: StudyRecord) => (item.characterIds[0] === '1' ? 'chaerin' : 'mate-2')
+  const chaerin = record('2026-11-23T08:00:00', 30, 'c', '1')
+  const boy = record('2026-11-23T20:00:00', 90, 'b', '2')
+  const all = stackDay([chaerin, boy], { mateOf, mateOrder: ['chaerin', 'mate-2'], colorMode: 'mate' })
+  const countOf = (capsules: readonly { mateId: string }[], mateId: string) => capsules.filter((capsule) => capsule.mateId === mateId).length
+  assert.equal(countOf(all.capsules, 'chaerin'), stackDay([chaerin], { mateOf }).capsules.length)
+  assert.equal(countOf(all.capsules, 'mate-2'), stackDay([boy], { mateOf }).capsules.length)
+  // In general a mate's share in 「전체」 is within one capsule of its own column (rounding of the day total).
+  for (const [a, b] of [[45, 45], [20, 100], [70, 50], [15, 15]]) {
+    const one = record('2026-11-23T08:00:00', a!, 'x', '1')
+    const two = record('2026-11-23T20:00:00', b!, 'y', '2')
+    const both = stackDay([one, two], { mateOf, mateOrder: ['chaerin', 'mate-2'], colorMode: 'mate' }).capsules
+    assert.ok(Math.abs(countOf(both, 'chaerin') - stackDay([one], { mateOf }).capsules.length) <= 1)
+    assert.ok(Math.abs(countOf(both, 'mate-2') - stackDay([two], { mateOf }).capsules.length) <= 1)
+  }
+})
+
+test('a view asked for during a period morph is never lost', () => {
+  const start: ViewRequestState = { applied: '25d', requested: '25d' }
+  // Month 2.5D → year 2D: the morph runs, the 2D request waits.
+  let step = requestView(start, '2d', { morphing: true, animate: true })
+  assert.equal(step.apply, null)
+  // The morph is cut short (another year, another mate, a resize): 2D is applied at once.
+  const cut = settleViewRequest(step.state, { interrupted: true })
+  assert.deepEqual(cut.apply, { view: '2d', animate: false })
+  assert.deepEqual(cut.state, { applied: '2d', requested: '2d' })
+  // The morph plays out: 2D is applied with its own animation.
+  assert.deepEqual(settleViewRequest(step.state, { interrupted: false }).apply, { view: '2d', animate: true })
+  // Asked back before the morph ends: nothing to apply.
+  step = requestView(step.state, '25d', { morphing: true, animate: true })
+  assert.equal(settleViewRequest(step.state, { interrupted: true }).apply, null)
+  // No morph: applied at once; the same view twice does nothing.
+  assert.deepEqual(requestView(start, '2d', { morphing: false, animate: true }).apply, { view: '2d', animate: true })
+  assert.equal(requestView(start, '25d', { morphing: false, animate: true }).apply, null)
+  // Reduced motion never waits.
+  assert.deepEqual(requestView(start, '2d', { morphing: true, animate: false }).apply, { view: '2d', animate: false })
+})
+
+test('the year keyboard and pointer only reach months that have begun', () => {
+  const year = buildCapsuleBoard([record('2026-11-23T20:00:00', 50)], getRecordRange('year', NOW))
+  const selectable = year.months.map((month) => isMonthSelectable(year, month.month))
+  // NOW is in November: December has not begun.
+  assert.deepEqual(selectable.map((value, index) => (value ? index : -1)).filter((index) => index >= 0), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+  const last = selectable.lastIndexOf(true)
+  assert.equal(yearMonthNeighbor(10, 'ArrowRight', 4, last), 10)
+  assert.equal(yearMonthNeighbor(9, 'ArrowRight', 4, last), 10)
+  assert.equal(yearMonthNeighbor(7, 'ArrowDown', 4, last), 7)
+  assert.equal(yearMonthNeighbor(6, 'ArrowDown', 4, last), 10)
+  assert.equal(yearMonthNeighbor(3, 'End', 4, last), 10)
+  assert.equal(yearMonthNeighbor(5, 'Home', 4, last), 0)
+  assert.equal(yearMonthNeighbor(0, 'ArrowUp', 4, last), 0)
+  assert.equal(yearMonthNeighbor(4, 'ArrowUp', 2, last), 2)
+  assert.equal(yearMonthNeighbor(4, 'a', 4, last), null)
+  // A past year: every month.
+  const lastYear = buildCapsuleBoard([], getRecordRange('year', Date.parse('2027-03-10T12:00:00+09:00'), -1))
+  assert.ok(lastYear.months.every((month) => isMonthSelectable(lastYear, month.month)))
 })

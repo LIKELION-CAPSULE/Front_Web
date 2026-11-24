@@ -151,3 +151,41 @@ export function boardTransition(previous: CapsuleBoardModel | null, next: Capsul
   if (previous.mode !== next.mode) return 'morph'
   return 'rise'
 }
+
+/**
+ * The view the viewer asked for vs. the view the scene shows. A request that arrives during a period morph waits
+ * (the two never run together) and is applied when the morph ends — animated when the morph played out, at once when
+ * the morph was cut short (new data, another period, a resize): the asked view is never lost.
+ */
+export type ViewRequestState = { applied: BoardView; requested: BoardView }
+export type ViewApply = { view: BoardView; animate: boolean } | null
+
+export function requestView(
+  state: ViewRequestState,
+  view: BoardView,
+  { morphing, animate }: { morphing: boolean; animate: boolean },
+): { state: ViewRequestState; apply: ViewApply } {
+  if (morphing && animate) return { state: { ...state, requested: view }, apply: null }
+  const apply = view === state.applied ? null : { view, animate }
+  return { state: { applied: view, requested: view }, apply }
+}
+
+/** A morph is over: `interrupted` when it was cut short. Applies the waiting request, if any. */
+export function settleViewRequest(state: ViewRequestState, { interrupted }: { interrupted: boolean }): { state: ViewRequestState; apply: ViewApply } {
+  if (state.requested === state.applied) return { state, apply: null }
+  return { state: { applied: state.requested, requested: state.requested }, apply: { view: state.requested, animate: !interrupted } }
+}
+
+/**
+ * Keyboard move between the year's twelve month boards (←→ one, ↑↓ one row, Home/End), never past the last month
+ * that has begun (`lastSelectable`). Null when the key does not move.
+ */
+export function yearMonthNeighbor(index: number, key: string, columns: number, lastSelectable: number): number | null {
+  if (lastSelectable < 0) return null
+  if (key === 'Home') return 0
+  if (key === 'End') return lastSelectable
+  const step = ({ ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns } as Record<string, number>)[key]
+  if (step === undefined) return null
+  const target = index + step
+  return target < 0 || target > lastSelectable ? index : target
+}

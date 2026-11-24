@@ -555,6 +555,8 @@ export default function RecordsPage() {
               }}
               onSelectMonth={(month) => {
                 const key = `${range.startDay.slice(0, 4)}-${String(month + 1).padStart(2, '0')}-01`
+                // A month that has not begun cannot be opened (the board disables it too).
+                if (key > range.today) return
                 updateParams({ period: 'month', offset: Math.min(0, offsetContaining('month', key, range.today)) })
               }}
             />

@@ -2,13 +2,14 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProp
 import { CapsuleCalendar, CapsuleLegend } from '../CapsuleCalendar'
 import { capsuleNeighbor, capsuleTooltip, type CapsuleDay } from '../capsule-calendar'
 import type { CommentHighlight } from '../mate-comment'
-import { boardMonthTooltip, type CapsuleBoardModel } from './capsule-board-layout'
+import { boardMonthTooltip, isMonthSelectable, type CapsuleBoardModel } from './capsule-board-layout'
 import type { BoardBenchmark, BoardSceneController, BoardTarget } from './capsule-board-scene'
 import {
   BOARD_NARROW_STAGE,
   boardStageAspect,
   boardTransition,
   supportsWebGL,
+  yearMonthNeighbor,
   type BoardEmphasisControl,
   type BoardView,
 } from './capsule-board-view'
@@ -73,6 +74,16 @@ export function CapsuleBoard({
   const [stageWidth, setStageWidth] = useState(0)
   const [pointed, setPointed] = useState<BoardTarget | null>(null)
   const [focused, setFocused] = useState<BoardTarget | null>(null)
+  // A focus left over from the other kind of list (a month after entering it, a day of another period) is void.
+  const activeFocus =
+    focused &&
+    (focused.kind === 'month'
+      ? model.mode === 'year'
+      : model.mode !== 'year' && model.tiles.some((tile) => tile.day.key === focused.key))
+      ? focused
+      : null
+  /** Set when a month was opened from the keyboard: its days' list takes the focus once it shows. */
+  const focusIntoMonth = useRef(false)
   const [focusKey, setFocusKey] = useState<string | undefined>(undefined)
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
   const modelRef = useRef(model)
@@ -84,7 +95,7 @@ export function CapsuleBoard({
   useLayoutEffect(() => {
     modelRef.current = model
     handlers.current = { onSelectDay, onSelectMonth }
-    shownRef.current = pointed ?? focused
+    shownRef.current = pointed ?? activeFocus
   })
 
   const textFor = useCallback((target: BoardTarget) => {
@@ -155,13 +166,19 @@ export function CapsuleBoard({
           view,
           onHover: setPointed,
           onSelect: (target) => {
-            if (target.kind === 'month') handlers.current.onSelectMonth(target.month)
+            if (target.kind === 'month') {
+              if (isMonthSelectable(modelRef.current, target.month)) handlers.current.onSelectMonth(target.month)
+            }
             else {
               const day = modelRef.current.tiles.find((tile) => tile.day.key === target.key)?.day
               if (day) handlers.current.onSelectDay(day)
             }
           },
           onFrame: placeTooltip,
+          onContextFailure: () => {
+            setFallback(true)
+            onFallback?.()
+          },
         })
         sceneRef.current = controller
         onController?.({ benchmark: (ms) => controller!.benchmark(ms) })
@@ -237,16 +254,16 @@ export function CapsuleBoard({
   }, [emphasisKey, ready])
 
   useEffect(() => {
-    sceneRef.current?.setActive(focused)
-  }, [focused])
+    sceneRef.current?.setActive(activeFocus)
+  }, [activeFocus])
 
-  useEffect(placeTooltip, [pointed, focused, placeTooltip])
+  useEffect(placeTooltip, [pointed, activeFocus, placeTooltip])
 
   // ── Keyboard: days (the capsule calendar's moves) or the year's months (←→ one, ↑↓ one row) ──
   const yearMode = model.mode === 'year'
   const days = model.calendar.days
   const items = yearMode
-    ? model.months.map((month) => ({ key: month.key, label: boardMonthTooltip(month), disabled: false }))
+    ? model.months.map((month) => ({ key: month.key, label: boardMonthTooltip(month), disabled: !isMonthSelectable(model, month.month) }))
     : days.map((day) => ({ key: day.key, label: capsuleTooltip(day), disabled: day.isFuture }))
   const selectedMonthKey = selectedKey?.slice(0, 7)
   const rovingKey =
@@ -255,10 +272,8 @@ export function CapsuleBoard({
     items.find((item) => !item.disabled)?.key
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     let next: number | null
-    if (yearMode) {
-      const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -model.yearColumns, ArrowDown: model.yearColumns }[event.key]
-      next = event.key === 'Home' ? 0 : event.key === 'End' ? 11 : step === undefined ? null : Math.min(11, Math.max(0, index + step))
-    } else next = capsuleNeighbor(model.mode, index, event.key, days)
+    if (yearMode) next = yearMonthNeighbor(index, event.key, model.yearColumns, items.findLastIndex((item) => !item.disabled))
+    else next = capsuleNeighbor(model.mode, index, event.key, days)
     if (next === null) return
     event.preventDefault()
     const item = items[next]
@@ -267,6 +282,17 @@ export function CapsuleBoard({
     // The list is visually hidden: moving in it must not scroll the page (the board shows the focus).
     buttons.current[next]?.focus({ preventScroll: true })
   }
+
+  // Entered a month from the year by keyboard: focus its selected day (else the first that can be chosen) without
+  // scrolling the page, so the keyboard user keeps their place.
+  useEffect(() => {
+    if (!focusIntoMonth.current || model.mode !== 'month') return
+    focusIntoMonth.current = false
+    const days = model.calendar.days
+    const selected = days.findIndex((day) => day.key === selectedKey && !day.isFuture)
+    const index = selected >= 0 ? selected : days.findIndex((day) => !day.isFuture)
+    buttons.current[index]?.focus({ preventScroll: true })
+  }, [model, selectedKey])
 
   const narrow = stageWidth > 0 && stageWidth < BOARD_NARROW_STAGE
 
@@ -285,7 +311,7 @@ export function CapsuleBoard({
       className="capsule-board"
       data-mode={model.mode}
       data-view={view}
-      data-focus={focused !== null || undefined}
+      data-focus={activeFocus !== null || undefined}
       data-narrow={narrow || undefined}
       style={{ '--board-aspect': boardStageAspect(model.mode, view, narrow) } as CSSProperties}
       onMouseLeave={() => setPointed(null)}
@@ -324,8 +350,13 @@ export function CapsuleBoard({
             }}
             onBlur={() => setFocused(null)}
             onKeyDown={(event) => onKeyDown(event, index)}
-            onClick={() => {
-              if (yearMode) onSelectMonth(index)
+            onClick={(event) => {
+              if (item.disabled) return
+              if (yearMode) {
+                // Enter / Space (no pointer position): the month's days take the focus once they show.
+                focusIntoMonth.current = event.detail === 0
+                onSelectMonth(index)
+              }
               else {
                 const day = days[index]
                 if (day) onSelectDay(day)

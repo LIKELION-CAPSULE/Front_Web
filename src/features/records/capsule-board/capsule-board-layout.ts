@@ -152,20 +152,39 @@ export function dayCapsuleCount(totalSeconds: number, connections: number) {
  */
 export function capsulesPerConnection(secondsList: readonly number[]): number[] {
   const seconds = secondsList.map((value) => (Number.isFinite(value) ? Math.max(0, value) : 0))
+  if (seconds.length === 0) return []
   const total = seconds.reduce((sum, value) => sum + value, 0)
   const count = dayCapsuleCount(total, seconds.length)
-  if (seconds.length === 0) return []
-  const spare = count - seconds.length
-  const ideal = seconds.map((value) => (total > 0 ? (value / total) * spare : spare / seconds.length))
-  const result = ideal.map((value) => 1 + Math.floor(value))
+  // Largest remainder over the whole count (each connection's share of the day's time) …
+  const quota = seconds.map((value) => (total > 0 ? (value / total) * count : count / seconds.length))
+  const result = quota.map((value) => Math.floor(value))
   let left = count - result.reduce((sum, value) => sum + value, 0)
-  const order = ideal
+  const byRemainder = quota
     .map((value, index) => ({ index, remainder: value - Math.floor(value) }))
     .sort((a, b) => b.remainder - a.remainder || a.index - b.index)
-  for (const { index } of order) {
+  for (const { index } of byRemainder) {
     if (left <= 0) break
     result[index]! += 1
     left -= 1
+  }
+  // … then at least one each: a connection left at 0 takes one from the connection with the most to spare
+  // (the largest count, then the one whose share is furthest below it).
+  for (let index = 0; index < result.length; index++) {
+    if (result[index]! > 0) continue
+    let donor = -1
+    for (let other = 0; other < result.length; other++) {
+      if (result[other]! <= 1) continue
+      if (
+        donor < 0 ||
+        result[other]! > result[donor]! ||
+        (result[other]! === result[donor]! && result[other]! - quota[other]! > result[donor]! - quota[donor]!)
+      ) {
+        donor = other
+      }
+    }
+    if (donor < 0) break
+    result[donor]! -= 1
+    result[index] = 1
   }
   return result
 }
@@ -407,6 +426,12 @@ export function buildCapsuleBoard(
     mates,
     yearColumns,
   }
+}
+
+/** A year month board can be opened once it has begun (its first day is not in the future). */
+export function isMonthSelectable(model: Pick<CapsuleBoardModel, 'tiles'>, month: number) {
+  const first = model.tiles.find((tile) => tile.month === month)
+  return Boolean(first && !first.day.isFuture)
 }
 
 /** Tooltip / label of a year month board. */

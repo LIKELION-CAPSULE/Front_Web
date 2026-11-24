@@ -8,8 +8,15 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { capsuleGeometry, capsuleRadiusAt, coreMaterial, haloMaterial, shellMaterial } from '../../mates/capsule-jar/capsule-jar-scene.ts'
 import { CAPSULE_ASPECT, CAPSULE_SEAM_OFFSET } from '../../mates/capsule-jar/capsule-jar-layout.ts'
 import { CHAERIN_JAR_THEME } from '../../mates/capsule-jar/capsule-jar-theme.ts'
-import { BOARD, boardRiseTiming, type BoardCapsule, type BoardLabel, type BoardTile, type CapsuleBoardModel } from './capsule-board-layout.ts'
-import { chipSlots, type BoardView } from './capsule-board-view.ts'
+import { BOARD, boardRiseTiming, isMonthSelectable, type BoardCapsule, type BoardLabel, type BoardTile, type CapsuleBoardModel } from './capsule-board-layout.ts'
+import {
+  chipSlots,
+  requestView,
+  settleViewRequest,
+  type BoardView,
+  type ViewApply,
+  type ViewRequestState,
+} from './capsule-board-view.ts'
 
 /**
  * WebGL scene of the 「함께 쌓은 시간」 board: floor tiles with a column of upright glass capsules on every day (2.5D,
@@ -41,6 +48,8 @@ export type BoardSceneOptions = {
   onSelect: (target: BoardTarget) => void
   /** After every rendered frame, so the DOM tooltip can follow. */
   onFrame?: () => void
+  /** The WebGL context was lost and did not come back (the page shows the 2D CSS calendar instead). */
+  onContextFailure?: () => void
 }
 
 export type BoardSceneController = {
@@ -298,14 +307,16 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   let poolEntries: number[] = []
   let labelEntries: number[] = []
   let morph: Anim = null
-  /** A view change that arrived during a period morph: it waits until the morph is over (they never run together). */
-  let pendingView: { view: BoardView; animate: boolean } | null = null
   let riseStartedAt = -Infinity
   let riseMs = 420
   let riseEnd = 0
-  let view: BoardView = options.view
+  /** The asked view and the shown one: a request during a morph waits for it (capsule-board-view.ts). */
+  let viewState: ViewRequestState = { applied: options.view, requested: options.view }
+  /** The WebGL context is lost (nothing is drawn until it is restored). */
+  let contextLost = false
+  let contextTimer = 0
   /** 0 = 2.5D, 1 = 2D. */
-  let flatFrom = view === '2d' ? 1 : 0
+  let flatFrom = options.view === '2d' ? 1 : 0
   let flatTo = flatFrom
   let flatAnim: Anim = null
   let cam: Camera = { azimuth: 0, elevation: 90, center: new Vector3(), upp: 0.01 }
@@ -528,7 +539,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     camAnim = null
   }
 
-  function finishMorph() {
+  function finishMorph({ interrupted = false }: { interrupted?: boolean } = {}) {
     if (!morph) return
     morph = null
     const kept = entries.filter((entry) => entry.to.s > 0)
@@ -539,11 +550,14 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       updateTileColors()
     }
     settleCamera()
-    if (pendingView) {
-      const next = pendingView
-      pendingView = null
-      setView(next.view, next.animate)
-    }
+    settleView(interrupted)
+  }
+
+  /** Applies a view request that waited for a morph (animated when the morph played out, at once when cut short). */
+  function settleView(interrupted: boolean) {
+    const { state, apply } = settleViewRequest(viewState, { interrupted })
+    viewState = state
+    applyView(apply)
   }
 
   function finishFlat() {
@@ -580,7 +594,14 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       rebuild()
       startCamera(MORPH_MS, at)
     } else {
+      // A running morph is cut short by the new board: a view asked for meanwhile is applied right away.
       morph = null
+      const { state, apply } = settleViewRequest(viewState, { interrupted: true })
+      viewState = state
+      if (apply) {
+        flatFrom = flatTo = apply.view === '2d' ? 1 : 0
+        flatAnim = null
+      }
       entries = nextEntries
       rebuild()
       const timing = boardRiseTiming(next.tiles)
@@ -605,17 +626,18 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   }
 
   function setView(next: BoardView, animate: boolean) {
-    if (morph && animate && !reducedMotion) {
-      pendingView = next === view ? null : { view: next, animate }
-      return
-    }
-    pendingView = null
-    if (next === view) return
-    view = next
-    finishMorph()
-    const target = next === '2d' ? 1 : 0
+    const { state, apply } = requestView(viewState, next, { morphing: morph !== null, animate: animate && !reducedMotion })
+    viewState = state
+    if (apply && morph) finishMorph()
+    applyView(apply)
+    schedule()
+  }
+
+  function applyView(apply: ViewApply) {
+    if (!apply) return
+    const target = apply.view === '2d' ? 1 : 0
     const at = now()
-    if (!animate || reducedMotion || !model) {
+    if (!apply.animate || reducedMotion || !model) {
       flatFrom = flatTo = target
       flatAnim = null
       cam = camFrom = camTo = fitCamera(target)
@@ -726,7 +748,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     if (camAnim) camTo = fitCamera(flatTo)
     else cam = camFrom = camTo = fitCamera(flatTo)
     // Resizing clears the canvas: draw at once so it never shows empty until the next frame.
-    if (model && !disposed) {
+    if (model && !disposed && !contextLost) {
       const at = now()
       applyCamera(currentCamera(at))
       compose(at)
@@ -964,8 +986,10 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
         best = entry
       }
     }
-    if (!best?.tile || best.tile.day.isFuture) return null
-    return mode() === 'year' ? { kind: 'month', month: best.tile.month } : { kind: 'day', key: best.key }
+    if (!best?.tile) return null
+    // Year: a month board that has begun (any of its tiles), the same rule as the keyboard list.
+    if (mode() === 'year') return isMonthSelectable(model, best.tile.month) ? { kind: 'month', month: best.tile.month } : null
+    return best.tile.day.isFuture ? null : { kind: 'day', key: best.key }
   }
 
   function setHovered(target: BoardTarget | null) {
@@ -1018,7 +1042,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
 
   function frame(at: number) {
     raf = 0
-    if (disposed) return
+    if (disposed || contextLost) return
     const dt = Math.min(0.05, lastTime ? (at - lastTime) / 1000 : 0.016)
     lastTime = at
     if (morph && progressOf(morph, at) >= 1) finishMorph()
@@ -1057,8 +1081,33 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   }
 
   function schedule() {
-    if (!raf && running && !disposed) raf = requestAnimationFrame(frame)
+    if (!raf && running && !disposed && !contextLost) raf = requestAnimationFrame(frame)
   }
+
+  // ── WebGL context loss: stop drawing; when the context comes back (three.js re-uploads everything on its own),
+  // draw again even if nothing moves; when it does not come back within a moment, hand over to the 2D calendar. ──
+  const CONTEXT_RESTORE_MS = 3000
+  const onContextLost = (event: Event) => {
+    event.preventDefault()
+    contextLost = true
+    if (raf) cancelAnimationFrame(raf)
+    raf = 0
+    lastTime = 0
+    window.clearTimeout(contextTimer)
+    contextTimer = window.setTimeout(() => {
+      if (contextLost && !disposed) options.onContextFailure?.()
+    }, CONTEXT_RESTORE_MS)
+  }
+  const onContextRestored = () => {
+    contextLost = false
+    window.clearTimeout(contextTimer)
+    // three.js resets its GL state on restore (the clear colour back to black): set ours again.
+    renderer.setClearColor(CLEAR, 1)
+    updateTileColors()
+    schedule()
+  }
+  canvas.addEventListener('webglcontextlost', onContextLost)
+  canvas.addEventListener('webglcontextrestored', onContextRestored)
 
   // ── Projection for the DOM tooltip ──
   const projected = new Vector3()
@@ -1189,6 +1238,9 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       canvas.removeEventListener('pointermove', onPointerMove)
       canvas.removeEventListener('pointerleave', onPointerLeave)
       canvas.removeEventListener('click', onClick)
+      canvas.removeEventListener('webglcontextlost', onContextLost)
+      canvas.removeEventListener('webglcontextrestored', onContextRestored)
+      window.clearTimeout(contextTimer)
       disposeMeshes()
       for (const disposable of [tileGeometry, tileMaterial, poolShader, beamShader, shellShader, coreShader, haloShader]) disposable.dispose()
       renderer.dispose()
