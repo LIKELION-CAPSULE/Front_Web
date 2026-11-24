@@ -1,0 +1,69 @@
+/* Development preview controls only. */
+.capsule-jar-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.capsule-jar-preview-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--color-panel);
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.capsule-jar-preview-badge {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-subtle);
+}
+
+.capsule-jar-preview-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.capsule-jar-preview-label { min-width: 64px; color: var(--color-subtle); }
+
+.capsule-jar-preview-controls button,
+.capsule-jar-preview-controls select {
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-control);
+  color: var(--color-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.capsule-jar-preview-controls button:hover { background: var(--color-control-hover); }
+.capsule-jar-preview-controls button[aria-pressed='true'] { background: var(--color-selected); color: var(--color-selected-text); }
+.capsule-jar-preview-controls button:disabled { background: var(--color-disabled); color: var(--color-text-disabled); cursor: default; }
+.capsule-jar-preview-controls label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+
+.capsule-jar-preview-output {
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.capsule-jar-preview-loading {
+  height: clamp(460px, 68vh, 640px);
+  border-radius: 24px;
+  background: var(--color-canvas);
+}
+.capsule-jar-preview-row[hidden] { display: none; }
+
+/* The page's panel at a page-like size (≈47% of a 1280px window, full height). */
+.capsule-jar-preview-panel { width: min(600px, 100%); height: clamp(460px, 76vh, 680px); margin: 0 auto; }
+.capsule-jar-preview-panel .capsule-jar { --jar-stage-height: 100%; }
+.capsule-jar-preview-panel .capsule-jar { display: flex; flex-direction: column; gap: 10px; }
+.capsule-jar-preview-panel .capsule-jar-body { flex: 1; height: auto; min-height: 0; }

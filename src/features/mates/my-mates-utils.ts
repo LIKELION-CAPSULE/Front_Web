@@ -10,6 +10,10 @@ export type MateExpressionUnlock = {
   unlocked: boolean
   unlockedAt?: number
   condition?: string
+  /** Affinity stage that unlocks it, when known (links the collection to the stage progress). */
+  unlockStage?: number
+  /** That stage's name, e.g. "친한 친구": the short text on a locked tile (the full `condition` is its label). */
+  unlockStageName?: string
 }
 
 export type MateVoiceUnlock = {
@@ -217,3 +221,9 @@ export function latestConnectedTimestamp(
   }
   return latest
 }
+
+/** Unlocked / all expressions, for the 표정 컬렉션 title. */
+export const expressionCount = (expressions: readonly MateExpressionUnlock[]) => ({
+  unlocked: expressions.filter((item) => item.unlocked).length,
+  total: expressions.length,
+})

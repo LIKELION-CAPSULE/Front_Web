@@ -1,0 +1,227 @@
+/* Record card of one capsule (CapsuleRecordCard): my-mates scene and the records calendar.
+   The layer is a native modal <dialog>: it sits in the top layer at the rect of its frame (set inline), the page
+   behind it is inert and Tab stays inside. */
+.capsule-jar-card-layer {
+  position: fixed;
+  inset: auto;
+  z-index: 2;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  overflow: hidden;
+  background: transparent;
+  color: inherit;
+  animation: capsule-jar-fade 260ms ease-out both;
+}
+.capsule-jar-card-layer[open] { display: grid; }
+.capsule-jar-card-layer::backdrop { background: transparent; }
+
+/* Two-tone capsule icon (list rows, card head). */
+.capsule-jar-pill {
+  flex: none;
+  position: relative;
+  width: 22px;
+  height: 10px;
+  border-radius: 5px;
+  background:
+    linear-gradient(90deg, transparent 52%, var(--jar-tint) 52%, var(--jar-tint-shade) 100%),
+    linear-gradient(160deg, var(--jar-light), var(--jar-light-shade));
+}
+.capsule-jar-pill--glow {
+  width: 26px;
+  height: 12px;
+  border-radius: 6px;
+  box-shadow: 0 0 14px 2px color-mix(in srgb, var(--jar-glow) 55%, transparent);
+}
+
+/* Desktop: the scene slides left, the record card unfolds on the right; the mate card stays visible. */
+.capsule-jar-card-layer[data-placement='beside'] {
+  place-items: center end;
+  padding-right: max(16px, 4%);
+  background: linear-gradient(90deg, transparent 45%, color-mix(in srgb, var(--color-canvas) 50%, transparent) 80%);
+}
+.capsule-jar-card-layer[data-placement='center'] {
+  place-items: center;
+  background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
+}
+/* Narrow screens: a bottom sheet. */
+.capsule-jar-card-layer[data-placement='sheet'] {
+  place-items: end stretch;
+  padding: 0;
+  background: color-mix(in srgb, var(--color-canvas) 55%, transparent);
+}
+.capsule-jar-card-layer[data-phase='closing'] { animation: capsule-jar-fade-out 240ms ease-in both; }
+.capsule-jar-card-layer[data-animated='false'] { animation: none; }
+
+.capsule-jar-card {
+  position: relative;
+  width: min(340px, 100%);
+  padding: 24px 24px 20px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-panel) 100%);
+  box-shadow: 0 16px 48px #00000066;
+}
+.capsule-jar-card-layer[data-placement='sheet'] .capsule-jar-card {
+  width: 100%;
+  border-radius: 24px 24px 0 0;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+}
+.capsule-jar-card-light {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 150px;
+  pointer-events: none;
+  background: radial-gradient(ellipse 70% 100% at 22% 0%, color-mix(in srgb, var(--jar-glow) 18%, transparent), transparent 72%);
+}
+.capsule-jar-card > :not(.capsule-jar-card-light) { position: relative; }
+.capsule-jar-card-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: -6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.capsule-jar-card-pager button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-control);
+  color: var(--color-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.capsule-jar-card-pager button:disabled { opacity: 0.45; cursor: default; }
+.capsule-jar-card-pager button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+
+.capsule-jar-card-head { display: flex; align-items: center; gap: 10px; }
+.capsule-jar-card-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-subtle);
+}
+.capsule-jar-card-date {
+  margin: 10px 0 16px;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.capsule-jar-card-stats { display: grid; gap: 10px; margin: 0; }
+.capsule-jar-card-stats > div { display: flex; justify-content: space-between; gap: 16px; }
+.capsule-jar-card-stats dt { font-size: 13px; line-height: 20px; color: var(--color-subtle); }
+.capsule-jar-card-stats dd {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.capsule-jar-card-line {
+  margin: 18px 0 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--color-divider);
+}
+.capsule-jar-card-line p {
+  margin: 0;
+  font-family: var(--font-story);
+  font-size: 17px;
+  line-height: 28px;
+  font-weight: 500;
+  color: var(--color-ink);
+  word-break: keep-all;
+}
+.capsule-jar-card-line footer { margin-top: 6px; font-size: 12px; line-height: 18px; color: var(--color-subtle); }
+
+.capsule-jar-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 22px;
+}
+.capsule-jar-card-link,
+.capsule-jar-card-close {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.capsule-jar-card-link { background: var(--color-primary-soft); color: var(--color-text-accent); }
+.capsule-jar-card-link:hover { background: var(--color-primary-soft-hover); color: var(--color-text-accent-hover); }
+.capsule-jar-card-close { background: var(--color-control); color: var(--color-ink); }
+.capsule-jar-card-close:hover { background: var(--color-control-hover); }
+
+/* The card comes out of the light: a bright point that stretches into a slit, then opens. */
+.capsule-jar-card-layer[data-animated='true'][data-phase='open'] .capsule-jar-card {
+  animation: capsule-jar-card-unfold 680ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.capsule-jar-card-layer[data-animated='true'][data-phase='open'] .capsule-jar-card > :not(.capsule-jar-card-light) {
+  animation: capsule-jar-content-in 680ms ease-out both;
+}
+.capsule-jar-card-layer[data-animated='true'][data-phase='closing'] .capsule-jar-card {
+  animation: capsule-jar-card-fold 240ms cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+.capsule-jar-card-layer[data-placement='sheet'][data-animated='true'][data-phase='open'] .capsule-jar-card {
+  animation: capsule-jar-sheet-up 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.capsule-jar-card-layer[data-placement='sheet'][data-animated='true'][data-phase='closing'] .capsule-jar-card {
+  animation: capsule-jar-sheet-down 240ms ease-in both;
+}
+
+@keyframes capsule-jar-card-unfold {
+  0% {
+    transform: translate(var(--from-x, 0px), var(--from-y, 0px)) scale(0.05, 0.02);
+    opacity: 0;
+    filter: brightness(2.6);
+  }
+  35% {
+    transform: translate(calc(var(--from-x, 0px) * 0.45), calc(var(--from-y, 0px) * 0.45)) scale(0.85, 0.035);
+    opacity: 1;
+    filter: brightness(2.1);
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+    filter: none;
+  }
+}
+@keyframes capsule-jar-content-in {
+  0%, 45% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes capsule-jar-card-fold {
+  0% { transform: none; opacity: 1; filter: none; }
+  100% {
+    transform: translate(calc(var(--from-x, 0px) * 0.5), calc(var(--from-y, 0px) * 0.5)) scale(0.85, 0.03);
+    opacity: 0;
+    filter: brightness(1.8);
+  }
+}
+@keyframes capsule-jar-sheet-up { from { transform: translateY(100%); filter: brightness(1.6); } to { transform: none; filter: none; } }
+@keyframes capsule-jar-sheet-down { from { transform: none; } to { transform: translateY(100%); } }
+
+
+.capsule-jar-card-layer[data-animated='false'] *,
+.capsule-jar-card-layer[data-animated='false'] *::before { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .capsule-jar-card-layer,
+  .capsule-jar-card-layer * { animation: none !important; transition: none !important; }
+}

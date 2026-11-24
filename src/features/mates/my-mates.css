@@ -1,4 +1,4 @@
-/* My Mates Desktop App Window (/mates/me) */
+/* 내 메이트: mate switcher, the "big mate over the capsule floor" panel and the column. docs/DESIGN_SYSTEM.md. */
 .my-mates-window.desktop-window {
   position: relative;
   left: auto;
@@ -8,457 +8,251 @@
 }
 
 .my-mates-window-body {
-  padding: 20px 28px 32px;
-  background: linear-gradient(
-    155deg,
-    color-mix(in srgb, var(--color-surface-raised) 96%, transparent),
-    color-mix(in srgb, var(--color-panel) 98%, transparent)
-  );
-}
-
-/* Mate Selector Chips */
-.my-mates-chips {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  flex-direction: column;
+  gap: 16px;
+  /* No visible title (hideTitle): the body takes the heading's top padding. No surface of its own: the scene and
+     the column sit right on the page. */
+  padding: 20px 28px 24px;
+  background: none;
 }
+/* This screen only: the shared AppPanel surface and the window-body surface (app-surfaces.css) are left out. */
+.app-surface .app-panel.my-mates-window,
+.app-surface .app-panel.my-mates-window > .my-mates-window-body { background: none; }
 
-.my-mates-chip {
+/* ── Mate switcher ── */
+.mate-switcher { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mate-switcher-chip {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 36px;
+  height: 36px;
   padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
-  background: color-mix(in srgb, var(--color-canvas) 72%, transparent);
-  color: var(--color-muted);
-  font-size: 13.5px;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
-}
-
-.my-mates-chip:hover {
-  color: var(--color-ink);
-  border-color: rgba(196, 185, 243, 0.28);
-}
-
-.my-mates-chip[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--color-primary) 24%, var(--color-surface-raised));
-  border-color: rgba(196, 185, 243, 0.42);
-  color: var(--color-ink);
+  background: var(--color-selected);
+  color: var(--color-selected-text);
+  font-size: 14px;
   font-weight: 600;
 }
-
-.my-mates-chip:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+.mate-switcher-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-accent); box-shadow: 0 0 8px var(--color-text-accent); }
+.mate-switcher-chip--upcoming { background: var(--color-panel); color: var(--color-text-disabled); font-weight: 500; }
+.mate-switcher-soon {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #ffffff12;
+  color: var(--color-subtle);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
-/* Profile Section: Left Call Stage + Right Relationship Info */
-.my-mates-profile {
-  display: grid;
-  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
-  gap: 28px;
-  margin-top: 22px;
-  align-items: stretch;
+/* Several mates: a fan of small cards, the picked one raised. */
+.mate-fan { display: flex; align-items: flex-end; margin: 4px 0 0; padding: 8px 0 0 8px; list-style: none; }
+.mate-fan-item {
+  margin-left: -14px;
+  transform: rotate(calc(var(--fan, 0) * 6deg)) translateY(calc(var(--fan, 0) * var(--fan, 0) * 2px));
+  transform-origin: 50% 120%;
 }
-
-.my-mates-stage.mate-detail-portrait {
-  aspect-ratio: 3 / 4;
-  min-height: 380px;
-  height: auto;
-  max-height: none;
-  border: 1px solid rgba(196, 185, 243, 0.16);
-  border-radius: 16px;
-}
-
-.my-mates-info {
+.mate-fan-item:first-child { margin-left: 0; }
+.mate-fan-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-width: 0;
-  padding: 6px 0;
-}
-
-.my-mates-heading {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 10px;
-  font-size: clamp(26px, 3vw, 36px);
-  line-height: 1.2;
-  font-weight: 600;
-  color: var(--color-ink);
-  word-break: keep-all;
-}
-
-.my-mates-stage-name {
-  font-size: clamp(16px, 1.8vw, 20px);
-  font-weight: 500;
-  color: var(--color-text-accent);
-}
-
-.my-mates-progress {
-  margin-top: 16px;
-}
-
-.my-mates-progress-track {
-  height: 7px;
-  width: 100%;
-  max-width: 360px;
+  width: 76px;
+  height: 104px;
+  padding: 0;
   overflow: hidden;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
-}
-
-.my-mates-progress-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-text-accent));
-  transition: width 240ms ease;
-}
-
-.my-mates-progress-caption {
-  margin: 8px 0 0;
-  font-size: 13px;
-  color: var(--color-muted);
-}
-
-.my-mates-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px 28px;
-  margin: 22px 0 0;
-  padding: 18px 20px;
-  border-radius: 14px;
-  border: 1px solid rgba(196, 185, 243, 0.14);
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
-}
-
-.my-mates-stat {
-  min-width: 0;
-  flex: 1 1 110px;
-}
-
-.my-mates-stat dt {
-  font-size: 12.5px;
-  color: var(--color-muted);
-  line-height: 1.4;
-}
-
-.my-mates-stat dd {
-  margin: 5px 0 0;
-  font-size: clamp(18px, 2vw, 22px);
-  font-weight: 600;
-  line-height: 1.25;
-  font-variant-numeric: tabular-nums;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(170deg, #2e2945, var(--color-panel));
+  box-shadow: 0 8px 18px #00000080;
   color: var(--color-ink);
-}
-
-.my-mates-cta {
-  margin-top: 22px;
-}
-
-/* Shared Section Dividers inside App Window */
-.my-mates-section {
-  margin-top: 30px;
-  padding-top: 24px;
-  border-top: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
-}
-
-.my-mates-section-title {
-  margin: 0 0 16px;
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--color-ink);
-  font-variant-numeric: tabular-nums;
-}
-
-.my-mates-subsection-title {
-  margin: 18px 0 12px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--color-muted);
-}
-
-.my-mates-subsection-title:first-of-type {
-  margin-top: 0;
-}
-
-/* Expression Tiles (4 columns desktop/960, 2 columns <= 720) */
-.my-mates-expr-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.my-mates-expr-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 82px;
-  padding: 14px 16px;
-  border-radius: 13px;
-  border: 1px solid rgba(196, 185, 243, 0.16);
-  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
-  color: var(--color-ink);
-  text-align: left;
+  font: inherit;
   cursor: pointer;
-  transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 220ms;
 }
-
-.my-mates-expr-tile:hover:not(:disabled) {
-  border-color: rgba(196, 185, 243, 0.36);
-  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+.mate-fan-card:hover { transform: translateY(-4px); }
+.mate-fan-card[aria-pressed='true'] {
+  z-index: 1;
+  transform: translateY(-10px) scale(1.06);
+  box-shadow: 0 12px 26px #000000a0, 0 0 0 2px var(--color-text-accent), 0 0 18px #ac95f866;
 }
-
-.my-mates-expr-tile[aria-pressed='true'] {
-  border-color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 22%, var(--color-surface));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 45%, transparent);
-}
-
-.my-mates-expr-tile:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-.my-mates-expr-name {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.35;
-  word-break: keep-all;
-}
-
-.my-mates-expr-date {
-  font-size: 12px;
-  color: var(--color-subtle);
-  font-variant-numeric: tabular-nums;
-}
-
-.my-mates-expr-tile--locked {
-  border-style: dashed;
-  border-color: color-mix(in srgb, var(--color-ink) 12%, transparent);
-  background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
-  color: var(--color-subtle);
-  cursor: not-allowed;
-}
-
-.my-mates-expr-lock-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-subtle);
-}
-
-.my-mates-expr-condition {
-  font-size: 12.5px;
-  line-height: 1.4;
-  color: var(--color-subtle);
-  word-break: keep-all;
-}
-
-/* Voice Lines List */
-.my-mates-voice-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.my-mates-voice-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(196, 185, 243, 0.14);
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
-  min-width: 0;
-}
-
-.my-mates-voice-item[data-playing='true'] {
-  border-color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface));
-}
-
-.my-mates-voice-item--locked {
-  border-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
-  background: color-mix(in srgb, var(--color-canvas) 55%, transparent);
-  color: var(--color-subtle);
-}
-
-.my-mates-voice-btn {
-  flex: none;
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  border: 1px solid rgba(196, 185, 243, 0.28);
-  background: color-mix(in srgb, var(--color-primary) 22%, var(--color-surface-raised));
-  color: var(--color-ink);
-  cursor: pointer;
-  transition: background-color 140ms ease, border-color 140ms ease;
-}
-
-.my-mates-voice-btn:hover:not(:disabled) {
-  background: var(--color-primary);
-  color: var(--color-on-solid);
-}
-
-.my-mates-voice-btn:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-.my-mates-voice-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.my-mates-voice-lock {
-  flex: none;
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
-  color: var(--color-subtle);
-}
-
-.my-mates-voice-text {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-ink);
-  word-break: keep-all;
-}
-
-.my-mates-voice-masked {
-  font-size: 14px;
-  letter-spacing: 0.16em;
-  color: var(--color-subtle);
-  flex: none;
-}
-
-.my-mates-voice-condition {
-  font-size: 12.5px;
-  color: var(--color-subtle);
-  word-break: keep-all;
-  min-width: 0;
-}
-
-/* Recent Connections */
-.my-mates-recent-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.my-mates-recent-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 13px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(196, 185, 243, 0.12);
-  background: color-mix(in srgb, var(--color-surface) 86%, transparent);
-  color: var(--color-ink);
-  text-decoration: none;
-  transition: border-color 140ms ease, background-color 140ms ease;
-}
-
-.my-mates-recent-row:hover,
-.my-mates-recent-row:focus-visible {
-  border-color: rgba(196, 185, 243, 0.34);
-  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
-}
-
-.my-mates-recent-row:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-.my-mates-recent-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  min-width: 0;
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-}
-
-.my-mates-recent-date {
-  font-weight: 600;
-  color: var(--color-ink);
-}
-
-.my-mates-recent-sep {
-  color: var(--color-subtle);
-}
-
-.my-mates-recent-duration {
-  color: var(--color-ink);
-}
-
-.my-mates-recent-together {
-  color: var(--color-muted);
-  font-size: 13.5px;
-}
-
-.my-mates-levelup-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 48%, transparent);
-  color: var(--color-text-accent);
-  font-size: 11.5px;
-  font-weight: 600;
-  line-height: 1.4;
+.mate-fan-card:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 3px; }
+.mate-fan-art { position: relative; flex: 1; overflow: hidden; }
+.mate-fan-art img { position: absolute; left: 50%; bottom: 0; width: 150%; transform: translateX(-50%); }
+.mate-fan-name {
+  padding: 4px 6px 6px;
+  background: var(--color-panel);
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mate-fan-item--upcoming .mate-fan-card { cursor: default; opacity: 0.45; }
+.mate-fan-item--upcoming .mate-switcher-soon { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .mate-fan-card { transition: none; } }
+
+/* ── Layout: the mate panel on the left (≈47%), the 「함께한 시간」 column on the right (≈53%) ──
+   The panel height follows the window so the panel and the main buttons fit without scrolling at 1280×720 and
+   1440×900 (`--my-mates-chrome` = header and the paddings above and below). */
+.my-mates-layout {
+  --my-mates-chrome: 160px;
+  --my-mates-height: clamp(460px, calc(100dvh - var(--my-mates-chrome)), 820px);
+  display: grid;
+  grid-template-columns: minmax(0, 47fr) minmax(340px, 53fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'scene switcher'
+    'scene info';
+  gap: 10px 28px;
+  height: var(--my-mates-height);
+}
+.my-mates-switcher-slot { grid-area: switcher; min-width: 0; }
+.my-mates-scene { grid-area: scene; min-width: 0; min-height: 0; }
+.my-mates-info { grid-area: info; min-height: 0; }
+
+/* The panel: one tall rounded panel straight on the page background — the capsule floor (three.js) at the bottom,
+   the big Live2D mate over it, then the dark gradient and the caption (capsule-jar.css orders the layers). */
+.my-mates-scene .capsule-jar { --jar-stage-height: var(--my-mates-height); height: 100%; padding: 0; background: transparent; }
+.my-mates-scene .capsule-jar-body,
+.my-mates-scene .capsule-jar-stage { height: 100%; min-height: 0; }
+.my-mates-scene .capsule-jar-stage {
+  border-radius: 28px;
+  /* Same colour as the scene's clear colour (PANEL_COLOR), so the canvas edge never shows. */
+  background: radial-gradient(ellipse 80% 60% at 50% 30%, #221d33, #16141f 70%);
+}
+.my-mates-scene .capsule-jar-list { height: 100%; max-height: none; }
+.my-mates-scene-loading { height: 100%; border-radius: 28px; background: #16141f; }
+
+/* The big mate (MatePreview): fills the panel, no room picture or backdrop of its own; the v2 hero still stays
+   under the model while it loads, under reduced motion and on failure (bottom-aligned bust, same framing). */
+.my-mates-live-tint { position: absolute; inset: 0; }
+/* She stands in the pile: her body fades out only where it meets the top of the pile (a short band), so the
+   capsules in front of her lower body and at her sides stay crisp, and the cut of the bust never shows as an edge.
+   `--mate-fade` is where the pile's top meets her (a share of the panel height). */
+.my-mates-scene .capsule-jar-mate {
+  --mate-fade: 70%;
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(var(--mate-fade) - 6%), transparent calc(var(--mate-fade) + 6%));
+  mask-image: linear-gradient(180deg, #000 calc(var(--mate-fade) - 6%), transparent calc(var(--mate-fade) + 6%));
+}
+/* The shade: only behind the caption (bottom left); the rest of the pile is not darkened so the capsules glow. */
+.my-mates-scene .capsule-jar-shade {
+  height: 50%;
+  background: radial-gradient(ellipse 58% 64% at 0% 100%, rgb(15 14 23 / 0.84) 0%, rgb(15 14 23 / 0.55) 45%, transparent 100%);
+}
+.capsule-jar-mate .mate-detail-portrait.my-mates-live {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+  border: 0;
+  background: transparent !important;
+}
+.my-mates-live .desktop-mate-bg-img { display: none; }
+/* Load failure: the still stays and a small notice with 「다시 시도」 sits at the top of the panel, clear of the
+   caption. The mate layer lets clicks through to the capsules; only this notice takes them back (keyboard focus
+   works either way). */
+.my-mates-live .mate-preview-status {
+  top: 16px;
+  bottom: auto;
+  pointer-events: auto;
 }
 
-.my-mates-recent-chevron {
-  flex: none;
-  color: var(--color-subtle);
+/* Caption over the gradient: the name big, then the stage and the first-met day. */
+.my-mates-caption-name {
+  margin: 0;
+  color: #fff;
+  font-size: 34px;
+  line-height: 40px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 16px rgb(0 0 0 / 0.45);
+}
+.my-mates-caption-stage {
+  margin: 6px 0 0;
+  color: #e4dcff;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 700;
+  text-shadow: 0 1px 10px rgb(0 0 0 / 0.5);
+}
+.my-mates-caption-date {
+  margin: 4px 0 0;
+  color: rgb(255 255 255 / 0.72);
+  font-size: 14px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums lining-nums;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.5);
+}
+@media (min-width: 960px) and (max-height: 800px) {
+  .my-mates-caption-name { font-size: 28px; line-height: 34px; }
+  .my-mates-caption-stage { font-size: 15px; line-height: 22px; }
 }
 
-.my-mates-more-link {
+/* ── `?layout=bleed`: the panel edge to edge (comparison with the default layout above) ──
+   The page container gives up its width and paddings on this screen only; the panel starts at the viewport's left
+   edge right under the header line and ends at the viewport's bottom (the footer moves below the fold). The column
+   keeps the page's content edge on the right (`--side`, the page container's centring + padding, from the window's
+   container width so a classic scrollbar never shifts it). */
+.app-main:has(.my-mates-window--bleed) { max-width: none; padding: 0; }
+.my-mates-window--bleed { container-type: inline-size; }
+.app-surface .app-panel.my-mates-window--bleed > .my-mates-window-body { padding: 0; }
+.my-mates-layout--bleed {
+  --page-pad: 48px;
+  --side: calc((100cqw - min(100cqw, 1360px)) / 2 + var(--page-pad));
+  --content: calc(100cqw - 2 * var(--side));
+  --my-mates-height: max(460px, calc(100dvh - var(--site-header-height, 83px)));
+  grid-template-columns: minmax(0, 1fr) calc(var(--content) * 0.5);
+  column-gap: clamp(28px, 3cqw, 56px);
+  padding-right: var(--side);
+}
+.my-mates-layout--bleed .my-mates-switcher-slot { padding-top: 20px; }
+.my-mates-layout--bleed .my-mates-info { padding-bottom: 24px; }
+/* Flush with the viewport's left edge, the header line and the viewport's bottom: no corners. */
+.my-mates-layout--bleed .capsule-jar-stage,
+.my-mates-layout--bleed .my-mates-scene-loading { border-radius: 0; }
+/* Text and padding grow with the bigger panel. */
+.my-mates-layout--bleed .capsule-jar-caption { padding: 0 clamp(28px, 6%, 72px) clamp(26px, 5%, 56px); }
+.my-mates-layout--bleed .my-mates-caption-name { font-size: clamp(30px, 2.5cqw, 48px); line-height: 1.18; }
+.my-mates-layout--bleed .my-mates-caption-stage { font-size: clamp(16px, 1.25cqw, 22px); line-height: 1.4; }
+.my-mates-layout--bleed .my-mates-caption-date { font-size: clamp(14px, 1cqw, 17px); line-height: 1.4; }
+@media (max-width: 1100px) { .my-mates-layout--bleed { --page-pad: 32px; } }
+@media (max-width: 767px) { .my-mates-layout--bleed { --page-pad: 22px; } }
+
+/* ── 「함께한 시간」 column: game-style blocks in components/mate-time-column.css ── */
+.my-mates-actions { display: grid; grid-template-columns: auto 1fr; gap: 10px; margin-top: auto; }
+.my-mates-list-toggle {
+  height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-control);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.my-mates-list-toggle:hover { background: var(--color-control-hover); }
+.my-mates-list-toggle[aria-pressed='true'] { background: var(--color-selected); color: var(--color-selected-text); }
+.my-mates-list-toggle:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 4px; }
+.my-mates-meet { gap: 6px; justify-content: center; }
+.my-mates-meet--disabled {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 14px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--color-text-accent);
-  text-decoration: none;
+  justify-content: center;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  background: var(--color-disabled);
+  color: var(--color-text-disabled);
+  font-size: 14px;
 }
 
-.my-mates-more-link:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* Empty & Loading States */
+/* ── Empty / loading ── */
 .my-mates-empty-box {
   display: flex;
   flex-direction: column;
@@ -469,117 +263,33 @@
   padding: 40px 20px;
   text-align: center;
 }
+.my-mates-empty-title { margin: 0; font-size: 17px; font-weight: 600; color: var(--color-ink); word-break: keep-all; }
+.my-mates-skeleton-scene { display: block; height: clamp(460px, calc(100dvh - 160px), 820px); border-radius: 28px; }
+.my-mates-skeleton-bar { display: flex; gap: 12px; margin-top: 16px; }
+.my-mates-skeleton-bar > span { display: block; height: 40px; flex: 1; border-radius: 12px; }
 
-.my-mates-empty-title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--color-ink);
-  word-break: keep-all;
-}
-
-.my-mates-skeleton-profile {
-  display: grid;
-  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
-  gap: 28px;
-  margin-top: 22px;
-}
-
-.my-mates-skeleton-stage {
-  height: 380px;
-  border-radius: 16px;
-}
-
-.my-mates-skeleton-info {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 14px;
-}
-
-.my-mates-skeleton-chips {
-  display: flex;
-  gap: 8px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
-}
-
-.my-mates-skeleton-chip {
-  width: 96px;
-  height: 36px;
-  border-radius: 999px;
-}
-
-.my-mates-skeleton-title {
-  width: 52%;
-  height: 36px;
-  border-radius: 10px;
-}
-
-.my-mates-skeleton-bar {
-  width: 72%;
-  height: 16px;
-  border-radius: 999px;
-}
-
-.my-mates-skeleton-stats {
-  width: 100%;
-  height: 76px;
-  border-radius: 14px;
-}
-
-.my-mates-skeleton-btn {
-  width: 148px;
-  height: 44px;
-  border-radius: 12px;
-}
-
-/* Responsive: 960 keeps side-by-side; < 960 stacks stage above info */
+/* Narrow screens: the panel (lower), then the column (mate picker first). */
 @media (max-width: 959px) {
-  .my-mates-window-body {
-    padding: 18px 20px 28px;
+  .my-mates-window-body { padding: 24px 20px 28px; }
+  .my-mates-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: clamp(380px, 56vh, 520px) auto auto;
+    grid-template-areas: 'scene' 'switcher' 'info';
+    gap: 16px;
+    height: auto;
   }
-
-  .my-mates-profile,
-  .my-mates-skeleton-profile {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .my-mates-stage.mate-detail-portrait {
-    aspect-ratio: auto;
-    min-height: 240px;
-    height: clamp(250px, 40dvh, 360px);
-  }
-
-  .my-mates-skeleton-stage {
-    height: 260px;
-  }
+  .my-mates-info { overflow: visible; }
+  .my-mates-skeleton-scene { height: clamp(380px, 56vh, 520px); }
+  .my-mates-caption-name { font-size: 28px; line-height: 34px; }
+  /* Bleed: the panel spans the full width; the column keeps the page paddings. */
+  .my-mates-layout--bleed { grid-template-columns: minmax(0, 1fr); padding-right: 0; gap: 16px; }
+  .my-mates-layout--bleed .my-mates-switcher-slot,
+  .my-mates-layout--bleed .my-mates-info { padding-inline: var(--side); }
+  .my-mates-layout--bleed .my-mates-switcher-slot { padding-top: 0; }
+  .my-mates-layout--bleed .my-mates-info { padding-bottom: 32px; }
+  .my-mates-layout--bleed .my-mates-caption-name { font-size: 28px; line-height: 34px; }
 }
-
-/* 640 / narrow half-screen: 2-column expression tiles */
-@media (max-width: 720px) {
-  .my-mates-window-body {
-    padding: 16px 16px 24px;
-  }
-
-  .my-mates-expr-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .my-mates-stats {
-    gap: 12px 20px;
-    padding: 14px 16px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .my-mates-progress-fill,
-  .my-mates-chip,
-  .my-mates-expr-tile,
-  .my-mates-voice-btn,
-  .my-mates-recent-row {
-    transition: none;
-  }
+@media (max-width: 640px) {
+  .my-mates-window-body { padding: 16px 16px 24px; }
+  .my-mates-actions { grid-template-columns: 1fr; }
 }

@@ -11,3 +11,43 @@
 
 엔진 뷰 값은 `renders.json`. 다시 만들기: dev 서버 실행 후 `.temp/login-assemble/v2-renders.mjs`.
 배경(`chaerin-live2d-v1/chaerin-call-bg-*.webp`, 방 그림)은 캐릭터가 없어 그대로 써요.
+
+## 표정 썸네일 (`expressions/`)
+
+내 메이트 표정 컬렉션 타일에 쓰는 얼굴 크롭이에요. 위 정지 이미지와 같은 성격의 렌더 결과물이고, 원본 모델·엔진은 들어 있지 않아요.
+
+- 파일: v2 표정 이름마다 하나(`sulky`, `happy`, `contempt`, `yawn`, `angry`, `laugh`, `shy`, `focus`)와 기본 얼굴 `neutral.webp`
+- 크기: 192×192(표시 96px, 2배), 투명 배경, 모델 y 118…348(이마 → 턱) 정사각 크롭
+- 엔진 뷰 값: `expressions/expressions.json`
+- 코드에서 쓰는 곳: `src/features/mates/expression-thumbnails.ts`(v2 이름 → 이미지)
+
+다시 만들기(로컬 mock dev 서버가 `local-assets/`의 모델·엔진을 `/__local-assets`로 제공해야 해요):
+
+```sh
+npx vite --port 5231 --strictPort --host 127.0.0.1 &
+PLAYWRIGHT_MODULE=<playwright 패키지의 index.mjs 경로> \
+PLAYWRIGHT_CHROMIUM=<설치된 Chromium 실행 파일 경로, 선택> \
+  node scripts/render-chaerin-expressions.mjs http://127.0.0.1:5231 src/assets/characters/chaerin-v2/expressions
+```
+
+스크립트는 앱과 같은 v2 플레이어(`CapsuleV2Player`, `AlivingRenderer`가 쓰는 것)로 표정을 적용해 1.2초 동안 움직인 뒤
+5번 찍고, 서로 가장 비슷한 한 장을 남겨요(눈 깜빡임이 섞이지 않게).
+
+## 표정 상반신 정지 렌더 (`expressions-bust/`)
+
+내 메이트 패널의 큰 채린이 Live2D를 그리지 않을 때(움직임 줄이기 설정) 고른 표정을 보여 주는 정지 그림이에요.
+`chaerin-v2-hero.webp`와 같은 캔버스·같은 엔진 뷰로 렌더해서, 히어로 그림 자리에 그대로 바꿔 끼워도 위치가 어긋나지 않아요
+(알파 영역 IoU 0.9999).
+
+- 파일: v2 표정 이름마다 하나(`sulky`, `happy`, `contempt`, `yawn`, `angry`, `laugh`, `shy`, `focus`). 기본 얼굴은 히어로 그림 자체예요.
+- 크기: 1520×1800(표시 760×900, 2배), 투명 배경, 모델 y 31…769(머리 → 허리), 장당 약 240kB
+- 엔진 뷰 값: `expressions-bust/expressions.json`(= `renders.json`의 `chaerin-v2-hero`)
+- 코드에서 쓰는 곳: `src/features/mates/expression-busts.ts`. 파일마다 따로 두고, 필요할 때만 받아요. 번들에는 들어가지 않아요.
+
+다시 만들기(위와 같은 준비 후 `--bust`):
+
+```sh
+PLAYWRIGHT_MODULE=<playwright 패키지의 index.mjs 경로> \
+PLAYWRIGHT_CHROMIUM=<설치된 Chromium 실행 파일 경로, 선택> \
+  node scripts/render-chaerin-expressions.mjs http://127.0.0.1:5231 src/assets/characters/chaerin-v2/expressions-bust --bust
+```
