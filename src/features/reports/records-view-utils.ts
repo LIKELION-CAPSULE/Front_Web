@@ -1,5 +1,6 @@
 import type { StudyRecord } from '../demo/types.ts'
-import { dayKey, duration } from '../../shared/lib/format.ts'
+import { duration } from '../../shared/lib/format.ts'
+import { connectionDayKey } from '../records/connection-day.ts'
 import { focusDetectedSeconds } from '../session/focus.ts'
 import { cameraRecords, connectionSummary } from './connection-records.ts'
 import { periodDays, type RecordPeriod, type RecordRange } from './record-period.ts'
@@ -90,11 +91,12 @@ export function computeChartScale(maxSeconds: number): ChartScale {
 }
 
 export type RecordsSummaryDisplay = {
+  /** "이번 주 함께한 시간" — 함께한 시간 is the connection time. */
   primaryLabel: string
   primarySeconds: number
-  secondaryCaption: string
-  isCameraFallback: boolean
-  togetherSeconds: number
+  /** "카메라로 함께한 시간 …", or null when no camera time was measured. */
+  cameraCaption: string | null
+  cameraSeconds: number
   connectionSeconds: number
   activeDays: number
   sessions: number
@@ -102,9 +104,8 @@ export type RecordsSummaryDisplay = {
 }
 
 /**
- * Resolves the 4-card summary values for /records using connectionSummary and cameraRecords.
- * When camera-measured time is 0 but connection time > 0, swaps primary card to connection time
- * and adds the camera guidance caption.
+ * Summary card values for /records. The headline is always the connection time (shown as "함께한 시간"),
+ * so users with the camera off still see their records. Camera-measured time is a secondary caption only.
  */
 export function resolveSummaryDisplay(
   records: readonly StudyRecord[],
@@ -112,13 +113,8 @@ export function resolveSummaryDisplay(
   isCurrentPeriod: boolean,
 ): RecordsSummaryDisplay {
   const summary = connectionSummary(records)
-  const measured = cameraRecords(records)
-  const togetherSeconds = measured.reduce((sum, record) => sum + record.studySeconds, 0)
+  const cameraSeconds = cameraRecords(records).reduce((sum, record) => sum + record.studySeconds, 0)
   const connectionSeconds = summary.connectionSeconds ?? 0
-  const sessions = summary.sessions ?? 0
-  const mates = summary.mates ?? 0
-  const activeDays = new Set(records.map((record) => dayKey(record.endedAt))).size
-
   const periodPrefix = isCurrentPeriod
     ? range.period === 'week'
       ? '이번 주'
@@ -127,30 +123,15 @@ export function resolveSummaryDisplay(
         : '올해'
     : range.dateLabel
 
-  if (togetherSeconds > 0) {
-    return {
-      primaryLabel: `${periodPrefix} 함께한 시간`,
-      primarySeconds: togetherSeconds,
-      secondaryCaption: `연결 시간 ${duration(connectionSeconds)}`,
-      isCameraFallback: false,
-      togetherSeconds,
-      connectionSeconds,
-      activeDays,
-      sessions,
-      mates,
-    }
-  }
-
   return {
-    primaryLabel: `${periodPrefix} 연결 시간`,
+    primaryLabel: `${periodPrefix} 함께한 시간`,
     primarySeconds: connectionSeconds,
-    secondaryCaption: '카메라를 켜면 함께한 시간이 쌓여요',
-    isCameraFallback: true,
-    togetherSeconds: 0,
+    cameraCaption: cameraSeconds > 0 ? `카메라로 함께한 시간 ${duration(cameraSeconds)}` : null,
+    cameraSeconds,
     connectionSeconds,
-    activeDays,
-    sessions,
-    mates,
+    activeDays: new Set(records.map((record) => connectionDayKey(record))).size,
+    sessions: summary.sessions ?? 0,
+    mates: summary.mates ?? 0,
   }
 }
 
@@ -158,7 +139,7 @@ export type CalendarCell = {
   key: string
   label: string
   fullLabel: string
-  togetherSeconds: number
+  cameraSeconds: number
   connectionSeconds: number
   sessions: number
   level: IntensityLevel
@@ -175,7 +156,7 @@ export type RecordsCalendarData = {
 const WEEKDAY_NAMES = ['월', '화', '수', '목', '금', '토', '일'] as const
 
 /**
- * Builds calendar cells for week (7), month (month days with Monday-first offset), or year (12 months).
+ * Day (week/month) or month (year) buckets behind the bar chart. Level follows connection time.
  */
 export function buildCalendarData(
   records: readonly StudyRecord[],
@@ -184,12 +165,12 @@ export function buildCalendarData(
   if (range.period === 'year') {
     const yearStr = range.startDay.slice(0, 4)
     const todayMonth = range.today.slice(0, 7)
-    const buckets = new Map<string, { together: number; connection: number; sessions: number }>()
+    const buckets = new Map<string, { camera: number; connection: number; sessions: number }>()
 
     for (const record of records) {
-      const mKey = dayKey(record.endedAt).slice(0, 7)
-      const prev = buckets.get(mKey) ?? { together: 0, connection: 0, sessions: 0 }
-      prev.together += record.cameraFocus ? focusDetectedSeconds(record) : 0
+      const mKey = connectionDayKey(record).slice(0, 7)
+      const prev = buckets.get(mKey) ?? { camera: 0, connection: 0, sessions: 0 }
+      prev.camera += record.cameraFocus ? focusDetectedSeconds(record) : 0
       prev.connection += record.studySeconds
       prev.sessions += 1
       buckets.set(mKey, prev)
@@ -199,13 +180,13 @@ export function buildCalendarData(
       const month = idx + 1
       const key = `${yearStr}-${String(month).padStart(2, '0')}`
       const isFuture = key > todayMonth
-      const stats = isFuture ? { together: 0, connection: 0, sessions: 0 } : (buckets.get(key) ?? { together: 0, connection: 0, sessions: 0 })
-      const intensityValue = isFuture ? 0 : (stats.together > 0 ? stats.together : stats.connection)
+      const stats = isFuture ? { camera: 0, connection: 0, sessions: 0 } : (buckets.get(key) ?? { camera: 0, connection: 0, sessions: 0 })
+      const intensityValue = isFuture ? 0 : stats.connection
       return {
         key,
         label: `${month}월`,
         fullLabel: `${Number(yearStr)}년 ${month}월`,
-        togetherSeconds: stats.together,
+        cameraSeconds: stats.camera,
         connectionSeconds: stats.connection,
         sessions: stats.sessions,
         intensityValue,
@@ -226,11 +207,11 @@ export function buildCalendarData(
   }
 
   const days = periodDays(range)
-  const dayBuckets = new Map<string, { together: number; connection: number; sessions: number }>()
+  const dayBuckets = new Map<string, { camera: number; connection: number; sessions: number }>()
   for (const record of records) {
-    const key = dayKey(record.endedAt)
-    const prev = dayBuckets.get(key) ?? { together: 0, connection: 0, sessions: 0 }
-    prev.together += record.cameraFocus ? focusDetectedSeconds(record) : 0
+    const key = connectionDayKey(record)
+    const prev = dayBuckets.get(key) ?? { camera: 0, connection: 0, sessions: 0 }
+    prev.camera += record.cameraFocus ? focusDetectedSeconds(record) : 0
     prev.connection += record.studySeconds
     prev.sessions += 1
     dayBuckets.set(key, prev)
@@ -243,15 +224,15 @@ export function buildCalendarData(
 
   const rawCells = days.map((key, idx) => {
     const isFuture = key > range.today
-    const stats = isFuture ? { together: 0, connection: 0, sessions: 0 } : (dayBuckets.get(key) ?? { together: 0, connection: 0, sessions: 0 })
+    const stats = isFuture ? { camera: 0, connection: 0, sessions: 0 } : (dayBuckets.get(key) ?? { camera: 0, connection: 0, sessions: 0 })
     const monthNum = Number(key.slice(5, 7))
     const dayNum = Number(key.slice(8, 10))
-    const intensityValue = isFuture ? 0 : (stats.together > 0 ? stats.together : stats.connection)
+    const intensityValue = isFuture ? 0 : stats.connection
     return {
       key,
       label: range.period === 'week' ? `${WEEKDAY_NAMES[idx % 7]} ${dayNum}` : String(dayNum),
       fullLabel: `${monthNum}월 ${dayNum}일`,
-      togetherSeconds: stats.together,
+      cameraSeconds: stats.camera,
       connectionSeconds: stats.connection,
       sessions: stats.sessions,
       intensityValue,
@@ -275,7 +256,7 @@ export type BarBucket = {
   key: string
   axisLabel: string
   fullLabel: string
-  togetherSeconds: number
+  cameraSeconds: number
   connectionSeconds: number
   sessions: number
 }
@@ -304,13 +285,13 @@ export function buildBarChartData(
           ? cell.label
           : cell.label,
     fullLabel: cell.fullLabel,
-    togetherSeconds: cell.togetherSeconds,
+    cameraSeconds: cell.cameraSeconds,
     connectionSeconds: cell.connectionSeconds,
     sessions: cell.sessions,
   }))
 
   const maxBar = buckets.reduce(
-    (m, b) => Math.max(m, b.connectionSeconds, b.togetherSeconds),
+    (m, b) => Math.max(m, b.connectionSeconds),
     0,
   )
   const scale = computeChartScale(maxBar)
@@ -326,31 +307,16 @@ export function buildBarChartData(
   const activeBuckets = buckets.filter((b) => b.sessions > 0)
   const unit = range.period === 'year' ? '개월' : '일'
   const top = activeBuckets.reduce<BarBucket | null>((best, cur) => {
-    const bestVal = best ? (best.togetherSeconds || best.connectionSeconds) : -1
-    const curVal = cur.togetherSeconds || cur.connectionSeconds
+    const bestVal = best ? best.connectionSeconds : -1
+    const curVal = cur.connectionSeconds
     return curVal > bestVal ? cur : best
   }, null)
 
   const ariaSummary = top
-    ? `${periodPrefix} 함께한 시간 ${activeBuckets.length}${unit}, 가장 많은 ${range.period === 'year' ? '달' : '날'} ${top.fullLabel} ${duration(top.togetherSeconds || top.connectionSeconds)}`
+    ? `${periodPrefix} 함께한 시간 ${activeBuckets.length}${unit}, 가장 많은 ${range.period === 'year' ? '달' : '날'} ${top.fullLabel} ${duration(top.connectionSeconds)}`
     : `${periodPrefix} 함께한 기록 없음`
 
   return { buckets, scale, ariaSummary }
-}
-
-/** Formats the selected calendar day/month summary line. */
-export function formatSelectedCellSummary(cell: CalendarCell): string {
-  const parts = [cell.fullLabel]
-  if (cell.isCurrent) parts.push(cell.key.length === 7 ? '이번 달' : '오늘')
-  if (cell.sessions === 0) {
-    return `${parts.join(' · ')} · 이날은 기록이 없어요.`
-  }
-  if (cell.togetherSeconds > 0) {
-    parts.push(`함께한 시간 ${duration(cell.togetherSeconds)}`)
-  }
-  parts.push(`연결 ${cell.sessions}회`)
-  parts.push(`연결 시간 ${duration(cell.connectionSeconds)}`)
-  return parts.join(' · ')
 }
 
 export function parseRecordsParams(searchParams: URLSearchParams): {

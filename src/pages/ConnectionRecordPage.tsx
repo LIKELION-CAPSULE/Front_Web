@@ -230,13 +230,13 @@ export default function ConnectionRecordPage() {
 
               <dl className="connection-record-stats">
                 <div className="connection-record-stat">
-                  <dt>연결 시간</dt>
+                  <dt>함께한 시간</dt>
                   <dd>
                     <AnimatedDuration seconds={record.studySeconds} measured />
                   </dd>
                 </div>
                 <div className="connection-record-stat">
-                  <dt>함께한 시간(캠)</dt>
+                  <dt>카메라로 함께한 시간</dt>
                   <dd>
                     {record.cameraFocus ? (
                       <AnimatedDuration seconds={focusDetectedSeconds(record)} measured />

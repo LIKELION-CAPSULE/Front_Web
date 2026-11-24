@@ -1,10 +1,18 @@
 import { AppPanel } from '@/shared/ui/AppPanel'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
 import { availableMates } from '@/features/mates/catalog'
-import { RecentConnectionRow } from '@/features/mates/components/RecentConnectionRow'
+import { mateAvatar } from '@/features/mates/artwork'
+import { MateCommentBubble } from '@/features/records/MateCommentBubble'
+import { buildMateComment, voiceFor } from '@/features/records/mate-comment'
+import { CapsuleCalendar, CapsuleLegend } from '@/features/records/CapsuleCalendar'
+import { CapsuleDayDetail, RecordConnectionRow } from '@/features/records/RecordConnectionRow'
+import { buildCapsuleCalendar, defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-calendar'
+import { isCompletedRecord } from '@/features/records/connection-day'
+import { capsuleFromStudyRecord } from '@/features/mates/capsule-jar/capsule-jar-data'
+import { CapsuleRecordCard } from '@/features/mates/capsule-jar/CapsuleRecordCard'
 import {
   getRecordRange,
   recordPeriods,
@@ -13,8 +21,6 @@ import {
 } from '@/features/reports/record-period'
 import {
   buildBarChartData,
-  buildCalendarData,
-  formatSelectedCellSummary,
   parseRecordsParams,
   resolveSummaryDisplay,
   type BarBucket,
@@ -23,10 +29,7 @@ import { Button, ButtonLink } from '@/shared/ui/Button'
 import { duration } from '@/shared/lib/format'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
-import '@/features/mates/my-mates.css'
 import '@/features/reports/records-window.css'
-
-const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'] as const
 
 type RecordMateOption = {
   id: string
@@ -49,17 +52,21 @@ function RecordsWindowFrame({
   loadingScreen?: 'records'
   children: React.ReactNode
 }) {
-  return <AppPanel title="함께한 기록" className="records-window" loadingScreen={loadingScreen} bodyClassName="records-window-body">
+  return <AppPanel title="함께한 기록" hideTitle className="records-window" loadingScreen={loadingScreen} bodyClassName="records-window-body">
     {children}
   </AppPanel>
 }
 
 function formatBarTooltip(bucket: BarBucket): string {
   if (bucket.sessions === 0) return `${bucket.fullLabel} · 기록이 없어요`
-  const parts = [bucket.fullLabel]
-  if (bucket.togetherSeconds > 0) parts.push(`함께한 시간 ${duration(bucket.togetherSeconds)}`)
-  parts.push(`연결 시간 ${duration(bucket.connectionSeconds)}`)
+  const parts = [bucket.fullLabel, `함께한 시간 ${duration(bucket.connectionSeconds)}`]
+  if (bucket.cameraSeconds > 0) parts.push(`카메라로 함께한 시간 ${duration(bucket.cameraSeconds)}`)
   return parts.join(' · ')
+}
+
+/** Bar height in % of the scale; any non-zero value stays visible. */
+function barPercent(seconds: number, maxSeconds: number) {
+  return seconds > 0 ? Math.max(3, Math.min(100, (seconds / maxSeconds) * 100)) : 0
 }
 
 export default function RecordsPage() {
@@ -70,6 +77,9 @@ export default function RecordsPage() {
   const [selectedCellKey, setSelectedCellKey] = useState<string | null>(null)
   const [hoveredBarKey, setHoveredBarKey] = useState<string | null>(null)
   const [visibleCount, setVisibleCount] = useState(5)
+  /** Record card opened from a calendar day (that day's connections, newest first). */
+  const [dayCard, setDayCard] = useState<{ key: string; index: number; phase: 'open' | 'closing' } | null>(null)
+  const dayCardReturnFocus = useRef<HTMLElement | null>(null)
 
   const loading = status === 'loading' || isReviewRecordsLoading()
   const { period, offset, mate: selectedMateId } = parseRecordsParams(searchParams)
@@ -80,13 +90,14 @@ export default function RecordsPage() {
 
   const catalogMates = useMemo(() => availableMates(home), [home])
 
-  // Real server-reported non-dummy records
+  // Real server-reported non-dummy connections that have ended (records/connection-day.ts: one cutoff for the
+  // summary, comment, calendar and list).
   const actualRecords = useMemo(
     () =>
       state.records.filter(
-        (record) => Boolean(record.serverReport) && record.dataSource !== 'dummy',
+        (record) => Boolean(record.serverReport) && record.dataSource !== 'dummy' && isCompletedRecord(record, now),
       ),
-    [state.records],
+    [state.records, now],
   )
 
   // Connected mates list (catalog mates + any additional mate present in server reports)
@@ -138,6 +149,7 @@ export default function RecordsPage() {
       setSelectedCellKey(null)
       setHoveredBarKey(null)
       setVisibleCount(5)
+      setDayCard(null)
       setSearchParams(next)
     },
     [offset, period, searchParams, selectedMateId, setSearchParams],
@@ -154,23 +166,101 @@ export default function RecordsPage() {
     () => resolveSummaryDisplay(periodRecords, range, isCurrentPeriod),
     [isCurrentPeriod, periodRecords, range],
   )
-  const calendar = useMemo(() => buildCalendarData(periodRecords, range), [periodRecords, range])
+  const capsuleCalendar = useMemo(() => buildCapsuleCalendar(periodRecords, range), [periodRecords, range])
   const barChart = useMemo(
     () => buildBarChartData(periodRecords, range, isCurrentPeriod),
     [isCurrentPeriod, periodRecords, range],
   )
 
-  const defaultCell =
-    calendar.cells.find((c) => c.isCurrent) ??
-    [...calendar.cells].reverse().find((c) => c.sessions > 0) ??
-    calendar.cells[0]
-  const activeCell =
-    (selectedCellKey ? calendar.cells.find((c) => c.key === selectedCellKey) : undefined) ??
-    defaultCell
+  const activeDay =
+    (selectedCellKey ? capsuleCalendar.days.find((d) => d.key === selectedCellKey && !d.isFuture) : undefined) ??
+    defaultCapsuleDay(capsuleCalendar.days)
+  const selectedDay = activeDay ? selectCapsuleDay(periodRecords, activeDay) : null
+  const hasCameraTime = barChart.buckets.some((b) => b.cameraSeconds > 0)
+  const revealKey = `${period}|${range.startDay}|${activeMate?.id ?? 'all'}`
+  const mateNameOf = (record: (typeof periodRecords)[number]) =>
+    mateNameByCharId.get(record.characterIds[0] ?? '') ?? record.serverReport?.character?.name
+
+  // ── Record card of a calendar day ──
+  const openDayCard = (key: string) => {
+    const active = document.activeElement
+    dayCardReturnFocus.current = active instanceof HTMLElement && active !== document.body ? active : null
+    setDayCard({ key, index: 0, phase: 'open' })
+  }
+  const closeDayCard = useCallback(() => {
+    setDayCard((current) => (current && current.phase === 'open' ? { ...current, phase: 'closing' } : current))
+  }, [])
+  useEffect(() => {
+    if (dayCard?.phase !== 'closing') return
+    const timer = window.setTimeout(() => {
+      setDayCard(null)
+      dayCardReturnFocus.current?.focus({ preventScroll: true })
+      dayCardReturnFocus.current = null
+    }, 240)
+    return () => window.clearTimeout(timer)
+  }, [dayCard?.phase])
+  const dayCardRecords = dayCard && selectedDay?.day.key === dayCard.key ? selectedDay.records : []
+  const dayCardRecord = dayCard ? dayCardRecords[Math.min(dayCard.index, dayCardRecords.length - 1)] : undefined
+  const dayCardCapsule = dayCardRecord ? capsuleFromStudyRecord(dayCardRecord) : null
+  const dayCardMate = dayCardRecord
+    ? catalogMates.find((mate) => dayCardRecord.characterIds.includes(mate.characterId))
+    : undefined
+  const dayCardView = dayCard && dayCardRecord && dayCardCapsule && (
+    <CapsuleRecordCard
+      key={dayCard.key}
+      capsule={dayCardCapsule}
+      mateName={mateNameOf(dayCardRecord) ?? '메이트'}
+      mateId={dayCardMate?.id ?? 'chaerin'}
+      placement="center"
+      phase={dayCard.phase}
+      animated
+      frame="viewport"
+      onClose={closeDayCard}
+      pager={{
+        index: Math.min(dayCard.index, dayCardRecords.length - 1),
+        count: dayCardRecords.length,
+        onPrevious: () => setDayCard((current) => (current ? { ...current, index: Math.max(0, current.index - 1) } : current)),
+        onNext: () =>
+          setDayCard((current) =>
+            current ? { ...current, index: Math.min(dayCardRecords.length - 1, current.index + 1) } : current,
+          ),
+      }}
+    />
+  )
 
   const activeBar = hoveredBarKey
     ? barChart.buckets.find((b) => b.key === hoveredBarKey)
     : undefined
+
+  // Mate comment: the selected mate speaks; with "전체" the mate met most in this period (else most recently).
+  const speaker =
+    activeMate ??
+    (() => {
+      const counts = new Map<string, number>()
+      for (const r of periodRecords) for (const id of r.characterIds) counts.set(id, (counts.get(id) ?? 0) + 1)
+      const top = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? actualRecords[0]?.characterIds[0]
+      return connectedMates.find((m) => m.characterId === top) ?? connectedMates[0] ?? catalogMates[0] ?? null
+    })()
+  const speakerCatalog = speaker ? catalogMates.find((m) => m.characterId === speaker.characterId) : undefined
+  const speakerRecords = speaker ? actualRecords.filter((r) => r.characterIds.includes(speaker.characterId)) : []
+  const mateComment = speaker
+    ? buildMateComment({
+        range,
+        offset,
+        now,
+        records: speakerRecords,
+        seedKey: `${state.profile.userId ?? 'guest'}|${speaker.characterId}`,
+        voice: voiceFor(speakerCatalog?.id),
+      })
+    : null
+  const mateCommentView = speaker && mateComment && (
+    <MateCommentBubble
+      key={mateComment.text}
+      comment={mateComment}
+      mateName={speaker.name}
+      avatarSrc={speakerCatalog ? mateAvatar(speakerCatalog.id, speakerCatalog.image) : undefined}
+    />
+  )
 
   const resetLabel =
     period === 'week' ? '이번 주로' : period === 'month' ? '이번 달로' : '올해로'
@@ -197,6 +287,7 @@ export default function RecordsPage() {
   if (actualRecords.length === 0) {
     return (
       <RecordsWindowFrame>
+        {mateCommentView}
         <div className="records-empty-box">
           <p className="records-empty-title">아직 함께한 기록이 없어요.</p>
           <p className="records-empty-sub">메이트와 연결하면 여기에 쌓여요.</p>
@@ -287,6 +378,8 @@ export default function RecordsPage() {
         </nav>
       )}
 
+      {mateCommentView}
+
       {periodRecords.length === 0 ? (
         <div className="records-empty-box">
           <p className="records-empty-title">이 기간에는 함께한 기록이 없어요.</p>
@@ -298,7 +391,7 @@ export default function RecordsPage() {
             <section className="records-stat-card records-stat-card--primary">
               <h2 className="records-stat-label">{summary.primaryLabel}</h2>
               <p className="records-stat-value">{duration(summary.primarySeconds)}</p>
-              <p className="records-stat-sub">{summary.secondaryCaption}</p>
+              {summary.cameraCaption && <p className="records-stat-sub">{summary.cameraCaption}</p>}
             </section>
             <section className="records-stat-card">
               <h2 className="records-stat-label">함께한 날</h2>
@@ -317,84 +410,27 @@ export default function RecordsPage() {
           </div>
 
           <div className="records-visuals-grid" data-period-mode={period}>
-            {/* Calendar */}
-            <section
-              className={period === 'week' ? 'records-card records-card--week' : 'records-card'}
-              aria-label="함께한 날 달력"
-            >
+            <section className="records-card records-card--calendar" aria-labelledby="records-calendar-title">
               <div className="records-card-head">
-                <h2 className="records-card-title">함께한 날</h2>
-                <div className="records-cal-legend" aria-hidden="true">
-                  <span>적게</span>
-                  <span className="records-cal-swatch" data-level="1" />
-                  <span className="records-cal-swatch" data-level="2" />
-                  <span className="records-cal-swatch" data-level="3" />
-                  <span className="records-cal-swatch" data-level="4" />
-                  <span>많이</span>
-                </div>
+                <h2 id="records-calendar-title" className="records-card-title">
+                  함께한 날
+                </h2>
+                <CapsuleLegend mode={capsuleCalendar.mode} />
               </div>
-
-              <div className="records-cal-body">
-                {calendar.mode === 'month' && (
-                  <div className="records-cal-weekdays" aria-hidden="true">
-                    {WEEKDAYS.map((day) => (
-                      <span key={day}>{day}</span>
-                    ))}
-                  </div>
-                )}
-
-                <div className={`records-cal-grid records-cal-grid--${calendar.mode}`}>
-                  {calendar.mode === 'month' &&
-                    Array.from({ length: calendar.leadingBlanks }, (_, i) => (
-                      <span key={`blank-${i}`} aria-hidden="true" />
-                    ))}
-                  {calendar.cells.map((cell) => {
-                    const isSelected = activeCell?.key === cell.key
-                    const showWeekTime = calendar.mode === 'week' && !cell.disabled && cell.sessions > 0
-                    const weekTimeText =
-                      cell.togetherSeconds > 0
-                        ? duration(cell.togetherSeconds)
-                        : duration(cell.connectionSeconds)
-                    return (
-                      <button
-                        key={cell.key}
-                        type="button"
-                        className="records-cal-cell"
-                        data-cal-cell={cell.key}
-                        data-level={cell.level}
-                        data-current={cell.isCurrent || undefined}
-                        data-future={cell.disabled || undefined}
-                        aria-pressed={isSelected}
-                        aria-label={formatSelectedCellSummary(cell)}
-                        disabled={cell.disabled}
-                        onClick={() => setSelectedCellKey(cell.key)}
-                      >
-                        <span className="records-cal-cell-label">{cell.label}</span>
-                        {showWeekTime && (
-                          <span
-                            className={
-                              cell.togetherSeconds > 0
-                                ? 'records-cal-cell-time'
-                                : 'records-cal-cell-time records-cal-cell-time--conn'
-                            }
-                          >
-                            {weekTimeText}
-                          </span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-
-                {activeCell && (
-                  <p className="records-cal-selected" aria-live="polite" data-selected-day-summary>
-                    {formatSelectedCellSummary(activeCell)}
-                  </p>
-                )}
-              </div>
+              <CapsuleCalendar
+                key={revealKey}
+                data={capsuleCalendar}
+                selectedKey={activeDay?.key}
+                onSelect={(day) => {
+                  setSelectedCellKey(day.key)
+                  // A day with connections opens the same record card as a capsule in 내 메이트.
+                  if (day.sessions > 0) openDayCard(day.key)
+                }}
+              />
+              {selectedDay && <CapsuleDayDetail selection={selectedDay} mateNameOf={mateNameOf} />}
+              {dayCardView}
             </section>
 
-            {/* Bar Chart */}
             <section
               className="records-card"
               role="region"
@@ -402,16 +438,18 @@ export default function RecordsPage() {
               data-bar-chart-section
             >
               <div className="records-card-head">
-                <h2 className="records-card-title">날짜별 시간</h2>
+                <h2 className="records-card-title">{period === 'year' ? '달별 함께한 시간' : '날짜별 함께한 시간'}</h2>
                 <div className="records-chart-legend" aria-hidden="true">
                   <span className="records-chart-legend-item">
                     <span className="records-chart-dot records-chart-dot--together" />
                     함께한 시간
                   </span>
-                  <span className="records-chart-legend-item">
-                    <span className="records-chart-dot records-chart-dot--connection" />
-                    연결 시간
-                  </span>
+                  {hasCameraTime && (
+                    <span className="records-chart-legend-item">
+                      <span className="records-chart-dot records-chart-dot--camera" />
+                      카메라로 함께한 시간
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -444,29 +482,10 @@ export default function RecordsPage() {
                       }}
                     >
                       {barChart.buckets.map((bucket, idx) => {
-                        const connPct =
-                          bucket.connectionSeconds > 0
-                            ? Math.max(
-                                3,
-                                Math.min(
-                                  100,
-                                  (bucket.connectionSeconds / barChart.scale.maxSeconds) * 100,
-                                ),
-                              )
-                            : 0
-                        const togetherPct =
-                          bucket.togetherSeconds > 0
-                            ? Math.max(
-                                3,
-                                Math.min(
-                                  100,
-                                  (bucket.togetherSeconds / barChart.scale.maxSeconds) * 100,
-                                ),
-                              )
-                            : 0
+                        const togetherPct = barPercent(bucket.connectionSeconds, barChart.scale.maxSeconds)
+                        const cameraPct = barPercent(bucket.cameraSeconds, barChart.scale.maxSeconds)
                         const dayNum = idx + 1
-                        const hideNarrow =
-                          period === 'month' && dayNum !== 1 && dayNum % 5 !== 0
+                        const hideNarrow = period === 'month' && dayNum !== 1 && dayNum % 5 !== 0
 
                         return (
                           <button
@@ -476,32 +495,19 @@ export default function RecordsPage() {
                             data-bar-slot={bucket.key}
                             aria-label={formatBarTooltip(bucket)}
                             onMouseEnter={() => setHoveredBarKey(bucket.key)}
-                            onMouseLeave={() =>
-                              setHoveredBarKey((cur) => (cur === bucket.key ? null : cur))
-                            }
+                            onMouseLeave={() => setHoveredBarKey((cur) => (cur === bucket.key ? null : cur))}
                             onFocus={() => setHoveredBarKey(bucket.key)}
-                            onBlur={() =>
-                              setHoveredBarKey((cur) => (cur === bucket.key ? null : cur))
-                            }
+                            onBlur={() => setHoveredBarKey((cur) => (cur === bucket.key ? null : cur))}
                           >
                             <span className="records-bar-track" aria-hidden="true">
-                              {connPct > 0 && (
-                                <span
-                                  className="records-bar-connection"
-                                  style={{ height: `${connPct}%` }}
-                                />
-                              )}
                               {togetherPct > 0 && (
-                                <span
-                                  className="records-bar-together"
-                                  style={{ height: `${togetherPct}%` }}
-                                />
+                                <span className="records-bar-together" style={{ height: `${togetherPct}%` }} />
+                              )}
+                              {cameraPct > 0 && (
+                                <span className="records-bar-camera" style={{ height: `${cameraPct}%` }} />
                               )}
                             </span>
-                            <span
-                              className="records-bar-label"
-                              data-hide-narrow={hideNarrow || undefined}
-                            >
+                            <span className="records-bar-label" data-hide-narrow={hideNarrow || undefined}>
                               {bucket.axisLabel}
                             </span>
                           </button>
@@ -518,21 +524,12 @@ export default function RecordsPage() {
             <h2 id="records-recent-title" className="records-recent-title">
               최근 연결
             </h2>
-            <ul className="my-mates-recent-list">
-              {periodRecords.slice(0, visibleCount).map((record) => {
-                const charId = record.characterIds[0] ?? ''
-                const mateName =
-                  mateNameByCharId.get(charId) ?? record.serverReport?.character?.name
-                return (
-                  <li key={record.id}>
-                    <RecentConnectionRow
-                      record={record}
-                      mateName={mateName}
-                      showConnectionLabel
-                    />
-                  </li>
-                )
-              })}
+            <ul className="records-row-list">
+              {periodRecords.slice(0, visibleCount).map((record) => (
+                <li key={record.id}>
+                  <RecordConnectionRow record={record} mateName={mateNameOf(record)} />
+                </li>
+              ))}
             </ul>
             {periodRecords.length > visibleCount && (
               <div className="records-more-wrap">

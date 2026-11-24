@@ -71,7 +71,7 @@ test('computeChartScale generates clean Korean-unit ticks without English "m"', 
   assert.ok(largeScale.ticks.some((t) => t.label.includes('시간')))
 })
 
-test('resolveSummaryDisplay switches to connection time and camera guidance when camera time is 0', () => {
+test('resolveSummaryDisplay always leads with connection time as 함께한 시간 and keeps camera time secondary', () => {
   const now = Date.parse('2026-11-23T15:00:00+09:00')
   const range = getRecordRange('week', now, 0)
 
@@ -80,10 +80,9 @@ test('resolveSummaryDisplay switches to connection time and camera guidance when
     makeRecord({ id: '2', studySeconds: 900, cameraFocus: undefined }),
   ]
   const camOffSummary = resolveSummaryDisplay(camOffRecords, range, true)
-  assert.equal(camOffSummary.isCameraFallback, true)
-  assert.equal(camOffSummary.primaryLabel, '이번 주 연결 시간')
+  assert.equal(camOffSummary.primaryLabel, '이번 주 함께한 시간')
   assert.equal(camOffSummary.primarySeconds, 2400)
-  assert.equal(camOffSummary.secondaryCaption, '카메라를 켜면 함께한 시간이 쌓여요')
+  assert.equal(camOffSummary.cameraCaption, null)
   assert.equal(camOffSummary.sessions, 2)
 
   const camOnRecords = [
@@ -95,10 +94,10 @@ test('resolveSummaryDisplay switches to connection time and camera guidance when
     makeRecord({ id: '4', studySeconds: 600, cameraFocus: undefined }),
   ]
   const mixedSummary = resolveSummaryDisplay(camOnRecords, range, true)
-  assert.equal(mixedSummary.isCameraFallback, false)
   assert.equal(mixedSummary.primaryLabel, '이번 주 함께한 시간')
-  assert.equal(mixedSummary.primarySeconds, 1380)
-  assert.equal(mixedSummary.secondaryCaption, '연결 시간 35분')
+  assert.equal(mixedSummary.primarySeconds, 2100)
+  assert.equal(mixedSummary.cameraSeconds, 1380)
+  assert.equal(mixedSummary.cameraCaption, '카메라로 함께한 시간 23분')
   assert.equal(mixedSummary.sessions, 2)
 
   const pastRange = getRecordRange('week', now, -1)
@@ -140,4 +139,18 @@ test('buildCalendarData and buildBarChartData match exact slot counts for week, 
   assert.equal(yearCal.cells.length, 12)
   assert.equal(yearBar.buckets.length, 12)
   assert.ok(yearCal.cells[10]!.level >= 1) // November = index 10
+})
+
+test('bar chart heights and summary follow connection time, camera time is a separate field', () => {
+  const now = Date.parse('2026-11-23T15:00:00+09:00')
+  const range = getRecordRange('week', now, 0)
+  const records = [
+    makeRecord({ id: '20', studySeconds: 3000, cameraFocus: { observedMs: 3000_000, focusedMs: 1200_000, returns: 0 } }),
+  ]
+  const chart = buildBarChartData(records, range, true)
+  const monday = chart.buckets.find((b) => b.key === '2026-11-23')!
+  assert.equal(monday.connectionSeconds, 3000)
+  assert.equal(monday.cameraSeconds, 1200)
+  assert.ok(chart.scale.maxSeconds >= 3000)
+  assert.match(chart.ariaSummary, /50분/)
 })

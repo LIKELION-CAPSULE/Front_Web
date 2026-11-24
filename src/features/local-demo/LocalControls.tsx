@@ -5,9 +5,22 @@ import type { SessionModelStage } from '../live2d/session-model'
 import { Icon } from '@/shared/ui/Icon'
 import { LOCAL_PANEL_OPEN_KEY } from './storage'
 import { localScenarios, type LocalBetaStore, type LocalScenario } from './store'
+import { recordPatternLabels, recordPatterns, type RecordPattern } from './record-patterns'
+import { CUBISM_TO_V2_EXPRESSION, V2_EXPRESSIONS, toV2ExpressionName } from '../mate-render/expression-map'
+import { forEachPreviewRenderer } from '../mate-render/preview-registry'
 import './local-demo.css'
 
 const PANEL_OPEN_STORAGE_KEY = LOCAL_PANEL_OPEN_KEY
+const expressionFiles = Object.keys(CUBISM_TO_V2_EXPRESSION)
+const v2Label = (file: string) => V2_EXPRESSIONS.find(item => item.name === CUBISM_TO_V2_EXPRESSION[file])?.label ?? ''
+
+/** Applies a Cubism expression file to the legacy stages and, through the shared table, to the v2 previews. */
+function applyPreviewExpression(stages: Set<SessionModelStage>, file: string | null) {
+  for (const stage of stages) stage.setExpression(file)
+  const v2 = toV2ExpressionName(file)
+  if (v2 !== undefined) forEachPreviewRenderer(renderer => renderer.setExpression(v2))
+}
+
 const labels: Record<LocalScenario, string> = { normal: '일반', empty: '기록 없음', loading: '느린 응답', failure: '실패 후 재시도', exhausted: '크레딧 소진', guest: '로그인 전' }
 
 function readInitialOpen(): boolean {
@@ -22,7 +35,7 @@ export function LocalControls({ store, stages }: { store: LocalBetaStore; stages
   const [open, setOpen] = useState(readInitialOpen)
   const [expression, setExpression] = useState('')
   const [, render] = useReducer(value => value + 1, 0)
-  const { authenticate } = useBackend()
+  const { authenticate, reload } = useBackend()
   const navigate = useNavigate()
   useEffect(() => store.subscribe(render), [store])
   useEffect(() => {
@@ -71,14 +84,15 @@ export function LocalControls({ store, stages }: { store: LocalBetaStore; stages
     {open && <div className="local-demo-body">
       <p>이 브라우저에만 저장돼요. 실제 API·메일·결제는 실행하지 않아요.</p>
       <label>상태 초기화<select aria-label="더미 시나리오" value={store.data.scenario} onChange={event => { const scenario = event.target.value as LocalScenario; store.reset(scenario); location.assign(scenario === 'guest' ? '/login' : '/') }}>{localScenarios.map(value => <option key={value} value={value}>{labels[value]}</option>)}</select></label>
+      <label>기록 패턴<select aria-label="더미 기록 패턴" value={store.data.recordPattern ?? 'none'} onChange={event => { store.setRecordPattern(event.target.value as RecordPattern); void reload() }}>{recordPatterns.map(value => <option key={value} value={value}>{recordPatternLabels[value]}</option>)}</select></label>
       <div className="local-demo-links">{[['/', '홈'], ['/mates/me', '내 메이트'], ['/records', '내 기록'], ['/credits', '크레딧'], ['/credits/charge', '친구 초대']].map(([path, label]) => <button type="button" key={path} onClick={() => navigate(path!)}>{label}</button>)}</div>
       <p>출석 {wallet.attendance.toLocaleString()} · 초대 {wallet.invitation.toLocaleString()} · 사용 {wallet.usedToday.toLocaleString()}</p>
       <button type="button" disabled={store.data.invitation.invitedCount >= 10} onClick={() => store.completeInvitedFriend(`fixture-${store.data.invitation.invitedCount + 1}`)}>초대한 친구 첫 연결 완료 · {store.data.invitation.invitedCount}/10명</button>
       <label><input type="checkbox" checked={settings.voice} onChange={event => store.setSettings({ voice: event.target.checked })} />음성 차감 시뮬레이션 · 20/턴</label>
       <label><input type="checkbox" checked={settings.advanced} onChange={event => store.setSettings({ advanced: event.target.checked })} />고급 모드 시뮬레이션 · 30/턴</label>
       <p>실제 STT/TTS·목소리·립싱크는 미연동입니다. 친밀도·해금 정책은 아직 확정 전이에요.</p>
-      <label>모델 표정 파일<select aria-label="채린 표정 파일" value={expression} onChange={event => { setExpression(event.target.value); store.setPreviewExpression(event.target.value || null); for (const stage of stages) stage.setExpression(event.target.value || null) }}><option value="">기본</option>{Array.from({ length: 8 }, (_, i) => <option key={i} value={`files/${String(i + 4).padStart(3, '0')}.exp3.json`}>expression{i + 1}</option>)}</select></label>
-      <p>표정 번호는 원본 파일명이며 감정·해금 단계에 임의 배정하지 않았어요.</p>
+      <label>모델 표정 파일<select aria-label="채린 표정 파일" value={expression} onChange={event => { setExpression(event.target.value); store.setPreviewExpression(event.target.value || null); applyPreviewExpression(stages, event.target.value || null) }}><option value="">기본</option>{expressionFiles.map((file, i) => <option key={file} value={file}>expression{i + 1} · v2 {v2Label(file)}</option>)}</select></label>
+      <p>표정 번호는 원본(Cubism) 파일명이에요. 메이트 미리보기의 새 모델(v2)에는 같은 표정으로 바꿔 적용해요.</p>
       <p>이메일 로그인: 형식에 맞는 임의 입력 · 인증번호: 123456</p>
       <a href="/__review" target="_blank" rel="noopener noreferrer">UI 검토 패널 열기</a>
       {!store.storageAvailable && <p role="alert">저장 공간을 사용할 수 없어 이번 실행에서만 유지돼요.</p>}
