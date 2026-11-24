@@ -1,6 +1,16 @@
-import { useId } from 'react'
+import { Suspense, lazy, useId, useState } from 'react'
 import { capsuleLogo } from '@/shared/design/brand-logo'
 import type { DozeSceneLayout } from './doze-view'
+
+/** Heatmap shader logo (WebGL): its own lazy chunk, fetched only on the live path. */
+const LidHeatmapLogo = lazy(() => import('./LidHeatmapLogo'))
+
+/**
+ * With `fit: contain` and `scale: 1` the Heatmap shader fills its box with the silhouette's own bounds (it crops the
+ * padding its preprocessing adds). The box is made HEATMAP_BOX × the logo and the picture scaled back by 1/HEATMAP_BOX,
+ * so the silhouette lands exactly on the static logo and the outer glow has room around it.
+ */
+const HEATMAP_BOX = 1.35
 
 /**
  * The desk and laptop in front of the dozing mate (DEV-only login draft), drawn with inline SVG in stage px so it
@@ -16,13 +26,17 @@ export function DozeDesk({
   width,
   height,
   screenOn,
+  heatmap,
 }: {
   scene: DozeSceneLayout
   width: number
   height: number
   /** The laptop wakes with her: rim light, logo glow and the light on her get a little brighter. */
   screenOn: boolean
+  /** Live path only (not reduced motion, no-WebGL or the still path): the logo glows with the heatmap shader. */
+  heatmap: boolean
 }) {
+  const [heatActive, setHeatActive] = useState(false)
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '')
   const id = (name: string) => `doze-${uid}-${name}`
   const url = (name: string) => `url(#${id(name)})`
@@ -52,6 +66,10 @@ export function DozeDesk({
   const flatPath = roundedTrapezoid(0, lidBottomW, 0, 0, lidBottomW, flatH, u(15), u(6))
   const logoW = Math.min(lidBottomW * 0.16, 72)
   const logoH = logoW * (456 / 472)
+  const logoCx = lidBottomW / 2
+  const logoCy = flatH * 0.46
+  const heatW = logoW * HEATMAP_BOX
+  const heatH = logoH * HEATMAP_BOX
   const note = { x: lidBottomW * 0.74, y: flatH * 0.14, w: lidBottomW * 0.145, h: lidBottomW * 0.135 }
 
   // Props, placed around the laptop in model px so they keep their size relation to her at every framing.
@@ -232,6 +250,7 @@ export function DozeDesk({
       <div
         className="doze-lid3d"
         data-screen={screenOn ? 'on' : undefined}
+        data-heat={(heatmap && heatActive) || undefined}
         style={{
           left: `${cx - lidBottomW / 2}px`,
           top: `${lidBottom - flatH}px`,
@@ -306,8 +325,8 @@ export function DozeDesk({
           <image
             className="doze-desk-logoglow"
             href={capsuleLogo.symbol.white}
-            x={lidBottomW / 2 - logoW / 2}
-            y={flatH * 0.46 - logoH / 2}
+            x={logoCx - logoW / 2}
+            y={logoCy - logoH / 2}
             width={logoW}
             height={logoH}
             filter={url('logoGlow')}
@@ -315,12 +334,25 @@ export function DozeDesk({
           <image
             className="doze-desk-logo"
             href={capsuleLogo.symbol.white}
-            x={lidBottomW / 2 - logoW / 2}
-            y={flatH * 0.46 - logoH / 2}
+            x={logoCx - logoW / 2}
+            y={logoCy - logoH / 2}
             width={logoW}
             height={logoH}
           />
         </svg>
+        {/* On the same plane as the lid, so it takes the same perspective. */}
+        {heatmap && (
+          <div
+            className="doze-heatmap"
+            data-awake={screenOn || undefined}
+            data-active={heatActive || undefined}
+            style={{ left: `${logoCx - heatW / 2}px`, top: `${logoCy - heatH / 2}px`, width: `${heatW}px`, height: `${heatH}px` }}
+          >
+            <Suspense fallback={null}>
+              <LidHeatmapLogo awake={screenOn} width={heatW} height={heatH} scale={1 / HEATMAP_BOX} onActiveChange={setHeatActive} />
+            </Suspense>
+          </div>
+        )}
       </div>
     </>
   )

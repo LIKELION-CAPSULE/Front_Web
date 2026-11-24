@@ -578,7 +578,16 @@ export default function DozeMateStage({
           />
         )}
 
-        {scene && <DozeDesk scene={scene} width={size.w} height={size.h} screenOn={screenAwake} />}
+        {scene && (
+          <DozeDesk
+            scene={scene}
+            width={size.w}
+            height={size.h}
+            screenOn={screenAwake}
+            // Only once Live2D runs: that proves WebGL2 works, and reduced motion / still path never get here.
+            heatmap={engineReady}
+          />
+        )}
       </div>
 
       {/* Big z → z → Z rising beside her head; they scatter the moment she wakes. */}

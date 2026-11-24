@@ -140,6 +140,27 @@
   opacity: 0.35;
   transition: opacity 900ms ease;
 }
+/* Heatmap logo (live path): violet "warm metal" light flowing inside the symbol. Dozing it is dim; on waking it
+   brightens over 0.9 s with the rest of the laptop light, then stays at a middle level. The static logo hands over. */
+.doze-heatmap {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  filter: brightness(0.7) saturate(0.9);
+  transition: opacity 900ms ease, filter 900ms ease;
+}
+.doze-heatmap[data-active='true'] {
+  opacity: 0.7;
+  filter: brightness(0.85) saturate(0.9);
+}
+.doze-heatmap[data-active='true'][data-awake='true'] {
+  opacity: 0.8;
+  filter: brightness(1.02) saturate(1) drop-shadow(0 0 5px rgba(169, 139, 246, 0.45));
+}
+.doze-heatmap-canvas {
+  width: 100%;
+  height: 100%;
+}
 .doze-lid3d[data-screen='on'] .doze-desk-rimlight {
   opacity: 0.75;
 }
@@ -148,6 +169,14 @@
 }
 .doze-lid3d[data-screen='on'] .doze-desk-logoglow {
   opacity: 0.85;
+}
+/* The heatmap takes over from the static logo (declared after the screen-on rules so it wins). */
+.doze-lid3d[data-heat='true'] .doze-desk-logo {
+  /* A faint white symbol stays underneath so the logo reads even where the moving shade passes. */
+  opacity: 0.22;
+}
+.doze-lid3d[data-heat='true'] .doze-desk-logoglow {
+  opacity: 0.18;
 }
 /* Props stay quieter than her and the form. */
 .doze-desk-prop {
@@ -295,16 +324,19 @@
     doze-call-breathe 2.4s ease-in-out 420ms infinite;
   transition: opacity 200ms ease-out;
 }
+/* Tail: only the triangle above the pill, so nothing overlaps (an overlap paints the translucent fill twice). It
+   cannot share the pill's backdrop blur (the pill is its backdrop root), so its fill is a touch lighter to match the
+   blurred pill. */
 .doze-call::before {
   content: '';
   position: absolute;
-  top: -6px;
+  top: -7px;
   left: 50%;
-  width: 12px;
-  height: 12px;
-  transform: translateX(-50%) rotate(45deg);
-  border-radius: 2px;
-  background: inherit;
+  width: 14px;
+  height: 7px;
+  transform: translateX(-50%);
+  background: rgba(15, 14, 23, 0.56);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 .doze-call[data-leaving='true'] {
   opacity: 0;

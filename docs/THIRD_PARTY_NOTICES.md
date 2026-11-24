@@ -42,3 +42,11 @@ PixiJS and the engine load while preparing a study session, in a separate `live2
 - **Official Gesture Recognizer float16 v1 and EfficientDet-Lite2 float16 v1 (MediaPipe Object Detector)** — Apache-2.0, covered by the same [MediaPipe license](../public/licenses/vision/MediaPipe-LICENSE.txt). Used for study-time wave and phone detection; sources and the unchanged weights are listed in the [model manifest](../public/models/README.md).
 
 Runtime JS/WASM comes from the pinned MediaPipe package without altering library source. YOLO/ONNX models and runtimes are deferred until after MVP and are not distributed.
+
+## Login draft: heatmap logo (development only)
+
+- **[Paper Shaders](https://shaders.paper.design) — `@paper-design/shaders-react` 0.0.82 and its dependency `@paper-design/shaders` 0.0.82** — Apache-2.0. The `Heatmap` shader makes the CAPSULE symbol on the laptop lid glow in the DEV-only login draft (`/login?variant=doze`, `src/features/auth/login-variants/doze/LidHeatmapLogo.tsx`). Used unmodified through its public React component; no Componentry code is used. It loads in the draft's own lazy chunk only, so it is not in the production build (checked by searching `dist`), and no copy of its license is distributed yet. The package `NOTICE` reads:
+
+  > Paper Shaders · Copyright 2026 Paper · Powered by Paper Shaders: https://shaders.paper.design
+
+  If the draft ships, copy the package `LICENSE` (Apache-2.0) and `NOTICE` into `public/licenses/` and link them here.
