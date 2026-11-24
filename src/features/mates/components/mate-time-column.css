@@ -1,7 +1,7 @@
 /*
  * 「함께한 시간」 column of 내 메이트 in a light game style. Design-system exception (docs/DESIGN_SYSTEM.md,
  * 2026-11-24): one decoration grammar (small icon + title), surfaces and thin dividers instead of outlines,
- * a soft violet edge on the affinity block only, gold only for 「다음 단계 보상」 and NEW.
+ * every block the same outside (no outline, no glow), gold only for 「다음 단계 보상」 and NEW.
  * Only transform and opacity animate; everything moving stops with reduced motion.
  */
 .mate-game {
@@ -32,18 +32,12 @@
   100% { opacity: 0; transform: translate3d(5px, -30px, 0); }
 }
 
-/* ── Blocks: a quiet surface; no outline except the affinity block's soft violet edge ── */
+/* ── Blocks: one quiet surface for every block (affinity included); no outline, no glow ── */
 .mate-game-block {
   position: relative;
   padding: 16px 20px;
   border-radius: 18px;
   background: var(--color-surface);
-}
-.mate-game-affinity {
-  background:
-    radial-gradient(ellipse 90% 80% at 0% 0%, rgb(124 92 255 / 0.14), transparent 70%),
-    var(--color-surface);
-  box-shadow: inset 0 0 0 1px rgb(185 166 255 / 0.28), 0 0 18px rgb(124 92 255 / 0.16);
 }
 
 /* Block title: one style everywhere — a small icon and the title. */
