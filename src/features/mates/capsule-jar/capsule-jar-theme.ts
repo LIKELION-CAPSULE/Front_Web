@@ -14,10 +14,6 @@ export const CHAERIN_JAR_THEME: CapsuleJarTheme = {
   rim: '#C4B9F3',
 }
 
-const MATE_JAR_THEMES: Readonly<Record<string, CapsuleJarTheme>> = {
-  chaerin: CHAERIN_JAR_THEME,
-}
-
 function hashString(value: string) {
   let hash = 2166136261
   for (let index = 0; index < value.length; index++) {
@@ -39,13 +35,8 @@ function hsl(hue: number, saturation: number, lightness: number) {
   return `#${channel(0)}${channel(8)}${channel(4)}`.toUpperCase()
 }
 
-/**
- * Returns the mate's colours. Mates without a registered palette get a calm, low-saturation tint derived from
- * their id so every mate keeps its own colour without anyone hand-picking it first.
- */
-export function capsuleJarTheme(mateId: string | undefined): CapsuleJarTheme {
-  if (mateId && MATE_JAR_THEMES[mateId]) return MATE_JAR_THEMES[mateId]
-  const hue = hashString(mateId ?? 'mate') % 360
+/** A mate's calm glass tones from one hue (white light half, tinted half, glow). */
+export function mateThemeFromHue(hue: number): CapsuleJarTheme {
   return {
     lightHalf: '#FFFFFF',
     lightHalfShade: hsl(hue, 70, 88),
@@ -54,6 +45,33 @@ export function capsuleJarTheme(mateId: string | undefined): CapsuleJarTheme {
     glow: hsl(hue, 75, 78),
     rim: hsl(hue, 60, 84),
   }
+}
+
+/**
+ * Mate colours inside the design system's palette (docs/DESIGN_SYSTEM.md: violet and white; never gold or a rainbow).
+ * Every hue stays between blue-violet and pink-violet (`MATE_HUE_RANGE`). 채린 owns the brand violet (~255°); other
+ * mates take hues away from it so 「전체」 on the records board tells them apart.
+ */
+export const MATE_HUE_RANGE = { min: 225, max: 320 } as const
+
+/** Registered mate colours (catalog ids). Add a mate here when it launches. */
+const MATE_JAR_THEMES: Readonly<Record<string, CapsuleJarTheme>> = {
+  chaerin: CHAERIN_JAR_THEME,
+  // 남학생 (추가 예정, MyMatesPage `upcoming-boy`): blue-violet. Move the entry to the real catalog id at launch.
+  'upcoming-boy': mateThemeFromHue(230),
+}
+
+/** Hues for mates without a registered colour: inside the range and clear of 채린's violet. */
+export const MATE_FALLBACK_HUES = [230, 284, 298, 312] as const
+
+/**
+ * Returns the mate's colours: the registered ones, else a calm tint from `MATE_FALLBACK_HUES` picked by the mate's id,
+ * so every mate keeps its own colour without anyone hand-picking it first — and never leaves the violet family.
+ */
+export function capsuleJarTheme(mateId: string | undefined): CapsuleJarTheme {
+  if (mateId && MATE_JAR_THEMES[mateId]) return MATE_JAR_THEMES[mateId]
+  const hue = MATE_FALLBACK_HUES[hashString(mateId ?? 'mate') % MATE_FALLBACK_HUES.length]!
+  return mateThemeFromHue(hue)
 }
 
 function hexToHsl(hex: string) {
@@ -88,8 +106,11 @@ function shift(hex: string, by: { hue: number; saturation: number; lightness: nu
   const { hue, saturation, lightness } = hexToHsl(hex)
   // Near-white glass keeps most of its whiteness: the shift scales with how coloured the tone already is.
   const amount = Math.min(1, saturation / 40 + (100 - lightness) / 25)
+  // Moved hues stay inside the mate palette (blue-violet … pink-violet); 채린's tones are well inside it.
+  const moved = (hue + by.hue * amount + 360) % 360
+  const kept = saturation < 1 ? moved : Math.min(MATE_HUE_RANGE.max, Math.max(MATE_HUE_RANGE.min, moved))
   return hsl(
-    (hue + by.hue * amount + 360) % 360,
+    kept,
     Math.max(0, Math.min(86, saturation + by.saturation * amount)),
     Math.max(8, Math.min(97, lightness + by.lightness * amount)),
   )

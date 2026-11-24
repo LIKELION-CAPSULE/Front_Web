@@ -14,9 +14,11 @@ import { isCompletedRecord } from '@/features/records/connection-day'
 import { CapsuleBoard } from '@/features/records/capsule-board/CapsuleBoard'
 import { BOARD, buildCapsuleBoard, offsetContaining } from '@/features/records/capsule-board/capsule-board-layout'
 import {
+  boardViewSlot,
   defaultBoardView,
-  readStoredBoardView,
-  storeBoardView,
+  readStoredBoardViews,
+  storeBoardViews,
+  type StoredBoardViews,
   supportsWebGL,
   yearColumnsFor,
   type BoardEmphasisControl,
@@ -99,7 +101,7 @@ export default function RecordsPage() {
   const [dayCard, setDayCard] = useState<{ key: string; index: number; phase: 'open' | 'closing' } | null>(null)
   const dayCardReturnFocus = useRef<HTMLElement | null>(null)
   // Board: 2D / 2.5D (the viewer's last choice, else 2.5D on desktop and 2D under 960 px), stage width, WebGL.
-  const [boardView, setBoardView] = useState<BoardView>(() => defaultBoardView(window.innerWidth, readStoredBoardView()))
+  const [boardViews, setBoardViews] = useState<StoredBoardViews>(readStoredBoardViews)
   const [stageWidth, setStageWidth] = useState(0)
   const [boardFallback, setBoardFallback] = useState(() => !supportsWebGL())
   const emphasisControl = useRef<BoardEmphasisControl | null>(null)
@@ -109,6 +111,9 @@ export default function RecordsPage() {
 
   const loading = status === 'loading' || isReviewRecordsLoading()
   const { period, offset, mate: selectedMateId } = parseRecordsParams(searchParams)
+  // 2D / 2.5D per period: week and month share the viewer's choice, the year keeps its own (2D until chosen).
+  const [viewportWidth] = useState(() => window.innerWidth)
+  const boardView = defaultBoardView(viewportWidth, boardViews, period)
   const range = useMemo(() => getRecordRange(period, now, offset), [period, now, offset])
   const prevRange = getRecordRange(period, now, offset - 1)
   const canShiftPrev = prevRange.startDay !== range.startDay
@@ -316,8 +321,9 @@ export default function RecordsPage() {
   )
 
   const chooseView = (next: BoardView) => {
-    setBoardView(next)
-    storeBoardView(next)
+    const views = { ...boardViews, [boardViewSlot(period)]: next }
+    setBoardViews(views)
+    storeBoardViews(views)
   }
 
   const resetLabel =
@@ -437,15 +443,19 @@ export default function RecordsPage() {
         </nav>
       )}
 
-      {mateCommentView}
-
       {periodRecords.length === 0 ? (
-        <div className="records-block records-empty-box">
-          <p className="records-empty-title">이 기간에는 함께한 기록이 없어요.</p>
-          <ButtonLink to="/">메이트 만나러 가기</ButtonLink>
-        </div>
+        <>
+          {mateCommentView}
+          <div className="records-block records-empty-box">
+            <p className="records-empty-title">이 기간에는 함께한 기록이 없어요.</p>
+            <ButtonLink to="/">메이트 만나러 가기</ButtonLink>
+          </div>
+        </>
       ) : (
         <>
+          {/* The comment and the numbers share one row so the board starts on the first screen (1280×720). */}
+          <div className="records-overview" data-has-comment={Boolean(mateCommentView) || undefined}>
+          {mateCommentView}
           <div className="records-summary-grid" data-cols={showMateCard ? '4' : '3'}>
             <section className="records-stat-card records-stat-card--primary">
               <BlockTitle icon="clock">{summary.primaryLabel}</BlockTitle>
@@ -466,6 +476,7 @@ export default function RecordsPage() {
                 <p className="records-stat-value">{summary.mates}명</p>
               </section>
             )}
+          </div>
           </div>
 
           <section className="records-block records-board-block" aria-labelledby="records-board-title" data-records-board>

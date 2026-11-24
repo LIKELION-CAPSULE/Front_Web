@@ -264,7 +264,8 @@ export function CapsuleBoard({
     const item = items[next]
     if (!item) return
     setFocusKey(item.key)
-    buttons.current[next]?.focus()
+    // The list is visually hidden: moving in it must not scroll the page (the board shows the focus).
+    buttons.current[next]?.focus({ preventScroll: true })
   }
 
   const narrow = stageWidth > 0 && stageWidth < BOARD_NARROW_STAGE
@@ -296,7 +297,7 @@ export function CapsuleBoard({
         </span>
       )}
       <div
-        className="sr-only"
+        className="sr-only capsule-board-keys"
         role="group"
         aria-label={
           yearMode

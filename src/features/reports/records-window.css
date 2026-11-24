@@ -11,7 +11,7 @@
 .records-period-tabs,
 .records-nav-btn,
 .records-mate-chip,
-.records-stat-card,
+.records-summary-grid,
 .records-block {
   background: var(--color-panel);
 }
@@ -20,7 +20,7 @@
   .records-period-tabs,
   .records-nav-btn,
   .records-mate-chip,
-  .records-stat-card,
+  .records-summary-grid,
   .records-block {
     background: linear-gradient(
       135deg,
@@ -45,8 +45,7 @@
 }
 
 /* Blocks: one padding and radius for every block (내 메이트 `.mate-game-block`). */
-.records-block,
-.records-stat-card {
+.records-block {
   position: relative;
   min-width: 0;
   padding: 16px 20px;
@@ -229,45 +228,79 @@
   outline-offset: 2px;
 }
 
-/* Summary cards (4 or 3 columns from 960 up, 2x2 below 960). The main metric leads with a larger number; no violet
-   surface (violet is for the selection and the main action). */
+/* Overview: the mate's comment and the numbers in one row (one block of numbers, divided by thin lines), so the
+   board starts on the first screen. Stacked under 1100 px. */
+.records-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.records-overview[data-has-comment] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.records-overview .records-mate-comment {
+  margin-top: 0;
+}
+
+.records-overview .records-mate-comment-avatar {
+  width: 48px;
+  height: 48px;
+}
+
 .records-summary-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 16px;
+  grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(0, 1fr));
+  align-items: start;
+  min-width: 0;
+  padding: 12px 6px;
+  border-radius: 18px;
 }
 
 .records-summary-grid[data-cols='3'] {
-  grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
 }
 
 .records-stat-card {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  min-width: 0;
+  padding: 0 14px;
+}
+
+.records-stat-card + .records-stat-card {
+  border-left: 1px solid rgb(255 255 255 / 0.06);
+}
+
+.records-stat-card .records-block-title {
+  font-size: 12px;
+  line-height: 16px;
 }
 
 .records-stat-value {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: var(--color-ink);
-  font-size: 24px;
-  line-height: 30px;
+  font-size: 20px;
+  line-height: 26px;
   font-weight: 800;
   font-variant-numeric: tabular-nums lining-nums;
   white-space: nowrap;
 }
 
 .records-stat-card--primary .records-stat-value {
-  font-size: 30px;
-  line-height: 36px;
+  font-size: 22px;
+  line-height: 28px;
 }
 
 /* Secondary: camera-measured time, small and muted under the main number. */
 .records-stat-sub {
   margin: 2px 0 0;
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 18px;
   font-variant-numeric: tabular-nums lining-nums;
   word-break: keep-all;
@@ -557,7 +590,13 @@
   border-radius: 18px;
 }
 
-/* Below 960: summary becomes 2x2 */
+@media (max-width: 1099px) {
+  .records-overview[data-has-comment] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Below 960: the numbers wrap to two rows */
 @media (max-width: 959px) {
   .records-window-body {
     padding: 16px 20px 28px;
@@ -567,11 +606,20 @@
   .records-summary-grid[data-cols='3'],
   .records-skeleton-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 12px;
   }
 
-  /* Three cards: the main metric takes the first row, the other two share the second (no empty slot). */
+  /* Three numbers: the main metric takes the first row, the other two share the second (no empty slot). */
   .records-summary-grid[data-cols='3'] > .records-stat-card--primary {
     grid-column: 1 / -1;
+  }
+
+  .records-summary-grid[data-cols='3'] > .records-stat-card:nth-child(2) {
+    border-left: 0;
+  }
+
+  .records-summary-grid[data-cols='4'] > .records-stat-card:nth-child(3) {
+    border-left: 0;
   }
 }
 
@@ -580,19 +628,8 @@
     padding: 16px 14px 24px;
   }
 
-  .records-block,
-  .records-stat-card {
+  .records-block {
     padding: 14px 16px;
-  }
-
-  .records-stat-card--primary .records-stat-value {
-    font-size: 26px;
-    line-height: 32px;
-  }
-
-  .records-stat-value {
-    font-size: 22px;
-    line-height: 28px;
   }
 }
 

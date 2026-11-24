@@ -12,7 +12,8 @@
   /* The board's own shape for the period and view (capsule-board-view.ts `boardStageAspect`). */
   aspect-ratio: var(--board-aspect, 2);
   min-height: 200px;
-  max-height: min(640px, 78vh);
+  /* Never taller than the screen under the page header and the block title, so the whole board shows at once. */
+  max-height: min(600px, max(320px, calc(100vh - 380px)));
   overflow: hidden;
   border-radius: 14px;
 }
@@ -62,4 +63,11 @@
 .capsule-board--fallback {
   display: grid;
   gap: 12px;
+}
+
+/* The keyboard / screen-reader list (visually hidden) sits at the top of the board, so focusing a day or a month
+   never scrolls the page to a spot below the board; the focus ring is on the stage. */
+.capsule-board-keys {
+  top: 0;
+  left: 0;
 }

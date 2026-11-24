@@ -13,31 +13,59 @@ import type { BoardTransition } from './capsule-board-scene.ts'
 
 export type BoardView = '2d' | '25d'
 
-export const BOARD_VIEW_STORAGE_KEY = 'capsule-records-board-view:v1'
+/**
+ * The viewer's choices, kept apart for the year: week and month share one (the days read the same in both), the year
+ * has its own and starts in 2D — twelve month boards read best from above, and a 2.5D choice made for a week should not
+ * turn the year into a small forest. v1 stored one value for every period; it becomes the week/month choice.
+ */
+export const BOARD_VIEW_STORAGE_KEY = 'capsule-records-board-view:v2'
+export const BOARD_VIEW_LEGACY_KEY = 'capsule-records-board-view:v1'
 export const BOARD_VIEW_NARROW_WIDTH = 960
+
+export type StoredBoardViews = { detail?: BoardView; year?: BoardView }
 
 export function isBoardView(value: unknown): value is BoardView {
   return value === '2d' || value === '25d'
 }
 
-/** The stored choice, else 2D under 960 px and 2.5D above. */
-export function defaultBoardView(viewportWidth: number, stored: unknown): BoardView {
-  if (isBoardView(stored)) return stored
+/** Which stored choice a period uses. */
+export const boardViewSlot = (mode: BoardMode): keyof StoredBoardViews => (mode === 'year' ? 'year' : 'detail')
+
+/** The stored choice for the period, else: year → 2D; week/month → 2D under 960 px and 2.5D above. */
+export function defaultBoardView(viewportWidth: number, stored: StoredBoardViews | null | undefined, mode: BoardMode = 'week'): BoardView {
+  const choice = stored?.[boardViewSlot(mode)]
+  if (isBoardView(choice)) return choice
+  if (mode === 'year') return '2d'
   return viewportWidth < BOARD_VIEW_NARROW_WIDTH ? '2d' : '25d'
 }
 
-export function readStoredBoardView(): BoardView | null {
+/** Parses stored choices (v2 JSON, or the v1 single value as the week/month choice). */
+export function parseStoredBoardViews(v2: string | null, v1: string | null): StoredBoardViews {
+  if (v2) {
+    try {
+      const value = JSON.parse(v2) as Record<string, unknown>
+      return {
+        ...(isBoardView(value.detail) ? { detail: value.detail } : {}),
+        ...(isBoardView(value.year) ? { year: value.year } : {}),
+      }
+    } catch {
+      // Broken entry: start over.
+    }
+  }
+  return isBoardView(v1) ? { detail: v1 } : {}
+}
+
+export function readStoredBoardViews(): StoredBoardViews {
   try {
-    const value = window.localStorage.getItem(BOARD_VIEW_STORAGE_KEY)
-    return isBoardView(value) ? value : null
+    return parseStoredBoardViews(window.localStorage.getItem(BOARD_VIEW_STORAGE_KEY), window.localStorage.getItem(BOARD_VIEW_LEGACY_KEY))
   } catch {
-    return null
+    return {}
   }
 }
 
-export function storeBoardView(view: BoardView) {
+export function storeBoardViews(views: StoredBoardViews) {
   try {
-    window.localStorage.setItem(BOARD_VIEW_STORAGE_KEY, view)
+    window.localStorage.setItem(BOARD_VIEW_STORAGE_KEY, JSON.stringify(views))
   } catch {
     // Private mode / blocked storage: the choice lasts for this page only.
   }
@@ -61,7 +89,8 @@ export function boardStageAspect(mode: BoardMode, view: BoardView, narrow: boole
   }
   if (mode === 'week') return view === '2d' ? 3.4 : 2.4
   if (mode === 'month') return view === '2d' ? 1.3 : 2
-  return view === '2d' ? 1.75 : 1.9
+  // The year's 4 × 3 month boards fit one screen (the stage height is also capped by the viewport, capsule-board.css).
+  return view === '2d' ? 1.9 : 2.2
 }
 
 /** Chip area inside a tile (tile units, centre = 0): below the date, which sits at the top-left. */

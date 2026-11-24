@@ -298,6 +298,8 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   let poolEntries: number[] = []
   let labelEntries: number[] = []
   let morph: Anim = null
+  /** A view change that arrived during a period morph: it waits until the morph is over (they never run together). */
+  let pendingView: { view: BoardView; animate: boolean } | null = null
   let riseStartedAt = -Infinity
   let riseMs = 420
   let riseEnd = 0
@@ -537,6 +539,11 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       updateTileColors()
     }
     settleCamera()
+    if (pendingView) {
+      const next = pendingView
+      pendingView = null
+      setView(next.view, next.animate)
+    }
   }
 
   function finishFlat() {
@@ -598,6 +605,11 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   }
 
   function setView(next: BoardView, animate: boolean) {
+    if (morph && animate && !reducedMotion) {
+      pendingView = next === view ? null : { view: next, animate }
+      return
+    }
+    pendingView = null
     if (next === view) return
     view = next
     finishMorph()

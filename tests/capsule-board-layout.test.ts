@@ -18,8 +18,10 @@ import {
   boardStageAspect,
   boardTransition,
   chipSlots,
+  boardViewSlot,
   defaultBoardView,
   isBoardView,
+  parseStoredBoardViews,
   yearColumnsFor,
 } from '../src/features/records/capsule-board/capsule-board-view.ts'
 
@@ -173,13 +175,23 @@ test('period offsets around the same day', () => {
   assert.equal(offsetContaining('year', '2025-06-01', today), -1)
 })
 
-test('2D / 2.5D: default by width, the stored choice wins; chips fit the tile', () => {
-  assert.equal(defaultBoardView(1440, null), '25d')
-  assert.equal(defaultBoardView(959, null), '2d')
-  assert.equal(defaultBoardView(960, undefined), '25d')
-  assert.equal(defaultBoardView(390, '25d'), '25d')
-  assert.equal(defaultBoardView(1440, '2d'), '2d')
-  assert.equal(defaultBoardView(1440, 'flat'), '25d')
+test('2D / 2.5D: week and month share the choice (default by width), the year keeps its own (default 2D)', () => {
+  assert.equal(defaultBoardView(1440, null, 'week'), '25d')
+  assert.equal(defaultBoardView(959, {}, 'month'), '2d')
+  assert.equal(defaultBoardView(960, undefined, 'week'), '25d')
+  assert.equal(defaultBoardView(1440, {}, 'year'), '2d')
+  // A 2.5D choice for week/month does not turn the year into 2.5D; a year choice is kept for the year only.
+  assert.equal(defaultBoardView(1440, { detail: '25d' }, 'year'), '2d')
+  assert.equal(defaultBoardView(1440, { detail: '2d' }, 'month'), '2d')
+  assert.equal(defaultBoardView(390, { detail: '25d', year: '25d' }, 'year'), '25d')
+  assert.equal(defaultBoardView(1440, { year: '25d' }, 'week'), '25d')
+  assert.equal(boardViewSlot('week'), 'detail')
+  assert.equal(boardViewSlot('year'), 'year')
+  // Stored values: v2 JSON, the v1 single value as the week/month choice, junk ignored.
+  assert.deepEqual(parseStoredBoardViews('{"detail":"2d","year":"25d"}', null), { detail: '2d', year: '25d' })
+  assert.deepEqual(parseStoredBoardViews(null, '2d'), { detail: '2d' })
+  assert.deepEqual(parseStoredBoardViews('{"detail":"3d"}', null), {})
+  assert.deepEqual(parseStoredBoardViews('not json', '25d'), { detail: '25d' })
   assert.equal(isBoardView('3d'), false)
   assert.equal(yearColumnsFor(400), 2)
   assert.equal(yearColumnsFor(1100), 4)
