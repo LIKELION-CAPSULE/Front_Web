@@ -12,6 +12,7 @@ import { AccountRedirect } from '@/app/components/AccountRedirect'
 import { BetaLegacyRedirect } from '@/app/components/BetaLegacyRedirect'
 import { PageNavigation } from '@/app/PageNavigation'
 import { saveStoredReferralCode } from '@/features/auth/referral-code'
+import { TourCallRoute, TourLayout } from '@/features/tour/TourLayout'
 
 const RecordsPage = lazy(() => import('@/pages/RecordsPage'))
 const CreditsPage = lazy(() => import('@/pages/CreditsPage'))
@@ -92,17 +93,21 @@ export function App() {
               <Route path="onboarding" element={<OnboardingPage />} />
             </Route>
             <Route path="mypage" element={<AccountRedirect />} />
-            <Route element={<AppLayout />}>
-              <Route index element={<HomePage />} />
-              <Route path="records" element={<RecordsPage />} />
-              <Route path="mates/me" element={<MyMatesPage />} />
-              <Route path="credits" element={<CreditsPage />} />
-              <Route path="credits/charge" element={<InvitePage />} />
-              <Route path="invite" element={<InvitePage />} />
-            </Route>
-            <Route element={<DetailLayout />}>
-              <Route path="mates/:mateId" element={<MateDetailPage />} />
-              <Route path="connections/:connectionId" element={<ConnectionRecordPage />} />
+            {/* The service tour (`?tour=<step>`) runs over these screens; see src/features/tour. */}
+            <Route element={<TourLayout />}>
+              <Route element={<AppLayout />}>
+                <Route index element={<HomePage />} />
+                <Route path="records" element={<RecordsPage />} />
+                <Route path="mates/me" element={<MyMatesPage />} />
+                <Route path="credits" element={<CreditsPage />} />
+                <Route path="credits/charge" element={<InvitePage />} />
+                <Route path="invite" element={<InvitePage />} />
+              </Route>
+              <Route element={<DetailLayout />}>
+                <Route path="mates/:mateId" element={<MateDetailPage />} />
+                <Route path="connections/:connectionId" element={<ConnectionRecordPage />} />
+              </Route>
+              <Route path="tour/call/:mateId" element={<TourCallRoute />} />
             </Route>
             <Route path="connect/:mateId" element={<ConnectionPage />} />
             <Route path="rooms/:roomId" element={<BetaLegacyRedirect />} />

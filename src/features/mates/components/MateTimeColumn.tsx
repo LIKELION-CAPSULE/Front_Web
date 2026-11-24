@@ -128,7 +128,7 @@ export function MateTimeColumn({
 
   return (
     <div className="my-mates-info mate-game" data-affinity={affinity ? 'true' : 'false'}>
-      <section className="mate-game-block mate-game-total" aria-labelledby="my-mates-total-label">
+      <section className="mate-game-block mate-game-total" data-tour="my-mates-total" aria-labelledby="my-mates-total-label">
         <BlockLabel id="my-mates-total-label" icon="clock">함께한 시간</BlockLabel>
         <p className="mate-game-total-value">
           <AnimatedDuration seconds={totalSeconds} />
@@ -139,7 +139,7 @@ export function MateTimeColumn({
       </section>
 
       {affinity && (
-        <section className="mate-game-block mate-game-affinity" aria-labelledby="my-mates-affinity-label">
+        <section className="mate-game-block mate-game-affinity" data-tour="my-mates-affinity" aria-labelledby="my-mates-affinity-label">
           <BlockLabel id="my-mates-affinity-label" icon="heart">친밀도</BlockLabel>
           <p className="mate-game-level-name">
             {affinity.stage}단계 · {affinity.stageName}
@@ -163,7 +163,7 @@ export function MateTimeColumn({
       )}
 
       {expressions && (
-        <section className="mate-game-block mate-game-expressions" aria-labelledby="my-mates-expressions-label">
+        <section className="mate-game-block mate-game-expressions" data-tour="my-mates-expressions" aria-labelledby="my-mates-expressions-label">
           <BlockLabel
             id="my-mates-expressions-label"
             icon="user"
@@ -180,7 +180,7 @@ export function MateTimeColumn({
         </section>
       )}
 
-      <section className="mate-game-block mate-game-recent" aria-labelledby="my-mates-recent-label">
+      <section className="mate-game-block mate-game-recent" data-tour="my-mates-recent" aria-labelledby="my-mates-recent-label">
         <BlockLabel
           id="my-mates-recent-label"
           icon="sparkle"

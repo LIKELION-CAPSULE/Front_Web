@@ -52,9 +52,9 @@ const passwordRequest = [...security, fill('input[name="email"]', 'review@exampl
 export const reviewScenarios: ReviewScenario[] = [
   { id: 'welcome', group: '로그인·가입', title: '로그인 시작', path: '/login', guest: true, note: '카카오·이메일 선택과 약관 안내' },
   { id: 'login', group: '로그인·가입', title: '이메일 로그인', path: '/login?mode=login', guest: true, note: '기본 입력·비밀번호 찾기' },
-  { id: 'login-assemble-idle', group: '로그인·가입', title: '로그인 조립 · 대기(DMG)', path: '/login?login=assemble&assemble=idle', guest: true, note: '채린이 카드를 앱 아이콘으로 끌어다 놓아 깨우는 초기 대기 상태' },
-  { id: 'login-assemble-live', group: '로그인·가입', title: '로그인 조립 · Live(Aliving2D)', path: '/login?login=assemble&assemble=live', guest: true, note: '조립 연출 완료 후 Aliving2D 채린이가 미디엄샷(B)에 나타난 상태(다시 보기 버튼 포함)' },
-  { id: 'login-assemble-static', group: '로그인·가입', title: '로그인 조립 · 정지 대체(엔진 없음)', path: '/login?login=assemble&assemble=live&assembleEngine=none', guest: true, note: '엔진 주소가 없을 때 full.webp 정지 이미지 + 약한 호흡으로 대체' },
+  { id: 'login-doze', group: '로그인·가입', title: '로그인 · 졸고 있는 채린', path: '/login', guest: true, note: '노트북 앞에서 꾸벅꾸벅 조는 채린(큰 Z, 「채린이를 톡 눌러서 깨워 봐」 안내). 다가가거나 누르거나 키를 누르면, 또는 10초 뒤 스스로 깸' },
+  { id: 'login-doze-awake', group: '로그인·가입', title: '로그인 · 깬 채린', path: '/login?doze=awake', guest: true, note: '깨어나 웃으며 「앗, 왔어? 기다리고 있었어.」라고 인사한 상태(다시 보기 버튼 포함). Live2D가 있으면 커서를 따라봄' },
+  { id: 'login-doze-static', group: '로그인·가입', title: '로그인 · 정지 이미지 경로', path: '/login?static=1', guest: true, note: 'Live2D 없이 조는 모습 → 하품 → 웃음 정지 이미지 크로스페이드. 운영(로그인 메이트 API 전)과 움직임 줄이기에서 보이는 화면' },
   { id: 'login-alt-illustration', group: '로그인·가입', title: '로그인 시안 · 일러스트', path: '/login?login=illustration', guest: true, note: 'PM 비교용 시안. 일러스트 파일이 없으면 방 배경 + 메이트 렌더로 대체. 오른쪽 아래에서 시안 전환' },
   { id: 'login-alt-portrait', group: '로그인·가입', title: '로그인 시안 · 얼굴 크게', path: '/login?login=portrait', guest: true, note: 'PM 비교용 시안. Live2D 얼굴 클로즈업, 비밀번호 입력 시 눈 감기 등 같은 반응' },
   { id: 'login-error', group: '로그인·가입', title: '로그인 실패', path: '/login?mode=login', guest: true, fault: 'login', steps: login, note: '잘못된 인증정보 안내' },

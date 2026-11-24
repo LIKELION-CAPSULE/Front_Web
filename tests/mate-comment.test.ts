@@ -6,6 +6,7 @@ import {
   buildMateComment,
   chaerinVoice,
   classifyPeriod,
+  dohyunVoice,
   collectPeriodFacts,
   commentHighlight,
   mateCommentKinds,
@@ -178,6 +179,29 @@ test('voices are registered per mate and unknown mates fall back to the shared v
   assert.equal(voiceFor('someone-new'), chaerinVoice)
   assert.equal(voiceFor(undefined), chaerinVoice)
   for (const kind of mateCommentKinds) assert.ok(chaerinVoice.templates[kind].length >= 2, kind)
+  // 서도현 speaks in his own voice for every kind, never 채린's lines.
+  assert.equal(voiceFor('dohyun'), dohyunVoice)
+  for (const kind of mateCommentKinds) assert.ok(dohyunVoice.templates[kind].length >= 2, kind)
+})
+
+test('서도현: his lines come from the same facts, stay short and never repeat 채린', () => {
+  const chaerinLines = new Set<string>()
+  const dohyunLines = new Set<string>()
+  for (const pattern of recordPatterns) {
+    if (pattern === 'stress') continue
+    const records = patternSessions(pattern, FRIDAY).map((session) => record(session.startedAt, session.seconds / 60, { id: String(session.id) }))
+    for (const seedKey of ['a', 'b', 'c', 'd']) {
+      const range = getRecordRange('week', FRIDAY, 0)
+      const chaerin = buildMateComment({ range, offset: 0, now: FRIDAY, records, seedKey, voice: chaerinVoice })
+      const dohyun = buildMateComment({ range, offset: 0, now: FRIDAY, records, seedKey, voice: dohyunVoice })
+      assert.ok(dohyun && chaerin)
+      assert.equal(dohyun!.kind, chaerin!.kind, pattern)
+      assert.ok(dohyun!.text.length <= MAX_LENGTH, dohyun!.text)
+      chaerinLines.add(chaerin!.text)
+      dohyunLines.add(dohyun!.text)
+    }
+  }
+  for (const line of dohyunLines) assert.ok(!chaerinLines.has(line), line)
 })
 
 test('Korean counters read naturally', () => {

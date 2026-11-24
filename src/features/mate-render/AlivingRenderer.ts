@@ -8,6 +8,9 @@ interface CapsuleV2ModelLike {
   draw(): void
 }
 
+/** Face parameters for `track` (Live2D standard ids → values in Live2D units); ids left out are not driven. */
+export type TrackPose = Readonly<Partial<Record<string, number>>>
+
 export interface CapsuleV2PlayerLike {
   model: CapsuleV2ModelLike
   running: boolean
@@ -19,6 +22,11 @@ export interface CapsuleV2PlayerLike {
   talk(ms: number): boolean
   /** Fades the playing motion out and drops queued ones (used to end talking early). */
   stopMotion?(): void
+  /**
+   * Drives face parameters directly (Live2D standard ids in Live2D units: `ParamEyeLOpen`, `ParamAngleY`, …). The
+   * player holds the values only for a short moment (it is meant for camera tracking), so callers send them every frame.
+   */
+  track?(params: TrackPose): void
   /** Reaction table lookup (`reactions.default.json`): expression + hold + talk for a backend trigger. */
   react?(trigger: string, intensity?: number): unknown
   lookAt(x: number, y: number): void
@@ -390,6 +398,28 @@ export class AlivingRenderer implements MateRenderer {
   lookAt(x: number, y: number): void {
     this.pendingLook = { x, y }
     this.player?.lookAt(x, y)
+  }
+
+  /** True once the model is ready and its player can take `track` poses. */
+  canTrack(): boolean {
+    return this.status === 'ready' && typeof this.player?.track === 'function'
+  }
+
+  /**
+   * Sets face parameters for this moment (Live2D standard ids in Live2D units, e.g. `{ ParamEyeLOpen: 0,
+   * ParamAngleY: -20 }`). The player keeps them only briefly, so send a pose every frame while driving the face and
+   * simply stop sending to hand it back (blinks, gaze, expressions return on their own). Nothing is remembered for a
+   * later attach. Returns false (and does nothing) before the model is ready, after destroy, or when the player has
+   * no `track`. Used by the login stage; the call screen and the previews never call it.
+   */
+  track(params: TrackPose): boolean {
+    if (this.destroyed || !this.canTrack()) return false
+    try {
+      this.player?.track?.(params)
+      return true
+    } catch {
+      return false
+    }
   }
 
   setExpression(name: string | null): void {

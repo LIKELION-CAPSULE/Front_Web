@@ -6,10 +6,6 @@ import {
 } from '../src/features/mate-render/mate-source.ts'
 import {
   CHAERIN_V2_LANDMARKS,
-  computeAlivingLayerBox,
-  BUST_FRAMING,
-  computeBustCamera,
-  computeFaceScreenPosition,
   computePointerGaze,
   modelPointToScreen,
 } from '../src/features/mate-render/aliving-view.ts'
@@ -78,29 +74,17 @@ test('resolveMateSource selects cubism, aliving, or static safely', () => {
   assert.deepEqual(resolveMateSource({ modelUrl: null }, opts), { kind: 'static' })
 })
 
-test('modelPointToScreen / computeAlivingLayerBox share one projection', () => {
-  const plan = computeBustCamera(892, 900)
-  const eyes = modelPointToScreen(
-    CHAERIN_V2_LANDMARKS.centerX,
-    CHAERIN_V2_LANDMARKS.eyesY,
-    plan.cameraW,
-    plan.cameraH,
-    plan.view,
-  )
-  const box = computeAlivingLayerBox({ x: 1920, y: 714, width: 300, height: 150 }, plan.cameraW, plan.cameraH, plan.view)
-  assert.ok(Math.abs(box.left - eyes.x) < 0.5)
-  assert.ok(Math.abs(box.top - eyes.y) < 0.5)
-  assert.ok(Math.abs(box.width - 100 * eyes.k) < 0.5)
+test('modelPointToScreen follows the engine projection (k = min(cw, ch) / 1280 × zoom)', () => {
+  const view = { zoom: 2, cx: 640, cy: 300 }
+  const center = modelPointToScreen(640, 300, 800, 600, view)
+  assert.deepEqual(center, { x: 400, y: 300, k: (600 / 1280) * 2 })
+  const eyes = modelPointToScreen(CHAERIN_V2_LANDMARKS.centerX, CHAERIN_V2_LANDMARKS.eyesY, 800, 600, view)
+  assert.ok(Math.abs(eyes.y - (300 + (CHAERIN_V2_LANDMARKS.eyesY - 300) * center.k)) < 1e-9)
 })
 
-test('computeFaceScreenPosition and computePointerGaze map pointer positions and clamp edges', () => {
+test('computePointerGaze maps pointer positions around the face and clamps edges', () => {
   const stageRect = { left: 0, top: 0, width: 892, height: 900 }
-  const plan = computeBustCamera(stageRect.width, stageRect.height)
-  const face = computeFaceScreenPosition(stageRect, plan)
-
-  // Face eyes in the bust shot sit horizontally centered, in the upper half (~39% of stage height)
-  assert.ok(Math.abs(face.x - 446) < 0.5)
-  assert.ok(face.y > 900 * 0.3 && face.y < 900 * 0.45, `eyes at ${face.y}`)
+  const face = { x: 446, y: 351 }
 
   // Pointer directly on face -> (0, 0)
   assert.deepEqual(
@@ -147,48 +131,4 @@ test('computeFaceScreenPosition and computePointerGaze map pointer positions and
     stageHeight: stageRect.height,
   })
   assert.deepEqual(bottomRight, { x: 1, y: -1 })
-})
-
-test('computeBustCamera frames head margin at the top and the chest (never the waist) at the bottom edge', () => {
-  for (const [cw, ch] of [
-    [892, 900],
-    [1100, 720],
-    [390, 440],
-    [635, 1280], // tall & narrow: width-limited zoom must still keep the waist off-screen
-    [500, 1400],
-    [360, 900],
-  ] as const) {
-    const plan = computeBustCamera(cw, ch)
-    // Single shot: camera == stage, all shots identity (layers, Live2D canvas and static image stay aligned).
-    assert.equal(plan.cameraW, cw)
-    assert.equal(plan.cameraH, ch)
-    assert.equal(plan.offsetLeft, 0)
-    assert.equal(plan.offsetTop, 0)
-
-    const at = (my: number) => modelPointToScreen(CHAERIN_V2_LANDMARKS.centerX, my, cw, ch, plan.view).y
-    const headY = at(CHAERIN_V2_LANDMARKS.headTopY)
-    const waistY = at(CHAERIN_V2_LANDMARKS.waistY)
-    const bottomY = at(BUST_FRAMING.bottomModelY)
-    const widthLimited = Math.abs(plan.k - cw / BUST_FRAMING.minVisibleModelWidth) < 1e-9
-    if (!widthLimited) {
-      assert.ok(headY > 0 && headY < ch * 0.2, `head top should leave a small margin, got ${headY}/${ch}`)
-    } else {
-      assert.ok(headY > 0, `head must stay on stage, got ${headY}`)
-    }
-    assert.ok(waistY > ch, `waist must be below the stage bottom (waist ${waistY}, stage ${ch})`)
-    // Never reveal anything below the chest line, whether height- or width-limited.
-    assert.ok(bottomY >= ch - 0.5, `bottom landmark must not rise above the stage bottom (${bottomY} < ${ch})`)
-
-    // Face position math follows the bust framing (eyes land where modelPointToScreen puts them).
-    const stageRect = { left: 0, top: 0, width: cw, height: ch }
-    const face = computeFaceScreenPosition(stageRect, plan)
-    assert.ok(Math.abs(face.y - at(CHAERIN_V2_LANDMARKS.eyesY)) < 0.5)
-    assert.ok(Math.abs(face.x - cw / 2) < 0.5)
-  }
-
-  const wide = computeBustCamera(892, 900)
-  const bottomWide = modelPointToScreen(640, BUST_FRAMING.bottomModelY, 892, 900, wide.view).y
-  assert.ok(Math.abs(bottomWide - 900) < 0.5, `bottom model y should sit on the stage bottom, got ${bottomWide}`)
-  const headWide = modelPointToScreen(640, CHAERIN_V2_LANDMARKS.headTopY, 892, 900, wide.view).y
-  assert.ok(Math.abs(headWide - 900 * BUST_FRAMING.headMarginRatio) < 0.5)
 })

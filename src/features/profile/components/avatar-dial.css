@@ -1,90 +1,233 @@
+/*
+ * Avatar picker (onboarding step 1, account settings profile tab).
+ * The chosen avatar stands on a soft violet halo and fades into the dark page at the waist (the same language as the
+ * big mate on 내 메이트). No frame, no outline: selection in the row is size + violet light (docs/DESIGN_SYSTEM.md).
+ * Only the stage around the model is styled: the model is never recoloured, filtered or reshaped (Live2D license).
+ */
 @layer components {
-  .avatar-dial {
-    --dial-option-size: 68px;
-    --dial-preview-size: 280px;
-    --dial-radius-x: calc(50% - var(--dial-option-size) / 2 - 8px);
-    --dial-radius-y: 112px;
-    --dial-center-y: 246px;
-    --dial-step: 25deg;
-    width: min(640px, 100%);
+  .avatar-picker {
+    --stage-w: clamp(220px, min(100%, calc((100dvh - 360px) * 0.8)), 420px);
+    --thumb: 68px;
+    --slot: 76px;
+    --halo: color-mix(in srgb, var(--color-primary) 42%, transparent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: min(480px, 100%);
     min-width: 0;
     margin: 0 auto;
     border: 0;
     padding: 0;
   }
-  .avatar-dial-stage { position: relative; height: 408px; touch-action: pan-y; }
-  .avatar-dial-stage[data-draggable] { cursor: grab; }
-  .avatar-dial-stage[data-draggable]:active { cursor: grabbing; }
-  .avatar-dial-preview { position: absolute; top: 0; left: 50%; width: var(--dial-preview-size); margin: 0; transform: translateX(-50%); }
-  .avatar-dial-portrait { position: relative; display: grid; width: 100%; height: var(--dial-preview-size); overflow: hidden; place-items: center; border: 1px solid color-mix(in srgb, var(--color-primary) 18%, transparent); border-radius: 50%; background: var(--color-panel); }
-  .avatar-dial-preview::before { position: absolute; z-index: -1; top: -22px; right: -22px; left: -22px; height: calc(var(--dial-preview-size) + 44px); border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 70%); content: ''; }
-  .avatar-dial-image, .avatar-dial-portrait > .avatar-illustration { display: block; width: 100%; height: 100%; object-fit: contain; }
-  .avatar-dial-portrait .avatar-dial-image { object-fit: cover; object-position: 50% 24%; }
-  .avatar-dial-portrait[data-preview='model'] { overflow: visible; border: 0; border-radius: 0; background: transparent; }
-  .avatar-dial-model { --dial-model-size: 215%; position: relative; width: 100%; height: 100%; overflow: hidden; }
-  .avatar-dial-model::before { position: absolute; right: 18%; bottom: 0; left: 18%; height: 12%; border-radius: 50%; background: radial-gradient(ellipse, color-mix(in srgb, var(--color-primary) 20%, transparent), transparent 70%); filter: blur(6px); content: ''; }
-  .avatar-dial-model .live2d-host { inset: 0 auto auto 50%; width: var(--dial-model-size); height: var(--dial-model-size); transform: translateX(-50%); background: transparent; }
-  .avatar-dial-model-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; color: var(--color-subtle); font-size: var(--text-caption); line-height: var(--text-caption--line-height); text-align: center; }
-  .avatar-dial-model-retry { min-height: 44px; border-radius: var(--radius-control); padding: 4px 12px; color: var(--color-text-accent); cursor: pointer; }
-  .avatar-dial-model-retry:hover { background: var(--color-primary-soft); }
-  .avatar-dial-preview figcaption { max-width: 150px; margin: 10px auto 0; overflow: hidden; color: var(--color-muted); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 500; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
-  .avatar-dial-orbit { position: absolute; top: var(--dial-center-y); left: 50%; width: calc(2 * var(--dial-radius-x)); height: calc(2 * var(--dial-radius-y)); border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent); border-radius: 50%; transform: translate(-50%, -50%); clip-path: inset(50% 0 0); pointer-events: none; }
-  .avatar-dial-hole {
+  .avatar-picker[data-size='compact'] {
+    --stage-w: min(100%, 272px, calc((85dvh - 300px) * 0.8));
+    --thumb: 50px;
+    --slot: 54px;
+    width: 100%;
+  }
+
+  /* Stage: 4:5 everywhere, so one set of model framing values (scale/offset) fits every size. */
+  .avatar-picker-stage {
+    position: relative;
+    width: var(--stage-w);
+    aspect-ratio: 4 / 5;
+    flex: none;
+    touch-action: pan-y;
+  }
+  .avatar-picker-stage[data-draggable] { cursor: grab; }
+  .avatar-picker-stage[data-draggable]:active { cursor: grabbing; }
+
+  .avatar-picker-halo {
+    position: absolute;
+    z-index: 0;
+    top: -6%;
+    left: 50%;
+    width: 128%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+      radial-gradient(closest-side, var(--halo), color-mix(in srgb, var(--color-primary) 14%, transparent) 52%, transparent 100%);
+    transform: translateX(-50%);
+    pointer-events: none;
+    animation: avatar-halo-swell 900ms cubic-bezier(0.22, 1, 0.36, 1) both, avatar-halo-breathe 9s ease-in-out 900ms infinite alternate;
+  }
+
+  /* The bottom fade is on the stage, not the model: the cut at the waist melts into the page. */
+  .avatar-picker-figure {
     position: absolute;
     z-index: 1;
-    top: calc(var(--dial-center-y) + var(--dial-radius-y) * cos(var(--dial-position) * var(--dial-step)));
-    left: calc(50% + var(--dial-radius-x) * sin(var(--dial-position) * var(--dial-step)));
+    inset: 0;
+    margin: 0;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 97%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 97%);
+  }
+  .avatar-picker-model { position: absolute; inset: 0; }
+  .avatar-picker-model .live2d-host { background: transparent; }
+  .avatar-picker-model .live2d-host[data-status='ready'] { animation: avatar-model-in 280ms ease-out both; }
+  .avatar-picker-model[data-leaving] { pointer-events: none; }
+  .avatar-picker-model-status {
+    position: absolute;
+    inset: auto 0 18%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 0 16px;
+    color: var(--color-subtle);
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+    text-align: center;
+  }
+  .avatar-picker-model-status p { margin: 0; }
+  /* Failed: over the avatar's still, above the waist fade so it stays readable. */
+  .avatar-picker-model-status[data-failed] {
+    inset: auto 50% 30% auto;
+    width: max-content;
+    max-width: calc(100% - 24px);
+    gap: 2px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+    padding: 10px 14px 4px;
+    color: var(--color-muted);
+    transform: translateX(50%);
+  }
+  .avatar-picker-retry { min-height: 44px; border-radius: var(--radius-control); padding: 4px 14px; color: var(--color-text-accent); cursor: pointer; }
+  .avatar-picker-retry:hover { background: var(--color-primary-soft); }
+
+  /* Still (reduced motion, hidden tab, no model): the thumbnail as a bust, centred at the face height. */
+  .avatar-picker-still { position: absolute; inset: 0; display: grid; justify-items: center; align-content: start; padding-top: 9%; }
+  .avatar-picker-still > .avatar-picker-image,
+  .avatar-picker-still > .avatar-picker-fallback { display: block; width: 78%; aspect-ratio: 1; object-fit: cover; }
+  /* The square still ends above the stage's waist fade: give its own bottom edge the same soft fade. */
+  .avatar-picker-still > .avatar-picker-image {
+    -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  }
+  .avatar-picker-fallback { overflow: hidden; border-radius: 50%; }
+  .avatar-picker-fallback > .avatar-illustration { width: 100%; height: 100%; }
+
+  .avatar-picker-caption { display: flex; flex-direction: column; align-items: center; gap: 2px; max-width: 100%; margin-top: -6px; text-align: center; }
+  .avatar-picker-name {
+    max-width: 100%;
+    margin: 0;
+    overflow: hidden;
+    color: var(--color-ink);
+    font-size: 28px;
+    line-height: 36px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .avatar-picker-greeting {
+    max-width: 100%;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: var(--text-body-compact);
+    line-height: var(--text-body-compact--line-height);
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+  }
+  .avatar-picker[data-size='compact'] .avatar-picker-name { font-size: 20px; line-height: 28px; }
+
+  /* Row: round stills; the choice slides to the centre and grows. Edges fade (UI mask, not the model). */
+  .avatar-picker-rail {
+    position: relative;
+    width: 100%;
+    height: calc(var(--thumb) + 28px);
+    margin-top: 12px;
+    /* Clip sideways only: the choice's violet glow must not be cut into a band above and below. */
+    overflow-x: clip;
+    overflow-y: visible;
+    touch-action: pan-y;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18%, #000 82%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 18%, #000 82%, transparent 100%);
+  }
+  .avatar-picker-track {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    transform: translate(calc((var(--rail-index) + 0.5) * var(--slot) * -1), -50%);
+    transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .avatar-picker-option {
     display: grid;
-    width: var(--dial-option-size);
-    height: var(--dial-option-size);
+    width: var(--slot);
+    height: var(--thumb);
+    flex: none;
     place-items: center;
-    border: 1px solid var(--color-divider);
-    border-radius: 50%;
-    background: var(--color-canvas);
-    padding: 5px;
-    box-shadow: inset 0 2px 6px color-mix(in srgb, var(--color-canvas) 80%, transparent), 0 8px 24px color-mix(in srgb, var(--color-canvas) 40%, transparent);
-    transform: translate(-50%, -50%);
     cursor: pointer;
-    transition: border-color 160ms, background 160ms, box-shadow 160ms;
   }
-  .avatar-dial-hole:hover { border-color: var(--color-text-accent); background: var(--color-panel); }
-  .avatar-dial-hole:has(input:checked) { border-color: var(--color-primary); background: var(--color-primary-soft); box-shadow: 0 0 0 3px var(--color-primary-soft), 0 8px 28px color-mix(in srgb, var(--color-canvas) 55%, transparent); }
-  .avatar-dial-hole:has(input:focus-visible) { outline: 2px solid var(--color-focus-ring); outline-offset: 5px; }
-  .avatar-dial-hole:has(input:disabled) { cursor: default; }
-  .avatar-dial-thumbnail { display: grid; width: 100%; height: 100%; overflow: hidden; place-items: center; border-radius: 50%; background: var(--color-panel); }
-  .avatar-dial-thumbnail .avatar-dial-image { object-fit: cover; object-position: 50% 24%; }
-  .avatar-dial-thumbnail > .avatar-illustration { width: 100%; height: 100%; }
-  .avatar-dial-hole[inert] { pointer-events: none; }
-  .avatar-dial-empty { position: absolute; right: 0; bottom: 44px; left: 0; color: var(--color-subtle); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); text-align: center; }
-  .avatar-dial[data-compact='true'] {
-    --dial-option-size: 48px;
-    --dial-preview-size: 160px;
-    --dial-radius-x: min(176px, calc(50% - var(--dial-option-size) / 2 - 4px));
-    --dial-radius-y: 52px;
-    --dial-center-y: 160px;
-    --dial-step: 34deg;
+  .avatar-picker-thumb {
+    display: grid;
+    width: var(--thumb);
+    height: var(--thumb);
+    overflow: hidden;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--color-panel);
+    opacity: 0.42;
+    transform: scale(0.66);
+    transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms ease, box-shadow 300ms ease;
   }
-  .avatar-dial[data-compact='true'] .avatar-dial-stage { height: 238px; }
-  .avatar-dial[data-compact='true'] .avatar-dial-preview::before { top: -14px; right: -14px; left: -14px; height: calc(var(--dial-preview-size) + 28px); }
-  .avatar-dial[data-compact='true'] .avatar-dial-preview figcaption { margin-top: 6px; font-size: 13px; line-height: 18px; }
-  @media (max-height: 820px) {
-    .avatar-dial[data-compact='true'] {
-      --dial-option-size: 44px;
-      --dial-preview-size: 138px;
-      --dial-radius-y: 44px;
-      --dial-center-y: 140px;
-    }
-    .avatar-dial[data-compact='true'] .avatar-dial-stage { height: 208px; }
+  .avatar-picker-option[data-distance='1'] .avatar-picker-thumb { opacity: 0.86; transform: scale(0.76); }
+  .avatar-picker-option[data-distance='2'] .avatar-picker-thumb { opacity: 0.62; transform: scale(0.7); }
+  .avatar-picker-option[data-checked] .avatar-picker-thumb {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--color-primary) 55%, transparent),
+      0 0 26px 2px color-mix(in srgb, var(--color-primary) 55%, transparent);
   }
-  @media (max-width: 767px) {
-    .avatar-dial { --dial-option-size: 60px; --dial-preview-size: 224px; --dial-radius-y: 90px; --dial-center-y: 232px; --dial-step: 37.5deg; }
-    .avatar-dial-stage { height: 370px; }
+  /* Wide enough for every choice: one centred row, no edge fade; only the choice is large. */
+  .avatar-picker-rail[data-fit] { -webkit-mask-image: none; mask-image: none; }
+  .avatar-picker-rail[data-fit] .avatar-picker-track { transform: translate(-50%, -50%); }
+  .avatar-picker-rail[data-fit] .avatar-picker-option:not([data-checked]) .avatar-picker-thumb { opacity: 0.8; transform: scale(0.72); }
+  .avatar-picker-option:not([data-checked]):hover .avatar-picker-thumb { opacity: 1; }
+  .avatar-picker-option:has(input:focus-visible) .avatar-picker-thumb { outline: 2px solid var(--color-focus-ring); outline-offset: 4px; }
+  .avatar-picker-option:has(input:disabled) { cursor: default; }
+  .avatar-picker-thumb > .avatar-picker-image { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .avatar-picker-thumb > .avatar-illustration { width: 100%; height: 100%; }
+
+  .avatar-picker-empty {
+    margin: 12px 0 0;
+    color: var(--color-subtle);
+    font-size: var(--text-body-compact);
+    line-height: var(--text-body-compact--line-height);
+    text-align: center;
   }
+  .avatar-picker-credit {
+    max-width: 100%;
+    margin: 6px 0 0;
+    color: var(--color-subtle);
+    font-size: 11px;
+    line-height: 16px;
+    text-align: center;
+    word-break: keep-all;
+  }
+
   @media (max-width: 479px) {
-    .avatar-dial { --dial-option-size: 52px; --dial-preview-size: 208px; --dial-radius-y: 82px; --dial-center-y: 220px; }
-    .avatar-dial-stage { height: 340px; }
+    .avatar-picker:not([data-size='compact']) { --stage-w: min(100%, 280px); --thumb: 58px; --slot: 66px; }
+    .avatar-picker-name { font-size: 24px; line-height: 32px; }
   }
+
   @media (prefers-reduced-motion: reduce) {
-    .avatar-dial-hole { transition: none; }
+    .avatar-picker-halo { animation: none; }
+    .avatar-picker-model .live2d-host[data-status='ready'] { animation: none; }
+    .avatar-picker-track, .avatar-picker-thumb { transition: none; }
   }
+}
+
+@keyframes avatar-halo-swell {
+  from { opacity: 0.55; transform: translateX(-50%) scale(0.92); }
+  to { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+@keyframes avatar-halo-breathe {
+  from { opacity: 1; }
+  to { opacity: 0.78; }
+}
+@keyframes avatar-model-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

@@ -83,6 +83,8 @@ function fakePlayer(main: FakeWindow) {
     talk(ms: number) { calls.talks.push(ms); return true },
     stopMotion() { calls.stops++ },
     lookAt() {}, setView() {},
+    tracked: [] as Record<string, number>[],
+    track(params: Record<string, number>) { player.tracked.push(params) },
     destroy() { calls.destroyed++; player.running = false },
   }
   // The real player starts its own loop on the main window when it is created.
@@ -153,6 +155,31 @@ test('the canvas moves to a PiP window and back on one player: frames and resize
     renderer.destroy()
     assert.equal(made.calls.destroyed, 1, 'destroy is idempotent')
   } finally { env.restore() }
+})
+
+test('track forwards a pose to the player only while ready, and never after destroy', async () => {
+  const env = await setup()
+  try {
+    const made = fakePlayer(env.main)
+    let resolveCreate: (player: never) => void = () => {}
+    const renderer = new env.AlivingRenderer({
+      ...source, loadScript: async () => {}, getPlayer: () => ({ create: () => new Promise(resolve => { resolveCreate = resolve }) }),
+    })
+    renderer.attach(new FakeHost(env.mainDoc) as never)
+    await settle()
+    assert.equal(renderer.canTrack(), false)
+    assert.equal(renderer.track({ ParamEyeLOpen: 0 }), false, 'nothing to drive while loading')
+    resolveCreate(made.player as never)
+    await settle()
+    assert.equal(renderer.canTrack(), true)
+    assert.equal(renderer.track({ ParamEyeLOpen: 0, ParamAngleY: -20 }), true)
+    assert.deepEqual(made.player.tracked, [{ ParamEyeLOpen: 0, ParamAngleY: -20 }])
+    renderer.destroy()
+    assert.equal(renderer.track({ ParamEyeLOpen: 1 }), false)
+    assert.equal(made.player.tracked.length, 1)
+  } finally {
+    env.restore()
+  }
 })
 
 test('a player created after the renderer was destroyed is released and never becomes ready', async () => {

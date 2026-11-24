@@ -1,0 +1,23 @@
+{
+ "size": [
+  192,
+  192
+ ],
+ "view": {
+  "zoom": 5.5652,
+  "cx": 640,
+  "cy": 233
+ },
+ "framing": "model y 118..348",
+ "expressions": [
+  "neutral",
+  "sulky",
+  "happy",
+  "contempt",
+  "yawn",
+  "angry",
+  "laugh",
+  "shy",
+  "focus"
+ ]
+}

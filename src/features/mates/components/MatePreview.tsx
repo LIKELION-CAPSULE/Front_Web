@@ -13,7 +13,9 @@ import {
   requestExpression,
   type ExpressionSchedule,
 } from '@/features/live2d/expression-scheduler'
-import { CALL_STAGE_GRADIENT, chaerinArtwork, mateHeroPortrait } from '@/features/mates/artwork'
+import { CALL_STAGE_GRADIENT, mateCallBackground, mateHeroPortrait } from '@/features/mates/artwork'
+import { ageRatingLabel, mateProfile } from '@/features/mates/catalog'
+import { mateLineForState } from '@/features/mates/mate-lines'
 import {
   DEFAULT_EXPRESSION_MAPPING,
   type MateReactionState,
@@ -127,14 +129,14 @@ export function MatePreview({
     reactionStateRef.current = next
     setReactionState(next)
     if (!showLine) return
-    const line = getDefaultLineForState(next)
+    const line = mateLineForState(mateId, next, getDefaultLineForState)
     if (!line) return
     clearTimeout(bubbleTimerRef.current)
     setSpeechBubble(line)
     bubbleTimerRef.current = setTimeout(() => {
       setSpeechBubble(null)
     }, reactionBubbleDurationMs(line))
-  }, [])
+  }, [mateId])
 
   const isRecord = mode === 'record'
   const effectiveSuppressSpeech = suppressSpeech || status === 'error' || isRecord
@@ -286,7 +288,7 @@ export function MatePreview({
       {/* Shared portrait room background; falls back to violet gradient */}
       {!bgFailed && (
         <img
-          src={chaerinArtwork.callBackground.portrait}
+          src={mateCallBackground(mateId).portrait}
           alt=""
           aria-hidden="true"
           className="desktop-mate-bg-img"
@@ -318,7 +320,7 @@ export function MatePreview({
         </div>
       )}
 
-      {showAgeBadge && <span className="mate-age-badge mate-detail-age-badge">전연령</span>}
+      {showAgeBadge && <span className="mate-age-badge mate-detail-age-badge">{ageRatingLabel(mateProfile(mateId)?.ageRating)}</span>}
 
       {/* Detail mode: reaction speech bubble above control bar */}
       {!effectiveSuppressSpeech && (

@@ -262,7 +262,8 @@
   - 보이스 대사는 만들어 두었지만 숨긴다.
 
 ## 표정 렌더
-- 썸네일: 실제 v2 모델로 표정마다 얼굴을 렌더한 정적 이미지다. 만드는 법은 `scripts/render-chaerin-expressions.mjs`와 에셋 폴더 README에 있다.
+- 썸네일: 실제 v2 모델로 표정마다 얼굴을 렌더한 정적 이미지다. 만드는 법은 `scripts/render-chaerin-expressions.mjs`(채린)·`scripts/render-mate-stills.mjs`(서도현 등 다른 메이트)와 에셋 폴더 README에 있다. 썸네일·흉상은 메이트별 폴더에서 고른다(`expression-thumbnails.ts`, `expression-busts.ts`).
+- 메이트 전환(2026-11-25): 채린 ↔ 서도현. 「남학생(추가 예정)」 자리표시자는 지웠다. 서도현의 표정 컬렉션은 페르소나의 해금 4개(기본·옅은 미소·어이없음·멋쩍음, 개발 샘플 `mate-sample-data.ts`)다.
 - 큰 메이트: 표정을 고르면 `MatePreview`(v2 Aliving2D)에 그 표정을 적용한다(`overrideExpression`).
   - 표정 참조는 `expression-map.ts`의 대응표로 v2 이름으로 바꾼다(`files/009.exp3.json` → `laugh`).
 - 움직임 줄이기 설정에서는 Live2D를 띄우지 않는다. 대신 표정을 고르면 그 표정의 상반신 정지 렌더(`expressions-bust/`, 히어로와 같은 뷰)로 정지 그림을 바꾼다. 다시 누르면 히어로 그림으로 돌아간다(`expression-busts.ts`, `MatePreview`의 `stillImage`).

@@ -9,7 +9,7 @@
 | `chaerin-v2-avatar.webp` | 512×512 | 머리 → 어깨 | (새로 추가, 프로필·작은 썸네일용) |
 | `chaerin-v2-full.webp` | 900×1200 | 머리 → 손끝(무릎 위) | (새로 추가) |
 
-엔진 뷰 값은 `renders.json`. 다시 만들기: dev 서버 실행 후 `.temp/login-assemble/v2-renders.mjs`.
+엔진 뷰 값은 `renders.json`. 다시 만들기: dev 서버 실행 후 `scripts/render-mate-stills.mjs`(또는 표정 렌더 스크립트, 아래).
 통화 배경(`../chaerin-call-bg/chaerin-call-bg-*.webp`, 방 그림)은 캐릭터가 없어 그대로 써요. 옛 v1 폴더는 2026-11-24 정리했어요.
 
 ## 표정 썸네일 (`expressions/`)
@@ -51,3 +51,14 @@ PLAYWRIGHT_MODULE=<playwright 패키지의 index.mjs 경로> \
 PLAYWRIGHT_CHROMIUM=<설치된 Chromium 실행 파일 경로, 선택> \
   node scripts/render-chaerin-expressions.mjs http://127.0.0.1:5231 src/assets/characters/chaerin-v2/expressions-bust --bust
 ```
+
+## 로그인 조는 모습 (`chaerin-v2-doze.webp`)
+
+로그인 화면 「졸던 채린 깨우기」의 정지 그림 경로(운영의 로그인 메이트 API 전, 움직임 줄이기, WebGL 없음)에서 처음 보이는 조는 모습이에요.
+깨면 `expressions-bust/yawn.webp` → `expressions-bust/happy.webp`로 크로스페이드해요(같은 hero 뷰라 위치가 그대로 겹쳐요).
+
+- 크기: 1520×1800(표시 760×900, 2배), 투명 배경, `chaerin-v2-hero.webp`와 같은 캔버스·엔진 뷰(model y 31…769)
+- 포즈(플레이어 `track`, Live2D 표준 ID): `ParamEyeLOpen 0`, `ParamEyeROpen 0`, `ParamAngleX -4`, `ParamAngleY -30`, `ParamAngleZ 7`,
+  `ParamMouthOpenY 0.05` — 코드의 `DOZE_STILL_POSE`(`src/features/auth/login-variants/doze/doze-motion.ts`)와 같아야 해요
+  (Live2D가 준비되면 이 포즈에서 졸기 동작을 이어 받아 크로스페이드해요).
+- 다시 만들기: 위 표정 렌더와 같은 준비(로컬 mock dev 서버)에서, 플레이어를 hero 뷰로 만들고 매 프레임 위 포즈를 `track`한 뒤 1.6초 뒤 캔버스를 저장해요.

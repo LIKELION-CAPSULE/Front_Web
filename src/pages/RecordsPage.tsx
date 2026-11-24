@@ -373,7 +373,7 @@ export default function RecordsPage() {
   return (
     <RecordsWindowFrame>
       <div className="records-toolbar">
-        <div className="records-period-tabs" role="tablist" aria-label="기록 기간">
+        <div className="records-period-tabs" role="tablist" aria-label="기록 기간" data-tour="records-periods">
           {recordPeriods.map((item) => (
             <button
               key={item.id}
@@ -462,7 +462,7 @@ export default function RecordsPage() {
           {/* The comment and the numbers share one row so the board starts on the first screen (1280×720). */}
           <div className="records-overview" data-has-comment={Boolean(mateCommentView) || undefined}>
           {mateCommentView}
-          <div className="records-summary-grid" data-cols={showMateCard ? '4' : '3'}>
+          <div className="records-summary-grid" data-tour="records-summary" data-cols={showMateCard ? '4' : '3'}>
             <section className="records-stat-card records-stat-card--primary">
               <BlockTitle icon="clock">{summary.primaryLabel}</BlockTitle>
               <p className="records-stat-value">{duration(summary.primarySeconds)}</p>
@@ -502,7 +502,7 @@ export default function RecordsPage() {
                   )}
                 </p>
                 {!boardFallback && (
-                  <div className="records-view-toggle" role="group" aria-label="보기 방식">
+                  <div className="records-view-toggle" role="group" aria-label="보기 방식" data-tour="records-view">
                     {(['2d', '25d'] as const).map((value) => (
                       <button
                         key={value}

@@ -391,7 +391,59 @@ export const chaerinVoice: MateVoice = {
   },
 }
 
-const voices = new Map<string, MateVoice>([[chaerinVoice.id, chaerinVoice]])
+/**
+ * 서도현 (2026-11-25 persona: a blunt childhood friend who is always there). Short 반말, teasing on the surface, caring
+ * underneath. The same facts as 채린's voice; nothing the records do not contain.
+ */
+export const dohyunVoice: MateVoice = {
+  id: 'dohyun',
+  templates: {
+    firstMeet: [
+      () => '아직 같이 한 기록이 없네. 자리 맡아놨으니까 와.',
+      () => '여긴 아직 비었어. …첫 캡슐은 같이 채우자.',
+    ],
+    missed: [
+      (c) => (c.previousSessions > 0 ? `${c.periodWord}엔 한 번도 안 왔네. ${c.previousWord}엔 ${times(c.previousSessions)} 왔으면서.` : null),
+      (c) => (c.lastSeenDaysAgo !== null && c.lastSeenDaysAgo >= 2 ? `너 ${days(c.lastSeenDaysAgo)}째 안 보이더라. …뭐, 바빴냐?` : null),
+      (c) => `${c.periodWord}엔 아직이네. 자리 비워 둘게.`,
+    ],
+    firstPeriod: [
+      (c) => about('first', c.tense(`${c.periodWord}부터 같이 했네. ${times(c.sessions)}이면 시작은 괜찮다.`, `${c.periodWord}부터 같이 했었지. 그때 ${times(c.sessions)} 왔었고.`)),
+      (c) => about('first', `처음치고 ${c.total}이면 나쁘지 않네.`),
+    ],
+    long: [
+      (c) => about('longest', `${c.longest!.dayLabel}엔 ${c.longestDuration}이나 붙어 있었네. 안 힘들었냐?`),
+      (c) => (c.longSessions >= 2 ? about('long', `2시간 넘긴 게 ${times(c.longSessions)}이야. 쉬면서 해.`) : null),
+    ],
+    steady: [
+      (c) => (c.isCurrent && c.streakDays >= 3 ? about('streak', `${c.streakDays}일 연속이네. …원래 이 정도는 했잖아.`) : null),
+      (c) => (c.activeDays === c.elapsedDays ? about('allDays', `${c.periodTopic} 하루도 안 빠졌네. 꽤 하는데?`) : null),
+      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, 합쳐서 ${c.total}. 수고했어.`),
+    ],
+    late: [
+      (c) => about('late', `${c.periodWord}엔 거의 ${lateWord(c)}에 왔네. 잠은 자면서 해.`),
+      (c) => (c.isCurrent ? about('late', `늦게 온 게 ${times(c.lateSessions)}이야. 오늘은 일찍 자라.`) : null),
+    ],
+    more: [
+      (c) => about('active', `${c.previousWord}보다 ${times(c.sessions - c.previousSessions)} 더 왔네. 좀 열심히 했다?`),
+      (c) => about('active', `${c.previousWord} ${times(c.previousSessions)}, ${c.periodWord} ${times(c.sessions)}. ${c.tense('늘었네.', '그때 늘었지.')}`),
+    ],
+    light: [
+      (c) => (c.sessions === 1 ? about('longest', `${c.periodWord}엔 한 번. ${c.longest!.dayLabel}에 ${c.longestDuration} 했지.`) : null),
+      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, ${c.total}. 다음엔 좀 더 와.`),
+    ],
+    less: [
+      (c) => about('active', `${c.periodTopic} ${c.previousWord}보다 뜸했네. 바빴냐?`),
+      (c) => `${c.periodWord} ${c.total}. 적어도 괜찮아, 천천히 해.`,
+    ],
+    regular: [
+      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, 합쳐서 ${c.total}. 고생했네.`),
+      (c) => (c.longest ? about('longest', `${c.periodWord} 제일 길었던 건 ${c.longest.dayLabel} ${c.longestDuration}. 그날 좀 했지.`) : null),
+    ],
+  },
+}
+
+const voices = new Map<string, MateVoice>([[chaerinVoice.id, chaerinVoice], [dohyunVoice.id, dohyunVoice]])
 
 /** Voice for a mate slug. Mates without their own lines speak with the shared friendly voice. */
 export function voiceFor(mateId: string | undefined): MateVoice {

@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
 import { availableMates, mateByName, type AvailableMate } from '@/features/mates/catalog'
-import { matePortrait } from '@/features/mates/artwork'
+import { chaerinArtwork, mateArtwork, matePortrait } from '@/features/mates/artwork'
 import { expressionCount, formatFirstMetDate, latestConnectedTimestamp, summarizeMateRecords, type MateExpressionUnlock } from '@/features/mates/my-mates-utils'
 import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate-features'
 import { expressionThumbnail } from '@/features/mates/expression-thumbnails'
@@ -27,7 +27,6 @@ import { capsuleVisitKey } from '@/features/mates/capsule-jar/capsule-jar-visit'
 import { useCapsuleVisit } from '@/features/mates/capsule-jar/use-capsule-visit'
 import { ButtonLink } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
-import chaerinCardArt from '@/assets/characters/chaerin-v2/chaerin-v2-card.webp'
 import '@/features/mates/mates.css'
 import '@/features/mates/my-mates.css'
 
@@ -39,9 +38,6 @@ const CapsuleJar = lazy(() => import('@/features/mates/capsule-jar/CapsuleJar'))
 const CapsuleJarPreview = import.meta.env.DEV
   ? lazy(() => import('@/features/mates/capsule-jar/CapsuleJarPreview'))
   : null
-
-/** Mates that are announced but not open yet (same as the home screen's placeholder). */
-const UPCOMING_MATES: readonly MateSwitcherItem[] = [{ id: 'upcoming-boy', name: '남학생', upcoming: true }]
 
 type DevSamples = typeof import('@/features/mates/dev-samples')
 
@@ -80,9 +76,9 @@ function MyMatesWindowFrame({ loadingScreen, children }: { loadingScreen?: 'my-m
   )
 }
 
-/** v2 still render for 채린; other mates use their portrait until their own card art exists. */
+/** The mate's v2 card still; mates without bundled stills use the server's portrait. */
 function cardArtFor(mate: AvailableMate) {
-  return mate.id === 'chaerin' ? chaerinCardArt : matePortrait(mate.id, mate.image)
+  return mateArtwork(mate.id)?.card ?? matePortrait(mate.id, mate.image)
 }
 
 export default function MyMatesPage() {
@@ -243,7 +239,7 @@ export default function MyMatesPage() {
     : null
   const expressions = features.expressions
     ? ((!previewMate ? mateUnlocks?.[selectedMate.id]?.expressions : undefined) ??
-      (import.meta.env.DEV ? devSamples?.sampleUnlocks(relation?.stage ?? 1, firstMetAt ?? undefined).expressions : null) ??
+      (import.meta.env.DEV ? devSamples?.sampleUnlocks(relation?.stage ?? 1, firstMetAt ?? undefined, previewMate ? 'chaerin' : selectedMate.id).expressions : null) ??
       null)
     : null
   // The one progress on the page: the affinity stage (the panel caption shows the stage, the column the rest).
@@ -265,8 +261,7 @@ export default function MyMatesPage() {
 
   const switcherMates: MateSwitcherItem[] = [
     ...mates.map((mate) => ({ id: mate.id, name: mate.name, image: cardArtFor(mate) })),
-    ...(import.meta.env.DEV && previewMates ? previewMates : []).map((mate) => ({ id: mate.id, name: mate.name, image: chaerinCardArt, tint: mate.tint })),
-    ...UPCOMING_MATES,
+    ...(import.meta.env.DEV && previewMates ? previewMates : []).map((mate) => ({ id: mate.id, name: mate.name, image: chaerinArtwork.card, tint: mate.tint })),
   ]
 
   // The panel's mate: the big Live2D bust (gaze follows the pointer; the v2 hero still under reduced motion, while
@@ -327,9 +322,9 @@ export default function MyMatesPage() {
   const actions = (
     <>
       {import.meta.env.DEV && previewMate ? (
-        <span className="my-mates-meet my-mates-meet--disabled" aria-disabled="true">시안 메이트예요</span>
+        <span className="my-mates-meet my-mates-meet--disabled" aria-disabled="true" data-tour="my-mates-meet">시안 메이트예요</span>
       ) : (
-        <ButtonLink to={`/mates/${selectedMate.id}`} className="my-mates-meet">
+        <ButtonLink to={`/mates/${selectedMate.id}`} className="my-mates-meet" data-tour="my-mates-meet">
           {`${mateName} 만나러 가기`}
           <Icon name="chevron" size={16} />
         </ButtonLink>
@@ -347,7 +342,7 @@ export default function MyMatesPage() {
           <MateSwitcher mates={switcherMates} selectedId={selectedId} onSelect={selectMate} />
         </div>
 
-        <div className="my-mates-scene">
+        <div className="my-mates-scene" data-tour="my-mates-scene">
           <Suspense fallback={<div className="my-mates-scene-loading" aria-busy="true" />}>
             <CapsuleJar
               // One scene per mate: nothing of the previous mate's opening or record card can linger.

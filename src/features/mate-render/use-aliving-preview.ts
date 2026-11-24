@@ -10,6 +10,8 @@ import {
 import { toV2ExpressionName } from './expression-map'
 import type { PreviewMateSource } from './mate-source'
 import { registerPreviewRenderer } from './preview-registry'
+import { mateWarmPool } from './warm-pool'
+import { warmKey } from './warm-renderer'
 import type { MateRenderStatus, MateRenderer } from './types'
 
 export type AlivingPreviewStatus = MateRenderStatus | 'none'
@@ -64,7 +66,12 @@ export function useAlivingPreview({
     // Layout size (a transformed host has a skewed bounding box).
     const initialView = framingRef.current(Math.max(1, host.clientWidth), Math.max(1, host.clientHeight))
     viewRef.current = initialView
-    const renderer = new AlivingRenderer({
+    // A renderer warmed on an earlier screen (home's idle prewarm, or the previous preview of the same model) is
+    // taken as is: engine, model and textures are already loaded.
+    const poolKey = warmKey(source, pixelScale ?? 1)
+    const owner = mateWarmPool.generation()
+    const warm = mateWarmPool.claim(poolKey)
+    const renderer = warm ?? new AlivingRenderer({
       modelUrl: source.modelUrl,
       engineUrl: source.engineUrl,
       playerUrl: source.playerUrl,
@@ -73,10 +80,15 @@ export function useAlivingPreview({
       pixelScale,
       maxPixelRatio: pixelScale && pixelScale > 1 ? 3 : 2,
     })
+    if (warm) renderer.setView(initialView.zoom, initialView.cx, initialView.cy)
     rendererRef.current = renderer
+    const unmarkActive = mateWarmPool.markActive(poolKey)
     const unregister = registerPreviewRenderer(renderer)
-    const unsubscribe = renderer.subscribe(() => setResult({ key, status: renderer.getStatus() }))
+    const sync = () => setResult({ key, status: renderer.getStatus() })
+    const unsubscribe = renderer.subscribe(sync)
     renderer.attach(host)
+    // A warm renderer may already be ready (no status change will follow).
+    if (warm && renderer.getStatus() !== 'loading') queueMicrotask(sync)
 
     const resizeObserver = new ResizeObserver(() => {
       const nextWidth = host.clientWidth
@@ -92,7 +104,10 @@ export function useAlivingPreview({
       resizeObserver.disconnect()
       unsubscribe()
       unregister()
-      renderer.destroy()
+      unmarkActive()
+      // Kept warm for the next preview of this model (another screen, or StrictMode's remount); destroyed when
+      // nothing claims it in time (warm-renderer.ts).
+      mateWarmPool.park(poolKey, renderer, owner)
       if (rendererRef.current === renderer) rendererRef.current = null
       viewRef.current = null
     }

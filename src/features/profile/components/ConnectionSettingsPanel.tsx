@@ -1,7 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { useMedia } from '@/features/media/media-context'
 import { deviceErrorMessage } from '@/features/media/device-controller'
-import { CREDIT_PRICING } from '@/features/credits/credit-utils'
 import { Button } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { FormField } from '@/shared/ui/FormField'
@@ -21,7 +20,6 @@ export function ConnectionSettingsPanel() {
   const pipSectionId = useId()
   const pipId = useId()
   const voiceId = useId()
-  const costId = useId()
 
   useEffect(() => {
     let current = true
@@ -50,7 +48,7 @@ export function ConnectionSettingsPanel() {
   return (
     <>
       <h2 className="account-settings-title">설정</h2>
-      <div className="connection-settings-groups">
+      <div className="connection-settings-groups" data-tour="account-settings">
         <section className="connection-settings-group" aria-labelledby={devicesId}>
           <h3 id={devicesId} className="connection-settings-group-title">
             통화 기기
@@ -157,19 +155,6 @@ export function ConnectionSettingsPanel() {
           )}
         </section>
 
-        <section className="connection-settings-group" aria-labelledby={costId}>
-          <h3 id={costId} className="connection-settings-group-title">
-            대화 비용
-          </h3>
-          <div className="connection-settings-cost-chips">
-            <span className="connection-settings-cost-chip">기본 채팅 {CREDIT_PRICING.basicChat}</span>
-            <span className="connection-settings-cost-chip">보이스 {CREDIT_PRICING.voice}</span>
-            <span className="connection-settings-cost-chip">고급 {CREDIT_PRICING.advanced}</span>
-            <span className="connection-settings-cost-chip">
-              보이스+고급 {CREDIT_PRICING.voiceAndAdvanced}
-            </span>
-          </div>
-        </section>
       </div>
     </>
   )

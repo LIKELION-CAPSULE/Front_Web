@@ -13,7 +13,8 @@ import { ConnectMateButton } from '@/features/mates/components/ConnectMateButton
 import { ConnectionPip } from '@/features/mates/components/ConnectionPip'
 import { useDocumentPip } from '@/features/mates/use-document-pip'
 import AccountSettingsDialog from '@/features/profile/components/AccountSettingsDialog'
-import { CALL_STAGE_GRADIENT, chaerinArtwork, mateHeroPortrait, matePortrait } from '@/features/mates/artwork'
+import { withParticle } from '@/shared/lib/korean'
+import { CALL_STAGE_GRADIENT, mateCallBackground, mateHeroPortrait, matePortrait } from '@/features/mates/artwork'
 import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
 import { useExpressionDirector } from '@/features/live2d/use-live2d'
 import { useNow } from '@/features/session/use-now'
@@ -357,7 +358,7 @@ export default function ConnectionPage() {
           <div className="connection-entry-stage" style={{ background: CALL_STAGE_GRADIENT }}>
             {!bgFailed && (
               <img
-                src={chaerinArtwork.callBackground.portrait}
+                src={mateCallBackground(mate.id).portrait}
                 alt=""
                 aria-hidden="true"
                 className="desktop-mate-bg-img"
@@ -372,7 +373,7 @@ export default function ConnectionPage() {
             )}
           </div>
           <div className="connection-entry-body">
-            <h1 id="connection-entry-title">{backend.activeSummary ? `${mate.name}과 다시 연결할까요?` : mate.name}</h1>
+            <h1 id="connection-entry-title">{backend.activeSummary ? `${withParticle(mate.name, '과', '와')} 다시 연결할까요?` : mate.name}</h1>
             {backend.activeSummary && <p className="connection-entry-sub">하던 대화를 이어서 해요.</p>}
             <ConnectMateButton
               mate={mate}
@@ -593,7 +594,7 @@ export default function ConnectionPage() {
             >
               {!bgFailed && (
                 <img
-                  src={chaerinArtwork.callBackground.landscape}
+                  src={mateCallBackground(mate.id).landscape}
                   alt=""
                   aria-hidden="true"
                   className="connection-mate-bg-img"
@@ -681,7 +682,7 @@ export default function ConnectionPage() {
           <aside id="connection-chat" className="connection-chat desktop-window" aria-labelledby="connection-chat-title">
             <header className="desktop-window-titlebar mate-window-titlebar-static">
               <div className="desktop-window-title-left">
-                <h2 id="connection-chat-title">{mate.name}과 대화</h2>
+                <h2 id="connection-chat-title">{withParticle(mate.name, '과', '와')} 대화</h2>
               </div>
               <div className="desktop-window-title-right">
                 <Button variant="ghost" size="sm" onClick={() => setChatOpen(false)} aria-label="대화창 닫기" className="connection-chat-close">
@@ -693,7 +694,7 @@ export default function ConnectionPage() {
               ref={messageList}
               className="connection-messages"
               role="log"
-              aria-label={`${mate.name}과 대화`}
+              aria-label={`${withParticle(mate.name, '과', '와')} 대화`}
               aria-live="polite"
               aria-relevant="additions"
               onScroll={() => {
@@ -775,7 +776,7 @@ export default function ConnectionPage() {
         onClose={() => { if (!finishing) setLeaveOpen(false) }}
         dismissible={!finishing}
         showHeader={false}
-        title={`${mate.name}과의 연결을 끊을까요?`}
+        title={`${withParticle(mate.name, '과', '와')}의 연결을 끊을까요?`}
         className="mate-reset-dialog mate-reset-dialog--desktop connection-leave-dialog"
       >
         <header className="desktop-window-titlebar mate-window-titlebar-static">
@@ -797,7 +798,7 @@ export default function ConnectionPage() {
           </div>
         </header>
         <div className="mate-reset-dialog-body">
-          <h2 className="mate-reset-dialog-heading">{mate.name}과의 연결을 끊을까요?</h2>
+          <h2 className="mate-reset-dialog-heading">{withParticle(mate.name, '과', '와')}의 연결을 끊을까요?</h2>
           {leaveQuote && (
             <div className="connection-leave-quote">
               <span className="connection-leave-quote-name">{mate.name}</span>

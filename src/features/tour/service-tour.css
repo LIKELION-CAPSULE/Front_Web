@@ -1,0 +1,111 @@
+/*
+ * 서비스 투어 (ServiceTour.tsx, 홈 「사용법 보기」): 채린's cursor (Showcase Pointer), the press previews, the reduced-motion
+ * line and the practice call. The layer, dim and panel are in tour-layer.css (main bundle: shown while this loads).
+ */
+/* 채린's cursor: lines wrap instead of running off screen; her avatar sits in the name pill. */
+.service-tour-pointer .showcase-pointer-cursor-label {
+  /* The anchor is a point: without max-content the pill would shrink to one character per line. */
+  width: max-content;
+  max-width: min(300px, calc(100vw - 48px));
+  align-items: center;
+  gap: 6px;
+  white-space: normal;
+  word-break: keep-all;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.service-tour-pointer .showcase-pointer-cursor-label::before {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--service-tour-avatar) center / cover no-repeat, color-mix(in srgb, #fff 24%, transparent);
+  content: '';
+}
+/* Targets at the right edge (credits, profile): the label opens to the left of the arrow. */
+.service-tour-pointer--label-left .showcase-pointer-cursor-label-anchor { right: 8px; left: auto; }
+
+/* What the real hover / press would show, driven by the cursor's state attributes. */
+a.mate-card[data-cursor-hover] { transform: translateY(-4px); }
+.account-settings-tab[data-cursor-hover] { color: var(--color-ink); }
+.app-nav-item[data-cursor-hover] { color: var(--color-text-accent); }
+.credit-chip[data-cursor-hover] { color: var(--color-ink); }
+[data-cursor-press] { transform: scale(0.97); transition: transform 90ms ease-out; }
+
+/* The visual press of 「연결하기」: a local preview of what a connection has (nothing starts). */
+.service-tour-preview {
+  position: fixed;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 320px;
+  animation: service-tour-pop 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.service-tour-preview > span {
+  border-radius: 999px;
+  background: var(--color-selected);
+  padding: 6px 12px;
+  color: var(--color-selected-text);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  font-weight: 600;
+}
+
+/* Reduced motion: 채린's line next to the target. */
+.service-tour-line {
+  position: fixed;
+  z-index: 3;
+  top: 40%;
+  left: 50%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 320px;
+  border-radius: 14px 14px 14px 4px;
+  background: #8053F2;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 13.5px;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+.service-tour-line img { flex: none; width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+.service-tour-line b { display: block; font-size: 12px; font-weight: 700; }
+
+@keyframes service-tour-pop {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+/* 연습 통화: the real call screen's look; the badge says it is a practice. */
+.tour-call-dock { display: contents; }
+.tour-call-badge {
+  position: fixed;
+  z-index: 5;
+  top: 52px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--color-selected);
+  padding: 6px 14px;
+  color: var(--color-selected-text);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  box-shadow: var(--floating-shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .service-tour-preview { animation: none; }
+  [data-cursor-press] { transition: none; }
+}
+
+/* Above the arrow when below would cover a control (tour-placement.ts chooses; the anchor ends 6px over the tip). */
+/* --service-tour-label-lift: how far the tip sits below the target's top edge, so the label clears the target's row. */
+.service-tour-pointer--label-up .showcase-pointer-cursor-label-anchor { top: auto; bottom: calc(6px + var(--service-tour-label-lift, 0px)); }

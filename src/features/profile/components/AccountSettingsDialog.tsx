@@ -12,7 +12,6 @@ import { ConnectionSettingsPanel } from './ConnectionSettingsPanel'
 import '@/features/mates/mates.css'
 import '../account-content.css'
 import './account-settings.css'
-import './avatar-background.css'
 
 const menus = [
   { id: 'profile', label: '프로필', icon: 'user' },
@@ -78,9 +77,12 @@ function AccountLogout({
 export default function AccountSettingsDialog({
   onClose,
   initialView = 'profile',
+  locked = false,
 }: {
   onClose: () => void
   initialView?: 'profile' | 'settings'
+  /** Held open by the service tour: the backdrop and Esc do not close it (the tour closes it with itself). */
+  locked?: boolean
 }) {
   const { state } = useDemo()
   const prefix = useId()
@@ -140,7 +142,7 @@ export default function AccountSettingsDialog({
       onClose={onClose}
       showHeader={false}
       showCloseButton={false}
-      dismissible={!busy}
+      dismissible={!busy && !locked}
       className="account-settings-dialog"
     >
       <div ref={windowRef} className="account-settings-window">
@@ -188,7 +190,7 @@ export default function AccountSettingsDialog({
           </aside>
 
           <div
-            className={`account-settings-content${view === 'profile' ? ' avatar-background' : ''}`}
+            className="account-settings-content"
             data-account-content={view}
           >
             <section

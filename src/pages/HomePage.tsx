@@ -4,8 +4,7 @@ import { useBackend } from '@/features/backend/backend-context'
 import { availableMates } from '@/features/mates/catalog'
 import { MateCard } from '@/features/mates/components/MateCard'
 import { MateWelcome } from '@/features/mates/components/MateWelcome'
-import { MateTutorial } from '@/features/mates/components/MateTutorial'
-import { accountRequest } from '@/features/profile/account-location'
+import { beginTour } from '@/features/tour/tour-start'
 import { Button } from '@/shared/ui/Button'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
 import { enqueueNotification, type NotificationItem } from '@/shared/ui/notification-queue'
@@ -17,34 +16,21 @@ export default function HomePage() {
   const { refreshHome, reload, status, error, home, homeContentVersion } = useBackend()
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const heading = useRef<HTMLHeadingElement>(null)
-  const tutorialTrigger = useRef<HTMLButtonElement>(null)
-  const tutorialFocus = useRef<'trigger' | 'mates'>('trigger')
-  const tutorialOpen = new URLSearchParams(location.search).get('tutorial') === '1' && !accountRequest(location.search)
-  const tutorialWasOpen = useRef(false)
+  const tourRunning = new URLSearchParams(location.search).has('tour')
   const mates = availableMates(home)
   const explore = useCallback(() => {
     heading.current?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
     heading.current?.focus({ preventScroll: true })
   }, [])
-  function showTutorial() {
-    const params = new URLSearchParams(location.search)
-    params.set('tutorial', '1')
-    tutorialFocus.current = 'trigger'
-    navigate({ pathname: '/', search: `?${params}`, hash: location.hash }, { preventScrollReset: true })
+  // 「사용법 보기」 starts the service tour (src/features/tour); the tour itself moves between screens.
+  function showTour() {
+    navigate(beginTour(location.pathname + location.search), { preventScrollReset: true })
   }
-  function closeTutorial(complete = false) {
-    const params = new URLSearchParams(location.search)
-    params.delete('tutorial')
-    tutorialFocus.current = complete ? 'mates' : 'trigger'
-    navigate({ pathname: '/', search: params.size ? `?${params}` : '', hash: location.hash }, { replace: true, preventScrollReset: true })
-  }
+  // Old 「사용법 보기」 links (`?tutorial=1`) open the tour from its start.
+  const legacyTutorial = new URLSearchParams(location.search).get('tutorial') === '1'
   useEffect(() => {
-    const wasOpen = tutorialWasOpen.current
-    tutorialWasOpen.current = tutorialOpen
-    if (!wasOpen || tutorialOpen) return
-    const frame = requestAnimationFrame(() => { if (tutorialFocus.current === 'mates') explore(); else tutorialTrigger.current?.focus({ preventScroll: true }) })
-    return () => cancelAnimationFrame(frame)
-  }, [tutorialOpen, explore])
+    if (legacyTutorial) navigate(beginTour('/'), { replace: true })
+  }, [legacyTutorial, navigate])
   const showError = useCallback((text: string) => {
     const notice: NotificationItem = { id: 'home-connection', tone: 'error', title: '앱 연결 실패', text }
     setNotifications(current => enqueueNotification(current, notice))
@@ -83,7 +69,7 @@ export default function HomePage() {
             오늘은 누구와 함께할까요?
           </h2>
         </div>
-        <Button ref={tutorialTrigger} variant="ghost" size="sm" className="mate-tutorial-trigger" aria-haspopup="dialog" onClick={showTutorial}>
+        <Button variant="ghost" size="sm" className="mate-tutorial-trigger" aria-haspopup="dialog" aria-expanded={tourRunning} disabled={mates.length === 0} onClick={showTour}>
           사용법 보기
         </Button>
       </div>
@@ -97,21 +83,9 @@ export default function HomePage() {
       ) : (
         <div className="mate-grid">
           {mates.map(mate => <MateCard key={mate.id} mate={mate} />)}
-          {mates.length === 1 && (
-            <div className="mate-card mate-card--upcoming" aria-label="남학생 메이트 준비 중">
-              <div className="mate-card-image mate-card-image--upcoming">
-                <span className="mate-card-upcoming-pill">곧 만나요</span>
-              </div>
-              <div className="mate-card-copy">
-                <div className="mate-card-heading"><h3 className="type-card-title">남학생</h3><span className="mate-card-status-label">준비 중</span></div>
-                <span className="mate-age-badge">전연령</span>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </section>
     <NotificationStack items={notifications} onDismiss={id => setNotifications(current => current.filter(item => item.id !== id))} />
-    {tutorialOpen && <MateTutorial mates={mates} onClose={() => closeTutorial()} onComplete={() => closeTutorial(true)} />}
   </>
 }
