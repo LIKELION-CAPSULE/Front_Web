@@ -23,12 +23,12 @@ import {
   subscribeStoredReferralCode,
 } from '@/features/auth/referral-code'
 import { nicknameError } from '@/features/profile/profile-input'
+import { createFinishGate } from '@/features/profile/onboarding-submit'
 import { mateAvatar } from '@/features/mates/artwork'
 import { speechPace } from '@/features/session/speech-pace'
 import { NICKNAME_MAX_INPUT_UNITS } from '@/shared/api/constraints'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { useDesktopShell } from '@/features/auth/login-backgrounds/desktop/desktop-shell-context'
-import { useMatePrewarm } from '@/app/use-mate-prewarm'
 import './onboarding.css'
 
 const NOOP = () => {}
@@ -105,7 +105,10 @@ export default function OnboardingPage() {
       ? avatarId
       : backend.avatars.find((avatar) => avatar.id !== undefined)?.id
   const [busy, setBusy] = useState<'start' | 'skip' | null>(null)
-  const pending = useRef(false)
+  const [finishGate] = useState(createFinishGate)
+  const mountedRef = useRef(true)
+  const currentUserRef = useRef(state.profile.userId)
+  const loggedInRef = useRef(state.profile.loggedIn)
   const stepOneForm = useRef<HTMLFormElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const referralInputRef = useRef<HTMLInputElement>(null)
@@ -137,12 +140,18 @@ export default function OnboardingPage() {
   const fromInviteLink = Boolean(storedRef && normalizeReferralCode(referralCode) === storedRef.code)
   const inviter = fromInviteLink ? referralValidation.inviterNickname ?? storedRef?.inviterNickname : undefined
 
-  // Warm the mate engine while the browser is idle here (the model itself is warmed on home).
-  useMatePrewarm('engine')
-
   useEffect(() => {
     referralCodeRef.current = referralCode
   }, [referralCode])
+
+  useEffect(() => {
+    currentUserRef.current = state.profile.userId
+    loggedInRef.current = state.profile.loggedIn
+  }, [state.profile.userId, state.profile.loggedIn])
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   useEffect(() => {
     return subscribeStoredReferralCode((incoming) => {
@@ -342,44 +351,46 @@ export default function OnboardingPage() {
   }
 
   async function finish(skipReferral: boolean) {
-    if (pending.current) return
+    if (finishGate.isPending()) return
     if (!checkStepOne()) {
       if (step === 2) backToStepOne()
       return
     }
-
     const normalizedRef = needsReferral && !skipReferral ? normalizeReferralCode(referralCode) : ''
-    if (normalizedRef && backend.validateReferralCode) {
-      const ok = await validateReferral(normalizedRef, true)
-      if (!ok) {
-        referralInputRef.current?.focus()
-        return
-      }
-    }
-
-    pending.current = true
+    const owner = userId
+    // The lock and the busy state start before the invite check, so nothing else can start a second save meanwhile.
     setBusy(skipReferral ? 'skip' : 'start')
     setNotifications([])
     try {
-      if (!backend.completeOnboarding) throw new Error('요청을 처리하지 못했어요.')
-      await backend.completeOnboarding({
-        nickname: name,
-        avatarId: selectedAvatarId,
-        ...(needsBirthDate ? { birthDate } : {}),
-        ...(normalizedRef ? { referralCode: normalizedRef } : {}),
+      const result = await finishGate.run({
+        validate: normalizedRef && backend.validateReferralCode ? () => validateReferral(normalizedRef, true) : undefined,
+        // Left the screen, or another account is signed in now: do not save the old account's profile.
+        isCurrent: () => mountedRef.current && currentUserRef.current === owner && loggedInRef.current,
+        save: async () => {
+          if (!backend.completeOnboarding) throw new Error('요청을 처리하지 못했어요.')
+          await backend.completeOnboarding({
+            nickname: name,
+            avatarId: selectedAvatarId,
+            ...(needsBirthDate ? { birthDate } : {}),
+            ...(normalizedRef ? { referralCode: normalizedRef } : {}),
+          })
+          if (normalizedRef) clearStoredReferralCode()
+          clearDraft()
+          desktopShell?.triggerReaction('onboardingDone', { force: true, clearQueue: true })
+          const reduced =
+            typeof window.matchMedia === 'function' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          if (desktopShell && !reduced) await new Promise((resolve) => setTimeout(resolve, 1200))
+          desktopShell?.setWindowClosing?.(true)
+          if (desktopShell && !reduced) await new Promise((resolve) => setTimeout(resolve, 180))
+          // reload() shows the route loading screen, which unmounts this page for a moment: navigate regardless.
+          await backend.reload()
+          navigate(safeReturnPath(params.get('next'), '/'), { replace: true })
+        },
       })
-      if (normalizedRef) clearStoredReferralCode()
-      clearDraft()
-      desktopShell?.triggerReaction('onboardingDone', { force: true, clearQueue: true })
-      const reduced =
-        typeof window.matchMedia === 'function' &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      if (desktopShell && !reduced) await new Promise((resolve) => setTimeout(resolve, 1200))
-      desktopShell?.setWindowClosing?.(true)
-      if (desktopShell && !reduced) await new Promise((resolve) => setTimeout(resolve, 180))
-      await backend.reload()
-      navigate(safeReturnPath(params.get('next'), '/'), { replace: true })
+      if (result === 'invalid') referralInputRef.current?.focus()
     } catch (reason) {
+      if (!mountedRef.current) return
       const item: NotificationItem = {
         id: crypto.randomUUID(),
         tone: 'error',
@@ -389,8 +400,7 @@ export default function OnboardingPage() {
       setNotifications((current) => enqueueNotification(current, item))
       desktopShell?.triggerReaction('error', { revertAfterMs: 4500 })
     } finally {
-      pending.current = false
-      setBusy(null)
+      if (mountedRef.current) setBusy(null)
     }
   }
 

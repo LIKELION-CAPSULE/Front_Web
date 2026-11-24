@@ -65,10 +65,44 @@ function loadEngine(baseUrl: string) {
       pixi.extensions.add(engine.Live2DPlugin)
       // The default start-up logs every Cubism message; keep only errors.
       engine.startUpCubism({ logFunction: (message: string) => console.error(message), loggingLevel: 4 } as unknown as Parameters<Engine['startUpCubism']>[0])
+      assets = pixi.Assets
       return { pixi, engine }
     })
   enginePromise.catch(() => { enginePromise = null })
   return enginePromise
+}
+
+/**
+ * Texture lifetime. The engine loads a model's textures through Pixi's global `Assets` (cached by URL), and destroying
+ * the model leaves them there: decoded images of every model ever shown stay in memory (picking through the six
+ * avatars kept about 160 MB). Stages count their model's users; when the last stage of a model is gone, its textures
+ * are unloaded (destroyed and dropped from the cache). Two stages of one model (a switch overlapping, StrictMode,
+ * picking the same avatar again) share the cached textures until both are gone, and a new stage waits for an unload
+ * of its model that is still running, so it never receives a texture being destroyed.
+ */
+const modelUsers = new Map<string, number>()
+const modelTextures = new Map<string, string[]>()
+const unloading = new Map<string, Promise<void>>()
+let assets: Pixi['Assets'] | null = null
+
+function holdModel(modelJsonUrl: string) {
+  modelUsers.set(modelJsonUrl, (modelUsers.get(modelJsonUrl) ?? 0) + 1)
+}
+function dropModel(modelJsonUrl: string) {
+  const users = (modelUsers.get(modelJsonUrl) ?? 1) - 1
+  if (users > 0) modelUsers.set(modelJsonUrl, users)
+  else {
+    modelUsers.delete(modelJsonUrl)
+    unloadTextures(modelJsonUrl)
+  }
+}
+function unloadTextures(modelJsonUrl: string) {
+  const urls = modelTextures.get(modelJsonUrl)
+  if (modelUsers.has(modelJsonUrl) || !urls || !assets) return
+  modelTextures.delete(modelJsonUrl)
+  const done = assets.unload(urls).catch((error: unknown) => console.warn('Live2D 텍스처를 정리하지 못했어요.', error))
+    .finally(() => { if (unloading.get(modelJsonUrl) === done) unloading.delete(modelJsonUrl) })
+  unloading.set(modelJsonUrl, done)
 }
 
 /** Destroys a Pixi app and releases its WebGL context at once, so switching models never piles up contexts. */
@@ -115,6 +149,7 @@ export class Live2DStage {
   constructor(modelJsonUrl: string, layout: Live2DLayout, baseUrl: string) {
     this.modelJsonUrl = modelJsonUrl
     this.layout = layout
+    holdModel(modelJsonUrl)
     this.load(baseUrl).catch((error: unknown) => {
       if (this.destroyed) return
       console.warn('Live2D 모델을 불러오지 못했어요.', error)
@@ -154,15 +189,24 @@ export class Live2DStage {
     this.app = app
     app.canvas.className = 'live2d-canvas'
     app.canvas.setAttribute('aria-hidden', 'true')
+    await unloading.get(this.modelJsonUrl)
+    if (this.destroyed) return
     const model = await engine.Live2DModel.from({ ...settings, url: this.modelJsonUrl }, {
       // Study time keeps the face forward; cursor tracking is driven manually during breaks only.
       autoFocus: false, autoHitTest: false, ticker: app.ticker,
       // Blinking is applied as a multiplier below so it never undoes closed-eye expressions.
       eyeBlink: false, breathDepth: BREATH_DEPTH,
     })
+    const modelSettings = (model.internalModel as unknown as { settings?: { textures?: string[]; resolveURL?(path: string): string } }).settings
+    if (modelSettings?.textures && modelSettings.resolveURL) {
+      // The exact keys the engine passed to Assets.load.
+      modelTextures.set(this.modelJsonUrl, modelSettings.textures.map(texture => modelSettings.resolveURL!(texture)))
+    }
     if (this.destroyed) {
       // The app (and its ticker) is already gone; nothing else holds this model.
       try { model.destroy({ children: true }) } catch { /* Ticker already destroyed. */ }
+      // This stage already gave up its hold; unload when no other stage of the model is left.
+      unloadTextures(this.modelJsonUrl)
       return
     }
     this.model = model
@@ -429,5 +473,6 @@ export class Live2DStage {
     this.destroyed = true
     this.teardown()
     this.listeners.clear()
+    dropModel(this.modelJsonUrl)
   }
 }

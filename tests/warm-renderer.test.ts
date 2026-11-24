@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { canPrewarm, createWarmPool, warmKey, type AlivingSource, type WarmableRenderer } from '../src/features/mate-render/warm-renderer.ts'
+import { accountEnded, accountKey, canPrewarm, createWarmPool, warmKey, type AlivingSource, type WarmableRenderer } from '../src/features/mate-render/warm-renderer.ts'
 import { resolveMateSource, resolvePreviewSource } from '../src/features/mate-render/mate-source.ts'
 
 const source: AlivingSource = { kind: 'aliving', modelUrl: '/m/model.json', engineUrl: '/e/engine.js', playerUrl: '/e/player.js' }
@@ -129,6 +129,37 @@ test('login hand-over: the wake-up renderer is parked and the mate preview with 
   pool.park(warmKey(login), loggedOut)
   pool.discard()
   assert.ok(loggedOut.calls.includes('destroy'))
+})
+
+test('logout drops the warm renderer at once and refuses parks from previews created before it', () => {
+  const { pool, created } = harness()
+  // Signed in: the home prewarm and a 내 메이트 preview, both of generation 0.
+  pool.prewarm(source)
+  const owner = pool.generation()
+  const preview = pool.claim(warmKey(source))!
+  // RequireDemo sees the account end (logout routing swaps the screens for <Navigate>) and invalidates first …
+  pool.invalidate()
+  assert.equal(pool.parkedKey(), null)
+  // … then the unmounted preview's cleanup tries to park: refused and destroyed, nothing stays for the next account.
+  pool.park(warmKey(source), preview, owner)
+  assert.ok(preview.calls.includes('destroy'))
+  assert.equal(pool.parkedKey(), null)
+  assert.equal(pool.claim(warmKey(source)), null)
+  // A renderer of the new generation (the next login screen) parks normally.
+  const next = new FakeRenderer()
+  pool.park(warmKey(source), next, pool.generation())
+  assert.equal(pool.claim(warmKey(source)), next)
+  assert.equal(created.length, 1)
+})
+
+test('only the end of a signed-in account invalidates, not signing in', () => {
+  const signedOut = accountKey({ loggedIn: false, userId: 7 })
+  const signedIn = accountKey({ loggedIn: true, userId: 7 })
+  assert.equal(signedOut, null)
+  assert.equal(accountEnded(signedOut, signedIn), false, 'login keeps the login screen hand-over')
+  assert.equal(accountEnded(signedIn, signedIn), false)
+  assert.equal(accountEnded(signedIn, signedOut), true, 'logout / withdrawal / expired session')
+  assert.equal(accountEnded(signedIn, accountKey({ loggedIn: true, userId: 8 })), true, 'another account')
 })
 
 test('prewarming is skipped on phones, touch-first devices, Data Saver and reduced motion', () => {

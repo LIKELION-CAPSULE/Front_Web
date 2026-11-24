@@ -8,8 +8,9 @@ import type { PreviewMateSource } from './mate-source.ts'
  * - `park`: a preview that unmounts (leaving 내 메이트 for 메이트 상세, React StrictMode's remount) leaves its renderer
  *   here instead of destroying it.
  * - `claim`: a preview with the same source (model, engine, player, reactions, pixel scale) takes it.
- * - One renderer at most; an unclaimed one is destroyed after `ttlMs` (WebGL context, textures, RAF), on `discard`
- *   (logout) and when another one is parked.
+ * - One renderer at most; an unclaimed one is destroyed after `ttlMs` (WebGL context, textures, RAF), when another
+ *   one is parked, and on `invalidate` (the signed-in account ended; RequireDemo calls it), after which renderers
+ *   created before cannot be parked any more.
  * Dependency-free (the renderer is injected) so Node tests can drive it with fakes.
  */
 export const WARM_TTL_MS = 120_000
@@ -40,6 +41,8 @@ export function createWarmPool<R extends WarmableRenderer>(options: {
   const setTimer = options.setTimer ?? ((callback, ms) => setTimeout(callback, ms))
   const clearTimer = options.clearTimer ?? (timer => clearTimeout(timer as ReturnType<typeof setTimeout>))
   let parked: { key: string; renderer: R; timer: unknown } | null = null
+  /** Bumped when the signed-in account ends (logout, withdrawal, expired session); older owners may not park. */
+  let generation = 0
   /** Keys a mounted preview is showing right now: prewarming them would only load a second copy. */
   const active = new Map<string, number>()
 
@@ -51,8 +54,16 @@ export function createWarmPool<R extends WarmableRenderer>(options: {
     try { entry.renderer.destroy() } catch { /* Already gone. */ }
   }
 
-  function park(key: string, renderer: R) {
+  /**
+   * `owner` is the `generation()` the renderer was created (or claimed) under. A renderer from before a logout is
+   * destroyed instead of parked, so a preview unmounting after the logout cannot hand the old account's model on.
+   */
+  function park(key: string, renderer: R, owner = generation) {
     if (parked?.renderer === renderer) return
+    if (owner !== generation) {
+      renderer.destroy()
+      return
+    }
     discard()
     if (renderer.getStatus() === 'error') {
       renderer.destroy()
@@ -98,7 +109,13 @@ export function createWarmPool<R extends WarmableRenderer>(options: {
     }
   }
 
-  return { park, claim, prewarm, discard, markActive, parkedKey: () => parked?.key ?? null }
+  /** The account ended: drop the warm renderer now and refuse parks from anything created before. */
+  function invalidate() {
+    generation++
+    discard()
+  }
+
+  return { park, claim, prewarm, discard, invalidate, generation: () => generation, markActive, parkedKey: () => parked?.key ?? null }
 }
 
 /**
@@ -116,4 +133,14 @@ function browserEnv() {
   if (typeof window === 'undefined') return {}
   const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
   return { matchMedia: typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : undefined, saveData: Boolean(connection?.saveData) }
+}
+
+/** Signed-in account identity for `invalidate`: `null` when signed out. */
+export function accountKey(profile: { loggedIn: boolean; userId?: number | string | null }): string | null {
+  return profile.loggedIn ? `user:${profile.userId ?? ''}` : null
+}
+
+/** True when a signed-in account ended or was replaced (not when signing in from signed out). */
+export function accountEnded(previous: string | null, next: string | null): boolean {
+  return previous !== null && previous !== next
 }

@@ -69,6 +69,7 @@ export function useAlivingPreview({
     // A renderer warmed on an earlier screen (home's idle prewarm, or the previous preview of the same model) is
     // taken as is: engine, model and textures are already loaded.
     const poolKey = warmKey(source, pixelScale ?? 1)
+    const owner = mateWarmPool.generation()
     const warm = mateWarmPool.claim(poolKey)
     const renderer = warm ?? new AlivingRenderer({
       modelUrl: source.modelUrl,
@@ -106,7 +107,7 @@ export function useAlivingPreview({
       unmarkActive()
       // Kept warm for the next preview of this model (another screen, or StrictMode's remount); destroyed when
       // nothing claims it in time (warm-renderer.ts).
-      mateWarmPool.park(poolKey, renderer)
+      mateWarmPool.park(poolKey, renderer, owner)
       if (rendererRef.current === renderer) rendererRef.current = null
       viewRef.current = null
     }

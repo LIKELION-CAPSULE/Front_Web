@@ -3,12 +3,14 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { AvatarItem, ModelInfo } from '@/shared/api/types'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { AvatarModelPreview } from './AvatarModelPreview'
+import { choosePreview, mountedPreviews, previewFailed, previewShown, type PreviewView } from '../avatar-preview-state'
 import './avatar-dial.css'
 
 /** Shown wherever the Live2D sample avatars can be picked (Live2D free material license, attribution duty). */
 export const LIVE2D_CREDIT = '본 서비스의 아바타 캐릭터에는 주식회사 Live2D의 저작물이 이용되었습니다.'
 
 type PreviewEntry = { key: string; model: ModelInfo; name: string }
+
 
 const wrap = (index: number, count: number) => count ? ((index % count) + count) % count : 0
 
@@ -53,14 +55,12 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   const previewKey = JSON.stringify([selected?.id, model?.modelJsonUrl, model?.scale, model?.offsetX, model?.offsetY])
   const live = Boolean(model?.modelJsonUrl) && previewActive && !(reduced && selected?.thumbnailUrl)
   const current: PreviewEntry | null = live && model ? { key: previewKey, model, name: selected?.name || '아바타' } : null
-  // The model on screen stays until the newly chosen one is drawn (then it is released), so a switch never flashes
-  // an empty stage. At most two models exist at once; a choice passed over before it was drawn is released at once.
-  const [view, setView] = useState<{ current: PreviewEntry | null; shown: PreviewEntry | null }>({ current, shown: null })
-  if (view.current?.key !== current?.key) {
-    setView({ current, shown: current && !reduced ? view.shown : null })
-  }
-  const shown = view.shown && view.shown.key !== current?.key ? view.shown : null
-  const previews = [shown, current].filter((entry): entry is PreviewEntry => entry !== null)
+  // The model on screen stays until the newly chosen one is drawn, and is released at once if that one fails
+  // (avatar-preview-state.ts). At most two models exist at once.
+  const [view, setView] = useState<PreviewView<PreviewEntry>>({ current, shown: null })
+  const nextView = choosePreview(view, current, reduced)
+  if (nextView !== view) setView(nextView)
+  const previews = mountedPreviews(nextView).map(entry => entry.key === current?.key && current ? current : entry)
   const hasLive2D = choices.some(avatar => avatar.model?.modelJsonUrl)
   const root = useRef<HTMLFieldSetElement>(null)
   const rail = useRef<HTMLDivElement>(null)
@@ -143,8 +143,10 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
       <div key={selected?.id ?? 'none'} className="avatar-picker-halo" aria-hidden="true" />
       <figure className="avatar-picker-figure" aria-labelledby={nameId}>
         {previews.length
-          ? previews.map(entry => <AvatarModelPreview key={entry.key} model={entry.model} name={entry.name} leaving={entry !== current}
-            onShown={() => setView(previous => previous.current?.key === entry.key ? { current: previous.current, shown: entry } : previous)} />)
+          ? previews.map(entry => <AvatarModelPreview key={entry.key} model={entry.model} name={entry.name} leaving={entry.key !== current?.key}
+            still={entry.key === current?.key ? <AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} /> : undefined}
+            onShown={() => setView(previous => previewShown(previous, entry.key))}
+            onFailed={() => setView(previous => previewFailed(previous, entry.key))} />)
           : <div className="avatar-picker-still" aria-hidden="true"><AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} /></div>}
       </figure>
     </div>

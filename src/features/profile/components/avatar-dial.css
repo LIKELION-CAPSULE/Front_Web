@@ -79,6 +79,18 @@
     text-align: center;
   }
   .avatar-picker-model-status p { margin: 0; }
+  /* Failed: over the avatar's still, above the waist fade so it stays readable. */
+  .avatar-picker-model-status[data-failed] {
+    inset: auto 50% 30% auto;
+    width: max-content;
+    max-width: calc(100% - 24px);
+    gap: 2px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+    padding: 10px 14px 4px;
+    color: var(--color-muted);
+    transform: translateX(50%);
+  }
   .avatar-picker-retry { min-height: 44px; border-radius: var(--radius-control); padding: 4px 14px; color: var(--color-text-accent); cursor: pointer; }
   .avatar-picker-retry:hover { background: var(--color-primary-soft); }
 
@@ -86,6 +98,11 @@
   .avatar-picker-still { position: absolute; inset: 0; display: grid; justify-items: center; align-content: start; padding-top: 9%; }
   .avatar-picker-still > .avatar-picker-image,
   .avatar-picker-still > .avatar-picker-fallback { display: block; width: 78%; aspect-ratio: 1; object-fit: cover; }
+  /* The square still ends above the stage's waist fade: give its own bottom edge the same soft fade. */
+  .avatar-picker-still > .avatar-picker-image {
+    -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+  }
   .avatar-picker-fallback { overflow: hidden; border-radius: 50%; }
   .avatar-picker-fallback > .avatar-illustration { width: 100%; height: 100%; }
 
