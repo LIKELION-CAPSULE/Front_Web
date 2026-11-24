@@ -4,6 +4,7 @@ import { capsuleNeighbor, capsuleTooltip, type CapsuleDay } from '../capsule-cal
 import type { CommentHighlight } from '../mate-comment'
 import { boardMonthTooltip, isMonthSelectable, type CapsuleBoardModel } from './capsule-board-layout'
 import type { BoardBenchmark, BoardSceneController, BoardTarget } from './capsule-board-scene'
+import type { PillarMode } from './capsule-board-pillars'
 import {
   BOARD_NARROW_STAGE,
   boardStageAspect,
@@ -43,6 +44,7 @@ export function CapsuleBoard({
   onFallback,
   reducedMotion: forceReducedMotion = false,
   replayToken = 0,
+  pillars = 'off',
   onController,
 }: {
   model: CapsuleBoardModel
@@ -60,6 +62,8 @@ export function CapsuleBoard({
   onFallback?: () => void
   reducedMotion?: boolean
   replayToken?: number
+  /** DEV draft (capsule-board-pillars.ts): glass pillars instead of the columns. */
+  pillars?: PillarMode
   /** Development hook (benchmark). */
   onController?: (controller: { benchmark: (durationMs: number) => Promise<BoardBenchmark> } | null) => void
 }) {
@@ -86,6 +90,10 @@ export function CapsuleBoard({
   const focusIntoMonth = useRef(false)
   const [focusKey, setFocusKey] = useState<string | undefined>(undefined)
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
+  /** The pillars' aid: 「가장 긴 날」 above the period's longest day (hidden while its own tooltip shows). */
+  const [marker, setMarker] = useState<{ x: number; y: number } | null>(null)
+  /** The pillars' aid in the month: what one graduation tick stands for. */
+  const [guideStep, setGuideStep] = useState<number | null>(null)
   const modelRef = useRef(model)
   const handlers = useRef({ onSelectDay, onSelectMonth })
   const shownRef = useRef<BoardTarget | null>(null)
@@ -108,7 +116,19 @@ export function CapsuleBoard({
     return day ? capsuleTooltip(day) : null
   }, [])
 
+  const placeMarker = useCallback(() => {
+    const scene = sceneRef.current
+    const key = scene?.markedDay() ?? null
+    setGuideStep(key ? (scene?.guideStep() ?? null) : null)
+    const shown = shownRef.current
+    const point = key && scene && !(shown?.kind === 'day' && shown.key === key) ? scene.targetPoint({ kind: 'day', key }) : null
+    setMarker((current) =>
+      current && point && Math.abs(current.x - point.x) < 0.5 && Math.abs(current.y - point.y) < 0.5 ? current : point,
+    )
+  }, [])
+
   const placeTooltip = useCallback(() => {
+    placeMarker()
     const target = shownRef.current
     const scene = sceneRef.current
     const text = target ? textFor(target) : null
@@ -123,7 +143,7 @@ export function CapsuleBoard({
         ? current
         : { text, x: point.x, y: point.y },
     )
-  }, [textFor])
+  }, [textFor, placeMarker])
 
   // The comment's typing progress (kept until the scene exists).
   useEffect(() => {
@@ -164,6 +184,7 @@ export function CapsuleBoard({
           host,
           reducedMotion,
           view,
+          pillars,
           onHover: setPointed,
           onSelect: (target) => {
             if (target.kind === 'month') {
@@ -233,6 +254,11 @@ export function CapsuleBoard({
   useEffect(() => {
     sceneRef.current?.setReducedMotion(reducedMotion)
   }, [reducedMotion, ready])
+
+  useEffect(() => {
+    sceneRef.current?.setPillars(pillars)
+    placeMarker()
+  }, [pillars, ready, placeMarker])
 
   useEffect(() => {
     if (replayToken) sceneRef.current?.replay()
@@ -321,6 +347,16 @@ export function CapsuleBoard({
       {tooltip && (
         <span className="capsule-board-tooltip" role="presentation" style={{ left: tooltip.x, top: tooltip.y }}>
           {tooltip.text}
+        </span>
+      )}
+      {guideStep !== null && (
+        <span className="capsule-board-guide-note" aria-hidden="true">
+          기둥 눈금 한 칸 = {guideStep}시간
+        </span>
+      )}
+      {marker && (
+        <span className="capsule-board-marker" aria-hidden="true" style={{ left: marker.x, top: marker.y }}>
+          가장 긴 날
         </span>
       )}
       <div
