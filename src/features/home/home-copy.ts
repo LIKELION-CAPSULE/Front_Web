@@ -7,7 +7,7 @@ export const HOME_COPY = {
   heroSubDone: '오늘 출석 완료! 이제 같이 공부해요.',
   ctaCheckIn: '출석하고 크레딧 받기',
   ctaStudy: (name: string) => `${withParticle(name, '과', '와')} 공부 시작하기`,
-  aiLabel: 'AI 캐릭터입니다',
+  aiLabel: 'AI 캐릭터',
   matesTitle: '오늘은 누구와 함께할까요?',
   more: '더보기',
   available: '연결 가능',
