@@ -4,7 +4,7 @@ import type { Message, StudyRecord } from '../demo/types.ts'
 import type { ReportResponse, MeResponse, AffinityChange } from '../../shared/api/types.ts'
 import { LOCAL_CACHE_PREFIX, LOCAL_PANEL_OPEN_KEY } from './storage.ts'
 import { REFERRAL_STORAGE_KEY } from '../auth/referral-code.ts'
-import { isPatternRecordId, isRecordPattern, patternSessions, type RecordPattern } from './record-patterns.ts'
+import { isPatternRecordId, isRecordPattern, PATTERN_ID_BASE, patternSessions, type RecordPattern } from './record-patterns.ts'
 
 export {
   LOCAL_MODEL_URL,
@@ -43,6 +43,8 @@ type LocalData = {
   points: number; settings: { voice: boolean; advanced: boolean }; rewardedCodes: string[]
   /** QA record pattern; absent in data saved before patterns existed. */
   recordPattern?: RecordPattern
+  /** QA: a made-up second mate takes every third generated connection (records page 「전체」 / mate colours). */
+  virtualMate?: boolean
 }
 type StoragePort = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>
 
@@ -54,20 +56,28 @@ export function nextAttendanceExpiry(now: number) {
   return boundary.getTime()
 }
 
-function patternRecords(pattern: RecordPattern, now: number): StudyRecord[] {
-  return patternSessions(pattern, now).map(session => {
-    const report: ReportResponse = { sessionId: session.id, roomName: '채린', character: { id: LOCAL_CHARACTER_ID, name: '채린' },
+/** Local QA only: a made-up second mate (a 남학생 draft) for the records page's several-mates rules. */
+export const VIRTUAL_MATE = { id: 990777, name: '남학생(시안)' } as const
+
+function patternRecords(pattern: RecordPattern, now: number, virtualMate = false): StudyRecord[] {
+  return patternSessions(pattern, now).map((session, index) => {
+    const virtual = virtualMate && index % 3 === 1
+    const character = virtual ? VIRTUAL_MATE : { id: LOCAL_CHARACTER_ID, name: '채린' }
+    // Its own id (still a pattern id): the app keeps cached reports by id, so a reused id would keep 채린.
+    const sessionId = virtual ? PATTERN_ID_BASE + ((session.id - PATTERN_ID_BASE + 45_000_000) % 90_000_000) : session.id
+    const report: ReportResponse = { sessionId, roomName: character.name, character: { id: character.id, name: character.name },
       startedAt: new Date(session.startedAt).toISOString(), endedAt: new Date(session.endedAt).toISOString(), endType: 'USER',
       studySeconds: session.seconds, presentSeconds: session.seconds - 60, awaySeconds: 60, returnCount: 1,
       relation: { levelBefore: 3, levelAfter: 3, pointsBefore: 61, pointsAfter: 62, ...LOCAL_AFFINITY },
       closingLine: '오늘도 같이 있어서 좋았어. 다음에도 여기서 만나자.' }
-    return toRecord(report)
+    const record = toRecord(report)
+    return character.id === LOCAL_CHARACTER_ID ? record : { ...record, characterIds: [String(character.id)], roomName: character.name, characterName: character.name }
   })
 }
 
 /** Pattern records are regenerated relative to today; locally finished connections are kept. */
-function withPatternRecords(data: Pick<LocalData, 'records' | 'messages' | 'recordPattern'>, now: number): Pick<LocalData, 'records' | 'messages'> {
-  const generated = patternRecords(data.recordPattern ?? 'none', now)
+function withPatternRecords(data: Pick<LocalData, 'records' | 'messages' | 'recordPattern' | 'virtualMate'>, now: number): Pick<LocalData, 'records' | 'messages'> {
+  const generated = patternRecords(data.recordPattern ?? 'none', now, data.virtualMate)
   const records = [...data.records.filter(record => !isPatternRecordId(record.id)), ...generated].sort((a, b) => b.endedAt - a.endedAt)
   const latest = generated[0]
   const messages = data.messages.filter(message => message.id !== HISTORY_MESSAGE_ID)
@@ -153,6 +163,12 @@ export class LocalBetaStore {
   /** QA only: replaces the generated history with another pattern, keeping locally finished connections. */
   setRecordPattern(pattern: RecordPattern) {
     this.data.recordPattern = pattern
+    Object.assign(this.data, withPatternRecords(this.data, this.now()))
+    this.changed()
+  }
+  /** QA only: a made-up second mate takes every third generated connection. */
+  setVirtualMate(on: boolean) {
+    this.data.virtualMate = on
     Object.assign(this.data, withPatternRecords(this.data, this.now()))
     this.changed()
   }

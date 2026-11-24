@@ -1,0 +1,73 @@
+/* 「함께 쌓은 시간」 board (/records): the WebGL scene (2D and 2.5D) sits inside a glass block (records-window.css). The
+   canvas is opaque in the block's colour and its edges fade into the block, so the board has no frame of its own. Base
+   design rules (docs/DESIGN_SYSTEM.md): no outlines but the keyboard focus. */
+.capsule-board {
+  position: relative;
+  min-width: 0;
+}
+
+.capsule-board-stage {
+  position: relative;
+  width: 100%;
+  /* The board's own shape for the period and view (capsule-board-view.ts `boardStageAspect`). */
+  aspect-ratio: var(--board-aspect, 2);
+  min-height: 200px;
+  /* Never taller than the screen under the page header and the block title, so the whole board shows at once. */
+  max-height: min(600px, max(320px, calc(100vh - 380px)));
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+/* Narrow year (2 × 6 month boards): taller than the screen is fine, the page scrolls. */
+.capsule-board[data-narrow][data-mode='year'] .capsule-board-stage {
+  max-height: 1100px;
+}
+
+.capsule-board-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Only the outer few percent fade into the block (the camera keeps the board inside the solid part). */
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 4%, #000 96%, transparent),
+    linear-gradient(to bottom, transparent, #000 4%, #000 96%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 4%, #000 96%, transparent),
+    linear-gradient(to bottom, transparent, #000 4%, #000 96%, transparent);
+  mask-composite: intersect;
+}
+
+/* Keyboard focus on a day (its hidden button): the board shows the focus ring, the day lights up inside. */
+.capsule-board[data-focus] .capsule-board-stage {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+.capsule-board-tooltip {
+  position: absolute;
+  z-index: 5;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-floating);
+  box-shadow: var(--popover-shadow);
+  color: var(--color-ink);
+  font-size: 12px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 8px));
+}
+
+.capsule-board--fallback {
+  display: grid;
+  gap: 12px;
+}
+
+/* The keyboard / screen-reader list (visually hidden) sits at the top of the board, so focusing a day or a month
+   never scrolls the page to a spot below the board; the focus ring is on the stage. */
+.capsule-board-keys {
+  top: 0;
+  left: 0;
+}

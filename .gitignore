@@ -175,3 +175,6 @@ local-assets/*
 # Local AI agent pointers to the Second Brain vault (personal; not shared)
 CLAUDE.md
 AGENTS.md
+
+
+.docs/

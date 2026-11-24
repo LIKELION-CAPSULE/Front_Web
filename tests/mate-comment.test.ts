@@ -7,6 +7,7 @@ import {
   chaerinVoice,
   classifyPeriod,
   collectPeriodFacts,
+  commentHighlight,
   mateCommentKinds,
   timeBand,
   times,
@@ -47,7 +48,8 @@ function comment(records: StudyRecord[], now: number, period: RecordPeriod = 'we
 }
 
 test('each QA record pattern produces its intended comment type for the current week', () => {
-  const expected: Record<RecordPattern, MateCommentKind> = {
+  // 'stress' only measures the records board's frame rate (every day of the year); it has no intended comment.
+  const expected: Record<Exclude<RecordPattern, 'stress'>, MateCommentKind> = {
     steady: 'steady',
     light: 'light',
     returning: 'missed',
@@ -58,6 +60,7 @@ test('each QA record pattern produces its intended comment type for the current 
   }
   for (const now of [TUESDAY, FRIDAY]) {
     for (const pattern of recordPatterns) {
+      if (pattern === 'stress') continue
       const result = comment(patternRecords(pattern, now), now)
       assert.equal(result?.kind, expected[pattern], `${pattern} @ ${new Date(now).toISOString()}`)
     }
@@ -112,7 +115,7 @@ test('long comment names the real longest day and duration', () => {
   assert.ok(longTemplates.length >= 2)
   // Whatever template is picked, the facts it uses are the Wednesday 3h10 session.
   const facts = collectPeriodFacts({ range: getRecordRange('week', now), offset: 0, now, records })
-  assert.deepEqual(facts.longest, { seconds: 190 * 60, dayLabel: '수요일', band: 'day' })
+  assert.deepEqual(facts.longest, { seconds: 190 * 60, dayLabel: '수요일', band: 'day', dayKey: '2026-11-25' })
   assert.equal(facts.longSessions, 2)
   if (/요일/.test(result!.text)) assert.match(result!.text, /수요일/)
   if (/시간/.test(result!.text)) assert.match(result!.text, /3시간 10분|2시간/)
@@ -181,4 +184,39 @@ test('Korean counters read naturally', () => {
   assert.equal(times(1), '한 번')
   assert.equal(times(4), '네 번')
   assert.equal(times(7), '7번')
+})
+
+test('a line points at the days it speaks about, from the same facts (records board emphasis)', () => {
+  // Monday to Tuesday every day (streak of 2 days in the week, more before), the longest on Monday.
+  const records = [
+    record(at('2026-11-20T20:00:00'), 40),
+    record(at('2026-11-21T20:00:00'), 40),
+    record(at('2026-11-22T20:00:00'), 40),
+    record(at('2026-11-23T20:00:00'), 150),
+    record(at('2026-11-24T09:00:00'), 40),
+  ]
+  const facts = collectPeriodFacts({ range: getRecordRange('week', TUESDAY), offset: 0, now: TUESDAY, records })
+  assert.equal(facts.longest?.dayKey, '2026-11-23')
+  assert.deepEqual(facts.keys.active, ['2026-11-23', '2026-11-24'])
+  // The streak runs from 11-20, but only its days inside the week can be lit.
+  assert.equal(facts.streakDays, 5)
+  assert.deepEqual(facts.keys.streak, ['2026-11-23', '2026-11-24'])
+  assert.deepEqual(facts.keys.long, ['2026-11-23'])
+  assert.deepEqual(commentHighlight('longest', facts), { days: ['2026-11-23'], streak: [] })
+  assert.deepEqual(commentHighlight('streak', facts), { days: ['2026-11-23', '2026-11-24'], streak: ['2026-11-23', '2026-11-24'] })
+  assert.deepEqual(commentHighlight('none', facts), { days: [], streak: [] })
+  // Over many seeds every chosen line's highlight agrees with its focus and its text.
+  for (let seed = 0; seed < 40; seed++) {
+    const line = comment(records, TUESDAY, 'week', 0, `user-${seed}`)!
+    assert.deepEqual(line.highlight, commentHighlight(line.focus, facts))
+    if (line.focus === 'longest') assert.ok(line.text.includes('월요일'), line.text)
+    if (line.focus === 'streak') assert.ok(line.text.includes('연속'), line.text)
+  }
+})
+
+test('late lines light the late days (night or dawn), a single band its own days', () => {
+  const records = [record(at('2026-11-23T23:00:00'), 50), record(at('2026-11-24T01:00:00'), 50), record(at('2026-11-24T10:00:00'), 20)]
+  const facts = collectPeriodFacts({ range: getRecordRange('week', TUESDAY), offset: 0, now: TUESDAY, records })
+  assert.deepEqual(commentHighlight('late', facts).days, ['2026-11-23', '2026-11-24'])
+  assert.deepEqual(commentHighlight('lateBand', facts).days, ['2026-11-23'])
 })

@@ -4,7 +4,7 @@
  * Development only: imported by the local demo store, which production never loads.
  */
 
-export const recordPatterns = ['steady', 'light', 'returning', 'night', 'long', 'firstWeek', 'none'] as const
+export const recordPatterns = ['steady', 'light', 'returning', 'night', 'long', 'firstWeek', 'stress', 'none'] as const
 export type RecordPattern = (typeof recordPatterns)[number]
 
 export const recordPatternLabels: Record<RecordPattern, string> = {
@@ -14,6 +14,7 @@ export const recordPatternLabels: Record<RecordPattern, string> = {
   night: '밤에 주로 만남',
   long: '한 번에 오래(2시간 이상)',
   firstWeek: '처음 시작한 주',
+  stress: '올해 매일(성능 측정용)',
   none: '기록 없음',
 }
 
@@ -39,7 +40,7 @@ function seoulToday(now: number) {
   return { midnight, weekday }
 }
 
-function slots(pattern: RecordPattern, weekday: number): Slot[] {
+function slots(pattern: RecordPattern, weekday: number, dayOfYear: number): Slot[] {
   const w = weekday
   const evening = ['19:00', '19:40', '20:10', '18:30', '20:40', '19:20', '18:50']
   const minutes = [40, 55, 70, 85, 100, 65, 45]
@@ -81,6 +82,27 @@ function slots(pattern: RecordPattern, weekday: number): Slot[] {
     case 'firstWeek':
       // No history before this week's Monday.
       return [[w, '20:00', 50], ...(w >= 1 ? [[0, '07:40', 35] as const] : []), ...(w >= 3 ? [[w - 2, '19:30', 40] as const] : [])]
+    case 'stress': {
+      // Every day of the year so far: 1–3 connections of 20–150 minutes in every time band (board performance).
+      const starts = ['01:10', '07:20', '13:30', '19:10', '22:20']
+      const list: Slot[] = []
+      let seed = 7
+      const random = () => {
+        seed = (seed * 1664525 + 1013904223) >>> 0
+        return seed / 4294967296
+      }
+      for (let d = 1; d <= dayOfYear; d++) {
+        const count = 1 + Math.floor(random() * 3)
+        const used = new Set<string>()
+        for (let index = 0; index < count; index++) {
+          const start = starts[Math.floor(random() * starts.length)]!
+          if (used.has(start)) continue
+          used.add(start)
+          list.push([d, start, 20 + Math.floor(random() * 130)])
+        }
+      }
+      return list
+    }
     case 'none':
       return []
   }
@@ -98,7 +120,9 @@ function slotId(pattern: RecordPattern, startedAt: number) {
 /** Sessions for the pattern, newest first. Slots that have not finished yet are left out. */
 export function patternSessions(pattern: RecordPattern, now: number): PatternSession[] {
   const { midnight, weekday } = seoulToday(now)
-  return slots(pattern, weekday)
+  const shifted = new Date(now + SEOUL_OFFSET)
+  const dayOfYear = Math.floor((midnight + SEOUL_OFFSET - Date.UTC(shifted.getUTCFullYear(), 0, 1)) / DAY)
+  return slots(pattern, weekday, dayOfYear)
     .map(([daysAgo, start, minutes]) => {
       const [hour, minute] = start.split(':').map(Number) as [number, number]
       const startedAt = midnight - daysAgo * DAY + (hour * 60 + minute) * 60_000

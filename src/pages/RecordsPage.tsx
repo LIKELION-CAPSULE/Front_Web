@@ -3,17 +3,32 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
+import type { StudyRecord } from '@/features/demo/types'
 import { availableMates } from '@/features/mates/catalog'
 import { mateAvatar } from '@/features/mates/artwork'
 import { MateCommentBubble } from '@/features/records/MateCommentBubble'
 import { buildMateComment, voiceFor } from '@/features/records/mate-comment'
-import { CapsuleCalendar, CapsuleLegend } from '@/features/records/CapsuleCalendar'
 import { CapsuleDayDetail, RecordConnectionRow } from '@/features/records/RecordConnectionRow'
-import { buildCapsuleCalendar, defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-calendar'
+import { defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-calendar'
 import { isCompletedRecord } from '@/features/records/connection-day'
+import { CapsuleBoard } from '@/features/records/capsule-board/CapsuleBoard'
+import { SatinBackdrop } from '@/features/records/satin-backdrop/SatinBackdrop'
+import { BOARD, buildCapsuleBoard, offsetContaining } from '@/features/records/capsule-board/capsule-board-layout'
+import {
+  boardViewSlot,
+  defaultBoardView,
+  readStoredBoardViews,
+  storeBoardViews,
+  type StoredBoardViews,
+  supportsWebGL,
+  yearColumnsFor,
+  type BoardEmphasisControl,
+  type BoardView,
+} from '@/features/records/capsule-board/capsule-board-view'
+import type { BoardBenchmark } from '@/features/records/capsule-board/capsule-board-scene'
 import { capsuleFromStudyRecord, capsuleRecordsFromStudyRecords } from '@/features/mates/capsule-jar/capsule-jar-data'
 import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
-import { capsuleKeepsakes } from '@/features/mates/capsule-jar/capsule-moments'
+import { capsuleKeepsakes, type CapsuleKeepsake } from '@/features/mates/capsule-jar/capsule-moments'
 import { CapsuleRecordCard } from '@/features/mates/capsule-jar/CapsuleRecordCard'
 import {
   getRecordRange,
@@ -21,13 +36,9 @@ import {
   recordsInRange,
   type RecordPeriod,
 } from '@/features/reports/record-period'
-import {
-  buildBarChartData,
-  parseRecordsParams,
-  resolveSummaryDisplay,
-  type BarBucket,
-} from '@/features/reports/records-view-utils'
+import { parseRecordsParams, resolveSummaryDisplay } from '@/features/reports/records-view-utils'
 import { Button, ButtonLink } from '@/shared/ui/Button'
+import { Icon, type IconName } from '@/shared/ui/Icon'
 import { duration } from '@/shared/lib/format'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
@@ -47,6 +58,15 @@ function isReviewRecordsLoading(): boolean {
   )
 }
 
+/** Development only: the board's frame-rate probe for measurements (`window.__capsuleBoard.benchmark(ms)`). */
+const exposeBoardBenchmark = import.meta.env.DEV
+  ? (controller: { benchmark: (durationMs: number) => Promise<BoardBenchmark> } | null) => {
+      const target = window as unknown as { __capsuleBoard?: unknown }
+      if (controller) target.__capsuleBoard = controller
+      else delete target.__capsuleBoard
+    }
+  : undefined
+
 function RecordsWindowFrame({
   loadingScreen,
   children,
@@ -54,21 +74,26 @@ function RecordsWindowFrame({
   loadingScreen?: 'records'
   children: React.ReactNode
 }) {
-  return <AppPanel title="함께한 기록" hideTitle className="records-window" loadingScreen={loadingScreen} bodyClassName="records-window-body">
-    {children}
-  </AppPanel>
+  return (
+    <>
+      <SatinBackdrop />
+      <AppPanel title="함께한 기록" hideTitle className="records-window" loadingScreen={loadingScreen} bodyClassName="records-window-body">
+        {children}
+      </AppPanel>
+    </>
+  )
 }
 
-function formatBarTooltip(bucket: BarBucket): string {
-  if (bucket.sessions === 0) return `${bucket.fullLabel} · 기록이 없어요`
-  const parts = [bucket.fullLabel, `함께한 시간 ${duration(bucket.connectionSeconds)}`]
-  if (bucket.cameraSeconds > 0) parts.push(`카메라로 함께한 시간 ${duration(bucket.cameraSeconds)}`)
-  return parts.join(' · ')
-}
-
-/** Bar height in % of the scale; any non-zero value stays visible. */
-function barPercent(seconds: number, maxSeconds: number) {
-  return seconds > 0 ? Math.max(3, Math.min(100, (seconds / maxSeconds) * 100)) : 0
+/** Block title: a small icon and the title, the same in every block (내 메이트 `BlockLabel`). */
+function BlockTitle({ id, icon, children }: { id?: string; icon: IconName; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="records-block-title">
+      <span className="records-block-title-icon" aria-hidden="true">
+        <Icon name={icon} size={14} />
+      </span>
+      {children}
+    </h2>
+  )
 }
 
 export default function RecordsPage() {
@@ -77,15 +102,25 @@ export default function RecordsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [now] = useState(Date.now)
   const [selectedCellKey, setSelectedCellKey] = useState<string | null>(null)
-  const [hoveredBarKey, setHoveredBarKey] = useState<string | null>(null)
   const [visibleCount, setVisibleCount] = useState(5)
-  /** Record card opened from a calendar day (that day's connections, newest first). */
+  /** Record card opened from a board day (that day's connections, newest first). */
   const [dayCard, setDayCard] = useState<{ key: string; index: number; phase: 'open' | 'closing' } | null>(null)
   const dayCardReturnFocus = useRef<HTMLElement | null>(null)
+  // Board: 2D / 2.5D (the viewer's last choice, else 2.5D on desktop and 2D under 960 px), stage width, WebGL.
+  const [boardViews, setBoardViews] = useState<StoredBoardViews>(readStoredBoardViews)
+  const [stageWidth, setStageWidth] = useState(0)
+  const [boardFallback, setBoardFallback] = useState(() => !supportsWebGL())
+  const emphasisControl = useRef<BoardEmphasisControl | null>(null)
+  const onEmphasisControl = useCallback((control: BoardEmphasisControl | null) => {
+    emphasisControl.current = control
+  }, [])
 
   const loading = status === 'loading' || isReviewRecordsLoading()
   const { period, offset, mate: selectedMateId } = parseRecordsParams(searchParams)
-  const range = getRecordRange(period, now, offset)
+  // 2D / 2.5D per period: week and month share the viewer's choice, the year keeps its own (2D until chosen).
+  const [viewportWidth] = useState(() => window.innerWidth)
+  const boardView = defaultBoardView(viewportWidth, boardViews, period)
+  const range = useMemo(() => getRecordRange(period, now, offset), [period, now, offset])
   const prevRange = getRecordRange(period, now, offset - 1)
   const canShiftPrev = prevRange.startDay !== range.startDay
   const canShiftNext = offset < 0
@@ -93,7 +128,7 @@ export default function RecordsPage() {
   const catalogMates = useMemo(() => availableMates(home), [home])
 
   // Real server-reported non-dummy connections that have ended (records/connection-day.ts: one cutoff for the
-  // summary, comment, calendar and list).
+  // summary, comment, board and list).
   const actualRecords = useMemo(
     () =>
       state.records.filter(
@@ -102,7 +137,7 @@ export default function RecordsPage() {
     [state.records, now],
   )
 
-  // Connected mates list (catalog mates + any additional mate present in server reports)
+  // Connected mates list (catalog mates + any additional mate present in server reports), in a stable order.
   const connectedMates = useMemo<RecordMateOption[]>(() => {
     const byCharId = new Map<string, RecordMateOption>()
     for (const m of catalogMates) {
@@ -149,7 +184,6 @@ export default function RecordsPage() {
       else next.set('mate', nextMate)
 
       setSelectedCellKey(null)
-      setHoveredBarKey(null)
       setVisibleCount(5)
       setDayCard(null)
       setSearchParams(next)
@@ -157,33 +191,60 @@ export default function RecordsPage() {
     [offset, period, searchParams, selectedMateId, setSearchParams],
   )
 
+  /** Another period around the same days (so the board can morph): the new range contains today or this start. */
+  const switchPeriod = (nextPeriod: RecordPeriod) => {
+    const anchor = range.today >= range.startDay && range.today <= range.endDay ? range.today : range.startDay
+    updateParams({ period: nextPeriod, offset: Math.min(0, offsetContaining(nextPeriod, anchor, range.today)) })
+  }
+
   const periodRecords = useMemo(() => {
     const inPeriod = recordsInRange(actualRecords, range)
     if (!activeMate) return inPeriod
     return inPeriod.filter((r) => r.characterIds.includes(activeMate.characterId))
   }, [actualRecords, activeMate, range])
 
+  // Keepsakes (milestones of the time together) by record id, counted over each mate's whole history the same way
+  // as the capsules of 내 메이트 (MyMatesPage: `capsuleRecordsFromStudyRecords(state.records, …)`).
+  const keepsakes = useMemo(() => {
+    const result = new Map<string, CapsuleKeepsake>()
+    for (const mate of connectedMates) {
+      const capsules = capsuleRecordsFromStudyRecords(state.records, mate.characterId, now)
+      for (const [id, keepsake] of capsuleKeepsakes(capsules, capsulesForConnection, { now })) result.set(id, keepsake)
+    }
+    return result
+  }, [connectedMates, state.records, now])
+
   const isCurrentPeriod = offset === 0
   const summary = useMemo(
     () => resolveSummaryDisplay(periodRecords, range, isCurrentPeriod),
     [isCurrentPeriod, periodRecords, range],
   )
-  const capsuleCalendar = useMemo(() => buildCapsuleCalendar(periodRecords, range), [periodRecords, range])
-  const barChart = useMemo(
-    () => buildBarChartData(periodRecords, range, isCurrentPeriod),
-    [isCurrentPeriod, periodRecords, range],
+
+  // The board: mate colours with 「전체」 (mate by mate in a column), the chosen mate's time-band tints otherwise.
+  const yearColumns = yearColumnsFor(stageWidth || 1200)
+  const mateIdByCharId = useMemo(() => new Map(connectedMates.map((mate) => [mate.characterId, mate.id])), [connectedMates])
+  const board = useMemo(
+    () =>
+      buildCapsuleBoard(periodRecords, range, {
+        keepsakes,
+        mateOf: (record: StudyRecord) => mateIdByCharId.get(record.characterIds[0] ?? '') ?? 'chaerin',
+        mateOrder: connectedMates.map((mate) => mate.id),
+        mateNames: new Map(connectedMates.map((mate) => [mate.id, mate.name])),
+        colorMode: activeMate ? 'band' : 'mate',
+        yearColumns,
+      }),
+    [activeMate, connectedMates, keepsakes, mateIdByCharId, periodRecords, range, yearColumns],
   )
+  const capsuleCalendar = board.calendar
 
   const activeDay =
     (selectedCellKey ? capsuleCalendar.days.find((d) => d.key === selectedCellKey && !d.isFuture) : undefined) ??
     defaultCapsuleDay(capsuleCalendar.days)
   const selectedDay = activeDay ? selectCapsuleDay(periodRecords, activeDay) : null
-  const hasCameraTime = barChart.buckets.some((b) => b.cameraSeconds > 0)
-  const revealKey = `${period}|${range.startDay}|${activeMate?.id ?? 'all'}`
   const mateNameOf = (record: (typeof periodRecords)[number]) =>
     mateNameByCharId.get(record.characterIds[0] ?? '') ?? record.serverReport?.character?.name
 
-  // ── Record card of a calendar day ──
+  // ── Record card of a board day ──
   const openDayCard = (key: string) => {
     const active = document.activeElement
     dayCardReturnFocus.current = active instanceof HTMLElement && active !== document.body ? active : null
@@ -204,21 +265,15 @@ export default function RecordsPage() {
   const dayCardRecords = dayCard && selectedDay?.day.key === dayCard.key ? selectedDay.records : []
   const dayCardRecord = dayCard ? dayCardRecords[Math.min(dayCard.index, dayCardRecords.length - 1)] : undefined
   const dayCardCapsule = dayCardRecord ? capsuleFromStudyRecord(dayCardRecord) : null
-  const dayCardMate = dayCardRecord
-    ? catalogMates.find((mate) => dayCardRecord.characterIds.includes(mate.characterId))
-    : undefined
+  const dayCardMateId = dayCardRecord ? mateIdByCharId.get(dayCardRecord.characterIds[0] ?? '') : undefined
   // The same keepsakes as the mate's capsules in 내 메이트: milestones of all that mate's connections.
-  const dayCardKeepsake = dayCardCapsule && dayCardMate
-    ? capsuleKeepsakes(capsuleRecordsFromStudyRecords(state.records, dayCardMate.characterId, now), capsulesForConnection, { now }).get(
-        dayCardCapsule.id,
-      )?.hours
-    : undefined
+  const dayCardKeepsake = dayCardCapsule ? keepsakes.get(dayCardCapsule.id)?.hours : undefined
   const dayCardView = dayCard && dayCardRecord && dayCardCapsule && (
     <CapsuleRecordCard
       key={dayCard.key}
       capsule={dayCardCapsule}
       mateName={mateNameOf(dayCardRecord) ?? '메이트'}
-      mateId={dayCardMate?.id ?? 'chaerin'}
+      mateId={dayCardMateId ?? 'chaerin'}
       keepsakeHours={dayCardKeepsake}
       placement="center"
       phase={dayCard.phase}
@@ -236,10 +291,6 @@ export default function RecordsPage() {
       }}
     />
   )
-
-  const activeBar = hoveredBarKey
-    ? barChart.buckets.find((b) => b.key === hoveredBarKey)
-    : undefined
 
   // Mate comment: the selected mate speaks; with "전체" the mate met most in this period (else most recently).
   const speaker =
@@ -262,14 +313,24 @@ export default function RecordsPage() {
         voice: voiceFor(speakerCatalog?.id),
       })
     : null
+  const onCommentProgress = useCallback((progress: number, finished: boolean) => {
+    emphasisControl.current?.setProgress(progress, finished)
+  }, [])
   const mateCommentView = speaker && mateComment && (
     <MateCommentBubble
       key={mateComment.text}
       comment={mateComment}
       mateName={speaker.name}
       avatarSrc={speakerCatalog ? mateAvatar(speakerCatalog.id, speakerCatalog.image) : undefined}
+      onProgress={onCommentProgress}
     />
   )
+
+  const chooseView = (next: BoardView) => {
+    const views = { ...boardViews, [boardViewSlot(period)]: next }
+    setBoardViews(views)
+    storeBoardViews(views)
+  }
 
   const resetLabel =
     period === 'week' ? '이번 주로' : period === 'month' ? '이번 달로' : '올해로'
@@ -285,7 +346,6 @@ export default function RecordsPage() {
             <span className="skeleton-line records-skeleton-card" />
             <span className="skeleton-line records-skeleton-card" />
             <span className="skeleton-line records-skeleton-card" />
-            <span className="skeleton-line records-skeleton-card" />
           </div>
           <span className="skeleton-line records-skeleton-panel" aria-hidden="true" />
         </div>
@@ -297,7 +357,7 @@ export default function RecordsPage() {
     return (
       <RecordsWindowFrame>
         {mateCommentView}
-        <div className="records-empty-box">
+        <div className="records-block records-empty-box">
           <p className="records-empty-title">아직 함께한 기록이 없어요.</p>
           <p className="records-empty-sub">메이트와 연결하면 여기에 쌓여요.</p>
           <ButtonLink to="/">메이트 만나러 가기</ButtonLink>
@@ -306,7 +366,9 @@ export default function RecordsPage() {
     )
   }
 
-  const showMateCard = connectedMates.length >= 2
+  // 「함께한 메이트 n명」: only for 「전체」 with two or more mates.
+  const showMateCard = connectedMates.length >= 2 && !activeMate
+  const showMateLegend = !activeMate && board.mates.length >= 2
 
   return (
     <RecordsWindowFrame>
@@ -320,7 +382,7 @@ export default function RecordsPage() {
               className="records-period-tab"
               aria-selected={period === item.id}
               data-period-tab={item.id}
-              onClick={() => updateParams({ period: item.id, offset: 0 })}
+              onClick={() => (item.id === period ? undefined : switchPeriod(item.id))}
             >
               {item.label}
             </button>
@@ -387,152 +449,125 @@ export default function RecordsPage() {
         </nav>
       )}
 
-      {mateCommentView}
-
       {periodRecords.length === 0 ? (
-        <div className="records-empty-box">
-          <p className="records-empty-title">이 기간에는 함께한 기록이 없어요.</p>
-          <ButtonLink to="/">메이트 만나러 가기</ButtonLink>
-        </div>
+        <>
+          {mateCommentView}
+          <div className="records-block records-empty-box">
+            <p className="records-empty-title">이 기간에는 함께한 기록이 없어요.</p>
+            <ButtonLink to="/">메이트 만나러 가기</ButtonLink>
+          </div>
+        </>
       ) : (
         <>
+          {/* The comment and the numbers share one row so the board starts on the first screen (1280×720). */}
+          <div className="records-overview" data-has-comment={Boolean(mateCommentView) || undefined}>
+          {mateCommentView}
           <div className="records-summary-grid" data-cols={showMateCard ? '4' : '3'}>
             <section className="records-stat-card records-stat-card--primary">
-              <h2 className="records-stat-label">{summary.primaryLabel}</h2>
+              <BlockTitle icon="clock">{summary.primaryLabel}</BlockTitle>
               <p className="records-stat-value">{duration(summary.primarySeconds)}</p>
               {summary.cameraCaption && <p className="records-stat-sub">{summary.cameraCaption}</p>}
             </section>
             <section className="records-stat-card">
-              <h2 className="records-stat-label">함께한 날</h2>
+              <BlockTitle icon="check">함께한 날</BlockTitle>
               <p className="records-stat-value">{summary.activeDays}일</p>
             </section>
             <section className="records-stat-card">
-              <h2 className="records-stat-label">연결 횟수</h2>
+              <BlockTitle icon="video">연결 횟수</BlockTitle>
               <p className="records-stat-value">{summary.sessions}회</p>
             </section>
             {showMateCard && (
               <section className="records-stat-card">
-                <h2 className="records-stat-label">함께한 메이트</h2>
+                <BlockTitle icon="user">함께한 메이트</BlockTitle>
                 <p className="records-stat-value">{summary.mates}명</p>
               </section>
             )}
           </div>
-
-          <div className="records-visuals-grid" data-period-mode={period}>
-            <section className="records-card records-card--calendar" aria-labelledby="records-calendar-title">
-              <div className="records-card-head">
-                <h2 id="records-calendar-title" className="records-card-title">
-                  함께한 날
-                </h2>
-                <CapsuleLegend mode={capsuleCalendar.mode} />
-              </div>
-              <CapsuleCalendar
-                key={revealKey}
-                data={capsuleCalendar}
-                selectedKey={activeDay?.key}
-                onSelect={(day) => {
-                  setSelectedCellKey(day.key)
-                  // A day with connections opens the same record card as a capsule in 내 메이트.
-                  if (day.sessions > 0) openDayCard(day.key)
-                }}
-              />
-              {selectedDay && <CapsuleDayDetail selection={selectedDay} mateNameOf={mateNameOf} />}
-              {dayCardView}
-            </section>
-
-            <section
-              className="records-card"
-              role="region"
-              aria-label={barChart.ariaSummary}
-              data-bar-chart-section
-            >
-              <div className="records-card-head">
-                <h2 className="records-card-title">{period === 'year' ? '달별 함께한 시간' : '날짜별 함께한 시간'}</h2>
-                <div className="records-chart-legend" aria-hidden="true">
-                  <span className="records-chart-legend-item">
-                    <span className="records-chart-dot records-chart-dot--together" />
-                    함께한 시간
-                  </span>
-                  {hasCameraTime && (
-                    <span className="records-chart-legend-item">
-                      <span className="records-chart-dot records-chart-dot--camera" />
-                      카메라로 함께한 시간
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="records-chart-wrap">
-                <div className="records-chart-tooltip" aria-live="polite">
-                  {activeBar ? formatBarTooltip(activeBar) : '\u00A0'}
-                </div>
-
-                <div className="records-chart-body">
-                  <div className="records-chart-yaxis" aria-hidden="true">
-                    <span>0분</span>
-                    {barChart.scale.ticks.map((tick) => (
-                      <span key={tick.value}>{tick.label}</span>
-                    ))}
-                  </div>
-
-                  <div className="records-chart-plot">
-                    <div className="records-chart-gridlines" aria-hidden="true">
-                      <span className="records-chart-gridline" />
-                      {barChart.scale.ticks.map((tick) => (
-                        <span key={tick.value} className="records-chart-gridline" />
-                      ))}
-                    </div>
-
-                    <div
-                      className="records-chart-bars"
-                      data-dense={period === 'month' || undefined}
-                      style={{
-                        gridTemplateColumns: `repeat(${barChart.buckets.length}, minmax(0, 1fr))`,
-                      }}
-                    >
-                      {barChart.buckets.map((bucket, idx) => {
-                        const togetherPct = barPercent(bucket.connectionSeconds, barChart.scale.maxSeconds)
-                        const cameraPct = barPercent(bucket.cameraSeconds, barChart.scale.maxSeconds)
-                        const dayNum = idx + 1
-                        const hideNarrow = period === 'month' && dayNum !== 1 && dayNum % 5 !== 0
-
-                        return (
-                          <button
-                            key={bucket.key}
-                            type="button"
-                            className="records-bar-slot"
-                            data-bar-slot={bucket.key}
-                            aria-label={formatBarTooltip(bucket)}
-                            onMouseEnter={() => setHoveredBarKey(bucket.key)}
-                            onMouseLeave={() => setHoveredBarKey((cur) => (cur === bucket.key ? null : cur))}
-                            onFocus={() => setHoveredBarKey(bucket.key)}
-                            onBlur={() => setHoveredBarKey((cur) => (cur === bucket.key ? null : cur))}
-                          >
-                            <span className="records-bar-track" aria-hidden="true">
-                              {togetherPct > 0 && (
-                                <span className="records-bar-together" style={{ height: `${togetherPct}%` }} />
-                              )}
-                              {cameraPct > 0 && (
-                                <span className="records-bar-camera" style={{ height: `${cameraPct}%` }} />
-                              )}
-                            </span>
-                            <span className="records-bar-label" data-hide-narrow={hideNarrow || undefined}>
-                              {bucket.axisLabel}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
           </div>
 
-          <section className="records-recent-section" aria-labelledby="records-recent-title">
-            <h2 id="records-recent-title" className="records-recent-title">
+          <section className="records-block records-board-block" aria-labelledby="records-board-title" data-records-board>
+            <div className="records-card-head">
+              <BlockTitle id="records-board-title" icon="sparkle">
+                함께 쌓은 시간
+              </BlockTitle>
+              <div className="records-board-tools">
+                <p className="records-board-legend">
+                  {boardView === '2d' ? '칩' : '캡슐'} 1개 = {BOARD.minutesPerCapsule}분
+                  {activeMate || board.mates.length < 2 ? ' · 색은 만난 시간대' : ''}
+                  {board.hasKeepsake && (
+                    <>
+                      {' · '}
+                      <span aria-hidden="true">✦</span> 기념
+                    </>
+                  )}
+                </p>
+                {!boardFallback && (
+                  <div className="records-view-toggle" role="group" aria-label="보기 방식">
+                    {(['2d', '25d'] as const).map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className="records-view-toggle-btn"
+                        aria-pressed={boardView === value}
+                        data-board-view={value}
+                        onClick={() => chooseView(value)}
+                      >
+                        {value === '2d' ? '2D' : '2.5D'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            {showMateLegend && (
+              <ul className="records-board-mates" aria-label="메이트별 캡슐 색">
+                {board.mates.map((mate) => {
+                  const catalog = catalogMates.find((item) => item.id === mate.mateId)
+                  return (
+                    <li key={mate.mateId}>
+                      {catalog ? (
+                        <img src={mateAvatar(catalog.id, catalog.image)} alt="" width={20} height={20} />
+                      ) : (
+                        <span className="records-board-mate-initial" aria-hidden="true">
+                          {mate.name.slice(0, 1)}
+                        </span>
+                      )}
+                      <span className="records-board-mate-swatch" style={{ background: mate.color }} aria-hidden="true" />
+                      {mate.name}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+            <CapsuleBoard
+              model={board}
+              view={boardView}
+              selectedKey={activeDay?.key}
+              emphasis={mateComment?.highlight ?? null}
+              onEmphasisControl={onEmphasisControl}
+              onStageWidth={setStageWidth}
+              onFallback={() => setBoardFallback(true)}
+              onController={exposeBoardBenchmark}
+              onSelectDay={(day) => {
+                setSelectedCellKey(day.key)
+                // A day with connections opens the same record card as a capsule in 내 메이트.
+                if (day.sessions > 0) openDayCard(day.key)
+              }}
+              onSelectMonth={(month) => {
+                const key = `${range.startDay.slice(0, 4)}-${String(month + 1).padStart(2, '0')}-01`
+                // A month that has not begun cannot be opened (the board disables it too).
+                if (key > range.today) return
+                updateParams({ period: 'month', offset: Math.min(0, offsetContaining('month', key, range.today)) })
+              }}
+            />
+            {selectedDay && board.mode !== 'year' && <CapsuleDayDetail selection={selectedDay} mateNameOf={mateNameOf} />}
+            {dayCardView}
+          </section>
+
+          <section className="records-block records-recent-section" aria-labelledby="records-recent-title">
+            <BlockTitle id="records-recent-title" icon="book">
               최근 연결
-            </h2>
+            </BlockTitle>
             <ul className="records-row-list">
               {periodRecords.slice(0, visibleCount).map((record) => (
                 <li key={record.id}>

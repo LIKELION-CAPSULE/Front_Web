@@ -88,7 +88,7 @@ const UNIT_RADIUS = CAPSULE_ASPECT / 2
 /** Seam position on the unit-length capsule axis (+x is the tinted half). */
 const SEAM_X = CAPSULE_SEAM_OFFSET * 0.5
 /** Radius of the unit-length stadium capsule at axis position x (−0.5…0.5). */
-function capsuleRadiusAt(x: number) {
+export function capsuleRadiusAt(x: number) {
   const straight = 0.5 - UNIT_RADIUS
   const beyond = Math.abs(x) - straight
   return beyond <= 0 ? UNIT_RADIUS : Math.sqrt(Math.max(0, UNIT_RADIUS * UNIT_RADIUS - beyond * beyond))
@@ -98,7 +98,7 @@ function capsuleRadiusAt(x: number) {
  * The part [fromX, toX] of the unit-length capsule, lying along +x. Vertex colours: frosted half below the seam,
  * tinted half above it (logo v2 two tones).
  */
-function capsuleGeometry(fromX: number, toX: number, frosted: Color, tint: Color) {
+export function capsuleGeometry(fromX: number, toX: number, frosted: Color, tint: Color) {
   const straight = 0.5 - UNIT_RADIUS
   const samples = new Set<number>([fromX, toX, SEAM_X - 0.004, SEAM_X + 0.004, -straight, straight])
   for (let step = 0; step <= 14; step++) {
@@ -160,7 +160,7 @@ function radialTexture(stops: readonly [number, string][]) {
  * light at the rim, a faint band of light along the seam, lit from inside by its core. Low gloss on purpose.
  * Drawn in the opaque pass (additive, no depth write).
  */
-function shellMaterial(instanced: boolean, glow: Color) {
+export function shellMaterial(instanced: boolean, glow: Color) {
   return new ShaderMaterial({
     defines: instanced ? {} : { SINGLE_CAPSULE: '' },
     vertexColors: true,
@@ -270,7 +270,7 @@ function shellMaterial(instanced: boolean, glow: Color) {
  * The small light inside each capsule: a soft star whose size and brightness grow clearly with the time spent
  * together. It breathes very slowly (`uBreath` = 0 when motion is reduced).
  */
-function coreMaterial(glow: Color) {
+export function coreMaterial(glow: Color) {
   return new ShaderMaterial({
     uniforms: { uGlowColor: { value: glow }, uTime: { value: 0 }, uBreath: { value: 1 }, uStrength: { value: 1 } },
     vertexShader: /* glsl */ `
@@ -315,7 +315,7 @@ function coreMaterial(glow: Color) {
 }
 
 /** Soft light around every capsule (camera-facing quads sharing the capsules' instance matrices). */
-function haloMaterial(glow: Color) {
+export function haloMaterial(glow: Color) {
   return new ShaderMaterial({
     uniforms: { glowColor: { value: glow }, strength: { value: 0.16 } },
     vertexShader: /* glsl */ `

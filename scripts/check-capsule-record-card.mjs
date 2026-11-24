@@ -1,7 +1,8 @@
 // Regression check for the collectible record card of a capsule (CapsuleRecordCard): its 「연결 기록 보기」 link,
 // 「닫기」 and the day pager must take real clicks, Enter and Space — also while the card is tilted under the pointer
 // (the 3D card once let its empty wrapper catch the clicks) and under reduced motion. Opens the card from the
-// my-mates recent list and from the records calendar.
+// my-mates recent list and from the records board (「함께 쌓은 시간」): by keyboard (the board's day list, Enter) and by
+// a real click on the day's column in the WebGL scene, in 2.5D and in 2D.
 //
 // Needs the dev server in local mock mode and Playwright (not a project dependency):
 //
@@ -103,29 +104,40 @@ async function recordsCalendar() {
     await page.waitForTimeout(1500)
     await page.locator('.local-demo-toggle').click()
   }
-  const days = page.locator('.capsule-day')
+  await page.waitForTimeout(1500)
+  // Days with records (their accessible names carry the time); prefer one with two connections (the pager).
+  const labels = await page.locator('[data-board-day]').evaluateAll((buttons) =>
+    buttons.map((button) => [button.getAttribute('data-board-day'), button.getAttribute('aria-label') ?? '']),
+  )
+  const withRecords = labels.filter(([, label]) => label.includes('함께한 시간'))
+  const target = (withRecords.find(([, label]) => / 2회/.test(label)) ?? withRecords[withRecords.length - 1])?.[0]
   let opened = false
-  for (let index = (await days.count()) - 1; index >= 0 && !opened; index--) {
-    const level = await days.nth(index).locator('.capsule').getAttribute('data-level')
-    if (!level || level === '0') continue
-    await days.nth(index).click()
-    await page.waitForTimeout(300)
-    opened = (await openCount(page)) > 0
-    // Prefer a day with several connections (the pager); otherwise any day will do.
-    if (opened && !(await page.locator('.capsule-jar-card-pager').count()) && index > 0) {
-      const [cx, cy] = centre(await page.locator('.capsule-jar-card-close').boundingBox())
-      await page.mouse.click(cx, cy)
-      await page.waitForTimeout(400)
-      opened = false
-    }
-  }
-  if (!opened) {
-    for (let index = (await days.count()) - 1; index >= 0 && !opened; index--) {
-      const level = await days.nth(index).locator('.capsule').getAttribute('data-level')
-      if (!level || level === '0') continue
-      await days.nth(index).click()
+  if (target) {
+    // Keyboard: the day's button in the board's list, Enter.
+    await page.locator(`[data-board-day="${target}"]`).focus()
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(500)
+    check('records: Enter on a board day opens the card', (await openCount(page)) > 0)
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(600)
+    for (const view of ['2d', '25d']) {
+      await page.locator(`[data-board-view="${view}"]`).click()
+      await page.waitForTimeout(1200)
+      // Pointer: click the day where the scene draws it (just under its tooltip).
+      await page.locator(`[data-board-day="${target}"]`).focus()
       await page.waitForTimeout(300)
+      const tip = await page.locator('.capsule-board-tooltip').boundingBox()
+      await page.locator(`[data-board-day="${target}"]`).blur()
+      if (!tip) continue
+      await page.mouse.click(tip.x + tip.width / 2, tip.y + tip.height + (view === '2d' ? 26 : 22))
+      await page.waitForTimeout(500)
       opened = (await openCount(page)) > 0
+      check(`records: clicking the day on the ${view === '2d' ? '2D' : '2.5D'} board opens the card`, opened)
+      if (view === '2d' && opened) {
+        await page.keyboard.press('Escape')
+        await page.waitForTimeout(600)
+        opened = false
+      }
     }
   }
   check('records: a day with records opens the card', opened)

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { duration } from '@/shared/lib/format'
 import {
+  CAPSULE_BASE_FILL,
+  capsuleBandFill,
   capsuleFillRatio,
   capsuleFillSteps,
   capsuleNeighbor,
@@ -14,10 +16,13 @@ import './capsule-calendar.css'
 
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'] as const
 
-/** Legend: empty capsule → full capsule, with the connection-time steps. */
-export function CapsuleLegend({ mode }: { mode: CapsuleCalendarData['mode'] }) {
+/**
+ * Legend: empty capsule → full capsule, with the connection-time steps, plus the keepsake mark when one is in view.
+ * The time-band tints are not listed: they are small shifts of one violet, named in each day's tooltip instead.
+ */
+export function CapsuleLegend({ mode, showKeepsake = false }: { mode: CapsuleCalendarData['mode']; showKeepsake?: boolean }) {
   return (
-    <div className="capsule-legend" data-mode={mode} aria-label="캡슐 채움 범례">
+    <div className="capsule-legend" data-mode={mode} aria-label="캡슐 채움 범례" style={{ '--band': CAPSULE_BASE_FILL } as CSSProperties}>
       <span className="capsule-legend-item">
         <span className="capsule" data-level="0" aria-hidden="true" />
         없음
@@ -30,6 +35,12 @@ export function CapsuleLegend({ mode }: { mode: CapsuleCalendarData['mode'] }) {
           {step.label}
         </span>
       ))}
+      {showKeepsake && (
+        <span className="capsule-legend-item">
+          <span className="capsule-keepsake capsule-keepsake--legend" aria-hidden="true" />
+          기념
+        </span>
+      )}
     </div>
   )
 }
@@ -138,7 +149,14 @@ export function CapsuleCalendar({
                 aria-label={capsuleTooltip(day)}
                 disabled={day.isFuture}
                 tabIndex={day.key === rovingKey ? 0 : -1}
-                style={revealOrder[index] === null ? undefined : ({ '--i': revealOrder[index] } as CSSProperties)}
+                data-band={day.band ?? undefined}
+                data-keepsake={day.keepsakeHours ?? undefined}
+                style={
+                  {
+                    ...(day.band ? { '--band': capsuleBandFill[day.band] } : {}),
+                    ...(revealOrder[index] === null ? {} : { '--i': revealOrder[index] }),
+                  } as CSSProperties
+                }
                 onClick={() => {
                   setFocusKey(day.key)
                   onSelect(day)
@@ -149,10 +167,13 @@ export function CapsuleCalendar({
                 onBlur={() => setTooltip(null)}
               >
                 {day.label && <span className="capsule-day-label">{day.label}</span>}
-                <span className="capsule" data-level={day.level} aria-hidden="true">
-                  {day.level > 0 && (
-                    <span className="capsule-fill" style={{ '--fill': capsuleFillRatio(day.level) } as CSSProperties} />
-                  )}
+                <span className="capsule-slot" aria-hidden="true">
+                  <span className="capsule" data-level={day.level}>
+                    {day.level > 0 && (
+                      <span className="capsule-fill" style={{ '--fill': capsuleFillRatio(day.level) } as CSSProperties} />
+                    )}
+                  </span>
+                  {day.keepsakeHours ? <span className="capsule-keepsake" /> : null}
                 </span>
                 {mode === 'week' && (
                   <span className="capsule-day-time" aria-hidden="true">
