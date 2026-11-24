@@ -1,0 +1,99 @@
+/* Mate's comment on the records page (/records): avatar + glass speech bubble.
+   Surface follows the home banner speech bubble (docs/DESIGN_SYSTEM.md): panel 68% → canvas 62% gradient,
+   18px backdrop blur, 140% saturation, 18px radius, no outline; opaque panel without backdrop-filter. */
+.records-mate-comment {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.records-mate-comment-avatar {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--color-primary) 22%, var(--color-panel));
+}
+
+.records-mate-comment-avatar--initial {
+  display: grid;
+  place-items: center;
+  color: var(--color-text-accent);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.records-mate-comment-bubble {
+  position: relative;
+  min-width: 0;
+  max-width: min(100%, 560px);
+  padding: 12px 18px 14px;
+  border: 0;
+  border-radius: 18px 18px 18px 6px;
+  background: var(--color-panel);
+  box-shadow: 0 8px 24px #0002;
+  color: var(--color-ink);
+}
+
+.records-mate-comment-bubble[data-typing] {
+  cursor: pointer;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .records-mate-comment-bubble {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-panel) 68%, transparent),
+      color-mix(in srgb, var(--color-canvas) 62%, transparent)
+    );
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+}
+
+.records-mate-comment-name {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--color-text-accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.records-mate-comment-text {
+  display: grid;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-home-greeting);
+  line-height: var(--text-home-greeting--line-height);
+  font-weight: 500;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.records-mate-comment-measure,
+.records-mate-comment-typed {
+  grid-area: 1 / 1;
+}
+
+.records-mate-comment-measure {
+  visibility: hidden;
+}
+
+@media (max-width: 720px) {
+  .records-mate-comment {
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .records-mate-comment-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .records-mate-comment-bubble {
+    padding: 10px 14px 12px;
+  }
+}

@@ -8,7 +8,8 @@
 }
 
 .records-window-body {
-  padding: 20px 28px 32px;
+  /* No visible title (hideTitle): the body takes the heading's top padding. */
+  padding: 28px 28px 32px;
   background: linear-gradient(
     155deg,
     color-mix(in srgb, var(--color-surface-raised) 96%, transparent),
@@ -34,7 +35,6 @@
   padding: 4px;
   border-radius: 12px;
   background: color-mix(in srgb, var(--color-canvas) 76%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
 }
 
 .records-period-tab {
@@ -79,7 +79,7 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border: 0;
   background: color-mix(in srgb, var(--color-surface) 88%, transparent);
   color: var(--color-ink);
   font-size: 16px;
@@ -150,7 +150,7 @@
   min-height: 34px;
   padding: 0 13px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border: 0;
   background: color-mix(in srgb, var(--color-canvas) 72%, transparent);
   color: var(--color-muted);
   font-size: 13px;
@@ -196,7 +196,6 @@
   min-width: 0;
   padding: 18px 20px;
   border-radius: 14px;
-  border: 1px solid rgba(196, 185, 243, 0.14);
   background: color-mix(in srgb, var(--color-surface) 88%, transparent);
 }
 
@@ -206,7 +205,6 @@
     color-mix(in srgb, var(--color-primary) 16%, var(--color-surface)),
     color-mix(in srgb, var(--color-surface) 92%, transparent)
   );
-  border-color: rgba(196, 185, 243, 0.24);
 }
 
 .records-stat-label {
@@ -248,7 +246,6 @@
   min-width: 0;
   padding: 20px 22px;
   border-radius: 14px;
-  border: 1px solid rgba(196, 185, 243, 0.14);
   background: color-mix(in srgb, var(--color-surface) 88%, transparent);
 }
 
@@ -268,101 +265,28 @@
   color: var(--color-ink);
 }
 
-/* Calendar Legend */
-.records-cal-legend {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  color: var(--color-subtle);
+/* Capsule calendar card (capsule styles: src/features/records/capsule-calendar.css) */
+.records-visuals-grid[data-period-mode='year'] {
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.records-cal-swatch {
-  width: 11px;
-  height: 11px;
-  border-radius: 3px;
+.records-day-detail {
+  margin-top: 14px;
 }
 
-/* Calendar Grids */
-.records-cal-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-  margin-bottom: 6px;
-  text-align: center;
-  font-size: 11.5px;
-  color: var(--color-subtle);
-}
-
-.records-cal-grid {
-  display: grid;
-  gap: 6px;
-}
-
-.records-cal-grid--week {
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-}
-
-.records-cal-grid--month {
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-}
-
-.records-cal-grid--year {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.records-cal-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  min-height: 44px;
-  padding: 6px 4px;
+.records-day-summary {
+  margin: 0;
+  padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.035);
-  color: var(--color-muted);
-  font-size: 12.5px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition: border-color 120ms ease, transform 120ms ease;
+  background: color-mix(in srgb, var(--color-canvas) 68%, transparent);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-ink);
+  word-break: keep-all;
 }
 
-.records-cal-body {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.records-card--week .records-cal-body {
-  justify-content: center;
-}
-
-.records-cal-grid--week .records-cal-cell {
-  min-height: 74px;
-  gap: 5px;
-  padding: 8px 4px;
-}
-
-.records-cal-cell-label {
-  line-height: 1.25;
-}
-
-.records-cal-cell-time {
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.2;
-  color: inherit;
-  opacity: 0.92;
-  white-space: nowrap;
-}
-
-.records-cal-cell-time--conn {
-  font-weight: 500;
-  opacity: 0.68;
+.records-day-list {
+  margin-top: 8px;
 }
 
 .records-visuals-grid[data-period-mode='week'] .records-chart-wrap {
@@ -371,65 +295,6 @@
 
 .records-visuals-grid[data-period-mode='week'] .records-chart-body {
   min-height: 152px;
-}
-
-.records-cal-grid--year .records-cal-cell {
-  min-height: 54px;
-  font-size: 13px;
-}
-
-.records-cal-cell[data-level='1'],
-.records-cal-swatch[data-level='1'] {
-  background: rgba(139, 92, 246, 0.28);
-  color: var(--color-ink);
-}
-
-.records-cal-cell[data-level='2'],
-.records-cal-swatch[data-level='2'] {
-  background: rgba(139, 92, 246, 0.48);
-  color: var(--color-ink);
-}
-
-.records-cal-cell[data-level='3'],
-.records-cal-swatch[data-level='3'] {
-  background: rgba(139, 92, 246, 0.72);
-  color: #fff;
-}
-
-.records-cal-cell[data-level='4'],
-.records-cal-swatch[data-level='4'] {
-  background: rgba(139, 92, 246, 0.96);
-  color: #fff;
-}
-
-.records-cal-cell[data-current='true'] {
-  border: 1.5px solid var(--color-text-accent);
-}
-
-.records-cal-cell[aria-pressed='true'] {
-  box-shadow: 0 0 0 2px var(--color-ink);
-}
-
-.records-cal-cell:disabled {
-  opacity: 0.38;
-  cursor: default;
-}
-
-.records-cal-cell:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-.records-cal-selected {
-  margin: 14px 0 0;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--color-canvas) 68%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--color-ink);
-  word-break: keep-all;
 }
 
 /* Bar Chart */
@@ -457,8 +322,8 @@
   background: var(--color-primary);
 }
 
-.records-chart-dot--connection {
-  background: rgba(167, 139, 250, 0.34);
+.records-chart-dot--camera {
+  background: color-mix(in srgb, var(--color-ink) 42%, transparent);
 }
 
 .records-chart-wrap {
@@ -565,22 +430,23 @@
   max-width: 14px;
 }
 
-.records-bar-connection {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  border-radius: 5px 5px 2px 2px;
-  background: rgba(167, 139, 250, 0.34);
-  transition: height 180ms ease;
-}
-
 .records-bar-together {
   position: relative;
-  z-index: 1;
   width: 100%;
   border-radius: 5px 5px 2px 2px;
   background: var(--color-primary);
+  transition: height 180ms ease;
+}
+
+/* Camera-measured time: a narrow secondary bar inside the main one (never longer than the connection). */
+.records-bar-camera {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 36%;
+  border-radius: 3px 3px 0 0;
+  background: color-mix(in srgb, var(--color-ink) 42%, transparent);
+  transform: translateX(-50%);
   transition: height 180ms ease;
 }
 
@@ -598,6 +464,93 @@
   color: var(--color-subtle);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* Connection rows (recent list and selected day) — surface only, no outline. */
+.records-row-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.records-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+  color: var(--color-ink);
+  text-decoration: none;
+  transition: background-color 140ms ease;
+}
+
+.records-day-list .records-row {
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--color-canvas) 50%, transparent);
+}
+
+.records-row:hover,
+.records-row:focus-visible {
+  background: color-mix(in srgb, var(--color-ink) 7%, var(--color-surface));
+}
+
+.records-row:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.records-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.records-day-list .records-row-meta {
+  font-size: 13px;
+}
+
+.records-row-when {
+  font-weight: 600;
+}
+
+.records-row-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.records-row-sep {
+  color: var(--color-subtle);
+}
+
+.records-row-camera {
+  color: var(--color-muted);
+  font-size: 0.93em;
+}
+
+.records-row-badge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  color: var(--color-text-accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.records-row-chevron {
+  flex: none;
+  color: var(--color-subtle);
 }
 
 /* Recent Connections */
@@ -679,7 +632,7 @@
 /* Below 960: summary becomes 2x2 */
 @media (max-width: 959px) {
   .records-window-body {
-    padding: 18px 20px 28px;
+    padding: 24px 20px 28px;
   }
 
   .records-summary-grid,
@@ -698,21 +651,6 @@
     padding: 16px 14px;
   }
 
-  .records-cal-cell {
-    min-height: 36px;
-    font-size: 11.5px;
-    padding: 4px 2px;
-  }
-
-  .records-cal-grid--week .records-cal-cell {
-    min-height: 60px;
-    gap: 3px;
-  }
-
-  .records-cal-cell-time {
-    font-size: 10px;
-  }
-
   .records-chart-bars[data-dense='true'] .records-bar-label[data-hide-narrow='true'] {
     visibility: hidden;
   }
@@ -722,8 +660,8 @@
   .records-period-tab,
   .records-nav-btn,
   .records-mate-chip,
-  .records-cal-cell,
-  .records-bar-connection,
+  .records-row,
+  .records-bar-camera,
   .records-bar-together {
     transition: none;
   }

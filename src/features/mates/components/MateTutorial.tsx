@@ -9,7 +9,7 @@ import '../mate-tutorial.css'
 const steps = [
   { title: '메이트 고르기', text: '홈에서 메이트를 둘러보고, 마음에 드는 메이트를 골라요.' },
   { title: '연결하기', text: "'연결하기'를 누르면 메이트와 영상통화처럼 함께해요." },
-  { title: '연결 기록', text: '연결 시간 · 함께한 시간(캠) · 나눈 대화 수' },
+  { title: '연결 기록', text: '함께한 시간 · 카메라로 함께한 시간 · 나눈 대화 수' },
 ] as const
 
 /** Final PRD H-3. Uses approved copy and illustrates currently connected features only. */
@@ -75,7 +75,7 @@ export function MateTutorial({ mates, onClose, onComplete }: { mates: readonly A
             <div className="mate-tutorial-record">
               <Icon name="chart" size={40} />
               <span>연결 기록</span>
-              {['연결 시간', '함께한 시간(캠)', '나눈 대화 수'].map((label) => (
+              {['함께한 시간', '카메라로 함께한 시간', '나눈 대화 수'].map((label) => (
                 <span key={label}>{label}<b>—</b></span>
               ))}
             </div>

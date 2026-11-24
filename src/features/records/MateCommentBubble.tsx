@@ -1,0 +1,50 @@
+import { useWindupString } from 'windups'
+import { speechPace } from '@/features/session/speech-pace'
+import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
+import type { MateComment } from './mate-comment'
+import './mate-comment.css'
+
+/**
+ * The mate's one-line comment on the records page: avatar + glass speech bubble.
+ * Types out like the study screen's speech bubble; with reduced motion the full line shows at once.
+ * Mount with `key={comment.text}` so a new comment restarts typing.
+ */
+export function MateCommentBubble({
+  comment,
+  mateName,
+  avatarSrc,
+}: {
+  comment: MateComment
+  mateName: string
+  avatarSrc?: string
+}) {
+  const reducedMotion = useReducedMotion()
+  const [typed, { isFinished, skip }] = useWindupString(comment.text, { pace: speechPace, skipped: reducedMotion })
+
+  return (
+    <section className="records-mate-comment" aria-label={`${mateName}의 한마디`} data-records-mate-comment={comment.kind}>
+      {avatarSrc ? (
+        <img className="records-mate-comment-avatar" src={avatarSrc} alt="" width={56} height={56} decoding="async" />
+      ) : (
+        <span className="records-mate-comment-avatar records-mate-comment-avatar--initial" aria-hidden="true">
+          {mateName.slice(0, 1)}
+        </span>
+      )}
+      <div className="records-mate-comment-bubble" data-typing={!isFinished || undefined} onClick={isFinished ? undefined : skip}>
+        <span className="records-mate-comment-name" aria-hidden="true">
+          {mateName}
+        </span>
+        <p className="records-mate-comment-text">
+          <span className="sr-only">{comment.text}</span>
+          {/* The full line reserves the final size so the bubble does not grow while typing. */}
+          <span className="records-mate-comment-measure" aria-hidden="true">
+            {comment.text}
+          </span>
+          <span className="records-mate-comment-typed" aria-hidden="true">
+            {typed}
+          </span>
+        </p>
+      </div>
+    </section>
+  )
+}

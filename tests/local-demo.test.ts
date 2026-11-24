@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { LocalBetaStore, LOCAL_STORAGE_KEY, LOCAL_USER_ID, nextAttendanceExpiry } from '../src/features/local-demo/store.ts'
 import { createLocalStorageScope, LOCAL_CACHE_PREFIX } from '../src/features/local-demo/storage.ts'
+import { getRecordRange } from '../src/features/reports/record-period.ts'
 
 function storage() {
   const map = new Map<string, string>()
@@ -12,7 +13,9 @@ const now = () => new Date(2026, 10, 22, 12).getTime()
 test('local fixture starts with one isolated account, varied records and persistent conversation', () => {
   const store = new LocalBetaStore(storage(), now)
   assert.equal(store.me().userId, LOCAL_USER_ID)
-  assert.equal(store.data.records.length, 11)
+  assert.equal(store.data.recordPattern, 'steady')
+  assert.ok(store.data.records.length >= 10)
+  assert.ok(store.data.records.every(record => record.endedAt <= now()))
   assert.ok(new Set(store.data.records.map(record => record.studySeconds)).size > 1)
   assert.equal(store.data.messages.length, 1)
   assert.equal(store.data.wallet.attendance + store.data.wallet.invitation, 3500)
@@ -139,4 +142,39 @@ test('all legacy preferences and account caches use an isolated persistent stora
   assert.equal(disk.getItem('real-preference'), 'untouched')
   const memory = createLocalStorageScope(null)
   memory.setItem('key', 'value'); assert.equal(memory.getItem('key'), 'value')
+})
+test('pattern history is regenerated relative to today, so this week never goes stale', () => {
+  const disk = storage()
+  let clock = now()
+  new LocalBetaStore(disk, () => clock).changed()
+  clock += 10 * 86_400_000
+  const later = new LocalBetaStore(disk, () => clock)
+  const week = getRecordRange('week', clock)
+  assert.ok(later.data.records.some(record => record.endedAt >= week.start && record.endedAt < week.end))
+  assert.ok(later.data.records.every(record => record.endedAt <= clock))
+})
+test('legacy fixed fixture records are replaced by the pattern history', () => {
+  const disk = storage(), store = new LocalBetaStore(disk, now)
+  const legacy = { ...store.data.records[0]!, id: '991001', endedAt: now() - 400 * 86_400_000 }
+  store.data.records = [legacy]; delete store.data.recordPattern; store.changed()
+  const reloaded = new LocalBetaStore(disk, now)
+  assert.equal(reloaded.data.recordPattern, 'steady')
+  assert.ok(!reloaded.data.records.some(record => record.id === '991001'))
+  assert.ok(reloaded.data.records.length > 1)
+})
+test('switching record patterns keeps locally finished connections and the empty scenario stays empty', () => {
+  const disk = storage(), store = new LocalBetaStore(disk, now)
+  store.start(50); store.finish(60, 50)
+  const finished = store.data.records[0]!.id
+  store.setRecordPattern('none')
+  assert.deepEqual(store.data.records.map(record => record.id), [finished])
+  assert.ok(!store.data.messages.some(message => message.id === 'local-history-1'))
+  store.setRecordPattern('returning')
+  const week = getRecordRange('week', now())
+  assert.ok(store.data.records.some(record => record.id === finished))
+  assert.ok(store.data.records.filter(record => record.id !== finished).every(record => record.endedAt < week.start))
+  assert.equal(new LocalBetaStore(disk, now).data.recordPattern, 'returning')
+  store.reset('empty')
+  assert.equal(store.data.recordPattern, 'none')
+  assert.equal(new LocalBetaStore(disk, now).data.records.length, 0)
 })

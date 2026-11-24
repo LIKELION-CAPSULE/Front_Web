@@ -2,8 +2,8 @@ import chaerinCard from '@/assets/characters/chaerin-v2/chaerin-v2-card.webp'
 import chaerinHero from '@/assets/characters/chaerin-v2/chaerin-v2-hero.webp'
 import chaerinAvatar from '@/assets/characters/chaerin-v2/chaerin-v2-avatar.webp'
 import chaerinFull from '@/assets/characters/chaerin-v2/chaerin-v2-full.webp'
-import chaerinCallBgPortrait from '@/assets/characters/chaerin-live2d-v1/chaerin-call-bg-portrait.webp'
-import chaerinCallBgLandscape from '@/assets/characters/chaerin-live2d-v1/chaerin-call-bg-landscape.webp'
+import chaerinCallBgPortrait from '@/assets/characters/chaerin-call-bg/chaerin-call-bg-portrait.webp'
+import chaerinCallBgLandscape from '@/assets/characters/chaerin-call-bg/chaerin-call-bg-landscape.webp'
 
 /** Fallback violet gradient shown while callBackground loads or if it fails. */
 export const CALL_STAGE_GRADIENT =

@@ -1,0 +1,172 @@
+/*
+ * 「함께한 시간」 column of 내 메이트. Base design rules (docs/DESIGN_SYSTEM.md): every block on the same glass
+ * (the report result panel's material, set in my-mates.css), no outlines, no glow, no gold; violet only for the
+ * progress, the selection and the main action. One title style everywhere (small icon + title).
+ */
+.mate-game {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Blocks: the glass surface comes from my-mates.css; the same padding and radius for every block ── */
+.mate-game-block {
+  position: relative;
+  padding: 16px 20px;
+  border-radius: 18px;
+}
+
+/* Block title: one style everywhere — a small icon and the title. */
+.mate-game-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+}
+.mate-game-label-icon { display: inline-grid; place-items: center; color: var(--color-muted); }
+.mate-game-label-note { margin-left: auto; color: var(--color-subtle); font-size: 12px; font-weight: 500; }
+
+/* ── 함께한 시간: the total and one line of counts ── */
+.mate-game-total-value {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.mate-game-total-meta {
+  margin: 2px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ── 친밀도: the stage, one progress bar, what is left, what the next stage opens ── */
+.mate-game-level-name { margin: 0; color: var(--color-ink); font-size: 16px; line-height: 22px; font-weight: 700; }
+.mate-game-progress {
+  position: relative;
+  height: 6px;
+  margin: 10px 0 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+}
+.mate-game-progress::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-primary, #7c5cff);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: 0 50%;
+}
+.mate-game-level-caption { margin: 0; color: var(--color-muted); font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums lining-nums; }
+.mate-game-level-reward { margin: 2px 0 0; color: var(--color-subtle); font-size: 13px; line-height: 18px; }
+
+/* ── 최근 캡슐: rows divided by thin lines ──
+   The column is as tall as the panel and never scrolls: every block keeps its height and the recent list takes
+   what is left (its row count is measured from this room, MateTimeColumn). */
+.mate-game > * { flex: none; }
+.mate-game > .mate-game-recent { display: flex; flex: 1 1 0; min-height: 96px; flex-direction: column; overflow: hidden; }
+.mate-game-inventory-room { flex: 1 1 0; min-height: 0; overflow: hidden; }
+.mate-game-inventory { margin: 0 -10px; padding: 0; list-style: none; }
+.mate-game-inventory > li + li { border-top: 1px solid rgb(255 255 255 / 0.06); }
+.mate-game-slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+/* Neutral hover (violet is for selection and the main action). */
+.mate-game-slot:hover,
+.mate-game-slot[data-pointed='true'] { background: rgb(255 255 255 / 0.06); }
+.mate-game-slot:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+.mate-game-slot-item { display: grid; flex: none; place-items: center; width: 26px; height: 26px; }
+.mate-game-slot-text { display: flex; flex: 1; min-width: 0; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mate-game-slot-date { overflow: hidden; color: var(--color-muted); font-size: 13px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums lining-nums; }
+.mate-game-slot-end { display: inline-flex; flex: none; align-items: baseline; gap: 8px; }
+.mate-game-slot-time { color: var(--color-ink); font-size: 13px; line-height: 18px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums lining-nums; }
+.mate-game-slot-count { color: var(--color-subtle); font-weight: 500; }
+/* New since the last visit (the newest two): a small violet text tag. */
+.mate-game-new {
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgb(124 92 255 / 0.18);
+  color: var(--color-text-accent);
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+/* Keepsake (a milestone of the time together): a quiet violet text tag, lighter than NEW. */
+.mate-game-keepsake {
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.07);
+  color: var(--color-text-accent);
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mate-game-empty { margin: 0; font-size: 13px; line-height: 18px; color: var(--color-subtle); }
+
+/* Short windows (1280×720 and the like): tighter blocks so the recent list still gets two or three rows. */
+@media (min-width: 960px) and (max-height: 800px) {
+  .mate-game { gap: 8px; }
+  .mate-game-block { padding: 10px 16px; }
+  .mate-game-label { margin-bottom: 2px; }
+  .mate-game-total-value { font-size: 22px; line-height: 28px; }
+  .mate-game-progress { margin: 8px 0 6px; }
+  .mate-game-slot { height: 34px; }
+}
+
+/* Narrow screens: the column follows its content; the list gets room for four rows. */
+@media (max-width: 959px) {
+  .mate-game > .mate-game-recent { flex: none; min-height: 0; }
+  .mate-game-inventory-room { flex: none; height: 163px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mate-game-slot { transition: none; }
+}
+
+/* ── 표정 컬렉션 in the narrow column: 3 columns × 2 rows, each tile a face beside its name ── */
+.mate-game-expressions .mate-expressions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.mate-game-expressions .mate-expression {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 5px 8px 5px 5px;
+  text-align: left;
+}
+.mate-game-expressions .mate-expression-face { width: 30px; height: 30px; }
+.mate-game-expressions .mate-expression-label,
+.mate-game-expressions .mate-expression-condition { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Short windows: the total and its counts on one line, and denser expression tiles, so the recent list keeps two
+   rows at 1280×720 (no smaller text). */
+@media (min-width: 960px) and (max-height: 800px) {
+  .mate-game-total { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; }
+  .mate-game-total > .mate-game-label { flex-basis: 100%; }
+  .mate-game-total-meta { margin: 0; }
+  .mate-game-expressions .mate-expressions { gap: 4px; }
+  .mate-game-expressions .mate-expression { padding: 3px 6px 3px 3px; }
+  .mate-game-expressions .mate-expression-face { width: 28px; height: 28px; }
+}

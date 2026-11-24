@@ -1,6 +1,22 @@
 import type { ModelInfo } from '../../shared/api/types.ts'
 import { ApiError } from '../../shared/api/client.ts'
 
+/**
+ * Mate preview model. `ModelInfo` (Cubism: `modelJsonUrl` + layout) plus the v2 (Aliving2D) runtime URLs.
+ * The wire contract for the v2 fields is a draft: docs/MATE_MODEL_V2_CONTRACT.md. Missing or malformed v2 fields
+ * never fail the detail; the preview just falls back to the v2 still image.
+ */
+export type MateModelInfo = ModelInfo & {
+  /** Optional format hint: 'aliving2d' | 'cubism'. Without it the format comes from the `modelJsonUrl` suffix. */
+  format?: string
+  /** Aliving2D engine script (`engine.js`). Must be same-origin or on the API origin (`isAllowedEngineUrl`). */
+  engineUrl?: string
+  /** Aliving2D player script (`player.js`); defaults to `player.js` next to `engineUrl`. */
+  playerUrl?: string
+  /** Optional reaction table (`reactions.default.json`). */
+  reactionsUrl?: string
+}
+
 /** UI projections only. No new server endpoint or wire field is assumed here. */
 export type MateDetailContent = {
   characterId: number
@@ -10,7 +26,7 @@ export type MateDetailContent = {
   intro?: string
   farewellLine?: string
   tags?: readonly string[]
-  model?: ModelInfo
+  model?: MateModelInfo
   voiceSampleUrl?: string
   conversationRevision?: string
 }
@@ -47,13 +63,19 @@ export function checkedMateDetail(value: MateDetailContent, characterId: number)
   }
   if (value.model !== undefined) {
     if (!value.model || !assetUrl(value.model.modelJsonUrl)) throw invalid()
-    const model: ModelInfo = { modelJsonUrl: value.model.modelJsonUrl }
+    const model: MateModelInfo = { modelJsonUrl: value.model.modelJsonUrl }
     for (const key of ['scale', 'offsetX', 'offsetY'] as const) {
       const number = value.model[key]
       if (number === undefined) continue
       if (!Number.isFinite(number) || key === 'scale' && number <= 0) throw invalid()
       model[key] = number
     }
+    // v2 runtime URLs are optional: keep only well-formed http(s) URLs (the origin allowlist runs at render time).
+    for (const key of ['engineUrl', 'playerUrl', 'reactionsUrl'] as const) {
+      const url = value.model[key]
+      if (assetUrl(url)) model[key] = url.trim()
+    }
+    if (typeof value.model.format === 'string' && value.model.format.trim()) model.format = value.model.format.trim()
     result.model = model
   }
   if (value.voiceSampleUrl !== undefined) {

@@ -180,3 +180,82 @@ export function computePointerGaze(input: {
     y: clampUnit(-(input.pointerY - input.faceY) / denomY),
   }
 }
+
+/**
+ * Engine views used to render the chaerin-v2 still images (`src/assets/characters/chaerin-v2/renders.json`).
+ * `size` is the 1x display size of the image (the files are rendered at 2x); `view` is the `setView` value that
+ * produced them. Kept in code so the Live2D camera can reproduce a still image's framing exactly
+ * (`tests/mate-render.test.ts` checks these against renders.json).
+ */
+export const CHAERIN_V2_RENDERS = {
+  hero: { size: { width: 760, height: 900 }, view: { zoom: 1.9718, cx: 640, cy: 384.6 } },
+  card: { size: { width: 800, height: 600 }, view: { zoom: 2.5129, cx: 640, cy: 265.3 } },
+  avatar: { size: { width: 512, height: 512 }, view: { zoom: 3.126, cx: 640, cy: 215.3 } },
+  full: { size: { width: 900, height: 1200 }, view: { zoom: 1.3581, cx: 640, cy: 621.6 } },
+} as const satisfies Record<string, { size: { width: number; height: number }; view: AlivingView }>
+
+export type AlivingStillRender = (typeof CHAERIN_V2_RENDERS)[keyof typeof CHAERIN_V2_RENDERS]
+
+/**
+ * Box of an image drawn with `object-fit: contain` inside a (cw × ch) container.
+ * `alignY` follows `object-position` (0 = top, 0.5 = center, 1 = bottom); x is always centered.
+ */
+export function computeContainedImageBox(
+  cw: number,
+  ch: number,
+  imageWidth: number,
+  imageHeight: number,
+  alignY = 1,
+): ScreenBox {
+  const scale = Math.min(cw / Math.max(1, imageWidth), ch / Math.max(1, imageHeight))
+  const width = imageWidth * scale
+  const height = imageHeight * scale
+  return { left: (cw - width) / 2, top: (ch - height) * alignY, width, height }
+}
+
+/**
+ * Live2D view that draws the model exactly where a still render sits inside a (cw × ch) canvas, so the static image
+ * and the live model overlap pixel-for-pixel during a crossfade.
+ *
+ * The still was produced with `render.view` on a canvas of `render.size`; drawn at `box`, one model px is
+ * `kRender * box.width / render.size.width` CSS px and the image center is model `(render.view.cx, render.view.cy)`.
+ */
+export function computeStillMatchedView(
+  cw: number,
+  ch: number,
+  render: { size: { width: number; height: number }; view: AlivingView },
+  box: ScreenBox,
+  modelSize = ALIVING_MODEL_SIZE,
+): AlivingView {
+  const { size, view } = render
+  const kRender = (Math.min(size.width, size.height) / modelSize) * view.zoom
+  const k = (kRender * box.width) / Math.max(1, size.width)
+  const minStage = Math.max(1, Math.min(cw, ch))
+  return {
+    zoom: (k * modelSize) / minStage,
+    cx: view.cx + (cw / 2 - (box.left + box.width / 2)) / k,
+    cy: view.cy + (ch / 2 - (box.top + box.height / 2)) / k,
+  }
+}
+
+/**
+ * Preview camera for the mate preview stages (my mates, mate detail, connection record): the hero still is shown with
+ * `object-fit: contain; object-position: center bottom`, and the Live2D view reproduces that framing at any stage size.
+ */
+export function computePreviewView(cw: number, ch: number): AlivingView {
+  const render = CHAERIN_V2_RENDERS.hero
+  const box = computeContainedImageBox(cw, ch, render.size.width, render.size.height, 1)
+  return computeStillMatchedView(cw, ch, render, box)
+}
+
+/**
+ * Call camera for the connection screen and its Picture-in-Picture window. Both show the card still (head → chest,
+ * the video-call bust) with `object-fit: contain; object-position: center bottom` as their fallback, and the Live2D
+ * view reproduces that framing, so the still shown in the main window while the model sits in PiP, the degraded
+ * still and the live model all line up.
+ */
+export function computeCallView(cw: number, ch: number): AlivingView {
+  const render = CHAERIN_V2_RENDERS.card
+  const box = computeContainedImageBox(cw, ch, render.size.width, render.size.height, 1)
+  return computeStillMatchedView(cw, ch, render, box)
+}
