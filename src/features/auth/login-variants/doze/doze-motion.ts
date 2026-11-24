@@ -181,6 +181,26 @@ export const WAKE_EXPRESSION_CUES: ReadonlyArray<{ at: number; expression: strin
 /** Still pictures of the wake-up without Live2D: doze → yawn → happy. */
 export type DozeStill = 'doze' | 'yawn' | 'happy'
 
+/** Stage phases: dozing (nodding), waking (the wake-up sequence), awake, falling (back to sleep). */
+export type DozePhase = 'dozing' | 'waking' | 'awake' | 'falling'
+
+/**
+ * The live model stopped being ready after it was shown (a frame threw, the GPU went away): the stills take over in
+ * the state she is in. Dozing or falling asleep → the doze still, nodding; waking → skip to the end (smile and
+ * greeting), since the live wake cues are dropped; awake → the smile.
+ */
+export function recoverFromLiveLoss(phase: DozePhase): { phase: 'dozing' | 'awake'; still: 'doze' | 'happy'; finishWake: boolean } {
+  switch (phase) {
+    case 'dozing':
+    case 'falling':
+      return { phase: 'dozing', still: 'doze', finishWake: false }
+    case 'waking':
+      return { phase: 'awake', still: 'happy', finishWake: true }
+    case 'awake':
+      return { phase: 'awake', still: 'happy', finishWake: false }
+  }
+}
+
 export function wakeGreetDelay(mode: 'live' | 'static', reducedMotion: boolean): number {
   if (reducedMotion) return DOZE_TIMINGS_MS.reducedGreetAt
   return mode === 'live' ? DOZE_TIMINGS_MS.wakeGreetAt : DOZE_TIMINGS_MS.staticGreetAt

@@ -28,11 +28,14 @@ import {
   parseDozeDevQuery,
   wakeGreetDelay,
   wakePose,
+  recoverFromLiveLoss,
+  type DozePhase,
   type DozeStill,
   type TrackParams,
 } from './doze-motion'
 import { computeDozeCamera, computeDozeScene, isPointerNearFace } from './doze-view'
 import { DozeDesk } from './DozeDesk'
+import { listenAll, startFrameLoop } from './doze-runtime'
 import './doze.css'
 
 /**
@@ -44,7 +47,7 @@ import './doze.css'
 
 const NO_DEV_QUERY = { forceStatic: false, forceAwake: false } as const
 
-type Phase = 'dozing' | 'waking' | 'awake' | 'falling'
+type Phase = DozePhase
 type WakeMethod = 'tap' | 'keyboard' | 'near' | 'auto'
 type StillName = DozeStill | 'shy'
 
@@ -132,6 +135,8 @@ export default function DozeMateStage({
 
   const phaseRef = useRef<Phase>('dozing')
   const liveShownRef = useRef(false)
+  /** Set below (handleLiveLost): the renderer subscription calls it when a shown live model stops being ready. */
+  const liveLostRef = useRef<() => void>(() => {})
   /** Origin of the nod cycle (`dozePose(0)` = the doze still). */
   const nodStartRef = useRef(0)
   const wakeStartRef = useRef(0)
@@ -219,7 +224,9 @@ export default function DozeMateStage({
     // A player without `track` cannot doze: the stills tell the story instead.
     const sync = () => {
       const status = renderer.getStatus()
-      setEngineStatus(status === 'ready' && !renderer.canTrack() ? 'error' : status)
+      const next = status === 'ready' && !renderer.canTrack() ? 'error' : status
+      setEngineStatus(next)
+      if (next !== 'ready') liveLostRef.current()
     }
     const unsub = renderer.subscribe(sync)
     if (renderer.getStatus() !== 'loading') queueMicrotask(sync)
@@ -251,10 +258,8 @@ export default function DozeMateStage({
   // Pose loop: while the model is ready it gets a dozing / waking / falling-asleep pose every frame.
   useEffect(() => {
     if (!engineReady) return
-    let raf = 0
     const lean = engineHostRef.current
-    const tick = (now: number) => {
-      raf = requestAnimationFrame(tick)
+    return startFrameLoop(window, (now) => {
       const renderer = rendererRef.current
       if (!renderer?.canTrack()) return
       const current = phaseRef.current
@@ -283,9 +288,7 @@ export default function DozeMateStage({
         lastPoseRef.current = params
       }
       lean?.style.setProperty('--doze-lean', reducedMotion ? '0' : leanValue.toFixed(3))
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    })
   }, [engineReady, reducedMotion, setPhase])
 
   // Live2D takes over from the still once it is ready and posed (never in the middle of a still wake-up).
@@ -397,6 +400,28 @@ export default function DozeMateStage({
     setStill('doze')
   }, [clearTimers, reducedMotion, setPhase])
 
+  /**
+   * The live model was shown and then stopped being ready (frame error, lost GPU): hide the canvas, drop any live wake
+   * cues and let the stills carry on in the state she is in (see recoverFromLiveLoss).
+   */
+  const handleLiveLost = useCallback(() => {
+    if (!liveShownRef.current) return
+    liveShownRef.current = false
+    setLiveShown(false)
+    setAllStills(true)
+    const recovery = recoverFromLiveLoss(phaseRef.current)
+    if (phaseRef.current === 'waking') clearTimers()
+    setStill(recovery.still)
+    if (recovery.phase === 'dozing' && phaseRef.current !== 'dozing') {
+      nodStartRef.current = performance.now()
+      setPhase('dozing')
+    }
+    if (recovery.finishWake) finishWake()
+  }, [clearTimers, finishWake, setPhase])
+  useEffect(() => {
+    liveLostRef.current = handleLiveLost
+  }, [handleLiveLost])
+
   // Dozing: wake on her own after a while; show the "how to wake" hint after a moment.
   useEffect(() => {
     if (phase !== 'dozing') return
@@ -429,9 +454,9 @@ export default function DozeMateStage({
         dwell = undefined
       }
     }
-    window.addEventListener('pointermove', onMove, { passive: true })
+    const off = listenAll(window, ['pointermove'], onMove, { passive: true })
     return () => {
-      window.removeEventListener('pointermove', onMove)
+      off()
       if (dwell !== undefined) window.clearTimeout(dwell)
     }
   }, [phase, scene, wake])
@@ -446,8 +471,7 @@ export default function DozeMateStage({
       if (event.target === hitRef.current) return
       wake('keyboard')
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return listenAll(window, ['keydown'], onKey)
   }, [phase, wake])
 
   // Awake: no pointer or keyboard input for a while → she dozes off again (not while a field has focus).
@@ -462,12 +486,11 @@ export default function DozeMateStage({
         else fallAsleep()
       }, DOZE_TIMINGS_MS.redozeIdle)
     }
-    const events = ['pointermove', 'pointerdown', 'keydown', 'wheel'] as const
-    for (const name of events) window.addEventListener(name, arm, { passive: true })
+    const off = listenAll(window, ['pointermove', 'pointerdown', 'keydown', 'wheel'], arm, { passive: true })
     arm()
     return () => {
       window.clearTimeout(timer)
-      for (const name of events) window.removeEventListener(name, arm)
+      off()
     }
   }, [phase, fallAsleep])
 
@@ -505,9 +528,9 @@ export default function DozeMateStage({
       lastPointerRef.current = pending
       if (raf === null) raf = requestAnimationFrame(flush)
     }
-    window.addEventListener('pointermove', onMove, { passive: true })
+    const off = listenAll(window, ['pointermove'], onMove, { passive: true })
     return () => {
-      window.removeEventListener('pointermove', onMove)
+      off()
       if (raf !== null) cancelAnimationFrame(raf)
     }
   }, [followCursor, scene, gazeFor])

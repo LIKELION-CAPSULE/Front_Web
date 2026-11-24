@@ -1,6 +1,7 @@
 import { Suspense, lazy, useId, useState } from 'react'
 import { capsuleLogo } from '@/shared/design/brand-logo'
 import type { DozeSceneLayout } from './doze-view'
+import { ChunkBoundary } from './ChunkBoundary'
 // The capsule alone (no tile), dark on transparent: the heatmap's input and the mask that keeps its light inside the
 // capsule. Imported directly because brand-logo.ts only exposes the colour glyph and this draft is DEV-only.
 import capsuleGlyphUrl from '../../../../../design/brand/capsule-logo-2026-11-22-v2/capsule-glyph-black.svg'
@@ -44,6 +45,9 @@ export function DozeDesk({
   heatmap: boolean
 }) {
   const [heatActive, setHeatActive] = useState(false)
+  /** The shader chunk failed to load or render: keep the static logo for the rest of this visit. */
+  const [heatFailed, setHeatFailed] = useState(false)
+  const heatOn = heatmap && !heatFailed
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '')
   const id = (name: string) => `doze-${uid}-${name}`
   const url = (name: string) => `url(#${id(name)})`
@@ -269,7 +273,7 @@ export function DozeDesk({
       <div
         className="doze-lid3d"
         data-screen={screenOn ? 'on' : undefined}
-        data-heat={(heatmap && heatActive) || undefined}
+        data-heat={(heatOn && heatActive) || undefined}
         style={{
           left: `${cx - lidBottomW / 2}px`,
           top: `${lidBottom - flatH}px`,
@@ -360,7 +364,7 @@ export function DozeDesk({
           />
         </svg>
         {/* On the same plane as the lid, so it takes the same perspective. */}
-        {heatmap && (
+        {heatOn && (
           <div
             className="doze-heatmap"
             data-awake={screenOn || undefined}
@@ -377,16 +381,24 @@ export function DozeDesk({
               maskSize: `${100 / HEATMAP_BOX}% ${100 / HEATMAP_BOX}%`,
             }}
           >
-            <Suspense fallback={null}>
-              <LidHeatmapLogo
-                awake={screenOn}
-                silhouette={capsuleGlyphUrl}
-                width={heatW}
-                height={heatH}
-                scale={1 / HEATMAP_BOX}
-                onActiveChange={setHeatActive}
-              />
-            </Suspense>
+            {/* Outside the lazy import, so a chunk that fails to load only drops the heatmap (static logo stays). */}
+            <ChunkBoundary
+              onError={() => {
+                setHeatActive(false)
+                setHeatFailed(true)
+              }}
+            >
+              <Suspense fallback={null}>
+                <LidHeatmapLogo
+                  awake={screenOn}
+                  silhouette={capsuleGlyphUrl}
+                  width={heatW}
+                  height={heatH}
+                  scale={1 / HEATMAP_BOX}
+                  onActiveChange={setHeatActive}
+                />
+              </Suspense>
+            </ChunkBoundary>
           </div>
         )}
       </div>

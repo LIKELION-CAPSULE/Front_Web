@@ -1,6 +1,7 @@
 import { Component, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Heatmap } from '@paper-design/shaders-react'
 import type { PaperShaderElement } from '@paper-design/shaders'
+import { watchShaderCanvas } from './doze-runtime'
 
 /**
  * Heat flowing inside the capsule of the CAPSULE logo on the laptop lid, like warm metal (Paper Shaders `Heatmap`,
@@ -75,32 +76,17 @@ function HeatmapCanvas({
 
   // Context lost (GPU reset, too many contexts): hand back to the static logo. The listener is removed before the
   // mount's own dispose() loses the context on unmount.
-  // The mount (and its canvas) is created asynchronously after the silhouette is processed, so look for the canvas a
-  // moment later; if none shows up, give up quietly.
-  useEffect(() => {
-    let canvas: HTMLCanvasElement | null = null
-    let tries = 0
-    let timer = 0
-    const lost = (event: Event) => {
-      event.preventDefault()
-      onFailRef.current()
-    }
-    const check = () => {
-      canvas = hostRef.current?.querySelector('canvas') ?? null
-      if (canvas) {
-        canvas.addEventListener('webglcontextlost', lost)
-        onReadyRef.current()
-        return
-      }
-      if (++tries > 20) onFailRef.current()
-      else timer = window.setTimeout(check, 150)
-    }
-    timer = window.setTimeout(check, 450)
-    return () => {
-      window.clearTimeout(timer)
-      canvas?.removeEventListener('webglcontextlost', lost)
-    }
-  }, [])
+  // The mount (and its canvas) is created asynchronously after the silhouette is processed: wait for the canvas, then
+  // watch it for a lost context (doze-runtime.ts). The cleanup runs before the mount's own dispose() on unmount.
+  useEffect(
+    () =>
+      watchShaderCanvas(
+        () => hostRef.current?.querySelector('canvas') ?? null,
+        { onReady: () => onReadyRef.current(), onLost: () => onFailRef.current(), onGiveUp: () => onFailRef.current() },
+        window,
+      ),
+    [],
+  )
 
   const params = awake ? HEATMAP_PARAMS.awake : HEATMAP_PARAMS.dozing
   return (
