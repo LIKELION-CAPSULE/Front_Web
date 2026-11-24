@@ -1,11 +1,9 @@
-import loginChaerinHero from '@/assets/characters/chaerin-live2d-v1/chaerin-hero.webp'
 import { capsuleLogo } from '@/shared/design/brand-logo'
 import fallbackDawnUrl from './static-wallpapers/fallback/dawn.webp'
 import fallbackMorningUrl from './static-wallpapers/fallback/morning.webp'
 import fallbackDayUrl from './static-wallpapers/fallback/day.webp'
 import fallbackSunsetUrl from './static-wallpapers/fallback/sunset.webp'
 import fallbackNightUrl from './static-wallpapers/fallback/night.webp'
-import { LOCAL_MODEL_URL } from '@/features/local-demo/store'
 import { chaerinArtwork } from '@/features/mates/artwork'
 
 export type MateReactionState =
@@ -149,8 +147,7 @@ export const DESKTOP_LOGIN_ASSETS = {
     glyph: capsuleLogo.glyph.color,
   },
   mateName: '채린',
-  modelUrl: LOCAL_MODEL_URL,
-  fallbackPortrait: loginChaerinHero,
+  fallbackPortrait: chaerinArtwork.hero,
   backgroundImage: chaerinArtwork.callBackground.portrait,
   modelLayout: {
     scale: 1.54,

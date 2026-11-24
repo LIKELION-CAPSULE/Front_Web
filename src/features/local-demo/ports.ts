@@ -2,8 +2,14 @@ import type { BetaAccountPort } from '../auth/beta-account'
 import { simulateMockReferralValidation } from '../auth/referral-code'
 import type { MateContentPort } from '../mates/mate-contract'
 import type { BetaFeaturePort } from '../backend/beta-feature-port'
-import { LOCAL_MODEL_URL, LOCAL_USER_ID, type LocalBetaStore } from './store'
-import { CALL_STAGE_LIVE2D_LAYOUT } from '../live2d/call-framing'
+import {
+  LOCAL_USER_ID,
+  LOCAL_V2_ENGINE_URL,
+  LOCAL_V2_MODEL_URL,
+  LOCAL_V2_PLAYER_URL,
+  LOCAL_V2_REACTIONS_URL,
+  type LocalBetaStore,
+} from './store'
 import { MOCK_AVATAR_URLS } from '../review/mock-avatars'
 
 export function createLocalPorts(store: LocalBetaStore) {
@@ -61,7 +67,14 @@ export function createLocalPorts(store: LocalBetaStore) {
   const matePort: MateContentPort = {
     load: async (_userId, characterId) => ({
       characterId,
-      model: { modelJsonUrl: LOCAL_MODEL_URL, ...CALL_STAGE_LIVE2D_LAYOUT },
+      // Mate previews use the v2 (Aliving2D) model; the connection screen keeps the Cubism model (transport.ts).
+      model: {
+        format: 'aliving2d',
+        modelJsonUrl: LOCAL_V2_MODEL_URL,
+        engineUrl: LOCAL_V2_ENGINE_URL,
+        playerUrl: LOCAL_V2_PLAYER_URL,
+        reactionsUrl: LOCAL_V2_REACTIONS_URL,
+      },
     }),
   }
   const featurePort: BetaFeaturePort = {

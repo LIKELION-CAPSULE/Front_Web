@@ -70,6 +70,8 @@ export class AlivingRenderer implements MateRenderer {
   private readonly playerUrl: string
   private readonly reactionsUrl?: string
   private readonly idle: boolean
+  private readonly pixelScale: number
+  private readonly maxPixelRatio: number
   private readonly listeners = new Set<() => void>()
 
   private status: MateRenderStatus = 'loading'
@@ -92,6 +94,12 @@ export class AlivingRenderer implements MateRenderer {
     initialView?: AlivingView
     /** Engine idle motion toggle (default false until engine head-sway bug is fixed). */
     idle?: boolean
+    /**
+     * Supersampling: the canvas is drawn at devicePixelRatio × `pixelScale` (capped at `maxPixelRatio`) and the
+     * browser scales it down, which smooths hair edges on small stages (the engine draws without MSAA).
+     */
+    pixelScale?: number
+    maxPixelRatio?: number
   }) {
     this.modelUrl = options.modelUrl
     this.engineUrl = options.engineUrl
@@ -99,6 +107,8 @@ export class AlivingRenderer implements MateRenderer {
     this.reactionsUrl = options.reactionsUrl
     this.view = options.initialView ?? null
     this.idle = options.idle ?? false
+    this.pixelScale = options.pixelScale ?? 1
+    this.maxPixelRatio = options.maxPixelRatio ?? 2
   }
 
   private setStatus(next: MateRenderStatus) {
@@ -111,10 +121,11 @@ export class AlivingRenderer implements MateRenderer {
     const host = this.host
     const canvas = this.canvas
     if (!host || !canvas) return
-    const rect = host.getBoundingClientRect()
-    const cssW = Math.max(1, Math.round(rect.width))
-    const cssH = Math.max(1, Math.round(rect.height))
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    // Layout size, not the transformed box: a host inside a CSS 3D transform (the card lying in the my-mates scene)
+    // has a skewed bounding box, and a buffer of that shape would stretch the model.
+    const cssW = Math.max(1, host.clientWidth)
+    const cssH = Math.max(1, host.clientHeight)
+    const dpr = Math.min((window.devicePixelRatio || 1) * this.pixelScale, this.maxPixelRatio)
     const bufW = Math.max(1, Math.round(cssW * dpr))
     const bufH = Math.max(1, Math.round(cssH * dpr))
     if (canvas.width !== bufW) canvas.width = bufW

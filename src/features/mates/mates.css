@@ -216,6 +216,20 @@ a.mate-card:hover { transform: translateY(-4px); }
   justify-content: center;
 }
 
+/* Crossfade: the Live2D slot fades in over the still (220ms), then the still is hidden so a moving model never
+   shows a second head behind it. Going back to the still (failure) is instant. */
+.mate-detail-fallback[data-hidden='true'] {
+  visibility: hidden;
+  transition: visibility 0s linear 260ms;
+}
+
+.mate-aliving-host {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .mate-detail-fallback-img {
   width: 100%;
   height: 100%;

@@ -1,12 +1,24 @@
 # 로컬 확인용 모델
 
-`chaerin/`은 이 작업공간의 `Design_Auto/web/public/models/chaerin/`에서 복사한 런타임 묶음이다. 기존 사용자 제공 채린 데모 모델을 재사용하며 새 모델을 생성하지 않았다.
+로컬 더미 모드(`VITE_DATA_SOURCE=mock`)의 개발 서버에서 채린 Live2D를 실제로 움직이게 하는 모델 파일을 두는 곳이다. 파일이 없으면 앱은 정지 이미지로 대체한다.
 
-- `model.model3.json`, 실제 `000.moc3`, `001.png`, physics/CDI, 표정 JSON 8개.
-- 원본 표정 이름 `expression1`~`expression8`을 유지한다. 감정/친밀도 해금 정책으로 임의 매핑하지 않는다.
-- 모션 파일, 음성, 립싱크 설정은 없는 상태다.
-- Vite 개발 서버의 `/__local-assets/chaerin/*`에서만 제공한다. `public/` 밖에 두며 운영 빌드에는 복사하지 않는다.
-- `server/local-assets.ts`의 경로 허용 목록을 통해 런타임 파일만 제공한다. PSD/편집 프로젝트/검사 로그는 포함하지 않는다.
+| 폴더 | 내용 | 쓰는 화면 (2026-11-24) |
+|---|---|---|
+| `chaerin/` | 옛 채린. Cubism(`model.model3.json`, `files/000.moc3`, 텍스처, physics/CDI, 표정 004~011) | 연결 화면, PIP. v2로 옮기는 중 |
+| `chaerin-v2/` | 새 채린. Aliving2D 자체 형식(`model/model.json`, `model/parts/*.png`)과 엔진(`engine/engine.js`, `player.js`, `reactions.default.json`) | 로그인 「채린 깨우기」, 내 메이트·메이트 상세·연결 기록 미리보기 |
+
+- 개발 서버 플러그인 `server/local-assets.ts`가 `/__local-assets/chaerin/*`, `/__local-assets/chaerin-v2/*`에서 **허용 목록에 있는 런타임 파일만** 제공한다. `public/` 밖에 두므로 운영 빌드에는 들어가지 않는다.
+- 코드에서 쓰는 주소: `src/features/local-demo/store.ts`의 `LOCAL_MODEL_URL`, `LOCAL_V2_*_URL`
+- 운영에서는 이 파일을 쓰지 않는다. 모델 URL은 백엔드 API로 받는다([계약 초안](../docs/MATE_MODEL_V2_CONTRACT.md)).
+
+## 받는 방법
+팀 공유 드라이브의 **`capsule-local-assets-YYYY-MM-DD.zip`** 묶음을 받아 압축을 풀고 안의 `README.md`를 따른다. 요약하면 다음과 같다.
+
+```bash
+./install.sh <Front_Web 경로>   # local-assets/chaerin, chaerin-v2 복사와 필수 파일 확인
+npm run dev                     # VITE_DATA_SOURCE=mock
+# http://localhost:3000/__local-assets/chaerin-v2/model/model.json 이 열리면 성공
+```
 
 ## 저장소에 올리지 않음
-이 저장소는 공개 저장소라 `chaerin/` 모델 파일은 Git에 올리지 않는다(`.gitignore`). 팀 공유 드라이브에서 받아 `local-assets/chaerin/`에 넣으면 로컬 데모에서 Live2D가 움직인다. 파일이 없으면 정지 이미지로 대체된다.
+이 저장소는 **공개 저장소**이고 모델·엔진은 팀 내부 라이선스 자산이다. 이 README를 빼고 `local-assets/*`는 Git에 올리지 않는다(`.gitignore`). 묶음도 비공개 경로로만 공유한다.
