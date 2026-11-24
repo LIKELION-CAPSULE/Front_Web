@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useSessionSync } from '@/features/backend/use-session-sync'
@@ -34,10 +34,18 @@ import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
 import '@/features/mates/connections.css'
 import { useConnectionPreferences } from '@/features/mates/connection-preferences-context'
+import { playHangup, whenRendered, type HangupPlayback } from '@/features/mates/hangup-sequence'
+import hangupHandset from '@/assets/connection/hangup-handset-3d.webp'
+import hangupHandsetRed from '@/assets/connection/hangup-handset-3d-red.webp'
 
 type ViewTransitionDocument = Document & {
-  startViewTransition?: (callback: () => void) => { finished: Promise<void> }
+  startViewTransition?: (callback: () => void | Promise<void>) => { finished: Promise<void> }
 }
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 export default function ConnectionPage() {
   const { mateId } = useParams()
@@ -48,6 +56,13 @@ export default function ConnectionPage() {
   const { devices, controller, observation, flushFocus } = useMedia()
   const mate = availableMates(backend.home).find(value => value.id === mateId)
   const active = state.activeSession?.mateId === mateId ? state.activeSession : null
+  // While the hang-up plays, the ended session keeps the call on screen: /end clears `activeSession` on success.
+  const [ending, setEnding] = useState<{ session: NonNullable<typeof active>; at: number } | null>(null)
+  const [endingWait, setEndingWait] = useState(false)
+  const shown = active ?? ending?.session ?? null
+  const pageRef = useRef<HTMLElement>(null)
+  const hangup = useRef<HangupPlayback | null>(null)
+  useEffect(() => () => { hangup.current?.cancel(); hangup.current = null }, [])
   const now = useNow()
   const [chatOpen, setChatOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth > 960 : true))
   const [infoMenuOpen, setInfoMenuOpen] = useState(false)
@@ -143,13 +158,27 @@ export default function ConnectionPage() {
     return () => stage?.setTalking?.(false)
   }, [backend.live2dStage, talking])
   const cue = useCallback((input: Parameters<typeof expressions.cue>[0]) => expressions.cue(input), [expressions])
-  const navigateToRecord = useCallback((recordId: string) => {
+  const navigateToRecord = useCallback((recordId: string, afterHangup = false) => {
     const target = `/connections/${recordId}`
-    const reduced =
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const reduced = prefersReducedMotion()
     const doc = document as ViewTransitionDocument
+    if (afterHangup) {
+      // STEP 04: the darkened call screen cross-fades into the record page, which then raises the card (STEP 05).
+      const state = { hangup: true }
+      if (reduced || typeof doc.startViewTransition !== 'function') {
+        navigate(target, { replace: true, state })
+        return
+      }
+      const root = document.documentElement
+      root.dataset.viewTransition = 'hangup'
+      // A transition update keeps React from flashing the lazy route's fallback; the callback waits for the new page.
+      const transition = doc.startViewTransition(async () => {
+        startTransition(() => { void navigate(target, { replace: true, state }) })
+        await whenRendered('.connection-record-window')
+      })
+      void transition.finished.finally(() => { delete root.dataset.viewTransition })
+      return
+    }
     const stageEl = stageWrapRef.current?.querySelector<HTMLElement>('.connection-mate')
     if (reduced || typeof doc.startViewTransition !== 'function' || !stageEl) {
       navigate(target, { replace: true })
@@ -180,7 +209,8 @@ export default function ConnectionPage() {
       if (content) setSpeech(previous => ({ id: previous.id + 1, at: Date.now(), text: content }))
       if (reply?.characterId) cue({ characterId: reply.characterId, expression: reply.expression, event, stage: 'speech', text: reply.content })
     },
-    onEnded: serverEnded,
+    // A server-side end during the hang-up is the same ending; the sequence already navigates.
+    onEnded: () => { if (!hangup.current) serverEnded() },
   })
   const messages = state.messages.filter(message => message.characterId === mate?.characterId && /^\d+$/.test(message.sessionId))
   const lastText = messages.at(-1)?.text
@@ -200,11 +230,33 @@ export default function ConnectionPage() {
     busy.current = true
     setFinishing(true)
     setFinishError('')
+    // The end request starts right away; the hang-up motion plays alongside it and never delays it.
+    // An unknown presence baseline without confirmation is refused at once, so it gets no motion.
+    const root = pageRef.current
+    const playback = root && (confirmed || active.presenceKnown !== false) ? playHangup(root, prefersReducedMotion()) : null
+    if (playback) {
+      hangup.current = playback
+      setEnding({ session: active, at: Date.now() })
+      setLeaveOpen(false)
+      void import('./ConnectionRecordPage')
+    }
+    let recorded = false
+    // If the record is still on its way when the motion ends, say so instead of sitting on a dark screen.
+    void playback?.finished.then(done => { if (done && !recorded && mounted.current) setEndingWait(true) })
     try {
       flushFocus()
       const record = await backend.finishSession({ acceptUnknownPresence: confirmed })
-      if (mounted.current) { controller.stop(); navigateToRecord(record.id) }
+      recorded = true
+      if (!mounted.current) return
+      controller.stop()
+      if (playback && !(await playback.finished)) return
+      if (mounted.current) navigateToRecord(record.id, Boolean(playback))
     } catch (reason) {
+      if (playback) {
+        playback.cancel()
+        hangup.current = null
+        if (mounted.current) { setEnding(null); setEndingWait(false) }
+      }
       if (!mounted.current) return
       if (reason instanceof ApiError && reason.code === 'SESSION_ENDED') serverEnded()
       else { setFinishError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.'); setLeaveOpen(true) }
@@ -254,7 +306,7 @@ export default function ConnectionPage() {
     }
   }
   if (!mate) return <NotFoundPage />
-  if (!active) {
+  if (!shown) {
     const heroSrc = mateHeroPortrait(mate.id, mate.image)
     return (
       <main id="main-content" tabIndex={-1} className="connection-entry focus:outline-none">
@@ -386,13 +438,21 @@ export default function ConnectionPage() {
   ]
 
   return (
-    <main id="main-content" tabIndex={-1} className="connection-page focus:outline-none">
+    <main
+      ref={pageRef}
+      id="main-content"
+      tabIndex={-1}
+      className="connection-page focus:outline-none"
+      data-hangup={ending ? '' : undefined}
+    >
+      {/* The call "screen": the hang-up switches it off like a TV, so the titlebar and stage collapse as one. */}
+      <div className="connection-screen" inert={Boolean(ending)}>
       <header className="desktop-window-titlebar mate-window-titlebar-static connection-titlebar">
         <div className="connection-titlebar-left">
           <span className="desktop-mate-dot" aria-hidden="true" />
           <h1>{mate.name} · 연결 중</h1>
           <time className="connection-timer" aria-label="연결 시간">
-            <AnimatedClock value={clock(sessionStudySeconds(active, now))} />
+            <AnimatedClock value={clock(sessionStudySeconds(shown, ending?.at ?? now))} />
           </time>
         </div>
 
@@ -631,6 +691,26 @@ export default function ConnectionPage() {
           </aside>
         )}
       </div>
+      </div>
+
+      {/* Hang-up stage (always mounted so the motion can start on the click's frame). */}
+      <div className="connection-hangup" data-waiting={endingWait || undefined} aria-hidden={!ending}>
+        <div className="connection-hangup-dim" />
+        <div className="connection-hangup-crt" />
+        {/* The handset turns from the call's purple to the end-call red as it is hung up. */}
+        <div className="connection-hangup-handset">
+          <img src={hangupHandset} width={480} height={480} alt="" decoding="async" draggable={false} />
+          <img className="connection-hangup-handset-red" src={hangupHandsetRed} width={480} height={480} alt="" decoding="async" draggable={false} />
+        </div>
+        {/* Like a phone's call-ended screen: the label and the final call time. */}
+        <p className="connection-hangup-ended" aria-hidden="true">
+          <span className="connection-hangup-ended-dot" />
+          <strong>통화 종료</strong>
+          <time>{ending ? clock(sessionStudySeconds(ending.session, ending.at)) : ''}</time>
+        </p>
+        {ending && <p className="sr-only" role="status">연결을 끊었어요. 연결 기록으로 이동해요.</p>}
+        <p className="connection-hangup-wait">{endingWait ? '연결 기록을 정리하고 있어요' : ''}</p>
+      </div>
 
       {pip.window && (
         <ConnectionPip
@@ -686,7 +766,7 @@ export default function ConnectionPage() {
             </div>
           )}
           {finishError && <FeedbackMessage tone="error" className="mt-4">{finishError}</FeedbackMessage>}
-          {active.presenceKnown === false && (
+          {shown.presenceKnown === false && (
             <p className="mt-3 text-muted">
               이전 자리 지킴 시간을 불러오지 못했어요. 지금 끝내면 이어서 연결한 동안의 자리 지킴만 기록돼요.
             </p>
