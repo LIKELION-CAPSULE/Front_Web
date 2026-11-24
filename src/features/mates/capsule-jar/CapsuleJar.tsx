@@ -10,7 +10,7 @@ import {
   withParticle,
 } from './capsule-jar-data.ts'
 import { CAPSULE_ASPECT } from './capsule-jar-layout.ts'
-import { PILE, layoutFloor, type FloorLayout } from './capsule-floor-layout.ts'
+import { PILE, layoutFloor, pileHalfWidth, type FloorLayout } from './capsule-floor-layout.ts'
 import { capsuleJarTheme } from './capsule-jar-theme.ts'
 import type { CapsuleJarTheme, CapsuleRecord } from './capsule-jar-types.ts'
 import type { JarBenchmark, JarSceneController, JarScenePoint } from './capsule-jar-scene.ts'
@@ -118,7 +118,9 @@ export default function CapsuleJar({
   const systemReduced = useMediaQuery('(prefers-reduced-motion: reduce)')
   const narrow = useMediaQuery('(max-width: 640px)')
   const reducedMotion = forceReducedMotion || systemReduced
-  const layout = useMemo(() => layoutFloor(capsules), [capsules])
+  // The pile spans the panel's width (in scene units, the panel is PILE.viewHeight high): measured from the stage.
+  const [halfWidth, setHalfWidth] = useState<number>(PILE.defaultHalfWidth)
+  const layout = useMemo(() => layoutFloor(capsules, { halfWidth }), [capsules, halfWidth])
   const byId = useMemo(() => new Map(capsules.map((capsule) => [capsule.id, capsule])), [capsules])
   const summary = capsuleJarSummary(mateName, capsules, layout.placements.length)
   const titleId = useId()
@@ -227,7 +229,7 @@ export default function CapsuleJar({
           import('./capsule-physics.ts')
             .then((module) =>
               module.createCapsulePhysics({
-                halfWidth: PILE.width / 2,
+                halfWidth: latest.current.layout.width / 2,
                 binWalls: { at: [-PILE.binEdge, PILE.binEdge], height: PILE.binWallHeight, thickness: PILE.binWallThickness },
               }),
             )
@@ -302,6 +304,20 @@ export default function CapsuleJar({
   useEffect(() => {
     sceneRef.current?.setReducedMotion(reducedMotion)
   }, [reducedMotion])
+
+  // The panel's shape sets the floor's width (before the scene starts, and again on resize).
+  useLayoutEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+    const measure = () => {
+      const rect = stage.getBoundingClientRect()
+      if (rect.width > 0 && rect.height > 0) setHalfWidth(pileHalfWidth(rect.width / rect.height))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(stage)
+    return () => observer.disconnect()
+  }, [])
 
   // Place the DOM overlay as soon as it mounts (a still scene renders no further frames).
   useLayoutEffect(() => {
@@ -541,13 +557,13 @@ function FloorFallback({
   onSelect: (id: string, event: ReactMouseEvent) => void
 }) {
   const gradientId = useId().replace(/:/g, '')
-  // The scene's frame: exactly the pile's width, the floor at the bottom edge.
-  const half = PILE.width / 2
+  // The scene's frame: the panel's width, the floor at the bottom edge.
+  const half = layout.width / 2
   const top = Math.max(1.2, layout.topHeight + 0.4)
   return (
     <svg
       className="capsule-jar-fallback"
-      viewBox={`${-half} ${-top} ${PILE.width} ${top + 0.03}`}
+      viewBox={`${-half} ${-top} ${layout.width} ${top + 0.03}`}
       preserveAspectRatio="xMidYMax meet"
       aria-hidden="true"
     >

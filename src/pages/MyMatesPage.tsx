@@ -318,11 +318,14 @@ export default function MyMatesPage() {
       : null
 
   const capsuleCount = capsules.reduce((sum, capsule) => sum + capsulesForConnection(capsule.durationSeconds), 0)
+  // The list toggle sits in the recent block's title row; the main action takes the column's full width.
+  const listToggle = (
+    <button type="button" className="my-mates-list-toggle" aria-pressed={listView} onClick={() => setListView(!listView)}>
+      {listView ? '장면으로 보기' : '목록으로 보기'}
+    </button>
+  )
   const actions = (
     <>
-      <button type="button" className="my-mates-list-toggle" aria-pressed={listView} onClick={() => setListView(!listView)}>
-        {listView ? '장면으로 보기' : '목록으로 보기'}
-      </button>
       {import.meta.env.DEV && previewMate ? (
         <span className="my-mates-meet my-mates-meet--disabled" aria-disabled="true">시안 메이트예요</span>
       ) : (
@@ -336,8 +339,9 @@ export default function MyMatesPage() {
 
   return (
     <MyMatesWindowFrame>
-      {/* Pixel snow behind the page, richer with the affinity stage (stage 1 snow when affinity is off). */}
-      <PixelSnow stage={relation?.stage ?? 1} />
+      {/* Pixel snow behind the page, richer with the affinity stage (stage 1 snow when affinity is off); it shows
+          through the glass blocks as soft lights. */}
+      <PixelSnow stage={relation?.stage ?? 1} glowBehind=".mate-game-block, .mate-switcher-chip" />
       <div className="my-mates-layout">
         <div className="my-mates-switcher-slot">
           <MateSwitcher mates={switcherMates} selectedId={selectedId} onSelect={selectMate} />
@@ -375,6 +379,7 @@ export default function MyMatesPage() {
           theme={capsuleJarTheme(selectedId)}
           onOpen={(id) => jarRef.current?.openCapsule(id)}
           onPoint={(id) => jarRef.current?.highlight(id)}
+          listToggle={listToggle}
           actions={actions}
         />
       </div>

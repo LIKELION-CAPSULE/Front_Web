@@ -14,9 +14,9 @@ import type { BodyPose, CapsulePhysics } from './capsule-physics.ts'
 
 /**
  * WebGL scene of the my-mates page: a flat, side-on (2D) pile of capsules at the bottom of the mate panel, behind
- * the big Live2D mate (a separate layer above this canvas). An orthographic camera shows exactly the panel's width
- * (`PILE.width`) with the floor at the panel bottom; every capsule lies in the screen plane and the physics keeps it
- * there. Owns its canvas, renderer and GPU resources; everything is released in `dispose`. The record card and
+ * the big Live2D mate (a separate layer above this canvas). An orthographic camera shows exactly `PILE.viewHeight`
+ * units of height with the floor at the panel bottom (the width follows the panel's shape, `layout.width`); every
+ * capsule lies in the screen plane and the physics keeps it there. Owns its canvas, renderer and GPU resources; everything is released in `dispose`. The record card and
  * tooltip are React.
  *
  * Entry: the capsules pour down (physics: fall, bounce, roll, push) and settle. Then everything sleeps; only hover,
@@ -434,7 +434,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   scene.environmentIntensity = 0.7
 
   // Side-on, no perspective: exactly the panel's width, the floor at the bottom (see fitCamera).
-  const camera = new OrthographicCamera(-PILE.width / 2, PILE.width / 2, PILE.width, -FLOOR_MARGIN, 0.1, 60)
+  const camera = new OrthographicCamera(-PILE.defaultHalfWidth, PILE.defaultHalfWidth, PILE.viewHeight, -FLOOR_MARGIN, 0.1, 60)
   camera.position.set(0, 0, 20)
   camera.lookAt(0, 0, 0)
 
@@ -487,7 +487,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     const positions = new Float32Array(MOTES * 3)
     const seeds = new Float32Array(MOTES)
     for (let index = 0; index < MOTES; index++) {
-      positions.set([(random() - 0.5) * PILE.width, random() * PILE.sideFill * 1.4, -2 - random() * 2], index * 3)
+      positions.set([(random() - 0.5) * PILE.defaultHalfWidth * 3, random() * PILE.sideFill * 1.8, -2 - random() * 2], index * 3)
       seeds[index] = random() * 10
     }
     motesGeometry.setAttribute('position', new BufferAttribute(positions, 3))
@@ -708,13 +708,13 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   let lastRenderAt = 0
   let benchmarkState: { until: number; frames: number[]; resolve: (result: JarBenchmark) => void; start: number } | null = null
 
-  // ── Camera: exactly the pile's width, the floor at the panel bottom; the height follows the panel's shape ──
+  // ── Camera: exactly `PILE.viewHeight` high with the floor at the panel bottom; the width follows the panel ──
   function fitCamera() {
-    const visibleHeight = (PILE.width * height) / width
-    camera.left = -PILE.width / 2
-    camera.right = PILE.width / 2
+    const halfWidth = (PILE.viewHeight * width) / height / 2
+    camera.left = -halfWidth
+    camera.right = halfWidth
     camera.bottom = -FLOOR_MARGIN
-    camera.top = visibleHeight - FLOOR_MARGIN
+    camera.top = PILE.viewHeight - FLOOR_MARGIN
     applyViewShift()
     needsRender = true
   }
@@ -804,6 +804,8 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     const previousPositions = positions
     const previousRotations = rotations
     const previousIndex = indexById
+    // A new panel shape moves the bins: everything takes its new resting place.
+    const reshaped = layout !== null && layout.width !== next.width
     layout = next
     placements = next.placements
     firstCapsuleBoost = placements.length <= 8 ? 0.35 : 0
@@ -817,13 +819,14 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     }
     // Capsules that stay keep where they lie now; new ones take their resting place.
     positions = placements.map((placement) => {
-      const old = previousIndex.get(placement.id)
+      const old = reshaped ? undefined : previousIndex.get(placement.id)
       return old !== undefined ? previousPositions[old]!.clone() : new Vector3(placement.x, placement.y, placement.z)
     })
     rotations = placements.map((placement) => {
-      const old = previousIndex.get(placement.id)
+      const old = reshaped ? undefined : previousIndex.get(placement.id)
       return old !== undefined ? previousRotations[old]!.clone() : restQuaternion(placement)
     })
+    physics?.setHalfWidth(next.width / 2)
     hover.length = 0
     flash.length = 0
     isNewPiece = placements.map((placement) => newGroupIds.has(placement.groupId))
@@ -846,7 +849,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     if (intro) for (const index of intro.pending.keys()) physics?.hold(index)
 
     const pileHeight = Math.max(0.6, next.topHeight)
-    floorGlow.scale.set(PILE.width * 1.3, pileHeight * 2.6, 1)
+    floorGlow.scale.set(next.width * 1.3, pileHeight * 2.6, 1)
     floorGlowMaterial.opacity = placements.length ? 0.16 : 0.08
     pileLight.position.set(0, pileHeight + 0.6, 1.2)
     pileLight.intensity = placements.length ? 0.35 : 0.1
@@ -905,7 +908,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     // From just above the panel's top edge, straight down in the screen plane (2D: z stays 0).
     const top = camera.top + 0.4 + local() * 0.6
     // Inside its own bin (the inner walls reach above the panel, capsule-floor-layout.ts).
-    const bin = pileBinAt(placement.x)
+    const bin = pileBinAt(placement.x, (layout?.width ?? 2 * PILE.defaultHalfWidth) / 2)
     const low = bin.from + placement.length / 2 + 0.01
     const high = bin.to - placement.length / 2 - 0.01
     const startX = Math.max(low, Math.min(high, placement.x + (local() - 0.5) * 0.6))

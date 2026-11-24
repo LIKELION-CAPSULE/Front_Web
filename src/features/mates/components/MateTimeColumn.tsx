@@ -31,11 +31,11 @@ export type StageReward = { id: string; label: string; thumbnail?: string; tint?
 /** Header of a block: one style everywhere, a small icon and the title (and an optional note on the right). */
 function BlockLabel({ id, icon, children, note }: { id: string; icon: IconName; children: ReactNode; note?: ReactNode }) {
   return (
-    <p id={id} className="mate-game-label">
+    <p className="mate-game-label">
       <span className="mate-game-label-icon" aria-hidden="true">
         <Icon name={icon} size={14} />
       </span>
-      {children}
+      <span id={id}>{children}</span>
       {note && <span className="mate-game-label-note">{note}</span>}
     </p>
   )
@@ -64,7 +64,8 @@ function useFittingRows(fallback: number) {
  * 「함께한 시간」 column beside the mate panel. Plain blocks on the report panel's glass (my-mates.css), one title style
  * (small icon + title): the total with one line of counts, the affinity as a title, one progress bar, what is left and
  * what the next stage opens (when the affinity feature is on), the expressions, the latest connections (each opens
- * its record card and lights its capsules in the scene) and the two actions. No badges, ribbons or stickers.
+ * its record card and lights its capsules in the scene; its title row holds 「목록으로 보기」) and the main action.
+ * No badges, ribbons or stickers.
  */
 export function MateTimeColumn({
   totalSeconds,
@@ -77,6 +78,7 @@ export function MateTimeColumn({
   theme,
   onOpen,
   onPoint,
+  listToggle,
   actions,
 }: {
   totalSeconds: number
@@ -99,6 +101,8 @@ export function MateTimeColumn({
   onOpen: (id: string) => void
   /** The pointer / focus is on a connection in the list (null: left). */
   onPoint: (id: string | null) => void
+  /** 「목록으로 보기」: in the recent block's title row. */
+  listToggle?: ReactNode
   actions: ReactNode
 }) {
   const [pointed, setPointed] = useState<string | null>(null)
@@ -176,7 +180,12 @@ export function MateTimeColumn({
         <BlockLabel
           id="my-mates-recent-label"
           icon="sparkle"
-          note={connections.length > recent.length ? `전체 ${connections.length}개 · 목록으로 보기` : undefined}
+          note={
+            <>
+              {connections.length > recent.length && <span className="mate-game-recent-total">전체 {connections.length}개</span>}
+              {listToggle}
+            </>
+          }
         >
           최근 캡슐
         </BlockLabel>

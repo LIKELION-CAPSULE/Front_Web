@@ -50,6 +50,8 @@ export type CapsulePhysics = {
   freeze(): void
   /** A shake of the scene: capsules get a small push in the given screen direction (scene units/s). */
   kick(x: number, y: number): void
+  /** Moves the panel's side walls (the panel changed shape). */
+  setHalfWidth(halfWidth: number): void
   /** Called once per launched body on its first contact: capsule index and impact speed. */
   onLand(listener: (index: number, speed: number, at: Vec) => void): void
   dispose(): void
@@ -57,7 +59,7 @@ export type CapsulePhysics = {
 
 /**
  * `halfWidth`: the floor between the side walls (scene units). `binWalls`: thin inner walls (x positions and height)
- * that keep the side heaps standing (capsule-floor-layout.ts `PILE_BINS`). Defaults: the pile's panel, no bins.
+ * that keep the side heaps standing (capsule-floor-layout.ts `pileBins`). Defaults: a 3-unit half width, no bins.
  */
 export function createCapsulePhysics({
   halfWidth = 3,
@@ -88,11 +90,13 @@ export function createCapsulePhysics({
   floor.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
   world.addBody(floor)
   // The panel's sides: walls facing inwards, so nothing rolls out of sight.
+  const sideWalls: Body[] = []
   for (const side of [-1, 1]) {
     const wall = new Body({ mass: 0, material: wallMaterial, shape: new Plane() })
     wall.quaternion.setFromEuler(0, (side * -Math.PI) / 2, 0)
     wall.position.set(side * halfWidth, 0, 0)
     walls.add(wall)
+    sideWalls.push(wall)
     world.addBody(wall)
   }
   // Inner walls: `at` is the face toward the side bin; the wall's thickness lies toward the middle.
@@ -315,6 +319,11 @@ export function createCapsulePhysics({
     step,
     freeze,
     kick,
+    setHalfWidth(next) {
+      sideWalls[0]!.position.x = -next
+      sideWalls[1]!.position.x = next
+      for (const wall of sideWalls) wall.aabbNeedsUpdate = true
+    },
     onLand: (listener) => {
       landListener = listener
     },

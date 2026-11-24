@@ -1,32 +1,30 @@
 /*
  * 내 메이트: mate switcher, the "big mate over the capsule pile" panel and the column. Follows the base rules of
  * docs/DESIGN_SYSTEM.md (no outlines, violet only for the main action and selection, no gold). The information
- * blocks, the neutral button and the caption use the report result panel's glass (see `.my-mates-glass` below).
+ * blocks, the switcher's neutral chip and the caption use the home speech bubble's glass (below).
  */
 
 /*
- * Glass: the report result panel's material, unchanged (docs/DESIGN_SYSTEM.md): `panel` 88% → `canvas` 82%,
- * 24px backdrop blur, 120% saturation; opaque `panel` where backdrop-filter is missing; no outline, no inner
- * highlight. The pixel snow behind shows through faintly.
+ * Glass: the home banner speech bubble's material, unchanged (docs/DESIGN_SYSTEM.md, welcome.css `.welcome-speech`):
+ * `panel` 68% → `canvas` 62% at 135°, 18px backdrop blur, 140% saturation; opaque `panel` where backdrop-filter is
+ * missing; no outline. The pixel snow behind shows through as soft moving lights (PixelSnow's `glowBehind`).
  */
 .mate-switcher-chip,
 .mate-game-block,
-.my-mates-list-toggle,
 .my-mates-scene .capsule-jar-caption {
   background: var(--color-panel);
 }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .mate-switcher-chip,
   .mate-game-block,
-  .my-mates-list-toggle,
   .my-mates-scene .capsule-jar-caption {
     background: linear-gradient(
       135deg,
-      color-mix(in srgb, var(--color-panel) 88%, transparent),
-      color-mix(in srgb, var(--color-canvas) 82%, transparent)
+      color-mix(in srgb, var(--color-panel) 68%, transparent),
+      color-mix(in srgb, var(--color-canvas) 62%, transparent)
     );
-    -webkit-backdrop-filter: blur(24px) saturate(120%);
-    backdrop-filter: blur(24px) saturate(120%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
   }
 }
 .my-mates-window.desktop-window {
@@ -125,19 +123,21 @@
 .mate-fan-item--upcoming .mate-switcher-soon { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .mate-fan-card { transition: none; } }
 
-/* ── Layout: the mate panel on the left (≈47%), the 「함께한 시간」 column on the right (≈53%) ──
+/* ── Layout: the mate panel on the left (≈67%), the 「함께한 시간」 column on the right (≈33%) ──
+   The panel is wide so the capsule heaps beside the mate (who keeps her size: head to waist, the panel's height)
+   have room; the column is narrow and dense.
    The panel height follows the window so the panel and the main buttons fit without scrolling at 1280×720 and
    1440×900 (`--my-mates-chrome` = header and the paddings above and below). */
 .my-mates-layout {
   --my-mates-chrome: 160px;
   --my-mates-height: clamp(460px, calc(100dvh - var(--my-mates-chrome)), 820px);
   display: grid;
-  grid-template-columns: minmax(0, 47fr) minmax(340px, 53fr);
+  grid-template-columns: minmax(0, 67fr) minmax(300px, 33fr);
   grid-template-rows: auto 1fr;
   grid-template-areas:
     'scene switcher'
     'scene info';
-  gap: 10px 28px;
+  gap: 10px 24px;
   height: var(--my-mates-height);
 }
 .my-mates-switcher-slot { grid-area: switcher; min-width: 0; }
@@ -167,6 +167,7 @@
   width: 100%;
   height: 100%;
   min-height: 0;
+  max-height: none;
   aspect-ratio: auto;
   border: 0;
   background: transparent !important;
@@ -203,27 +204,32 @@
 }
 .my-mates-caption-name { margin: 0; color: var(--color-ink); font-size: 26px; line-height: 32px; font-weight: 800; }
 .my-mates-caption-stage { margin: 4px 0 0; color: var(--color-ink); font-size: 15px; line-height: 22px; font-weight: 600; }
-.my-mates-caption-date { margin: 2px 0 0; color: var(--color-muted); font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums lining-nums; }
+/* ink, not muted: through the bubble glass her hair and shirt show behind the box (muted measured 4.1:1 there). */
+.my-mates-caption-date { margin: 2px 0 0; color: var(--color-ink); font-size: 13px; line-height: 18px; font-weight: 400; font-variant-numeric: tabular-nums lining-nums; }
 @media (min-width: 960px) and (max-height: 800px) {
   .my-mates-scene .capsule-jar-caption { padding: 10px 14px; }
   .my-mates-caption-name { font-size: 22px; line-height: 28px; }
 }
 
 /* ── 「함께한 시간」 column: game-style blocks in components/mate-time-column.css ── */
-.my-mates-actions { display: grid; grid-template-columns: auto 1fr; gap: 10px; margin-top: auto; }
+.my-mates-actions { display: grid; grid-template-columns: minmax(0, 1fr); margin-top: auto; }
+.my-mates-actions .my-mates-meet { width: 100%; }
+/* 「목록으로 보기」 in the recent block's title row: a small neutral pill (violet only when pressed). */
 .my-mates-list-toggle {
-  height: 44px;
-  padding: 0 16px;
+  height: 26px;
+  padding: 0 10px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
   color: var(--color-ink);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
-.my-mates-list-toggle:hover { background: var(--color-control-hover); }
+.my-mates-list-toggle:hover { background: rgb(255 255 255 / 0.14); }
 .my-mates-list-toggle[aria-pressed='true'] { background: var(--color-selected); color: var(--color-selected-text); }
-.my-mates-list-toggle:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 4px; }
+.my-mates-list-toggle:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 .my-mates-meet { gap: 6px; justify-content: center; }
 .my-mates-meet--disabled {
   display: inline-flex;

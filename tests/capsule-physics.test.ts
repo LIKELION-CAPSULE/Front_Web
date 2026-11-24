@@ -1,23 +1,26 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createCapsulePhysics, type BodyPose } from '../src/features/mates/capsule-jar/capsule-physics.ts'
-import { PILE, layoutFloor, pileBinAt } from '../src/features/mates/capsule-jar/capsule-floor-layout.ts'
+import { PILE, layoutFloor, pileBinAt, pileHalfWidth } from '../src/features/mates/capsule-jar/capsule-floor-layout.ts'
 import { generateDummyCapsules } from '../src/features/mates/capsule-jar/capsule-jar-dummy.ts'
 
 const NOW = Date.parse('2026-11-24T15:00:00+09:00')
 const GRAVITY = 34
 const turned = (angle: number) => ({ x: 0, y: 0, z: Math.sin(angle / 2), w: Math.cos(angle / 2) })
 
+/** A 1280×720 panel (740×560): the floor's half width in scene units. */
+const HALF = pileHalfWidth(740 / 560)
+
 /** The 2D pile as the scene builds it: panel walls and the bins' inner walls. */
 const pilePhysics = () =>
   createCapsulePhysics({
-    halfWidth: PILE.width / 2,
+    halfWidth: HALF,
     binWalls: { at: [-PILE.binEdge, PILE.binEdge], height: PILE.binWallHeight, thickness: PILE.binWallThickness },
   })
 
 /** Drops the last capsules like the entry (from above the panel, into their bins) and returns where all ended up. */
 function run({ connections = 12, falling: fallingCount = 60, shake = false } = {}) {
-  const layout = layoutFloor(generateDummyCapsules(connections, { now: NOW }))
+  const layout = layoutFloor(generateDummyCapsules(connections, { now: NOW }), { halfWidth: HALF })
   const placements = layout.placements
   const physics = pilePhysics()
   physics.setCapsules(
@@ -60,7 +63,7 @@ test('physics: dropped capsules land in their own bin, in the screen plane, and 
     assert.equal(pose.position.z, 0, '2D: z stays 0')
     assert.ok(Math.abs(pose.quaternion.x) < 1e-6 && Math.abs(pose.quaternion.y) < 1e-6, '2D: turned only about z')
     assert.ok(pose.position.y >= placement.radius * 0.6, `capsule ${index} sank through the floor`)
-    assert.equal(pileBinAt(pose.position.x), pileBinAt(placement.x), `capsule ${index} left its bin`)
+    assert.deepEqual(pileBinAt(pose.position.x, HALF), pileBinAt(placement.x, HALF), `capsule ${index} left its bin`)
   }
   // The side heaps stay about as high as laid out (resting capsules are fixed, so nothing levels them out).
   const sideTop = (list: { x: number; y: number }[]) => Math.max(...list.filter((point) => point.x < -PILE.binEdge).map((point) => point.y))
@@ -71,7 +74,7 @@ test('physics: dropped capsules land in their own bin, in the screen plane, and 
 
 test('physics: a shake moves only capsules still falling; everything ends inside the panel', () => {
   const shaken = run({ shake: true })
-  for (const pose of shaken.poses) assert.ok(Math.abs(pose.position.x) <= PILE.width / 2)
+  for (const pose of shaken.poses) assert.ok(Math.abs(pose.position.x) <= HALF)
 })
 
 test('physics: the same drops give the same result', () => {

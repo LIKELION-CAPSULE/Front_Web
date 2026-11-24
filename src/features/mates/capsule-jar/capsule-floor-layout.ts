@@ -37,12 +37,23 @@ export function capsulesForConnection(durationSeconds: number) {
 }
 
 export const PILE = {
-  /** Panel width in scene units: the camera shows exactly this width, the floor is y = 0 at the panel bottom. */
-  width: 6,
-  /** Inner edge of the side bins (|x|, scene units): inside the mate's silhouette at the bins' height. */
-  binEdge: 1.75,
-  /** Fill height of the side bins (scene units): the capsules shrink as the count grows to keep it. */
-  sideFill: 3,
+  /**
+   * Panel height in scene units: the camera shows exactly this height with the floor (y = 0) at the panel bottom; the
+   * width follows the panel's shape. The mate is fitted to the panel's height, so in these units she always has the
+   * same size, and the bins' walls can stay at fixed x.
+   */
+  viewHeight: 6.5,
+  /** Default half width of the floor (scene units) when the panel's shape is not known yet. */
+  defaultHalfWidth: 3.6,
+  /**
+   * Inner edge of the side bins (|x|, scene units): inside the mate's silhouette up to the bins' fill height (her
+   * head-to-waist still covers |x| < ~1.95 there, measured on the hero render's alpha).
+   */
+  binEdge: 1.9,
+  /** Narrowest side bin (scene units), for very narrow panels. */
+  minSideWidth: 0.9,
+  /** Fill height of the side bins (scene units, ≈ 30% of the panel): the capsules shrink as the count grows. */
+  sideFill: 1.95,
   /** Share of the capsules in the two side bins together (the rest lie in the middle, behind her). */
   sideShare: 0.8,
   /** Height of the bins' (invisible) inner walls: above the panel's top, so a falling capsule stays in its bin. */
@@ -56,34 +67,45 @@ export const PILE = {
   minLength: 0.2,
   /** Spread of one bundle around its spot (scene units). */
   bundleSpread: 0.5,
-  /** Columns of the height profile across the width. */
-  columns: 160,
+  /** Width of one column of the height profile (scene units). */
+  column: 0.0375,
   /** Largest in-plane tilt of a capsule at rest (radians). */
   maxTilt: 0.32,
 } as const
 
+/** Half width of the floor for a panel of this shape (width / height): the panel is `viewHeight` high. */
+export function pileHalfWidth(aspect: number) {
+  const half = (PILE.viewHeight * Math.max(0.1, aspect)) / 2
+  return Math.max(PILE.binEdge + PILE.minSideWidth, Math.round(half * 50) / 50)
+}
+
+export type PileBin = { from: number; to: number; share: number }
+
+/** The three bins (x ranges) of a floor `halfWidth` wide: left, middle, right, and the share of capsules each takes. */
+export function pileBins(halfWidth: number = PILE.defaultHalfWidth): readonly PileBin[] {
+  return [
+    { from: -halfWidth, to: -PILE.binEdge, share: PILE.sideShare / 2 },
+    { from: -PILE.binEdge + PILE.binWallThickness, to: PILE.binEdge - PILE.binWallThickness, share: 1 - PILE.sideShare },
+    { from: PILE.binEdge, to: halfWidth, share: PILE.sideShare / 2 },
+  ]
+}
+
+/** The bin a resting x lies in. */
+export function pileBinAt(x: number, halfWidth: number = PILE.defaultHalfWidth) {
+  const bins = pileBins(halfWidth)
+  return bins.find((bin) => x >= bin.from && x <= bin.to) ?? bins[1]!
+}
+
 /** Area all capsules fill (scene units²): the two side bins up to `sideFill` make `sideShare` of it. */
-export function pileArea() {
-  const sideArea = 2 * (PILE.width / 2 - PILE.binEdge) * PILE.sideFill
+export function pileArea(halfWidth: number = PILE.defaultHalfWidth) {
+  const sideArea = 2 * (halfWidth - PILE.binEdge) * PILE.sideFill
   return sideArea / PILE.sideShare
 }
 
-/** The three bins (x ranges), left, middle, right, and the share of the capsules each takes. */
-export const PILE_BINS: readonly { from: number; to: number; share: number }[] = [
-  { from: -PILE.width / 2, to: -PILE.binEdge, share: PILE.sideShare / 2 },
-  { from: -PILE.binEdge + PILE.binWallThickness, to: PILE.binEdge - PILE.binWallThickness, share: 1 - PILE.sideShare },
-  { from: PILE.binEdge, to: PILE.width / 2, share: PILE.sideShare / 2 },
-]
-
-/** The bin a resting x lies in. */
-export function pileBinAt(x: number) {
-  return PILE_BINS.find((bin) => x >= bin.from && x <= bin.to) ?? PILE_BINS[1]!
-}
-
 /** Capsule length for a total count: the count fills the bins (`pileArea`) at `PILE.packing`. */
-export function floorCapsuleLength(count: number) {
+export function floorCapsuleLength(count: number, halfWidth: number = PILE.defaultHalfWidth) {
   if (count <= 0) return PILE.maxLength
-  const length = Math.sqrt((PILE.packing * pileArea()) / (count * CAPSULE_ASPECT))
+  const length = Math.sqrt((PILE.packing * pileArea(halfWidth)) / (count * CAPSULE_ASPECT))
   // Steps of 0.01 so a new connection does not resize every capsule a hair.
   return Math.round(Math.min(PILE.maxLength, Math.max(PILE.minLength, length)) * 100) / 100
 }
@@ -104,7 +126,7 @@ export type FloorLayout = {
   baseLength: number
   /** Highest point of any capsule. */
   topHeight: number
-  /** Width of the floor (scene units, centred on x = 0). */
+  /** Width of the floor (scene units, centred on x = 0): the panel's width at `PILE.viewHeight` high. */
   width: number
 }
 
@@ -154,31 +176,37 @@ function heightNear(profile: Profile, x: number, reach: number) {
   return sum / Math.max(1, to - from + 1)
 }
 
-export function layoutFloor(capsules: readonly CapsuleRecord[]): FloorLayout {
+/** `halfWidth`: half the panel's width in scene units (`pileHalfWidth` of its shape). */
+export function layoutFloor(
+  capsules: readonly CapsuleRecord[],
+  { halfWidth = PILE.defaultHalfWidth }: { halfWidth?: number } = {},
+): FloorLayout {
   const sorted = sortCapsules(capsules)
   const counts = sorted.map((capsule) => capsulesForConnection(capsule.durationSeconds))
   const total = counts.reduce((sum, count) => sum + count, 0)
-  const baseLength = floorCapsuleLength(total)
-  const half = PILE.width / 2
-  const profile: Profile = { heights: new Float64Array(PILE.columns), cell: PILE.width / PILE.columns, half }
+  const baseLength = floorCapsuleLength(total, halfWidth)
+  const half = halfWidth
+  const bins = pileBins(halfWidth)
+  const columns = Math.ceil((2 * half) / PILE.column)
+  const profile: Profile = { heights: new Float64Array(columns), cell: (2 * half) / columns, half }
   const placements: FloorPlacement[] = []
   const groups: FloorGroup[] = []
   let topHeight = 0
-  const binPieces = PILE_BINS.map(() => 0)
+  const binPieces = bins.map(() => 0)
 
   for (const [groupIndex, capsule] of sorted.entries()) {
     const random = seededRandom(hashId(capsule.id))
     // The bundle's bin: the one least full for its share (ties broken at random); its spot: the lowest of a few.
-    let bin = PILE_BINS[1]!
+    let bin = bins[1]!
     let binScore = Infinity
-    for (const [index, candidate] of PILE_BINS.entries()) {
+    for (const [index, candidate] of bins.entries()) {
       const score = (binPieces[index]! + 1) / candidate.share + random() * 0.5
       if (score < binScore) {
         binScore = score
         bin = candidate
       }
     }
-    binPieces[PILE_BINS.indexOf(bin)]! += counts[groupIndex]!
+    binPieces[bins.indexOf(bin)]! += counts[groupIndex]!
     let spot = (bin.from + bin.to) / 2
     let spotScore = Infinity
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -236,5 +264,5 @@ export function layoutFloor(capsules: readonly CapsuleRecord[]): FloorLayout {
     }
   }
 
-  return { kind: 'floor', placements, groups, baseLength, topHeight, width: PILE.width }
+  return { kind: 'floor', placements, groups, baseLength, topHeight, width: 2 * half }
 }

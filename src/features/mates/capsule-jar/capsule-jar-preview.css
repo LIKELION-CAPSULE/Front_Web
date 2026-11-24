@@ -62,8 +62,8 @@
 }
 .capsule-jar-preview-row[hidden] { display: none; }
 
-/* The page's panel at a page-like size (≈47% of a 1280px window, full height). */
-.capsule-jar-preview-panel { width: min(600px, 100%); height: clamp(460px, 76vh, 680px); margin: 0 auto; }
+/* The page's panel at its 1280×720 size (≈67% of the content width, 740×560). */
+.capsule-jar-preview-panel { width: min(740px, 100%); height: 560px; margin: 0 auto; }
 .capsule-jar-preview-panel .capsule-jar { --jar-stage-height: 100%; }
 .capsule-jar-preview-panel .capsule-jar { display: flex; flex-direction: column; gap: 10px; }
 .capsule-jar-preview-panel .capsule-jar-body { flex: 1; height: auto; min-height: 0; }

@@ -20,7 +20,7 @@ import {
   writeLastVisit,
 } from '../src/features/mates/capsule-jar/capsule-jar-visit.ts'
 import type { CapsuleRecord } from '../src/features/mates/capsule-jar/capsule-jar-types.ts'
-import { CAPSULE_COUNT, PILE, PILE_BINS, capsulesForConnection, floorCapsuleLength, layoutFloor, pileBinAt } from '../src/features/mates/capsule-jar/capsule-floor-layout.ts'
+import { CAPSULE_COUNT, PILE, capsulesForConnection, floorCapsuleLength, layoutFloor, pileBinAt, pileBins, pileHalfWidth } from '../src/features/mates/capsule-jar/capsule-floor-layout.ts'
 
 const NOW = Date.UTC(2026, 10, 24, 3, 0, 0)
 
@@ -162,7 +162,8 @@ test('a connection becomes a bundle: one capsule per 10 minutes, 3 to 18', () =>
 test('pile: bundles by connection, flat in the screen plane, inside the panel and inside one bin each, most beside the mate', () => {
   for (const count of [1, 7, 15, 30, 60]) {
     const capsules = generateDummyCapsules(count, { now: NOW })
-    const layout = layoutFloor(capsules)
+    const layout = layoutFloor(capsules, { halfWidth: 3.7 })
+    assert.equal(layout.width, 7.4)
     const expected = capsules.reduce((sum, capsule) => sum + capsulesForConnection(capsule.durationSeconds), 0)
     assert.equal(layout.placements.length, expected)
     assert.equal(layout.groups.length, count)
@@ -179,7 +180,7 @@ test('pile: bundles by connection, flat in the screen plane, inside the panel an
       assert.equal(placement.z, 0, '2D: every capsule lies in the screen plane')
       assert.equal(placement.yaw, 0, '2D: turned only within the plane')
       // The whole capsule inside its bin (never across an inner wall) and so inside the panel.
-      const bin = pileBinAt(placement.x)
+      const bin = pileBinAt(placement.x, 3.7)
       const reach = (placement.length / 2 - placement.radius) * Math.abs(Math.cos(placement.pitch)) + placement.radius
       assert.ok(placement.x - reach >= bin.from - 1e-6 && placement.x + reach <= bin.to + 1e-6, `${placement.id} crosses a bin wall`)
     }
@@ -194,17 +195,22 @@ test('pile: bundles by connection, flat in the screen plane, inside the panel an
 test('pile: the same data gives the same layout; capsules shrink with the count so the side heaps keep their height', () => {
   const capsules = generateDummyCapsules(15, { now: NOW })
   assert.deepEqual(layoutFloor(capsules).placements, layoutFloor(capsules).placements)
-  const lengths = [10, 60, 120, 300, 1000].map(floorCapsuleLength)
+  const lengths = [10, 60, 120, 300, 1000].map((count) => floorCapsuleLength(count))
   assert.equal(lengths[0], PILE.maxLength)
   assert.equal(lengths[4], PILE.minLength)
   for (let index = 1; index < lengths.length; index++) assert.ok(lengths[index]! <= lengths[index - 1]!)
   // Many capsules fill the side bins to about `sideFill`; the middle stays low.
-  const big = layoutFloor(generateDummyCapsules(50, { now: NOW }))
+  const big = layoutFloor(generateDummyCapsules(50, { now: NOW }), { halfWidth: 3.7 })
   const sideTop = Math.max(...big.placements.filter((placement) => Math.abs(placement.x) > PILE.binEdge).map((placement) => placement.y + placement.radius))
   const middleTop = Math.max(...big.placements.filter((placement) => Math.abs(placement.x) < PILE.binEdge).map((placement) => placement.y + placement.radius))
   assert.ok(sideTop > PILE.sideFill * 0.75 && sideTop < PILE.sideFill * 1.35, `side heaps ${sideTop}`)
   assert.ok(middleTop < sideTop * 0.5, `middle ${middleTop}`)
-  assert.equal(PILE_BINS.reduce((sum, bin) => sum + bin.share, 0), 1)
+  assert.equal(pileBins(3.7).reduce((sum, bin) => sum + bin.share, 0), 1)
+  // The panel's shape sets the floor's width (the panel is PILE.viewHeight high); the side bins never vanish.
+  assert.equal(pileHalfWidth(740 / 560), 4.3)
+  assert.ok(pileHalfWidth(0.3) >= PILE.binEdge + PILE.minSideWidth)
+  // A wider panel spreads the same capsules over more room: longer capsules (until the cap).
+  assert.ok(floorCapsuleLength(300, 4.3) > floorCapsuleLength(300, 3.2))
 })
 
 // ── Feature flags and sample data ────────────────────────────────────────────

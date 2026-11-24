@@ -4,6 +4,7 @@ import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import {
   ART_PIXEL_CSS,
   SPRITES,
+  SPRITE_SIZE,
   SPRITE_TONES,
   particleLook,
   seededRandom,
@@ -27,6 +28,33 @@ const SPAWN_GAP_S = 0.12
 const SETTLE_S = 2
 
 type Sprite = HTMLCanvasElement
+
+/**
+ * Behind glass (`glowBehind`): a backdrop blur of 18px or so wipes out a 2–4px pixel completely, so a particle that
+ * passes behind a glass block also draws a soft light (radius `GLOW_RADIUS` art px, `GLOW_GAIN` × its opacity, at
+ * most `GLOW_MAX`), clipped to the glass. Through the blur it reads as a faint moving light; outside the glass
+ * nothing changes.
+ */
+const GLOW_RADIUS = 10
+const GLOW_GAIN = 2.6
+const GLOW_MAX = 0.85
+/** How often the glass blocks' boxes are measured again (they move only with the layout). */
+const GLASS_MEASURE_MS = 1000
+
+/** A soft round light per colour, one canvas pixel per art pixel. */
+function buildGlow(color: string): Sprite {
+  const size = GLOW_RADIUS * 2 + 1
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const context = canvas.getContext('2d')!
+  const gradient = context.createRadialGradient(GLOW_RADIUS + 0.5, GLOW_RADIUS + 0.5, 0, GLOW_RADIUS + 0.5, GLOW_RADIUS + 0.5, GLOW_RADIUS + 0.5)
+  gradient.addColorStop(0, color)
+  gradient.addColorStop(0.45, `${color}99`)
+  gradient.addColorStop(1, `${color}00`)
+  context.fillStyle = gradient
+  context.fillRect(0, 0, size, size)
+  return canvas
+}
 
 /** Each sprite in each tone, drawn once at 1 canvas px per art pixel. */
 function buildSprites(): Record<SnowKind, Sprite[]> {
@@ -58,9 +86,10 @@ function buildSprites(): Record<SnowKind, Sprite[]> {
  * The canvas goes into the page's `<main>` (portal) and sits under its content, so the opaque panels and blocks hide
  * it; it takes no pointer events. `stage` (1–5) sets the mix (pixel-snow-model.ts); a change blends in as particles
  * fall out and new ones come in. Stops when the tab is hidden or the background is off screen; reduced motion shows
- * a few still particles.
+ * a few still particles. `glowBehind`: a selector of see-through glass surfaces in the page; particles behind them
+ * also glow softly there, so they show through the glass's blur.
  */
-export function PixelSnow({ stage }: { stage: number | null | undefined }) {
+export function PixelSnow({ stage, glowBehind }: { stage: number | null | undefined; glowBehind?: string }) {
   const markerRef = useRef<HTMLSpanElement>(null)
   const [host, setHost] = useState<HTMLElement | null>(null)
   const reduced = useReducedMotion()
@@ -84,6 +113,37 @@ export function PixelSnow({ stage }: { stage: number | null | undefined }) {
     const context = canvas?.getContext('2d')
     if (!wrap || !canvas || !context) return
     const sprites = buildSprites()
+    const glows = new Map<string, Sprite>()
+    const glowFor = (kind: SnowKind, tone: number) => {
+      const color = (SPRITE_TONES[kind][tone] ?? SPRITE_TONES[kind][0]!).a
+      let glow = glows.get(color)
+      if (!glow) {
+        glow = buildGlow(color)
+        glows.set(color, glow)
+      }
+      return glow
+    }
+    /** Glass boxes in art px, relative to the canvas. */
+    let glass: { x0: number; y0: number; x1: number; y1: number }[] = []
+    let artCss = ART_PIXEL_CSS
+    let glassMeasuredAt = 0
+    const measureGlass = () => {
+      glassMeasuredAt = performance.now()
+      if (!glowBehind || !host) {
+        glass = []
+        return
+      }
+      const origin = wrap.getBoundingClientRect()
+      glass = [...host.querySelectorAll(glowBehind)].map((element) => {
+        const rect = element.getBoundingClientRect()
+        return {
+          x0: (rect.left - origin.left) / artCss,
+          y0: (rect.top - origin.top) / artCss,
+          x1: (rect.right - origin.left) / artCss,
+          y1: (rect.bottom - origin.top) / artCss,
+        }
+      })
+    }
     // The still picture (reduced motion) is the same every time: a seeded random, restarted for each fill.
     let random = reduced ? seededRandom(20261124) : Math.random
     let particles: SnowParticle[] = []
@@ -118,6 +178,8 @@ export function PixelSnow({ stage }: { stage: number | null | undefined }) {
       canvas.style.width = `${(nextWidth * devicePerArt) / ratio}px`
       canvas.style.height = `${(nextHeight * devicePerArt) / ratio}px`
       context.imageSmoothingEnabled = false
+      artCss = devicePerArt / ratio
+      measureGlass()
       const first = width === 0
       // Keep particles where they are on a resize; drop the ones now outside.
       particles = particles.filter((particle) => particle.x < nextWidth + 4)
@@ -141,6 +203,26 @@ export function PixelSnow({ stage }: { stage: number | null | undefined }) {
 
     const draw = (t: number) => {
       context.clearRect(0, 0, width, height)
+      if (glass.length) {
+        // Soft lights for the particles behind glass, clipped to it.
+        context.save()
+        context.beginPath()
+        for (const box of glass) context.rect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0)
+        context.clip()
+        for (const particle of particles) {
+          const look = particleLook(particle, reduced ? 0 : t)
+          const [spriteWidth, spriteHeight] = SPRITE_SIZE[particle.kind]
+          const cx = look.x
+          const cy = look.y + spriteHeight / 2
+          const behind = glass.some(
+            (box) => cx > box.x0 - GLOW_RADIUS && cx < box.x1 + GLOW_RADIUS && cy > box.y0 - GLOW_RADIUS && cy < box.y1 + GLOW_RADIUS,
+          )
+          if (!behind || look.alpha <= 0.005) continue
+          context.globalAlpha = Math.min(GLOW_MAX, look.alpha * GLOW_GAIN * (spriteWidth > 7 ? 1.2 : 1))
+          context.drawImage(glowFor(particle.kind, particle.tone), cx - GLOW_RADIUS, cy - GLOW_RADIUS)
+        }
+        context.restore()
+      }
       for (const particle of particles) {
         const look = particleLook(particle, reduced ? 0 : t)
         if (look.alpha <= 0.005) continue
@@ -158,6 +240,7 @@ export function PixelSnow({ stage }: { stage: number | null | undefined }) {
       last = now
       drawnAt = now
       clock += dt
+      if (now - glassMeasuredAt > GLASS_MEASURE_MS) measureGlass()
       const mix = mixRef.current
       if (mix !== filledWith && clock < SETTLE_S) fill()
       const target = snowTarget(cssWidth, cssHeight, mix)
@@ -207,7 +290,7 @@ export function PixelSnow({ stage }: { stage: number | null | undefined }) {
       particles = []
     }
     // Under reduced motion the still picture is rebuilt for a new stage (`stillStage`); moving snow blends instead.
-  }, [host, reduced, stillStage])
+  }, [host, reduced, stillStage, glowBehind])
 
   return (
     <>
