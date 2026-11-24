@@ -30,6 +30,14 @@ export function sampleRelation(totalSeconds: number): MateServerRelationStats & 
   }
 }
 
+/** Connection time that puts a sample at `stage` (60% of the way to the next one; past 단짝's threshold for 5). */
+export function sampleSecondsForStage(stage: number): number {
+  const index = Math.min(AFFINITY_STAGES.length, Math.max(1, Math.round(stage))) - 1
+  const current = AFFINITY_STAGES[index]!
+  const next = AFFINITY_STAGES[index + 1]
+  return Math.round((current.hours + (next ? (next.hours - current.hours) * 0.6 : 5)) * 3600)
+}
+
 const fileFor = (name: string) =>
   Object.entries(CUBISM_TO_V2_EXPRESSION).find(([, value]) => value === name)?.[0] ?? name
 const labelOf = (name: string) => V2_EXPRESSIONS.find((item) => item.name === name)?.label ?? name

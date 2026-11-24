@@ -17,6 +17,7 @@ import { capsuleRecordsFromStudyRecords, formatTogether, totalCapsuleSeconds } f
 import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
 import type { CapsuleJarHandle } from '@/features/mates/capsule-jar/CapsuleJar'
 import { MateTimeColumn, type StageReward } from '@/features/mates/components/MateTimeColumn'
+import { PixelSnow } from '@/features/mates/pixel-snow/PixelSnow'
 import { capsuleJarTheme } from '@/features/mates/capsule-jar/capsule-jar-theme'
 import { affinityProgressView, opensAtNextStage } from '@/features/mates/affinity-progress'
 import { affinityStageLabel, normalizeAffinityStage } from '@/features/mates/affinity-stages'
@@ -227,9 +228,13 @@ export default function MyMatesPage() {
 
   // Affinity: the server's stage when it sends one, sample data in development (mate-features.ts decides).
   // The stage is put on the one stage table (affinity-stages.ts) by its name.
+  // Development only: `?affinity=1…5` puts the page at that stage with sample progress (the local mock tool sets it).
   const serverStage = normalizeAffinityStage(summary.relation?.stage, summary.relation?.stageName)
+  const devStage = import.meta.env.DEV ? Number(searchParams.get('affinity')) : Number.NaN
   const relation: (Partial<StudySettlement> & { stage: number; stageName: string }) | null = features.affinity
-    ? serverStage && !previewMate
+    ? import.meta.env.DEV && devSamples && Number.isInteger(devStage) && devStage >= 1 && devStage <= 5
+      ? devSamples.sampleRelation(devSamples.sampleSecondsForStage(devStage))
+      : serverStage && !previewMate
       ? { ...summary.relation, ...serverStage }
       : import.meta.env.DEV
         ? (devSamples?.sampleRelation(totalSeconds) ?? null)
@@ -329,6 +334,8 @@ export default function MyMatesPage() {
 
   return (
     <MyMatesWindowFrame>
+      {/* Pixel snow behind the page, richer with the affinity stage (stage 1 snow when affinity is off). */}
+      <PixelSnow stage={relation?.stage ?? 1} />
       <div className="my-mates-layout">
         <div className="my-mates-switcher-slot">
           <MateSwitcher mates={switcherMates} selectedId={selectedId} onSelect={selectMate} />

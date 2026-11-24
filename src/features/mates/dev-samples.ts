@@ -2,7 +2,7 @@
  * Development-only sample data for the my-mates page, loaded with a dynamic import behind `import.meta.env.DEV`
  * (MyMatesPage), so production bundles carry none of it.
  */
-export { sampleRelation, sampleUnlocks } from './mate-sample-data.ts'
+export { sampleRelation, sampleSecondsForStage, sampleUnlocks } from './mate-sample-data.ts'
 export { generateDummyCapsules } from './capsule-jar/capsule-jar-dummy.ts'
 
 /** Preview mates for `?mates=demo` (several mates): 채린's art with a tint and dummy capsules. */

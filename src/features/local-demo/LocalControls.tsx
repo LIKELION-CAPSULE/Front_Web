@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { useBackend } from '../backend/backend-context'
 import type { SessionModelStage } from '../live2d/session-model'
 import { Icon } from '@/shared/ui/Icon'
@@ -21,6 +21,9 @@ function applyPreviewExpression(stages: Set<SessionModelStage>, file: string | n
   if (v2 !== undefined) forEachPreviewRenderer(renderer => renderer.setExpression(v2))
 }
 
+/** 내 메이트 affinity stages to try (`?affinity=`, development only in MyMatesPage): the page and its pixel snow. */
+const affinityStages = [['', '기본(로컬 값 3단계)'], ['1', '1단계 · 처음 만남'], ['2', '2단계 · 아는 사이'], ['3', '3단계 · 친구'], ['4', '4단계 · 친한 친구'], ['5', '5단계 · 단짝']] as const
+
 const labels: Record<LocalScenario, string> = { normal: '일반', empty: '기록 없음', loading: '느린 응답', failure: '실패 후 재시도', exhausted: '크레딧 소진', guest: '로그인 전' }
 
 function readInitialOpen(): boolean {
@@ -37,6 +40,8 @@ export function LocalControls({ store, stages }: { store: LocalBetaStore; stages
   const [, render] = useReducer(value => value + 1, 0)
   const { authenticate, reload } = useBackend()
   const navigate = useNavigate()
+  const route = useLocation()
+  const affinityStage = route.pathname === '/mates/me' ? new URLSearchParams(route.search).get('affinity') ?? '' : ''
   useEffect(() => store.subscribe(render), [store])
   useEffect(() => {
     try {
@@ -85,6 +90,7 @@ export function LocalControls({ store, stages }: { store: LocalBetaStore; stages
       <p>이 브라우저에만 저장돼요. 실제 API·메일·결제는 실행하지 않아요.</p>
       <label>상태 초기화<select aria-label="더미 시나리오" value={store.data.scenario} onChange={event => { const scenario = event.target.value as LocalScenario; store.reset(scenario); location.assign(scenario === 'guest' ? '/login' : '/') }}>{localScenarios.map(value => <option key={value} value={value}>{labels[value]}</option>)}</select></label>
       <label>기록 패턴<select aria-label="더미 기록 패턴" value={store.data.recordPattern ?? 'none'} onChange={event => { store.setRecordPattern(event.target.value as RecordPattern); void reload() }}>{recordPatterns.map(value => <option key={value} value={value}>{recordPatternLabels[value]}</option>)}</select></label>
+      <label>내 메이트 친밀도 단계<select aria-label="내 메이트 친밀도 단계" value={affinityStage} onChange={event => { const next = new URLSearchParams(route.pathname === '/mates/me' ? route.search : ''); if (event.target.value) next.set('affinity', event.target.value); else next.delete('affinity'); const query = next.toString(); navigate(`/mates/me${query ? `?${query}` : ''}`) }}>{affinityStages.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <div className="local-demo-links">{[['/', '홈'], ['/mates/me', '내 메이트'], ['/records', '내 기록'], ['/credits', '크레딧'], ['/credits/charge', '친구 초대']].map(([path, label]) => <button type="button" key={path} onClick={() => navigate(path!)}>{label}</button>)}</div>
       <p>출석 {wallet.attendance.toLocaleString()} · 초대 {wallet.invitation.toLocaleString()} · 사용 {wallet.usedToday.toLocaleString()}</p>
       <button type="button" disabled={store.data.invitation.invitedCount >= 10} onClick={() => store.completeInvitedFriend(`fixture-${store.data.invitation.invitedCount + 1}`)}>초대한 친구 첫 연결 완료 · {store.data.invitation.invitedCount}/10명</button>
