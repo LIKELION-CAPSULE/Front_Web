@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { contrast, glassOver, hexToRgb, SATIN, type Rgb } from '../src/features/records/satin-backdrop/satin-config.ts'
+import { contrast, glassOver, hexToRgb, revealAt, SATIN, type Rgb } from '../src/features/records/satin-backdrop/satin-config.ts'
 
 function hue([r, g, b]: Rgb) {
   const max = Math.max(r, g, b)
@@ -40,4 +40,29 @@ test('text on the glass blocks keeps 4.5:1 when the brightest ribbon passes behi
   }
   // Even without any glass, the ink stays readable over the ribbon.
   assert.ok(contrast(hexToRgb('#FAFAFD'), peak) >= 4.5)
+})
+
+test('entering 내 기록 the ribbons rise out of the canvas after the content, eased out; a later visit is shorter', () => {
+  const { first, again, drift, narrow } = SATIN.reveal
+  // The content needs no wait; the ribbons start a beat later and settle in about 2–3 s.
+  assert.ok(first.delay > 0.2 && first.delay < 0.8)
+  assert.ok(first.delay + first.duration >= 2 && first.delay + first.duration <= 3.5)
+  assert.ok(again.delay + again.duration < first.delay + first.duration)
+  // Nothing before the delay (the bare canvas), all of it at the end, never past it.
+  assert.equal(revealAt(0, first), 0)
+  assert.equal(revealAt(first.delay, first), 0)
+  assert.equal(revealAt(first.delay + first.duration, first), 1)
+  assert.equal(revealAt(60, first), 1)
+  // Ease-out: most of the light comes early, the last part settles slowly.
+  const half = revealAt(first.delay + first.duration / 2, first)
+  assert.ok(half > 0.8 && half < 1, String(half))
+  let previous = -1
+  for (let t = 0; t <= 4; t += 0.05) {
+    const value = revealAt(t, first)
+    assert.ok(value >= previous - 1e-9)
+    previous = value
+  }
+  // The bands only drift and widen a little (no sweeping entrance).
+  assert.ok(drift > 0 && drift <= 0.15)
+  assert.ok(narrow > 0 && narrow <= 0.3)
 })

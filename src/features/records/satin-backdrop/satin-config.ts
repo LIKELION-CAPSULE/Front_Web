@@ -68,7 +68,31 @@ export const SATIN = {
   maxFps: 30,
   /** Reduced motion: the one still frame is drawn at this time (seconds). */
   stillTime: 12,
+  /**
+   * Entering 내 기록 the ribbons rise out of the canvas: their light (gain) eases from 0 to full while each band drifts
+   * in from just beyond its edge of the screen and widens a little. The content is there first (it needs no wait) and
+   * the board's columns rise in ~1.3 s; the ribbons follow a beat later and settle after them. The first visit of the
+   * page load takes the long version; coming back to the tab later takes a shorter one (seen it already, still not a
+   * hard cut). Reduced motion: none (the still frame at once).
+   */
+  reveal: {
+    first: { delay: 0.45, duration: 2.6 },
+    again: { delay: 0.15, duration: 1.4 },
+    /** How far (screen units) each band starts beyond its resting place, outward (top bands up, the bottom one down). */
+    drift: 0.12,
+    /** How much narrower each band starts (fraction of its width). */
+    narrow: 0.25,
+  },
 } as const
+
+export type SatinReveal = { delay: number; duration: number }
+
+/** Ease-out (cubic) progress of the entrance at `seconds` after the backdrop started: 0 before the delay, then to 1. */
+export function revealAt(seconds: number, { delay, duration }: SatinReveal): number {
+  if (duration <= 0) return 1
+  const linear = Math.min(1, Math.max(0, (seconds - delay) / duration))
+  return 1 - (1 - linear) ** 3
+}
 
 /** Relative luminance (WCAG). */
 export function luminance([r, g, b]: Rgb) {
