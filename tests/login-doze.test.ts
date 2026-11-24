@@ -7,11 +7,12 @@ import {
   dozePose,
   fallAsleepPose,
   dozeCallLine,
-  parseDozeQuery,
+  parseDozeDevQuery,
   wakeGreetDelay,
   wakePose,
 } from '../src/features/auth/login-variants/doze/doze-motion.ts'
 import {
+  DOZE_COMPACT_FRAMING,
   DOZE_FRAMING,
   DOZE_STILL_RENDER,
   computeDozeCamera,
@@ -73,11 +74,10 @@ test('falling asleep ends on the start of the nod cycle', () => {
   close(begin.ParamAngleY ?? NaN, 0)
 })
 
-test('DEV query: variant=doze, static only together with it', () => {
-  assert.deepEqual(parseDozeQuery('?variant=doze'), { doze: true, forceStatic: false })
-  assert.deepEqual(parseDozeQuery('?variant=doze&static=1'), { doze: true, forceStatic: true })
-  assert.deepEqual(parseDozeQuery('?static=1'), { doze: false, forceStatic: false })
-  assert.deepEqual(parseDozeQuery('?mode=login'), { doze: false, forceStatic: false })
+test('DEV query: static=1 forces the still path, doze=awake starts awake', () => {
+  assert.deepEqual(parseDozeDevQuery('?static=1'), { forceStatic: true, forceAwake: false })
+  assert.deepEqual(parseDozeDevQuery('?doze=awake&static=1'), { forceStatic: true, forceAwake: true })
+  assert.deepEqual(parseDozeDevQuery('?mode=login'), { forceStatic: false, forceAwake: false })
 })
 
 test('camera: head below the top margin, desk edge leaves the dialogue room at the bottom', () => {
@@ -127,4 +127,18 @@ test('the tap bubble names her with the right particle, and sits on her chest be
   assert.ok(scene.call.y > scene.face.y + 80 * scene.k, 'below the face')
   assert.ok(scene.call.y < scene.lid.top - 40, 'above the laptop')
   assert.ok(scene.zz.x > scene.face.x, 'z z Z on the side of her head')
+})
+
+test('half screen (compact): the desk front shrinks to a sliver, so she is drawn larger; bubbles centre on her', () => {
+  const [cw, ch] = [900, 540]
+  const wide = computeDozeCamera(cw, ch)
+  const compact = computeDozeCamera(cw, ch, true)
+  assert.ok(compact.k > wide.k * 1.15, `compact k ${compact.k} vs ${wide.k}`)
+  const desk = modelPointToScreen(CHAERIN_V2_LANDMARKS.centerX, DOZE_FRAMING.deskTopModelY, cw, ch, compact.view)
+  const front = ch - desk.y
+  assert.ok(front >= DOZE_COMPACT_FRAMING.deskFrontMin - 1e-6 && front <= DOZE_COMPACT_FRAMING.deskFrontMax + 1e-6, `front ${front}`)
+  const scene = computeDozeScene(cw, ch, compact)
+  close(scene.mate.cx, scene.still.left + scene.still.width / 2)
+  close(scene.call.x, scene.mate.cx)
+  close(scene.mate.cx, cw / 2, 1e-6)
 })

@@ -186,10 +186,16 @@ export function wakeGreetDelay(mode: 'live' | 'static', reducedMotion: boolean):
   return mode === 'live' ? DOZE_TIMINGS_MS.wakeGreetAt : DOZE_TIMINGS_MS.staticGreetAt
 }
 
-/** DEV query: `?variant=doze` shows this draft, `&static=1` forces the still-image path. */
-export function parseDozeQuery(search: string): { doze: boolean; forceStatic: boolean } {
+/**
+ * Development-only query on /login (the stage reads it only under `import.meta.env.DEV`): `static=1` forces the
+ * still-image path (what production shows until the login mate API exists), `doze=awake` starts already awake (UI
+ * review captures).
+ */
+export function parseDozeDevQuery(search: string): { forceStatic: boolean; forceAwake: boolean } {
   const params = new URLSearchParams(search)
-  const doze = params.get('variant')?.trim().toLowerCase() === 'doze'
   const raw = params.get('static')?.trim().toLowerCase()
-  return { doze, forceStatic: doze && (raw === '1' || raw === 'true') }
+  return {
+    forceStatic: raw === '1' || raw === 'true',
+    forceAwake: params.get('doze')?.trim().toLowerCase() === 'awake',
+  }
 }

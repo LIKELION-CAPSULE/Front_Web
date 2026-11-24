@@ -4,6 +4,7 @@ import {
   DEFAULT_DESKTOP_CONTROLS,
   type MateReactionState,
 } from '@/features/auth/login-backgrounds/desktop/desktop-config'
+import { emitLoginDesktopEvent } from '@/features/auth/login-backgrounds/desktop/login-analytics'
 import type { LoginMateProfile } from '@/features/auth/login-backgrounds/desktop/login-mate-source'
 import { resolveGazeForState } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
 import { AlivingRenderer } from '@/features/mate-render/AlivingRenderer'
@@ -24,7 +25,7 @@ import {
   WAKE_EXPRESSION_CUES,
   dozePose,
   fallAsleepPose,
-  parseDozeQuery,
+  parseDozeDevQuery,
   wakeGreetDelay,
   wakePose,
   type DozeStill,
@@ -35,11 +36,13 @@ import { DozeDesk } from './DozeDesk'
 import './doze.css'
 
 /**
- * "졸던 채린 깨우기" (DEV-only login draft, `/login?variant=doze`): Chaerin dozes behind a laptop; coming close to
- * her, clicking / tapping her or pressing Enter on her wakes her up (blinks → yawn → looks at you → smile + greeting).
- * The Live2D model is the star when it can run; the same story is told with still crossfades without it (reduced
- * motion, no WebGL, `&static=1`, or while the model loads).
+ * "졸던 채린 깨우기" (the /login stage): Chaerin dozes behind a laptop; coming close to her, clicking / tapping her or
+ * pressing a key wakes her up (blinks → yawn → looks at you → smile + greeting). The Live2D model is the star when it
+ * can run; the same story is told with still crossfades without it: production until the login mate API exists,
+ * reduced motion, no WebGL, while the model loads, and the DEV query `static=1`.
  */
+
+const NO_DEV_QUERY = { forceStatic: false, forceAwake: false } as const
 
 type Phase = 'dozing' | 'waking' | 'awake' | 'falling'
 type WakeMethod = 'tap' | 'keyboard' | 'near' | 'auto'
@@ -52,20 +55,7 @@ const STILLS: Record<StillName, string> = {
   shy: shyStillUrl,
 }
 
-interface TrackablePlayer {
-  track(params: TrackParams): void
-}
-
-/**
- * The v2 player behind the renderer, when it can `track`. AlivingRenderer has no public `track` yet (mate-render is
- * outside this draft): if the draft is adopted, add `track` to the renderer instead of reaching into it like this.
- */
-function trackableOf(renderer: AlivingRenderer | null): TrackablePlayer | null {
-  const player = (renderer as unknown as { player?: { track?: unknown } | null } | null)?.player
-  return player && typeof player.track === 'function' ? (player as TrackablePlayer) : null
-}
-
-/** Login reaction → v2 expression once she is awake (same mapping as the assemble stage). */
+/** Login reaction → v2 expression once she is awake. */
 function reactionExpression(state: MateReactionState): string | null {
   switch (state) {
     case 'greet':
@@ -90,6 +80,7 @@ export default function DozeMateStage({
   reactionNonce,
   onGreet,
   onAwakeChange,
+  onMateFrame,
 }: {
   mate: LoginMateProfile
   allowLive2D: boolean
@@ -99,9 +90,16 @@ export default function DozeMateStage({
   /** Called once per wake-up, right after `onAwakeChange(true)`. */
   onGreet: (line: string) => void
   onAwakeChange: (awake: boolean, immediate: boolean) => void
+  /** Where she is drawn horizontally in stage px (centre, width), so the layout can centre the dialogue box on her. */
+  onMateFrame?: (frame: { cx: number; width: number } | null) => void
 }) {
   const location = useLocation()
-  const forceStatic = useMemo(() => parseDozeQuery(location.search).forceStatic, [location.search])
+  // DEV-only switches (see parseDozeDevQuery); a constant in production builds.
+  const devQuery = useMemo(
+    () => (import.meta.env.DEV ? parseDozeDevQuery(location.search) : NO_DEV_QUERY),
+    [location.search],
+  )
+  const forceStatic = devQuery.forceStatic
   const rootRef = useRef<HTMLDivElement>(null)
   const engineHostRef = useRef<HTMLDivElement>(null)
   const rendererRef = useRef<AlivingRenderer | null>(null)
@@ -120,7 +118,7 @@ export default function DozeMateStage({
     )
   }, [allowLive2D, forceStatic, mate.v2Model])
 
-  const [size, setSize] = useState({ w: 0, h: 0 })
+  const [size, setSize] = useState({ w: 0, h: 0, compact: false })
   const [engineStatus, setEngineStatus] = useState<MateRenderStatus>(source.kind === 'aliving' ? 'loading' : 'error')
   /** The live model is posed and faded in over the still. */
   const [liveShown, setLiveShown] = useState(false)
@@ -148,11 +146,6 @@ export default function DozeMateStage({
     onGreetRef.current = onGreet
     onAwakeChangeRef.current = onAwakeChange
   }, [onGreet, onAwakeChange])
-  // She starts asleep, whatever the previous draft left (switching from 변신 while that one was awake).
-  useEffect(() => {
-    onAwakeChangeRef.current(false, true)
-  }, [])
-
   const setPhase = useCallback((next: Phase) => {
     phaseRef.current = next
     setPhaseState(next)
@@ -171,21 +164,39 @@ export default function DozeMateStage({
   useEffect(() => {
     const el = rootRef.current
     if (!el) return
+    // Half screen (the login layout's container breakpoint): the stage sits above the form.
+    const layoutRoot = el.closest('.login-variant-root')
     const update = () => {
       const rect = el.getBoundingClientRect()
-      if (rect.width > 0 && rect.height > 0) setSize({ w: rect.width, h: rect.height })
+      const compact = (layoutRoot?.getBoundingClientRect().width ?? window.innerWidth) <= 959
+      if (rect.width > 0 && rect.height > 0) setSize({ w: rect.width, h: rect.height, compact })
     }
     update()
     const observer = new ResizeObserver(update)
     observer.observe(el)
+    if (layoutRoot) observer.observe(layoutRoot)
     return () => observer.disconnect()
   }, [])
 
-  const camera = useMemo(() => (size.w > 0 && size.h > 0 ? computeDozeCamera(size.w, size.h) : null), [size.w, size.h])
+  const camera = useMemo(
+    () => (size.w > 0 && size.h > 0 ? computeDozeCamera(size.w, size.h, size.compact) : null),
+    [size.w, size.h, size.compact],
+  )
   const scene = useMemo(() => (camera ? computeDozeScene(size.w, size.h, camera) : null), [camera, size.w, size.h])
 
-  // Renderer: same source and options as the assemble stage, so the warm pool hands the same model back and forth
-  // (switching drafts, leaving /login for a mate preview).
+  // Tell the layout where she is drawn (follows every resize).
+  const mateCx = scene?.mate.cx
+  const mateWidth = scene?.mate.width
+  const onMateFrameRef = useRef(onMateFrame)
+  useEffect(() => {
+    onMateFrameRef.current = onMateFrame
+  }, [onMateFrame])
+  useEffect(() => {
+    onMateFrameRef.current?.(mateCx === undefined || mateWidth === undefined ? null : { cx: mateCx, width: mateWidth })
+  }, [mateCx, mateWidth])
+
+  // Renderer: created with the preview's default options, so on leaving /login the warm pool hands this model to the
+  // first mate preview (내 메이트, 메이트 상세) instead of loading it again, and a return to /login takes it back.
   useEffect(() => {
     const host = engineHostRef.current
     if (source.kind !== 'aliving' || !host) {
@@ -208,7 +219,7 @@ export default function DozeMateStage({
     // A player without `track` cannot doze: the stills tell the story instead.
     const sync = () => {
       const status = renderer.getStatus()
-      setEngineStatus(status === 'ready' && !trackableOf(renderer) ? 'error' : status)
+      setEngineStatus(status === 'ready' && !renderer.canTrack() ? 'error' : status)
     }
     const unsub = renderer.subscribe(sync)
     if (renderer.getStatus() !== 'loading') queueMicrotask(sync)
@@ -218,7 +229,7 @@ export default function DozeMateStage({
       liveShownRef.current = false
       setLiveShown(false)
       // Hand the face back neutral: tracked values lapse on their own within a moment anyway.
-      trackableOf(renderer)?.track({ ParamEyeLOpen: 1, ParamEyeROpen: 1, ParamAngleX: 0, ParamAngleY: 0, ParamAngleZ: 0, ParamMouthOpenY: 0 })
+      renderer.track({ ParamEyeLOpen: 1, ParamEyeROpen: 1, ParamAngleX: 0, ParamAngleY: 0, ParamAngleZ: 0, ParamMouthOpenY: 0 })
       mateWarmPool.park(poolKey, renderer, owner)
     }
   }, [source])
@@ -244,8 +255,8 @@ export default function DozeMateStage({
     const lean = engineHostRef.current
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick)
-      const player = trackableOf(rendererRef.current)
-      if (!player) return
+      const renderer = rendererRef.current
+      if (!renderer?.canTrack()) return
       const current = phaseRef.current
       let params: TrackParams | null = null
       let leanValue = 0
@@ -268,7 +279,7 @@ export default function DozeMateStage({
         }
       }
       if (params) {
-        player.track(params)
+        renderer.track(params)
         lastPoseRef.current = params
       }
       lean?.style.setProperty('--doze-lean', reducedMotion ? '0' : leanValue.toFixed(3))
@@ -321,6 +332,15 @@ export default function DozeMateStage({
     onGreetRef.current(DOZE_GREETING)
   }, [reducedMotion, setPhase])
 
+  // DEV `doze=awake`: start already awake (review captures of the awake screen), once.
+  const forcedAwakeRef = useRef(false)
+  useEffect(() => {
+    if (!devQuery.forceAwake || forcedAwakeRef.current) return
+    forcedAwakeRef.current = true
+    setStill('happy')
+    finishWake()
+  }, [devQuery.forceAwake, finishWake])
+
   const wake = useCallback(
     (method: WakeMethod) => {
       if (phaseRef.current !== 'dozing' && phaseRef.current !== 'falling') return
@@ -329,8 +349,8 @@ export default function DozeMateStage({
       wakeStartRef.current = performance.now()
       wakeFromRef.current = lastPoseRef.current
       setPhase('waking')
-      if (import.meta.env.DEV) console.debug('[login-doze] wake', method)
       const live = liveShownRef.current
+      emitLoginDesktopEvent({ name: 'login_doze_woken', payload: { method, mode: live ? 'live' : 'static' } })
       if (live) {
         const renderer = rendererRef.current
         for (const cue of WAKE_EXPRESSION_CUES) {
@@ -532,6 +552,7 @@ export default function DozeMateStage({
       data-doze-mode={liveShown ? 'live' : 'static'}
       data-live2d-status={source.kind === 'aliving' ? engineStatus : 'off'}
       data-reduced={reducedMotion || undefined}
+      data-mate-cx={scene ? scene.mate.cx.toFixed(1) : undefined}
     >
       <div className="doze-stage-mask">
         {/* Laptop screen light on her face (the screen faces her; we see the lid from behind). */}
@@ -639,7 +660,14 @@ export default function DozeMateStage({
       )}
 
       {phase === 'awake' && (
-        <button type="button" className="doze-replay-btn" onClick={fallAsleep}>
+        <button
+          type="button"
+          className="doze-replay-btn"
+          onClick={() => {
+            emitLoginDesktopEvent({ name: 'login_doze_replayed', payload: {} })
+            fallAsleep()
+          }}
+        >
           다시 보기
         </button>
       )}

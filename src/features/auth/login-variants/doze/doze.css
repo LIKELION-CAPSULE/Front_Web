@@ -8,7 +8,7 @@
   user-select: none;
 }
 
-/* Soft right edge into the form scrim (same as the assemble stage). */
+/* Soft right edge into the form scrim. */
 .doze-stage-mask {
   position: absolute;
   inset: 0;

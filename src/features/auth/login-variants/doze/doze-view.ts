@@ -1,6 +1,6 @@
 /**
  * Camera for the "졸던 채린 깨우기" stage (DEV-only login draft): Chaerin sits behind a laptop, so the framing goes a
- * little lower than the assemble bust shot (down to the desk) and the laptop lid hides the torso below the chest.
+ * little lower than a bust shot (down to the desk) and the laptop lid hides the torso below the chest.
  * Same projection as the engine (`modelPointToScreen`), so the Live2D canvas, the still renders and the desk props
  * line up at every stage size.
  */
@@ -38,10 +38,21 @@ export interface DozeCamera {
   k: number
 }
 
-export function computeDozeCamera(cw: number, ch: number): DozeCamera {
+/**
+ * Half screen (container ≤ 959 px): the dialogue box sits below the stage, not on the desk, so the desk front only needs
+ * a sliver and she gets the height back.
+ */
+export const DOZE_COMPACT_FRAMING = {
+  headMarginRatio: 0.06,
+  deskFrontRatio: 0.07,
+  deskFrontMin: 28,
+  deskFrontMax: 48,
+} as const
+
+export function computeDozeCamera(cw: number, ch: number, compact = false): DozeCamera {
   const { headTopY } = CHAERIN_V2_LANDMARKS
-  const { headMarginRatio: m, deskFrontRatio, deskFrontMin, deskFrontMax, minVisibleModelWidth, deskTopModelY } =
-    DOZE_FRAMING
+  const { minVisibleModelWidth, deskTopModelY } = DOZE_FRAMING
+  const { headMarginRatio: m, deskFrontRatio, deskFrontMin, deskFrontMax } = compact ? DOZE_COMPACT_FRAMING : DOZE_FRAMING
   const deskFront = Math.min(deskFrontMax, Math.max(deskFrontMin, ch * deskFrontRatio))
   const kHeight = (ch - deskFront - m * ch) / (deskTopModelY - headTopY)
   const kWidth = cw / minVisibleModelWidth
@@ -89,6 +100,11 @@ export interface DozeSceneLayout {
   zz: { x: number; y: number }
   /** Top center of the "tap her" bubble: on her chest, below the chin and above the laptop, never over the face. */
   call: { x: number; y: number }
+  /**
+   * Where she is actually drawn, horizontally: the still's box (the live model uses the same projection, so it lands on
+   * the same place). Speech bubbles centre on `cx` and keep within about `width`.
+   */
+  mate: { cx: number; width: number }
   k: number
 }
 
@@ -104,14 +120,17 @@ export function computeDozeScene(cw: number, ch: number, camera: DozeCamera = co
   const hitBottom = at(centerX + 230, lidTopModelY)
   const zz = at(centerX + 150, 250)
   const call = at(centerX, 452)
+  const still = computeStillBox(DOZE_STILL_RENDER, cw, ch, view)
   return {
-    still: computeStillBox(DOZE_STILL_RENDER, cw, ch, view),
+    still,
     face: { x: face.x, y: face.y },
     lid: { left: lidTop.x, top: lidTop.y, width: lidModelWidth * k, height: Math.max(0, deskTop - lidTop.y) },
     deskTop,
     hit: { left: hitTop.x, top: hitTop.y, width: hitBottom.x - hitTop.x, height: hitBottom.y - hitTop.y },
     zz: { x: zz.x, y: zz.y },
-    call: { x: call.x, y: call.y },
+    // The hint bubble's tail points at her centre line.
+    call: { x: still.left + still.width / 2, y: call.y },
+    mate: { cx: still.left + still.width / 2, width: still.width * 0.92 },
     k,
   }
 }

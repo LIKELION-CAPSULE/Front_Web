@@ -12,7 +12,7 @@ const PREWARM_DELAY_MS = 1500
 /**
  * Warms the first mate's v2 (Aliving2D) model while the browser is idle on the app screens (home and the others under
  * AppLayout), so the first mate preview (내 메이트, 메이트 상세) starts drawing at once. When the login screen's
- * wake-up renderer was handed over (AssembleMateStage → warm pool) the pool already holds it and nothing loads.
+ * wake-up renderer was handed over (DozeMateStage → warm pool) the pool already holds it and nothing loads.
  *
  * Skipped on phones / touch-first devices, with Data Saver and under reduced motion (`canPrewarm`), checked again right
  * before the idle run and right before loading (either may change meanwhile), and when the mate has no v2 model. The

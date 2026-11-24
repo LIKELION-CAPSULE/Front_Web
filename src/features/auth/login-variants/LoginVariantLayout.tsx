@@ -1,5 +1,5 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type FocusEvent } from 'react'
-import { Outlet, useLocation } from 'react-router'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent } from 'react'
+import { Outlet } from 'react-router'
 import { LegalDocumentBody } from '@/features/auth/components/LegalDocumentBody'
 import { legalDocuments } from '@/features/auth/data/legal-documents'
 import type { MateReactionState } from '@/features/auth/login-backgrounds/desktop/desktop-config'
@@ -12,18 +12,10 @@ import { createLoginMateSource } from '@/features/auth/login-backgrounds/desktop
 import { REACTION_PRIORITY, getDefaultLineForState } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
 import { Dialog } from '@/shared/ui/Dialog'
 import { chaerinArtwork } from '@/features/mates/artwork'
-import { AssembleMateStage } from './assemble/AssembleMateStage'
+import DozeMateStage from './doze/DozeMateStage'
 import { MateDialogue } from './MateDialogue'
-import { isMateAwake, parseAssembleForcePhase, type AssemblePhase } from './assemble/assemble-machine'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import './login-variants.css'
-
-/**
- * DEV-only login drafts (`/login?variant=doze`, see doze/). `import.meta.env.DEV` is a build-time constant, so the
- * production bundle has neither these modules nor their assets.
- */
-const DozeMateStage = import.meta.env.DEV ? lazy(() => import('./doze/DozeMateStage')) : null
-const LoginVariantDevSwitch = import.meta.env.DEV ? lazy(() => import('./doze/LoginVariantDevSwitch')) : null
 
 type ReactionOptions = Parameters<DesktopShellContextValue['triggerReaction']>[1]
 
@@ -43,8 +35,8 @@ function usePrefersReducedMotion(): boolean {
 
 /**
  * Mate reactions on the login screen: greet, field focus, error, success. Same lines as the desktop login.
- * Chaerin only reacts once she is awake (see `isMateAwake`): before that, reactions are dropped (not queued), so
- * nothing is said or announced while she is still the 2D card or mid-transform.
+ * The mate only reacts once she is awake (the stage reports it through `onAwakeChange`): before that, reactions are
+ * dropped (not queued), so nothing is said or announced while she is dozing or still waking up.
  */
 function useMateReactions() {
   const [state, setState] = useState<MateReactionState>('idle')
@@ -138,14 +130,8 @@ function useMateReactions() {
   return { state, nonce, speech: awake ? speech : null, endSpeech, apply, setAwake, onFocusIn, onFocusOut }
 }
 
-function parseAssembleDisableEngine(search: string): boolean {
-  const raw = new URLSearchParams(search).get('assembleEngine')?.trim().toLowerCase()
-  return raw === 'none' || raw === '0' || raw === 'false'
-}
-
-/** `/login` layout: the wake-up ("채린 깨우기") stage on the left, the login form panel on the right. */
+/** `/login` layout: the dozing mate stage ("채린 깨우기", doze/) on the left, the login form panel on the right. */
 export default function LoginVariantLayout() {
-  const location = useLocation()
   const localReducedMotion = usePrefersReducedMotion()
   const reducedMotion = localReducedMotion
   const canRenderMate = !reducedMotion
@@ -153,41 +139,20 @@ export default function LoginVariantLayout() {
   const [config, setConfig] = useState<DesktopShellWindowConfig | null>(null)
   const reactions = useMateReactions()
   const { apply, setAwake } = reactions
-  const assembleForcePhase = useMemo(
-    () => parseAssembleForcePhase(new URLSearchParams(location.search).get('assemble')),
-    [location.search],
-  )
-  const assembleDisableEngine = useMemo(
-    () => parseAssembleDisableEngine(location.search),
-    [location.search],
-  )
-  const handleAssembleGreetBubble = useCallback(() => {
-    apply('greet', { revertAfterMs: 4600 })
-  }, [apply])
-  const [assembleCaption, setAssembleCaption] = useState<{ visible: boolean; immediate: boolean }>(() => ({
-    visible: isMateAwake(assembleForcePhase),
-    immediate: assembleForcePhase === 'live' || assembleForcePhase === 'static' || reducedMotion,
-  }))
-  const handleAssemblePhaseChange = useCallback(
-    (phase: AssemblePhase, immediate: boolean) => {
-      const awake = isMateAwake(phase)
-      setAwake(awake)
-      setAssembleCaption({ visible: awake, immediate })
-    },
-    [setAwake],
-  )
-  const dozeVariant =
-    import.meta.env.DEV && new URLSearchParams(location.search).get('variant')?.trim().toLowerCase() === 'doze'
-  const handleDozeAwakeChange = useCallback(
+  /** Mate caption (top left): shown while she is awake; `immediate` skips its fade. */
+  const [caption, setCaption] = useState<{ visible: boolean; immediate: boolean }>({ visible: false, immediate: true })
+  const handleAwakeChange = useCallback(
     (awake: boolean, immediate: boolean) => {
       setAwake(awake)
-      setAssembleCaption({ visible: awake, immediate })
+      setCaption({ visible: awake, immediate })
     },
     [setAwake],
   )
-  const handleDozeGreet = useCallback((line: string) => apply('greet', { line, revertAfterMs: 4600 }), [apply])
-  const captionVisible = assembleCaption.visible
-  const captionImmediate = assembleCaption.immediate || reducedMotion
+  /** Where the stage draws her (stage px): the dialogue box centres on it (login-variants.css `--login-mate-*`). */
+  const [mateFrame, setMateFrame] = useState<{ cx: number; width: number } | null>(null)
+  const handleGreet = useCallback((line: string) => apply('greet', { line, revertAfterMs: 4600 }), [apply])
+  const captionVisible = caption.visible
+  const captionImmediate = caption.immediate || reducedMotion
 
   const hasError = config?.hasErrorNotification ?? false
   useEffect(() => {
@@ -210,34 +175,24 @@ export default function LoginVariantLayout() {
       <div
         className="login-variant-root"
         data-reduced-motion={reducedMotion || undefined}
+        style={
+          mateFrame
+            ? ({ '--login-mate-cx': `${mateFrame.cx}px`, '--login-mate-w': `${mateFrame.width}px` } as CSSProperties)
+            : undefined
+        }
       >
         <div className="login-variant-bg">
           <img src={chaerinArtwork.callBackground.landscape} alt="" aria-hidden="true" className="login-variant-bg-media login-variant-room" draggable={false} />
-          {dozeVariant && DozeMateStage ? (
-            <Suspense fallback={null}>
-              <DozeMateStage
-                mate={mate}
-                allowLive2D={canRenderMate}
-                reducedMotion={reducedMotion}
-                reactionState={reactions.state}
-                reactionNonce={reactions.nonce}
-                onGreet={handleDozeGreet}
-                onAwakeChange={handleDozeAwakeChange}
-              />
-            </Suspense>
-          ) : (
-            <AssembleMateStage
-              mate={mate}
-              allowLive2D={canRenderMate}
-              reducedMotion={reducedMotion}
-              reactionState={reactions.state}
-              reactionNonce={reactions.nonce}
-              forcePhase={assembleForcePhase}
-              disableEngine={assembleDisableEngine}
-              onGreetBubbleReady={handleAssembleGreetBubble}
-              onPhaseChange={handleAssemblePhaseChange}
-            />
-          )}
+          <DozeMateStage
+            mate={mate}
+            allowLive2D={canRenderMate}
+            reducedMotion={reducedMotion}
+            reactionState={reactions.state}
+            reactionNonce={reactions.nonce}
+            onGreet={handleGreet}
+            onAwakeChange={handleAwakeChange}
+            onMateFrame={setMateFrame}
+          />
           <div className="login-variant-scrim" />
         </div>
 
@@ -287,12 +242,6 @@ export default function LoginVariantLayout() {
             </div>
           </section>
         </main>
-
-        {LoginVariantDevSwitch && (
-          <Suspense fallback={null}>
-            <LoginVariantDevSwitch />
-          </Suspense>
-        )}
 
         <Dialog
           open={legal !== null}
