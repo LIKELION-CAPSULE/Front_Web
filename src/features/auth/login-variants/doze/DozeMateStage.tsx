@@ -12,12 +12,12 @@ import { resolveMateSource } from '@/features/mate-render/mate-source'
 import { mateWarmPool } from '@/features/mate-render/warm-pool'
 import { warmKey } from '@/features/mate-render/warm-renderer'
 import type { MateRenderStatus } from '@/features/mate-render/types'
-import { capsuleLogo } from '@/shared/design/brand-logo'
 import dozeStillUrl from '@/assets/characters/chaerin-v2/chaerin-v2-doze.webp'
 import yawnStillUrl from '@/assets/characters/chaerin-v2/expressions-bust/yawn.webp'
 import happyStillUrl from '@/assets/characters/chaerin-v2/expressions-bust/happy.webp'
 import shyStillUrl from '@/assets/characters/chaerin-v2/expressions-bust/shy.webp'
 import {
+  dozeCallLine,
   DOZE_GREETING,
   DOZE_STILL_POSE,
   DOZE_TIMINGS_MS,
@@ -31,6 +31,7 @@ import {
   type TrackParams,
 } from './doze-motion'
 import { computeDozeCamera, computeDozeScene, isPointerNearFace } from './doze-view'
+import { DozeDesk } from './DozeDesk'
 import './doze.css'
 
 /**
@@ -313,6 +314,7 @@ export default function DozeMateStage({
   )
 
   const finishWake = useCallback(() => {
+    setHint('none')
     setPhase('awake')
     setAnnounce('채린이가 깨어났어요')
     onAwakeChangeRef.current(true, reducedMotion)
@@ -323,7 +325,6 @@ export default function DozeMateStage({
     (method: WakeMethod) => {
       if (phaseRef.current !== 'dozing' && phaseRef.current !== 'falling') return
       clearTimers()
-      setHint('none')
       setAnnounce('')
       wakeStartRef.current = performance.now()
       wakeFromRef.current = lastPoseRef.current
@@ -380,7 +381,7 @@ export default function DozeMateStage({
   useEffect(() => {
     if (phase !== 'dozing') return
     const auto = window.setTimeout(() => wake('auto'), DOZE_TIMINGS_MS.autoWake)
-    const hintTimer = window.setTimeout(() => setHint((h) => (h === 'none' ? 'pointer' : h)), 2400)
+    const hintTimer = window.setTimeout(() => setHint((h) => (h === 'none' ? 'pointer' : h)), 1200)
     return () => {
       window.clearTimeout(auto)
       window.clearTimeout(hintTimer)
@@ -566,24 +567,28 @@ export default function DozeMateStage({
         {/* Aliving2D canvas: transparent until posed, then fades in over the still. */}
         <div ref={engineHostRef} className="doze-engine-host" aria-hidden="true" data-visible={liveShown || undefined} />
 
+        {/* The laptop screen (facing her) lights her chin, neck and chest from below: a cool lavender light, masked to
+            her silhouette so it never washes the room. */}
         {scene && (
-          <>
-            <i
-              className="doze-lid-light"
-              aria-hidden="true"
-              data-awake={screenAwake || undefined}
-              style={{ left: `${scene.lid.left + scene.lid.width / 2}px`, top: `${scene.lid.top}px`, width: `${scene.lid.width * 1.25}px` }}
-            />
-            <div className="doze-desk" aria-hidden="true" style={{ top: `${scene.deskTop}px` }} />
-            <div className="doze-lid" aria-hidden="true" style={box({ ...scene.lid, height: scene.lid.height + 2 })}>
-              <img src={capsuleLogo.symbol.white} alt="" className="doze-lid-logo" data-awake={screenAwake || undefined} draggable={false} />
-            </div>
-          </>
+          <i
+            className="doze-screen-light"
+            aria-hidden="true"
+            data-awake={screenAwake || undefined}
+            style={{ ...box(scene.still), WebkitMaskImage: `url(${dozeStillUrl})`, maskImage: `url(${dozeStillUrl})` }}
+          />
         )}
+
+        {scene && <DozeDesk scene={scene} width={size.w} height={size.h} screenOn={screenAwake} />}
       </div>
 
-      {scene && dozing && (
-        <div className="doze-zz" aria-hidden="true" style={{ left: `${scene.zz.x}px`, top: `${scene.zz.y}px` }}>
+      {/* Big z → z → Z rising beside her head; they scatter the moment she wakes. */}
+      {scene && (dozing || phase === 'waking') && (
+        <div
+          className="doze-zz"
+          aria-hidden="true"
+          data-leaving={phase === 'waking' || undefined}
+          style={{ left: `${scene.zz.x}px`, top: `${scene.zz.y}px`, '--k': scene.k } as CSSProperties}
+        >
           <span>z</span>
           <span>z</span>
           <span>Z</span>
@@ -604,10 +609,24 @@ export default function DozeMateStage({
         />
       )}
 
-      {dozing && hint !== 'none' && (
-        <span className="doze-hint" aria-hidden="true" data-keyboard={hint === 'keyboard' || undefined}>
-          {hint === 'keyboard' ? 'Enter 키로 깨우기' : `${mate.name}이 졸고 있어요 · 눌러서 깨우기`}
-        </span>
+      {/* "Tap her" bubble on her chest, pointing up at her (clicks fall through to her button underneath). Keyboard
+          users wake her with their first key press, so the line only changes when her button itself has focus. */}
+      {scene && (phase === 'dozing' || phase === 'waking') && hint !== 'none' && (
+        <div
+          className="doze-call"
+          aria-hidden="true"
+          data-keyboard={hint === 'keyboard' || undefined}
+          data-leaving={phase === 'waking' || undefined}
+          style={{ left: `${scene.call.x}px`, top: `${scene.call.y}px` }}
+        >
+          <svg className="doze-call-hand" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path
+              d="M9.5 11V4.75a1.75 1.75 0 0 1 3.5 0V10l4.1.85a2.4 2.4 0 0 1 1.85 2.73l-.62 4.02A3 3 0 0 1 15.36 20H11.1a3 3 0 0 1-2.36-1.15l-3.1-3.97a1.6 1.6 0 0 1 2.32-2.18L9.5 14z"
+              fill="currentColor"
+            />
+          </svg>
+          <span>{hint === 'keyboard' ? 'Enter 키로 깨워 봐' : dozeCallLine(mate.name)}</span>
+        </div>
       )}
 
       {phase === 'awake' && (

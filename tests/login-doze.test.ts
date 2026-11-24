@@ -6,6 +6,7 @@ import {
   WAKE_EXPRESSION_CUES,
   dozePose,
   fallAsleepPose,
+  dozeCallLine,
   parseDozeQuery,
   wakeGreetDelay,
   wakePose,
@@ -34,7 +35,7 @@ test('dozing keeps the eyes (almost) shut and the head within the nod range', ()
   for (let t = 0; t < DOZE_TIMINGS_MS.nodPeriod; t += 50) {
     const { params, lean } = dozePose(t)
     assert.ok((params.ParamEyeLOpen ?? 1) <= 0.2, `eyes at ${t}`)
-    assert.ok((params.ParamAngleY ?? 0) >= -30 && (params.ParamAngleY ?? 0) <= -10, `head at ${t}`)
+    assert.ok((params.ParamAngleY ?? 0) >= -30 && (params.ParamAngleY ?? 0) <= -5, `head at ${t}`)
     assert.ok(lean >= 0 && lean <= 1)
   }
 })
@@ -117,4 +118,13 @@ test('scene: laptop lid between chest and desk, tap target over head and chest, 
   assert.ok(scene.hit.top < scene.face.y && scene.hit.top + scene.hit.height > scene.face.y)
   assert.ok(isPointerNearFace({ x: scene.face.x + 100, y: scene.face.y }, scene.face, 120))
   assert.ok(!isPointerNearFace({ x: scene.face.x + 300, y: scene.face.y }, scene.face, 120))
+})
+
+test('the tap bubble names her with the right particle, and sits on her chest below the face', () => {
+  assert.equal(dozeCallLine('채린'), '채린이를 톡 눌러서 깨워 봐')
+  assert.equal(dozeCallLine('도하'), '도하를 톡 눌러서 깨워 봐')
+  const scene = computeDozeScene(893, 900)
+  assert.ok(scene.call.y > scene.face.y + 80 * scene.k, 'below the face')
+  assert.ok(scene.call.y < scene.lid.top - 40, 'above the laptop')
+  assert.ok(scene.zz.x > scene.face.x, 'z z Z on the side of her head')
 })

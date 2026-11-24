@@ -85,8 +85,10 @@ export interface DozeSceneLayout {
   deskTop: number
   /** Tap / click target over the head and upper body. */
   hit: ScreenBox
-  /** Where the "zZ" rises from (beside the head). */
+  /** Where the big "z z Z" rise from (right of her head, over the hair). */
   zz: { x: number; y: number }
+  /** Top center of the "tap her" bubble: on her chest, below the chin and above the laptop, never over the face. */
+  call: { x: number; y: number }
   k: number
 }
 
@@ -100,7 +102,8 @@ export function computeDozeScene(cw: number, ch: number, camera: DozeCamera = co
   const deskTop = at(centerX, deskTopModelY).y
   const hitTop = at(centerX - 230, 40)
   const hitBottom = at(centerX + 230, lidTopModelY)
-  const zz = at(centerX + 210, 120)
+  const zz = at(centerX + 150, 250)
+  const call = at(centerX, 452)
   return {
     still: computeStillBox(DOZE_STILL_RENDER, cw, ch, view),
     face: { x: face.x, y: face.y },
@@ -108,6 +111,7 @@ export function computeDozeScene(cw: number, ch: number, camera: DozeCamera = co
     deskTop,
     hit: { left: hitTop.x, top: hitTop.y, width: hitBottom.x - hitTop.x, height: hitBottom.y - hitTop.y },
     zz: { x: zz.x, y: zz.y },
+    call: { x: call.x, y: call.y },
     k,
   }
 }
