@@ -1,6 +1,7 @@
 import { DESKTOP_LOGIN_ASSETS } from './desktop-config'
+import './desktop.css'
 
-/** Dev-only horizontal color SVG lockup for the desktop login window (respects H/4 clear space). */
+/** Horizontal color SVG lockup at the top of the login / password-reset forms (respects H/4 clear space). */
 export default function DesktopBrand() {
   return (
     <span className="desktop-login-brand">

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ModelInfo } from '@/shared/api/types'
 import { useBackend } from '@/features/backend/backend-context'
-import { useSharedWallpaper } from '@/app/components/shared-wallpaper-context'
 import { useAvatarModel } from '@/features/live2d/use-avatar-model'
 import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
 import {
@@ -26,6 +25,7 @@ import { CharacterSpeechBubble } from '@/features/session/components/CharacterSp
 import { Button } from '@/shared/ui/Button'
 import { QuarterRingSpinner } from '@/shared/ui/QuarterRingSpinner'
 import type { VoiceSampleStatus } from './VoiceSampleButton'
+import '@/features/auth/login-backgrounds/desktop/desktop.css'
 
 export function MatePreview({
   mateId,
@@ -65,10 +65,8 @@ export function MatePreview({
   onRetry: () => void
 }) {
   const { previewModelFactory } = useBackend()
-  const sharedWallpaper = useSharedWallpaper()
   const reduced = useReducedMotion()
-  const lowPower = Boolean(sharedWallpaper?.lowPower || (sharedWallpaper && sharedWallpaper.degradationStage >= 3))
-  const effectiveModel = reduced || lowPower ? undefined : model
+  const effectiveModel = reduced ? undefined : model
   const { stage, status, retry } = useAvatarModel(effectiveModel, scope, previewModelFactory)
   const [bgFailed, setBgFailed] = useState(false)
 

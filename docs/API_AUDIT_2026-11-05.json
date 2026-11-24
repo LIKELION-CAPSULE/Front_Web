@@ -1,0 +1,1003 @@
+{
+  "checkedAt": "2026-11-05T05:38:46.365Z",
+  "base": "http://localhost:3000/api/backend",
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/api/terms",
+      "number": 1,
+      "checks": [
+        {
+          "label": "live-terms",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "terms"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "약관 전문·필수 동의",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/email/verification",
+      "number": 2,
+      "checks": [
+        {
+          "label": "anonymous-invalid-input",
+          "status": 400,
+          "contentType": "application/json",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "INVALID_EMAIL",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "INVALID_EMAIL"
+        }
+      ],
+      "connection": {
+        "source": "src/pages/LoginPage.tsx",
+        "usage": "인증번호 요청·재발송",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/email/verification/confirm",
+      "number": 3,
+      "checks": [
+        {
+          "label": "anonymous-invalid-input",
+          "status": 400,
+          "contentType": "application/json",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "CODE_EXPIRED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "CODE_EXPIRED"
+        }
+      ],
+      "connection": {
+        "source": "src/features/auth/components/EmailVerificationForm.tsx",
+        "usage": "6자리 코드 확인",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/email/signup",
+      "number": 4,
+      "checks": [
+        {
+          "label": "anonymous-invalid-input",
+          "status": 400,
+          "contentType": "application/json",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "VERIFICATION_EXPIRED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "VERIFICATION_EXPIRED"
+        }
+      ],
+      "connection": {
+        "source": "src/pages/LoginPage.tsx",
+        "usage": "verificationToken으로 가입",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/email/login",
+      "number": 5,
+      "checks": [
+        {
+          "label": "anonymous-invalid-input",
+          "status": 401,
+          "contentType": "application/json",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "INVALID_CREDENTIALS",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "INVALID_CREDENTIALS"
+        },
+        {
+          "label": "account-login",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "accessToken",
+            "userId",
+            "onboardingRequired"
+          ],
+          "refreshCookie": true,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/pages/LoginPage.tsx",
+        "usage": "이메일 로그인 → /me",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/social/KAKAO",
+      "number": 6,
+      "checks": [
+        {
+          "label": "anonymous-invalid-input",
+          "status": 401,
+          "contentType": "application/json",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "SOCIAL_AUTH_FAILED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "SOCIAL_AUTH_FAILED"
+        }
+      ],
+      "connection": {
+        "source": "src/pages/KakaoCallbackPage.tsx",
+        "usage": "state 확인 → 인가 코드 1회 교환",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "number": 7,
+      "checks": [
+        {
+          "label": "anonymous-invalid-input",
+          "status": 401,
+          "contentType": "application/json",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "REFRESH_TOKEN_INVALID",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "REFRESH_TOKEN_INVALID"
+        },
+        {
+          "label": "rotate-refresh-cookie",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "accessToken"
+          ],
+          "refreshCookie": true,
+          "outcome": "success"
+        },
+        {
+          "label": "refresh-after-logout",
+          "status": 401,
+          "contentType": "application/json",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "REFRESH_TOKEN_INVALID",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "REFRESH_TOKEN_INVALID"
+        }
+      ],
+      "connection": {
+        "source": "src/shared/api/client.ts",
+        "usage": "쿠키 갱신·보호 요청 재시도",
+        "connected": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "number": 8,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "account-me",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "userId",
+            "nickname",
+            "email",
+            "onboardingRequired",
+            "activeSession",
+            "profileImage"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        },
+        {
+          "label": "me-with-refreshed-token",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "userId",
+            "nickname",
+            "email",
+            "onboardingRequired",
+            "activeSession",
+            "profileImage"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "서버 사용자·온보딩·진행 세션",
+        "connected": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/avatars",
+      "number": 9,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "account-avatars",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "avatars"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "서버 완성형 아바타 목록",
+        "connected": true
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/me",
+      "number": 10,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "save-current-profile",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "userId",
+            "nickname",
+            "email",
+            "onboardingRequired",
+            "activeSession",
+            "profileImage"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "프로필 저장",
+        "connected": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/home",
+      "number": 11,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "account-home",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "todayStudySeconds",
+            "activeSession",
+            "rooms"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "홈·오늘 시간·룸 목록",
+        "connected": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/rooms/{roomId}",
+      "number": 12,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "account-room",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "id",
+            "name",
+            "description",
+            "thumbnailUrl",
+            "bannerUrl",
+            "characters",
+            "activeSessionId"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "룸 상세·관계·새 bannerUrl",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/me/memories",
+      "number": 13,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "create-test-memory",
+          "status": 201,
+          "contentType": "application/json",
+          "responseKeys": [
+            "memoryId",
+            "type",
+            "title",
+            "dueDate",
+            "dueTime",
+            "dDay"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "일정 생성·응답 ID 반영",
+        "connected": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/me/memories",
+      "number": 14,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "account-memories",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "memories",
+            "datesWithMemories"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        },
+        {
+          "label": "verify-saved-memory",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "memories",
+            "datesWithMemories"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "일정 목록 조회",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions",
+      "number": 16,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "start-three-minute-session",
+          "status": 201,
+          "contentType": "application/json",
+          "responseKeys": [
+            "sessionId",
+            "startedAt",
+            "targetMinutes",
+            "room",
+            "character",
+            "avatar",
+            "me",
+            "serverTime"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "실제 ID·3분 목표로 생성",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/resume",
+      "number": 17,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "resume-same-session",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "sessionId",
+            "targetMinutes",
+            "room",
+            "character",
+            "avatar",
+            "me",
+            "studySeconds",
+            "breakSeconds",
+            "serverTime"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "같은 sessionId 이어하기",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/events",
+      "number": 18,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "session-focus-event",
+          "status": 201,
+          "contentType": "application/json",
+          "responseKeys": [
+            "eventId",
+            "characters"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/backend/use-session-sync.ts",
+        "usage": "상태 큐 → eventId·호감도",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/events/{eventId}/reaction",
+      "number": 19,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "session-state-reaction",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "requestId",
+            "characters"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/backend/use-session-sync.ts",
+        "usage": "eventId → 캐릭터 대사",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/messages",
+      "number": 20,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "session-text-message",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "requestId",
+            "characterId",
+            "content",
+            "emotion",
+            "motion",
+            "expression",
+            "affinity",
+            "fallback",
+            "audioBase64"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "TEXT/QUICK·UUID·서버 답장",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/heartbeat",
+      "number": 21,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "session-heartbeat",
+          "status": 204,
+          "contentType": null,
+          "responseKeys": [],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/backend/use-session-sync.ts",
+        "usage": "1분 간격 누적 초 전송",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/end",
+      "number": 22,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "end-test-session",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "sessionId",
+            "roomName",
+            "startedAt",
+            "endedAt",
+            "endType",
+            "studySeconds",
+            "presentSeconds",
+            "awaySeconds",
+            "returnCount",
+            "character",
+            "relation",
+            "closingLine"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "대기 이벤트 저장 후 종료·정산",
+        "connected": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/{sessionId}/report",
+      "number": 23,
+      "checks": [
+        {
+          "label": "anonymous-auth-guard",
+          "status": 401,
+          "contentType": "application/json;charset=UTF-8",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "UNAUTHORIZED",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "UNAUTHORIZED"
+        },
+        {
+          "label": "reload-session-report",
+          "status": 200,
+          "contentType": "application/json",
+          "responseKeys": [
+            "sessionId",
+            "roomName",
+            "startedAt",
+            "endedAt",
+            "endType",
+            "studySeconds",
+            "presentSeconds",
+            "awaySeconds",
+            "returnCount",
+            "character",
+            "relation",
+            "closingLine"
+          ],
+          "refreshCookie": false,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "리포트·카드 재조회",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "number": 24,
+      "checks": [
+        {
+          "label": "anonymous-invalid-input",
+          "status": 204,
+          "contentType": null,
+          "responseKeys": [],
+          "refreshCookie": true,
+          "outcome": "expected-response"
+        },
+        {
+          "label": "logout-test-session",
+          "status": 204,
+          "contentType": null,
+          "responseKeys": [],
+          "refreshCookie": true,
+          "outcome": "success"
+        }
+      ],
+      "connection": {
+        "source": "src/features/demo/DemoProvider.tsx",
+        "usage": "서버 로그아웃 후 상태 해제",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/password/reset-request",
+      "number": 25,
+      "checks": [
+        {
+          "label": "anonymous-invalid-input",
+          "status": 400,
+          "contentType": "application/json",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "INVALID_EMAIL",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "INVALID_EMAIL"
+        },
+        {
+          "label": "account-reset-email-request",
+          "status": 202,
+          "responseKeys": [],
+          "outcome": "success",
+          "deliveryVerified": true,
+          "deliveryEvidence": "user-confirmed"
+        }
+      ],
+      "connection": {
+        "source": "src/features/auth/components/PasswordRecoveryForm.tsx",
+        "usage": "재설정 메일 요청",
+        "connected": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/password/reset",
+      "number": 26,
+      "checks": [
+        {
+          "label": "anonymous-invalid-input",
+          "status": 400,
+          "contentType": "application/json",
+          "responseKeys": [
+            "code",
+            "message",
+            "detail"
+          ],
+          "code": "INVALID_PASSWORD",
+          "refreshCookie": false,
+          "outcome": "expected-rejection",
+          "error": "INVALID_PASSWORD"
+        }
+      ],
+      "connection": {
+        "source": "src/features/auth/components/PasswordRecoveryForm.tsx",
+        "usage": "재설정 토큰·새 비밀번호",
+        "connected": true
+      }
+    }
+  ],
+  "observations": [
+    {
+      "rooms": 1,
+      "banners": 1,
+      "onboardingRequired": false,
+      "hasActiveSession": false
+    },
+    {
+      "testSessionId": 5,
+      "testSessionEnded": true
+    },
+    {
+      "testSessionId": 7,
+      "testSessionEnded": true,
+      "via": "browser-ui"
+    },
+    {
+      "assetMappingNeedsBackendReview": {
+        "characterProfileFile": "kang-study.webp",
+        "roomBannerFile": "night-detail-banner-v1.webp",
+        "newMalfoyHandoffMappingVerified": false
+      }
+    }
+  ],
+  "browser": {
+    "login": "200; home and server room rendered",
+    "banner": {
+      "loaded": true,
+      "width": 2167,
+      "height": 726
+    },
+    "sessionId": 7,
+    "start": 201,
+    "focusEvent": 201,
+    "reaction": 200,
+    "quickMessage": 200,
+    "heartbeat": {
+      "status": 204,
+      "studySeconds": 60,
+      "presentSeconds": 60
+    },
+    "reloadRefresh": 200,
+    "resume": 200,
+    "focusDuplicatedOnResume": false,
+    "breakEvent": 201,
+    "breakHeartbeat": {
+      "status": 204,
+      "studySeconds": 71,
+      "presentSeconds": 71
+    },
+    "end": 200,
+    "reportRendered": true,
+    "javascriptErrors": 0,
+    "expectedConsoleError": "initial anonymous refresh 401",
+    "reportReload": 200,
+    "serverCharacterGated": false,
+    "serverAvatarLoaded": true,
+    "logout": 204,
+    "loggedOutAfterReload": true
+  }
+}

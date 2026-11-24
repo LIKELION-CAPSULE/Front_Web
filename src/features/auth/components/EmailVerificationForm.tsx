@@ -62,7 +62,7 @@ export function EmailVerificationForm({ email, expiresAt: initialExpiresAt, onBa
     finally { pending.current = false; setBusy(null) }
   }
   return <>
-    <button type="button" disabled={!!busy} onClick={onBack} className="flex min-h-11 w-fit items-center gap-2 text-body-compact text-muted hover:text-text-accent">
+    <button type="button" disabled={!!busy} onClick={onBack} className="flex min-h-11 w-fit items-center gap-2 text-body-compact text-muted transition-colors hover:text-ink">
       <Icon name="arrow" size={15} className="rotate-180" />
       가입 정보 수정
     </button>
@@ -78,7 +78,7 @@ export function EmailVerificationForm({ email, expiresAt: initialExpiresAt, onBa
       {error && <FeedbackMessage id={`${id}-error`} tone="error">{error}</FeedbackMessage>}
       {notice && <FeedbackMessage tone="info">{notice}</FeedbackMessage>}
       <Button type="submit" className="w-full" loading={busy === 'verify' || busy === 'signup'} disabled={!!busy || code.length !== 6 || seconds === 0}>인증하고 가입하기</Button>
-      <button type="button" disabled={!!busy || resendCoolingDown} title={resendCoolingDown ? '인증번호를 받은 뒤 60초 후에 다시 받을 수 있어요.' : undefined} onClick={() => { void resend() }} className="min-h-11 w-full text-body-compact text-muted underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-40">인증번호 다시 받기</button>
+      <button type="button" disabled={!!busy || resendCoolingDown} title={resendCoolingDown ? '인증번호를 받은 뒤 60초 후에 다시 받을 수 있어요.' : undefined} onClick={() => { void resend() }} className="min-h-11 w-full text-body-compact text-muted underline underline-offset-4 transition-colors hover:text-ink disabled:cursor-not-allowed disabled:no-underline disabled:opacity-40">인증번호 다시 받기</button>
     </form>
   </>
 }

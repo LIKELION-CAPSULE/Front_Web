@@ -1,0 +1,226 @@
+{
+  "checkedOn": "2026-11-05",
+  "timezone": "Asia/Seoul",
+  "comparison": {
+    "mode": "mock API, development StrictMode, three rooms",
+    "before": {
+      "initial": 18,
+      "immediateHomeReturn": 7,
+      "termsGet": 2,
+      "reportGetAfterReload": 2
+    },
+    "after": {
+      "mode": "mock-api, browser StrictMode, virtual clock",
+      "rooms": 3,
+      "initial": [
+        {
+          "method": "POST",
+          "path": "/auth/refresh"
+        },
+        {
+          "method": "GET",
+          "path": "/terms"
+        },
+        {
+          "method": "POST",
+          "path": "/auth/email/login"
+        },
+        {
+          "method": "GET",
+          "path": "/me"
+        },
+        {
+          "method": "GET",
+          "path": "/home"
+        },
+        {
+          "method": "GET",
+          "path": "/me/memories"
+        },
+        {
+          "method": "GET",
+          "path": "/avatars"
+        },
+        {
+          "method": "GET",
+          "path": "/rooms/11"
+        },
+        {
+          "method": "GET",
+          "path": "/rooms/12"
+        },
+        {
+          "method": "GET",
+          "path": "/rooms/13"
+        }
+      ],
+      "immediateReturn": [],
+      "afterHomeExpiry": [
+        {
+          "method": "GET",
+          "path": "/home"
+        },
+        {
+          "method": "GET",
+          "path": "/me/memories"
+        }
+      ],
+      "afterRoomExpiry": [
+        {
+          "method": "GET",
+          "path": "/home"
+        },
+        {
+          "method": "GET",
+          "path": "/me/memories"
+        },
+        {
+          "method": "GET",
+          "path": "/rooms/11"
+        },
+        {
+          "method": "GET",
+          "path": "/rooms/12"
+        },
+        {
+          "method": "GET",
+          "path": "/rooms/13"
+        }
+      ],
+      "afterMemorySave": [
+        {
+          "method": "GET",
+          "path": "/me/memories"
+        }
+      ],
+      "heartbeats": [
+        {
+          "method": "POST",
+          "path": "/sessions/9001/heartbeat",
+          "body": {
+            "studySeconds": 65,
+            "presentSeconds": 65
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/sessions/9001/heartbeat",
+          "body": {
+            "studySeconds": 65,
+            "presentSeconds": 65
+          }
+        }
+      ],
+      "reportGets": 1,
+      "secondAccount": [
+        {
+          "method": "POST",
+          "path": "/auth/email/login"
+        },
+        {
+          "method": "GET",
+          "path": "/me"
+        },
+        {
+          "method": "GET",
+          "path": "/home"
+        },
+        {
+          "method": "GET",
+          "path": "/me/memories"
+        },
+        {
+          "method": "GET",
+          "path": "/avatars"
+        },
+        {
+          "method": "GET",
+          "path": "/rooms/11"
+        },
+        {
+          "method": "GET",
+          "path": "/rooms/12"
+        },
+        {
+          "method": "GET",
+          "path": "/rooms/13"
+        }
+      ],
+      "afterQuickSessionEnd": [
+        {
+          "method": "GET",
+          "path": "/home"
+        },
+        {
+          "method": "GET",
+          "path": "/rooms/11"
+        }
+      ],
+      "accountIsolation": true,
+      "mutationInvalidation": true
+    }
+  },
+  "liveReadOnly": {
+    "mode": "live-backend, existing account, read-only data operations",
+    "initial": [
+      {
+        "method": "POST",
+        "path": "/auth/refresh",
+        "status": 401
+      },
+      {
+        "method": "GET",
+        "path": "/terms",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/auth/email/login",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/avatars",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/me/memories",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/home",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/rooms/1",
+        "status": 200
+      }
+    ],
+    "initialCount": 8,
+    "immediateReturn": [],
+    "logout": 204
+  },
+  "policy": {
+    "homeMs": 10000,
+    "memoriesMs": 10000,
+    "roomsMs": 30000,
+    "avatarsMs": 300000,
+    "scope": "provider memory; reset on authentication change",
+    "heartbeatIntervalMs": 60000
+  },
+  "validation": {
+    "unitTests": 198,
+    "typecheck": "passed",
+    "build": "passed",
+    "lint": "passed",
+    "gitDiffCheck": "passed"
+  }
+}

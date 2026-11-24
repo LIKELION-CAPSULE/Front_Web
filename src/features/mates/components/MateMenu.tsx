@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
 import { Dialog } from '@/shared/ui/Dialog'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import '@/features/auth/login-backgrounds/desktop/desktop.css'
 
 export function MateMenu({
   mateId,

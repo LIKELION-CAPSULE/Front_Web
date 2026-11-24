@@ -124,7 +124,7 @@ export default function MateDetailPage() {
               </span>
             </div>
             <div className="desktop-window-title-right">
-              <span className="desktop-mate-ai-badge">AI 캐릭터입니다</span>
+              <span className="desktop-mate-ai-badge">AI 캐릭터</span>
               <MateMenu
                 mateId={mate.id}
                 revision={detail?.conversationRevision}

@@ -1,0 +1,848 @@
+{
+  "checkedAt": "2026-11-22T05:49:24.488Z",
+  "backendOrigin": "https://api.capsule.ai.kr",
+  "backendSourceCommit": "de5aa98f352a173c9ba11c72b0eb27dfce281b15",
+  "source": "https://api.capsule.ai.kr/v3/api-docs",
+  "paths": 24,
+  "operations": 27,
+  "schemas": 69,
+  "canonicalSha256": "7e48d1a0c9b719ccd515b74869e990de485571602af19dd3fb8732de1413e84e",
+  "typeComparison": {
+    "comparedTypes": 50,
+    "comparedFields": 195,
+    "differences": [],
+    "runtimeRequiredBeyondOpenApi": [
+      "StartRequest.targetMinutes",
+      "HeartbeatRequest.studySeconds",
+      "HeartbeatRequest.presentSeconds",
+      "EventRequest.type",
+      "EventRequest.occurredAt",
+      "EndRequest.studySeconds",
+      "EndRequest.presentSeconds",
+      "KakaoRequest.code",
+      "KakaoRequest.redirectUri",
+      "PasswordResetRequest.token",
+      "PasswordResetRequest.newPassword",
+      "EmailRequest.email",
+      "ConfirmRequest.email",
+      "ConfirmRequest.code",
+      "SignupRequest.verificationToken",
+      "SignupRequest.password",
+      "SignupRequest.nickname",
+      "SignupRequest.agreedTermVersionIds",
+      "LoginRequest.email",
+      "LoginRequest.password"
+    ],
+    "runtimeEnumRestrictions": [
+      {
+        "field": "EventRequest.type",
+        "values": [
+          "AWAY",
+          "BREAK",
+          "DROWSY",
+          "FOCUS",
+          "HEAD_TURN",
+          "RETURN",
+          "WAVE",
+          "YAWN"
+        ],
+        "source": "src/main/java/com/capsule/session/domain/SessionEvent.java: TYPES"
+      }
+    ],
+    "types": [
+      {
+        "name": "StartRequest",
+        "fields": 3
+      },
+      {
+        "name": "Figure",
+        "fields": 7
+      },
+      {
+        "name": "Me",
+        "fields": 2
+      },
+      {
+        "name": "RoomView",
+        "fields": 3
+      },
+      {
+        "name": "StartResponse",
+        "fields": 8
+      },
+      {
+        "name": "ResumeResponse",
+        "fields": 9
+      },
+      {
+        "name": "MessageRequest",
+        "fields": 5
+      },
+      {
+        "name": "AffinityChange",
+        "fields": 6
+      },
+      {
+        "name": "ExpressionRef",
+        "fields": 2
+      },
+      {
+        "name": "MessageResponse",
+        "fields": 9
+      },
+      {
+        "name": "MotionRef",
+        "fields": 2
+      },
+      {
+        "name": "HeartbeatRequest",
+        "fields": 2
+      },
+      {
+        "name": "EventRequest",
+        "fields": 2
+      },
+      {
+        "name": "EventCharacter",
+        "fields": 4
+      },
+      {
+        "name": "EventResponse",
+        "fields": 2
+      },
+      {
+        "name": "ReactionRequest",
+        "fields": 3
+      },
+      {
+        "name": "ReactionCharacter",
+        "fields": 7
+      },
+      {
+        "name": "ReactionResponse",
+        "fields": 2
+      },
+      {
+        "name": "EndRequest",
+        "fields": 2
+      },
+      {
+        "name": "CharacterRef",
+        "fields": 2
+      },
+      {
+        "name": "ReportResponse",
+        "fields": 12
+      },
+      {
+        "name": "StudySettlement",
+        "fields": 10
+      },
+      {
+        "name": "CreateMemoryRequest",
+        "fields": 4
+      },
+      {
+        "name": "MemoryResponse",
+        "fields": 6
+      },
+      {
+        "name": "KakaoRequest",
+        "fields": 2
+      },
+      {
+        "name": "KakaoResponse",
+        "fields": 4
+      },
+      {
+        "name": "AccessTokenResponse",
+        "fields": 1
+      },
+      {
+        "name": "PasswordResetRequest",
+        "fields": 2
+      },
+      {
+        "name": "EmailRequest",
+        "fields": 1
+      },
+      {
+        "name": "ExpiresResponse",
+        "fields": 1
+      },
+      {
+        "name": "ConfirmRequest",
+        "fields": 2
+      },
+      {
+        "name": "VerificationResponse",
+        "fields": 1
+      },
+      {
+        "name": "SignupRequest",
+        "fields": 4
+      },
+      {
+        "name": "LoginResponse",
+        "fields": 3
+      },
+      {
+        "name": "LoginRequest",
+        "fields": 2
+      },
+      {
+        "name": "UpdateMeRequest",
+        "fields": 2
+      },
+      {
+        "name": "ActiveSessionSummary",
+        "fields": 5
+      },
+      {
+        "name": "MeResponse",
+        "fields": 6
+      },
+      {
+        "name": "TermVersion",
+        "fields": 5
+      },
+      {
+        "name": "TermsResponse",
+        "fields": 1
+      },
+      {
+        "name": "RelationBrief",
+        "fields": 6
+      },
+      {
+        "name": "RoomCharacter",
+        "fields": 5
+      },
+      {
+        "name": "RoomDetail",
+        "fields": 7
+      },
+      {
+        "name": "MemoryList",
+        "fields": 2
+      },
+      {
+        "name": "CharacterBrief",
+        "fields": 3
+      },
+      {
+        "name": "HomeResponse",
+        "fields": 3
+      },
+      {
+        "name": "HomeRoom",
+        "fields": 4
+      },
+      {
+        "name": "AvatarItem",
+        "fields": 4
+      },
+      {
+        "name": "AvatarsResponse",
+        "fields": 1
+      },
+      {
+        "name": "ModelInfo",
+        "fields": 4
+      }
+    ]
+  },
+  "operationsDetail": [
+    {
+      "method": "POST",
+      "path": "/api/sessions",
+      "summary": "16. 공부 시작",
+      "request": [
+        {
+          "$ref": "#/components/schemas/StartRequest"
+        }
+      ],
+      "responses": {
+        "201": {
+          "description": "Created",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseStartResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/resume",
+      "summary": "17. 세션 이어하기",
+      "request": [],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseResumeResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/messages",
+      "summary": "20. 메시지 전송",
+      "request": [
+        {
+          "$ref": "#/components/schemas/MessageRequest"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseMessageResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/messages/stream",
+      "summary": "28. 메시지 전송 (스트리밍)",
+      "request": [
+        {
+          "$ref": "#/components/schemas/MessageRequest"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/SseEmitter"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/heartbeat",
+      "summary": "21. heartbeat",
+      "request": [
+        {
+          "$ref": "#/components/schemas/HeartbeatRequest"
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "No Content"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/events",
+      "summary": "18. 공부 상태 기록",
+      "request": [
+        {
+          "$ref": "#/components/schemas/EventRequest"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseEventResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/events/{eventId}/reaction",
+      "summary": "19. 상태 반응 받기",
+      "request": [
+        {
+          "$ref": "#/components/schemas/ReactionRequest"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseReactionResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/sessions/{sessionId}/end",
+      "summary": "22. 공부 종료",
+      "request": [
+        {
+          "$ref": "#/components/schemas/EndRequest"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseReportResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/me/memories",
+      "summary": "14. 내 일정 조회",
+      "request": [],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseMemoryList"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/me/memories",
+      "summary": "13. 일정 저장",
+      "request": [
+        {
+          "$ref": "#/components/schemas/CreateMemoryRequest"
+        }
+      ],
+      "responses": {
+        "201": {
+          "description": "Created",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseMemoryResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/social/KAKAO",
+      "summary": "6. 카카오 로그인 · 가입",
+      "request": [
+        {
+          "$ref": "#/components/schemas/KakaoRequest"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseKakaoResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "summary": "7. 토큰 갱신",
+      "request": [],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseAccessTokenResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/password/reset",
+      "summary": "26. 비밀번호 재설정",
+      "request": [
+        {
+          "$ref": "#/components/schemas/PasswordResetRequest"
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "No Content"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/password/reset-request",
+      "summary": "25. 비밀번호 재설정 메일 요청",
+      "request": [
+        {
+          "$ref": "#/components/schemas/EmailRequest"
+        }
+      ],
+      "responses": {
+        "202": {
+          "description": "Accepted"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "summary": "24. 로그아웃",
+      "request": [],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/email/verification",
+      "summary": "2. 이메일 인증번호 요청",
+      "request": [
+        {
+          "$ref": "#/components/schemas/EmailRequest"
+        }
+      ],
+      "responses": {
+        "202": {
+          "description": "Accepted",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseExpiresResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/email/verification/confirm",
+      "summary": "3. 이메일 인증 확인",
+      "request": [
+        {
+          "$ref": "#/components/schemas/ConfirmRequest"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseVerificationResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/email/signup",
+      "summary": "4. 회원가입",
+      "request": [
+        {
+          "$ref": "#/components/schemas/SignupRequest"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseLoginResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/email/login",
+      "summary": "5. 이메일 로그인",
+      "request": [
+        {
+          "$ref": "#/components/schemas/LoginRequest"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseLoginResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "summary": "8. 내 정보 조회",
+      "request": [],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseMeResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/me",
+      "summary": "27. 회원 탈퇴",
+      "request": [],
+      "responses": {
+        "200": {
+          "description": "OK"
+        }
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/me",
+      "summary": "10. 프로필 설정",
+      "request": [
+        {
+          "$ref": "#/components/schemas/UpdateMeRequest"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseMeResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/terms",
+      "summary": "1. 약관 조회",
+      "request": [],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseTermsResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/{sessionId}/report",
+      "summary": "23. 리포트 조회",
+      "request": [],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseReportResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/rooms/{roomId}",
+      "summary": "12. 스터디룸 상세 조회",
+      "request": [],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseRoomDetail"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/home",
+      "summary": "11. 홈 조회",
+      "request": [],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseHomeResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/avatars",
+      "summary": "9. 아바타 목록 조회",
+      "request": [],
+      "responses": {
+        "200": {
+          "description": "OK",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiResponseAvatarsResponse"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Type comparison checks field names, primitive/ref/array/enum types and required declarations; response nullability not declared by OpenAPI is not inferred.",
+    "Source review is pinned to develop commit, not a proof of the deployed binary version.",
+    "Authenticated production mutations were not sent; browser transport tests use isolated API fixtures."
+  ],
+  "liveReads": [
+    {
+      "method": "GET",
+      "path": "/v3/api-docs",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/terms",
+      "status": 200,
+      "terms": [
+        {
+          "code": "SERVICE",
+          "version": 3,
+          "publishedBody": false
+        },
+        {
+          "code": "PRIVACY",
+          "version": 4,
+          "publishedBody": false
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/home",
+      "authenticated": false,
+      "status": 401,
+      "body": {
+        "success": false,
+        "code": "UNAUTHORIZED",
+        "message": "UNAUTHORIZED",
+        "detail": {}
+      }
+    }
+  ],
+  "validation": {
+    "unitTests": {
+      "passed": 421,
+      "failed": 0
+    },
+    "lint": "passed",
+    "buildIncludingTypecheck": "passed",
+    "browser": {
+      "chromium": {
+        "passed": 6,
+        "flows": [
+          "fresh",
+          "restore-unknown",
+          "restore-known",
+          "refresh",
+          "unicode-profile",
+          "verification-cooldown"
+        ]
+      },
+      "webkit": {
+        "passed": 6,
+        "flows": [
+          "fresh",
+          "restore-unknown",
+          "restore-known",
+          "refresh",
+          "unicode-profile",
+          "verification-cooldown"
+        ]
+      }
+    },
+    "actualAuthenticatedBackendMutations": 0,
+    "completedAtKst": "2026-11-22T15:15:04.838130+09:00",
+    "diffCheck": "passed"
+  }
+}

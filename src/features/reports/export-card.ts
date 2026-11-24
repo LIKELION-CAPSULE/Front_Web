@@ -1,4 +1,4 @@
-import logo from '@/assets/brand/logo.webp'
+import { CAPSULE_HORIZONTAL_VIEWBOX, CAPSULE_HORIZONTAL_WORDMARK_START, capsuleLogo } from '@/shared/design/brand-logo'
 import { getCharacterArtwork } from '@/features/characters/artwork'
 import { getRoomArtwork, type RoomArtwork } from '@/features/rooms/artwork'
 import { loadRoomLayers, drawRoomLayers } from '@/features/rooms/draw-artwork'
@@ -20,25 +20,52 @@ async function loadImage(src: string) {
   return image
 }
 
+/** Card output is drawn at 2× (720×1200 canvas for a 360×600 card). */
+const EXPORT_SCALE = 2
+/** The logo sits in a 108×36 box (same as `.capsule-card-brand`), fitted like `object-fit: contain`. */
+const BRAND_BOX = { x: 28, y: 28, width: 108, height: 36 } as const
+
+/**
+ * The logo SVGs only have a viewBox. Give the root an explicit pixel size (the output size) before decoding, so every
+ * browser rasterizes the vector at full resolution instead of a default 300×150 / blurry upscale, and Firefox can draw it.
+ */
+async function loadSvgImage(src: string, width: number, height: number) {
+  const markup = await (await fetch(src)).text()
+  const sized = markup.replace(/<svg\b/, `<svg width="${Math.round(width)}" height="${Math.round(height)}"`)
+  const url = URL.createObjectURL(new Blob([sized], { type: 'image/svg+xml' }))
+  try {
+    return await loadImage(url)
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 export async function exportCard(record: StudyRecord, character: string, color: string, characterId = 'chaerin', roomArt: RoomArtwork = getRoomArtwork(record.roomId)) {
   const [, storyFont] = await Promise.all([document.fonts.load('400 16px Pretendard'), loadStoryFont()])
   await document.fonts.ready
   const art = getCharacterArtwork(characterId)
   const completion = getCompletionArtwork(characterId, character)
   const layers = !completion && (characterId === 'chaerin' || !!art.sceneId) ? await loadRoomLayers(record.roomId) : null
-  const [brand, title, portrait] = await Promise.all([
-    loadImage(logo),
+  const brandRatio = CAPSULE_HORIZONTAL_VIEWBOX.width / CAPSULE_HORIZONTAL_VIEWBOX.height
+  const brandWidth = Math.min(BRAND_BOX.width, BRAND_BOX.height * brandRatio)
+  const brandHeight = brandWidth / brandRatio
+  const brandX = BRAND_BOX.x + (BRAND_BOX.width - brandWidth) / 2
+  const brandY = BRAND_BOX.y + (BRAND_BOX.height - brandHeight) / 2
+  const light = isLightCapsule(color)
+  const [brand, brandInk, title, portrait] = await Promise.all([
+    loadSvgImage(capsuleLogo.horizontal.color, brandWidth * EXPORT_SCALE, brandHeight * EXPORT_SCALE),
+    // Dark cards: the wordmark is drawn in white (on-solid) over the color lockup, as in the on-screen card.
+    light ? null : loadSvgImage(capsuleLogo.horizontal.white, brandWidth * EXPORT_SCALE, brandHeight * EXPORT_SCALE),
     loadImage(roomArt.titleImage),
     layers ? null : loadImage(completion?.src ?? art.affection),
   ])
   const canvas = document.createElement('canvas')
-  canvas.width = 720
-  canvas.height = 1200
+  canvas.width = 360 * EXPORT_SCALE
+  canvas.height = 600 * EXPORT_SCALE
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('이미지 저장을 지원하지 않는 브라우저예요.')
-  const light = isLightCapsule(color)
   const foreground = light ? designColors.canvas : designColors['on-solid']
-  ctx.scale(2, 2)
+  ctx.scale(EXPORT_SCALE, EXPORT_SCALE)
   function rect(x: number, y: number, w: number, h: number, radius: number, fill: string) {
     ctx!.fillStyle = fill
     ctx!.beginPath()
@@ -47,28 +74,18 @@ export async function exportCard(record: StudyRecord, character: string, color: 
   }
   rect(0, 0, 360, 600, 28, color)
   drawCenterHoverMaterial(ctx, 360, 600, light)
-  const brandWidth = 36 * brand.naturalWidth / brand.naturalHeight
-  const brandX = 28 + (108 - brandWidth) / 2
   ctx.save()
   ctx.shadowColor = light ? '#6b42a515' : '#0003'
   ctx.shadowOffsetY = 1
   ctx.shadowBlur = 1.5
-  ctx.drawImage(brand, brandX, 28, brandWidth, 36)
+  ctx.drawImage(brand, brandX, brandY, brandWidth, brandHeight)
   ctx.shadowColor = 'transparent'
-  if (!light) {
-    const wordmark = document.createElement('canvas')
-    wordmark.width = brand.naturalWidth
-    wordmark.height = brand.naturalHeight
-    const mark = wordmark.getContext('2d')
-    if (!mark) throw new Error('이미지 저장을 지원하지 않는 브라우저예요.')
-    mark.drawImage(brand, 0, 0)
-    mark.globalCompositeOperation = 'source-in'
-    mark.fillStyle = designColors['on-solid']
-    mark.fillRect(0, 0, wordmark.width, wordmark.height)
+  if (brandInk) {
+    const wordmarkX = brandX + brandWidth * CAPSULE_HORIZONTAL_WORDMARK_START
     ctx.beginPath()
-    ctx.rect(28 + 108 * .27, 28, 108 * .73, 36)
+    ctx.rect(wordmarkX, BRAND_BOX.y, brandX + brandWidth - wordmarkX, BRAND_BOX.height)
     ctx.clip()
-    ctx.drawImage(wordmark, brandX, 28, brandWidth, 36)
+    ctx.drawImage(brandInk, brandX, brandY, brandWidth, brandHeight)
   }
   ctx.restore()
   ctx.fillStyle = foreground

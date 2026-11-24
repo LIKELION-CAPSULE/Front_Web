@@ -107,7 +107,7 @@ export default function ConnectionRecordPage() {
                 </span>
               </div>
               <div className="desktop-window-title-right">
-                <span className="desktop-mate-ai-badge">AI 캐릭터입니다</span>
+                <span className="desktop-mate-ai-badge">AI 캐릭터</span>
                 <div className="desktop-window-controls" aria-hidden="true">
                   <span className="desktop-window-dot" />
                   <span className="desktop-window-dot" />
@@ -199,7 +199,7 @@ export default function ConnectionRecordPage() {
               </span>
             </div>
             <div className="desktop-window-title-right">
-              <span className="desktop-mate-ai-badge">AI 캐릭터입니다</span>
+              <span className="desktop-mate-ai-badge">AI 캐릭터</span>
               <div className="desktop-window-controls" aria-hidden="true">
                 <span className="desktop-window-dot" />
                 <span className="desktop-window-dot" />

@@ -14,4 +14,4 @@
 
 2026-11-05부터 채린의 리포트는 [분리 레이어 v3](../completion-layers-v3/README.md)를 사용합니다. 이 폴더의 세로 원본은 캡슐 카드에서 계속 사용하며, 다른 친구의 완료 이미지 대체 경로도 유지합니다.
 
-캡슐카드의 공식 로고는 `assets/brand/logo.webp`, 제목은 `features/rooms/artwork.ts`에 등록된 홈용 투명 제목 에셋을 별도로 합성합니다. 생성 이미지에는 글자나 로고를 굽지 않았습니다.
+캡슐카드의 공식 로고는 로고 v2 가로 조합(`shared/design/brand-logo.ts`), 제목은 `features/rooms/artwork.ts`에 등록된 홈용 투명 제목 에셋을 별도로 합성합니다. 생성 이미지에는 글자나 로고를 굽지 않았습니다.
