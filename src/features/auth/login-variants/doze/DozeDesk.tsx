@@ -14,6 +14,8 @@ const LidHeatmapLogo = lazy(() => import('./LidHeatmapLogo'))
  * 1/HEATMAP_BOX, so the heat lands exactly on the capsule of the static logo.
  */
 const HEATMAP_BOX = 1.35
+/** Lid symbol size relative to the first draft (2026-11-25: three quarters). */
+const LOGO_SCALE = 0.75
 /** Where the capsule glyph (viewBox 335×266) sits inside the symbol (viewBox 472×456): the glyph's translate(-75 -104). */
 const GLYPH_IN_SYMBOL = { x: 75, y: 104, w: 335, h: 266, symbolW: 472, symbolH: 456 } as const
 
@@ -69,10 +71,15 @@ export function DozeDesk({
   const flatH = lidH / (Math.cos(tilt) * LID_TOP_SCALE)
   const perspective = (lidH * Math.tan(tilt)) / (LID_TOP_SCALE - 1)
   const flatPath = roundedTrapezoid(0, lidBottomW, 0, 0, lidBottomW, flatH, u(15), u(6))
-  const logoW = Math.min(lidBottomW * 0.16, 72)
-  const logoH = logoW * (456 / 472)
+  // The symbol is LOGO_SCALE of its first size, shrunk toward its bottom edge (bottom and horizontal centre stay put).
+  // The static logo, its glow, the heatmap box and its capsule mask all derive from these four numbers.
+  const baseLogoW = Math.min(lidBottomW * 0.16, 72)
+  const baseLogoH = baseLogoW * (456 / 472)
+  const logoBottom = flatH * 0.46 + baseLogoH / 2
+  const logoW = baseLogoW * LOGO_SCALE
+  const logoH = baseLogoH * LOGO_SCALE
   const logoCx = lidBottomW / 2
-  const logoCy = flatH * 0.46
+  const logoCy = logoBottom - logoH / 2
   // The capsule's box inside the logo, and the shader box around it.
   const glyph = {
     cx: logoCx - logoW / 2 + ((GLYPH_IN_SYMBOL.x + GLYPH_IN_SYMBOL.w / 2) / GLYPH_IN_SYMBOL.symbolW) * logoW,
