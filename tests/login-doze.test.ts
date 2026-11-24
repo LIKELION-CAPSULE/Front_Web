@@ -142,3 +142,32 @@ test('half screen (compact): the desk front shrinks to a sliver, so she is drawn
   close(scene.call.x, scene.mate.cx)
   close(scene.mate.cx, cw / 2, 1e-6)
 })
+
+test('lid icon keystone: on screen its sides run parallel to the lid sides; bottom edge and centre stay put', async () => {
+  const { iconKeystone } = await import('../src/features/auth/login-variants/doze/doze-view.ts')
+  // A lid like the 1440 one: flat width W, the icon w × h with its bottom hb above the lid's bottom edge.
+  const W = 406, w = 50, h = 48.3, hb = 75, tilt = (20 * Math.PI) / 180, P = 870
+  const { m, g } = iconKeystone({ lidWidth: W, iconWidth: w, iconHeight: h, iconBottomFromLidBottom: hb, tilt, perspective: P })
+  assert.ok(m > 1, 'the top of the icon is wider than its bottom')
+  // Lid projection (perspective P around the lid's bottom centre, rotateX(-tilt)): height t above the bottom edge →
+  // screen x scaled by S, screen y = t·cos·S.
+  const lidProject = (x: number, t: number) => {
+    const S = P / (P - t * Math.sin(tilt))
+    return { x: x * S, y: -t * Math.cos(tilt) * S }
+  }
+  // Keystone in the icon's own plane, origin at its bottom centre, y up negative: x' = x/(1+g·y), y' = (y/m)/(1+g·y).
+  const key = (x: number, y: number) => ({ x: x / (1 + g * y), y: y / m / (1 + g * y) })
+  const iconCorner = (x: number, y: number) => {
+    const k = key(x, y)
+    return lidProject(k.x, hb - k.y)
+  }
+  const angle = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.atan2(b.x - a.x, a.y - b.y)
+  const lidRight = angle(lidProject(W / 2, 0), lidProject(W / 2, 200))
+  const iconRight = angle(iconCorner(w / 2, 0), iconCorner(w / 2, -h))
+  const iconLeft = angle(iconCorner(-w / 2, 0), iconCorner(-w / 2, -h))
+  assert.ok(Math.abs(iconRight - lidRight) < 1e-9, `right ${iconRight} vs lid ${lidRight}`)
+  assert.ok(Math.abs(iconLeft + lidRight) < 1e-9, 'left mirrors right')
+  // Bottom corners, height and centre unchanged by the keystone.
+  assert.deepEqual(key(w / 2, 0), { x: w / 2, y: 0 })
+  assert.ok(Math.abs(key(0, -h).y + h) < 1e-9 && key(0, -h).x === 0)
+})

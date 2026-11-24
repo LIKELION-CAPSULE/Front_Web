@@ -117,6 +117,17 @@
   overflow: visible;
   pointer-events: none;
 }
+/* Lid symbol (logo, glow, heatmap): keystoned on the lid plane around its bottom centre (transform set inline). */
+.doze-lid-icon {
+  position: absolute;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+}
+.doze-lid-icon > svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
 /* Laptop lid: a flat panel tipped toward us around its bottom edge (transform set inline). */
 .doze-lid3d {
   position: absolute;

@@ -143,3 +143,37 @@ export function isPointerNearFace(
 ): boolean {
   return Math.hypot(pointer.x - face.x, pointer.y - face.y) <= radius
 }
+
+/**
+ * CSS transform for the lid symbol (origin: its bottom centre) that makes its sides run parallel to the lid's sides on
+ * screen. Under the lid's one-point perspective a small centred square would keep nearly vertical sides (they meet the
+ * lid's vanishing point); the request is a smaller copy of the lid's own trapezoid instead.
+ *
+ * In the lid's flat plane the lid edge sits at `W/2` from the centre and a height `h` above the lid's bottom edge is
+ * scaled by `S(h) = P / (P − h·sinθ)` on screen. For the icon edge `a(h)` to stay a constant distance from the lid edge
+ * on screen, `a(h)·S(h) − (W/2)·S(h)` must be constant, which makes `a(h)` linear in `h`: the flat icon becomes a
+ * trapezoid whose top is `m` times its bottom. That keystone is a 2D projective map (straight edges stay straight, the
+ * rounded corners follow), with the height kept: x' = x / (1 + g·y), y' = (y / m) / (1 + g·y), y up = negative.
+ */
+export function iconKeystone({
+  lidWidth,
+  iconWidth,
+  iconHeight,
+  iconBottomFromLidBottom,
+  tilt,
+  perspective,
+}: {
+  lidWidth: number
+  iconWidth: number
+  iconHeight: number
+  iconBottomFromLidBottom: number
+  tilt: number
+  perspective: number
+}): { m: number; g: number; transform: string } {
+  const sin = Math.sin(tilt)
+  const scaleAtBottom = perspective / (perspective - iconBottomFromLidBottom * sin)
+  const slope = (lidWidth / 2 - iconWidth / 2) * scaleAtBottom * (sin / perspective)
+  const m = 1 + (2 * slope * iconHeight) / iconWidth
+  const g = (1 - 1 / m) / iconHeight
+  return { m, g, transform: `matrix3d(1, 0, 0, 0, 0, ${1 / m}, 0, ${g}, 0, 0, 1, 0, 0, 0, 0, 1)` }
+}

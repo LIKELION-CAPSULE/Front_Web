@@ -1,6 +1,6 @@
 import { Suspense, lazy, useId, useState } from 'react'
 import { capsuleLogo } from '@/shared/design/brand-logo'
-import type { DozeSceneLayout } from './doze-view'
+import { iconKeystone, type DozeSceneLayout } from './doze-view'
 import { ChunkBoundary } from './ChunkBoundary'
 // The capsule alone (no tile), dark on transparent: the heatmap's input and the mask that keeps its light inside the
 // capsule. Imported directly because brand-logo.ts only exposes the colour glyph and this draft is DEV-only.
@@ -93,6 +93,8 @@ export function DozeDesk({
   }
   const heatW = glyph.w * HEATMAP_BOX
   const heatH = glyph.h * HEATMAP_BOX
+  const icon = { left: logoCx - logoW / 2, top: logoCy - logoH / 2 }
+  const keystone = iconKeystone({ lidWidth: lidBottomW, iconWidth: logoW, iconHeight: logoH, iconBottomFromLidBottom: flatH - logoBottom, tilt, perspective })
   const note = { x: lidBottomW * 0.74, y: flatH * 0.14, w: lidBottomW * 0.145, h: lidBottomW * 0.135 }
 
   // Props, placed around the laptop in model px so they keep their size relation to her at every framing.
@@ -312,11 +314,6 @@ export function DozeDesk({
             <filter id={id('lidGlow')} x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation={Math.max(2, u(5))} />
             </filter>
-            <filter id={id('logoGlow')} x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation={Math.max(3, logoW * 0.16)} />
-              <feColorMatrix type="matrix" values="0 0 0 0 0.75  0 0 0 0 0.7  0 0 0 0 1  0 0 0 1 0" />
-            </filter>
-
           </defs>
           {/* Screen light leaking around the rim (the screen faces her). */}
           <path className="doze-desk-rimlight" d={flatPath} fill="none" stroke="#c9c4ff" strokeWidth={u(5)} filter={url('lidGlow')} />
@@ -344,63 +341,68 @@ export function DozeDesk({
           {/* Rim: the lid's thickness catching light, brightest on the top edge. */}
           <path d={flatPath} fill="none" stroke={url('rim')} strokeWidth={Math.max(1, u(2))} />
           <path d={`M${u(14)} ${u(1.2)} L${lidBottomW - u(14)} ${u(1.2)}`} stroke="#fff" strokeOpacity="0.35" strokeWidth="1" />
-          {/* CAPSULE logo glowing through the lid. */}
-          <image
-            className="doze-desk-logoglow"
-            href={capsuleLogo.symbol.white}
-            x={logoCx - logoW / 2}
-            y={logoCy - logoH / 2}
-            width={logoW}
-            height={logoH}
-            filter={url('logoGlow')}
-          />
-          <image
-            className="doze-desk-logo"
-            href={capsuleLogo.symbol.white}
-            x={logoCx - logoW / 2}
-            y={logoCy - logoH / 2}
-            width={logoW}
-            height={logoH}
-          />
         </svg>
-        {/* On the same plane as the lid, so it takes the same perspective. */}
-        {heatOn && (
-          <div
-            className="doze-heatmap"
-            data-awake={screenOn || undefined}
-            data-active={heatActive || undefined}
-            style={{
-              left: `${glyph.cx - heatW / 2}px`,
-              top: `${glyph.cy - heatH / 2}px`,
-              width: `${heatW}px`,
-              height: `${heatH}px`,
-              // Light only inside the capsule: the glyph itself is the mask, sized to the capsule inside the box.
-              WebkitMaskImage: `url(${capsuleGlyphUrl})`,
-              maskImage: `url(${capsuleGlyphUrl})`,
-              WebkitMaskSize: `${100 / HEATMAP_BOX}% ${100 / HEATMAP_BOX}%`,
-              maskSize: `${100 / HEATMAP_BOX}% ${100 / HEATMAP_BOX}%`,
-            }}
-          >
-            {/* Outside the lazy import, so a chunk that fails to load only drops the heatmap (static logo stays). */}
-            <ChunkBoundary
-              onError={() => {
-                setHeatActive(false)
-                setHeatFailed(true)
+        {/* The CAPSULE symbol on the lid: static logo, its glow, the heatmap and its capsule mask in one box. It sits on the
+            lid's plane (same perspective) and is keystoned so its sides run parallel to the lid's sides (iconKeystone). */}
+        <div
+          className="doze-lid-icon"
+          style={{
+            left: `${icon.left}px`,
+            top: `${icon.top}px`,
+            width: `${logoW}px`,
+            height: `${logoH}px`,
+            transform: keystone.transform,
+          }}
+        >
+          <svg width={logoW} height={logoH} viewBox={`0 0 ${logoW} ${logoH}`} overflow="visible" aria-hidden="true" focusable="false">
+            <defs>
+              <filter id={id('logoGlow')} x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation={Math.max(3, logoW * 0.16)} />
+                <feColorMatrix type="matrix" values="0 0 0 0 0.75  0 0 0 0 0.7  0 0 0 0 1  0 0 0 1 0" />
+              </filter>
+            </defs>
+            {/* CAPSULE logo glowing through the lid. */}
+            <image className="doze-desk-logoglow" href={capsuleLogo.symbol.white} width={logoW} height={logoH} filter={url('logoGlow')} />
+            <image className="doze-desk-logo" href={capsuleLogo.symbol.white} width={logoW} height={logoH} />
+          </svg>
+          {heatOn && (
+            <div
+              className="doze-heatmap"
+              data-awake={screenOn || undefined}
+              data-active={heatActive || undefined}
+              style={{
+                left: `${glyph.cx - heatW / 2 - icon.left}px`,
+                top: `${glyph.cy - heatH / 2 - icon.top}px`,
+                width: `${heatW}px`,
+                height: `${heatH}px`,
+                // Light only inside the capsule: the glyph itself is the mask, sized to the capsule inside the box.
+                WebkitMaskImage: `url(${capsuleGlyphUrl})`,
+                maskImage: `url(${capsuleGlyphUrl})`,
+                WebkitMaskSize: `${100 / HEATMAP_BOX}% ${100 / HEATMAP_BOX}%`,
+                maskSize: `${100 / HEATMAP_BOX}% ${100 / HEATMAP_BOX}%`,
               }}
             >
-              <Suspense fallback={null}>
-                <LidHeatmapLogo
-                  awake={screenOn}
-                  silhouette={capsuleGlyphUrl}
-                  width={heatW}
-                  height={heatH}
-                  scale={1 / HEATMAP_BOX}
-                  onActiveChange={setHeatActive}
-                />
-              </Suspense>
-            </ChunkBoundary>
-          </div>
-        )}
+              {/* Outside the lazy import, so a chunk that fails to load only drops the heatmap (static logo stays). */}
+              <ChunkBoundary
+                onError={() => {
+                  setHeatActive(false)
+                  setHeatFailed(true)
+                }}
+              >
+                <Suspense fallback={null}>
+                  <LidHeatmapLogo
+                    awake={screenOn}
+                    silhouette={capsuleGlyphUrl}
+                    width={heatW}
+                    height={heatH}
+                    scale={1 / HEATMAP_BOX}
+                    onActiveChange={setHeatActive}
+                  />
+                </Suspense>
+              </ChunkBoundary>
+            </div>
+          )}
+        </div>
       </div>
     </>
   )
