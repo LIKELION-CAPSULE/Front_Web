@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type FocusEvent } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type FocusEvent } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { LegalDocumentBody } from '@/features/auth/components/LegalDocumentBody'
 import { legalDocuments } from '@/features/auth/data/legal-documents'
@@ -17,6 +17,13 @@ import { MateDialogue } from './MateDialogue'
 import { isMateAwake, parseAssembleForcePhase, type AssemblePhase } from './assemble/assemble-machine'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import './login-variants.css'
+
+/**
+ * DEV-only login drafts (`/login?variant=doze`, see doze/). `import.meta.env.DEV` is a build-time constant, so the
+ * production bundle has neither these modules nor their assets.
+ */
+const DozeMateStage = import.meta.env.DEV ? lazy(() => import('./doze/DozeMateStage')) : null
+const LoginVariantDevSwitch = import.meta.env.DEV ? lazy(() => import('./doze/LoginVariantDevSwitch')) : null
 
 type ReactionOptions = Parameters<DesktopShellContextValue['triggerReaction']>[1]
 
@@ -169,6 +176,16 @@ export default function LoginVariantLayout() {
     },
     [setAwake],
   )
+  const dozeVariant =
+    import.meta.env.DEV && new URLSearchParams(location.search).get('variant')?.trim().toLowerCase() === 'doze'
+  const handleDozeAwakeChange = useCallback(
+    (awake: boolean, immediate: boolean) => {
+      setAwake(awake)
+      setAssembleCaption({ visible: awake, immediate })
+    },
+    [setAwake],
+  )
+  const handleDozeGreet = useCallback((line: string) => apply('greet', { line, revertAfterMs: 4600 }), [apply])
   const captionVisible = assembleCaption.visible
   const captionImmediate = assembleCaption.immediate || reducedMotion
 
@@ -196,17 +213,31 @@ export default function LoginVariantLayout() {
       >
         <div className="login-variant-bg">
           <img src={chaerinArtwork.callBackground.landscape} alt="" aria-hidden="true" className="login-variant-bg-media login-variant-room" draggable={false} />
-          <AssembleMateStage
-            mate={mate}
-            allowLive2D={canRenderMate}
-            reducedMotion={reducedMotion}
-            reactionState={reactions.state}
-            reactionNonce={reactions.nonce}
-            forcePhase={assembleForcePhase}
-            disableEngine={assembleDisableEngine}
-            onGreetBubbleReady={handleAssembleGreetBubble}
-            onPhaseChange={handleAssemblePhaseChange}
-          />
+          {dozeVariant && DozeMateStage ? (
+            <Suspense fallback={null}>
+              <DozeMateStage
+                mate={mate}
+                allowLive2D={canRenderMate}
+                reducedMotion={reducedMotion}
+                reactionState={reactions.state}
+                reactionNonce={reactions.nonce}
+                onGreet={handleDozeGreet}
+                onAwakeChange={handleDozeAwakeChange}
+              />
+            </Suspense>
+          ) : (
+            <AssembleMateStage
+              mate={mate}
+              allowLive2D={canRenderMate}
+              reducedMotion={reducedMotion}
+              reactionState={reactions.state}
+              reactionNonce={reactions.nonce}
+              forcePhase={assembleForcePhase}
+              disableEngine={assembleDisableEngine}
+              onGreetBubbleReady={handleAssembleGreetBubble}
+              onPhaseChange={handleAssemblePhaseChange}
+            />
+          )}
           <div className="login-variant-scrim" />
         </div>
 
@@ -256,6 +287,12 @@ export default function LoginVariantLayout() {
             </div>
           </section>
         </main>
+
+        {LoginVariantDevSwitch && (
+          <Suspense fallback={null}>
+            <LoginVariantDevSwitch />
+          </Suspense>
+        )}
 
         <Dialog
           open={legal !== null}

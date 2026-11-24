@@ -1,0 +1,624 @@
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent, type MouseEvent } from 'react'
+import { useLocation } from 'react-router'
+import {
+  DEFAULT_DESKTOP_CONTROLS,
+  type MateReactionState,
+} from '@/features/auth/login-backgrounds/desktop/desktop-config'
+import type { LoginMateProfile } from '@/features/auth/login-backgrounds/desktop/login-mate-source'
+import { resolveGazeForState } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
+import { AlivingRenderer } from '@/features/mate-render/AlivingRenderer'
+import { computePointerGaze } from '@/features/mate-render/aliving-view'
+import { resolveMateSource } from '@/features/mate-render/mate-source'
+import { mateWarmPool } from '@/features/mate-render/warm-pool'
+import { warmKey } from '@/features/mate-render/warm-renderer'
+import type { MateRenderStatus } from '@/features/mate-render/types'
+import { capsuleLogo } from '@/shared/design/brand-logo'
+import dozeStillUrl from '@/assets/characters/chaerin-v2/chaerin-v2-doze.webp'
+import yawnStillUrl from '@/assets/characters/chaerin-v2/expressions-bust/yawn.webp'
+import happyStillUrl from '@/assets/characters/chaerin-v2/expressions-bust/happy.webp'
+import shyStillUrl from '@/assets/characters/chaerin-v2/expressions-bust/shy.webp'
+import {
+  DOZE_GREETING,
+  DOZE_STILL_POSE,
+  DOZE_TIMINGS_MS,
+  WAKE_EXPRESSION_CUES,
+  dozePose,
+  fallAsleepPose,
+  parseDozeQuery,
+  wakeGreetDelay,
+  wakePose,
+  type DozeStill,
+  type TrackParams,
+} from './doze-motion'
+import { computeDozeCamera, computeDozeScene, isPointerNearFace } from './doze-view'
+import './doze.css'
+
+/**
+ * "졸던 채린 깨우기" (DEV-only login draft, `/login?variant=doze`): Chaerin dozes behind a laptop; coming close to
+ * her, clicking / tapping her or pressing Enter on her wakes her up (blinks → yawn → looks at you → smile + greeting).
+ * The Live2D model is the star when it can run; the same story is told with still crossfades without it (reduced
+ * motion, no WebGL, `&static=1`, or while the model loads).
+ */
+
+type Phase = 'dozing' | 'waking' | 'awake' | 'falling'
+type WakeMethod = 'tap' | 'keyboard' | 'near' | 'auto'
+type StillName = DozeStill | 'shy'
+
+const STILLS: Record<StillName, string> = {
+  doze: dozeStillUrl,
+  yawn: yawnStillUrl,
+  happy: happyStillUrl,
+  shy: shyStillUrl,
+}
+
+interface TrackablePlayer {
+  track(params: TrackParams): void
+}
+
+/**
+ * The v2 player behind the renderer, when it can `track`. AlivingRenderer has no public `track` yet (mate-render is
+ * outside this draft): if the draft is adopted, add `track` to the renderer instead of reaching into it like this.
+ */
+function trackableOf(renderer: AlivingRenderer | null): TrackablePlayer | null {
+  const player = (renderer as unknown as { player?: { track?: unknown } | null } | null)?.player
+  return player && typeof player.track === 'function' ? (player as TrackablePlayer) : null
+}
+
+/** Login reaction → v2 expression once she is awake (same mapping as the assemble stage). */
+function reactionExpression(state: MateReactionState): string | null {
+  switch (state) {
+    case 'greet':
+      return 'happy'
+    case 'emailFocus':
+    case 'passwordFocus':
+      return 'focus'
+    case 'error':
+      return 'sulky'
+    case 'success':
+      return 'laugh'
+    default:
+      return null
+  }
+}
+
+export default function DozeMateStage({
+  mate,
+  allowLive2D,
+  reducedMotion,
+  reactionState,
+  reactionNonce,
+  onGreet,
+  onAwakeChange,
+}: {
+  mate: LoginMateProfile
+  allowLive2D: boolean
+  reducedMotion: boolean
+  reactionState: MateReactionState
+  reactionNonce: number
+  /** Called once per wake-up, right after `onAwakeChange(true)`. */
+  onGreet: (line: string) => void
+  onAwakeChange: (awake: boolean, immediate: boolean) => void
+}) {
+  const location = useLocation()
+  const forceStatic = useMemo(() => parseDozeQuery(location.search).forceStatic, [location.search])
+  const rootRef = useRef<HTMLDivElement>(null)
+  const engineHostRef = useRef<HTMLDivElement>(null)
+  const rendererRef = useRef<AlivingRenderer | null>(null)
+  const hitRef = useRef<HTMLButtonElement>(null)
+
+  const source = useMemo(() => {
+    if (!allowLive2D || forceStatic || !mate.v2Model) return { kind: 'static' as const }
+    return resolveMateSource(
+      {
+        modelUrl: mate.v2Model.modelJsonUrl,
+        engineUrl: mate.v2Model.engineUrl,
+        playerUrl: mate.v2Model.playerUrl,
+        reactionsUrl: mate.v2Model.reactionsUrl,
+      },
+      { pageOrigin: window.location.origin, apiBaseUrl: import.meta.env.VITE_API_BASE_URL },
+    )
+  }, [allowLive2D, forceStatic, mate.v2Model])
+
+  const [size, setSize] = useState({ w: 0, h: 0 })
+  const [engineStatus, setEngineStatus] = useState<MateRenderStatus>(source.kind === 'aliving' ? 'loading' : 'error')
+  /** The live model is posed and faded in over the still. */
+  const [liveShown, setLiveShown] = useState(false)
+  const [phase, setPhaseState] = useState<Phase>('dozing')
+  const [still, setStill] = useState<StillName>('doze')
+  const [shy, setShy] = useState(false)
+  const [hint, setHint] = useState<'none' | 'pointer' | 'keyboard'>('none')
+  const [announce, setAnnounce] = useState('')
+  /** The yawn / happy / shy stills are fetched only when the still path may need them (no live model yet). */
+  const [allStills, setAllStills] = useState(false)
+
+  const phaseRef = useRef<Phase>('dozing')
+  const liveShownRef = useRef(false)
+  /** Origin of the nod cycle (`dozePose(0)` = the doze still). */
+  const nodStartRef = useRef(0)
+  const wakeStartRef = useRef(0)
+  const fallStartRef = useRef(0)
+  const wakeFromRef = useRef<TrackParams>(DOZE_STILL_POSE)
+  const lastPoseRef = useRef<TrackParams>(DOZE_STILL_POSE)
+  const lastPointerRef = useRef<{ x: number; y: number } | null>(null)
+  const timersRef = useRef<number[]>([])
+  const onGreetRef = useRef(onGreet)
+  const onAwakeChangeRef = useRef(onAwakeChange)
+  useEffect(() => {
+    onGreetRef.current = onGreet
+    onAwakeChangeRef.current = onAwakeChange
+  }, [onGreet, onAwakeChange])
+  // She starts asleep, whatever the previous draft left (switching from 변신 while that one was awake).
+  useEffect(() => {
+    onAwakeChangeRef.current(false, true)
+  }, [])
+
+  const setPhase = useCallback((next: Phase) => {
+    phaseRef.current = next
+    setPhaseState(next)
+  }, [])
+
+  const clearTimers = useCallback(() => {
+    for (const id of timersRef.current) window.clearTimeout(id)
+    timersRef.current = []
+  }, [])
+  const later = useCallback((ms: number, run: () => void) => {
+    timersRef.current.push(window.setTimeout(run, ms))
+  }, [])
+  useEffect(() => clearTimers, [clearTimers])
+
+  // Stage size.
+  useEffect(() => {
+    const el = rootRef.current
+    if (!el) return
+    const update = () => {
+      const rect = el.getBoundingClientRect()
+      if (rect.width > 0 && rect.height > 0) setSize({ w: rect.width, h: rect.height })
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  const camera = useMemo(() => (size.w > 0 && size.h > 0 ? computeDozeCamera(size.w, size.h) : null), [size.w, size.h])
+  const scene = useMemo(() => (camera ? computeDozeScene(size.w, size.h, camera) : null), [camera, size.w, size.h])
+
+  // Renderer: same source and options as the assemble stage, so the warm pool hands the same model back and forth
+  // (switching drafts, leaving /login for a mate preview).
+  useEffect(() => {
+    const host = engineHostRef.current
+    if (source.kind !== 'aliving' || !host) {
+      setEngineStatus('error')
+      return
+    }
+    setEngineStatus('loading')
+    const poolKey = warmKey(source)
+    const owner = mateWarmPool.generation()
+    const renderer =
+      mateWarmPool.claim(poolKey) ??
+      new AlivingRenderer({
+        modelUrl: source.modelUrl,
+        engineUrl: source.engineUrl,
+        playerUrl: source.playerUrl,
+        reactionsUrl: source.reactionsUrl,
+      })
+    rendererRef.current = renderer
+    renderer.attach(host)
+    // A player without `track` cannot doze: the stills tell the story instead.
+    const sync = () => {
+      const status = renderer.getStatus()
+      setEngineStatus(status === 'ready' && !trackableOf(renderer) ? 'error' : status)
+    }
+    const unsub = renderer.subscribe(sync)
+    if (renderer.getStatus() !== 'loading') queueMicrotask(sync)
+    return () => {
+      unsub()
+      rendererRef.current = null
+      liveShownRef.current = false
+      setLiveShown(false)
+      // Hand the face back neutral: tracked values lapse on their own within a moment anyway.
+      trackableOf(renderer)?.track({ ParamEyeLOpen: 1, ParamEyeROpen: 1, ParamAngleX: 0, ParamAngleY: 0, ParamAngleZ: 0, ParamMouthOpenY: 0 })
+      mateWarmPool.park(poolKey, renderer, owner)
+    }
+  }, [source])
+
+  useEffect(() => {
+    if (camera) rendererRef.current?.setView(camera.view.zoom, camera.view.cx, camera.view.cy)
+  }, [camera, engineStatus])
+
+  const engineReady = engineStatus === 'ready'
+
+  // Live model late (slow network): fetch the other stills in case she is woken before it is ready.
+  const showAllStills = allStills || engineStatus === 'error'
+  useEffect(() => {
+    if (showAllStills || liveShown) return
+    const id = window.setTimeout(() => setAllStills(true), 1500)
+    return () => window.clearTimeout(id)
+  }, [showAllStills, liveShown])
+
+  // Pose loop: while the model is ready it gets a dozing / waking / falling-asleep pose every frame.
+  useEffect(() => {
+    if (!engineReady) return
+    let raf = 0
+    const lean = engineHostRef.current
+    const tick = (now: number) => {
+      raf = requestAnimationFrame(tick)
+      const player = trackableOf(rendererRef.current)
+      if (!player) return
+      const current = phaseRef.current
+      let params: TrackParams | null = null
+      let leanValue = 0
+      if (current === 'dozing') {
+        const pose = dozePose(now - nodStartRef.current)
+        params = pose.params
+        leanValue = pose.lean
+      } else if (current === 'waking' && liveShownRef.current) {
+        params = wakePose(now - wakeStartRef.current, wakeFromRef.current)
+      } else if (current === 'falling' && liveShownRef.current) {
+        const t = now - fallStartRef.current
+        if (t >= DOZE_TIMINGS_MS.fallAsleep) {
+          nodStartRef.current = now
+          setPhase('dozing')
+          params = dozePose(0).params
+          leanValue = 1
+        } else {
+          params = fallAsleepPose(t)
+          leanValue = t / DOZE_TIMINGS_MS.fallAsleep
+        }
+      }
+      if (params) {
+        player.track(params)
+        lastPoseRef.current = params
+      }
+      lean?.style.setProperty('--doze-lean', reducedMotion ? '0' : leanValue.toFixed(3))
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [engineReady, reducedMotion, setPhase])
+
+  // Live2D takes over from the still once it is ready and posed (never in the middle of a still wake-up).
+  useEffect(() => {
+    if (!engineReady || liveShown || phase === 'waking' || phase === 'falling') return
+    const renderer = rendererRef.current
+    if (phase === 'dozing') {
+      // The nod cycle starts at the still's pose, so the crossfade has no jump.
+      nodStartRef.current = performance.now()
+      renderer?.setExpression(null)
+      renderer?.lookAt(0, 0)
+    } else {
+      renderer?.setExpression(shy ? 'shy' : 'happy')
+    }
+    const id = window.setTimeout(() => {
+      liveShownRef.current = true
+      setLiveShown(true)
+    }, 140)
+    return () => window.clearTimeout(id)
+  }, [engineReady, liveShown, phase, shy])
+
+  /** Cursor (viewport px) → gaze for the current framing. */
+  const gazeFor = useCallback(
+    (pointer: { x: number; y: number }): { x: number; y: number } => {
+      const rect = rootRef.current?.getBoundingClientRect()
+      if (!rect || !scene) return { x: 0.22, y: 0 }
+      return computePointerGaze({
+        pointerX: pointer.x,
+        pointerY: pointer.y,
+        faceX: rect.left + scene.face.x,
+        faceY: rect.top + scene.face.y,
+        stageWidth: rect.width,
+        stageHeight: rect.height,
+      })
+    },
+    [scene],
+  )
+
+  const finishWake = useCallback(() => {
+    setPhase('awake')
+    setAnnounce('채린이가 깨어났어요')
+    onAwakeChangeRef.current(true, reducedMotion)
+    onGreetRef.current(DOZE_GREETING)
+  }, [reducedMotion, setPhase])
+
+  const wake = useCallback(
+    (method: WakeMethod) => {
+      if (phaseRef.current !== 'dozing' && phaseRef.current !== 'falling') return
+      clearTimers()
+      setHint('none')
+      setAnnounce('')
+      wakeStartRef.current = performance.now()
+      wakeFromRef.current = lastPoseRef.current
+      setPhase('waking')
+      if (import.meta.env.DEV) console.debug('[login-doze] wake', method)
+      const live = liveShownRef.current
+      if (live) {
+        const renderer = rendererRef.current
+        for (const cue of WAKE_EXPRESSION_CUES) {
+          later(cue.at, () => {
+            if (cue.expression === null) {
+              // Looks at you (the cursor if there is one, else toward the form) while the yawn fades.
+              const pointer = lastPointerRef.current
+              const gaze = pointer ? gazeFor(pointer) : { x: 0.22, y: 0 }
+              renderer?.lookAt(gaze.x, gaze.y)
+            }
+            renderer?.setExpression(cue.expression)
+          })
+        }
+        later(wakeGreetDelay('live', reducedMotion), finishWake)
+        return
+      }
+      setAllStills(true)
+      if (reducedMotion) {
+        setStill('happy')
+      } else {
+        later(DOZE_TIMINGS_MS.staticYawnAt, () => setStill('yawn'))
+        later(DOZE_TIMINGS_MS.staticHappyAt, () => setStill('happy'))
+      }
+      later(wakeGreetDelay('static', reducedMotion), finishWake)
+    },
+    [clearTimers, finishWake, gazeFor, later, reducedMotion, setPhase],
+  )
+
+  const fallAsleep = useCallback(() => {
+    if (phaseRef.current !== 'awake') return
+    clearTimers()
+    setShy(false)
+    onAwakeChangeRef.current(false, reducedMotion)
+    setAnnounce('채린이가 다시 졸고 있어요')
+    if (liveShownRef.current) {
+      rendererRef.current?.setExpression(null)
+      rendererRef.current?.lookAt(0, 0)
+      fallStartRef.current = performance.now()
+      setPhase('falling')
+    } else {
+      nodStartRef.current = performance.now()
+      setPhase('dozing')
+    }
+    setStill('doze')
+  }, [clearTimers, reducedMotion, setPhase])
+
+  // Dozing: wake on her own after a while; show the "how to wake" hint after a moment.
+  useEffect(() => {
+    if (phase !== 'dozing') return
+    const auto = window.setTimeout(() => wake('auto'), DOZE_TIMINGS_MS.autoWake)
+    const hintTimer = window.setTimeout(() => setHint((h) => (h === 'none' ? 'pointer' : h)), 2400)
+    return () => {
+      window.clearTimeout(auto)
+      window.clearTimeout(hintTimer)
+    }
+  }, [phase, wake])
+
+  // Coming close: the cursor stays near her face for a moment.
+  useEffect(() => {
+    if (phase !== 'dozing' || !scene) return
+    let dwell: number | undefined
+    const radius = Math.max(120, 230 * scene.k)
+    const onMove = (event: PointerEvent) => {
+      lastPointerRef.current = { x: event.clientX, y: event.clientY }
+      if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return
+      const rect = rootRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const near = isPointerNearFace(
+        { x: event.clientX - rect.left, y: event.clientY - rect.top },
+        scene.face,
+        radius,
+      )
+      if (near && dwell === undefined) dwell = window.setTimeout(() => wake('near'), DOZE_TIMINGS_MS.nearDwell)
+      else if (!near && dwell !== undefined) {
+        window.clearTimeout(dwell)
+        dwell = undefined
+      }
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      if (dwell !== undefined) window.clearTimeout(dwell)
+    }
+  }, [phase, scene, wake])
+
+  // Keyboard: the first key press is the keyboard user "coming close" (focus starts on the form's heading, so her
+  // button is only reachable with Shift+Tab; Enter / Space on it also wake her, see handleHit).
+  useEffect(() => {
+    if (phase !== 'dozing') return
+    const onKey = (event: KeyboardEvent) => {
+      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(event.key)) return
+      // Enter / Space on her own button arrive as its click.
+      if (event.target === hitRef.current) return
+      wake('keyboard')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [phase, wake])
+
+  // Awake: no pointer or keyboard input for a while → she dozes off again (not while a field has focus).
+  useEffect(() => {
+    if (phase !== 'awake') return
+    let timer = 0
+    const arm = () => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        const active = document.activeElement
+        if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) arm()
+        else fallAsleep()
+      }, DOZE_TIMINGS_MS.redozeIdle)
+    }
+    const events = ['pointermove', 'pointerdown', 'keydown', 'wheel'] as const
+    for (const name of events) window.addEventListener(name, arm, { passive: true })
+    arm()
+    return () => {
+      window.clearTimeout(timer)
+      for (const name of events) window.removeEventListener(name, arm)
+    }
+  }, [phase, fallAsleep])
+
+  // Awake + live: expressions follow the login reactions (and a tap makes her shy for a moment).
+  useEffect(() => {
+    const renderer = rendererRef.current
+    if (!renderer || !liveShown || phase !== 'awake') return
+    renderer.setExpression(shy ? 'shy' : reactionExpression(reactionState))
+    if (reactionState === 'emailFocus') renderer.lookAt(0.22, 0)
+    if (reactionState === 'passwordFocus') {
+      const gaze = resolveGazeForState('passwordFocus', 1, {
+        eyeScale: DEFAULT_DESKTOP_CONTROLS.eyeGazeScale,
+        headScale: DEFAULT_DESKTOP_CONTROLS.headGazeScale,
+      })
+      if (gaze.kind === 'fixed') renderer.lookAt(gaze.x, gaze.y)
+    }
+  }, [reactionState, reactionNonce, liveShown, phase, shy])
+
+  // Awake + live: she follows the cursor across the window.
+  const followCursor =
+    phase === 'awake' && liveShown && !reducedMotion && reactionState !== 'emailFocus' && reactionState !== 'passwordFocus'
+  useEffect(() => {
+    if (!followCursor || !scene) return
+    let raf: number | null = null
+    let pending: { x: number; y: number } | null = null
+    const flush = () => {
+      raf = null
+      if (!pending || document.hidden) return
+      const gaze = gazeFor(pending)
+      rendererRef.current?.lookAt(gaze.x, gaze.y)
+    }
+    const onMove = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return
+      pending = { x: event.clientX, y: event.clientY }
+      lastPointerRef.current = pending
+      if (raf === null) raf = requestAnimationFrame(flush)
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      if (raf !== null) cancelAnimationFrame(raf)
+    }
+  }, [followCursor, scene, gazeFor])
+
+  // Tap while awake: shy for a moment.
+  useEffect(() => {
+    if (!shy) return
+    const id = window.setTimeout(() => setShy(false), DOZE_TIMINGS_MS.shyHold)
+    return () => window.clearTimeout(id)
+  }, [shy])
+
+  const handleHit = (event: MouseEvent<HTMLButtonElement>) => {
+    if (phaseRef.current === 'awake') {
+      setShy(true)
+      return
+    }
+    // Enter / Space arrive as a click with `detail === 0`.
+    wake(event.detail === 0 ? 'keyboard' : 'tap')
+  }
+  const handleHitFocus = (event: FocusEvent<HTMLButtonElement>) => {
+    if (phaseRef.current !== 'dozing') return
+    if (event.currentTarget.matches(':focus-visible')) setHint('keyboard')
+  }
+  const handleHitBlur = () => setHint((h) => (h === 'keyboard' ? (phaseRef.current === 'dozing' ? 'pointer' : 'none') : h))
+
+  const shownStill: StillName = phase === 'awake' && shy ? 'shy' : still
+  const dozing = phase === 'dozing' || phase === 'falling'
+  const screenAwake = phase === 'waking' || phase === 'awake'
+
+  const box = (b: { left: number; top: number; width: number; height: number }): CSSProperties => ({
+    left: `${b.left}px`,
+    top: `${b.top}px`,
+    width: `${b.width}px`,
+    height: `${b.height}px`,
+  })
+
+  return (
+    <div
+      ref={rootRef}
+      className="doze-stage-root"
+      data-doze-phase={phase}
+      data-doze-mode={liveShown ? 'live' : 'static'}
+      data-live2d-status={source.kind === 'aliving' ? engineStatus : 'off'}
+      data-reduced={reducedMotion || undefined}
+    >
+      <div className="doze-stage-mask">
+        {/* Laptop screen light on her face (the screen faces her; we see the lid from behind). */}
+        {scene && (
+          <i
+            className="doze-face-light"
+            aria-hidden="true"
+            data-awake={screenAwake || undefined}
+            style={{ left: `${scene.face.x}px`, top: `${scene.face.y + 70 * scene.k}px`, width: `${520 * scene.k}px`, height: `${460 * scene.k}px` }}
+          />
+        )}
+
+        {/* Stills: doze / yawn / happy (+ shy) crossfade. Kept under the canvas as the loading and fallback picture. */}
+        {scene && (
+          <div className="doze-stills" aria-hidden="true" data-hidden={liveShown || undefined}>
+            {(showAllStills ? (Object.keys(STILLS) as StillName[]) : (['doze'] as const)).map((name) => (
+              <img
+                key={name}
+                src={STILLS[name]}
+                alt=""
+                className="doze-still"
+                data-still={name}
+                data-visible={shownStill === name || undefined}
+                data-nodding={(name === 'doze' && phase === 'dozing' && !reducedMotion) || undefined}
+                draggable={false}
+                decoding="async"
+                style={box(scene.still)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Aliving2D canvas: transparent until posed, then fades in over the still. */}
+        <div ref={engineHostRef} className="doze-engine-host" aria-hidden="true" data-visible={liveShown || undefined} />
+
+        {scene && (
+          <>
+            <i
+              className="doze-lid-light"
+              aria-hidden="true"
+              data-awake={screenAwake || undefined}
+              style={{ left: `${scene.lid.left + scene.lid.width / 2}px`, top: `${scene.lid.top}px`, width: `${scene.lid.width * 1.25}px` }}
+            />
+            <div className="doze-desk" aria-hidden="true" style={{ top: `${scene.deskTop}px` }} />
+            <div className="doze-lid" aria-hidden="true" style={box({ ...scene.lid, height: scene.lid.height + 2 })}>
+              <img src={capsuleLogo.symbol.white} alt="" className="doze-lid-logo" data-awake={screenAwake || undefined} draggable={false} />
+            </div>
+          </>
+        )}
+      </div>
+
+      {scene && dozing && (
+        <div className="doze-zz" aria-hidden="true" style={{ left: `${scene.zz.x}px`, top: `${scene.zz.y}px` }}>
+          <span>z</span>
+          <span>z</span>
+          <span>Z</span>
+        </div>
+      )}
+
+      {scene && (
+        <button
+          ref={hitRef}
+          type="button"
+          className="doze-hit"
+          style={box(scene.hit)}
+          aria-label={phase === 'awake' ? `${mate.name}에게 장난치기` : `졸고 있는 ${mate.name} 깨우기`}
+          aria-disabled={phase === 'waking' || undefined}
+          onClick={handleHit}
+          onFocus={handleHitFocus}
+          onBlur={handleHitBlur}
+        />
+      )}
+
+      {dozing && hint !== 'none' && (
+        <span className="doze-hint" aria-hidden="true" data-keyboard={hint === 'keyboard' || undefined}>
+          {hint === 'keyboard' ? 'Enter 키로 깨우기' : `${mate.name}이 졸고 있어요 · 눌러서 깨우기`}
+        </span>
+      )}
+
+      {phase === 'awake' && (
+        <button type="button" className="doze-replay-btn" onClick={fallAsleep}>
+          다시 보기
+        </button>
+      )}
+
+      <span className="sr-only" aria-live="polite" aria-atomic="true">
+        {announce}
+      </span>
+    </div>
+  )
+}
