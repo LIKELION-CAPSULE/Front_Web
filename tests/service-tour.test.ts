@@ -1,6 +1,5 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 import { SCREEN_LABELS, TOUR_STEPS, readMs, stepPath, tourHref, tourSteps, type TourContext } from '../src/features/tour/tour-steps.ts'
 
 const ALL_ON: TourContext = { mateId: 'chaerin', features: { affinity: true, expressions: true } }
@@ -74,19 +73,5 @@ test('every line is read long enough and sounds like 채린 (반말), with the o
   assert.equal(TOUR_STEPS.at(-1)!.say, '이제 만나러 가 볼까?')
 })
 
-test('the practice call never reaches the session, media, PIP or message code', () => {
-  const source = readFileSync(new URL('../src/features/tour/TourCallPage.tsx', import.meta.url), 'utf8')
-  for (const forbidden of ['getUserMedia', 'documentPictureInPicture', 'requestPictureInPicture', 'startSession', 'createSession', 'useConnection', 'sendMessage', 'postEvent', 'fetch(']) {
-    assert.ok(!source.includes(forbidden), forbidden)
-  }
-  assert.match(source, /연습 화면이에요 · 실제로 연결되지 않아요/)
-  assert.match(source, /<Navigate to="\/" replace \/>/)
-})
-
-test('the cursor\'s press is visual: the controller never clicks or dispatches pointer events', () => {
-  const source = readFileSync(new URL('../src/features/tour/ServiceTour.tsx', import.meta.url), 'utf8')
-  assert.ok(!/\.click\(\)/.test(source))
-  assert.ok(!/dispatchEvent/.test(source))
-  assert.match(source, /onCursorPress=\{\(\) => setPreview\(step\.id\)\}/)
-  assert.match(source, /onCycle=\{\(\) => setPreview\(null\)\}/)
-})
+// Safety (no real click, connectMate, session / message / event / reaction call, getUserMedia or PIP during the tour)
+// is checked on the running app, not in the source: scripts/check-service-tour.mjs.

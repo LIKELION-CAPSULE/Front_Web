@@ -1,0 +1,94 @@
+/*
+ * 서비스 투어의 바탕 (TourLayer.tsx, main bundle): the top-layer sheet, the dim with its spotlight hole and the glass
+ * panel — also the 「사용법 불러오는 중」 panel shown while the controller's chunk loads. No outlines; violet only for the
+ * main action and the cursor (docs/DESIGN_SYSTEM.md). Every layer except the panel lets pointers through.
+ */
+/* The layer is a manual popover (top layer): reset the UA popover box to a full-viewport, see-through sheet. */
+.service-tour-layer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  color: inherit;
+  pointer-events: none;
+}
+.service-tour-layer:not(:popover-open) { display: block; }
+.service-tour { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+
+/* Dim with a hole around the target: one box with a huge shadow, so the hole needs no clip path. */
+.service-tour-dim {
+  position: fixed;
+  z-index: 1;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
+  pointer-events: none;
+  transition: background 240ms ease;
+}
+.service-tour-dim[data-spot] {
+  inset: auto;
+  top: var(--spot-top);
+  left: var(--spot-left);
+  width: var(--spot-width);
+  height: var(--spot-height);
+  border-radius: 18px;
+  background: transparent;
+  box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--color-canvas) 62%, transparent), 0 0 0 2px color-mix(in srgb, #8053F2 55%, transparent), 0 0 32px 4px color-mix(in srgb, #8053F2 35%, transparent);
+  transition: top 420ms cubic-bezier(0.22, 1, 0.36, 1), left 420ms cubic-bezier(0.22, 1, 0.36, 1), width 420ms cubic-bezier(0.22, 1, 0.36, 1), height 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Panel: the home speech bubble's glass, bottom centre. */
+.service-tour-panel {
+  position: fixed;
+  z-index: 4;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  max-width: calc(100vw - 32px);
+  border-radius: 18px;
+  background: var(--color-panel);
+  padding: 12px 12px 12px 20px;
+  box-shadow: var(--floating-shadow);
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .service-tour-panel {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-panel) 68%, transparent), color-mix(in srgb, var(--color-canvas) 62%, transparent));
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+}
+.service-tour-panel[data-place='top'] { top: 156px; bottom: auto; }
+.service-tour-title { margin: 0; color: var(--color-ink); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 600; white-space: nowrap; }
+.service-tour-count { margin-left: 8px; color: var(--color-subtle); font-weight: 500; font-variant-numeric: tabular-nums; }
+.service-tour-screen {
+  margin-left: 10px;
+  border-radius: 999px;
+  background: var(--color-selected);
+  padding: 2px 10px;
+  color: var(--color-selected-text);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  font-weight: 600;
+}
+.service-tour-actions { display: flex; gap: 8px; }
+
+.service-tour-loading-text { margin: 0; color: var(--color-ink); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 600; white-space: nowrap; }
+
+@media (max-width: 479px) {
+  .service-tour-panel { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
+  .service-tour-actions > * { flex: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .service-tour-dim, .service-tour-dim[data-spot] { transition: none; }
+}

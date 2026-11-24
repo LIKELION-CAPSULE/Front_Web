@@ -28,6 +28,8 @@ export function HeaderAccount() {
   const location = useLocation()
   const navigate = useNavigate()
   const requested = accountRequest(location.search)
+  // The service tour opens this modal itself (`?tour=…&account=…`) and alone closes it (skip, Esc, its end).
+  const tourOwned = requested !== null && new URLSearchParams(location.search).has('tour')
   const open = localOpen || requested !== null
   const trigger = useRef<HTMLButtonElement>(null)
   function close() {
@@ -47,6 +49,6 @@ export function HeaderAccount() {
       )}
       <button ref={trigger} type="button" data-tour="profile" aria-label="계정 설정 열기" aria-haspopup="dialog" aria-expanded={open} className="header-avatar-btn flex items-center justify-center rounded-full" onClick={() => setOpen(true)}><Avatar size="sm" /></button>
     </div>
-    {open && <Suspense fallback={<AccountSettingsLoading onClose={close} />}><AccountSettingsDialog key={requested?.view ?? 'local'} initialView={requested?.view} onClose={close} /></Suspense>}
+    {open && <Suspense fallback={<AccountSettingsLoading onClose={close} />}><AccountSettingsDialog key={requested?.view ?? 'local'} initialView={requested?.view} locked={tourOwned} onClose={close} /></Suspense>}
   </>
 }

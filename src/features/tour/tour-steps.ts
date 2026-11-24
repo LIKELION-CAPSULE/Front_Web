@@ -72,7 +72,9 @@ export const TOUR_STEPS: readonly TourStep[] = [
   { id: 'mates-total', screen: 'my-mates', targets: ['[data-tour="my-mates-total"]'], at: CORNER, action: 'hover', labelSide: 'left', say: '함께한 시간이랑 연결 횟수는 여기.' },
   { id: 'mates-affinity', screen: 'my-mates', targets: ['[data-tour="my-mates-affinity"]'], at: CORNER, action: 'hover', labelSide: 'left', feature: 'affinity', say: '같이 있을수록 친해지고, 단계가 오르면 새 표정이 열려.' },
   { id: 'mates-expressions', screen: 'my-mates', targets: ['[data-tour="my-mates-expressions"]'], at: CORNER, action: 'hover', labelSide: 'left', feature: 'expressions', say: '열린 표정은 여기 모여. 누르면 내가 그 표정을 지어 줄게.' },
-  { id: 'mates-recent', screen: 'my-mates', targets: ['[data-tour="my-mates-recent"]'], at: CORNER, action: 'hover', labelSide: 'left', say: '최근 캡슐을 누르면 그날의 기록 카드가 열려.' },
+  // The recent list sits at the bottom of the side column, controls all round: the arrow takes its left edge and the line
+  // opens over the scene.
+  { id: 'mates-recent', screen: 'my-mates', targets: ['[data-tour="my-mates-recent"]'], at: { x: 0.03, y: 0.5 }, action: 'hover', labelSide: 'left', say: '최근 캡슐을 누르면 그날의 기록 카드가 열려.' },
   { id: 'mates-meet', screen: 'my-mates', targets: ['[data-tour="my-mates-meet"]'], at: CORNER, action: 'hover', labelSide: 'left', say: '보고 싶으면 여기서 바로 만나러 와.' },
   // 내 기록
   { id: 'records-period', screen: 'records', targets: ['[data-tour="records-periods"]'], at: CORNER, action: 'hover', waitMs: 6000, say: '주, 월, 연으로 기간을 바꿔 볼 수 있어.' },

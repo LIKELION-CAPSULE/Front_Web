@@ -13,6 +13,8 @@ export function closeAccountRequest(search: string): string {
   if (!request) return search
   const params = new URLSearchParams(search)
   params.delete('account')
+  // Closing a modal the service tour opened ends the tour too; leaving `tour` would make the tour open it again.
+  params.delete('tour')
   if (new URLSearchParams(search).get('account') === 'schedule') params.delete('add')
   return params.size ? `?${params}` : ''
 }

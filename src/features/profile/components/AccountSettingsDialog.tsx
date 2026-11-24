@@ -77,9 +77,12 @@ function AccountLogout({
 export default function AccountSettingsDialog({
   onClose,
   initialView = 'profile',
+  locked = false,
 }: {
   onClose: () => void
   initialView?: 'profile' | 'settings'
+  /** Held open by the service tour: the backdrop and Esc do not close it (the tour closes it with itself). */
+  locked?: boolean
 }) {
   const { state } = useDemo()
   const prefix = useId()
@@ -139,7 +142,7 @@ export default function AccountSettingsDialog({
       onClose={onClose}
       showHeader={false}
       showCloseButton={false}
-      dismissible={!busy}
+      dismissible={!busy && !locked}
       className="account-settings-dialog"
     >
       <div ref={windowRef} className="account-settings-window">

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { ShowcasePointer, type CursorConfig, type CursorStep, type CursorTarget } from '@/shared/ui/showcase-pointer/showcase-pointer'
 import { useBackend } from '@/features/backend/backend-context'
@@ -8,7 +7,9 @@ import { mateAvatar } from '@/features/mates/artwork'
 import { resolveMateFeatures } from '@/features/mates/mate-features'
 import { Button } from '@/shared/ui/Button'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
-import { SCREEN_LABELS, TOUR_ORIGIN_KEY, readMs, tourHref, tourSteps, type TourStep } from './tour-steps'
+import { SCREEN_LABELS, readMs, tourHref, tourSteps, type TourStep } from './tour-steps'
+import { focusTourTrigger, takeTourOrigin } from './tour-start'
+import { chooseLabelSide, chooseLineBox, type Avoid, type Box, type LabelSide } from './tour-placement'
 import './service-tour.css'
 
 /**
@@ -21,9 +22,9 @@ import './service-tour.css'
  * - The address keeps the step, so a reload resumes it. 「건너뛰기」 (or Esc) returns to the screen the tour started from.
  * - After arriving, the controller waits for the step's target (lazy screens, the my-mates pour, the records board);
  *   a target that does not show up in time is skipped in the direction of travel.
- * - While it runs the app is inert and does not scroll; the tour layer is a manual popover (top layer). When the account
- *   settings dialog (a native modal) is open, the layer moves inside it so it stays above it and usable, and the
- *   dialog's own content is made inert instead.
+ * - The lock (inert app, no scrolling, the top-layer sheet and its move into the account modal) belongs to TourLayer,
+ *   which holds it from the first frame, before this chunk has loaded; this renders inside it.
+ * - Without a mate (none came back from the server) there is nothing to show: the tour says so and closes.
  * - Reduced motion: no cursor or movement; the target is lit and 채린's line sits beside it, paced by 「다음」.
  */
 
@@ -45,6 +46,30 @@ function findTarget(step: TourStep): Element | null {
     if (element && element.getClientRects().length) return element
   }
   return null
+}
+
+/**
+ * What 채린's line must not cover: the visible controls around the target (not the target itself, its insides or the
+ * box it sits in), only those in the open modal when one is open, and the tour panel.
+ */
+function avoidAround(target: Element | null): Avoid {
+  const layer = document.querySelector('.service-tour-layer')
+  const scope: ParentNode = document.querySelector('dialog[open]') ?? document
+  const controls: Box[] = []
+  for (const element of scope.querySelectorAll('a[href], button, input, select, textarea, [role="tab"], [role="button"], [tabindex="0"]')) {
+    if (layer?.contains(element) || (target && (target.contains(element) || element.contains(target)))) continue
+    if (element.checkVisibility && !element.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue
+    const rect = element.getBoundingClientRect()
+    if (rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight) controls.push(rect)
+  }
+  const panel = document.querySelector('.service-tour-panel')?.getBoundingClientRect() ?? null
+  return { controls, panel, viewport: { width: window.innerWidth, height: window.innerHeight } }
+}
+
+/** Where the arrow tip lands on the target (the step's `at`, its centre otherwise). */
+function tipOf(element: Element, at: TourStep['at']) {
+  const rect = element.getBoundingClientRect()
+  return { x: rect.left + rect.width * (at?.x ?? 0.5), y: rect.top + rect.height * (at?.y ?? 0.5) }
 }
 
 /** Is the app already showing the step's screen? */
@@ -69,7 +94,7 @@ function onScreen(step: TourStep, pathname: string, search: URLSearchParams, mat
 export default function ServiceTour() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { home } = useBackend()
+  const { home, status } = useBackend()
   const reduced = useReducedMotion()
   const search = useMemo(() => new URLSearchParams(location.search), [location.search])
   const mateId = availableMates(home)[0]?.id ?? ''
@@ -89,9 +114,13 @@ export default function ServiceTour() {
   const [target, setTarget] = useState<{ id: string; element: Element | null } | null>(null)
   const element = target?.id === step.id ? target.element : null
   const [spot, setSpot] = useState<Spot | null>(null)
-  const [lineBottom, setLineBottom] = useState<{ left: number; top: number } | null>(null)
+  /** 채린's line (the cursor label) on screen: the press preview sits next to it. */
+  const [label, setLabel] = useState<{ left: number; top: number; bottom: number } | null>(null)
+  /** The label's side around the arrow, chosen when the cursor is about to land (per step). */
+  const [placed, setPlaced] = useState<{ id: string; side: LabelSide; lift: number } | null>(null)
+  /** Reduced motion: the line's measured size. */
+  const [lineSize, setLineSize] = useState<{ width: number; height: number } | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  const [host, setHost] = useState<HTMLElement>(() => document.body)
   const atScreen = mateId !== '' && onScreen(step, location.pathname, search, mateId)
   /** On its screen with its target found (a step without a target, the outro, is ready on arrival). */
   const ready = atScreen && (step.targets.length === 0 || target?.id === step.id)
@@ -99,31 +128,25 @@ export default function ServiceTour() {
   const previous = steps[index - 1]
 
   const go = useCallback((to: TourStep, toWay: 1 | -1) => {
+    if (!context.mateId) return
     setPreview(null)
     navigate(tourHref(to, context), { replace: true, state: { tourWay: toWay } })
   }, [navigate, context])
 
-  const finish = useCallback((to: string) => {
-    try { sessionStorage.removeItem(TOUR_ORIGIN_KEY) } catch { /* Nothing kept. */ }
-    navigate(to, { replace: true })
+  const skip = useCallback(() => {
+    navigate(takeTourOrigin(), { replace: true })
+    focusTourTrigger()
   }, [navigate])
 
-  const skip = useCallback(() => {
-    let origin = '/'
-    try { origin = sessionStorage.getItem(TOUR_ORIGIN_KEY) || '/' } catch { /* Home. */ }
-    finish(origin)
-    // Back on home: focus returns to 「사용법 보기」.
-    window.setTimeout(() => document.querySelector<HTMLElement>('.mate-tutorial-trigger')?.focus({ preventScroll: true }), 200)
-  }, [finish])
-
   const meetMates = useCallback(() => {
-    finish('/')
+    takeTourOrigin()
+    navigate('/', { replace: true })
     window.setTimeout(() => {
       const heading = document.getElementById('mates-heading')
       heading?.scrollIntoView({ block: 'start', behavior: reduced ? 'instant' : 'smooth' })
       heading?.focus({ preventScroll: true })
     }, 200)
-  }, [finish, reduced])
+  }, [navigate, reduced])
 
   // An unknown step (old link) starts over; a step whose screen is not showing moves there.
   useEffect(() => {
@@ -161,40 +184,17 @@ export default function ServiceTour() {
     const follow = () => {
       const nextSpot = spotOf(element)
       setSpot((old) => (old && nextSpot && Math.abs(old.left - nextSpot.left) < 0.5 && Math.abs(old.top - nextSpot.top) < 0.5 && Math.abs(old.width - nextSpot.width) < 0.5 && Math.abs(old.height - nextSpot.height) < 0.5 ? old : nextSpot))
-      const label = document.querySelector('.service-tour-pointer .showcase-pointer-cursor-label')?.getBoundingClientRect()
-      const below = label ? { left: Math.round(label.left), top: Math.round(label.bottom + 8) } : null
-      setLineBottom((old) => (old?.left === below?.left && old?.top === below?.top ? old : below))
-      const dialog = document.querySelector<HTMLElement>('dialog[open]')
-      setHost((old) => { const nextHost = dialog ?? document.body; return old === nextHost ? old : nextHost })
+      const box = document.querySelector('.service-tour-pointer .showcase-pointer-cursor-label')?.getBoundingClientRect()
+      const nextLabel = box ? { left: Math.round(box.left), top: Math.round(box.top), bottom: Math.round(box.bottom) } : null
+      setLabel((old) => (old?.left === nextLabel?.left && old?.top === nextLabel?.top && old?.bottom === nextLabel?.bottom ? old : nextLabel))
+      const line = document.querySelector('.service-tour-line')?.getBoundingClientRect()
+      const size = line ? { width: Math.round(line.width), height: Math.round(line.height) } : null
+      setLineSize((old) => (old?.width === size?.width && old?.height === size?.height ? old : size))
       frame = requestAnimationFrame(follow)
     }
     frame = requestAnimationFrame(follow)
     return () => cancelAnimationFrame(frame)
   }, [element])
-
-  // The layer: a manual popover so it sits in the top layer (above a modal dialog when it lives inside it).
-  const layer = useMemo(() => {
-    const div = document.createElement('div')
-    div.className = 'service-tour-layer'
-    div.setAttribute('popover', 'manual')
-    return div
-  }, [host]) // eslint-disable-line react-hooks/exhaustive-deps -- a new layer for each host
-  useLayoutEffect(() => {
-    host.append(layer)
-    try { layer.showPopover() } catch { /* No popover support: a fixed layer still covers the page. */ }
-    // The app (or, inside the dialog, the dialog's own content) is inert; the page does not scroll.
-    const blocked: Element[] = host === document.body ? [document.getElementById('root')].filter((value): value is HTMLElement => Boolean(value)) : [...host.children].filter((child) => child !== layer)
-    for (const node of blocked) node.setAttribute('inert', '')
-    const html = document.documentElement
-    const overflow = html.style.overflow
-    html.style.overflow = 'hidden'
-    return () => {
-      for (const node of blocked) node.removeAttribute('inert')
-      html.style.overflow = overflow
-      try { layer.hidePopover() } catch { /* Already hidden. */ }
-      layer.remove()
-    }
-  }, [host, layer])
 
   // Esc skips. Captured first, so a native dialog does not also take it as its own cancel.
   useEffect(() => {
@@ -211,7 +211,7 @@ export default function ServiceTour() {
   const panel = useRef<HTMLDivElement>(null)
   useEffect(() => {
     panel.current?.querySelector<HTMLButtonElement>(step.screen === 'outro' ? '[data-tour-meet]' : '[data-tour-next]')?.focus({ preventScroll: true })
-  }, [step.screen, layer])
+  }, [step.screen])
 
   // One cursor script per step: say the line, bring the target into view, hover / press / type, wait while it is
   // read, then move on inside the same screen (screens change only on 「다음」).
@@ -227,6 +227,17 @@ export default function ServiceTour() {
         },
       })
       script.push({ action: 'wait', duration: 560 })
+      // Before landing: the side of the arrow where 채린's line covers none of the controls around the target.
+      script.push({
+        action: 'call',
+        run: () => {
+          const box = document.querySelector('.service-tour-pointer .showcase-pointer-cursor-label')?.getBoundingClientRect()
+          const size = box && box.width ? { width: box.width, height: box.height } : { width: 300, height: 30 }
+          const tip = tipOf(element, step.at)
+          const lift = Math.max(0, tip.y - element.getBoundingClientRect().top)
+          setPlaced({ id: step.id, side: chooseLabelSide(tip, size, avoidAround(element), preferredSide(step), lift), lift })
+        },
+      })
       const spec = { target: element, ...step.at }
       if (step.action === 'type' && step.text) script.push({ action: 'type', target: element, text: step.text })
       else if (step.action === 'click') script.push({ action: 'click', target: spec })
@@ -243,16 +254,37 @@ export default function ServiceTour() {
   }, [reduced, ready, step, element, next, previous, go])
 
   const live = `${index + 1}/${steps.length}, ${SCREEN_LABELS[step.screen]}. 채린: ${step.say}${step.screen === 'outro' ? ' 메이트 만나러 가기 또는 다시 보기를 고를 수 있어요.' : ''}`
-  // Reduced motion: 채린's line goes under the lit target, or above it when there is no room below (panel included).
-  const lineBelow = spot ? spot.top + spot.height + 12 : 0
-  const lineStyle = spot
-    ? ({
-        left: Math.max(16, Math.min(spot.left, window.innerWidth - 336)),
-        ...(lineBelow + 72 > window.innerHeight - 96 ? { top: Math.max(16, spot.top - 12), transform: 'translateY(-100%)' } : { top: lineBelow }),
-      } as CSSProperties)
+  const side: LabelSide = placed?.id === step.id ? placed.side : preferredSide(step)
+  const lift = placed?.id === step.id ? placed.lift : 0
+  // Reduced motion: 채린's line beside the lit target — below, above, right or left, wherever it covers no control.
+  const lineBox = reduced && spot
+    ? chooseLineBox({ left: spot.left, top: spot.top, right: spot.left + spot.width, bottom: spot.top + spot.height }, lineSize ?? { width: 320, height: 64 }, avoidAround(element))
+    : null
+  const lineStyle = lineBox ? ({ left: lineBox.left, top: lineBox.top } as CSSProperties) : undefined
+  // The press preview sits next to 채린's line, on the side away from the arrow.
+  const previewStyle = label
+    ? ({ left: label.left, ...(side.endsWith('up') ? { top: label.top - 8, translate: '0 -100%' } : { top: label.bottom + 8 }) } as CSSProperties)
     : undefined
 
-  return createPortal(
+  // No mate to show (the server listed none, or home is still loading): say so; nothing waits or navigates.
+  if (!mateId) {
+    const loading = status === 'loading' || (home === null && status !== 'error')
+    return (
+      <div className="service-tour">
+        <div className="service-tour-dim" aria-hidden="true" />
+        <div ref={panel} className="service-tour-panel" role="dialog" aria-modal="true" aria-label="캡슐 사용법">
+          <p className="service-tour-loading-text" role="status">
+            {loading ? '사용법 불러오는 중' : '메이트를 불러오지 못해서 사용법을 보여 줄 수 없어요'}
+          </p>
+          <div className="service-tour-actions">
+            <Button variant={loading ? 'ghost' : 'secondary'} size="sm" data-tour-next onClick={skip}>{loading ? '건너뛰기' : '닫기'}</Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
     <div className="service-tour" data-reduced={reduced || undefined}>
       <div className="service-tour-dim" data-spot={spot ? 'true' : undefined} aria-hidden="true"
         style={spot ? ({ '--spot-left': `${spot.left}px`, '--spot-top': `${spot.top}px`, '--spot-width': `${spot.width}px`, '--spot-height': `${spot.height}px` } as CSSProperties) : undefined} />
@@ -264,16 +296,16 @@ export default function ServiceTour() {
           playing
           labelAnimation="fade"
           clickEffect
-          className={`service-tour-pointer${step.labelSide === 'left' ? ' service-tour-pointer--label-left' : ''}`}
-          style={{ position: 'fixed', inset: 0, zIndex: 2, pointerEvents: 'none', '--service-tour-avatar': `url("${mateAvatar('chaerin')}")` } as CSSProperties}
+          className={`service-tour-pointer${side.startsWith('left') ? ' service-tour-pointer--label-left' : ''}${side.endsWith('up') ? ' service-tour-pointer--label-up' : ''}`}
+          style={{ position: 'fixed', inset: 0, zIndex: 2, pointerEvents: 'none', '--service-tour-avatar': `url("${mateAvatar('chaerin')}")`, '--service-tour-label-lift': `${Math.round(lift)}px` } as CSSProperties}
           onCycle={() => setPreview(null)}
           onCursorPress={() => setPreview(step.id)}
         />
       )}
 
       {/* Visual presses: local previews only (nothing connects, plays or opens). */}
-      {preview && lineBottom && PREVIEWS[preview] && (
-        <div className="service-tour-preview" style={{ left: lineBottom.left, top: lineBottom.top } as CSSProperties} aria-hidden="true">
+      {preview && previewStyle && PREVIEWS[preview] && (
+        <div className="service-tour-preview" style={previewStyle} aria-hidden="true">
           {PREVIEWS[preview].map((chip) => <span key={chip}>{chip}</span>)}
         </div>
       )}
@@ -307,9 +339,13 @@ export default function ServiceTour() {
           )}
         </div>
       </div>
-    </div>,
-    layer,
+    </div>
   )
+}
+
+/** The step's own side for the label (right edge targets open to the left). */
+function preferredSide(step: TourStep): LabelSide {
+  return step.labelSide === 'left' ? 'left-down' : 'right-down'
 }
 
 /** What a visual press shows (the real action never runs). */

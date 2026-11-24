@@ -69,7 +69,7 @@ export default function HomePage() {
             오늘은 누구와 함께할까요?
           </h2>
         </div>
-        <Button variant="ghost" size="sm" className="mate-tutorial-trigger" aria-haspopup="dialog" aria-expanded={tourRunning} onClick={showTour}>
+        <Button variant="ghost" size="sm" className="mate-tutorial-trigger" aria-haspopup="dialog" aria-expanded={tourRunning} disabled={mates.length === 0} onClick={showTour}>
           사용법 보기
         </Button>
       </div>
