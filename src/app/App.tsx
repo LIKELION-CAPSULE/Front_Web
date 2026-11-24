@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router'
 import { AuthPanelLayout } from '@/app/layouts/AuthPanelLayout'
-import { resolveLoginVariant } from '@/features/auth/login-variants/login-variant'
 import { AppLayout } from '@/app/layouts/AppLayout'
 import { DetailLayout } from '@/app/layouts/DetailLayout'
 import { RequireDemo } from '@/app/layouts/RequireDemo'
@@ -9,7 +8,6 @@ import HomePage from '@/pages/HomePage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import { RouteLoading } from '@/app/components/RouteLoading'
 import { MobileAccessGate } from '@/app/components/MobileAccessGate'
-import { SharedDesktopWallpaperProvider } from '@/app/components/SharedDesktopWallpaper'
 import { AccountRedirect } from '@/app/components/AccountRedirect'
 import { BetaLegacyRedirect } from '@/app/components/BetaLegacyRedirect'
 import { PageNavigation } from '@/app/PageNavigation'
@@ -22,14 +20,14 @@ const MateDetailPage = lazy(() => import('@/pages/MateDetailPage'))
 const ConnectionPage = lazy(() => import('@/pages/ConnectionPage'))
 const MyMatesPage = lazy(() => import('@/pages/MyMatesPage'))
 const ConnectionRecordPage = lazy(() => import('@/pages/ConnectionRecordPage'))
-// Only /login uses the login concepts; app forms have a plain panel shell.
-const DesktopAuthLayout = lazy(() => import('@/features/auth/login-variants/AuthLayoutSwitch'))
+// Only /login uses the wake-up layout; onboarding / password reset have a plain panel shell.
+const LoginLayout = lazy(() => import('@/features/auth/login-variants/LoginVariantLayout'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
 const KakaoCallbackPage = lazy(() => import('@/pages/KakaoCallbackPage'))
 const PasswordResetPage = lazy(() => import('@/pages/PasswordResetPage'))
 
-function isDesktopAuthPath(pathname: string): boolean {
+function isAuthPath(pathname: string): boolean {
   return (
     pathname === '/login' ||
     pathname === '/onboarding' ||
@@ -69,18 +67,11 @@ function ReferralLinkCapture() {
 
 export function App() {
   const location = useLocation()
-  const suspenseKey = isDesktopAuthPath(location.pathname)
-    ? 'desktop-auth'
+  const suspenseKey = isAuthPath(location.pathname)
+    ? 'auth'
     : isCreditsPath(location.pathname)
       ? 'credits'
       : location.pathname
-
-  let desktopLogin = false
-  if (location.pathname === '/login') {
-    let storage: Storage | null = null
-    try { storage = window.sessionStorage } catch { /* Storage may be blocked. */ }
-    desktopLogin = resolveLoginVariant(location.search, storage) === 'desktop'
-  }
 
   const content = (
     <div className={location.pathname === '/login' ? undefined : 'app-surface'}>
@@ -88,7 +79,7 @@ export function App() {
         <ReferralLinkCapture />
         <PageNavigation />
         <Routes>
-          <Route element={<DesktopAuthLayout />}>
+          <Route element={<LoginLayout />}>
             <Route path="login" element={<LoginPage />} />
           </Route>
           <Route element={<AuthPanelLayout />}>
@@ -127,7 +118,5 @@ export function App() {
       </Suspense>
     </div>
   )
-  return <MobileAccessGate>
-    {desktopLogin ? <SharedDesktopWallpaperProvider>{content}</SharedDesktopWallpaperProvider> : content}
-  </MobileAccessGate>
+  return <MobileAccessGate>{content}</MobileAccessGate>
 }

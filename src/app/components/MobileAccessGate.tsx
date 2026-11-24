@@ -14,6 +14,7 @@ import { isMobileGateAllowedPath, isPhoneDevice, isReviewMobileNoticeForced } fr
 import { Button } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
 import './mobile-notice.css'
+import '@/features/auth/login-backgrounds/desktop/desktop.css'
 
 function readInviteInfo(search: string): { code: string | null; inviter: string | null } {
   const params = new URLSearchParams(search)

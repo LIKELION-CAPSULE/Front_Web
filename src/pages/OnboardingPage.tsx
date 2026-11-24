@@ -80,7 +80,7 @@ export default function OnboardingPage() {
   const avatarTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const lastReactedNicknameRef = useRef(state.profile.name.trim())
 
-  // Configure shared DesktopAuthLayout window
+  // Configure the shell window when a shell is provided (onboarding currently renders in AuthPanelLayout, so this is a no-op)
   useEffect(() => {
     document.title = 'CAPSULE · 프로필 설정'
     headingRef.current?.focus({ preventScroll: true })
