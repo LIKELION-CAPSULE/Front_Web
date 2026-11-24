@@ -101,7 +101,7 @@
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
   background:
-    radial-gradient(ellipse 34% 26% at 50% 78%, rgba(176, 182, 255, 0.42), rgba(176, 182, 255, 0) 100%),
+    radial-gradient(ellipse 40% 26% at 50% 78%, rgba(176, 182, 255, 0.42), rgba(176, 182, 255, 0) 100%),
     radial-gradient(ellipse 30% 22% at 50% 44%, rgba(196, 185, 243, 0.2), rgba(196, 185, 243, 0) 100%);
   mix-blend-mode: screen;
   opacity: 0.55;
@@ -117,6 +117,17 @@
   overflow: visible;
   pointer-events: none;
 }
+/* Laptop lid: a flat panel tipped toward us around its bottom edge (transform set inline). */
+.doze-lid3d {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+}
+.doze-lid3d > svg {
+  display: block;
+  overflow: visible;
+}
 .doze-desk-rimlight {
   opacity: 0.35;
   transition: opacity 900ms ease;
@@ -129,13 +140,13 @@
   opacity: 0.35;
   transition: opacity 900ms ease;
 }
-.doze-desk-svg[data-screen='on'] .doze-desk-rimlight {
+.doze-lid3d[data-screen='on'] .doze-desk-rimlight {
   opacity: 0.75;
 }
-.doze-desk-svg[data-screen='on'] .doze-desk-logo {
+.doze-lid3d[data-screen='on'] .doze-desk-logo {
   opacity: 0.66;
 }
-.doze-desk-svg[data-screen='on'] .doze-desk-logoglow {
+.doze-lid3d[data-screen='on'] .doze-desk-logoglow {
   opacity: 0.85;
 }
 /* Props stay quieter than her and the form. */

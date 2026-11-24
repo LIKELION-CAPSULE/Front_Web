@@ -40,12 +40,19 @@ export function DozeDesk({
   const baseTop = baseBottom - u(9)
   const lidBottom = baseTop - u(5)
   const cx = lid.left + lid.width / 2
-  const halfTop = (lid.width * 1.02) / 2
-  const halfBottom = (lid.width * 0.97) / 2
-  const lidPath = roundedTrapezoid(cx - halfTop, cx + halfTop, lid.top, cx - halfBottom, cx + halfBottom, lidBottom, u(15), u(6))
+  // The lid is one flat panel tipped toward us around its bottom edge (CSS perspective + rotateX, see `lid3d`), so its
+  // outline, rim, highlights, logo, logo glow and post-it all share one projection: top edge LID_TOP_SCALE × wider than
+  // the bottom edge. The bottom edge stays put, so hinge, deck and shadow below keep lining up with it.
+  const lidBottomW = lid.width * 0.95
   const lidH = lidBottom - lid.top
-  const logoW = Math.min(lid.width * 0.15, 72)
+  const tilt = (LID_TILT_DEG * Math.PI) / 180
+  // Flat panel height whose projection is exactly `lidH` tall, and the perspective that widens its top by the scale.
+  const flatH = lidH / (Math.cos(tilt) * LID_TOP_SCALE)
+  const perspective = (lidH * Math.tan(tilt)) / (LID_TOP_SCALE - 1)
+  const flatPath = roundedTrapezoid(0, lidBottomW, 0, 0, lidBottomW, flatH, u(15), u(6))
+  const logoW = Math.min(lidBottomW * 0.16, 72)
   const logoH = logoW * (456 / 472)
+  const note = { x: lidBottomW * 0.74, y: flatH * 0.14, w: lidBottomW * 0.145, h: lidBottomW * 0.135 }
 
   // Props, placed around the laptop in model px so they keep their size relation to her at every framing.
   const lidRight = lid.left + lid.width
@@ -55,254 +62,273 @@ export function DozeDesk({
   const pool = { x: Math.min(lid.left - u(120), width * 0.2), y: deskTop + u(12) }
 
   return (
-    <svg
-      className="doze-desk-svg"
-      data-screen={screenOn ? 'on' : undefined}
-      width={width}
-      height={height}
-      viewBox={`0 0 ${width} ${height}`}
-      aria-hidden="true"
-      focusable="false"
-    >
-      <defs>
-        {/* Desk top: dark walnut, a touch lighter toward the front edge. */}
-        <linearGradient id={id('top')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#1f1815" />
-          <stop offset="1" stopColor="#32261f" />
-        </linearGradient>
-        <linearGradient id={id('lip')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#3a2d25" />
-          <stop offset="0.35" stopColor="#261d18" />
-          <stop offset="1" stopColor="#130f0d" />
-        </linearGradient>
-        <linearGradient id={id('under')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#0f0d10" stopOpacity="0.96" />
-          <stop offset="1" stopColor="#0f0e17" stopOpacity="0.98" />
-        </linearGradient>
-        {/* Front edge highlight: warm where the lamp light lands (left), cooler toward the right. */}
-        <linearGradient id={id('edge')} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#ffd9b8" stopOpacity="0.42" />
-          <stop offset="0.35" stopColor="#f3dccb" stopOpacity="0.22" />
-          <stop offset="1" stopColor="#d9d5f1" stopOpacity="0.1" />
-        </linearGradient>
-        {/* Her body meets the desk: a soft contact shadow along the back edge. */}
-        <linearGradient id={id('contact')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#000" stopOpacity="0.55" />
-          <stop offset="1" stopColor="#000" stopOpacity="0" />
-        </linearGradient>
-        <radialGradient id={id('pool')} cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#ffc996" stopOpacity="0.62" />
-          <stop offset="0.45" stopColor="#ffb87a" stopOpacity="0.18" />
-          <stop offset="1" stopColor="#ffb87a" stopOpacity="0" />
-        </radialGradient>
-        {/* Wood grain: stretched fractal noise, tinted warm, used as a faint overlay. */}
-        <filter id={id('grain')} x="0" y="0" width="100%" height="100%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.0035 0.16" numOctaves="3" seed="7" />
-          <feColorMatrix
-            type="matrix"
-            values="0 0 0 0 0.62  0 0 0 0 0.47  0 0 0 0 0.36  1.6 0 0 0 -0.62"
-          />
-        </filter>
-        <clipPath id={id('surface')}>
-          <rect x="0" y={surfaceTop} width={width} height={lipBottom - surfaceTop} />
-        </clipPath>
+    <>
+      <svg
+        className="doze-desk-svg"
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          {/* Desk top: dark walnut, a touch lighter toward the front edge. */}
+          <linearGradient id={id('top')} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#1f1815" />
+            <stop offset="1" stopColor="#32261f" />
+          </linearGradient>
+          <linearGradient id={id('lip')} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#3a2d25" />
+            <stop offset="0.35" stopColor="#261d18" />
+            <stop offset="1" stopColor="#130f0d" />
+          </linearGradient>
+          <linearGradient id={id('under')} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#0f0d10" stopOpacity="0.96" />
+            <stop offset="1" stopColor="#0f0e17" stopOpacity="0.98" />
+          </linearGradient>
+          {/* Front edge highlight: warm where the lamp light lands (left), cooler toward the right. */}
+          <linearGradient id={id('edge')} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#ffd9b8" stopOpacity="0.42" />
+            <stop offset="0.35" stopColor="#f3dccb" stopOpacity="0.22" />
+            <stop offset="1" stopColor="#d9d5f1" stopOpacity="0.1" />
+          </linearGradient>
+          {/* Her body meets the desk: a soft contact shadow along the back edge. */}
+          <linearGradient id={id('contact')} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#000" stopOpacity="0.55" />
+            <stop offset="1" stopColor="#000" stopOpacity="0" />
+          </linearGradient>
+          <radialGradient id={id('pool')} cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="#ffc996" stopOpacity="0.62" />
+            <stop offset="0.45" stopColor="#ffb87a" stopOpacity="0.18" />
+            <stop offset="1" stopColor="#ffb87a" stopOpacity="0" />
+          </radialGradient>
+          {/* Wood grain: stretched fractal noise, tinted warm, used as a faint overlay. */}
+          <filter id={id('grain')} x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.0035 0.16" numOctaves="3" seed="7" />
+            <feColorMatrix
+              type="matrix"
+              values="0 0 0 0 0.62  0 0 0 0 0.47  0 0 0 0 0.36  1.6 0 0 0 -0.62"
+            />
+          </filter>
+          <clipPath id={id('surface')}>
+            <rect x="0" y={surfaceTop} width={width} height={lipBottom - surfaceTop} />
+          </clipPath>
 
-        {/* Lid back: anodized dark aluminium with a diagonal sheen. */}
-        <linearGradient id={id('lid')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#3d3b48" />
-          <stop offset="0.55" stopColor="#2a2833" />
-          <stop offset="1" stopColor="#1c1b24" />
-        </linearGradient>
-        <linearGradient id={id('sheen')} x1="0" y1="0" x2="1" y2="0.55">
-          <stop offset="0" stopColor="#fff" stopOpacity="0" />
-          <stop offset="0.3" stopColor="#fff" stopOpacity="0.09" />
-          <stop offset="0.42" stopColor="#fff" stopOpacity="0.02" />
-          <stop offset="0.6" stopColor="#fff" stopOpacity="0" />
-        </linearGradient>
-        <linearGradient id={id('rim')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#f0efff" stopOpacity="0.5" />
-          <stop offset="0.25" stopColor="#d9d5f1" stopOpacity="0.16" />
-          <stop offset="1" stopColor="#d9d5f1" stopOpacity="0.05" />
-        </linearGradient>
-        <linearGradient id={id('lampSide')} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#ffcfa3" stopOpacity="0.16" />
-          <stop offset="0.12" stopColor="#ffcfa3" stopOpacity="0.04" />
-          <stop offset="0.3" stopColor="#ffcfa3" stopOpacity="0" />
-        </linearGradient>
-        <linearGradient id={id('hinge')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#14131a" />
-          <stop offset="0.45" stopColor="#4a4855" />
-          <stop offset="1" stopColor="#121118" />
-        </linearGradient>
-        <linearGradient id={id('base')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#55535f" />
-          <stop offset="0.3" stopColor="#34323d" />
-          <stop offset="1" stopColor="#1a1922" />
-        </linearGradient>
-        <clipPath id={id('lidClip')}>
-          <path d={lidPath} />
-        </clipPath>
-        <filter id={id('soft')} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation={Math.max(2, u(6))} />
-        </filter>
-        <filter id={id('glow')} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation={Math.max(2, u(5))} />
-        </filter>
-        <filter id={id('logoGlow')} x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation={Math.max(3, logoW * 0.16)} />
-          <feColorMatrix type="matrix" values="0 0 0 0 0.75  0 0 0 0 0.7  0 0 0 0 1  0 0 0 1 0" />
-        </filter>
+          <linearGradient id={id('hinge')} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#14131a" />
+            <stop offset="0.45" stopColor="#4a4855" />
+            <stop offset="1" stopColor="#121118" />
+          </linearGradient>
+          <linearGradient id={id('base')} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#55535f" />
+            <stop offset="0.3" stopColor="#34323d" />
+            <stop offset="1" stopColor="#1a1922" />
+          </linearGradient>
+          <filter id={id('soft')} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation={Math.max(2, u(6))} />
+          </filter>
+          <filter id={id('glow')} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation={Math.max(2, u(5))} />
+          </filter>
+          {/* Mug: matte ceramic in a muted lavender grey. */}
+          <linearGradient id={id('mug')} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#403e4b" />
+            <stop offset="0.38" stopColor="#8f8d9c" />
+            <stop offset="0.55" stopColor="#a4a3b0" />
+            <stop offset="1" stopColor="#2f2d38" />
+          </linearGradient>
+          <linearGradient id={id('page')} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#e6ddd2" />
+            <stop offset="0.48" stopColor="#c9c0b5" />
+            <stop offset="0.52" stopColor="#b7aea4" />
+            <stop offset="1" stopColor="#d4cbc0" />
+          </linearGradient>
+        </defs>
 
-        {/* Mug: matte ceramic in a muted lavender grey. */}
-        <linearGradient id={id('mug')} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#403e4b" />
-          <stop offset="0.38" stopColor="#8f8d9c" />
-          <stop offset="0.55" stopColor="#a4a3b0" />
-          <stop offset="1" stopColor="#2f2d38" />
-        </linearGradient>
-        <linearGradient id={id('page')} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#e6ddd2" />
-          <stop offset="0.48" stopColor="#c9c0b5" />
-          <stop offset="0.52" stopColor="#b7aea4" />
-          <stop offset="1" stopColor="#d4cbc0" />
-        </linearGradient>
-      </defs>
-
-      {/* ---------- Desk ---------- */}
-      <rect x="0" y={surfaceTop} width={width} height={frontEdge - surfaceTop} fill={url('top')} />
-      <g clipPath={url('surface')}>
-        <rect x="0" y={surfaceTop} width={width} height={lipBottom - surfaceTop} filter={url('grain')} opacity="0.22" />
-      </g>
-      <rect x="0" y={surfaceTop} width={width} height={u(16)} fill={url('contact')} />
-      <ellipse className="doze-desk-pool" cx={pool.x} cy={pool.y} rx={u(320)} ry={u(40)} fill={url('pool')} style={{ mixBlendMode: 'screen' }} />
-      {/* The same lamp light on the front edge of the desk. */}
-      <ellipse cx={pool.x} cy={frontEdge + u(4)} rx={u(260)} ry={u(10)} fill={url('pool')} style={{ mixBlendMode: 'screen' }} />
-      <rect x="0" y={frontEdge} width={width} height={lipBottom - frontEdge} fill={url('lip')} />
-      <rect x="0" y={lipBottom} width={width} height={Math.max(0, height - lipBottom)} fill={url('under')} />
-      <rect x="0" y={frontEdge - 0.5} width={width} height="1.5" fill={url('edge')} />
-      <rect x="0" y={lipBottom - 1} width={width} height="1" fill="#000" opacity="0.5" />
-
-      {/* ---------- Workbook and pencil (in the lamp light) ---------- */}
-      <ellipse cx={book.x} cy={book.bottom + u(2)} rx={book.wBottom * 0.55} ry={u(5)} fill="#000" opacity="0.45" filter={url('soft')} />
-      <g className="doze-desk-prop">
-        <path
-          d={`M${book.x - book.wTop / 2} ${book.top} L${book.x + book.wTop / 2} ${book.top} L${book.x + book.wBottom / 2} ${book.bottom} L${book.x - book.wBottom / 2} ${book.bottom} Z`}
-          fill={url('page')}
-        />
-        {/* Ruled lines on both pages, following the perspective. */}
-        {[0.3, 0.52, 0.74].map((t) => {
-          const y = book.top + (book.bottom - book.top) * t
-          const half = (book.wTop + (book.wBottom - book.wTop) * t) / 2
-          return (
-            <g key={t} stroke="#8f8a9c" strokeOpacity="0.45" strokeWidth={Math.max(0.6, u(0.9))}>
-              <line x1={book.x - half * 0.9} y1={y} x2={book.x - half * 0.08} y2={y} />
-              <line x1={book.x + half * 0.08} y1={y} x2={book.x + half * 0.9} y2={y} />
-            </g>
-          )
-        })}
-        <line x1={book.x} y1={book.top} x2={book.x} y2={book.bottom} stroke="#6f6875" strokeOpacity="0.5" strokeWidth={Math.max(0.8, u(1.2))} />
-        {/* Pencil lying across the right page. */}
-        <g transform={`rotate(-7 ${book.x + u(30)} ${book.bottom - u(9)})`}>
-          <rect x={book.x - u(8)} y={book.bottom - u(12)} width={u(78)} height={u(5)} rx={u(1.5)} fill="#7a6a8e" />
-          <rect x={book.x - u(8)} y={book.bottom - u(12)} width={u(78)} height={u(1.6)} rx={u(0.8)} fill="#fff" opacity="0.25" />
-          <path
-            d={`M${book.x + u(70)} ${book.bottom - u(12)} L${book.x + u(82)} ${book.bottom - u(9.5)} L${book.x + u(70)} ${book.bottom - u(7)} Z`}
-            fill="#d8c3a6"
-          />
-          <rect x={book.x - u(14)} y={book.bottom - u(12)} width={u(6)} height={u(5)} rx={u(1.5)} fill="#c4b9f3" opacity="0.8" />
+        {/* ---------- Desk ---------- */}
+        <rect x="0" y={surfaceTop} width={width} height={frontEdge - surfaceTop} fill={url('top')} />
+        <g clipPath={url('surface')}>
+          <rect x="0" y={surfaceTop} width={width} height={lipBottom - surfaceTop} filter={url('grain')} opacity="0.22" />
         </g>
-      </g>
+        <rect x="0" y={surfaceTop} width={width} height={u(16)} fill={url('contact')} />
+        <ellipse className="doze-desk-pool" cx={pool.x} cy={pool.y} rx={u(320)} ry={u(40)} fill={url('pool')} style={{ mixBlendMode: 'screen' }} />
+        {/* The same lamp light on the front edge of the desk. */}
+        <ellipse cx={pool.x} cy={frontEdge + u(4)} rx={u(260)} ry={u(10)} fill={url('pool')} style={{ mixBlendMode: 'screen' }} />
+        <rect x="0" y={frontEdge} width={width} height={lipBottom - frontEdge} fill={url('lip')} />
+        <rect x="0" y={lipBottom} width={width} height={Math.max(0, height - lipBottom)} fill={url('under')} />
+        <rect x="0" y={frontEdge - 0.5} width={width} height="1.5" fill={url('edge')} />
+        <rect x="0" y={lipBottom - 1} width={width} height="1" fill="#000" opacity="0.5" />
 
-      {/* ---------- Laptop ---------- */}
-      <ellipse cx={cx} cy={baseBottom + u(1)} rx={lid.width * 0.6} ry={u(7)} fill="#000" opacity="0.6" filter={url('soft')} />
-      {/* Screen light leaking around the rim of the lid (the screen faces her). */}
-      <path className="doze-desk-rimlight" d={lidPath} fill="none" stroke="#c9c4ff" strokeWidth={u(5)} filter={url('glow')} />
-      {/* Keyboard deck: its near edge shows below the hinge, a little wider than the lid. */}
-      <rect x={cx - lid.width * 0.52} y={baseTop} width={lid.width * 1.04} height={baseBottom - baseTop} rx={u(4)} fill={url('base')} />
-      <rect x={cx - lid.width * 0.5} y={baseTop} width={lid.width} height="1" fill="#fff" opacity="0.28" />
-      {/* Hinge barrel. */}
-      <rect x={cx - lid.width * 0.36} y={lidBottom - u(3)} width={lid.width * 0.72} height={baseTop - lidBottom + u(5)} rx={u(4)} fill={url('hinge')} />
-      {/* Lid back. */}
-      <path d={lidPath} fill={url('lid')} />
-      <g clipPath={url('lidClip')}>
-        <rect x={cx - halfTop} y={lid.top} width={halfTop * 2} height={lidH} fill={url('sheen')} />
-        {/* Lamp light from the left grazing the lid's left side; a soft inner bevel all round. */}
-        <rect x={cx - halfTop} y={lid.top} width={halfTop * 2} height={lidH} fill={url('lampSide')} />
-        <path d={lidPath} fill="none" stroke="#000" strokeOpacity="0.35" strokeWidth={Math.max(2, u(7))} filter={url('glow')} />
-        {/* Post-it on the upper right of the lid back. */}
-        <g transform={`rotate(7 ${cx + halfTop * 0.62} ${lid.top + lidH * 0.28})`}>
-          <rect x={cx + halfTop * 0.5} y={lid.top + lidH * 0.13} width={lid.width * 0.14} height={lid.width * 0.13} rx={u(1.5)} fill="#000" opacity="0.3" transform={`translate(${u(2)} ${u(3)})`} />
-          <rect x={cx + halfTop * 0.5} y={lid.top + lidH * 0.13} width={lid.width * 0.14} height={lid.width * 0.13} rx={u(1.5)} fill="#d9d5f1" opacity="0.82" />
+        {/* ---------- Workbook and pencil (in the lamp light) ---------- */}
+        <ellipse cx={book.x} cy={book.bottom + u(2)} rx={book.wBottom * 0.55} ry={u(5)} fill="#000" opacity="0.45" filter={url('soft')} />
+        <g className="doze-desk-prop">
           <path
-            d={`M${cx + halfTop * 0.5 + lid.width * 0.025} ${lid.top + lidH * 0.13 + lid.width * 0.05} q${lid.width * 0.03} ${-u(3)} ${lid.width * 0.06} 0 t${lid.width * 0.03} 0`}
+            d={`M${book.x - book.wTop / 2} ${book.top} L${book.x + book.wTop / 2} ${book.top} L${book.x + book.wBottom / 2} ${book.bottom} L${book.x - book.wBottom / 2} ${book.bottom} Z`}
+            fill={url('page')}
+          />
+          {/* Ruled lines on both pages, following the perspective. */}
+          {[0.3, 0.52, 0.74].map((t) => {
+            const y = book.top + (book.bottom - book.top) * t
+            const half = (book.wTop + (book.wBottom - book.wTop) * t) / 2
+            return (
+              <g key={t} stroke="#8f8a9c" strokeOpacity="0.45" strokeWidth={Math.max(0.6, u(0.9))}>
+                <line x1={book.x - half * 0.9} y1={y} x2={book.x - half * 0.08} y2={y} />
+                <line x1={book.x + half * 0.08} y1={y} x2={book.x + half * 0.9} y2={y} />
+              </g>
+            )
+          })}
+          <line x1={book.x} y1={book.top} x2={book.x} y2={book.bottom} stroke="#6f6875" strokeOpacity="0.5" strokeWidth={Math.max(0.8, u(1.2))} />
+          {/* Pencil lying across the right page. */}
+          <g transform={`rotate(-7 ${book.x + u(30)} ${book.bottom - u(9)})`}>
+            <rect x={book.x - u(8)} y={book.bottom - u(12)} width={u(78)} height={u(5)} rx={u(1.5)} fill="#7a6a8e" />
+            <rect x={book.x - u(8)} y={book.bottom - u(12)} width={u(78)} height={u(1.6)} rx={u(0.8)} fill="#fff" opacity="0.25" />
+            <path
+              d={`M${book.x + u(70)} ${book.bottom - u(12)} L${book.x + u(82)} ${book.bottom - u(9.5)} L${book.x + u(70)} ${book.bottom - u(7)} Z`}
+              fill="#d8c3a6"
+            />
+            <rect x={book.x - u(14)} y={book.bottom - u(12)} width={u(6)} height={u(5)} rx={u(1.5)} fill="#c4b9f3" opacity="0.8" />
+          </g>
+        </g>
+
+        {/* ---------- Laptop ---------- */}
+        <ellipse cx={cx} cy={baseBottom + u(1)} rx={lid.width * 0.6} ry={u(7)} fill="#000" opacity="0.6" filter={url('soft')} />
+        {/* Keyboard deck: its near edge shows below the hinge, a little wider than the lid. */}
+        <rect x={cx - lidBottomW * 0.53} y={baseTop} width={lidBottomW * 1.06} height={baseBottom - baseTop} rx={u(4)} fill={url('base')} />
+        <rect x={cx - lidBottomW * 0.51} y={baseTop} width={lidBottomW * 1.02} height="1" fill="#fff" opacity="0.28" />
+        {/* Hinge barrel. */}
+        <rect x={cx - lidBottomW * 0.37} y={lidBottom - u(3)} width={lidBottomW * 0.74} height={baseTop - lidBottom + u(5)} rx={u(4)} fill={url('hinge')} />
+        {/* ---------- Capsule trinket ---------- */}
+        <ellipse cx={pill.x} cy={pill.y + u(5)} rx={u(15)} ry={u(3)} fill="#000" opacity="0.5" filter={url('soft')} />
+        <g className="doze-desk-prop" transform={`rotate(-14 ${pill.x} ${pill.y})`}>
+          <rect x={pill.x - u(14)} y={pill.y - u(5.5)} width={u(28)} height={u(11)} rx={u(5.5)} fill="#e1e0e8" />
+          <path d={`M${pill.x - u(14) + u(5.5)} ${pill.y - u(5.5)} H${pill.x} V${pill.y + u(5.5)} H${pill.x - u(14) + u(5.5)} A${u(5.5)} ${u(5.5)} 0 0 1 ${pill.x - u(14) + u(5.5)} ${pill.y - u(5.5)} Z`} fill="#7e54f6" />
+          <rect x={pill.x - u(11)} y={pill.y - u(4)} width={u(20)} height={u(2)} rx={u(1)} fill="#fff" opacity="0.45" />
+        </g>
+
+        {/* ---------- Mug with a faint curl of steam ---------- */}
+        <ellipse cx={mug.x} cy={mug.bottom + u(2)} rx={mug.w * 0.75} ry={u(5)} fill="#000" opacity="0.5" filter={url('soft')} />
+        <g className="doze-desk-prop">
+          <path
+            d={`M${mug.x + mug.w * 0.42} ${mug.bottom - mug.h * 0.78} c${u(18)} 0 ${u(18)} ${mug.h * 0.5} 0 ${mug.h * 0.52}`}
             fill="none"
-            stroke="#6b5f8f"
-            strokeOpacity="0.6"
-            strokeWidth={Math.max(0.8, u(1.4))}
+            stroke="#6c6a78"
+            strokeWidth={u(6)}
             strokeLinecap="round"
           />
-          <circle cx={cx + halfTop * 0.5 + lid.width * 0.11} cy={lid.top + lidH * 0.13 + lid.width * 0.09} r={Math.max(1, u(2.4))} fill="#e24c9a" opacity="0.55" />
+          <path
+            d={`M${mug.x - mug.w / 2} ${mug.bottom - mug.h} V${mug.bottom - u(6)} q0 ${u(6)} ${u(6)} ${u(6)} H${mug.x + mug.w / 2 - u(6)} q${u(6)} 0 ${u(6)} ${-u(6)} V${mug.bottom - mug.h} Z`}
+            fill={url('mug')}
+          />
+          <ellipse cx={mug.x} cy={mug.bottom - mug.h} rx={mug.w / 2} ry={u(5)} fill="#b9b7c4" />
+          <ellipse cx={mug.x} cy={mug.bottom - mug.h + u(0.6)} rx={mug.w / 2 - u(3)} ry={u(3.6)} fill="#2a1c16" />
         </g>
-      </g>
-      {/* Rim: the lid's thickness catching light, brightest on the top edge. */}
-      <path d={lidPath} fill="none" stroke={url('rim')} strokeWidth={Math.max(1, u(2))} />
-      <path
-        d={`M${cx - halfTop + u(14)} ${lid.top + u(1.2)} L${cx + halfTop - u(14)} ${lid.top + u(1.2)}`}
-        stroke="#fff"
-        strokeOpacity="0.35"
-        strokeWidth="1"
-      />
-      {/* CAPSULE logo glowing through the lid. */}
-      <image
-        className="doze-desk-logoglow"
-        href={capsuleLogo.symbol.white}
-        x={cx - logoW / 2}
-        y={lid.top + lidH * 0.44 - logoH / 2}
-        width={logoW}
-        height={logoH}
-        filter={url('logoGlow')}
-      />
-      <image
-        className="doze-desk-logo"
-        href={capsuleLogo.symbol.white}
-        x={cx - logoW / 2}
-        y={lid.top + lidH * 0.44 - logoH / 2}
-        width={logoW}
-        height={logoH}
-      />
+        <g className="doze-desk-steam" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth={Math.max(1, u(2.2))}>
+          <path d={`M${mug.x - u(6)} ${mug.bottom - mug.h - u(6)} c${-u(8)} ${-u(10)} ${u(8)} ${-u(18)} 0 ${-u(30)}`} />
+          <path d={`M${mug.x + u(7)} ${mug.bottom - mug.h - u(8)} c${u(8)} ${-u(10)} ${-u(8)} ${-u(18)} 0 ${-u(28)}`} />
+        </g>
+      </svg>
 
-      {/* ---------- Capsule trinket ---------- */}
-      <ellipse cx={pill.x} cy={pill.y + u(5)} rx={u(15)} ry={u(3)} fill="#000" opacity="0.5" filter={url('soft')} />
-      <g className="doze-desk-prop" transform={`rotate(-14 ${pill.x} ${pill.y})`}>
-        <rect x={pill.x - u(14)} y={pill.y - u(5.5)} width={u(28)} height={u(11)} rx={u(5.5)} fill="#e1e0e8" />
-        <path d={`M${pill.x - u(14) + u(5.5)} ${pill.y - u(5.5)} H${pill.x} V${pill.y + u(5.5)} H${pill.x - u(14) + u(5.5)} A${u(5.5)} ${u(5.5)} 0 0 1 ${pill.x - u(14) + u(5.5)} ${pill.y - u(5.5)} Z`} fill="#7e54f6" />
-        <rect x={pill.x - u(11)} y={pill.y - u(4)} width={u(20)} height={u(2)} rx={u(1)} fill="#fff" opacity="0.45" />
-      </g>
+      {/* ---------- Laptop lid: flat panel, tipped toward us (one projection for everything on it) ---------- */}
+      <div
+        className="doze-lid3d"
+        data-screen={screenOn ? 'on' : undefined}
+        style={{
+          left: `${cx - lidBottomW / 2}px`,
+          top: `${lidBottom - flatH}px`,
+          width: `${lidBottomW}px`,
+          height: `${flatH}px`,
+          transform: `perspective(${perspective}px) rotateX(${-LID_TILT_DEG}deg)`,
+        }}
+      >
+        <svg width={lidBottomW} height={flatH} viewBox={`0 0 ${lidBottomW} ${flatH}`} overflow="visible" aria-hidden="true" focusable="false">
+          <defs>
+            {/* Lid back: anodized dark aluminium with a diagonal sheen. */}
+            <linearGradient id={id('lid')} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#3d3b48" />
+              <stop offset="0.55" stopColor="#2a2833" />
+              <stop offset="1" stopColor="#1c1b24" />
+            </linearGradient>
+            <linearGradient id={id('sheen')} x1="0" y1="0" x2="1" y2="0.55">
+              <stop offset="0" stopColor="#fff" stopOpacity="0" />
+              <stop offset="0.3" stopColor="#fff" stopOpacity="0.09" />
+              <stop offset="0.42" stopColor="#fff" stopOpacity="0.02" />
+              <stop offset="0.6" stopColor="#fff" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id={id('rim')} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#f0efff" stopOpacity="0.5" />
+              <stop offset="0.25" stopColor="#d9d5f1" stopOpacity="0.16" />
+              <stop offset="1" stopColor="#d9d5f1" stopOpacity="0.05" />
+            </linearGradient>
+            <linearGradient id={id('lampSide')} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor="#ffcfa3" stopOpacity="0.16" />
+              <stop offset="0.12" stopColor="#ffcfa3" stopOpacity="0.04" />
+              <stop offset="0.3" stopColor="#ffcfa3" stopOpacity="0" />
+            </linearGradient>
+            <clipPath id={id('lidClip')}>
+              <path d={flatPath} />
+            </clipPath>
+            <filter id={id('lidGlow')} x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation={Math.max(2, u(5))} />
+            </filter>
+            <filter id={id('logoGlow')} x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation={Math.max(3, logoW * 0.16)} />
+              <feColorMatrix type="matrix" values="0 0 0 0 0.75  0 0 0 0 0.7  0 0 0 0 1  0 0 0 1 0" />
+            </filter>
 
-      {/* ---------- Mug with a faint curl of steam ---------- */}
-      <ellipse cx={mug.x} cy={mug.bottom + u(2)} rx={mug.w * 0.75} ry={u(5)} fill="#000" opacity="0.5" filter={url('soft')} />
-      <g className="doze-desk-prop">
-        <path
-          d={`M${mug.x + mug.w * 0.42} ${mug.bottom - mug.h * 0.78} c${u(18)} 0 ${u(18)} ${mug.h * 0.5} 0 ${mug.h * 0.52}`}
-          fill="none"
-          stroke="#6c6a78"
-          strokeWidth={u(6)}
-          strokeLinecap="round"
-        />
-        <path
-          d={`M${mug.x - mug.w / 2} ${mug.bottom - mug.h} V${mug.bottom - u(6)} q0 ${u(6)} ${u(6)} ${u(6)} H${mug.x + mug.w / 2 - u(6)} q${u(6)} 0 ${u(6)} ${-u(6)} V${mug.bottom - mug.h} Z`}
-          fill={url('mug')}
-        />
-        <ellipse cx={mug.x} cy={mug.bottom - mug.h} rx={mug.w / 2} ry={u(5)} fill="#b9b7c4" />
-        <ellipse cx={mug.x} cy={mug.bottom - mug.h + u(0.6)} rx={mug.w / 2 - u(3)} ry={u(3.6)} fill="#2a1c16" />
-      </g>
-      <g className="doze-desk-steam" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth={Math.max(1, u(2.2))}>
-        <path d={`M${mug.x - u(6)} ${mug.bottom - mug.h - u(6)} c${-u(8)} ${-u(10)} ${u(8)} ${-u(18)} 0 ${-u(30)}`} />
-        <path d={`M${mug.x + u(7)} ${mug.bottom - mug.h - u(8)} c${u(8)} ${-u(10)} ${-u(8)} ${-u(18)} 0 ${-u(28)}`} />
-      </g>
-    </svg>
+          </defs>
+          {/* Screen light leaking around the rim (the screen faces her). */}
+          <path className="doze-desk-rimlight" d={flatPath} fill="none" stroke="#c9c4ff" strokeWidth={u(5)} filter={url('lidGlow')} />
+          <path d={flatPath} fill={url('lid')} />
+          <g clipPath={url('lidClip')}>
+            <rect x="0" y="0" width={lidBottomW} height={flatH} fill={url('sheen')} />
+            {/* Lamp light from the left grazing the lid's left side; a soft inner bevel all round. */}
+            <rect x="0" y="0" width={lidBottomW} height={flatH} fill={url('lampSide')} />
+            <path d={flatPath} fill="none" stroke="#000" strokeOpacity="0.35" strokeWidth={Math.max(2, u(7))} filter={url('lidGlow')} />
+            {/* Post-it on the upper right. */}
+            <g transform={`rotate(7 ${note.x + note.w / 2} ${note.y + note.h / 2})`}>
+              <rect x={note.x + u(2)} y={note.y + u(3)} width={note.w} height={note.h} rx={u(1.5)} fill="#000" opacity="0.3" />
+              <rect x={note.x} y={note.y} width={note.w} height={note.h} rx={u(1.5)} fill="#d9d5f1" opacity="0.82" />
+              <path
+                d={`M${note.x + note.w * 0.18} ${note.y + note.h * 0.4} q${note.w * 0.2} ${-u(3)} ${note.w * 0.42} 0 t${note.w * 0.22} 0`}
+                fill="none"
+                stroke="#6b5f8f"
+                strokeOpacity="0.6"
+                strokeWidth={Math.max(0.8, u(1.4))}
+                strokeLinecap="round"
+              />
+              <circle cx={note.x + note.w * 0.78} cy={note.y + note.h * 0.72} r={Math.max(1, u(2.4))} fill="#e24c9a" opacity="0.55" />
+            </g>
+          </g>
+          {/* Rim: the lid's thickness catching light, brightest on the top edge. */}
+          <path d={flatPath} fill="none" stroke={url('rim')} strokeWidth={Math.max(1, u(2))} />
+          <path d={`M${u(14)} ${u(1.2)} L${lidBottomW - u(14)} ${u(1.2)}`} stroke="#fff" strokeOpacity="0.35" strokeWidth="1" />
+          {/* CAPSULE logo glowing through the lid. */}
+          <image
+            className="doze-desk-logoglow"
+            href={capsuleLogo.symbol.white}
+            x={lidBottomW / 2 - logoW / 2}
+            y={flatH * 0.46 - logoH / 2}
+            width={logoW}
+            height={logoH}
+            filter={url('logoGlow')}
+          />
+          <image
+            className="doze-desk-logo"
+            href={capsuleLogo.symbol.white}
+            x={lidBottomW / 2 - logoW / 2}
+            y={flatH * 0.46 - logoH / 2}
+            width={logoW}
+            height={logoH}
+          />
+        </svg>
+      </div>
+    </>
   )
 }
+
+/** Lid tilt toward the viewer and how much wider its top edge looks than its bottom edge (~12 %). */
+const LID_TILT_DEG = 20
+const LID_TOP_SCALE = 1.12
 
 /** Closed path of a trapezoid with rounded corners (top corners `rt`, bottom corners `rb`). */
 function roundedTrapezoid(
