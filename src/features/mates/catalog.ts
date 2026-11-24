@@ -10,9 +10,6 @@ export type MateProfile = {
   farewellLine?: string
   tags: readonly string[]
   ageRating: 'all'
-  /** Home card: relationship style and a one-line introduction. */
-  relationTag?: string
-  tagline?: string
 }
 
 /** Only approved launch characters belong here. The male mate has not been supplied yet. */
@@ -25,8 +22,6 @@ export const launchMates: readonly MateProfile[] = [{
   intro: '',
   tags: [],
   ageRating: 'all',
-  relationTag: '연애형',
-  tagline: '시간이 지나도, 변하지 않는 마음이 있어요.',
 }]
 
 export type AvailableMate = MateProfile & {
