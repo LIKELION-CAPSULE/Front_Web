@@ -1,16 +1,15 @@
 import { Component, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Heatmap } from '@paper-design/shaders-react'
 import type { PaperShaderElement } from '@paper-design/shaders'
-// Dark silhouette of the official symbol (the heatmap preprocessing reads dark-on-white as the shape). Imported here
-// directly because brand-logo.ts only exposes the white / colour symbols and this draft is DEV-only.
-import symbolSilhouetteUrl from '../../../../../design/brand/capsule-logo-2026-11-22-v2/capsule-symbol-black.svg'
 
 /**
- * CAPSULE logo on the back of the laptop lid, glowing like warm metal from inside (Paper Shaders `Heatmap`,
+ * Heat flowing inside the capsule of the CAPSULE logo on the laptop lid, like warm metal (Paper Shaders `Heatmap`,
  * Apache-2.0, see docs/THIRD_PARTY_NOTICES.md). Loaded lazily by DozeDesk only when the live (Live2D) path runs;
  * reduced motion, no WebGL and the still path keep the static logo and never load this module.
  *
  * - Colours: logo v2 violet ramp only (no heatmap blue / orange / red).
+ * - It is light added on top of the static logo (DozeDesk keeps that logo as it was and screens this over it, masked
+ *   to the capsule), so the logo always reads; the input silhouette is the capsule glyph, not the whole tile.
  * - The shader parameters stay fixed per state (changing them re-uploads the image); the 0.9 s brighten on waking is
  *   CSS (opacity, brightness, drop-shadow), timed with the rest of the laptop light.
  * - Canvas = this box only, at most 2 device px per CSS px (`maxPixelCount`); the mount pauses itself while the tab is
@@ -25,7 +24,7 @@ export const LID_HEATMAP_COLORS = ['#8053F200', '#8053F2', '#A98BF6', '#D4C3FA',
 const HEATMAP_PARAMS = {
   dozing: { speed: 0.22 },
   awake: { speed: 0.45 },
-  shared: { contour: 0.35, angle: 0, noise: 0.05, innerGlow: 0.42, outerGlow: 0.22 },
+  shared: { contour: 0.5, angle: 0, noise: 0.05, innerGlow: 0.6, outerGlow: 0 },
 } as const
 
 function supportsWebGL2(): boolean {
@@ -51,6 +50,7 @@ class ShaderBoundary extends Component<{ onFail: () => void; children: ReactNode
 
 function HeatmapCanvas({
   awake,
+  silhouette,
   width,
   height,
   scale,
@@ -58,6 +58,7 @@ function HeatmapCanvas({
   onFail,
 }: {
   awake: boolean
+  silhouette: string
   width: number
   height: number
   scale: number
@@ -108,7 +109,7 @@ function HeatmapCanvas({
       className="doze-heatmap-canvas"
       width={width}
       height={height}
-      image={symbolSilhouetteUrl}
+      image={silhouette}
       colors={[...LID_HEATMAP_COLORS]}
       colorBack="#00000000"
       speed={params.speed}
@@ -123,13 +124,16 @@ function HeatmapCanvas({
 
 export default function LidHeatmapLogo({
   awake,
+  silhouette,
   width,
   height,
   scale,
   onActiveChange,
 }: {
   awake: boolean
-  /** CSS px of the shader box (the logo plus room for its glow). */
+  /** Dark-on-transparent image whose shape the heat flows in (an image URL). */
+  silhouette: string
+  /** CSS px of the shader box (the shape plus room around it). */
   width: number
   height: number
   /** Shrinks the silhouette inside the box (1 = fills it). */
@@ -151,7 +155,7 @@ export default function LidHeatmapLogo({
   }
   return (
     <ShaderBoundary onFail={fail}>
-      <HeatmapCanvas awake={awake} width={width} height={height} scale={scale} onReady={() => onActiveRef.current(true)} onFail={fail} />
+      <HeatmapCanvas awake={awake} silhouette={silhouette} width={width} height={height} scale={scale} onReady={() => onActiveRef.current(true)} onFail={fail} />
     </ShaderBoundary>
   )
 }

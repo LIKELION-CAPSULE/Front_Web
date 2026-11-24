@@ -1,16 +1,21 @@
 import { Suspense, lazy, useId, useState } from 'react'
 import { capsuleLogo } from '@/shared/design/brand-logo'
 import type { DozeSceneLayout } from './doze-view'
+// The capsule alone (no tile), dark on transparent: the heatmap's input and the mask that keeps its light inside the
+// capsule. Imported directly because brand-logo.ts only exposes the colour glyph and this draft is DEV-only.
+import capsuleGlyphUrl from '../../../../../design/brand/capsule-logo-2026-11-22-v2/capsule-glyph-black.svg'
 
 /** Heatmap shader logo (WebGL): its own lazy chunk, fetched only on the live path. */
 const LidHeatmapLogo = lazy(() => import('./LidHeatmapLogo'))
 
 /**
  * With `fit: contain` and `scale: 1` the Heatmap shader fills its box with the silhouette's own bounds (it crops the
- * padding its preprocessing adds). The box is made HEATMAP_BOX × the logo and the picture scaled back by 1/HEATMAP_BOX,
- * so the silhouette lands exactly on the static logo and the outer glow has room around it.
+ * padding its preprocessing adds). The box is made HEATMAP_BOX × the capsule and the picture scaled back by
+ * 1/HEATMAP_BOX, so the heat lands exactly on the capsule of the static logo.
  */
 const HEATMAP_BOX = 1.35
+/** Where the capsule glyph (viewBox 335×266) sits inside the symbol (viewBox 472×456): the glyph's translate(-75 -104). */
+const GLYPH_IN_SYMBOL = { x: 75, y: 104, w: 335, h: 266, symbolW: 472, symbolH: 456 } as const
 
 /**
  * The desk and laptop in front of the dozing mate (DEV-only login draft), drawn with inline SVG in stage px so it
@@ -68,8 +73,15 @@ export function DozeDesk({
   const logoH = logoW * (456 / 472)
   const logoCx = lidBottomW / 2
   const logoCy = flatH * 0.46
-  const heatW = logoW * HEATMAP_BOX
-  const heatH = logoH * HEATMAP_BOX
+  // The capsule's box inside the logo, and the shader box around it.
+  const glyph = {
+    cx: logoCx - logoW / 2 + ((GLYPH_IN_SYMBOL.x + GLYPH_IN_SYMBOL.w / 2) / GLYPH_IN_SYMBOL.symbolW) * logoW,
+    cy: logoCy - logoH / 2 + ((GLYPH_IN_SYMBOL.y + GLYPH_IN_SYMBOL.h / 2) / GLYPH_IN_SYMBOL.symbolH) * logoH,
+    w: (GLYPH_IN_SYMBOL.w / GLYPH_IN_SYMBOL.symbolW) * logoW,
+    h: (GLYPH_IN_SYMBOL.h / GLYPH_IN_SYMBOL.symbolH) * logoH,
+  }
+  const heatW = glyph.w * HEATMAP_BOX
+  const heatH = glyph.h * HEATMAP_BOX
   const note = { x: lidBottomW * 0.74, y: flatH * 0.14, w: lidBottomW * 0.145, h: lidBottomW * 0.135 }
 
   // Props, placed around the laptop in model px so they keep their size relation to her at every framing.
@@ -346,10 +358,27 @@ export function DozeDesk({
             className="doze-heatmap"
             data-awake={screenOn || undefined}
             data-active={heatActive || undefined}
-            style={{ left: `${logoCx - heatW / 2}px`, top: `${logoCy - heatH / 2}px`, width: `${heatW}px`, height: `${heatH}px` }}
+            style={{
+              left: `${glyph.cx - heatW / 2}px`,
+              top: `${glyph.cy - heatH / 2}px`,
+              width: `${heatW}px`,
+              height: `${heatH}px`,
+              // Light only inside the capsule: the glyph itself is the mask, sized to the capsule inside the box.
+              WebkitMaskImage: `url(${capsuleGlyphUrl})`,
+              maskImage: `url(${capsuleGlyphUrl})`,
+              WebkitMaskSize: `${100 / HEATMAP_BOX}% ${100 / HEATMAP_BOX}%`,
+              maskSize: `${100 / HEATMAP_BOX}% ${100 / HEATMAP_BOX}%`,
+            }}
           >
             <Suspense fallback={null}>
-              <LidHeatmapLogo awake={screenOn} width={heatW} height={heatH} scale={1 / HEATMAP_BOX} onActiveChange={setHeatActive} />
+              <LidHeatmapLogo
+                awake={screenOn}
+                silhouette={capsuleGlyphUrl}
+                width={heatW}
+                height={heatH}
+                scale={1 / HEATMAP_BOX}
+                onActiveChange={setHeatActive}
+              />
             </Suspense>
           </div>
         )}
