@@ -322,9 +322,9 @@ export default function MyMatesPage() {
   const actions = (
     <>
       {import.meta.env.DEV && previewMate ? (
-        <span className="my-mates-meet my-mates-meet--disabled" aria-disabled="true">시안 메이트예요</span>
+        <span className="my-mates-meet my-mates-meet--disabled" aria-disabled="true" data-tour="my-mates-meet">시안 메이트예요</span>
       ) : (
-        <ButtonLink to={`/mates/${selectedMate.id}`} className="my-mates-meet">
+        <ButtonLink to={`/mates/${selectedMate.id}`} className="my-mates-meet" data-tour="my-mates-meet">
           {`${mateName} 만나러 가기`}
           <Icon name="chevron" size={16} />
         </ButtonLink>
@@ -342,7 +342,7 @@ export default function MyMatesPage() {
           <MateSwitcher mates={switcherMates} selectedId={selectedId} onSelect={selectMate} />
         </div>
 
-        <div className="my-mates-scene">
+        <div className="my-mates-scene" data-tour="my-mates-scene">
           <Suspense fallback={<div className="my-mates-scene-loading" aria-busy="true" />}>
             <CapsuleJar
               // One scene per mate: nothing of the previous mate's opening or record card can linger.

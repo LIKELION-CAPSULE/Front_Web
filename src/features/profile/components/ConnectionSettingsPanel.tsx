@@ -48,7 +48,7 @@ export function ConnectionSettingsPanel() {
   return (
     <>
       <h2 className="account-settings-title">설정</h2>
-      <div className="connection-settings-groups">
+      <div className="connection-settings-groups" data-tour="account-settings">
         <section className="connection-settings-group" aria-labelledby={devicesId}>
           <h3 id={devicesId} className="connection-settings-group-title">
             통화 기기

@@ -139,28 +139,28 @@ export default function MateDetailPage() {
 
         <section className="mate-hero-info page-container" aria-labelledby="mate-name">
           <div className="mate-hero-copy">
-            <h1 id="mate-name" className="mate-hero-name">
+            <h1 id="mate-name" className="mate-hero-name" data-tour="mate-detail-name">
               {mate.name}
               <span className="mate-hero-mark">
                 <Sparkle />
                 AI 캐릭터
               </span>
             </h1>
-            {introduction && <p className="mate-hero-tagline">{introduction}</p>}
-            {intro && <p className="mate-hero-situation">{intro}</p>}
+            {introduction && <p className="mate-hero-tagline" data-tour="mate-detail-tagline">{introduction}</p>}
+            {intro && <p className="mate-hero-situation" data-tour="mate-detail-intro">{intro}</p>}
             {mate.firstLine && <p className="mate-hero-description mate-hero-first-line">“{mate.firstLine}”</p>}
             {description && <p className="mate-hero-description">{description}</p>}
             {role && <p className="mate-hero-role">내 역할 · {role}</p>}
 
             <div className="mate-hero-tiles">
-              <div className="mate-hero-tile-group">
+              <div className="mate-hero-tile-group" data-tour="mate-detail-age">
                 <span className="mate-hero-tile-caption">연령 등급</span>
                 <div className="mate-hero-tile">
                   <Icon name="check" size={30} />
                   <strong>{ageRatingLabel(mate.ageRating)}</strong>
                 </div>
               </div>
-              <div className="mate-hero-tile-group">
+              <div className="mate-hero-tile-group" data-tour="mate-detail-voice">
                 <span className="mate-hero-tile-caption">목소리</span>
                 <VoiceSampleButton
                   className="mate-hero-tile mate-hero-voice"
@@ -173,7 +173,7 @@ export default function MateDetailPage() {
               </div>
             </div>
 
-            <div className="mate-hero-actions">
+            <div className="mate-hero-actions" data-tour="mate-detail-connect">
               <ConnectMateButton mate={mate} />
             </div>
 

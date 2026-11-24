@@ -1,12 +1,29 @@
 /*
- * 홈 「사용법 보기」 coach mark (MateTutorial.tsx). Dim page + lit target (spotlight), 채린's cursor (Showcase Pointer),
+ * 서비스 투어 (ServiceTour.tsx, 홈 「사용법 보기」). Dim page + lit target (spotlight), 채린's cursor (Showcase Pointer),
  * a small glass panel with skip / next. No outlines; violet only for the main action and the cursor
  * (docs/DESIGN_SYSTEM.md). Every layer except the panel lets pointers through.
  */
-.home-tour { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+/* The layer is a manual popover (top layer): reset the UA popover box to a full-viewport, see-through sheet. */
+.service-tour-layer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  color: inherit;
+  pointer-events: none;
+}
+.service-tour-layer:not(:popover-open) { display: block; }
+.service-tour { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
 
 /* Dim with a hole around the target: one box with a huge shadow, so the hole needs no clip path. */
-.home-tour-dim {
+.service-tour-dim {
   position: fixed;
   z-index: 1;
   inset: 0;
@@ -14,7 +31,7 @@
   pointer-events: none;
   transition: background 240ms ease;
 }
-.home-tour-dim[data-spot] {
+.service-tour-dim[data-spot] {
   inset: auto;
   top: var(--spot-top);
   left: var(--spot-left);
@@ -27,7 +44,7 @@
 }
 
 /* 채린's cursor: lines wrap instead of running off screen; her avatar sits in the name pill. */
-.home-tour-pointer .showcase-pointer-cursor-label {
+.service-tour-pointer .showcase-pointer-cursor-label {
   /* The anchor is a point: without max-content the pill would shrink to one character per line. */
   width: max-content;
   max-width: min(300px, calc(100vw - 48px));
@@ -39,34 +56,35 @@
   font-size: 13.5px;
   line-height: 1.45;
 }
-.home-tour-pointer .showcase-pointer-cursor-label::before {
+.service-tour-pointer .showcase-pointer-cursor-label::before {
   flex: none;
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--home-tour-avatar) center / cover no-repeat, color-mix(in srgb, #fff 24%, transparent);
+  background: var(--service-tour-avatar) center / cover no-repeat, color-mix(in srgb, #fff 24%, transparent);
   content: '';
 }
 /* Targets at the right edge (credits, profile): the label opens to the left of the arrow. */
-.home-tour-pointer--label-left .showcase-pointer-cursor-label-anchor { right: 8px; left: auto; }
+.service-tour-pointer--label-left .showcase-pointer-cursor-label-anchor { right: 8px; left: auto; }
 
 /* What the real hover / press would show, driven by the cursor's state attributes. */
 a.mate-card[data-cursor-hover] { transform: translateY(-4px); }
+.account-settings-tab[data-cursor-hover] { color: var(--color-ink); }
 .app-nav-item[data-cursor-hover] { color: var(--color-text-accent); }
 .credit-chip[data-cursor-hover] { color: var(--color-ink); }
 [data-cursor-press] { transform: scale(0.97); transition: transform 90ms ease-out; }
 
 /* The visual press of 「연결하기」: a local preview of what a connection has (nothing starts). */
-.home-tour-preview {
+.service-tour-preview {
   position: fixed;
   z-index: 3;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   max-width: 320px;
-  animation: home-tour-pop 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: service-tour-pop 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.home-tour-preview > span {
+.service-tour-preview > span {
   border-radius: 999px;
   background: var(--color-selected);
   padding: 6px 12px;
@@ -77,7 +95,7 @@ a.mate-card[data-cursor-hover] { transform: translateY(-4px); }
 }
 
 /* Reduced motion: 채린's line next to the target. */
-.home-tour-line {
+.service-tour-line {
   position: fixed;
   z-index: 3;
   top: 40%;
@@ -94,11 +112,11 @@ a.mate-card[data-cursor-hover] { transform: translateY(-4px); }
   line-height: 1.45;
   word-break: keep-all;
 }
-.home-tour-line img { flex: none; width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
-.home-tour-line b { display: block; font-size: 12px; font-weight: 700; }
+.service-tour-line img { flex: none; width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+.service-tour-line b { display: block; font-size: 12px; font-weight: 700; }
 
 /* Panel: the home speech bubble's glass, bottom centre. */
-.home-tour-panel {
+.service-tour-panel {
   position: fixed;
   z-index: 4;
   bottom: max(24px, env(safe-area-inset-bottom));
@@ -115,27 +133,61 @@ a.mate-card[data-cursor-hover] { transform: translateY(-4px); }
   pointer-events: auto;
 }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .home-tour-panel {
+  .service-tour-panel {
     background: linear-gradient(135deg, color-mix(in srgb, var(--color-panel) 68%, transparent), color-mix(in srgb, var(--color-canvas) 62%, transparent));
     -webkit-backdrop-filter: blur(18px) saturate(140%);
     backdrop-filter: blur(18px) saturate(140%);
   }
 }
-.home-tour-title { margin: 0; color: var(--color-ink); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 600; white-space: nowrap; }
-.home-tour-count { margin-left: 8px; color: var(--color-subtle); font-weight: 500; font-variant-numeric: tabular-nums; }
-.home-tour-actions { display: flex; gap: 8px; }
+.service-tour-panel[data-place='top'] { top: 96px; bottom: auto; }
+.service-tour-title { margin: 0; color: var(--color-ink); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 600; white-space: nowrap; }
+.service-tour-count { margin-left: 8px; color: var(--color-subtle); font-weight: 500; font-variant-numeric: tabular-nums; }
+.service-tour-screen {
+  margin-left: 10px;
+  border-radius: 999px;
+  background: var(--color-selected);
+  padding: 2px 10px;
+  color: var(--color-selected-text);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  font-weight: 600;
+}
+.service-tour-actions { display: flex; gap: 8px; }
 
-@keyframes home-tour-pop {
+@keyframes service-tour-pop {
   from { opacity: 0; transform: translateY(-4px); }
 }
 
+/* 연습 통화: the real call screen's look; the badge says it is a practice. */
+.tour-call-dock { display: contents; }
+.tour-call-badge {
+  position: fixed;
+  z-index: 5;
+  top: 52px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--color-selected);
+  padding: 6px 14px;
+  color: var(--color-selected-text);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  box-shadow: var(--floating-shadow);
+}
+
 @media (max-width: 479px) {
-  .home-tour-panel { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
-  .home-tour-actions > * { flex: 1; }
+  .service-tour-panel { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
+  .service-tour-actions > * { flex: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-tour-dim, .home-tour-dim[data-spot] { transition: none; }
-  .home-tour-preview { animation: none; }
+  .service-tour-dim, .service-tour-dim[data-spot] { transition: none; }
+  .service-tour-preview { animation: none; }
   [data-cursor-press] { transition: none; }
 }

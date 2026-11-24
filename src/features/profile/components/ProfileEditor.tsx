@@ -90,7 +90,7 @@ export function ProfileEditor({
           }}
         >
           <div className="profile-editor-grid">
-            <div className="profile-editor-dial-col">
+            <div className="profile-editor-dial-col" data-tour="account-avatar">
               <AvatarDial
                 size="compact"
                 avatars={choices}

@@ -298,7 +298,7 @@ export function CapsuleBoard({
 
   if (fallback) {
     return (
-      <div className="capsule-board capsule-board--fallback" data-board-fallback>
+      <div className="capsule-board capsule-board--fallback" data-board-fallback data-tour="records-board">
         <CapsuleLegend mode={model.calendar.mode} showKeepsake={model.hasKeepsake} />
         <CapsuleCalendar data={model.calendar} selectedKey={selectedKey} onSelect={onSelectDay} />
       </div>
@@ -309,6 +309,7 @@ export function CapsuleBoard({
     <div
       ref={wrapRef}
       className="capsule-board"
+      data-tour="records-board"
       data-mode={model.mode}
       data-view={view}
       data-focus={activeFocus !== null || undefined}
