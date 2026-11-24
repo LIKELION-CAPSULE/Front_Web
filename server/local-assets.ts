@@ -4,7 +4,7 @@ import type { Plugin } from 'vite'
 
 type Mount = { prefix: string; dir: string; allow: RegExp }
 
-/** Aliving2D mate bundle (chaerin-v2, seojin): model.json, its part PNGs and the engine scripts. Exported for tests. */
+/** Aliving2D mate bundle (chaerin-v2, chaerin-v3, seojin): model.json, its part PNGs and the engine scripts. Exported for tests. */
 export const V2_MATE_ALLOW = /^\/(model\/model\.json|model\/parts\/\d{3}_[\w@-]+\.png|engine\/(engine|player)\.js|engine\/reactions\.default\.json)$/
 
 /** Exported for tests: the avatar mount's allowlist (paths relative to `/__local-assets/avatars`). */
@@ -14,7 +14,8 @@ export const AVATAR_ALLOW =
 /**
  * Runtime files only. Names are restricted to [\w@.-] segments, so no path can leave the folder.
  * - chaerin: Cubism bundle (legacy)
- * - chaerin-v2, seojin: Aliving2D bundles (model.json + part PNGs) and their engine scripts
+ * - chaerin-v3 (current 채린), chaerin-v2 (previous top / neck art, kept for comparison and for bundles that do not
+ *   have v3 yet), seojin: Aliving2D bundles (model.json + part PNGs) and their engine scripts
  * - avatars: the six Live2D sample avatars (Cubism). Only each model's `runtime/` folder (json, moc3, png; at most one
  *   sub-folder deep) and the generated thumbnails; never the editor sources (cmo3, can3, psd) next to it. Every segment
  *   starts with a letter, digit or `_`, so `.` and `..` cannot match.
@@ -24,6 +25,11 @@ const MOUNTS: readonly Mount[] = [
     prefix: '/__local-assets/chaerin',
     dir: '../local-assets/chaerin/',
     allow: /^\/(model\.model3\.json|files\/\d{3}\.(moc3|png|physics3\.json|cdi3\.json|exp3\.json))$/,
+  },
+  {
+    prefix: '/__local-assets/chaerin-v3',
+    dir: '../local-assets/chaerin-v3/',
+    allow: V2_MATE_ALLOW,
   },
   {
     prefix: '/__local-assets/chaerin-v2',
@@ -55,12 +61,13 @@ export function localAssetsPlugin(): Plugin {
   return {
     name: 'capsule-local-assets', apply: 'serve',
     configureServer(server) {
-      // Longer prefixes first so '/chaerin-v2' is not swallowed by '/chaerin'.
+      // Longer prefixes first so '/chaerin-v2' and '/chaerin-v3' are not swallowed by '/chaerin'.
       for (const mount of [...MOUNTS].sort((a, b) => b.prefix.length - a.prefix.length)) {
         const root = new URL(mount.dir, import.meta.url)
         server.middlewares.use(mount.prefix, (req, res, next) => {
           const path = (req.url ?? '').split('?')[0]
-          // connect strips the prefix; '/chaerin-v2/...' requests reaching the '/chaerin' mount start with '-v2'.
+          // connect strips the prefix; '/chaerin-v2/...' or '/chaerin-v3/...' requests reaching the '/chaerin' mount
+          // start with '-v2' / '-v3', not '/'.
           if (!path.startsWith('/')) return next()
           if (!mount.allow.test(path)) { res.statusCode = 404; res.end(); return }
           if (req.method !== 'GET' && req.method !== 'HEAD') return next()

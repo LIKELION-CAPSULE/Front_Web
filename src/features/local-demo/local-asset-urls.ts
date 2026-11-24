@@ -4,12 +4,16 @@
  * in a production bundle (checked by searching the build output).
  */
 export const LOCAL_MODEL_URL = '/__local-assets/chaerin/model.model3.json'
-export const LOCAL_V2_MODEL_URL = '/__local-assets/chaerin-v2/model/model.json'
-export const LOCAL_V2_ENGINE_URL = '/__local-assets/chaerin-v2/engine/engine.js'
-export const LOCAL_V2_PLAYER_URL = '/__local-assets/chaerin-v2/engine/player.js'
-export const LOCAL_V2_REACTIONS_URL = '/__local-assets/chaerin-v2/engine/reactions.default.json'
+/**
+ * 채린's v2-format (Aliving2D) bundle. Since 2026-11-25 the local one is `chaerin-v3` (new top and neck art; same
+ * parts, expressions, outfits, motions and engine as `chaerin-v2`). The `V2` in the names is the model format.
+ */
+export const LOCAL_V2_MODEL_URL = '/__local-assets/chaerin-v3/model/model.json'
+export const LOCAL_V2_ENGINE_URL = '/__local-assets/chaerin-v3/engine/engine.js'
+export const LOCAL_V2_PLAYER_URL = '/__local-assets/chaerin-v3/engine/player.js'
+export const LOCAL_V2_REACTIONS_URL = '/__local-assets/chaerin-v3/engine/reactions.default.json'
 
-/** 서도현's v2 bundle (model folder `seojin`; the engine files are byte-identical to chaerin-v2's). */
+/** 서도현's v2 bundle (model folder `seojin`; the engine files are byte-identical to chaerin-v2/v3's). */
 export const LOCAL_DOHYUN_V2_MODEL_URL = '/__local-assets/seojin/model/model.json'
 export const LOCAL_DOHYUN_V2_ENGINE_URL = '/__local-assets/seojin/engine/engine.js'
 export const LOCAL_DOHYUN_V2_PLAYER_URL = '/__local-assets/seojin/engine/player.js'

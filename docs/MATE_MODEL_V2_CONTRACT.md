@@ -102,8 +102,12 @@
 - 정지 이미지(카드·히어로·아바타·전신, 표정 썸네일·흉상)는 모델 렌더 임시본이에요(`src/assets/characters/seojin/`, 채린 v2와 같은 뷰). 정식 일러스트가 오면 교체해요. 서버 `profileImageUrl`도 같은 카드 구도(머리→가슴, 4:3)면 맞아요.
 - 시스템 프롬프트·세계관·키워드북은 서버 페르소나예요. 프런트에는 표시 문구(소개·역할·시작 상황·첫 대사)와 로컬 mock 대사만 있어요.
 
+## 채린 모델 v3 (2026-11-25)
+
+- 채린 모델 v3(상의 변경) — 백엔드에 v3 묶음 전달 필요. 같은 형식·파츠·표정·의상·엔진이고 상의·목 그림과 `model.json`만 바뀌었어요. 앱의 채린 정지 이미지(`src/assets/characters/chaerin-v2/`, 폴더 이름 유지)는 v3로 다시 렌더했으니, 운영 `modelJsonUrl`도 v3를 가리켜야 Live2D와 정지 이미지의 옷이 같아요.
+
 ## 로컬 mock
 
-- 미리보기: `src/features/local-demo/ports.ts`가 캐릭터 id에 맞는 `LOCAL_V2_MODELS`(`/__local-assets/chaerin-v2/...`, `/__local-assets/seojin/...`)를 위 형태로 돌려줘요.
+- 미리보기: `src/features/local-demo/ports.ts`가 캐릭터 id에 맞는 `LOCAL_V2_MODELS`(`/__local-assets/chaerin-v3/...`, `/__local-assets/seojin/...`)를 위 형태로 돌려줘요.
 - 연결: `src/features/local-demo/transport.ts`가 세션 `character`에 같은 필드를 넣고, 이벤트·반응·대화 응답에 백엔드 시드와 같은 한국어 표정 이름(`집중`, `삐짐`, `웃음` …)과 짧은 대사를 넣어요.
 - dev 서버(`server/local-assets.ts`)에서만 제공되며 운영 번들에는 `__local-assets` 경로가 없어요(빌드 결과 검색으로 확인).
