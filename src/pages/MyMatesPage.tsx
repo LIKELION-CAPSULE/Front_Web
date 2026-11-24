@@ -70,24 +70,9 @@ function isReviewMyMatesLoading(): boolean {
   )
 }
 
-function MyMatesWindowFrame({
-  loadingScreen,
-  bleed = false,
-  children,
-}: {
-  loadingScreen?: 'my-mates'
-  /** `?layout=bleed`: the mate panel fills the page's left side edge to edge (comparison layout, my-mates.css). */
-  bleed?: boolean
-  children: React.ReactNode
-}) {
+function MyMatesWindowFrame({ loadingScreen, children }: { loadingScreen?: 'my-mates'; children: React.ReactNode }) {
   return (
-    <AppPanel
-      title="내 메이트"
-      hideTitle
-      className={bleed ? 'my-mates-window my-mates-window--bleed' : 'my-mates-window'}
-      loadingScreen={loadingScreen}
-      bodyClassName="my-mates-window-body"
-    >
+    <AppPanel title="내 메이트" hideTitle className="my-mates-window" loadingScreen={loadingScreen} bodyClassName="my-mates-window-body">
       {children}
     </AppPanel>
   )
@@ -111,8 +96,6 @@ export default function MyMatesPage() {
   const jarRef = useRef<CapsuleJarHandle>(null)
 
   const features = resolveMateFeatures(import.meta.env.DEV, searchParams.get('features'))
-  // Two layouts to compare: the default (panel inside the page margins) and `?layout=bleed` (edge to edge).
-  const bleed = searchParams.get('layout') === 'bleed'
   // Every development-only branch below starts with `import.meta.env.DEV` so production builds drop it entirely.
   const previewMates =
     import.meta.env.DEV && devSamples && searchParams.get('mates') === 'demo' ? devSamples.PREVIEW_MATES : null
@@ -211,7 +194,7 @@ export default function MyMatesPage() {
 
   if (loading) {
     return (
-      <MyMatesWindowFrame loadingScreen="my-mates" bleed={bleed}>
+      <MyMatesWindowFrame loadingScreen="my-mates">
         <div aria-busy="true">
           <span className="sr-only" role="status">
             내 메이트 정보를 불러오고 있어요.
@@ -228,7 +211,7 @@ export default function MyMatesPage() {
 
   if (!selectedMate || !selectedId) {
     return (
-      <MyMatesWindowFrame bleed={bleed}>
+      <MyMatesWindowFrame>
         <div className="my-mates-empty-box">
           <p className="my-mates-empty-title">아직 만날 수 있는 메이트가 없어요.</p>
           <ButtonLink to="/">홈으로 가기</ButtonLink>
@@ -345,8 +328,8 @@ export default function MyMatesPage() {
   )
 
   return (
-    <MyMatesWindowFrame bleed={bleed}>
-      <div className={bleed ? 'my-mates-layout my-mates-layout--bleed' : 'my-mates-layout'}>
+    <MyMatesWindowFrame>
+      <div className="my-mates-layout">
         <div className="my-mates-switcher-slot">
           <MateSwitcher mates={switcherMates} selectedId={selectedId} onSelect={selectMate} />
         </div>

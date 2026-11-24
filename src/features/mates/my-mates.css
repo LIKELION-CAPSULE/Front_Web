@@ -193,36 +193,6 @@
   .my-mates-caption-stage { font-size: 15px; line-height: 22px; }
 }
 
-/* ── `?layout=bleed`: the panel edge to edge (comparison with the default layout above) ──
-   The page container gives up its width and paddings on this screen only; the panel starts at the viewport's left
-   edge right under the header line and ends at the viewport's bottom (the footer moves below the fold). The column
-   keeps the page's content edge on the right (`--side`, the page container's centring + padding, from the window's
-   container width so a classic scrollbar never shifts it). */
-.app-main:has(.my-mates-window--bleed) { max-width: none; padding: 0; }
-.my-mates-window--bleed { container-type: inline-size; }
-.app-surface .app-panel.my-mates-window--bleed > .my-mates-window-body { padding: 0; }
-.my-mates-layout--bleed {
-  --page-pad: 48px;
-  --side: calc((100cqw - min(100cqw, 1360px)) / 2 + var(--page-pad));
-  --content: calc(100cqw - 2 * var(--side));
-  --my-mates-height: max(460px, calc(100dvh - var(--site-header-height, 83px)));
-  grid-template-columns: minmax(0, 1fr) calc(var(--content) * 0.5);
-  column-gap: clamp(28px, 3cqw, 56px);
-  padding-right: var(--side);
-}
-.my-mates-layout--bleed .my-mates-switcher-slot { padding-top: 20px; }
-.my-mates-layout--bleed .my-mates-info { padding-bottom: 24px; }
-/* Flush with the viewport's left edge, the header line and the viewport's bottom: no corners. */
-.my-mates-layout--bleed .capsule-jar-stage,
-.my-mates-layout--bleed .my-mates-scene-loading { border-radius: 0; }
-/* Text and padding grow with the bigger panel. */
-.my-mates-layout--bleed .capsule-jar-caption { padding: 0 clamp(28px, 6%, 72px) clamp(26px, 5%, 56px); }
-.my-mates-layout--bleed .my-mates-caption-name { font-size: clamp(30px, 2.5cqw, 48px); line-height: 1.18; }
-.my-mates-layout--bleed .my-mates-caption-stage { font-size: clamp(16px, 1.25cqw, 22px); line-height: 1.4; }
-.my-mates-layout--bleed .my-mates-caption-date { font-size: clamp(14px, 1cqw, 17px); line-height: 1.4; }
-@media (max-width: 1100px) { .my-mates-layout--bleed { --page-pad: 32px; } }
-@media (max-width: 767px) { .my-mates-layout--bleed { --page-pad: 22px; } }
-
 /* ── 「함께한 시간」 column: game-style blocks in components/mate-time-column.css ── */
 .my-mates-actions { display: grid; grid-template-columns: auto 1fr; gap: 10px; margin-top: auto; }
 .my-mates-list-toggle {
@@ -281,13 +251,6 @@
   .my-mates-info { overflow: visible; }
   .my-mates-skeleton-scene { height: clamp(380px, 56vh, 520px); }
   .my-mates-caption-name { font-size: 28px; line-height: 34px; }
-  /* Bleed: the panel spans the full width; the column keeps the page paddings. */
-  .my-mates-layout--bleed { grid-template-columns: minmax(0, 1fr); padding-right: 0; gap: 16px; }
-  .my-mates-layout--bleed .my-mates-switcher-slot,
-  .my-mates-layout--bleed .my-mates-info { padding-inline: var(--side); }
-  .my-mates-layout--bleed .my-mates-switcher-slot { padding-top: 0; }
-  .my-mates-layout--bleed .my-mates-info { padding-bottom: 32px; }
-  .my-mates-layout--bleed .my-mates-caption-name { font-size: 28px; line-height: 34px; }
 }
 @media (max-width: 640px) {
   .my-mates-window-body { padding: 16px 16px 24px; }
