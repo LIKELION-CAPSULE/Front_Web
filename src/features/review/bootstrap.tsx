@@ -270,6 +270,30 @@ export async function mountReview(root: HTMLElement, id: string | null) {
         setSettings: () => {},
       }
     }
+    if (scenario.id === 'connection-record-levelup') {
+      // The reviewed session opened a new expression, so the level-up card shows its unlock box.
+      return {
+        read: () => ({
+          wallet: baseWallet,
+          invitation: baseInvitation,
+          records: [],
+          messages: [],
+          affinities: {},
+          settings: { voice: false, advanced: false },
+          mateUnlocks: {
+            chaerin: {
+              expressions: [
+                { id: 'expr-eyes-closed', label: '눈 감고 웃음', expressionFile: 'files/005.exp3.json', unlocked: true, unlockedAt: now },
+              ],
+              voices: [],
+            },
+          },
+        }),
+        subscribe: () => () => {},
+        redeemInvitation: async () => {},
+        setSettings: () => {},
+      }
+    }
     return undefined
   })()
   mountApp(root, <ReviewSetup scenario={scenario} />, scenario.draft ? <ReviewDraftRoutes /> : scenario.session && scenario.session !== 'recover' ? <ReviewStudyGate /> : undefined, createReviewImageStage, legacyReducer, accountPort, matePort, featurePort)
