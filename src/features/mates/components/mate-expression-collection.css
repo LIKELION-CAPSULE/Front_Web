@@ -27,7 +27,7 @@
 .mate-expression:not(.mate-expression--locked):hover { background: rgb(255 255 255 / 0.09); }
 /* Picked: same tile; a violet ring on the face and the label in the accent colour. */
 .mate-expression[aria-pressed='true'] { color: var(--color-text-accent); }
-.mate-expression[aria-pressed='true'] .mate-expression-face { box-shadow: 0 0 0 2px var(--color-text-accent), 0 0 12px rgb(124 92 255 / 0.5); }
+.mate-expression[aria-pressed='true'] .mate-expression-face { box-shadow: 0 0 0 2px var(--color-text-accent); }
 .mate-expression:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 .mate-expression-face {
   position: relative;

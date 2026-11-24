@@ -5,10 +5,9 @@ import type { CapsuleJarTheme, CapsuleRecord } from '@/features/mates/capsule-ja
 import type { AffinityProgressView } from '@/features/mates/affinity-progress'
 import { Icon } from '@/shared/ui/Icon'
 import type { IconName } from '@/shared/ui/animate-icons/icons'
-import { withParticle } from '@/shared/lib/korean'
 import { NumberCounter } from '@/shared/ui/number-counter/NumberCounter'
 import { AnimatedDuration } from '@/shared/ui/number-counter/AnimatedDuration'
-import { CapsuleGlyph, Sparkle, StageCrest } from './game-glyphs'
+import { CapsuleGlyph } from './game-glyphs'
 import './mate-time-column.css'
 
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'] as const
@@ -25,10 +24,8 @@ const seoulWeekdayHour = (timestamp: number) => {
 const RECENT_MAX = 10
 /** NEW marks only the newest connections since the last visit. */
 const MAX_NEW = 2
-/** Cells of the experience bar. */
-const XP_CELLS = 10
 
-/** An expression the next stage unlocks, shown as a locked reward slot. */
+/** An expression the next stage unlocks (counted in the affinity block's last line). */
 export type StageReward = { id: string; label: string; thumbnail?: string; tint?: string }
 
 /** Header of a block: one style everywhere, a small icon and the title (and an optional note on the right). */
@@ -63,25 +60,11 @@ function useFittingRows(fallback: number) {
   return [ref, rows] as const
 }
 
-function useShortWindow() {
-  const query = '(min-width: 960px) and (max-height: 800px)'
-  const [short, setShort] = useState(() => typeof window !== 'undefined' && Boolean(window.matchMedia?.(query).matches))
-  useEffect(() => {
-    const list = window.matchMedia?.(query)
-    if (!list) return
-    const update = () => setShort(list.matches)
-    update()
-    list.addEventListener('change', update)
-    return () => list.removeEventListener('change', update)
-  }, [])
-  return short
-}
-
 /**
- * 「함께한 시간」 column beside the capsule scene, in a light game style (docs/DESIGN_SYSTEM.md, exception of
- * 2026-11-24): the total with resource chips, the affinity as a level crest with an experience bar and the next
- * stage's reward slots (when the affinity feature is on), the latest connections as inventory slots (each opens
- * its record card and lights its capsules in the scene) and the two actions.
+ * 「함께한 시간」 column beside the mate panel. Plain blocks on the report panel's glass (my-mates.css), one title style
+ * (small icon + title): the total with one line of counts, the affinity as a title, one progress bar, what is left and
+ * what the next stage opens (when the affinity feature is on), the expressions, the latest connections (each opens
+ * its record card and lights its capsules in the scene) and the two actions. No badges, ribbons or stickers.
  */
 export function MateTimeColumn({
   totalSeconds,
@@ -118,7 +101,6 @@ export function MateTimeColumn({
   onPoint: (id: string | null) => void
   actions: ReactNode
 }) {
-  const short = useShortWindow()
   const [pointed, setPointed] = useState<string | null>(null)
   const [roomRef, limit] = useFittingRows(3)
   const recent = connections.slice(-limit).reverse()
@@ -129,9 +111,8 @@ export function MateTimeColumn({
     onPoint(id)
   }
 
-  // Experience bar: whole cells filled, the current cell partly filled (and gently flowing).
-  const progress = affinity?.progress ?? null
-  const filled = progress === null ? 0 : Math.min(XP_CELLS, progress * XP_CELLS)
+  // One progress bar toward the next stage (full at the last stage).
+  const progress = affinity ? (affinity.isLast ? 1 : affinity.progress) : null
   const caption = affinity
     ? (affinity.nextCaption ??
       (affinity.nextStageName ? `다음 단계: ${affinity.nextStageName}` : affinity.isLast ? '가장 가까운 사이가 됐어요' : null))
@@ -139,105 +120,36 @@ export function MateTimeColumn({
 
   return (
     <div className="my-mates-info mate-game" data-affinity={affinity ? 'true' : 'false'}>
-      {/* Decoration inside the column: a few faint rising stars. */}
-      <div className="mate-game-sky" aria-hidden="true">
-        {Array.from({ length: 4 }, (_, index) => (
-          <span
-            key={index}
-            className="mate-game-star"
-            style={{ '--i': index, left: `${12 + index * 24}%`, bottom: `${10 + ((index * 37) % 60)}%` } as CSSProperties}
-          />
-        ))}
-      </div>
-
       <section className="mate-game-block mate-game-total" aria-labelledby="my-mates-total-label">
         <BlockLabel id="my-mates-total-label" icon="clock">함께한 시간</BlockLabel>
-        <div className="mate-game-total-row">
-          <span className="mate-game-total-icon">
-            <CapsuleGlyph theme={theme} size={42} />
-          </span>
-          <div className="mate-game-total-text">
-            <p className="mate-game-total-value">
-              <AnimatedDuration seconds={totalSeconds} />
-            </p>
-        <ul className="mate-game-chips" aria-label="모은 것">
-          <li className="mate-game-chip">
-            <span className="mate-game-chip-icon" aria-hidden="true">
-              <Icon name="heart" size={13} />
-            </span>
-            연결 <strong><NumberCounter value={connections.length} /></strong>회
-          </li>
-          <li className="mate-game-chip">
-            <span className="mate-game-chip-icon" aria-hidden="true">
-              <CapsuleGlyph theme={theme} size={20} />
-            </span>
-            캡슐 <strong><NumberCounter value={capsuleCount} /></strong>개
-          </li>
-        </ul>
-          </div>
-        </div>
+        <p className="mate-game-total-value">
+          <AnimatedDuration seconds={totalSeconds} />
+        </p>
+        <p className="mate-game-total-meta">
+          연결 <NumberCounter value={connections.length} />회 · 캡슐 <NumberCounter value={capsuleCount} />개
+        </p>
       </section>
 
       {affinity && (
         <section className="mate-game-block mate-game-affinity" aria-labelledby="my-mates-affinity-label">
           <BlockLabel id="my-mates-affinity-label" icon="heart">친밀도</BlockLabel>
-          <div className="mate-game-level">
-            <StageCrest stage={affinity.stage} size={short ? 42 : 48} />
-            <div className="mate-game-level-text">
-              <p className="mate-game-level-name">
-                {affinity.stage}단계 · {affinity.stageName}
-                {affinity.nextStageName && <span className="mate-game-level-next"> → {affinity.nextStageName}</span>}
-              </p>
-              {progress !== null && (
-                <div
-                  className="mate-game-xp"
-                  role="progressbar"
-                  aria-label={`${affinity.stageName}에서 다음 단계까지`}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(progress * 100)}
-                >
-                  {Array.from({ length: XP_CELLS }, (_, index) => {
-                    const fill = Math.max(0, Math.min(1, filled - index))
-                    const current = fill > 0 && fill < 1
-                    return (
-                      <span
-                        key={index}
-                        className="mate-game-xp-cell"
-                        data-state={fill >= 1 ? 'full' : current ? 'current' : 'empty'}
-                        style={{ '--cell': fill } as CSSProperties}
-                      />
-                    )
-                  })}
-                </div>
-              )}
-              {caption && <p className="mate-game-level-caption">{caption}</p>}
-            </div>
-          </div>
-          {nextRewards.length > 0 && (
-            <div className="mate-game-rewards">
-              <span className="mate-game-ribbon">다음 단계 보상</span>
-              <span className="mate-game-rewards-text">
-                {affinity.nextStageName
-                  ? `${withParticle(affinity.nextStageName, '이', '가')} 되면 표정 ${nextRewards.length}개`
-                  : `표정 ${nextRewards.length}개`}
-              </span>
-              <ul className="mate-game-reward-slots">
-                {nextRewards.slice(0, 3).map((reward) => (
-                  <li key={reward.id} className="mate-game-reward" title={reward.label}>
-                    <span className="mate-game-reward-face" aria-hidden="true">
-                      {reward.thumbnail && (
-                        <img src={reward.thumbnail} alt="" draggable={false} style={reward.tint ? { filter: reward.tint } : undefined} />
-                      )}
-                      <span className="mate-game-reward-lock">
-                        <Icon name="lock" size={12} />
-                      </span>
-                    </span>
-                    <span className="sr-only">잠긴 표정 {reward.label}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <p className="mate-game-level-name">
+            {affinity.stage}단계 · {affinity.stageName}
+          </p>
+          {progress !== null && (
+            <div
+              className="mate-game-progress"
+              role="progressbar"
+              aria-label={affinity.nextStageName ? `${affinity.nextStageName}까지` : '친밀도'}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress * 100)}
+              style={{ '--progress': progress } as CSSProperties}
+            />
+          )}
+          {caption && <p className="mate-game-level-caption">{caption}</p>}
+          {nextRewards.length > 0 && !affinity.isLast && (
+            <p className="mate-game-level-reward">다음 단계에서 표정 {nextRewards.length}개가 열려요</p>
           )}
         </section>
       )}
@@ -290,24 +202,24 @@ export function MateTimeColumn({
                       onBlur={() => point(null)}
                     >
                       <span className="mate-game-slot-item" aria-hidden="true">
-                        <CapsuleGlyph theme={theme} size={30} />
-                        <span className="mate-game-slot-count">×{count}</span>
+                        <CapsuleGlyph theme={theme} size={26} />
                       </span>
                       <span className="mate-game-slot-text">
                         <span className="mate-game-slot-date">
                           {formatCapsuleShortDate(connection.startedAt)} ({weekday}) · {partOfDay(hour)}
                         </span>
-                        <span className="mate-game-slot-time">
-                          {formatTogether(connection.durationSeconds)}
-                          <span className="sr-only">{`, 캡슐 ${count}개`}</span>
+                        <span className="mate-game-slot-end">
+                          {isNew && (
+                            <span className="mate-game-new">
+                              NEW<span className="sr-only"> 새 캡슐</span>
+                            </span>
+                          )}
+                          <span className="mate-game-slot-time">
+                            {formatTogether(connection.durationSeconds)}
+                            <span className="mate-game-slot-count"> · 캡슐 {count}개</span>
+                          </span>
                         </span>
                       </span>
-                      {isNew && (
-                        <span className="mate-game-new">
-                          <Sparkle className="mate-game-new-star" />
-                          NEW<span className="sr-only"> 새 캡슐</span>
-                        </span>
-                      )}
                     </button>
                   </li>
                 )

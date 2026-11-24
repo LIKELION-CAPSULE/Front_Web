@@ -2,9 +2,8 @@ import { useId } from 'react'
 import type { CapsuleJarTheme } from '@/features/mates/capsule-jar/capsule-jar-types'
 
 /**
- * Small game-like pictures of the my-mates 「함께한 시간」 column, drawn as SVG (no image assets):
- * the glass capsule of the scene in the mate's colours, the stage crest and the sparkle.
- * All decorative: the text next to them carries the meaning.
+ * The small capsule picture of the my-mates column's recent list, drawn as SVG (no image assets): the scene's glass
+ * capsule in the mate's colours. Decorative: the text next to it carries the meaning.
  */
 
 /**
@@ -47,42 +46,4 @@ export function CapsuleGlyph({ theme, size = 40, className }: { theme: CapsuleJa
       </g>
     </svg>
   )
-}
-
-/** Stage crest: a violet gem shield with a pearl-white rim, small wings and the stage number (a level badge). */
-export function StageCrest({ stage, size = 58 }: { stage: number; size?: number }) {
-  const id = useId().replace(/:/g, '')
-  return (
-    <svg className="mate-crest" width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id={`${id}-rim`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#FFFFFF" />
-          <stop offset="0.5" stopColor="#D9CFFF" />
-          <stop offset="1" stopColor="#9B84F0" />
-        </linearGradient>
-        <linearGradient id={`${id}-gem`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#B49CFF" />
-          <stop offset="0.55" stopColor="#7E54F6" />
-          <stop offset="1" stopColor="#3F2A8C" />
-        </linearGradient>
-      </defs>
-      {/* wings */}
-      <path d="M14 26 C6 24 3 30 4 36 C9 33 12 34 15 36 Z" fill={`url(#${id}-rim)`} opacity="0.75" />
-      <path d="M50 26 C58 24 61 30 60 36 C55 33 52 34 49 36 Z" fill={`url(#${id}-rim)`} opacity="0.75" />
-      {/* shield */}
-      <path d="M32 6 L51 13 L49 36 C47 46 40 53 32 58 C24 53 17 46 15 36 L13 13 Z" fill={`url(#${id}-rim)`} />
-      <path d="M32 10.5 L47 16 L45.4 35.4 C43.8 43.6 38.6 49.4 32 53.4 C25.4 49.4 20.2 43.6 18.6 35.4 L17 16 Z" fill={`url(#${id}-gem)`} />
-      <path d="M32 10.5 L47 16 L46.4 23 C40 20 26 19 17.6 23 L17 16 Z" fill="#FFFFFF" opacity="0.18" />
-      <text x="32" y="40" textAnchor="middle" fontSize="22" fontWeight="900" fill="#FFFFFF" style={{ paintOrder: 'stroke' }} stroke="#2A1A66" strokeWidth="1.2">
-        {stage}
-      </text>
-      {/* top star */}
-      <path d="M32 0.8 L33.6 4.6 L37.6 5.4 L33.6 6.4 L32 10 L30.4 6.4 L26.4 5.4 L30.4 4.6 Z" fill="#FFFFFF" />
-    </svg>
-  )
-}
-
-/** Four-point sparkle in the current text colour (twinkles via CSS). */
-export function Sparkle({ className }: { className?: string }) {
-  return <span className={className ? `mate-sparkle ${className}` : 'mate-sparkle'} aria-hidden="true" />
 }

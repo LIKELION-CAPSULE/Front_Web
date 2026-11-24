@@ -1,23 +1,25 @@
 import {
   AdditiveBlending, AmbientLight, BackSide, BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, Color,
   DirectionalLight, DoubleSide, DynamicDrawUsage, Euler, Group, InstancedBufferAttribute, InstancedMesh, LatheGeometry,
-  Matrix4, Mesh, MeshBasicMaterial, NoToneMapping, PerspectiveCamera, PlaneGeometry, PMREMGenerator, PointLight, Points,
+  Matrix4, Mesh, MeshBasicMaterial, NoToneMapping, OrthographicCamera, PlaneGeometry, PMREMGenerator, PointLight, Points,
   Quaternion, Raycaster, Scene, ShaderMaterial, Sphere, Sprite, SpriteMaterial, SRGBColorSpace, Vector2, Vector3,
   WebGLRenderer,
 } from 'three'
 import type { Material, Object3D, Texture } from 'three'
 import { CAPSULE_ASPECT, CAPSULE_SEAM_OFFSET } from './capsule-jar-layout.ts'
-import { FLOOR, type FloorLayout } from './capsule-floor-layout.ts'
+import { PILE, pileBinAt, type FloorLayout } from './capsule-floor-layout.ts'
 import { carryByIds, isStillPresent, planPour, POUR } from './capsule-pour.ts'
 import type { CapsuleJarTheme } from './capsule-jar-types.ts'
 import type { BodyPose, CapsulePhysics } from './capsule-physics.ts'
 
 /**
- * WebGL scene of the my-mates page: capsules piled on the floor at the bottom of the mate panel, seen almost from
- * the front, behind the big Live2D mate (a separate canvas layered above this one). Owns its canvas, renderer and GPU
- * resources; everything is released in `dispose`. The record card and tooltip are React.
+ * WebGL scene of the my-mates page: a flat, side-on (2D) pile of capsules at the bottom of the mate panel, behind
+ * the big Live2D mate (a separate layer above this canvas). An orthographic camera shows exactly the panel's width
+ * (`PILE.width`) with the floor at the panel bottom; every capsule lies in the screen plane and the physics keeps it
+ * there. Owns its canvas, renderer and GPU resources; everything is released in `dispose`. The record card and
+ * tooltip are React.
  *
- * Entry: the capsules pour down (physics: bounce, roll, slide, push) and settle. Then everything sleeps; only hover,
+ * Entry: the capsules pour down (physics: fall, bounce, roll, push) and settle. Then everything sleeps; only hover,
  * shaking and openings move again.
  */
 
@@ -55,10 +57,10 @@ export type JarSceneController = {
   /** Ends a running intro at once (final state). True when one was running. */
   finishIntro(): boolean
   /**
-   * Where the mate stands in front of the pile (half width as a share of the panel *height*, centred, so it follows
-   * her size in any panel shape): pointer picks there go to the mate, not to the capsules behind her.
+   * Whether the mate (the layer above the canvas) covers a viewport point: pointing there is pointing at her, never
+   * at the capsules behind her. Null: nothing covers the pile.
    */
-  setMateZone(halfWidthOfHeight: number): void
+  setOccluder(covers: ((clientX: number, clientY: number) => boolean) | null): void
   /** Bundle lit from outside the scene (e.g. the recent list), or null. */
   setHighlight(groupId: string | null): void
   setReducedMotion(value: boolean): void
@@ -374,13 +376,9 @@ const INTRO = {
   arrival: { pourMs: POUR.switchMs, settleMs: 250 },
 } as const
 
-/** Camera: almost frontal, a little from above (radians above the horizon), so the pile reads as a heap. */
-const ELEVATION = (17 * Math.PI) / 180
 const DROP_GRAVITY = 34
-/** Widest floor the camera frames (half width): a bigger pile runs past the panel's sides and fills it. */
-const FIT_LIMIT = { x: 2.6 } as const
-/** Screen height share (from the top) where the front of the pile meets the panel bottom. */
-const PILE_FRONT_AT = 0.98
+/** The floor sits this far above the panel's bottom edge (scene units), so the lowest capsules are not cut. */
+const FLOOR_MARGIN = 0.03
 /** Panel backdrop (a little lighter than the page, so the rounded panel reads). */
 const PANEL_COLOR = '#16141F'
 /**
@@ -435,15 +433,16 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   scene.environment = environment
   scene.environmentIntensity = 0.7
 
-  const camera = new PerspectiveCamera(26, 1, 0.1, 80)
-  const lookAt = new Vector3(0, 0.15, 0.1)
+  // Side-on, no perspective: exactly the panel's width, the floor at the bottom (see fitCamera).
+  const camera = new OrthographicCamera(-PILE.width / 2, PILE.width / 2, PILE.width, -FLOOR_MARGIN, 0.1, 60)
+  camera.position.set(0, 0, 20)
+  camera.lookAt(0, 0, 0)
 
   scene.add(new AmbientLight(0xffffff, 0.18))
   const key = new DirectionalLight(0xffffff, 0.8)
   key.position.set(-3, 6, 3)
   scene.add(key)
 
-  // The whole scene pivots on the floor so a tilt reads as a gentle rock.
   const floorGroup = new Group()
   scene.add(floorGroup)
   const capsuleGroup = new Group()
@@ -451,19 +450,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
 
   const glowColor = new Color(theme.glow)
 
-  // ── Floor: a wide dark surface, a soft light behind the pile, a pool of the mate colour under it, motes ──
-  const floorPlane = new Mesh(
-    new PlaneGeometry(26, 26),
-    new MeshBasicMaterial({
-      map: radialTexture([[0, 'rgba(36,32,52,1)'], [0.35, 'rgba(28,25,40,1)'], [1, 'rgba(22,20,31,1)']]),
-      depthWrite: false,
-    }),
-  )
-  floorPlane.rotation.x = -Math.PI / 2
-  floorPlane.position.y = -0.002
-  floorPlane.renderOrder = 1
-  floorGroup.add(floorPlane)
-
+  // ── Behind the pile: a soft light behind the mate and a low glow of the mate colour over the pile, motes ──
   const backLight = new Mesh(
     new PlaneGeometry(12, 7),
     new MeshBasicMaterial({
@@ -475,9 +462,8 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
       opacity: 0.32,
     }),
   )
-  // Upright behind the pile: a soft light behind the mate.
-  backLight.position.set(0, 1.8, -3.2)
-  backLight.scale.set(1.2, 1.4, 1)
+  backLight.position.set(0, 3.4, -6)
+  backLight.scale.set(0.8, 1.2, 1)
   backLight.renderOrder = 2
   floorGroup.add(backLight)
 
@@ -488,24 +474,11 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     blending: AdditiveBlending,
     transparent: false,
   })
+  // Upright behind the pile (the floor itself is seen edge-on): the pile glows softly from behind.
   const floorGlow = new Mesh(new PlaneGeometry(1, 1), floorGlowMaterial)
-  floorGlow.rotation.x = -Math.PI / 2
-  floorGlow.position.y = 0.002
+  floorGlow.position.set(0, 0, -4)
   floorGlow.renderOrder = 3
   floorGroup.add(floorGlow)
-
-  const pileShadow = new Mesh(
-    new PlaneGeometry(1, 1),
-    new MeshBasicMaterial({
-      map: radialTexture([[0, 'rgba(0,0,0,0.6)'], [0.6, 'rgba(0,0,0,0.25)'], [1, 'rgba(0,0,0,0)']]),
-      transparent: true,
-      depthWrite: false,
-    }),
-  )
-  pileShadow.rotation.x = -Math.PI / 2
-  pileShadow.position.y = 0.003
-  pileShadow.renderOrder = 4
-  floorGroup.add(pileShadow)
 
   const MOTES = 70
   const motesGeometry = new BufferGeometry()
@@ -514,7 +487,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     const positions = new Float32Array(MOTES * 3)
     const seeds = new Float32Array(MOTES)
     for (let index = 0; index < MOTES; index++) {
-      positions.set([(random() - 0.5) * 9, random() * 2.4, (random() - 0.5) * 6 - 0.6], index * 3)
+      positions.set([(random() - 0.5) * PILE.width, random() * PILE.sideFill * 1.4, -2 - random() * 2], index * 3)
       seeds[index] = random() * 10
     }
     motesGeometry.setAttribute('position', new BufferAttribute(positions, 3))
@@ -539,7 +512,8 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   const coreShader = coreMaterial(glowColor)
   coreShader.uniforms.uBreath!.value = reducedMotion ? 0 : 1
   // Softer cores and halos than the old pile: with many capsules the floor would otherwise glow everywhere.
-  coreShader.uniforms.uStrength!.value = 0.72
+  // Seen side-on the glass reads darker than from above: the cores glow a little more than in the old 3D pile.
+  coreShader.uniforms.uStrength!.value = 0.95
   const haloGeometry = new PlaneGeometry(1, 1)
   const haloShader = haloMaterial(glowColor)
   haloShader.uniforms.strength!.value = 0.1
@@ -609,8 +583,8 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   let physicsActive = false
 
   let intro: IntroState | null = null
-  /** Half width (share of the panel) of the mate standing in front: picks there are hers. */
-  let mateZone = 0
+  /** The mate's silhouette above the canvas: picks under it are hers. */
+  let occluder: ((clientX: number, clientY: number) => boolean) | null = null
 
   // ── Opened capsule (non-instanced copy that rises, splits and dissolves into light) ──
   const openGroup = new Group()
@@ -710,18 +684,18 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
 
   // ── Interaction state ──
   const pointer = new Vector2()
+  /** The last pointer position in viewport px (for the mate's silhouette); not set by the benchmark's sweep. */
+  const pointerClient = { x: 0, y: 0, valid: false }
   let pointerInside = false
   let pointerDirty = false
   let hoveredGroup = -1
   let hoveredPiece = -1
   let highlightGroup = -1
-  const tilt = { x: 0, z: 0, vx: 0, vz: 0, targetX: 0, targetZ: 0 }
   let lastKick = 0
   /** Pointer velocity over the scene (normalized device units per second, decaying). */
   const pointerSpeed = { x: 0, y: 0, at: 0, px: 0, py: 0 }
   const raycaster = new Raycaster()
   const view = { shift: 0, target: 0 }
-  let baseDistance = 10
 
   let width = 1
   let height = 1
@@ -734,65 +708,21 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   let lastRenderAt = 0
   let benchmarkState: { until: number; frames: number[]; resolve: (result: JarBenchmark) => void; start: number } | null = null
 
-  // ── Camera: almost frontal, the floor's width fitted to the panel, the pile's front at the panel bottom ──
-  const fitPoints: Vector3[] = []
-  let offsetY = 0
-  function updateFitPoints() {
-    fitPoints.length = 0
-    const radius = layout ? layout.spreadRadius : FLOOR.minRadius
-    const rx = Math.min(radius * FLOOR.aspectX * 1.05, FIT_LIMIT.x)
-    for (let step = 0; step < 24; step++) {
-      const angle = (step / 24) * Math.PI * 2
-      fitPoints.push(new Vector3(Math.sin(angle) * rx, 0, Math.cos(angle) * radius * FLOOR.aspectZ))
-    }
-  }
-  const probe = new Vector3()
-  function placeCamera(distance: number) {
-    camera.position.set(lookAt.x, lookAt.y + distance * Math.sin(ELEVATION), lookAt.z + distance * Math.cos(ELEVATION))
-    camera.lookAt(lookAt)
-    camera.updateMatrixWorld()
-    camera.updateProjectionMatrix()
-  }
+  // ── Camera: exactly the pile's width, the floor at the panel bottom; the height follows the panel's shape ──
   function fitCamera() {
-    camera.aspect = width / height
-    camera.clearViewOffset()
-    updateFitPoints()
-    lookAt.set(0, 0, 0)
-    // Distance where the floor's width fills the panel.
-    let near = 2
-    let far = 80
-    for (let iteration = 0; iteration < 24; iteration++) {
-      const distance = (near + far) / 2
-      placeCamera(distance)
-      let inside = true
-      for (const point of fitPoints) {
-        probe.copy(point).project(camera)
-        if (Math.abs(probe.x) > 1) {
-          inside = false
-          break
-        }
-      }
-      if (inside) far = distance
-      else near = distance
-    }
-    baseDistance = far
-    placeCamera(baseDistance)
-    // Shift the frame so the front of the pile sits at the panel bottom (the mate stands above it).
-    let frontY = -Infinity
-    for (const point of fitPoints) {
-      probe.copy(point).project(camera)
-      frontY = Math.max(frontY, ((1 - probe.y) / 2) * height)
-    }
-    offsetY = frontY - PILE_FRONT_AT * height
+    const visibleHeight = (PILE.width * height) / width
+    camera.left = -PILE.width / 2
+    camera.right = PILE.width / 2
+    camera.bottom = -FLOOR_MARGIN
+    camera.top = visibleHeight - FLOOR_MARGIN
     applyViewShift()
     needsRender = true
   }
 
   function applyViewShift() {
     // The record card opens over the panel's middle; the view itself stays (the panel is narrow).
-    placeCamera(baseDistance)
-    camera.setViewOffset(width, height, 0, offsetY, width, height)
     camera.updateProjectionMatrix()
+    camera.updateMatrixWorld()
   }
 
   function resize() {
@@ -915,10 +845,10 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     )
     if (intro) for (const index of intro.pending.keys()) physics?.hold(index)
 
-    const radius = next.spreadRadius
-    floorGlow.scale.set(radius * FLOOR.aspectX * 2.4, radius * FLOOR.aspectZ * 2.4, 1)
+    const pileHeight = Math.max(0.6, next.topHeight)
+    floorGlow.scale.set(PILE.width * 1.3, pileHeight * 2.6, 1)
     floorGlowMaterial.opacity = placements.length ? 0.16 : 0.08
-    pileShadow.scale.set(radius * FLOOR.aspectX * 2.3, radius * FLOOR.aspectZ * 2.3, 1)
+    pileLight.position.set(0, pileHeight + 0.6, 1.2)
     pileLight.intensity = placements.length ? 0.35 : 0.1
     fitCamera()
     composeAll()
@@ -971,21 +901,25 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
 
   function launchPending(index: number, pending: Pending) {
     const placement = placements[index]!
-    const local = seeded(Math.floor(placement.x * 1e4) ^ Math.floor(placement.z * 1e4) ^ (index * 2654435761))
-    const top = lookAt.y + 3.4
-    const startX = placement.x + (local() - 0.5) * 0.5
-    const startZ = placement.z + (local() - 0.5) * 0.5 - 0.3
+    const local = seeded(Math.floor(placement.x * 1e4) ^ Math.floor(placement.y * 1e4) ^ (index * 2654435761))
+    // From just above the panel's top edge, straight down in the screen plane (2D: z stays 0).
+    const top = camera.top + 0.4 + local() * 0.6
+    // Inside its own bin (the inner walls reach above the panel, capsule-floor-layout.ts).
+    const bin = pileBinAt(placement.x)
+    const low = bin.from + placement.length / 2 + 0.01
+    const high = bin.to - placement.length / 2 - 0.01
+    const startX = Math.max(low, Math.min(high, placement.x + (local() - 0.5) * 0.6))
     const fall = pending.fall
     const dy = placement.y + 0.15 - top
     // Reaches its spot at about `fall` seconds, then bounces and rolls on from there.
     const vy = (dy + 0.5 * DROP_GRAVITY * fall * fall) / fall
-    euler.set(local() * Math.PI * 2, local() * Math.PI * 2, local() * Math.PI * 2)
+    euler.set(placement.roll, 0, local() * Math.PI * 2, 'YZX')
     quaternion.setFromEuler(euler)
     physics!.launch(
       index,
-      { position: { x: startX, y: top, z: startZ }, quaternion: { x: quaternion.x, y: quaternion.y, z: quaternion.z, w: quaternion.w } },
-      { x: (placement.x - startX) / fall * 0.9, y: vy, z: (placement.z - startZ) / fall * 0.9 },
-      { x: (local() - 0.5) * 14, y: (local() - 0.5) * 6, z: (local() - 0.5) * 14 },
+      { position: { x: startX, y: top, z: 0 }, quaternion: { x: quaternion.x, y: quaternion.y, z: quaternion.z, w: quaternion.w } },
+      { x: ((placement.x - startX) / fall) * 0.9, y: vy, z: 0 },
+      { x: 0, y: 0, z: (local() - 0.5) * 10 },
     )
     if (pending.isNew) flash[index] = 0.01
   }
@@ -1100,7 +1034,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   function pick(): number {
     if (!shellMesh || !placements.length) return -1
     // In front of the pile stands the mate: pointing at her is not pointing at the capsules behind her.
-    if (mateZone > 0 && Math.abs(pointer.x) < (2 * mateZone * height) / width && pointer.y > -0.55) return -1
+    if (occluder && pointerClient.valid && occluder(pointerClient.x, pointerClient.y)) return -1
     raycaster.setFromCamera(pointer, camera)
     const hits = raycaster.intersectObjects([shellMesh], false)
     for (const hit of hits) {
@@ -1110,6 +1044,9 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   }
 
   function setPointer(event: MouseEvent) {
+    pointerClient.x = event.clientX
+    pointerClient.y = event.clientY
+    pointerClient.valid = true
     const rect = canvas.getBoundingClientRect()
     pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1)
   }
@@ -1130,17 +1067,12 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     pointerSpeed.py = pointer.y
     pointerInside = true
     pointerDirty = true
-    if (!reducedMotion && !openState) {
-      tilt.targetZ = -pointer.x * 0.045
-      tilt.targetX = pointer.y * 0.03
-    }
     if (!running) updatePick()
   }
 
   function onPointerLeave() {
     pointerInside = false
-    tilt.targetX = 0
-    tilt.targetZ = 0
+    pointerClient.valid = false
     pointerDirty = true
     if (!running) updatePick()
   }
@@ -1202,15 +1134,6 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     }
 
     if (!reducedMotion) {
-      const stiffness = 38
-      const damping = 11
-      tilt.vx += ((tilt.targetX - tilt.x) * stiffness - tilt.vx * damping) * dt
-      tilt.vz += ((tilt.targetZ - tilt.z) * stiffness - tilt.vz * damping) * dt
-      tilt.x += tilt.vx * dt
-      tilt.z += tilt.vz * dt
-      floorGroup.rotation.set(tilt.x, 0, tilt.z)
-      const moving = Math.abs(tilt.x - tilt.targetX) + Math.abs(tilt.z - tilt.targetZ) + Math.abs(tilt.vx) + Math.abs(tilt.vz) > 1e-4
-      active ||= moving
       // Shaking: a quick sweep of the pointer over the floor (not a slow lean) nudges the capsules the same way;
       // they roll a little and settle again.
       pointerSpeed.x *= Math.exp(-dt * 8)
@@ -1219,8 +1142,8 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
       if (physics && !intro && !openState && shake > SHAKE.threshold && clock - lastKick > 0.12) {
         lastKick = clock
         const strength = Math.min(SHAKE.maxPush, (shake - SHAKE.threshold) * SHAKE.push)
-        // Screen right → +x on the floor, screen up → away from the viewer (−z).
-        physics.kick((pointerSpeed.x / shake) * strength, (-pointerSpeed.y / shake) * strength)
+        // In the screen plane: right → +x, up → +y.
+        physics.kick((pointerSpeed.x / shake) * strength, (pointerSpeed.y / shake) * strength)
         physicsActive = true
       }
 
@@ -1275,8 +1198,9 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     return active
   }
 
-  const facing = new Quaternion().setFromEuler(new Euler(-0.9, -0.32, 0.12, 'YXZ'))
-  const openScale = () => 0.6
+  // Opened: level with a slight turn, so both halves read side by side.
+  const facing = new Quaternion().setFromEuler(new Euler(0.5, 0, 0.12, 'YZX'))
+  const openScale = () => Math.max(0.55, (layout?.baseLength ?? 0.5) * 1.5)
 
   function setOpenPose(split: number, dissolve: number) {
     openLight.position.x = -split * 0.16
@@ -1356,8 +1280,6 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
       pointer.set(Math.sin(t * 2.4) * 0.9, Math.cos(t * 1.7) * 0.4)
       pointerInside = true
       pointerDirty = true
-      tilt.targetZ = -pointer.x * 0.045
-      tilt.targetX = pointer.y * 0.03
       state.frames.push(now)
     }
     const active = step(dt)
@@ -1400,8 +1322,6 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
       physics?.freeze()
       physicsActive = false
       for (let index = 0; index < flash.length; index++) flash[index] = 0
-      tilt.x = tilt.z = tilt.vx = tilt.vz = tilt.targetX = tilt.targetZ = 0
-      floorGroup.rotation.set(0, 0, 0)
       view.shift = view.target
       applyViewShift()
       const state = openState
@@ -1445,12 +1365,9 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     const fromQuaternion = new Quaternion()
     const fromScale = new Vector3()
     matrix.decompose(fromPosition, fromQuaternion, fromScale)
-    // Up from the pile toward the viewer, in front of the mate, where the record card unfolds.
-    const target = new Vector3().copy(lookAt).lerp(camera.position, 0.42)
-    target.y += 0.6
-    if (beside) target.x += baseDistance * 0.1
+    // Up out of the pile, staying on its side of the mate (she stands in the middle), in front of the other capsules.
+    const target = new Vector3(fromPosition.x * 0.85, Math.max(fromPosition.y + 0.9, (layout?.topHeight ?? 0) + 0.7), 2)
     setHoveredPiece(-1)
-    tilt.targetX = tilt.targetZ = 0
     // The whole bundle lights up.
     const group = groupOf[index]!
     for (const piece of layout!.groups[group]!.indices) flash[piece] = Math.max(flash[piece]!, 0.8)
@@ -1516,7 +1433,6 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     const state = benchmarkState!
     benchmarkState = null
     pointerInside = false
-    tilt.targetX = tilt.targetZ = 0
     const deltas: number[] = []
     for (let index = 1; index < state.frames.length; index++) deltas.push(state.frames[index]! - state.frames[index - 1]!)
     deltas.sort((a, b) => a - b)
@@ -1584,8 +1500,8 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     setLayout,
     intro: ({ kind, newGroupIds }) => intro_(kind, newGroupIds),
     finishIntro,
-    setMateZone(halfWidthOfHeight) {
-      mateZone = Math.max(0, halfWidthOfHeight)
+    setOccluder(covers) {
+      occluder = covers
     },
     setHighlight(groupId) {
       const group = groupId === null ? -1 : (groupIndexById.get(groupId) ?? -1)

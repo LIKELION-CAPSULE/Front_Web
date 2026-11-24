@@ -1,66 +1,81 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createCapsulePhysics, type BodyPose } from '../src/features/mates/capsule-jar/capsule-physics.ts'
-import { layoutFloor } from '../src/features/mates/capsule-jar/capsule-floor-layout.ts'
+import { PILE, layoutFloor, pileBinAt } from '../src/features/mates/capsule-jar/capsule-floor-layout.ts'
 import { generateDummyCapsules } from '../src/features/mates/capsule-jar/capsule-jar-dummy.ts'
 
 const NOW = Date.parse('2026-11-24T15:00:00+09:00')
-const identity = { x: 0, y: 0, z: 0, w: 1 }
+const GRAVITY = 34
+const turned = (angle: number) => ({ x: 0, y: 0, z: Math.sin(angle / 2), w: Math.cos(angle / 2) })
 
-/** Drops the last capsules like the entry (optionally shakes the floor), and returns where everything ended up. */
-function run({ shake = false } = {}) {
-  const layout = layoutFloor(generateDummyCapsules(5, { now: NOW }))
-  const physics = createCapsulePhysics()
+/** The 2D pile as the scene builds it: panel walls and the bins' inner walls. */
+const pilePhysics = () =>
+  createCapsulePhysics({
+    halfWidth: PILE.width / 2,
+    binWalls: { at: [-PILE.binEdge, PILE.binEdge], height: PILE.binWallHeight, thickness: PILE.binWallThickness },
+  })
+
+/** Drops the last capsules like the entry (from above the panel, into their bins) and returns where all ended up. */
+function run({ connections = 12, falling: fallingCount = 60, shake = false } = {}) {
+  const layout = layoutFloor(generateDummyCapsules(connections, { now: NOW }))
+  const placements = layout.placements
+  const physics = pilePhysics()
   physics.setCapsules(
-    layout.placements.map((placement) => ({ length: placement.length, radius: placement.radius })),
-    layout.placements.map((placement) => ({ position: { x: placement.x, y: placement.y, z: placement.z }, quaternion: identity })),
+    placements.map((placement) => ({ length: placement.length, radius: placement.radius })),
+    placements.map((placement) => ({ position: { x: placement.x, y: placement.y, z: 0 }, quaternion: turned(placement.pitch) })),
   )
-  const falling = layout.placements.slice(-10).map((placement) => placement.index)
+  const falling = placements.slice(-fallingCount).map((placement) => placement.index)
   for (const index of falling) physics.hold(index)
   const landed: number[] = []
   physics.onLand((index) => landed.push(index))
-  for (let frame = 0; frame < 180; frame++) {
-    const time = frame / 60
+  const top = 8
+  const fall = 0.55
+  for (let frame = 0; frame < 360; frame++) {
+    const time = frame / 90
     for (const [order, index] of falling.entries()) {
-      if (physics.isHeld(index) && time >= order * 0.06) {
-        const placement = layout.placements[index]!
-        physics.launch(index, { position: { x: placement.x, y: 3, z: placement.z }, quaternion: identity }, { x: 0, y: -6, z: 0 }, { x: 4, y: 0, z: -3 })
+      if (physics.isHeld(index) && time >= order * 0.022) {
+        const placement = placements[index]!
+        const vy = (placement.y + 0.15 - top + 0.5 * GRAVITY * fall * fall) / fall
+        physics.launch(index, { position: { x: placement.x, y: top, z: 0 }, quaternion: turned(placement.pitch) }, { x: 0, y: vy, z: 0 }, { x: 0, y: 0, z: 3 })
       }
     }
-    if (shake && frame === 120) physics.kick(0.3, -0.2)
-    physics.step(1 / 60)
+    if (shake && frame === 40) physics.kick(0.4, 0.2)
+    physics.step(1 / 90)
   }
   physics.freeze()
-  const poses = layout.placements.map((_, index) => {
-    const pose: BodyPose = { position: { x: 0, y: 0, z: 0 }, quaternion: { ...identity } }
+  const poses = placements.map((_, index) => {
+    const pose: BodyPose = { position: { x: 0, y: 0, z: 0 }, quaternion: { x: 0, y: 0, z: 0, w: 1 } }
     physics.read(index, pose)
     return pose
   })
   physics.dispose()
-  return { poses, landed, layout }
+  return { poses, landed, placements }
 }
 
-test('physics: dropped capsules land and rest on the floor', () => {
-  const { poses, landed, layout } = run()
-  assert.ok(!landed.includes(-1), 'only capsules land (no card any more)')
-  assert.ok(landed.length >= 8, 'the falling capsules landed')
+test('physics: dropped capsules land in their own bin, in the screen plane, and the side heaps keep their height', () => {
+  const { poses, landed, placements } = run()
+  assert.ok(landed.length >= 50, `the falling capsules landed (${landed.length})`)
   for (const [index, pose] of poses.entries()) {
-    assert.ok(pose.position.y >= layout.placements[index]!.radius * 0.6, `capsule ${index} sank through the floor`)
-    assert.ok(pose.position.y < 1.5, `capsule ${index} is floating`)
+    const placement = placements[index]!
+    assert.equal(pose.position.z, 0, '2D: z stays 0')
+    assert.ok(Math.abs(pose.quaternion.x) < 1e-6 && Math.abs(pose.quaternion.y) < 1e-6, '2D: turned only about z')
+    assert.ok(pose.position.y >= placement.radius * 0.6, `capsule ${index} sank through the floor`)
+    assert.equal(pileBinAt(pose.position.x), pileBinAt(placement.x), `capsule ${index} left its bin`)
   }
+  // The side heaps stay about as high as laid out (resting capsules are fixed, so nothing levels them out).
+  const sideTop = (list: { x: number; y: number }[]) => Math.max(...list.filter((point) => point.x < -PILE.binEdge).map((point) => point.y))
+  const laid = sideTop(placements)
+  const settled = sideTop(poses.map((pose) => pose.position))
+  assert.ok(settled > laid * 0.75, `left heap ${settled} vs ${laid}`)
 })
 
-test('physics: a shake moves the pile and everything settles on the floor again', () => {
-  const calm = run()
+test('physics: a shake moves only capsules still falling; everything ends inside the panel', () => {
   const shaken = run({ shake: true })
-  assert.notDeepEqual(shaken.poses, calm.poses)
-  for (const [index, pose] of shaken.poses.entries()) {
-    assert.ok(pose.position.y >= shaken.layout.placements[index]!.radius * 0.6, `capsule ${index} sank through the floor`)
-  }
+  for (const pose of shaken.poses) assert.ok(Math.abs(pose.position.x) <= PILE.width / 2)
 })
 
 test('physics: the same drops give the same result', () => {
-  const first = run()
-  const second = run()
+  const first = run({ connections: 5, falling: 20 })
+  const second = run({ connections: 5, falling: 20 })
   assert.deepEqual(second.poses, first.poses)
 })

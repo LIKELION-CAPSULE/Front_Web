@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react'
+import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode, type Ref } from 'react'
 import { cn } from '@/shared/lib/cn'
 import {
   capsuleJarSummary,
@@ -10,7 +10,7 @@ import {
   withParticle,
 } from './capsule-jar-data.ts'
 import { CAPSULE_ASPECT } from './capsule-jar-layout.ts'
-import { FLOOR, layoutFloor, type FloorLayout } from './capsule-floor-layout.ts'
+import { PILE, layoutFloor, type FloorLayout } from './capsule-floor-layout.ts'
 import { capsuleJarTheme } from './capsule-jar-theme.ts'
 import type { CapsuleJarTheme, CapsuleRecord } from './capsule-jar-types.ts'
 import type { JarBenchmark, JarSceneController, JarScenePoint } from './capsule-jar-scene.ts'
@@ -19,11 +19,12 @@ import './capsule-jar.css'
 
 /**
  * The mate panel of the my-mates page, in layers (bottom to top):
- * 1. the capsule floor (three.js canvas; three.js and the cannon-es physics load as their own chunks once the panel
- *    is on screen): capsules piled at the bottom, behind the mate. On entry they pour down; clicking one opens its
- *    connection's record card.
- * 2. the mate (`mateLayer`, e.g. the big Live2D preview), transparent, letting pointer events through to the floor;
- * 3. a dark gradient at the bottom with the caption (`caption`: name, stage, first meeting).
+ * 1. the capsule pile (three.js canvas; three.js and the cannon-es physics load as their own chunks once the panel
+ *    is on screen): a flat, side-on pile at the bottom, behind the mate. On entry the capsules pour down; clicking one
+ *    that the mate does not cover opens its connection's record card.
+ * 2. the mate (`mateLayer`, e.g. the big Live2D preview), transparent, letting pointer events through to the pile.
+ *    Her still image's silhouette (alpha) decides what she covers, so clicks on her never pick a capsule behind her.
+ * 3. the caption (`caption`: name, stage, first meeting), styled by the page (a dark glass box).
  * Two canvases (Live2D and three.js) instead of one shared GL context: each renderer keeps its own lifecycle and
  * pauses on its own when off screen. Mount one per mate (`key`).
  */
@@ -48,13 +49,8 @@ export type CapsuleJarProps = {
   pour?: 'enter' | 'switch'
   /** The mate standing in front of the pile (transparent; pointer events go through to the capsules). */
   mateLayer?: ReactNode
-  /** Text over the bottom gradient (name, stage, first meeting). */
+  /** Text over the pile at the bottom (name, stage, first meeting). */
   caption?: ReactNode
-  /**
-   * Half width where the mate stands, as a share of the panel height (she is fitted to the height): pointing there
-   * is not pointing at the capsules.
-   */
-  mateZone?: number
   /**
    * The entry pour is over (or there is none: reduced motion, no physics, the 2D fallback). Called once per scene;
    * the page starts heavy work (the Live2D model) only then, so it never competes with the pour.
@@ -108,7 +104,6 @@ export default function CapsuleJar({
   pour = 'enter',
   mateLayer,
   caption,
-  mateZone = 0.22,
   onSettled,
   forceReducedMotion = false,
   forceFallback = false,
@@ -135,7 +130,9 @@ export default function CapsuleJar({
   const hoveredRef = useRef<string | null>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
   // Latest values for the long-lived scene (created asynchronously, after these may have changed).
-  const latest = useRef({ layout, dropIds, reducedMotion, mateZone })
+  const latest = useRef({ layout, dropIds, reducedMotion })
+  const mateRef = useRef<HTMLDivElement>(null)
+  const mateCovers = useMateSilhouette(mateRef)
   /** Bumped when the scene goes away: a pending opening from an older scene must not open a record card. */
   const generationRef = useRef(0)
   /** New connections that have already fallen in this mount. */
@@ -205,8 +202,8 @@ export default function CapsuleJar({
   const handlers = useRef({ selectFromScene, syncOverlay, onSettled })
   useEffect(() => {
     handlers.current = { selectFromScene, syncOverlay, onSettled }
-    latest.current = { layout, dropIds, reducedMotion, mateZone }
-  }, [selectFromScene, syncOverlay, onSettled, layout, dropIds, reducedMotion, mateZone])
+    latest.current = { layout, dropIds, reducedMotion }
+  }, [selectFromScene, syncOverlay, onSettled, layout, dropIds, reducedMotion])
 
   // Create the scene lazily, only once it scrolls into view; then the capsules pour.
   useEffect(() => {
@@ -227,7 +224,14 @@ export default function CapsuleJar({
         Promise.all([
           import('./capsule-jar-scene.ts'),
           // Physics is optional: without it the scene shows its still final state.
-          import('./capsule-physics.ts').then((module) => module.createCapsulePhysics()).catch(() => null),
+          import('./capsule-physics.ts')
+            .then((module) =>
+              module.createCapsulePhysics({
+                halfWidth: PILE.width / 2,
+                binWalls: { at: [-PILE.binEdge, PILE.binEdge], height: PILE.binWallHeight, thickness: PILE.binWallThickness },
+              }),
+            )
+            .catch(() => null),
         ])
           .then(([{ createCapsuleJarScene }, physics]) => {
             if (cancelled) {
@@ -251,7 +255,7 @@ export default function CapsuleJar({
               },
             })
             sceneRef.current = scene
-            scene.setMateZone(current.mateZone)
+            scene.setOccluder(mateCovers)
             scene.setLayout(current.layout)
             for (const id of current.dropIds) pouredIds.current.add(id)
             scene.intro({ kind: pour, newGroupIds: current.dropIds })
@@ -298,10 +302,6 @@ export default function CapsuleJar({
   useEffect(() => {
     sceneRef.current?.setReducedMotion(reducedMotion)
   }, [reducedMotion])
-
-  useEffect(() => {
-    sceneRef.current?.setMateZone(mateZone)
-  }, [mateZone])
 
   // Place the DOM overlay as soon as it mounts (a still scene renders no further frames).
   useLayoutEffect(() => {
@@ -392,10 +392,19 @@ export default function CapsuleJar({
           {/* Decorative picture of the pile (canvas); its summary is the accessible name. The mate layer and caption are outside it. */}
           <div ref={hostRef} className="capsule-jar-host" role="img" aria-label={summary} />
           {mode === 'fallback' && (
-            <FloorFallback layout={layout} theme={theme} onSelect={(id) => openRecord(id, null, false, placementFor())} />
+            <FloorFallback
+              layout={layout}
+              theme={theme}
+              onSelect={(id, event) => {
+                if (!mateCovers(event.clientX, event.clientY)) openRecord(id, null, false, placementFor())
+              }}
+            />
           )}
-          {mateLayer && <div className="capsule-jar-mate">{mateLayer}</div>}
-          <div className="capsule-jar-shade" aria-hidden="true" />
+          {mateLayer && (
+            <div ref={mateRef} className="capsule-jar-mate">
+              {mateLayer}
+            </div>
+          )}
           {caption && <div className="capsule-jar-caption">{caption}</div>}
           <p className="sr-only">키보드로는 「목록으로 보기」에서 날짜별 기록을 열 수 있어요.</p>
 
@@ -464,9 +473,63 @@ export default function CapsuleJar({
   )
 }
 
+/** Alpha of the mate's still, sampled at this size (enough for a click test, cheap to read). */
+const SILHOUETTE_WIDTH = 160
+
 /**
- * Still 2D floor for browsers without WebGL: the capsules seen from the front at the bottom of the panel (the mate
- * layer and caption stay as they are). Decorative: hidden from assistive technology; 「목록으로 보기」 lists them.
+ * Whether the mate covers a viewport point: the alpha of her still image (the `<img>` in the mate layer, drawn in the
+ * same framing as the live model and kept in layout even while hidden behind it), widened by one sample so the live
+ * model's small sway stays covered. Without a readable image nothing is covered.
+ */
+function useMateSilhouette(mateRef: { current: HTMLElement | null }) {
+  const mask = useRef<{ src: string; width: number; height: number; alpha: Uint8ClampedArray } | null>(null)
+  return useCallback(
+    (clientX: number, clientY: number) => {
+      const image = mateRef.current?.querySelector('img')
+      if (!image || !image.complete || !image.naturalWidth) return false
+      const rect = image.getBoundingClientRect()
+      if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return false
+      const src = image.currentSrc || image.src
+      if (mask.current?.src !== src) {
+        try {
+          const width = SILHOUETTE_WIDTH
+          const height = Math.max(1, Math.round((image.naturalHeight / image.naturalWidth) * width))
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          const context = canvas.getContext('2d', { willReadFrequently: true })
+          if (!context) return false
+          context.drawImage(image, 0, 0, width, height)
+          const data = context.getImageData(0, 0, width, height).data
+          const alpha = new Uint8ClampedArray(width * height)
+          for (let index = 0; index < alpha.length; index++) alpha[index] = data[index * 4 + 3]!
+          mask.current = { src, width, height, alpha }
+        } catch {
+          // A cross-origin image cannot be read: treat its whole box as the mate.
+          mask.current = null
+          return true
+        }
+      }
+      const { width, height, alpha } = mask.current
+      const u = Math.floor(((clientX - rect.left) / rect.width) * width)
+      const v = Math.floor(((clientY - rect.top) / rect.height) * height)
+      for (let dv = -1; dv <= 1; dv++) {
+        for (let du = -1; du <= 1; du++) {
+          const x = u + du
+          const y = v + dv
+          if (x >= 0 && y >= 0 && x < width && y < height && alpha[y * width + x]! > 48) return true
+        }
+      }
+      return false
+    },
+    [mateRef],
+  )
+}
+
+/**
+ * Still 2D pile for browsers without WebGL: the same side-on pile as the scene, drawn as SVG at the bottom of the
+ * panel (the mate layer and caption stay as they are). Decorative: hidden from assistive technology; 「목록으로 보기」
+ * lists the records.
  */
 function FloorFallback({
   layout,
@@ -475,20 +538,16 @@ function FloorFallback({
 }: {
   layout: FloorLayout
   theme: CapsuleJarTheme
-  onSelect: (id: string) => void
+  onSelect: (id: string, event: ReactMouseEvent) => void
 }) {
   const gradientId = useId().replace(/:/g, '')
-  // Front view, slightly from above: depth lifts things a little up the panel, height lifts them more.
-  const rx = Math.min(layout.spreadRadius * FLOOR.aspectX, 2.6) + 0.2
-  const rz = layout.spreadRadius * FLOOR.aspectZ
-  const toY = (y: number, z: number) => -y - z * 0.3
-  const sorted = [...layout.placements].sort((a, b) => a.z - b.z)
-  const top = -1.6
-  const bottom = rz * 0.3 + 0.3
+  // The scene's frame: exactly the pile's width, the floor at the bottom edge.
+  const half = PILE.width / 2
+  const top = Math.max(1.2, layout.topHeight + 0.4)
   return (
     <svg
       className="capsule-jar-fallback"
-      viewBox={`${-rx} ${top} ${rx * 2} ${bottom - top}`}
+      viewBox={`${-half} ${-top} ${PILE.width} ${top + 0.03}`}
       preserveAspectRatio="xMidYMax meet"
       aria-hidden="true"
     >
@@ -499,17 +558,16 @@ function FloorFallback({
           <stop offset="1" stopColor={theme.glow} stopOpacity="0" />
         </radialGradient>
       </defs>
-      {sorted.map((placement) => {
+      {layout.placements.map((placement) => {
         const thickness = placement.length * CAPSULE_ASPECT
-        const visible = placement.length * Math.max(0.5, Math.abs(Math.cos(placement.yaw)))
         return (
           <g
             key={placement.id}
-            transform={`translate(${placement.x} ${toY(placement.y, placement.z)}) rotate(${(-placement.pitch * 180) / Math.PI})`}
+            transform={`translate(${placement.x} ${-placement.y}) rotate(${(-placement.pitch * 180) / Math.PI})`}
             className="capsule-jar-fallback-capsule"
-            onClick={() => onSelect(placement.groupId)}
+            onClick={(event) => onSelect(placement.groupId, event)}
           >
-            <rect x={-visible / 2} y={-thickness / 2} width={visible} height={thickness} rx={thickness / 2}
+            <rect x={-placement.length / 2} y={-thickness / 2} width={placement.length} height={thickness} rx={thickness / 2}
               fill={theme.lightHalf} fillOpacity="0.18" stroke={theme.lightHalf} strokeOpacity="0.45" strokeWidth={0.008} />
             <circle r={placement.length * (0.1 + 0.15 * placement.glow)} fill={`url(#${gradientId}-core)`} />
           </g>

@@ -1,4 +1,34 @@
-/* 내 메이트: mate switcher, the "big mate over the capsule floor" panel and the column. docs/DESIGN_SYSTEM.md. */
+/*
+ * 내 메이트: mate switcher, the "big mate over the capsule pile" panel and the column. Follows the base rules of
+ * docs/DESIGN_SYSTEM.md (no outlines, violet only for the main action and selection, no gold). The information
+ * blocks, the neutral button and the caption use the report result panel's glass (see `.my-mates-glass` below).
+ */
+
+/*
+ * Glass: the report result panel's material, unchanged (docs/DESIGN_SYSTEM.md): `panel` 88% → `canvas` 82%,
+ * 24px backdrop blur, 120% saturation; opaque `panel` where backdrop-filter is missing; no outline, no inner
+ * highlight. The pixel snow behind shows through faintly.
+ */
+.mate-switcher-chip,
+.mate-game-block,
+.my-mates-list-toggle,
+.my-mates-scene .capsule-jar-caption {
+  background: var(--color-panel);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .mate-switcher-chip,
+  .mate-game-block,
+  .my-mates-list-toggle,
+  .my-mates-scene .capsule-jar-caption {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-panel) 88%, transparent),
+      color-mix(in srgb, var(--color-canvas) 82%, transparent)
+    );
+    -webkit-backdrop-filter: blur(24px) saturate(120%);
+    backdrop-filter: blur(24px) saturate(120%);
+  }
+}
 .my-mates-window.desktop-window {
   position: relative;
   left: auto;
@@ -29,13 +59,14 @@
   height: 36px;
   padding: 0 14px;
   border-radius: 999px;
-  background: var(--color-selected);
-  color: var(--color-selected-text);
+  color: var(--color-ink);
   font-size: 14px;
   font-weight: 600;
 }
-.mate-switcher-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-accent); box-shadow: 0 0 8px var(--color-text-accent); }
-.mate-switcher-chip--upcoming { background: var(--color-panel); color: var(--color-text-disabled); font-weight: 500; }
+/* The picked mate: the selection colour (violet only for selection). */
+.mate-switcher-chip:not(.mate-switcher-chip--upcoming) { background: var(--color-selected); color: var(--color-selected-text); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.mate-switcher-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-accent); }
+.mate-switcher-chip--upcoming { color: var(--color-text-disabled); font-weight: 500; }
 .mate-switcher-soon {
   padding: 1px 7px;
   border-radius: 999px;
@@ -75,7 +106,7 @@
 .mate-fan-card[aria-pressed='true'] {
   z-index: 1;
   transform: translateY(-10px) scale(1.06);
-  box-shadow: 0 12px 26px #000000a0, 0 0 0 2px var(--color-text-accent), 0 0 18px #ac95f866;
+  box-shadow: 0 12px 26px #000000a0, 0 0 0 2px var(--color-text-accent);
 }
 .mate-fan-card:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 3px; }
 .mate-fan-art { position: relative; flex: 1; overflow: hidden; }
@@ -113,8 +144,8 @@
 .my-mates-scene { grid-area: scene; min-width: 0; min-height: 0; }
 .my-mates-info { grid-area: info; min-height: 0; }
 
-/* The panel: one tall rounded panel straight on the page background — the capsule floor (three.js) at the bottom,
-   the big Live2D mate over it, then the dark gradient and the caption (capsule-jar.css orders the layers). */
+/* The panel: one tall rounded panel straight on the page background — the side-on capsule pile (three.js) at the
+   bottom, the big Live2D mate over it, then the glass caption (capsule-jar.css orders the layers). */
 .my-mates-scene .capsule-jar { --jar-stage-height: var(--my-mates-height); height: 100%; padding: 0; background: transparent; }
 .my-mates-scene .capsule-jar-body,
 .my-mates-scene .capsule-jar-stage { height: 100%; min-height: 0; }
@@ -126,22 +157,10 @@
 .my-mates-scene .capsule-jar-list { height: 100%; max-height: none; }
 .my-mates-scene-loading { height: 100%; border-radius: 28px; background: #16141f; }
 
-/* The big mate (MatePreview): fills the panel, no room picture or backdrop of its own; the v2 hero still stays
-   under the model while it loads, under reduced motion and on failure (bottom-aligned bust, same framing). */
+/* The big mate (MatePreview): head to waist, filling the panel's height (the hero still and the expression stills
+   share that framing; the live model's camera reproduces it, my-mates-framing.ts). No room picture, no backdrop,
+   no fade: the pile shows beside her and below her waist, behind her. */
 .my-mates-live-tint { position: absolute; inset: 0; }
-/* She stands in the pile: her body fades out only where it meets the top of the pile (a short band), so the
-   capsules in front of her lower body and at her sides stay crisp, and the cut of the bust never shows as an edge.
-   `--mate-fade` is where the pile's top meets her (a share of the panel height). */
-.my-mates-scene .capsule-jar-mate {
-  --mate-fade: 70%;
-  -webkit-mask-image: linear-gradient(180deg, #000 calc(var(--mate-fade) - 6%), transparent calc(var(--mate-fade) + 6%));
-  mask-image: linear-gradient(180deg, #000 calc(var(--mate-fade) - 6%), transparent calc(var(--mate-fade) + 6%));
-}
-/* The shade: only behind the caption (bottom left); the rest of the pile is not darkened so the capsules glow. */
-.my-mates-scene .capsule-jar-shade {
-  height: 50%;
-  background: radial-gradient(ellipse 58% 64% at 0% 100%, rgb(15 14 23 / 0.84) 0%, rgb(15 14 23 / 0.55) 45%, transparent 100%);
-}
 .capsule-jar-mate .mate-detail-portrait.my-mates-live {
   position: absolute;
   inset: 0;
@@ -153,6 +172,17 @@
   background: transparent !important;
 }
 .my-mates-live .desktop-mate-bg-img { display: none; }
+/* Fitted to the height, centred: in a narrow panel the still's empty side margins go past the edges. */
+.my-mates-live .mate-detail-fallback { overflow: visible; }
+.my-mates-live .mate-detail-fallback-img {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: auto;
+  max-width: none;
+  height: 100%;
+  transform: translateX(-50%);
+}
 /* Load failure: the still stays and a small notice with 「다시 시도」 sits at the top of the panel, clear of the
    caption. The mate layer lets clicks through to the capsules; only this notice takes them back (keyboard focus
    works either way). */
@@ -162,35 +192,21 @@
   pointer-events: auto;
 }
 
-/* Caption over the gradient: the name big, then the stage and the first-met day. */
-.my-mates-caption-name {
-  margin: 0;
-  color: #fff;
-  font-size: 34px;
-  line-height: 40px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  text-shadow: 0 2px 16px rgb(0 0 0 / 0.45);
+/* Caption: a glass box at the bottom left, over the pile (it takes the clicks there, so nothing behind it opens).
+   The name, then the stage and the first-met day. */
+.my-mates-scene .capsule-jar-caption {
+  inset: auto auto 16px 16px;
+  max-width: calc(100% - 32px);
+  padding: 14px 18px;
+  border-radius: 18px;
+  pointer-events: auto;
 }
-.my-mates-caption-stage {
-  margin: 6px 0 0;
-  color: #e4dcff;
-  font-size: 17px;
-  line-height: 24px;
-  font-weight: 700;
-  text-shadow: 0 1px 10px rgb(0 0 0 / 0.5);
-}
-.my-mates-caption-date {
-  margin: 4px 0 0;
-  color: rgb(255 255 255 / 0.72);
-  font-size: 14px;
-  line-height: 20px;
-  font-variant-numeric: tabular-nums lining-nums;
-  text-shadow: 0 1px 8px rgb(0 0 0 / 0.5);
-}
+.my-mates-caption-name { margin: 0; color: var(--color-ink); font-size: 26px; line-height: 32px; font-weight: 800; }
+.my-mates-caption-stage { margin: 4px 0 0; color: var(--color-ink); font-size: 15px; line-height: 22px; font-weight: 600; }
+.my-mates-caption-date { margin: 2px 0 0; color: var(--color-muted); font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums lining-nums; }
 @media (min-width: 960px) and (max-height: 800px) {
-  .my-mates-caption-name { font-size: 28px; line-height: 34px; }
-  .my-mates-caption-stage { font-size: 15px; line-height: 22px; }
+  .my-mates-scene .capsule-jar-caption { padding: 10px 14px; }
+  .my-mates-caption-name { font-size: 22px; line-height: 28px; }
 }
 
 /* ── 「함께한 시간」 column: game-style blocks in components/mate-time-column.css ── */
@@ -200,7 +216,6 @@
   padding: 0 16px;
   border: 0;
   border-radius: 12px;
-  background: var(--color-control);
   color: var(--color-ink);
   font: inherit;
   font-size: 14px;
@@ -250,7 +265,7 @@
   }
   .my-mates-info { overflow: visible; }
   .my-mates-skeleton-scene { height: clamp(380px, 56vh, 520px); }
-  .my-mates-caption-name { font-size: 28px; line-height: 34px; }
+  .my-mates-caption-name { font-size: 22px; line-height: 28px; }
 }
 @media (max-width: 640px) {
   .my-mates-window-body { padding: 16px 16px 24px; }

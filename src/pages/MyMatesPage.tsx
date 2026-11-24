@@ -18,6 +18,7 @@ import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floo
 import type { CapsuleJarHandle } from '@/features/mates/capsule-jar/CapsuleJar'
 import { MateTimeColumn, type StageReward } from '@/features/mates/components/MateTimeColumn'
 import { PixelSnow } from '@/features/mates/pixel-snow/PixelSnow'
+import { waistFraming } from '@/features/mates/my-mates-framing'
 import { capsuleJarTheme } from '@/features/mates/capsule-jar/capsule-jar-theme'
 import { affinityProgressView, opensAtNextStage } from '@/features/mates/affinity-progress'
 import { affinityStageLabel, normalizeAffinityStage } from '@/features/mates/affinity-stages'
@@ -286,6 +287,7 @@ export default function MyMatesPage() {
       showAgeBadge={false}
       overrideExpression={expression?.expressionFile ?? null}
       stageClassName="my-mates-live"
+      framing={waistFraming}
       onRetry={() => setModelAttempt((value) => value + 1)}
     />
     </div>

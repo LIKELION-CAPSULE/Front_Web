@@ -1,27 +1,24 @@
 import { hashId, seededRandom, sortCapsules } from './capsule-jar-data.ts'
-import {
-  CAPSULE_ASPECT,
-  deposit,
-  heightField,
-  restingPose,
-  type CapsulePlacement,
-  type Field,
-  type Pose,
-} from './capsule-jar-layout.ts'
+import { CAPSULE_ASPECT, type CapsulePlacement } from './capsule-jar-layout.ts'
 import type { CapsuleRecord } from './capsule-jar-types.ts'
 
 /**
- * Pure layout of the capsule floor at the bottom of the mate panel (the mate stands in front of it). No renderer
- * imports, so it runs in unit tests.
+ * Pure layout of the capsule pile at the bottom of the mate panel, seen flat from the side (2D): every capsule lies
+ * in the screen plane (z = 0) and is turned only within it. The mate stands in front of the pile (a separate layer),
+ * so the pile shows beside her and below her waist. No renderer imports, so it runs in unit tests.
  *
  * - One connection is a *bundle* of capsules, as many as its length (`capsulesForConnection`): 30 min → 3,
  *   1 h → 6, 2 h → 12. The amount shows the time; the size of the capsules does not (only a small natural variation
  *   inside a bundle).
- * - Bundles land around their own spot, so a bundle reads as a little cluster; together they make one low mound.
- *   Few land right in the middle, where the mate stands in front and would hide them.
- * - The spread grows with the number of capsules (and the capsules shrink in steps for large numbers), so 30 or 300
- *   capsules both fill the floor.
+ * - The mate stands in front of the middle and, framed head to waist, covers almost the whole width low down (her hair
+ *   and arms). So most capsules go into two side bins that rise up beside her (`PILE.sideFill` high), where her
+ *   silhouette narrows; a lower layer fills the middle behind her waist. The bins' inner walls (`PILE.binEdge`) stand
+ *   inside her silhouette, so they never show; the physics has the same walls, so a heap cannot level out (round
+ *   capsules roll over each other and would flatten any free-standing slope).
+ * - Bundles go to the bin that is least full for its share and stack on what lies there (a 2D height profile).
+ * - The capsule size follows the total count so 30 or 300 capsules both fill the bins to about the same height.
  * - The order of `placements` is the stacking order: later capsules rest on earlier ones (the pour drops the last).
+ * - These are resting poses; with physics the scene drops the last capsules and lets them settle (capsule-physics.ts).
  */
 
 /** How many capsules one connection becomes. The single place for this rule. */
@@ -39,64 +36,56 @@ export function capsulesForConnection(durationSeconds: number) {
   return Math.min(CAPSULE_COUNT.max, Math.max(CAPSULE_COUNT.min, count))
 }
 
-export const FLOOR = {
-  /** The middle of the floor right behind the mate (half extents): bundles mostly land around it. */
-  standHalfWidth: 0.78,
-  standHalfDepth: 1.4,
-  /** Smallest spread, so even a few capsules lie beside the mate instead of only behind her. */
-  minRadius: 1.9,
-  maxRadius: 3.4,
-  /** Average layers the pile is thick (sets how wide it spreads for a number of capsules). */
-  layers: 1.25,
-  /** Height a capsule pays per unit of distance from the middle: a gentle mound. */
-  slope: 0.22,
-  /** Spread of one bundle around its spot. */
-  bundleSpread: 0.55,
-  /** The pile stays low: about this many capsule layers (more costs a lot). */
-  maxLayers: 3.2,
-  /** The floor is an ellipse, wider than deep (the view is landscape and seen at an angle). */
-  aspectX: 1.22,
-  aspectZ: 0.86,
-  /** Share of bundles landing in the middle anyway (one connected mound); the rest stay in sight beside the mate. */
-  middleShare: 0.15,
+export const PILE = {
+  /** Panel width in scene units: the camera shows exactly this width, the floor is y = 0 at the panel bottom. */
+  width: 6,
+  /** Inner edge of the side bins (|x|, scene units): inside the mate's silhouette at the bins' height. */
+  binEdge: 1.75,
+  /** Fill height of the side bins (scene units): the capsules shrink as the count grows to keep it. */
+  sideFill: 3,
+  /** Share of the capsules in the two side bins together (the rest lie in the middle, behind her). */
+  sideShare: 0.8,
+  /** Height of the bins' (invisible) inner walls: above the panel's top, so a falling capsule stays in its bin. */
+  binWallHeight: 20,
+  /** Thickness of an inner wall, on the middle bin's side of `binEdge` (thick enough that nothing tunnels through). */
+  binWallThickness: 0.3,
+  /** Share of the pile's area the capsules fill (loose stacking). */
+  packing: 0.6,
+  /** Capsule length limits (scene units): hand-sized for a few, small but readable for hundreds. */
+  maxLength: 0.62,
+  minLength: 0.2,
+  /** Spread of one bundle around its spot (scene units). */
+  bundleSpread: 0.5,
+  /** Columns of the height profile across the width. */
+  columns: 160,
+  /** Largest in-plane tilt of a capsule at rest (radians). */
+  maxTilt: 0.32,
 } as const
 
-/** Average pile height in a square around (x, z). */
-function heightAround(field: Field, x: number, z: number, reach: number) {
-  const { grid, half, heights } = field
-  const cell = (2 * half) / grid
-  const steps = 4
-  let sum = 0
-  let count = 0
-  for (let a = -steps; a <= steps; a++) {
-    for (let b = -steps; b <= steps; b++) {
-      const i = Math.floor((x + (a / steps) * reach + half) / cell)
-      const j = Math.floor((z + (b / steps) * reach + half) / cell)
-      if (i < 0 || j < 0 || i >= grid || j >= grid) continue
-      sum += heights[i * grid + j]!
-      count++
-    }
-  }
-  return count ? sum / count : 0
+/** Area all capsules fill (scene units²): the two side bins up to `sideFill` make `sideShare` of it. */
+export function pileArea() {
+  const sideArea = 2 * (PILE.width / 2 - PILE.binEdge) * PILE.sideFill
+  return sideArea / PILE.sideShare
 }
 
-/** Inside the middle of the floor behind the mate, grown by `margin`. */
-function insideMiddle(x: number, z: number, margin: number) {
-  return Math.abs(x) < FLOOR.standHalfWidth + margin && Math.abs(z) < FLOOR.standHalfDepth + margin
-}
-
-/** Capsule length by the total number of capsules: hand-sized beside the mate, smaller steps for big piles. */
-const SIZE_STEPS: readonly (readonly [maxCount: number, length: number])[] = [
-  [60, 0.62],
-  [120, 0.55],
-  [200, 0.48],
-  [300, 0.43],
-  [Infinity, 0.39],
+/** The three bins (x ranges), left, middle, right, and the share of the capsules each takes. */
+export const PILE_BINS: readonly { from: number; to: number; share: number }[] = [
+  { from: -PILE.width / 2, to: -PILE.binEdge, share: PILE.sideShare / 2 },
+  { from: -PILE.binEdge + PILE.binWallThickness, to: PILE.binEdge - PILE.binWallThickness, share: 1 - PILE.sideShare },
+  { from: PILE.binEdge, to: PILE.width / 2, share: PILE.sideShare / 2 },
 ]
 
+/** The bin a resting x lies in. */
+export function pileBinAt(x: number) {
+  return PILE_BINS.find((bin) => x >= bin.from && x <= bin.to) ?? PILE_BINS[1]!
+}
+
+/** Capsule length for a total count: the count fills the bins (`pileArea`) at `PILE.packing`. */
 export function floorCapsuleLength(count: number) {
-  for (const [maxCount, length] of SIZE_STEPS) if (count <= maxCount) return length
-  return SIZE_STEPS[SIZE_STEPS.length - 1]![1]
+  if (count <= 0) return PILE.maxLength
+  const length = Math.sqrt((PILE.packing * pileArea()) / (count * CAPSULE_ASPECT))
+  // Steps of 0.01 so a new connection does not resize every capsule a hair.
+  return Math.round(Math.min(PILE.maxLength, Math.max(PILE.minLength, length)) * 100) / 100
 }
 
 export type FloorPlacement = CapsulePlacement & {
@@ -115,17 +104,54 @@ export type FloorLayout = {
   baseLength: number
   /** Highest point of any capsule. */
   topHeight: number
-  /** Radius the capsules spread over (around the centre). */
-  spreadRadius: number
+  /** Width of the floor (scene units, centred on x = 0). */
+  width: number
 }
 
 const CANDIDATES = 9
 
-function spreadFor(count: number, length: number) {
-  const footprint = length * length * CAPSULE_ASPECT
-  const middleArea = 4 * FLOOR.standHalfWidth * FLOOR.standHalfDepth * 0.5
-  const area = (count * footprint) / FLOOR.layers + middleArea
-  return Math.min(FLOOR.maxRadius, Math.max(FLOOR.minRadius, Math.sqrt(area / (Math.PI * FLOOR.aspectX * FLOOR.aspectZ))))
+type Profile = { heights: Float64Array; cell: number; half: number }
+
+const columnX = (profile: Profile, column: number) => -profile.half + (column + 0.5) * profile.cell
+
+/**
+ * Where a capsule (centre x, in-plane tilt, half axis, radius) comes to rest on the profile: the lowest centre height
+ * at which no column of its outline dips into what already lies there (or the floor).
+ */
+function restOn(profile: Profile, x: number, tilt: number, halfAxis: number, radius: number) {
+  const along = halfAxis * Math.cos(tilt)
+  const slope = Math.tan(tilt)
+  const from = Math.max(0, Math.floor((x - along - radius + profile.half) / profile.cell))
+  const to = Math.min(profile.heights.length - 1, Math.floor((x + along + radius + profile.half) / profile.cell))
+  let centerY = radius
+  for (let column = from; column <= to; column++) {
+    const cx = columnX(profile, column)
+    const t = Math.min(x + along, Math.max(x - along, cx))
+    const dx = Math.abs(cx - t)
+    if (dx >= radius) continue
+    const clearance = Math.sqrt(radius * radius - dx * dx)
+    centerY = Math.max(centerY, profile.heights[column]! + clearance - (t - x) * slope)
+  }
+  return { centerY, from, to, along, slope }
+}
+
+function depositOn(profile: Profile, x: number, centerY: number, rest: ReturnType<typeof restOn>, radius: number) {
+  for (let column = rest.from; column <= rest.to; column++) {
+    const cx = columnX(profile, column)
+    const t = Math.min(x + rest.along, Math.max(x - rest.along, cx))
+    const dx = Math.abs(cx - t)
+    if (dx >= radius) continue
+    const top = centerY + (t - x) * rest.slope + Math.sqrt(radius * radius - dx * dx)
+    if (top > profile.heights[column]!) profile.heights[column] = top
+  }
+}
+
+function heightNear(profile: Profile, x: number, reach: number) {
+  const from = Math.max(0, Math.floor((x - reach + profile.half) / profile.cell))
+  const to = Math.min(profile.heights.length - 1, Math.floor((x + reach + profile.half) / profile.cell))
+  let sum = 0
+  for (let column = from; column <= to; column++) sum += profile.heights[column]!
+  return sum / Math.max(1, to - from + 1)
 }
 
 export function layoutFloor(capsules: readonly CapsuleRecord[]): FloorLayout {
@@ -133,33 +159,34 @@ export function layoutFloor(capsules: readonly CapsuleRecord[]): FloorLayout {
   const counts = sorted.map((capsule) => capsulesForConnection(capsule.durationSeconds))
   const total = counts.reduce((sum, count) => sum + count, 0)
   const baseLength = floorCapsuleLength(total)
-  const spreadRadius = spreadFor(total, baseLength)
-  const half = spreadRadius * FLOOR.aspectX + 0.6
-  const field: Field = heightField(half, () => 0)
+  const half = PILE.width / 2
+  const profile: Profile = { heights: new Float64Array(PILE.columns), cell: PILE.width / PILE.columns, half }
   const placements: FloorPlacement[] = []
   const groups: FloorGroup[] = []
   let topHeight = 0
+  const binPieces = PILE_BINS.map(() => 0)
 
   for (const [groupIndex, capsule] of sorted.entries()) {
     const random = seededRandom(hashId(capsule.id))
-    // The bundle's spot on the floor (an ellipse, wider than deep like the view). Most bundles land beside and
-    // behind the mate's place so they stay in sight; a few land in the middle and join the heap up.
-    // Of a few random spots the emptiest wins, so bundles spread over the floor instead of piling on one another.
-    const under = random() < FLOOR.middleShare
-    let spotX = 0
-    let spotZ = 0
+    // The bundle's bin: the one least full for its share (ties broken at random); its spot: the lowest of a few.
+    let bin = PILE_BINS[1]!
+    let binScore = Infinity
+    for (const [index, candidate] of PILE_BINS.entries()) {
+      const score = (binPieces[index]! + 1) / candidate.share + random() * 0.5
+      if (score < binScore) {
+        binScore = score
+        bin = candidate
+      }
+    }
+    binPieces[PILE_BINS.indexOf(bin)]! += counts[groupIndex]!
+    let spot = (bin.from + bin.to) / 2
     let spotScore = Infinity
-    for (let attempt = 0; attempt < 7; attempt++) {
-      const angle = random() * Math.PI * 2
-      const distance = Math.sqrt(random())
-      const x = Math.sin(angle) * distance * spreadRadius * FLOOR.aspectX * 0.9
-      const z = Math.cos(angle) * distance * spreadRadius * FLOOR.aspectZ * 0.9
-      if (!under && insideMiddle(x, z, 0.1)) continue
-      const score = heightAround(field, x, z, FLOOR.bundleSpread) + random() * 0.05
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const x = bin.from + random() * (bin.to - bin.from)
+      const score = heightNear(profile, x, PILE.bundleSpread) + random() * 0.04
       if (score < spotScore) {
         spotScore = score
-        spotX = x
-        spotZ = z
+        spot = x
       }
     }
     const group: FloorGroup = { id: capsule.id, indices: [], durationSeconds: capsule.durationSeconds }
@@ -169,46 +196,38 @@ export function layoutFloor(capsules: readonly CapsuleRecord[]): FloorLayout {
       const length = baseLength * (0.88 + random() * 0.24)
       const radius = (length * CAPSULE_ASPECT) / 2
       const halfAxis = length / 2 - radius
-      const outer = spreadRadius - length / 2
-      const ceiling = FLOOR.maxLayers * 2 * radius
-      let best: Pose | null = null
+      let best: { x: number; tilt: number; centerY: number; rest: ReturnType<typeof restOn> } | null = null
       let bestScore = Infinity
       for (let attempt = 0; attempt < CANDIDATES; attempt++) {
-        const angle = random() * Math.PI * 2
-        const reach = FLOOR.bundleSpread * Math.sqrt(random()) * (1 + attempt * 0.25)
-        let x = spotX + Math.sin(angle) * reach
-        let z = spotZ + Math.cos(angle) * reach
-        const ellipse = Math.hypot(x / FLOOR.aspectX, z / FLOOR.aspectZ) || 1
-        if (ellipse > outer) {
-          x *= outer / ellipse
-          z *= outer / ellipse
-        }
-        const pose = restingPose(field, x, z, random() * Math.PI, halfAxis, radius)
-        if (!Number.isFinite(pose.centerY)) continue
-        const top = pose.centerY + Math.abs(pose.slope) * halfAxis + radius
-        const score =
-          top + FLOOR.slope * Math.hypot(pose.x / FLOOR.aspectX, pose.z / FLOOR.aspectZ) + random() * radius * 0.4 +
-          (!under && insideMiddle(pose.x, pose.z, -0.05) ? 0.6 : 0) +
-          Math.max(0, top - ceiling) * 4
+        const reach = PILE.bundleSpread * (1 + attempt * 0.25)
+        // Inside the bundle's bin (a capsule never straddles a bin wall).
+        const low = bin.from + length / 2 + 0.01
+        const high = bin.to - length / 2 - 0.01
+        const x = Math.max(low, Math.min(high, spot + (random() - 0.5) * 2 * reach))
+        const tilt = (random() - 0.5) * 2 * PILE.maxTilt
+        const rest = restOn(profile, x, tilt, halfAxis, radius)
+        const top = rest.centerY + Math.abs(Math.sin(tilt)) * halfAxis + radius
+        // Low and level wins: capsules fill hollows first.
+        const score = top + Math.abs(tilt) * radius * 0.5 + random() * radius * 0.3
         if (score < bestScore) {
-          best = pose
           bestScore = score
+          best = { x, tilt, centerY: rest.centerY, rest }
         }
       }
-      const pose = best ?? restingPose(field, spotX, spotZ, 0, halfAxis, radius)
-      deposit(field, pose, halfAxis, radius)
-      topHeight = Math.max(topHeight, pose.centerY + Math.abs(pose.slope) * halfAxis + radius)
+      const chosen = best!
+      depositOn(profile, chosen.x, chosen.centerY, chosen.rest, radius)
+      topHeight = Math.max(topHeight, chosen.centerY + Math.abs(Math.sin(chosen.tilt)) * halfAxis + radius)
       group.indices.push(placements.length)
       placements.push({
         id: `${capsule.id}#${piece}`,
         index: placements.length,
         groupId: capsule.id,
         group: groupIndex,
-        x: pose.x,
-        y: pose.centerY,
-        z: pose.z,
-        yaw: pose.yaw,
-        pitch: Math.atan(pose.slope),
+        x: chosen.x,
+        y: chosen.centerY,
+        z: 0,
+        yaw: 0,
+        pitch: chosen.tilt,
         roll: random() * Math.PI * 2,
         length,
         radius,
@@ -217,12 +236,5 @@ export function layoutFloor(capsules: readonly CapsuleRecord[]): FloorLayout {
     }
   }
 
-  return {
-    kind: 'floor',
-    placements,
-    groups,
-    baseLength,
-    topHeight,
-    spreadRadius,
-  }
+  return { kind: 'floor', placements, groups, baseLength, topHeight, width: PILE.width }
 }

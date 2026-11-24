@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import type { StudyRecord } from '@/features/demo/types'
 import type { MateModelInfo } from '@/features/mates/mate-contract'
 import { MatePreview } from '../components/MatePreview.tsx'
+import { waistFraming } from '../my-mates-framing.ts'
 import { capsuleRecordsFromStudyRecords, sortCapsules } from './capsule-jar-data.ts'
 import { generateDummyCapsules, generateFreshCapsules } from './capsule-jar-dummy.ts'
 import { capsuleVisitKey } from './capsule-jar-visit.ts'
@@ -187,6 +188,7 @@ export default function CapsuleJarPreview({
               suppressSpeech
               showAgeBadge={false}
               stageClassName="my-mates-live"
+              framing={waistFraming}
               onRetry={() => {}}
             />
           }
