@@ -12,6 +12,7 @@ import { CapsuleDayDetail, RecordConnectionRow } from '@/features/records/Record
 import { defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-calendar'
 import { isCompletedRecord } from '@/features/records/connection-day'
 import { CapsuleBoard } from '@/features/records/capsule-board/CapsuleBoard'
+import { SatinBackdrop } from '@/features/records/satin-backdrop/SatinBackdrop'
 import { BOARD, buildCapsuleBoard, offsetContaining } from '@/features/records/capsule-board/capsule-board-layout'
 import {
   boardViewSlot,
@@ -73,9 +74,14 @@ function RecordsWindowFrame({
   loadingScreen?: 'records'
   children: React.ReactNode
 }) {
-  return <AppPanel title="함께한 기록" hideTitle className="records-window" loadingScreen={loadingScreen} bodyClassName="records-window-body">
-    {children}
-  </AppPanel>
+  return (
+    <>
+      <SatinBackdrop />
+      <AppPanel title="함께한 기록" hideTitle className="records-window" loadingScreen={loadingScreen} bodyClassName="records-window-body">
+        {children}
+      </AppPanel>
+    </>
+  )
 }
 
 /** Block title: a small icon and the title, the same in every block (내 메이트 `BlockLabel`). */
