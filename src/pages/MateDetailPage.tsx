@@ -4,7 +4,6 @@ import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
 import { availableMates } from '@/features/mates/catalog'
 import { ConnectMateButton } from '@/features/mates/components/ConnectMateButton'
-import { MateCard } from '@/features/mates/components/MateCard'
 import { matePortrait } from '@/features/mates/artwork'
 import { HeaderAccount } from '@/app/components/HeaderAccount'
 import { SiteHeader } from '@/app/components/SiteHeader'
@@ -12,11 +11,11 @@ import { Icon } from '@/shared/ui/Icon'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { MatePreview } from '@/features/mates/components/MatePreview'
-import { VoiceSampleButton, type VoiceSampleStatus } from '@/features/mates/components/VoiceSampleButton'
-import { MateMenu } from '@/features/mates/components/MateMenu'
+import { VoiceSampleButton } from '@/features/mates/components/VoiceSampleButton'
 import NotFoundPage from './NotFoundPage'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
+import '@/features/mates/mate-detail.css'
 
 type ViewTransitionDocument = Document & {
   startViewTransition?: (callback: () => void) => { finished: Promise<void> }
@@ -27,12 +26,8 @@ export default function MateDetailPage() {
   const navigate = useNavigate()
   const { home, mateDetails, loadMateDetail, mateContentVersion } = useBackend()
   const { state } = useDemo()
-  const [resetting, setResetting] = useState(false)
-  const [dialogOpen, setDialogOpen] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null)
-  const [ctaActive, setCtaActive] = useState(false)
-  const [audioStatus, setAudioStatus] = useState<VoiceSampleStatus>('idle')
 
   const mates = availableMates(home)
   const mate = mates.find((value) => value.id === mateId)
@@ -63,7 +58,9 @@ export default function MateDetailPage() {
   const description = detail?.description ?? mate.description
   const role = detail?.role ?? mate.role
   const intro = detail?.intro ?? mate.intro
-  const tags = detail?.tags ?? mate.tags
+  // The outline name behind the hero is set in two staggered halves (채 / 린).
+  const nameHead = mate.name.slice(0, Math.ceil(mate.name.length / 2))
+  const nameTail = mate.name.slice(nameHead.length)
 
   function handleBackToHome(event: MouseEvent<HTMLAnchorElement>) {
     if (
@@ -111,137 +108,106 @@ export default function MateDetailPage() {
           )
         }
       />
-      <main id="main-content" tabIndex={-1} className="page-container mate-detail focus:outline-none">
-        <section
-          className="mate-detail-window desktop-window desktop-window--active"
-          aria-labelledby="mate-name"
-        >
-          <div className="desktop-window-titlebar mate-window-titlebar-static">
-            <div className="desktop-window-title-left">
-              <span className="desktop-mate-title">
-                <span className="desktop-mate-dot" aria-hidden="true" />
-                <span>{mate.name} · 연결 대기 중</span>
-              </span>
-            </div>
-            <div className="desktop-window-title-right">
-              <span className="desktop-mate-ai-badge">AI 캐릭터</span>
-              <MateMenu
-                mateId={mate.id}
-                revision={detail?.conversationRevision}
-                onBusyChange={setResetting}
-                onDialogChange={setDialogOpen}
-              />
-              <div className="desktop-window-controls" aria-hidden="true">
-                <span className="desktop-window-dot" />
-                <span className="desktop-window-dot" />
-                <span className="desktop-window-dot" />
-              </div>
-            </div>
-          </div>
+      <main id="main-content" tabIndex={-1} className="mate-hero focus:outline-none">
+        {/* Space backdrop: soft nebulae, faint stars, and the mate's name set huge in outline behind everything. */}
+        <div className="mate-hero-backdrop" aria-hidden="true">
+          <span className="mate-hero-outline mate-hero-outline--head">{nameHead}</span>
+          {nameTail && <span className="mate-hero-outline mate-hero-outline--tail">{nameTail}</span>}
+        </div>
 
-          <div className="desktop-window-body mate-detail-window-body">
+        {/* The mate, large and floating: Live2D that only follows the cursor (still portrait until it loads). */}
+        <div className="mate-hero-figure">
+          <div className="mate-hero-glow" aria-hidden="true" />
+          <svg className="mate-hero-capsules" viewBox="0 0 220 220" aria-hidden="true">
+            <rect className="mate-hero-capsule mate-hero-capsule--a" x="62" y="20" width="96" height="180" rx="48" />
+            <rect className="mate-hero-capsule mate-hero-capsule--b" x="62" y="20" width="96" height="180" rx="48" />
+          </svg>
+          <div className="mate-hero-stage">
             <MatePreview
               mateId={mate.id}
               model={detail?.model}
               scope={key}
               image={matePortrait(mate.id, mate.image)}
               name={mate.name}
-              paused={dialogOpen}
-              ctaActive={ctaActive}
-              audioStatus={audioStatus}
-              suppressSpeech={Boolean(error) || Boolean(loadMateDetail && !detail)}
-              controlBar={
-                <VoiceSampleButton
-                  url={detail?.voiceSampleUrl}
-                  disabled={dialogOpen || resetting}
-                  onStatusChange={setAudioStatus}
-                />
-              }
+              paused={false}
+              suppressSpeech
+              showAgeBadge={false}
               onRetry={() => setAttempt((value) => value + 1)}
             />
+          </div>
+        </div>
 
-            <div className="mate-detail-copy">
-              <h1 id="mate-name">{mate.name}</h1>
-              {introduction && <p className="mate-detail-introduction">{introduction}</p>}
-              {tags.length > 0 && (
-                <div className="mate-tags">
-                  {tags.map((tag) => (
-                    <span key={tag}>#{tag}</span>
-                  ))}
+        <section className="mate-hero-info page-container" aria-labelledby="mate-name">
+          <div className="mate-hero-copy">
+            <h1 id="mate-name" className="mate-hero-name">
+              {mate.name}
+              <span className="mate-hero-mark">
+                <Sparkle />
+                AI 캐릭터
+              </span>
+            </h1>
+            {introduction && <p className="mate-hero-tagline">{introduction}</p>}
+            {intro && <p className="mate-hero-situation">{intro}</p>}
+            {description && <p className="mate-hero-description">{description}</p>}
+            {role && <p className="mate-hero-role">내 역할 · {role}</p>}
+
+            <div className="mate-hero-tiles">
+              <div className="mate-hero-tile-group">
+                <span className="mate-hero-tile-caption">연령 등급</span>
+                <div className="mate-hero-tile">
+                  <Icon name="check" size={30} />
+                  <strong>전연령</strong>
                 </div>
-              )}
-
-              <div
-                className="mate-detail-cta"
-                onMouseEnter={() => setCtaActive(true)}
-                onMouseLeave={() => setCtaActive(false)}
-                onFocus={() => setCtaActive(true)}
-                onBlur={() => setCtaActive(false)}
-              >
-                <ConnectMateButton mate={mate} disabled={resetting} />
               </div>
-
-              {loadMateDetail && !detail && !error && (
-                <p role="status" className="mt-4 text-muted text-body-compact">
-                  캐릭터를 불러오고 있어요.
-                </p>
-              )}
-              {error && (
-                <div className="mt-4">
-                  <FeedbackMessage tone="error">{error}</FeedbackMessage>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="mt-3"
-                    onClick={() => {
-                      setFailure(null)
-                      setAttempt((value) => value + 1)
-                    }}
-                  >
-                    다시 시도
-                  </Button>
-                </div>
-              )}
-
-              {(role || description || intro) && (
-                <div className="mate-detail-story">
-                  {role && (
-                    <section>
-                      <h2>내 역할</h2>
-                      <p>{role}</p>
-                    </section>
-                  )}
-                  {description && (
-                    <section>
-                      <h2>세계관</h2>
-                      <p>{description}</p>
-                    </section>
-                  )}
-                  {intro && (
-                    <section className="mate-detail-intro-card" aria-label="첫 상황">
-                      <span className="mate-detail-intro-label">첫 상황</span>
-                      <p>{intro}</p>
-                    </section>
-                  )}
-                </div>
-              )}
+              <div className="mate-hero-tile-group">
+                <span className="mate-hero-tile-caption">목소리</span>
+                <VoiceSampleButton
+                  className="mate-hero-tile mate-hero-voice"
+                  url={detail?.voiceSampleUrl}
+                  disabled={false}
+                  idleLabel="목소리 듣기"
+                  idleIcon="headphones"
+                  iconSize={30}
+                />
+              </div>
             </div>
+
+            <div className="mate-hero-actions">
+              <ConnectMateButton mate={mate} />
+            </div>
+
+            {loadMateDetail && !detail && !error && (
+              <p role="status" className="mate-hero-status">
+                캐릭터를 불러오고 있어요.
+              </p>
+            )}
+            {error && (
+              <div className="mate-hero-status">
+                <FeedbackMessage tone="error">{error}</FeedbackMessage>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={() => {
+                    setFailure(null)
+                    setAttempt((value) => value + 1)
+                  }}
+                >
+                  다시 시도
+                </Button>
+              </div>
+            )}
           </div>
         </section>
-
-        {mates.length > 1 && (
-          <section className="mate-section">
-            <h2 className="type-section-title mate-section-title">다른 메이트도 만나 보세요</h2>
-            <div className="mate-grid">
-              {mates
-                .filter((value) => value.id !== mate.id)
-                .map((value) => (
-                  <MateCard key={value.id} mate={value} />
-                ))}
-            </div>
-          </section>
-        )}
       </main>
     </>
+  )
+}
+
+function Sparkle() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path fill="currentColor" d="M12 1.5c.5 5.6 4.9 10 10.5 10.5-5.6.5-10 4.9-10.5 10.5C11.5 16.9 7.1 12.5 1.5 12 7.1 11.5 11.5 7.1 12 1.5z" />
+    </svg>
   )
 }
