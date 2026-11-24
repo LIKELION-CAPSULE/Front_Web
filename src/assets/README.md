@@ -12,9 +12,10 @@
 
 외부 이미지 URL이나 `Landing_Page` 경로를 런타임에 참조하지 않고 이 프로젝트 안의 파일을 사용합니다. `Landing_Page` 원본은 수정하지 않았습니다.
 
+공식 로고는 이 폴더가 아니라 [로고 v2 원본](../../design/brand/capsule-logo-2026-11-22-v2/README.md)을 `src/shared/design/brand-logo.ts` 한 곳에서 가져옵니다(2026-11-24, 이전 `brand/logo.webp` 삭제).
+
 | 위치 | 원본 | 사용처 |
 | --- | --- | --- |
-| `brand/logo.webp` | `Landing_Page/src/assets/optimized/hero/logo.webp` | 공통 로고 |
 | `brand/PretendardVariable.woff2` | `Landing_Page/src/assets/fonts/PretendardVariable.woff2` | 공통 타이포그래피 |
 | `brand/FONT-LICENSE.txt` | 같은 폴더의 `LICENSE.txt` | Pretendard 라이선스 |
 | `rooms/classroom.webp` | `optimized/hero/poster-1.webp` | 쌀쌀맞은 갸루짝꿍이 나에게만 친절하다! |

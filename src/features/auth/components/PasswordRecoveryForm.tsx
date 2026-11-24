@@ -40,7 +40,7 @@ export function PasswordRecoveryForm({ token, onReset, defaultEmail, onBusyChang
     </> : <FormField label="이메일"><input className="form-input" name="email" type="email" autoComplete="email" defaultValue={defaultEmail} readOnly={busy || done} required placeholder="hello@example.com" aria-describedby={done ? `${id}-notice` : undefined} /></FormField>}
     <Button type="submit" className="w-full" loading={busy} disabled={done || invalidToken}>{token ? '비밀번호 변경하기' : '재설정 링크 받기'}</Button>
     {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
-    {invalidToken && <Link to="/login?mode=forgot-password" className="inline-flex min-h-11 items-center text-text-accent underline">재설정 링크 다시 받기</Link>}
+    {invalidToken && <Link to="/login?mode=forgot-password" className="inline-flex min-h-11 items-center text-muted underline underline-offset-4 transition-colors hover:text-ink">재설정 링크 다시 받기</Link>}
     {done && <FeedbackMessage id={`${id}-notice`} tone="success">{token ? '비밀번호를 변경했어요. 새 비밀번호로 로그인해 주세요.' : '가입된 이메일이면 재설정 메일이 가요. 30분 안에 링크를 눌러 주세요.'}</FeedbackMessage>}
   </form>
 }

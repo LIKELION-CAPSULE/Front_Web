@@ -7,7 +7,8 @@ import { LegalDocumentContent } from './LegalDocumentContent'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 
 /**
- * Shared legal document body used by both LegalDocumentDialog and the desktop login legal window.
+ * Shared legal document body shown inside the login screen's legal Dialog (LoginVariantLayout) and the mobile
+ * notice's legal Dialog (MobileAccessGate).
  * Always resolves content strictly from server terms and never falls back to landing-page copy.
  */
 export function LegalDocumentBody({ document }: { document: LegalDocumentId }) {

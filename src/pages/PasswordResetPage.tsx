@@ -5,7 +5,6 @@ import { PasswordRecoveryForm } from '@/features/auth/components/PasswordRecover
 import { clearPasswordResetBootstrap, initialPasswordResetLocation } from '@/features/auth/password-reset-bootstrap'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { ButtonLink } from '@/shared/ui/Button'
-import DesktopBrand from '@/features/auth/login-backgrounds/desktop/DesktopBrand'
 import { useDesktopShell } from '@/features/auth/login-backgrounds/desktop/desktop-shell-context'
 
 const NOOP = () => {}
@@ -44,13 +43,11 @@ export default function PasswordResetPage() {
 
   return (
     <main id="main-content" tabIndex={-1} className="focus:outline-none">
-      <Link to="/login" aria-label="CAPSULE 로그인" className="block w-fit">
-        <DesktopBrand />
-      </Link>
+      {/* The CAPSULE logo comes from AuthPanelLayout above the panel. */}
       <h1
         ref={heading}
         tabIndex={-1}
-        className={`mt-6 type-page-title focus:outline-none${done ? ' text-center' : ''}`}
+        className={`type-page-title focus:outline-none${done ? ' text-center' : ''}`}
       >
         {done ? '비밀번호 변경 완료' : '비밀번호 재설정'}
       </h1>
@@ -73,7 +70,7 @@ export default function PasswordResetPage() {
           </FeedbackMessage>
           <Link
             to="/login?mode=forgot-password"
-            className="mt-5 inline-flex min-h-11 items-center text-text-accent underline"
+            className="mt-5 inline-flex min-h-11 items-center text-muted underline underline-offset-4 transition-colors hover:text-ink"
           >
             재설정 링크 다시 받기
           </Link>

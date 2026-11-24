@@ -1,5 +1,5 @@
 /**
- * Shared Aliving2D view projection & A/B camera framing math for chaerin-v2 (1280×1280 model canvas).
+ * Shared Aliving2D view projection & bust camera framing math for chaerin-v2 (1280×1280 model canvas).
  * Used by both AlivingRenderer (`setView`) and AssembleMateStage (9-layer overlay & camera rig)
  * so WebGL and DOM layers overlap pixel-for-pixel at every viewport size.
  */
@@ -12,6 +12,8 @@ export const CHAERIN_V2_LANDMARKS = {
   centerX: 640,
   headTopY: 31,
   eyesY: 238,
+  /** Mid-torso (halfway between neck y=385 and chest y=520): where the login light stream lands. */
+  torsoY: 452,
   waistY: 769,
   skirtHemY: 1160,
   fingertipY: 1247,
@@ -30,27 +32,17 @@ export interface ScreenBox {
   height: number
 }
 
-export interface CameraTransform {
-  tx: number
-  ty: number
-  scale: number
-}
-
 export interface AssembleCameraPlan {
-  /** Oversized inner camera wrapper width (= cw / sA) so Shot A fits fully while Shot B renders at native 1:1. */
+  /** Camera wrapper size == stage size (single bust shot, no oversized wrapper). */
   cameraW: number
   cameraH: number
-  /** Offset of the oversized wrapper inside the stage so its center sits at (cw/2, ch/2). */
+  /** Offset of the wrapper inside the stage (always 0 for the bust shot). */
   offsetLeft: number
   offsetTop: number
   /** `setView(zoom, cx, cy)` passed to AlivingRenderer & used for layer placement inside `.assemble-camera`. */
   view: AlivingView
-  /** Model-px-to-CSS-px scale in Shot A (full shot) and Shot B (medium shot). */
-  kA: number
-  kB: number
-  shotA: CameraTransform
-  shotB: CameraTransform
-  shotExplode: CameraTransform
+  /** Model-px-to-CSS-px scale. */
+  k: number
 }
 
 /**
@@ -99,51 +91,45 @@ export function computeAlivingLayerBox(
 }
 
 /**
- * Computes Shot A (full shot: head top at 6% height, skirt hem y=1160 at exact 100% bottom),
- * Shot B (medium shot: eyes y=238 at 30% height, ~1.35× Shot A, waist near bottom),
- * and the oversized `.assemble-camera` plan so Shot B renders at native 1:1 sharpness
- * while Shot A never clips the skirt hem.
+ * Bust-shot framing used by the login wake-up sequence and its Live2D live state.
+ * The source art has no legs and the waist must never show, so the stage bottom lands on the chest/solar plexus
+ * (`bottomModelY`) with `headMarginRatio` of stage height above the head. On width-limited stages the chest stays on the
+ * bottom edge and the head margin grows.
  */
-export function computeAssembleCamera(cw: number, ch: number): AssembleCameraPlan {
-  const { centerX, headTopY, eyesY, skirtHemY } = CHAERIN_V2_LANDMARKS
-  const topMarginRatio = 0.06
-  const bOverARatio = 1.35
+export const BUST_FRAMING = {
+  headMarginRatio: 0.07,
+  /** Model-px y that sits on the stage's bottom edge (waist is 769; chest joint ~520). */
+  bottomModelY: 640,
+  /** Never zoom in so far that the shoulders/hair get clipped on narrow stages (model px kept visible horizontally). */
+  minVisibleModelWidth: 560,
+} as const
 
-  // Shot A: headTopY -> 0.06 * ch, skirtHemY -> 1.00 * ch
-  const spanA = skirtHemY - headTopY // 1129 model px
-  const kA = ((1 - topMarginRatio) * ch) / spanA
-  const cyA = headTopY + ((0.5 - topMarginRatio) * ch) / kA
+/**
+ * Single-shot bust camera. Camera == stage and the Live2D view itself is zoomed, so the layers, the Live2D canvas and
+ * the static image stay pixel-aligned at native density.
+ */
+export function computeBustCamera(cw: number, ch: number): AssembleCameraPlan {
+  const { centerX, headTopY, eyesY } = CHAERIN_V2_LANDMARKS
+  const { headMarginRatio: m, bottomModelY, minVisibleModelWidth } = BUST_FRAMING
 
-  // Shot B: eyesY -> 0.30 * ch, 1.35x zoom vs Shot A (waist y=769 sits at ~90% height)
-  const kB = kA * bOverARatio
-  const cyB = eyesY + (0.2 * ch) / kB
+  // Eyes fraction `e` such that headTop -> m*ch and bottomModelY -> ch share one scale k.
+  const e = (eyesY - headTopY + m * (bottomModelY - eyesY)) / (bottomModelY - headTopY)
+  const kHeight = ((e - m) * ch) / (eyesY - headTopY)
+  const kWidth = cw / minVisibleModelWidth
+  const k = Math.min(kHeight, kWidth)
+  // Height-limited: eyes at `e*ch` gives exactly the head margin above and the chest on the bottom edge.
+  // Width-limited (tall, narrow stage): the smaller `k` would reveal the torso below the chest, so bottom-align instead
+  // (model `bottomModelY` on the stage bottom; the extra room goes above the head) — the waist never shows.
+  const cy = k < kHeight ? bottomModelY - ch / (2 * k) : eyesY + ((0.5 - e) * ch) / k
 
-  const sA = 1 / bOverARatio // ~0.74074
-  const cameraW = cw / sA
-  const cameraH = ch / sA
-  const offsetLeft = (cw - cameraW) / 2
-  const offsetTop = (ch - cameraH) / 2
-
-  // View inside the oversized camera (cw/sA × ch/sA): produces exact pixel density kB while framing all of Shot A
   const minStage = Math.max(1, Math.min(cw, ch))
-  const zoomA = (kA * ALIVING_MODEL_SIZE) / minStage
-  const view: AlivingView = {
-    zoom: zoomA,
-    cx: centerX,
-    cy: cyA,
-  }
-
   return {
-    cameraW,
-    cameraH,
-    offsetLeft,
-    offsetTop,
-    view,
-    kA,
-    kB,
-    shotA: { tx: 0, ty: 0, scale: sA },
-    shotB: { tx: 0, ty: (cyA - cyB) * kB, scale: 1 },
-    shotExplode: { tx: cw * 0.06, ty: 0, scale: sA * 0.9 },
+    cameraW: cw,
+    cameraH: ch,
+    offsetLeft: 0,
+    offsetTop: 0,
+    view: { zoom: (k * ALIVING_MODEL_SIZE) / minStage, cx: centerX, cy },
+    k,
   }
 }
 
@@ -153,13 +139,12 @@ function clampUnit(value: number): number {
 }
 
 /**
- * Computes Chaerin's face (eye-line center) in viewport coordinates by applying the active
- * camera transform (`shot`) to `modelPointToScreen(640, 238, ...)`.
+ * Computes Chaerin's face (eye-line center) in viewport coordinates from `modelPointToScreen(640, 238, ...)`
+ * (the camera wrapper == the stage, so there is no extra camera transform).
  */
 export function computeFaceScreenPosition(
   stageRect: { left: number; top: number; width: number; height: number },
   plan: AssembleCameraPlan,
-  shot: CameraTransform,
 ): { x: number; y: number } {
   const inCam = modelPointToScreen(
     CHAERIN_V2_LANDMARKS.centerX,
@@ -168,8 +153,8 @@ export function computeFaceScreenPosition(
     plan.cameraH,
     plan.view,
   )
-  const localX = stageRect.width / 2 + shot.tx + (inCam.x - plan.cameraW / 2) * shot.scale
-  const localY = stageRect.height / 2 + shot.ty + (inCam.y - plan.cameraH / 2) * shot.scale
+  const localX = stageRect.width / 2 + (inCam.x - plan.cameraW / 2)
+  const localY = stageRect.height / 2 + (inCam.y - plan.cameraH / 2)
   return {
     x: stageRect.left + localX,
     y: stageRect.top + localY,

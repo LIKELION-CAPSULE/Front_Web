@@ -70,6 +70,6 @@ function HeroMateStage({ image }: { image?: string }) {
     <div className="mate-welcome-bubble-slot" aria-live="polite" aria-atomic="true">
       {speechBubble && <p className="mate-welcome-bubble" role="status">{speechBubble}</p>}
     </div>
-    <span className="mate-welcome-ai-label">AI 캐릭터입니다</span>
+    <span className="mate-welcome-ai-label">AI 캐릭터</span>
   </div>
 }

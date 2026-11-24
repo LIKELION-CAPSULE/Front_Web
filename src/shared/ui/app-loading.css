@@ -8,17 +8,28 @@
     place-items: center;
   }
 
-  .app-loading-window {
-    position: relative;
-    width: min(360px, calc(100vw - 32px));
+  /* /login: same dark tone as the login screen's backdrop (#0f0e17 + soft violet glow), no desktop scene. */
+  .app-loading--login {
+    min-height: 100dvh;
+    background:
+      radial-gradient(ellipse 55% 70% at 32% 55%, rgba(92, 66, 170, 0.32), transparent 72%),
+      #0f0e17;
   }
 
-  .app-loading-titlebar {
-    cursor: default;
+  .app-loading-login-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
   }
 
-  .app-loading-titlebar:active {
-    cursor: default;
+  .app-loading--login .app-loading-label {
+    color: rgba(250, 250, 253, 0.6);
+  }
+
+  .app-loading--login .app-loading-static-dot {
+    background: #b9a3ff;
   }
 
   .app-loading-body {
@@ -41,6 +52,10 @@
     height: 34px;
     color: var(--color-text-accent);
     animation-duration: 1000ms;
+  }
+
+  .app-loading--login .app-loading-spinner {
+    color: #b9a3ff;
   }
 
   .app-loading .app-loading-spinner path {

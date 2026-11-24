@@ -1,0 +1,963 @@
+{
+  "checkedAt": "2026-11-05T12:31:44.217Z",
+  "checks": [
+    {
+      "number": 1,
+      "label": "terms",
+      "status": 200,
+      "responseKeys": [
+        "terms"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 16,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 17,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 20,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 21,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 18,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 19,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 22,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 14,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 13,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 6,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "SOCIAL_AUTH_FAILED",
+      "result": "expected-rejection",
+      "error": "SOCIAL_AUTH_FAILED"
+    },
+    {
+      "number": 7,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "REFRESH_TOKEN_INVALID",
+      "result": "expected-rejection",
+      "error": "REFRESH_TOKEN_INVALID"
+    },
+    {
+      "number": 26,
+      "label": "anonymous-invalid-or-guard",
+      "status": 400,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "INVALID_PASSWORD",
+      "result": "expected-rejection",
+      "error": "INVALID_PASSWORD"
+    },
+    {
+      "number": 25,
+      "label": "anonymous-invalid-or-guard",
+      "status": 400,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "INVALID_EMAIL",
+      "result": "expected-rejection",
+      "error": "INVALID_EMAIL"
+    },
+    {
+      "number": 24,
+      "label": "anonymous-invalid-or-guard",
+      "status": 204,
+      "responseKeys": [],
+      "result": "success"
+    },
+    {
+      "number": 2,
+      "label": "anonymous-invalid-or-guard",
+      "status": 400,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "INVALID_EMAIL",
+      "result": "expected-rejection",
+      "error": "INVALID_EMAIL"
+    },
+    {
+      "number": 3,
+      "label": "anonymous-invalid-or-guard",
+      "status": 400,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "CODE_EXPIRED",
+      "result": "expected-rejection",
+      "error": "CODE_EXPIRED"
+    },
+    {
+      "number": 4,
+      "label": "anonymous-invalid-or-guard",
+      "status": 400,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "VERIFICATION_EXPIRED",
+      "result": "expected-rejection",
+      "error": "VERIFICATION_EXPIRED"
+    },
+    {
+      "number": 5,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "INVALID_CREDENTIALS",
+      "result": "expected-rejection",
+      "error": "INVALID_CREDENTIALS"
+    },
+    {
+      "number": 8,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 27,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 10,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 23,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 12,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 11,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 9,
+      "label": "anonymous-invalid-or-guard",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "UNAUTHORIZED",
+      "result": "expected-rejection",
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "number": 5,
+      "label": "account-login",
+      "status": 200,
+      "responseKeys": [
+        "accessToken",
+        "userId",
+        "onboardingRequired"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 8,
+      "label": "account-me",
+      "status": 200,
+      "responseKeys": [
+        "userId",
+        "nickname",
+        "email",
+        "onboardingRequired",
+        "activeSession",
+        "profileImage"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 9,
+      "label": "account-avatars",
+      "status": 200,
+      "responseKeys": [
+        "avatars"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 11,
+      "label": "account-home",
+      "status": 200,
+      "responseKeys": [
+        "todayStudySeconds",
+        "activeSession",
+        "rooms"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 14,
+      "label": "account-memories",
+      "status": 200,
+      "responseKeys": [
+        "memories",
+        "datesWithMemories"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 12,
+      "label": "account-room",
+      "status": 200,
+      "responseKeys": [
+        "id",
+        "name",
+        "description",
+        "thumbnailUrl",
+        "bannerUrl",
+        "characters",
+        "activeSessionId"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 23,
+      "label": "prior-test-report",
+      "status": 200,
+      "responseKeys": [
+        "sessionId",
+        "roomName",
+        "startedAt",
+        "endedAt",
+        "endType",
+        "studySeconds",
+        "presentSeconds",
+        "awaySeconds",
+        "returnCount",
+        "character",
+        "relation",
+        "closingLine"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 7,
+      "label": "account-refresh",
+      "status": 200,
+      "responseKeys": [
+        "accessToken"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 8,
+      "label": "after-refresh-me",
+      "status": 200,
+      "responseKeys": [
+        "userId",
+        "nickname",
+        "email",
+        "onboardingRequired",
+        "activeSession",
+        "profileImage"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 10,
+      "label": "save-unchanged-profile",
+      "status": 200,
+      "responseKeys": [
+        "userId",
+        "nickname",
+        "email",
+        "onboardingRequired",
+        "activeSession",
+        "profileImage"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 16,
+      "label": "start-test-session",
+      "status": 201,
+      "responseKeys": [
+        "sessionId",
+        "startedAt",
+        "targetMinutes",
+        "room",
+        "character",
+        "avatar",
+        "me",
+        "serverTime"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 18,
+      "label": "event-FOCUS",
+      "status": 201,
+      "responseKeys": [
+        "eventId",
+        "characters"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 19,
+      "label": "reaction-FOCUS",
+      "status": 200,
+      "responseKeys": [
+        "requestId",
+        "characters"
+      ],
+      "result": "success",
+      "eventCharacterResponseFields": [
+        [
+          "characterId",
+          "motion",
+          "expression",
+          "affinity"
+        ]
+      ],
+      "reactionCharacterResponseFields": [
+        [
+          "characterId",
+          "content",
+          "emotion",
+          "motion",
+          "expression",
+          "fallback",
+          "audioBase64"
+        ]
+      ]
+    },
+    {
+      "number": 18,
+      "label": "event-DROWSY",
+      "status": 201,
+      "responseKeys": [
+        "eventId",
+        "characters"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 19,
+      "label": "reaction-DROWSY",
+      "status": 200,
+      "responseKeys": [
+        "requestId",
+        "characters"
+      ],
+      "result": "success",
+      "eventCharacterResponseFields": [
+        [
+          "characterId",
+          "motion",
+          "expression",
+          "affinity"
+        ]
+      ],
+      "reactionCharacterResponseFields": [
+        [
+          "characterId",
+          "content",
+          "emotion",
+          "motion",
+          "expression",
+          "fallback",
+          "audioBase64"
+        ]
+      ]
+    },
+    {
+      "number": 18,
+      "label": "event-YAWN",
+      "status": 201,
+      "responseKeys": [
+        "eventId",
+        "characters"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 19,
+      "label": "reaction-YAWN",
+      "status": 200,
+      "responseKeys": [
+        "requestId",
+        "characters"
+      ],
+      "result": "success",
+      "eventCharacterResponseFields": [
+        [
+          "characterId",
+          "motion",
+          "expression",
+          "affinity"
+        ]
+      ],
+      "reactionCharacterResponseFields": [
+        [
+          "characterId",
+          "content",
+          "emotion",
+          "motion",
+          "expression",
+          "fallback",
+          "audioBase64"
+        ]
+      ]
+    },
+    {
+      "number": 18,
+      "label": "event-WAVE",
+      "status": 201,
+      "responseKeys": [
+        "eventId",
+        "characters"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 19,
+      "label": "reaction-WAVE",
+      "status": 200,
+      "responseKeys": [
+        "requestId",
+        "characters"
+      ],
+      "result": "success",
+      "eventCharacterResponseFields": [
+        [
+          "characterId",
+          "motion",
+          "expression",
+          "affinity"
+        ]
+      ],
+      "reactionCharacterResponseFields": [
+        [
+          "characterId",
+          "content",
+          "emotion",
+          "motion",
+          "expression",
+          "fallback",
+          "audioBase64"
+        ]
+      ]
+    },
+    {
+      "number": 18,
+      "label": "event-HEAD_TURN",
+      "status": 201,
+      "responseKeys": [
+        "eventId",
+        "characters"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 19,
+      "label": "reaction-HEAD_TURN",
+      "status": 200,
+      "responseKeys": [
+        "requestId",
+        "characters"
+      ],
+      "result": "success",
+      "eventCharacterResponseFields": [
+        [
+          "characterId",
+          "motion",
+          "expression",
+          "affinity"
+        ]
+      ],
+      "reactionCharacterResponseFields": [
+        [
+          "characterId",
+          "content",
+          "emotion",
+          "motion",
+          "expression",
+          "fallback",
+          "audioBase64"
+        ]
+      ]
+    },
+    {
+      "number": 18,
+      "label": "event-AWAY",
+      "status": 201,
+      "responseKeys": [
+        "eventId",
+        "characters"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 19,
+      "label": "reaction-AWAY",
+      "status": 200,
+      "responseKeys": [
+        "requestId",
+        "characters"
+      ],
+      "result": "success",
+      "eventCharacterResponseFields": [
+        [
+          "characterId",
+          "motion",
+          "expression",
+          "affinity"
+        ]
+      ],
+      "reactionCharacterResponseFields": [
+        [
+          "characterId",
+          "content",
+          "emotion",
+          "motion",
+          "expression",
+          "fallback",
+          "audioBase64"
+        ]
+      ]
+    },
+    {
+      "number": 18,
+      "label": "event-RETURN",
+      "status": 201,
+      "responseKeys": [
+        "eventId",
+        "characters"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 19,
+      "label": "reaction-RETURN",
+      "status": 200,
+      "responseKeys": [
+        "requestId",
+        "characters"
+      ],
+      "result": "success",
+      "eventCharacterResponseFields": [
+        [
+          "characterId",
+          "motion",
+          "expression",
+          "affinity"
+        ]
+      ],
+      "reactionCharacterResponseFields": [
+        [
+          "characterId",
+          "content",
+          "emotion",
+          "motion",
+          "expression",
+          "fallback",
+          "audioBase64"
+        ]
+      ]
+    },
+    {
+      "number": 18,
+      "label": "event-BREAK",
+      "status": 201,
+      "responseKeys": [
+        "eventId",
+        "characters"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 19,
+      "label": "reaction-BREAK",
+      "status": 200,
+      "responseKeys": [
+        "requestId",
+        "characters"
+      ],
+      "result": "success",
+      "eventCharacterResponseFields": [
+        [
+          "characterId",
+          "motion",
+          "expression",
+          "affinity"
+        ]
+      ],
+      "reactionCharacterResponseFields": [
+        [
+          "characterId",
+          "content",
+          "emotion",
+          "motion",
+          "expression",
+          "fallback",
+          "audioBase64"
+        ]
+      ]
+    },
+    {
+      "number": 18,
+      "label": "event-FOCUS",
+      "status": 201,
+      "responseKeys": [
+        "eventId",
+        "characters"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 19,
+      "label": "reaction-FOCUS",
+      "status": 200,
+      "responseKeys": [
+        "requestId",
+        "characters"
+      ],
+      "result": "success",
+      "eventCharacterResponseFields": [
+        [
+          "characterId",
+          "motion",
+          "expression",
+          "affinity"
+        ]
+      ],
+      "reactionCharacterResponseFields": [
+        [
+          "characterId",
+          "content",
+          "emotion",
+          "motion",
+          "expression",
+          "fallback",
+          "audioBase64"
+        ]
+      ]
+    },
+    {
+      "number": 20,
+      "label": "message-TEXT",
+      "status": 200,
+      "responseKeys": [
+        "requestId",
+        "characterId",
+        "content",
+        "emotion",
+        "motion",
+        "expression",
+        "affinity",
+        "fallback",
+        "audioBase64"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 20,
+      "label": "message-QUICK",
+      "status": 200,
+      "responseKeys": [
+        "requestId",
+        "characterId",
+        "content",
+        "emotion",
+        "motion",
+        "expression",
+        "affinity",
+        "fallback",
+        "audioBase64"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 21,
+      "label": "heartbeat",
+      "status": 204,
+      "responseKeys": [],
+      "result": "success"
+    },
+    {
+      "number": 17,
+      "label": "resume-test-session",
+      "status": 200,
+      "responseKeys": [
+        "sessionId",
+        "targetMinutes",
+        "room",
+        "character",
+        "avatar",
+        "me",
+        "studySeconds",
+        "breakSeconds",
+        "serverTime"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 22,
+      "label": "end-test-session",
+      "status": 200,
+      "responseKeys": [
+        "sessionId",
+        "roomName",
+        "startedAt",
+        "endedAt",
+        "endType",
+        "studySeconds",
+        "presentSeconds",
+        "awaySeconds",
+        "returnCount",
+        "character",
+        "relation",
+        "closingLine"
+      ],
+      "result": "success"
+    },
+    {
+      "number": 23,
+      "label": "test-session-report",
+      "status": 200,
+      "responseKeys": [
+        "sessionId",
+        "roomName",
+        "startedAt",
+        "endedAt",
+        "endType",
+        "studySeconds",
+        "presentSeconds",
+        "awaySeconds",
+        "returnCount",
+        "character",
+        "relation",
+        "closingLine"
+      ],
+      "result": "success"
+    },
+    {
+      "label": "account-summary",
+      "rooms": 1,
+      "avatars": 1,
+      "activeSession": false,
+      "sessionMutationsEnabled": true
+    },
+    {
+      "number": 24,
+      "label": "logout-audit-session",
+      "status": 204,
+      "responseKeys": [],
+      "result": "success"
+    },
+    {
+      "number": 7,
+      "label": "refresh-after-logout",
+      "status": 401,
+      "responseKeys": [
+        "code",
+        "message",
+        "detail"
+      ],
+      "code": "REFRESH_TOKEN_INVALID",
+      "result": "expected-rejection",
+      "error": "REFRESH_TOKEN_INVALID"
+    }
+  ],
+  "nullableContractWarnings": [
+    "MeResponse.activeSession",
+    "HomeResponse.activeSession",
+    "MemoryList.memories[].dueTime",
+    "RoomDetail.activeSessionId",
+    "ReportResponse.relation.nextLevelPoints",
+    "ReactionResponse.characters[].motion",
+    "ReactionResponse.characters[].audioBase64",
+    "MessageResponse.motion",
+    "MessageResponse.audioBase64"
+  ]
+}

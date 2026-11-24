@@ -1,4 +1,4 @@
-.local-demo-controls { position: fixed; left: 12px; bottom: 12px; z-index: 10000; color: #f4f0ff; background: rgba(38, 33, 50, 0.92); border: 1px solid rgba(155, 130, 220, 0.55); border-radius: 999px; box-shadow: 0 8px 28px #0006; backdrop-filter: blur(12px); font: 12px/1.5 system-ui, sans-serif; }
+.local-demo-controls { position: fixed; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 10000; color: #f4f0ff; background: rgba(38, 33, 50, 0.92); border: 1px solid rgba(155, 130, 220, 0.55); border-radius: 999px; box-shadow: 0 8px 28px #0006; backdrop-filter: blur(12px); font: 12px/1.5 system-ui, sans-serif; }
 .local-demo-controls[data-open] { width: min(360px, calc(100vw - 24px)); border-radius: 12px; }
 .local-demo-icon-toggle { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 999px; color: #d8c8ff; cursor: pointer; }
 .local-demo-icon-toggle:hover { background: rgba(155, 130, 220, 0.22); color: #fff; }
