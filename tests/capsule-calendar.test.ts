@@ -11,6 +11,8 @@ import {
   capsuleRevealOrder,
   capsuleRevealTiming,
   capsuleTooltip,
+  capsuleBandFill,
+  capsuleBandLabel,
   defaultCapsuleDay,
   selectCapsuleDay,
 } from '../src/features/records/capsule-calendar.ts'
@@ -149,8 +151,8 @@ test('tooltip and selected-day summary use 함께한 시간 and show camera time
   const records = [record('2026-11-23T20:00:00', 55, 44), record('2026-11-24T08:00:00', 50)]
   const week = buildCapsuleCalendar(records, getRecordRange('week', NOW))
   const [monday, today, wednesday] = week.days
-  assert.equal(capsuleTooltip(monday!), '11월 23일 · 함께한 시간 55분 · 1회')
-  assert.equal(capsuleTooltip(today!), '11월 24일 (오늘) · 함께한 시간 50분 · 1회')
+  assert.equal(capsuleTooltip(monday!), '11월 23일 · 함께한 시간 55분 · 1회 · 저녁')
+  assert.equal(capsuleTooltip(today!), '11월 24일 (오늘) · 함께한 시간 50분 · 1회 · 아침')
   assert.equal(capsuleTooltip(wednesday!), '11월 25일 · 아직 오지 않은 날')
   assert.equal(capsuleDaySummary(monday!), '11월 23일 · 함께한 시간 55분 · 연결 1회 · 카메라로 함께한 시간 44분')
   assert.equal(capsuleDaySummary(today!), '11월 24일 · 오늘 · 함께한 시간 50분 · 연결 1회')
@@ -164,4 +166,40 @@ test("selected day hands over that day's records, newest first, and the default 
   assert.equal(defaultCapsuleDay(week.days)?.key, '2026-11-24')
   const lastWeek = buildCapsuleCalendar(records, getRecordRange('week', NOW, -1))
   assert.equal(defaultCapsuleDay(lastWeek.days)?.key, lastWeek.days[0]!.key)
+})
+
+test('a day takes the tint of the band where the most time was spent; ties keep the earlier connection', () => {
+  const records = [
+    // Monday: 새벽 20m (00:10–00:30), 저녁 60m (19:00–20:00), 밤 30m → 저녁, mixed
+    record('2026-11-23T00:30:00', 20),
+    record('2026-11-23T20:00:00', 60),
+    record('2026-11-23T22:30:00', 30),
+    // Tuesday: 아침 30m, 낮 30m → tie, the earlier (아침)
+    record('2026-11-24T08:00:00', 30),
+    record('2026-11-24T13:00:00', 30),
+  ]
+  const week = buildCapsuleCalendar(records, getRecordRange('week', NOW))
+  const [monday, tuesday, wednesday] = week.days
+  assert.equal(monday!.band, 'evening')
+  assert.equal(monday!.mixedBands, true)
+  assert.equal(capsuleBandLabel(monday!), '주로 저녁')
+  assert.equal(tuesday!.band, 'morning')
+  assert.equal(wednesday!.band, null)
+  assert.equal(capsuleBandLabel(wednesday!), null)
+  // Every band has its own colour, all different.
+  assert.equal(new Set(Object.values(capsuleBandFill)).size, 5)
+})
+
+test('keepsake days carry the highest milestone passed that day and say 「함께한 지 n시간」', () => {
+  const first = record('2026-11-23T20:00:00', 70)
+  const second = record('2026-11-24T08:00:00', 50)
+  const keepsakes = new Map([[first.id, 1]])
+  const week = buildCapsuleCalendar([first, second], getRecordRange('week', NOW), keepsakes)
+  const [monday, today] = week.days
+  assert.equal(monday!.keepsakeHours, 1)
+  assert.equal(today!.keepsakeHours, null)
+  assert.equal(capsuleTooltip(monday!), '11월 23일 · 함께한 시간 1시간 10분 · 1회 · 저녁 · 함께한 지 1시간')
+  assert.equal(capsuleDaySummary(monday!), '11월 23일 · 함께한 시간 1시간 10분 · 연결 1회 · 함께한 지 1시간')
+  const both = buildCapsuleCalendar([first, record('2026-11-23T22:00:00', 30)], getRecordRange('week', NOW), new Map([[first.id, 1], [String(at('2026-11-23T22:00:00')), 3]]))
+  assert.equal(both.days[0]!.keepsakeHours, 3)
 })

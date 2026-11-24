@@ -1,20 +1,75 @@
-/* Records Desktop App Window (/records) */
-.records-window.desktop-window {
-  position: relative;
-  left: auto;
-  top: auto;
-  width: 100%;
-  overflow: hidden;
+/*
+ * 내 기록 (/records). The same block language as 내 메이트 (src/features/mates/my-mates.css,
+ * mate-time-column.css) and the base rules of docs/DESIGN_SYSTEM.md: no outlines, no glow, no gold; violet only for
+ * the main metric, the selection and the capsule light. No page surface of its own: every block sits right on the page
+ * on the home speech bubble's glass.
+ */
+
+/* Glass: the home banner speech bubble's material, unchanged (docs/DESIGN_SYSTEM.md, welcome.css `.welcome-speech`):
+   `panel` 68% → `canvas` 62% at 135°, 18px backdrop blur, 140% saturation; opaque `panel` where backdrop-filter is
+   missing; no outline. The mate comment bubble (mate-comment.css) uses the same values. */
+.records-period-tabs,
+.records-nav-btn,
+.records-mate-chip,
+.records-stat-card,
+.records-block {
+  background: var(--color-panel);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .records-period-tabs,
+  .records-nav-btn,
+  .records-mate-chip,
+  .records-stat-card,
+  .records-block {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-panel) 68%, transparent),
+      color-mix(in srgb, var(--color-canvas) 62%, transparent)
+    );
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+}
+
+/* This screen only: the shared AppPanel surface and the window-body surface (app-surfaces.css) are left out. */
+.app-surface .app-panel.records-window,
+.app-surface .app-panel.records-window > .records-window-body {
+  background: none;
 }
 
 .records-window-body {
   /* No visible title (hideTitle): the body takes the heading's top padding. */
-  padding: 28px 28px 32px;
-  background: linear-gradient(
-    155deg,
-    color-mix(in srgb, var(--color-surface-raised) 96%, transparent),
-    color-mix(in srgb, var(--color-panel) 98%, transparent)
-  );
+  padding: 20px 28px 32px;
+  background: none;
+}
+
+/* Blocks: one padding and radius for every block (내 메이트 `.mate-game-block`). */
+.records-block,
+.records-stat-card {
+  position: relative;
+  min-width: 0;
+  padding: 16px 20px;
+  border-radius: 18px;
+}
+
+/* Block title: one style everywhere — a small icon and the title (내 메이트 `.mate-game-label`). */
+.records-block-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+  word-break: keep-all;
+}
+
+.records-block-title-icon {
+  display: inline-grid;
+  place-items: center;
+  color: var(--color-muted);
 }
 
 /* Top Controls */
@@ -24,27 +79,24 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
 }
 
 .records-period-tabs {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--color-canvas) 76%, transparent);
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
 }
 
 .records-period-tab {
-  min-height: 34px;
-  padding: 0 15px;
+  min-height: 30px;
+  padding: 0 16px;
   border: 0;
-  border-radius: 9px;
+  border-radius: 999px;
   background: transparent;
   color: var(--color-muted);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
@@ -55,9 +107,10 @@
   color: var(--color-ink);
 }
 
+/* The selected period: the selection colour. */
 .records-period-tab[aria-selected='true'] {
-  background: color-mix(in srgb, var(--color-primary) 26%, var(--color-surface-raised));
-  color: var(--color-ink);
+  background: var(--color-selected);
+  color: var(--color-selected-text);
   font-weight: 600;
 }
 
@@ -76,21 +129,20 @@
 .records-nav-btn {
   display: inline-grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border: 0;
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  border-radius: 999px;
   color: var(--color-ink);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
-  transition: background-color 140ms ease, border-color 140ms ease;
+  transition: filter 140ms ease;
 }
 
 .records-nav-btn:hover:not(:disabled) {
-  border-color: rgba(196, 185, 243, 0.34);
-  background: color-mix(in srgb, var(--color-primary) 16%, var(--color-surface));
+  filter: brightness(1.35);
 }
 
 .records-nav-btn:disabled {
@@ -104,19 +156,19 @@
 }
 
 .records-date-range {
+  padding: 0 4px;
+  color: var(--color-ink);
   font-size: 14px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--color-ink);
   white-space: nowrap;
-  padding: 0 4px;
 }
 
 .records-reset-btn {
-  border: 0;
-  background: transparent;
   padding: 4px 8px;
+  border: 0;
   border-radius: 6px;
+  background: transparent;
   color: var(--color-text-accent);
   font-size: 12.5px;
   font-weight: 500;
@@ -134,7 +186,8 @@
   outline-offset: 2px;
 }
 
-/* Optional Mate Filter Chips (shown only when >= 2 mates) */
+/* Optional Mate Filter Chips (shown only when >= 2 mates): neutral glass chips, the picked one in the selection colour
+   (내 메이트 `.mate-switcher-chip`). */
 .records-mate-chips {
   display: flex;
   flex-wrap: wrap;
@@ -147,29 +200,28 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 34px;
-  padding: 0 13px;
-  border-radius: 999px;
+  height: 36px;
+  padding: 0 14px;
   border: 0;
-  background: color-mix(in srgb, var(--color-canvas) 72%, transparent);
+  border-radius: 999px;
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+  transition: color 140ms ease;
 }
 
 .records-mate-chip:hover {
   color: var(--color-ink);
-  border-color: rgba(196, 185, 243, 0.28);
 }
 
 .records-mate-chip[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--color-primary) 24%, var(--color-surface-raised));
-  border-color: rgba(196, 185, 243, 0.42);
-  color: var(--color-ink);
+  background: var(--color-selected);
+  color: var(--color-selected-text);
   font-weight: 600;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .records-mate-chip:focus-visible {
@@ -177,12 +229,13 @@
   outline-offset: 2px;
 }
 
-/* Summary Cards (4 columns at 1440/1280/960, 2x2 below 960) */
+/* Summary cards (4 or 3 columns from 960 up, 2x2 below 960). The main metric leads with a larger number; no violet
+   surface (violet is for the selection and the main action). */
 .records-summary-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .records-summary-grid[data-cols='3'] {
@@ -193,42 +246,30 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  min-width: 0;
-  padding: 18px 20px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
-}
-
-.records-stat-card--primary {
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--color-primary) 16%, var(--color-surface)),
-    color-mix(in srgb, var(--color-surface) 92%, transparent)
-  );
-}
-
-.records-stat-label {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-muted);
-  word-break: keep-all;
 }
 
 .records-stat-value {
-  margin: 8px 0 0;
-  font-size: clamp(22px, 2.3vw, 30px);
-  line-height: 1.2;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  margin: 6px 0 0;
   color: var(--color-ink);
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
 }
 
+.records-stat-card--primary .records-stat-value {
+  font-size: 30px;
+  line-height: 36px;
+}
+
+/* Secondary: camera-measured time, small and muted under the main number. */
 .records-stat-sub {
-  margin: 6px 0 0;
-  font-size: 12.5px;
-  line-height: 1.45;
+  margin: 2px 0 0;
   color: var(--color-muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums lining-nums;
   word-break: keep-all;
 }
 
@@ -236,17 +277,13 @@
 .records-visuals-grid {
   display: grid;
   grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
-  gap: 16px;
-  margin-top: 18px;
+  gap: 12px;
+  margin-top: 12px;
 }
 
-.records-card {
+.records-visuals-grid > .records-block {
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  padding: 20px 22px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
 }
 
 .records-card-head {
@@ -255,14 +292,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px 12px;
-  margin-bottom: 16px;
-}
-
-.records-card-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-ink);
+  margin-bottom: 14px;
 }
 
 /* Capsule calendar card (capsule styles: src/features/records/capsule-calendar.css) */
@@ -270,23 +300,24 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* Selected day: a line of text and the day's connections under a thin divider — no box inside the block. */
 .records-day-detail {
-  margin-top: 14px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(255 255 255 / 0.06);
 }
 
 .records-day-summary {
   margin: 0;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--color-canvas) 68%, transparent);
+  color: var(--color-muted);
   font-size: 13px;
-  line-height: 1.5;
-  color: var(--color-ink);
+  line-height: 18px;
+  font-variant-numeric: tabular-nums lining-nums;
   word-break: keep-all;
 }
 
 .records-day-list {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .records-visuals-grid[data-period-mode='week'] .records-chart-wrap {
@@ -319,7 +350,7 @@
 }
 
 .records-chart-dot--together {
-  background: var(--color-primary);
+  background: var(--bar-base, var(--color-primary));
 }
 
 .records-chart-dot--camera {
@@ -338,7 +369,7 @@
   min-height: 24px;
   margin-bottom: 8px;
   font-size: 12.5px;
-  color: var(--color-text-accent);
+  color: var(--color-ink);
   font-variant-numeric: tabular-nums;
   word-break: keep-all;
 }
@@ -381,7 +412,7 @@
 
 .records-chart-gridline {
   width: 100%;
-  border-top: 1px dashed color-mix(in srgb, var(--color-ink) 8%, transparent);
+  border-top: 1px dashed rgb(255 255 255 / 0.07);
 }
 
 .records-chart-bars {
@@ -430,11 +461,12 @@
   max-width: 14px;
 }
 
+/* Main bar: 함께한 시간, the day's time-band tint (the same colour as its capsule), the base violet for months. */
 .records-bar-together {
   position: relative;
   width: 100%;
   border-radius: 5px 5px 2px 2px;
-  background: var(--color-primary);
+  background: var(--bar, var(--bar-base, var(--color-primary)));
   transition: height 180ms ease;
 }
 
@@ -466,14 +498,18 @@
   white-space: nowrap;
 }
 
-/* Connection rows (recent list and selected day) — surface only, no outline. */
+/* Connection rows (recent list and selected day): rows divided by thin lines inside the block, no surface of their own
+   (내 메이트 「최근 캡슐」); neutral hover. */
 .records-row-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 0;
+  margin: 0 -10px;
   padding: 0;
   list-style: none;
+}
+
+.records-row-list > li + li {
+  border-top: 1px solid rgb(255 255 255 / 0.06);
 }
 
 .records-row {
@@ -481,27 +517,27 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 10px;
   color: var(--color-ink);
   text-decoration: none;
-  transition: background-color 140ms ease;
+  transition: background-color 160ms ease;
 }
 
 .records-day-list .records-row {
-  padding: 10px 12px;
-  background: color-mix(in srgb, var(--color-canvas) 50%, transparent);
+  min-height: 40px;
+  padding: 6px 10px;
 }
 
 .records-row:hover,
 .records-row:focus-visible {
-  background: color-mix(in srgb, var(--color-ink) 7%, var(--color-surface));
+  background: rgb(255 255 255 / 0.06);
 }
 
 .records-row:focus-visible {
   outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .records-row-meta {
@@ -511,7 +547,8 @@
   gap: 4px 8px;
   min-width: 0;
   font-size: 14px;
-  font-variant-numeric: tabular-nums;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .records-day-list .records-row-meta {
@@ -519,7 +556,7 @@
 }
 
 .records-row-when {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .records-row-part {
@@ -537,14 +574,15 @@
   font-size: 0.93em;
 }
 
+/* 「단계 상승」: a small violet text tag (내 메이트 NEW tag). */
 .records-row-badge {
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgb(124 92 255 / 0.18);
   color: var(--color-text-accent);
-  font-size: 11.5px;
-  font-weight: 600;
-  line-height: 1.4;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
   white-space: nowrap;
 }
 
@@ -555,22 +593,17 @@
 
 /* Recent Connections */
 .records-recent-section {
-  margin-top: 24px;
-  padding-top: 22px;
-  border-top: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  margin-top: 12px;
 }
 
-.records-recent-title {
-  margin: 0 0 14px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-ink);
+.records-recent-section > .records-block-title {
+  margin-bottom: 6px;
 }
 
 .records-more-wrap {
-  margin-top: 14px;
   display: flex;
   justify-content: center;
+  margin-top: 10px;
 }
 
 /* Empty & Loading States */
@@ -581,29 +614,30 @@
   justify-content: center;
   gap: 14px;
   min-height: 240px;
+  margin-top: 16px;
   padding: 40px 20px;
   text-align: center;
 }
 
 .records-empty-title {
   margin: 0;
+  color: var(--color-ink);
   font-size: 16.5px;
   font-weight: 600;
-  color: var(--color-ink);
   word-break: keep-all;
 }
 
 .records-empty-sub {
   margin: -4px 0 4px;
-  font-size: 14px;
   color: var(--color-muted);
+  font-size: 14px;
   word-break: keep-all;
 }
 
 .records-skeleton-stack {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .records-skeleton-cards {
@@ -613,13 +647,13 @@
 }
 
 .records-skeleton-card {
-  height: 102px;
-  border-radius: 14px;
+  height: 96px;
+  border-radius: 18px;
 }
 
 .records-skeleton-panel {
   height: 240px;
-  border-radius: 14px;
+  border-radius: 18px;
 }
 
 /* 960: keep 4 summary cards in 1 row; stack calendar and bar chart vertically */
@@ -632,13 +666,18 @@
 /* Below 960: summary becomes 2x2 */
 @media (max-width: 959px) {
   .records-window-body {
-    padding: 24px 20px 28px;
+    padding: 16px 20px 28px;
   }
 
   .records-summary-grid,
   .records-summary-grid[data-cols='3'],
   .records-skeleton-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Three cards: the main metric takes the first row, the other two share the second (no empty slot). */
+  .records-summary-grid[data-cols='3'] > .records-stat-card--primary {
+    grid-column: 1 / -1;
   }
 }
 
@@ -647,8 +686,19 @@
     padding: 16px 14px 24px;
   }
 
-  .records-card {
-    padding: 16px 14px;
+  .records-block,
+  .records-stat-card {
+    padding: 14px 16px;
+  }
+
+  .records-stat-card--primary .records-stat-value {
+    font-size: 26px;
+    line-height: 32px;
+  }
+
+  .records-stat-value {
+    font-size: 22px;
+    line-height: 28px;
   }
 
   .records-chart-bars[data-dense='true'] .records-bar-label[data-hide-narrow='true'] {

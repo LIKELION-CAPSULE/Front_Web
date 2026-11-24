@@ -1,5 +1,8 @@
 /* Capsule calendar (/records): each day is a small capsule (logo v2's stadium body + seam, simplified; tilted
-   like the logo in the week view, upright in month/year so the fill steps read clearly) that fills with brand light by that day's connection time ("함께한 시간"). */
+   like the logo in the week view, upright in month/year so the fill steps read clearly) that fills with light by that
+   day's connection time ("함께한 시간"). The light is one solid colour per day, the brand violet tinted by the day's
+   time band (`--band`, capsule-calendar.ts `capsuleBandFill`, the same shifts as the capsules of 내 메이트).
+   Base design rules (docs/DESIGN_SYSTEM.md): no outlines, no glow, no gold; the keepsake mark is a small plain star. */
 .capsule-calendar {
   --capsule-tilt: -20deg;
   --capsule-w: 44px;
@@ -99,24 +102,62 @@
   left: 0;
   width: calc(var(--fill, 0) * 100%);
   border-radius: 999px 0 0 999px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 70%, transparent), var(--color-primary));
+  background: var(--band, var(--color-primary));
 }
 
+/* Under 30 minutes: the same tint, fainter. */
 .capsule[data-level='1'] .capsule-fill {
-  background: color-mix(in srgb, var(--color-primary) 52%, transparent);
-}
-
-.capsule[data-level='3'] .capsule-fill {
-  background: linear-gradient(90deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 70%, var(--color-text-accent)));
+  background: color-mix(in srgb, var(--band, var(--color-primary)) 60%, transparent);
 }
 
 .capsule[data-level='4'] .capsule-fill {
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-text-accent));
 }
 
-.capsule[data-level='4'] {
-  box-shadow: 0 0 10px color-mix(in srgb, var(--color-primary) 55%, transparent);
+/* Keepsake (the day the time together passed a milestone): a small four-point star at the capsule's end. */
+.capsule-slot {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.capsule-keepsake {
+  --star: 9px;
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--star) * -0.6);
+  right: calc(var(--star) * -0.6);
+  width: var(--star);
+  height: var(--star);
+  background: var(--color-ink);
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  pointer-events: none;
+}
+
+.capsule-calendar[data-mode='year'] .capsule-keepsake {
+  --star: 7px;
+}
+
+.capsule-grid .capsule-keepsake {
+  animation: capsule-keepsake-in 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * var(--capsule-step, 0ms) + var(--capsule-fill-ms, 400ms));
+}
+
+@keyframes capsule-keepsake-in {
+  from {
+    opacity: 0;
+    transform: scale(0.3) rotate(-45deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.capsule-keepsake--legend {
+  position: relative;
+  top: auto;
+  right: auto;
 }
 
 /* Fill-in once per view: first day to last day, finishing in about one second. */
@@ -182,26 +223,39 @@
 }
 
 .capsule-day:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-ink) 5%, transparent);
+  background: rgb(255 255 255 / 0.06);
 }
 
 .capsule-day:hover:not(:disabled) .capsule {
-  filter: brightness(1.2);
+  filter: brightness(1.15);
 }
 
-.capsule-day[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
-  color: var(--color-ink);
+/* The selected day: the selection colour (violet only for selection). */
+.capsule-day[aria-pressed='true'],
+.capsule-day[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--color-selected);
+  color: var(--color-selected-text);
 }
 
+/* Today: a bold label with a small dot after it (no outline around the capsule). */
 .capsule-day[data-today] .capsule-day-label {
-  color: var(--color-text-accent);
+  color: var(--color-ink);
   font-weight: 700;
 }
 
-.capsule-day[data-today] .capsule {
-  outline: 1.5px solid var(--color-text-accent);
-  outline-offset: 2px;
+.capsule-day[data-today] .capsule-day-label::after {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+  content: '';
+}
+
+.capsule-day[data-today][aria-pressed='true'] .capsule-day-label {
+  color: var(--color-selected-text);
 }
 
 .capsule-day:disabled {
@@ -280,10 +334,6 @@
   display: none;
 }
 
-.capsule-calendar[data-mode='year'] .capsule[data-level='4'] {
-  box-shadow: 0 0 5px color-mix(in srgb, var(--color-primary) 60%, transparent);
-}
-
 .capsule-months {
   display: grid;
   grid-template-columns: repeat(var(--capsule-columns), minmax(var(--capsule-col), 1fr));
@@ -311,7 +361,7 @@
   z-index: 5;
   padding: 6px 10px;
   border-radius: 8px;
-  background: var(--glass-background, var(--color-panel));
+  background: var(--color-floating);
   box-shadow: var(--popover-shadow);
   color: var(--color-ink);
   font-size: 12px;
@@ -378,7 +428,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .capsule-grid .capsule-fill {
+  .capsule-grid .capsule-fill,
+  .capsule-grid .capsule-keepsake {
     animation: none;
   }
 

@@ -9,7 +9,13 @@ import { MateCommentBubble } from '@/features/records/MateCommentBubble'
 import { buildMateComment, voiceFor } from '@/features/records/mate-comment'
 import { CapsuleCalendar, CapsuleLegend } from '@/features/records/CapsuleCalendar'
 import { CapsuleDayDetail, RecordConnectionRow } from '@/features/records/RecordConnectionRow'
-import { buildCapsuleCalendar, defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-calendar'
+import {
+  CAPSULE_BASE_FILL,
+  buildCapsuleCalendar,
+  capsuleBandFill,
+  defaultCapsuleDay,
+  selectCapsuleDay,
+} from '@/features/records/capsule-calendar'
 import { isCompletedRecord } from '@/features/records/connection-day'
 import { capsuleFromStudyRecord, capsuleRecordsFromStudyRecords } from '@/features/mates/capsule-jar/capsule-jar-data'
 import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
@@ -28,6 +34,7 @@ import {
   type BarBucket,
 } from '@/features/reports/records-view-utils'
 import { Button, ButtonLink } from '@/shared/ui/Button'
+import { Icon, type IconName } from '@/shared/ui/Icon'
 import { duration } from '@/shared/lib/format'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
@@ -57,6 +64,18 @@ function RecordsWindowFrame({
   return <AppPanel title="함께한 기록" hideTitle className="records-window" loadingScreen={loadingScreen} bodyClassName="records-window-body">
     {children}
   </AppPanel>
+}
+
+/** Block title: a small icon and the title, the same in every block (내 메이트 `BlockLabel`). */
+function BlockTitle({ id, icon, children }: { id?: string; icon: IconName; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="records-block-title">
+      <span className="records-block-title-icon" aria-hidden="true">
+        <Icon name={icon} size={14} />
+      </span>
+      {children}
+    </h2>
+  )
 }
 
 function formatBarTooltip(bucket: BarBucket): string {
@@ -163,12 +182,32 @@ export default function RecordsPage() {
     return inPeriod.filter((r) => r.characterIds.includes(activeMate.characterId))
   }, [actualRecords, activeMate, range])
 
+  // Keepsakes (milestones of the time together) by record id, counted over each mate's whole history the same way
+  // as the capsules of 내 메이트 (MyMatesPage: `capsuleRecordsFromStudyRecords(state.records, …)`).
+  const keepsakeHours = useMemo(() => {
+    const result = new Map<string, number>()
+    for (const mate of connectedMates) {
+      const capsules = capsuleRecordsFromStudyRecords(state.records, mate.characterId, now)
+      for (const [id, keepsake] of capsuleKeepsakes(capsules, capsulesForConnection, { now })) result.set(id, keepsake.hours)
+    }
+    return result
+  }, [connectedMates, state.records, now])
+
   const isCurrentPeriod = offset === 0
   const summary = useMemo(
     () => resolveSummaryDisplay(periodRecords, range, isCurrentPeriod),
     [isCurrentPeriod, periodRecords, range],
   )
-  const capsuleCalendar = useMemo(() => buildCapsuleCalendar(periodRecords, range), [periodRecords, range])
+  const capsuleCalendar = useMemo(
+    () => buildCapsuleCalendar(periodRecords, range, keepsakeHours),
+    [keepsakeHours, periodRecords, range],
+  )
+  // A day's bar takes the same time-band tint as its capsule; months (year view) keep the base violet.
+  const barFillByKey = useMemo(
+    () => new Map(capsuleCalendar.days.flatMap((day) => (day.band ? [[day.key, capsuleBandFill[day.band]] as const] : []))),
+    [capsuleCalendar],
+  )
+  const hasKeepsakeDay = capsuleCalendar.days.some((day) => day.keepsakeHours)
   const barChart = useMemo(
     () => buildBarChartData(periodRecords, range, isCurrentPeriod),
     [isCurrentPeriod, periodRecords, range],
@@ -208,11 +247,7 @@ export default function RecordsPage() {
     ? catalogMates.find((mate) => dayCardRecord.characterIds.includes(mate.characterId))
     : undefined
   // The same keepsakes as the mate's capsules in 내 메이트: milestones of all that mate's connections.
-  const dayCardKeepsake = dayCardCapsule && dayCardMate
-    ? capsuleKeepsakes(capsuleRecordsFromStudyRecords(state.records, dayCardMate.characterId, now), capsulesForConnection, { now }).get(
-        dayCardCapsule.id,
-      )?.hours
-    : undefined
+  const dayCardKeepsake = dayCardCapsule ? keepsakeHours.get(dayCardCapsule.id) : undefined
   const dayCardView = dayCard && dayCardRecord && dayCardCapsule && (
     <CapsuleRecordCard
       key={dayCard.key}
@@ -297,7 +332,7 @@ export default function RecordsPage() {
     return (
       <RecordsWindowFrame>
         {mateCommentView}
-        <div className="records-empty-box">
+        <div className="records-block records-empty-box">
           <p className="records-empty-title">아직 함께한 기록이 없어요.</p>
           <p className="records-empty-sub">메이트와 연결하면 여기에 쌓여요.</p>
           <ButtonLink to="/">메이트 만나러 가기</ButtonLink>
@@ -390,7 +425,7 @@ export default function RecordsPage() {
       {mateCommentView}
 
       {periodRecords.length === 0 ? (
-        <div className="records-empty-box">
+        <div className="records-block records-empty-box">
           <p className="records-empty-title">이 기간에는 함께한 기록이 없어요.</p>
           <ButtonLink to="/">메이트 만나러 가기</ButtonLink>
         </div>
@@ -398,33 +433,33 @@ export default function RecordsPage() {
         <>
           <div className="records-summary-grid" data-cols={showMateCard ? '4' : '3'}>
             <section className="records-stat-card records-stat-card--primary">
-              <h2 className="records-stat-label">{summary.primaryLabel}</h2>
+              <BlockTitle icon="clock">{summary.primaryLabel}</BlockTitle>
               <p className="records-stat-value">{duration(summary.primarySeconds)}</p>
               {summary.cameraCaption && <p className="records-stat-sub">{summary.cameraCaption}</p>}
             </section>
             <section className="records-stat-card">
-              <h2 className="records-stat-label">함께한 날</h2>
+              <BlockTitle icon="check">함께한 날</BlockTitle>
               <p className="records-stat-value">{summary.activeDays}일</p>
             </section>
             <section className="records-stat-card">
-              <h2 className="records-stat-label">연결 횟수</h2>
+              <BlockTitle icon="video">연결 횟수</BlockTitle>
               <p className="records-stat-value">{summary.sessions}회</p>
             </section>
             {showMateCard && (
               <section className="records-stat-card">
-                <h2 className="records-stat-label">함께한 메이트</h2>
+                <BlockTitle icon="user">함께한 메이트</BlockTitle>
                 <p className="records-stat-value">{summary.mates}명</p>
               </section>
             )}
           </div>
 
           <div className="records-visuals-grid" data-period-mode={period}>
-            <section className="records-card records-card--calendar" aria-labelledby="records-calendar-title">
+            <section className="records-block records-block--calendar" aria-labelledby="records-calendar-title">
               <div className="records-card-head">
-                <h2 id="records-calendar-title" className="records-card-title">
+                <BlockTitle id="records-calendar-title" icon="calendar">
                   함께한 날
-                </h2>
-                <CapsuleLegend mode={capsuleCalendar.mode} />
+                </BlockTitle>
+                <CapsuleLegend mode={capsuleCalendar.mode} showKeepsake={hasKeepsakeDay} />
               </div>
               <CapsuleCalendar
                 key={revealKey}
@@ -441,13 +476,14 @@ export default function RecordsPage() {
             </section>
 
             <section
-              className="records-card"
+              className="records-block"
+              style={{ '--bar-base': CAPSULE_BASE_FILL } as React.CSSProperties}
               role="region"
               aria-label={barChart.ariaSummary}
               data-bar-chart-section
             >
               <div className="records-card-head">
-                <h2 className="records-card-title">{period === 'year' ? '달별 함께한 시간' : '날짜별 함께한 시간'}</h2>
+                <BlockTitle icon="chart">{period === 'year' ? '달별 함께한 시간' : '날짜별 함께한 시간'}</BlockTitle>
                 <div className="records-chart-legend" aria-hidden="true">
                   <span className="records-chart-legend-item">
                     <span className="records-chart-dot records-chart-dot--together" />
@@ -508,7 +544,11 @@ export default function RecordsPage() {
                             onFocus={() => setHoveredBarKey(bucket.key)}
                             onBlur={() => setHoveredBarKey((cur) => (cur === bucket.key ? null : cur))}
                           >
-                            <span className="records-bar-track" aria-hidden="true">
+                            <span
+                              className="records-bar-track"
+                              aria-hidden="true"
+                              style={barFillByKey.has(bucket.key) ? ({ '--bar': barFillByKey.get(bucket.key) } as React.CSSProperties) : undefined}
+                            >
                               {togetherPct > 0 && (
                                 <span className="records-bar-together" style={{ height: `${togetherPct}%` }} />
                               )}
@@ -529,10 +569,10 @@ export default function RecordsPage() {
             </section>
           </div>
 
-          <section className="records-recent-section" aria-labelledby="records-recent-title">
-            <h2 id="records-recent-title" className="records-recent-title">
+          <section className="records-block records-recent-section" aria-labelledby="records-recent-title">
+            <BlockTitle id="records-recent-title" icon="book">
               최근 연결
-            </h2>
+            </BlockTitle>
             <ul className="records-row-list">
               {periodRecords.slice(0, visibleCount).map((record) => (
                 <li key={record.id}>
