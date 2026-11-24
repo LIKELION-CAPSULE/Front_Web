@@ -67,7 +67,7 @@ export type PeriodFacts = {
   totalSeconds: number
   /** Days of the period that have already started (whole period for past periods). */
   elapsedDays: number
-  longest: { seconds: number; dayLabel: string; band: TimeBand } | null
+  longest: { seconds: number; dayLabel: string; band: TimeBand; dayKey: string } | null
   longSessions: number
   dominantBand: { band: TimeBand; count: number; share: number } | null
   /** Sessions whose start fell at night or dawn (both together: "늦은 시간"). */
@@ -86,6 +86,17 @@ export type PeriodFacts = {
   hasRecordsBefore: boolean
   /** Days since the last record before this period (only when the period itself is empty). */
   lastSeenDaysAgo: number | null
+  /** Days (`YYYY-MM-DD`, ascending, inside the period) the facts above come from — what a line can point at. */
+  keys: {
+    active: string[]
+    /** The streak's days, oldest first (inside the period). */
+    streak: string[]
+    late: string[]
+    lateBand: string[]
+    dominantBand: string[]
+    long: string[]
+    first: string[]
+  }
 }
 
 export type MateCommentInput = {
@@ -102,7 +113,13 @@ export type MateCommentInput = {
   voice?: MateVoice
 }
 
-export type MateComment = { kind: MateCommentKind; text: string }
+/**
+ * What a line speaks about, so the board can light the same days while the line types (records page): a day
+ * (`longest`, `first`), the days of a streak joined by a line of light (`streak`, `allDays`), or a set of days.
+ */
+export type CommentFocus = 'none' | 'longest' | 'first' | 'streak' | 'allDays' | 'active' | 'late' | 'lateBand' | 'band' | 'long'
+export type CommentHighlight = { days: string[]; streak: string[] }
+export type MateComment = { kind: MateCommentKind; text: string; focus: CommentFocus; highlight: CommentHighlight }
 
 const dayStart = (key: string) => Date.parse(`${key}T00:00:00+09:00`)
 
@@ -156,6 +173,7 @@ export function collectPeriodFacts(input: Omit<MateCommentInput, 'seedKey' | 'vo
         seconds: longestRecord.studySeconds,
         dayLabel: dayLabel(connectionStartedAt(longestRecord), range.period),
         band: timeBand(connectionStartedAt(longestRecord)),
+        dayKey: connectionDayKey(longestRecord),
       }
     : null
 
@@ -189,6 +207,32 @@ export function collectPeriodFacts(input: Omit<MateCommentInput, 'seedKey' | 'vo
     streakDays = streakEndingAt(activeKeys, connectionDayKey(inRange[0]!))
   }
 
+  const inPeriod = (key: string) => key >= range.startDay && key <= range.endDay
+  const daysOf = (list: readonly StudyRecord[]) => [...new Set(list.map(connectionDayKey))].sort()
+  const streakKeys: string[] = []
+  if (streakDays > 0) {
+    const anchor = isCurrent
+      ? activeKeys.has(range.today)
+        ? range.today
+        : dayKey(dayStart(range.today) - DAY)
+      : connectionDayKey(inRange[0]!)
+    for (let index = streakDays - 1; index >= 0; index--) {
+      const key = dayKey(dayStart(anchor) - index * DAY)
+      if (inPeriod(key)) streakKeys.push(key)
+    }
+  }
+  const bandOf = (record: StudyRecord) => timeBand(connectionStartedAt(record))
+  const activeList = daysOf(inRange)
+  const keys = {
+    active: activeList,
+    streak: streakKeys,
+    late: daysOf(inRange.filter((record) => bandOf(record) === 'night' || bandOf(record) === 'dawn')),
+    lateBand: lateBand ? daysOf(inRange.filter((record) => bandOf(record) === lateBand)) : [],
+    dominantBand: dominantBand ? daysOf(inRange.filter((record) => bandOf(record) === dominantBand!.band)) : [],
+    long: daysOf(inRange.filter((record) => record.studySeconds >= LONG_SESSION_SECONDS)),
+    first: activeList.slice(0, 1),
+  }
+
   let lastSeenDaysAgo: number | null = null
   if (inRange.length === 0 && hasRecordsBefore) {
     const last = Math.max(...before.map(connectionStartedAt))
@@ -216,6 +260,7 @@ export function collectPeriodFacts(input: Omit<MateCommentInput, 'seedKey' | 'vo
     isFirstPeriod: inRange.length > 0 && !hasRecordsBefore,
     hasRecordsBefore,
     lastSeenDaysAgo,
+    keys,
   }
 }
 
@@ -267,7 +312,10 @@ export type CommentContext = PeriodFacts & {
   tense: (present: string, past: string) => string
 }
 
-export type CommentTemplate = (context: CommentContext) => string | null
+/** A line, optionally with what it speaks about (`none` when it is a plain string). */
+export type CommentLine = string | { text: string; focus: CommentFocus }
+export type CommentTemplate = (context: CommentContext) => CommentLine | null
+const about = (focus: CommentFocus, text: string): CommentLine => ({ text, focus })
 
 /** Night and dawn together are "늦은 시간"; a single band is named. */
 const lateWord = (c: CommentContext) => (c.lateMixed || !c.lateBand ? '늦은 시간' : timeBandLabels[c.lateBand])
@@ -291,53 +339,53 @@ export const chaerinVoice: MateVoice = {
     firstPeriod: [
       (c) =>
         c.sessions >= 2
-          ? c.tense(`${c.periodWord}에 처음 만났지! 벌써 ${times(c.sessions)}이나 와 줘서 고마워.`, `${c.periodWord}에 처음 만났지! 그때 ${times(c.sessions)}이나 와 줬었어.`)
-          : c.tense(`${c.periodWord}에 처음 만났지! 와 줘서 고마워. 자주 보자!`, `${c.periodWord}에 처음 만났었지! 그때 와 줘서 고마웠어.`),
-      (c) => `우리 ${c.periodWord}부터 시작${c.tense('이네', '이었지')}. ${c.total} 같이 있었어, 출발 좋다!`,
-      (c) => (c.activeDays >= 2 ? `첫 ${c.period === 'week' ? '주' : '달'}부터 ${days(c.activeDays)}이나 ${c.tense('왔네', '왔었지')}! 이 기세 그대로 가 보자.` : null),
+          ? about('first', c.tense(`${c.periodWord}에 처음 만났지! 벌써 ${times(c.sessions)}이나 와 줘서 고마워.`, `${c.periodWord}에 처음 만났지! 그때 ${times(c.sessions)}이나 와 줬었어.`))
+          : about('first', c.tense(`${c.periodWord}에 처음 만났지! 와 줘서 고마워. 자주 보자!`, `${c.periodWord}에 처음 만났었지! 그때 와 줘서 고마웠어.`)),
+      (c) => about('first', `우리 ${c.periodWord}부터 시작${c.tense('이네', '이었지')}. ${c.total} 같이 있었어, 출발 좋다!`),
+      (c) => (c.activeDays >= 2 ? about('active', `첫 ${c.period === 'week' ? '주' : '달'}부터 ${days(c.activeDays)}이나 ${c.tense('왔네', '왔었지')}! 이 기세 그대로 가 보자.`) : null),
     ],
     long: [
-      (c) => `${c.longest!.dayLabel}엔 ${c.longestDuration}이나 같이 있었어! 안 힘들었어?`,
-      (c) => `${c.periodWord} 제일 길었던 건 ${c.longest!.dayLabel}, ${c.longestDuration}! 진짜 대단했어.`,
-      (c) => (c.longSessions >= 2 ? `2시간 넘게 같이 있었던 게 ${times(c.longSessions)}이야! 무리하진 마.` : null),
+      (c) => about('longest', `${c.longest!.dayLabel}엔 ${c.longestDuration}이나 같이 있었어! 안 힘들었어?`),
+      (c) => about('longest', `${c.periodWord} 제일 길었던 건 ${c.longest!.dayLabel}, ${c.longestDuration}! 진짜 대단했어.`),
+      (c) => (c.longSessions >= 2 ? about('long', `2시간 넘게 같이 있었던 게 ${times(c.longSessions)}이야! 무리하진 마.`) : null),
     ],
     steady: [
-      (c) => (c.isCurrent && c.streakDays >= 3 ? `벌써 ${c.streakDays}일 연속이야! 매일 보니까 나도 좋다.` : null),
-      (c) => (c.activeDays === c.elapsedDays ? `${c.periodTopic} 하루도 안 빠졌어! ${days(c.activeDays)} 내내 와 줘서 고마워.` : null),
-      (c) => (c.activeDays >= 3 ? `${c.periodWord}만 ${days(c.activeDays)}이나 ${c.tense('왔네', '왔었지')}! 꾸준한 거 진짜 멋있다.` : null),
-      (c) => `${c.periodWord} ${times(c.sessions)}, 합쳐서 ${c.total}! 꾸준함은 네가 최고야.`,
+      (c) => (c.isCurrent && c.streakDays >= 3 ? about('streak', `벌써 ${c.streakDays}일 연속이야! 매일 보니까 나도 좋다.`) : null),
+      (c) => (c.activeDays === c.elapsedDays ? about('allDays', `${c.periodTopic} 하루도 안 빠졌어! ${days(c.activeDays)} 내내 와 줘서 고마워.`) : null),
+      (c) => (c.activeDays >= 3 ? about('active', `${c.periodWord}만 ${days(c.activeDays)}이나 ${c.tense('왔네', '왔었지')}! 꾸준한 거 진짜 멋있다.`) : null),
+      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, 합쳐서 ${c.total}! 꾸준함은 네가 최고야.`),
     ],
     late: [
-      (c) => `${c.periodWord}엔 주로 ${lateWord(c)}에 만났네. 늦게까지 고생 많았어.`,
+      (c) => about('late', `${c.periodWord}엔 주로 ${lateWord(c)}에 만났네. 늦게까지 고생 많았어.`),
       (c) =>
         c.lateMixed
-          ? `늦은 시간에 온 게 ${times(c.lateSessions)}이야. 잠은 꼭 챙겨 자!`
-          : `${timeBandLabels[c.lateBand!]}에 온 게 ${times(c.lateBandSessions)}이야. 잠은 꼭 챙겨 자!`,
-      (c) => (c.isCurrent ? `늦은 시간에도 ${times(c.lateSessions)}이나 와 줘서 고마워. 오늘은 일찍 자자!` : null),
+          ? about('late', `늦은 시간에 온 게 ${times(c.lateSessions)}이야. 잠은 꼭 챙겨 자!`)
+          : about('lateBand', `${timeBandLabels[c.lateBand!]}에 온 게 ${times(c.lateBandSessions)}이야. 잠은 꼭 챙겨 자!`),
+      (c) => (c.isCurrent ? about('late', `늦은 시간에도 ${times(c.lateSessions)}이나 와 줘서 고마워. 오늘은 일찍 자자!`) : null),
     ],
     more: [
-      (c) => `${c.periodWord}엔 ${times(c.sessions)}이나 ${c.tense('왔네', '왔었지')}! ${c.previousWord}보다 ${times(c.sessions - c.previousSessions)} 더 왔어.`,
-      (c) => `${c.previousWord}엔 ${times(c.previousSessions)}이었는데 ${c.periodWord}엔 ${times(c.sessions)}! ${c.tense('점점 늘고 있어.', '그때 확 늘었지.')}`,
+      (c) => about('active', `${c.periodWord}엔 ${times(c.sessions)}이나 ${c.tense('왔네', '왔었지')}! ${c.previousWord}보다 ${times(c.sessions - c.previousSessions)} 더 왔어.`),
+      (c) => about('active', `${c.previousWord}엔 ${times(c.previousSessions)}이었는데 ${c.periodWord}엔 ${times(c.sessions)}! ${c.tense('점점 늘고 있어.', '그때 확 늘었지.')}`),
       (c) =>
         c.longest && c.longest.seconds >= 3600
-          ? `${c.periodWord}엔 ${times(c.sessions)}이나 ${c.tense('왔네', '왔었지')}! ${c.longest.dayLabel} ${timeBandLabels[c.longest.band]}엔 꽤 오래 있었지?`
+          ? about('longest', `${c.periodWord}엔 ${times(c.sessions)}이나 ${c.tense('왔네', '왔었지')}! ${c.longest.dayLabel} ${timeBandLabels[c.longest.band]}엔 꽤 오래 있었지?`)
           : null,
     ],
     light: [
-      (c) => (c.sessions === 1 ? `${c.periodWord}엔 한 번 왔네. ${c.longest!.dayLabel}에 ${c.longestDuration} 같이 있었지!` : null),
-      (c) => `${c.periodWord} ${times(c.sessions)}, ${c.total} 같이 있었어. 다음엔 조금 더 자주 보자!`,
-      (c) => (c.previousSessions > c.sessions ? `${c.previousWord}보단 적었지만 괜찮아. ${times(c.sessions)}이라도 와 줘서 고마워.` : null),
+      (c) => (c.sessions === 1 ? about('longest', `${c.periodWord}엔 한 번 왔네. ${c.longest!.dayLabel}에 ${c.longestDuration} 같이 있었지!`) : null),
+      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, ${c.total} 같이 있었어. 다음엔 조금 더 자주 보자!`),
+      (c) => (c.previousSessions > c.sessions ? about('active', `${c.previousWord}보단 적었지만 괜찮아. ${times(c.sessions)}이라도 와 줘서 고마워.`) : null),
     ],
     less: [
-      (c) => `${c.periodTopic} ${c.previousWord}보다 조금 뜸했네. 바빴어? 와 줘서 고마워.`,
+      (c) => about('active', `${c.periodTopic} ${c.previousWord}보다 조금 뜸했네. 바빴어? 와 줘서 고마워.`),
       (c) => `${c.periodWord} ${c.total} 같이 있었어. ${c.previousWord}보단 적어도 괜찮아, 천천히 가자.`,
     ],
     regular: [
-      (c) => `${c.periodWord} ${times(c.sessions)}, 합쳐서 ${c.total} 같이 있었어. 수고 많았어!`,
-      (c) => (c.longest ? `${c.periodWord} ${days(c.activeDays)} 만났네. 제일 길었던 건 ${c.longest.dayLabel} ${c.longestDuration}!` : null),
+      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, 합쳐서 ${c.total} 같이 있었어. 수고 많았어!`),
+      (c) => (c.longest ? about('longest', `${c.periodWord} ${days(c.activeDays)} 만났네. 제일 길었던 건 ${c.longest.dayLabel} ${c.longestDuration}!`) : null),
       (c) =>
         c.dominantBand && c.dominantBand.share >= 0.5
-          ? `${c.periodWord}엔 주로 ${timeBandLabels[c.dominantBand.band]}에 만났지? ${times(c.sessions)} 와 줘서 고마워.`
+          ? about('band', `${c.periodWord}엔 주로 ${timeBandLabels[c.dominantBand.band]}에 만났지? ${times(c.sessions)} 와 줘서 고마워.`)
           : null,
     ],
   },
@@ -370,14 +418,45 @@ export function commentContext(facts: PeriodFacts): CommentContext {
   }
 }
 
+/** The days a line points at, from the same facts as the line. */
+export function commentHighlight(focus: CommentFocus, facts: PeriodFacts): CommentHighlight {
+  const { keys } = facts
+  switch (focus) {
+    case 'longest':
+      return { days: facts.longest ? [facts.longest.dayKey] : [], streak: [] }
+    case 'first':
+      return { days: keys.first, streak: [] }
+    case 'streak':
+      return { days: keys.streak, streak: keys.streak.length >= 2 ? keys.streak : [] }
+    case 'allDays':
+      return { days: keys.active, streak: keys.active.length >= 2 ? keys.active : [] }
+    case 'active':
+      return { days: keys.active, streak: [] }
+    case 'late':
+      return { days: keys.late, streak: [] }
+    case 'lateBand':
+      return { days: keys.lateBand, streak: [] }
+    case 'band':
+      return { days: keys.dominantBand, streak: [] }
+    case 'long':
+      return { days: keys.long, streak: [] }
+    case 'none':
+      return { days: [], streak: [] }
+  }
+}
+
 export function buildMateComment(input: MateCommentInput): MateComment | null {
   const facts = collectPeriodFacts(input)
   const kind = classifyPeriod(facts)
   if (!kind) return null
   const voice = input.voice ?? chaerinVoice
   const context = commentContext(facts)
-  const candidates = voice.templates[kind].map((template) => template(context)).filter((text): text is string => Boolean(text))
+  const candidates = voice.templates[kind]
+    .map((template) => template(context))
+    .filter((line): line is CommentLine => Boolean(line))
+    .map((line) => (typeof line === 'string' ? { text: line, focus: 'none' as const } : line))
   if (candidates.length === 0) return null
   const seed = seedHash(`${input.seedKey}|${input.range.period}|${input.range.startDay}|${kind}`)
-  return { kind, text: candidates[seed % candidates.length]! }
+  const { text, focus } = candidates[seed % candidates.length]!
+  return { kind, text, focus, highlight: commentHighlight(focus, facts) }
 }

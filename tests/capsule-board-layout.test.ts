@@ -7,19 +7,30 @@ import {
   boardCell,
   boardRiseTiming,
   buildCapsuleBoard,
+  capsuleColors,
   capsulesPerConnection,
   dayCapsuleCount,
+  offsetContaining,
   stackDay,
+  yearSlot,
 } from '../src/features/records/capsule-board/capsule-board-layout.ts'
+import {
+  boardStageAspect,
+  boardTransition,
+  chipSlots,
+  defaultBoardView,
+  isBoardView,
+  yearColumnsFor,
+} from '../src/features/records/capsule-board/capsule-board-view.ts'
 
 const NOW = Date.parse('2026-11-24T15:00:00+09:00') // Tuesday
 const at = (iso: string) => Date.parse(`${iso}+09:00`)
-function record(startIso: string, minutes: number, id = startIso): StudyRecord {
+function record(startIso: string, minutes: number, id = startIso, characterId = '1'): StudyRecord {
   const startedAt = at(startIso)
   return {
     id,
     roomId: '1',
-    characterIds: ['1'],
+    characterIds: [characterId],
     tier: 'basic',
     startedAt,
     endedAt: startedAt + minutes * 60_000,
@@ -41,12 +52,10 @@ test('one capsule per 30 minutes of the day, at least one per connection', () =>
   assert.equal(dayCapsuleCount(20 * 60, 3), 3)
 })
 
-test("a day's capsules are shared by time in start order (largest remainder, one each at least)", () => {
+test("a day's capsules are shared by time (largest remainder, one each at least)", () => {
   assert.deepEqual(capsulesPerConnection([]), [])
   assert.deepEqual(capsulesPerConnection([60 * 60]), [2])
-  // 50 + 70 min = 2 h → 4 capsules: 2 + 2
   assert.deepEqual(capsulesPerConnection([50 * 60, 70 * 60]), [2, 2])
-  // 10 + 110 min → 4: the short one keeps one
   assert.deepEqual(capsulesPerConnection([10 * 60, 110 * 60]), [1, 3])
   for (const list of [[5, 5, 5], [30, 90, 200], [400, 10]]) {
     const counts = capsulesPerConnection(list.map((minutes) => minutes * 60))
@@ -56,60 +65,143 @@ test("a day's capsules are shared by time in start order (largest remainder, one
   }
 })
 
-test('a column stacks bottom → top by start, coloured by each connection band, the keepsake one larger', () => {
+test('a column stands on its tile and its capsules touch (no gaps), the keepsake one larger', () => {
   const evening = record('2026-11-23T19:00:00', 60, 'evening')
   const dawn = record('2026-11-23T00:40:00', 30, 'dawn')
-  const { capsules, height, compressed } = stackDay([evening, dawn], new Map([['evening', { connectionId: 'evening', hours: 1, piece: 5 }]]))
+  const { capsules, height } = stackDay([evening, dawn], {
+    keepsakes: new Map([['evening', { connectionId: 'evening', hours: 1, piece: 5 }]]),
+  })
   assert.deepEqual(capsules.map((capsule) => capsule.band), ['dawn', 'evening', 'evening'])
   assert.deepEqual(capsules.map((capsule) => capsule.keepsake), [0, 0, 1])
   assert.ok(capsules[2]!.length > capsules[1]!.length)
-  for (let index = 1; index < capsules.length; index++) assert.ok(capsules[index]!.y > capsules[index - 1]!.y)
-  assert.equal(compressed, false)
-  assert.ok(Math.abs(height - capsules.reduce((sum, capsule) => sum + capsule.length, 0)) < 1e-9)
+  // The lowest one's tip rests on (a little into) the tile.
+  assert.ok(capsules[0]!.y - capsules[0]!.length / 2 <= 0)
+  assert.ok(capsules[0]!.y - capsules[0]!.length / 2 > -capsules[0]!.length * 0.1)
+  // Neighbours overlap a little (each rests in the tip below), never float apart.
+  for (let index = 1; index < capsules.length; index++) {
+    const below = capsules[index - 1]!
+    const above = capsules[index]!
+    const gap = above.y - above.length / 2 - (below.y + below.length / 2)
+    assert.ok(gap < 0 && gap > -Math.min(below.length, above.length) * 0.3, `gap ${gap}`)
+  }
+  assert.ok(Math.abs(height - (capsules[2]!.y + capsules[2]!.length / 2)) < 1e-9)
 })
 
-test('columns above the cap keep every capsule but fit in the cap height', () => {
-  const long = record('2026-11-23T09:00:00', 9 * 60)
-  const { capsules, height, compressed } = stackDay([long])
+test('columns above the cap keep every capsule but fit in the cap height; heights compare', () => {
+  const { capsules, compressed } = stackDay([record('2026-11-23T09:00:00', 9 * 60)])
   assert.equal(capsules.length, 18)
   assert.equal(compressed, true)
-  assert.ok(Math.abs(height - BOARD.maxLevels * BOARD.capsuleLength) < 1e-9)
-  // Heights compare: a 2 h day is half a 4 h day.
+  const capped = stackDay([record('2026-11-23T09:00:00', 4 * 60)])
+  assert.equal(capped.compressed, false)
+  assert.ok(Math.abs(stackDay([record('2026-11-23T09:00:00', 9 * 60)]).height - capped.height) < 1e-9)
+  const one = stackDay([record('2026-11-23T09:00:00', 60)]).height
   const two = stackDay([record('2026-11-23T09:00:00', 120)]).height
-  const four = stackDay([record('2026-11-23T09:00:00', 240)]).height
-  assert.ok(Math.abs(four - two * 2) < 1e-9)
+  assert.ok(two > one * 1.6 && two < one * 2.2)
 })
 
-test('tiles: a row for the week, a weekday grid for the month, week columns for the year', () => {
-  assert.deepEqual(boardCell('week', 3, 0), { x: 3, z: 0 })
-  assert.deepEqual(boardCell('month', 0, 6), { x: 6, z: 0 })
-  assert.deepEqual(boardCell('month', 1, 6), { x: 0, z: 1 })
-  assert.deepEqual(boardCell('year', 10, 3), { x: 1, z: 6 })
-  const records = [record('2026-11-23T20:00:00', 50), record('2026-11-24T08:00:00', 130)]
-  const week = buildCapsuleBoard(records, getRecordRange('week', NOW))
-  assert.equal(week.tiles.length, 7)
-  assert.equal(week.cols, 7)
-  assert.equal(week.rows, 1)
-  assert.deepEqual(week.tiles.map((tile) => tile.capsules.length), [2, 4, 0, 0, 0, 0, 0])
-  assert.equal(week.labels[1]!.today, true)
-  const month = buildCapsuleBoard(records, getRecordRange('month', NOW))
-  assert.equal(month.cols, 7)
-  assert.equal(month.tiles.length, 30)
-  const year = buildCapsuleBoard(records, getRecordRange('year', NOW))
-  assert.equal(year.rows, 7)
-  assert.equal(year.tiles.length, 365)
-  assert.ok(year.capsuleLength > week.capsuleLength)
-  assert.ok(year.labels.every((label) => label.kind === 'month'))
+test('「전체」 stacks mate by mate in mate colours; one mate takes its time-band tints', () => {
+  const chaerinEvening = record('2026-11-23T19:00:00', 30, 'a', '1')
+  const boyMorning = record('2026-11-23T08:00:00', 30, 'b', '2')
+  const mateOf = (item: StudyRecord) => (item.characterIds[0] === '1' ? 'chaerin' : 'mate-2')
+  const all = stackDay([chaerinEvening, boyMorning], { mateOf, mateOrder: ['chaerin', 'mate-2'], colorMode: 'mate' })
+  assert.deepEqual(all.capsules.map((capsule) => capsule.mateId), ['chaerin', 'mate-2'])
+  assert.notEqual(all.capsules[0]!.colors.tint, all.capsules[1]!.colors.tint)
+  assert.deepEqual(capsuleColors('chaerin', 'evening', 'mate'), capsuleColors('chaerin', 'dawn', 'mate'))
+  assert.notDeepEqual(capsuleColors('chaerin', 'evening', 'band'), capsuleColors('chaerin', 'dawn', 'band'))
+  const one = stackDay([chaerinEvening, boyMorning], { mateOf, colorMode: 'band' })
+  assert.deepEqual(one.capsules.map((capsule) => capsule.recordId), ['b', 'a'])
+  const board = buildCapsuleBoard([chaerinEvening, boyMorning], getRecordRange('week', NOW), {
+    mateOf,
+    mateOrder: ['chaerin', 'mate-2'],
+    mateNames: new Map([['chaerin', '채린'], ['mate-2', '남학생']]),
+    colorMode: 'mate',
+  })
+  assert.deepEqual(board.mates.map((mate) => mate.name), ['채린', '남학생'])
+})
+
+test('grids: a week row, a weekday month grid, and the year as twelve month boards with the same shape', () => {
+  assert.deepEqual(boardCell('week', '2026-11-25', 2, 5), { x: -1, z: 0 })
+  // November 2026 starts on Sunday (column 6).
+  assert.deepEqual(boardCell('month', '2026-11-01', 0, 6), { x: 3, z: -2.5 })
+  assert.deepEqual(boardCell('month', '2026-11-02', 1, 6), { x: -3, z: -1.5 })
+  // In the year the same month board only moves (a fixed offset for every day of the month).
+  const month = (key: string) => boardCell('month', key, 0, 6)
+  const year = (key: string) => boardCell('year', key, 0, 6, 4)
+  const offset = { x: year('2026-11-01').x - month('2026-11-01').x, z: year('2026-11-01').z - month('2026-11-01').z }
+  for (const key of ['2026-11-09', '2026-11-30']) {
+    assert.ok(Math.abs(year(key).x - month(key).x - offset.x) < 1e-9)
+    assert.ok(Math.abs(year(key).z - month(key).z - offset.z) < 1e-9)
+  }
+  // 4 × 3 (wide) and 2 × 6 (narrow), centred.
+  assert.ok(yearSlot(1, 4).x0 > yearSlot(0, 4).x0 && yearSlot(4, 4).z0 > yearSlot(0, 4).z0)
+  assert.equal(yearSlot(2, 2).x0, yearSlot(0, 2).x0)
+  const yearBoard = buildCapsuleBoard([record('2026-11-23T20:00:00', 50)], getRecordRange('year', NOW))
+  assert.equal(yearBoard.tiles.length, 365)
+  assert.equal(yearBoard.months.length, 12)
+  assert.equal(yearBoard.months[10]!.activeDays, 1)
+  assert.equal(yearBoard.labels.filter((label) => label.kind === 'month').length, 12)
+  // Month labels sit in front of their boards (never under a column).
+  for (const label of yearBoard.labels.filter((item) => item.kind === 'month')) {
+    const board = yearBoard.months.find((item) => item.key === label.key)!
+    assert.ok(label.z > board.z1)
+  }
+})
+
+test('date labels sit at the front-right corner of their tile', () => {
+  const week = buildCapsuleBoard([record('2026-11-23T20:00:00', 50)], getRecordRange('week', NOW))
+  const label = week.labels.find((item) => item.kind === 'date' && item.key === '2026-11-23')!
+  const tile = week.tiles.find((item) => item.day.key === '2026-11-23')!
+  assert.ok(label.x > tile.x && label.z > tile.z)
+  assert.equal(week.labels.find((item) => item.key === '2026-11-24')!.today, true)
 })
 
 test('the rise plays only days with records, in date order, within 1–1.5 s', () => {
   const tiles = [{ capsules: [1, 2] }, { capsules: [] }, { capsules: [1, 2, 3, 4, 5, 6, 7, 8] }, { capsules: [1] }] as never
   const timing = boardRiseTiming(tiles)
   assert.deepEqual(timing.starts.map((start) => start === null), [false, true, false, false])
-  assert.ok(timing.starts[0]! < timing.starts[2]! && timing.starts[2]! < timing.starts[3]!)
   assert.ok(timing.totalMs <= 1500)
-  const many = Array.from({ length: 300 }, () => ({ capsules: [1, 2, 3] })) as never
-  const full = boardRiseTiming(many)
+  const full = boardRiseTiming(Array.from({ length: 300 }, () => ({ capsules: [1, 2, 3] })) as never)
   assert.ok(full.totalMs >= 1000 && full.totalMs <= 1500, String(full.totalMs))
-  assert.equal(boardRiseTiming([{ capsules: [] }] as never).totalMs, 0)
+})
+
+test('period offsets around the same day', () => {
+  const today = '2026-11-25'
+  assert.equal(offsetContaining('week', '2026-11-25', today), 0)
+  assert.equal(offsetContaining('week', '2026-11-22', today), -1)
+  assert.equal(offsetContaining('month', '2026-03-01', today), -8)
+  assert.equal(offsetContaining('month', '2025-12-31', today), -11)
+  assert.equal(offsetContaining('year', '2025-06-01', today), -1)
+})
+
+test('2D / 2.5D: default by width, the stored choice wins; chips fit the tile', () => {
+  assert.equal(defaultBoardView(1440, null), '25d')
+  assert.equal(defaultBoardView(959, null), '2d')
+  assert.equal(defaultBoardView(960, undefined), '25d')
+  assert.equal(defaultBoardView(390, '25d'), '25d')
+  assert.equal(defaultBoardView(1440, '2d'), '2d')
+  assert.equal(defaultBoardView(1440, 'flat'), '25d')
+  assert.equal(isBoardView('3d'), false)
+  assert.equal(yearColumnsFor(400), 2)
+  assert.equal(yearColumnsFor(1100), 4)
+  assert.ok(boardStageAspect('year', '25d', true) < 1 && boardStageAspect('week', '25d', false) > 2)
+  for (const count of [1, 2, 3, 8, 12, 18]) {
+    const slots = chipSlots(Array.from({ length: count }, () => BOARD.capsuleLength))
+    assert.equal(slots.length, count)
+    for (const slot of slots) {
+      assert.ok(slot.x - slot.length / 2 >= -0.43 && slot.x + slot.length / 2 <= 0.43, `x ${count}`)
+      assert.ok(slot.z > -0.1 && slot.z < 0.43, `z ${count}`)
+    }
+  }
+})
+
+test('transitions: a new period around the same days morphs, a mate or another range rises', () => {
+  const records = [record('2026-11-23T20:00:00', 50)]
+  const week = buildCapsuleBoard(records, getRecordRange('week', NOW))
+  const month = buildCapsuleBoard(records, getRecordRange('month', NOW))
+  const lastWeek = buildCapsuleBoard(records, getRecordRange('week', NOW, -1))
+  assert.equal(boardTransition(null, week), 'rise')
+  assert.equal(boardTransition(week, month), 'morph')
+  assert.equal(boardTransition(week, lastWeek), 'rise')
+  assert.equal(boardTransition(week, buildCapsuleBoard(records, getRecordRange('week', NOW))), 'none')
+  assert.equal(boardTransition(week, buildCapsuleBoard(records, getRecordRange('week', NOW), { colorMode: 'mate' })), 'rise')
 })

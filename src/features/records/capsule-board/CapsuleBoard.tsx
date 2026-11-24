@@ -1,21 +1,18 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
-import { CapsuleCalendar } from '../CapsuleCalendar'
+import { CapsuleCalendar, CapsuleLegend } from '../CapsuleCalendar'
 import { capsuleNeighbor, capsuleTooltip, type CapsuleDay } from '../capsule-calendar'
-import type { CapsuleBoardModel } from './capsule-board-layout'
-import type { BoardBenchmark, BoardSceneController } from './capsule-board-scene'
+import type { CommentHighlight } from '../mate-comment'
+import { boardMonthTooltip, type CapsuleBoardModel } from './capsule-board-layout'
+import type { BoardBenchmark, BoardSceneController, BoardTarget } from './capsule-board-scene'
+import {
+  BOARD_NARROW_STAGE,
+  boardStageAspect,
+  boardTransition,
+  supportsWebGL,
+  type BoardEmphasisControl,
+  type BoardView,
+} from './capsule-board-view'
 import './capsule-board.css'
-
-/** Whether this browser can draw the board (else the 2D capsule calendar stands in). */
-function supportsWebGL() {
-  try {
-    const probe = document.createElement('canvas')
-    const context = probe.getContext('webgl2') ?? probe.getContext('webgl')
-    context?.getExtension('WEBGL_lose_context')?.loseContext()
-    return Boolean(context)
-  } catch {
-    return false
-  }
-}
 
 function usePrefersReducedMotion() {
   const [value, setValue] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false)
@@ -30,66 +27,117 @@ function usePrefersReducedMotion() {
 }
 
 /**
- * 「함께 쌓은 시간」 board: the 2.5D scene (its own lazy chunk) plus everything that is not WebGL — the tooltip, the
- * keyboard and screen-reader day list (a visually hidden group of day buttons; the focused day lights up on the
- * board), and the 2D capsule calendar when WebGL is missing or fails.
+ * 「함께 쌓은 시간」 board: the WebGL scene (its own lazy chunk) plus everything that is not WebGL — the tooltip, the
+ * keyboard and screen-reader list (days; the year's twelve months), and the 2D capsule calendar when WebGL is missing.
  */
 export function CapsuleBoard({
   model,
+  view,
   selectedKey,
-  onSelect,
+  onSelectDay,
+  onSelectMonth,
+  emphasis,
+  onEmphasisControl,
+  onStageWidth,
+  onFallback,
   reducedMotion: forceReducedMotion = false,
   replayToken = 0,
   onController,
 }: {
   model: CapsuleBoardModel
+  view: BoardView
   selectedKey: string | undefined
-  onSelect: (day: CapsuleDay) => void
-  /** Forces reduced motion on top of the system setting (the preview's switch). */
+  onSelectDay: (day: CapsuleDay) => void
+  /** Year view: a month board was chosen (0-based month). */
+  onSelectMonth: (month: number) => void
+  /** Days the mate's comment speaks about (null: none). */
+  emphasis: CommentHighlight | null
+  /** Receives the handle the comment's typing progress goes through (null on unmount). */
+  onEmphasisControl?: (control: BoardEmphasisControl | null) => void
+  /** The stage width (the page picks the narrow arrangement from it). */
+  onStageWidth?: (width: number) => void
+  onFallback?: () => void
   reducedMotion?: boolean
-  /** Changing it plays the rise again. */
   replayToken?: number
   /** Development hook (benchmark). */
   onController?: (controller: { benchmark: (durationMs: number) => Promise<BoardBenchmark> } | null) => void
 }) {
   const systemReducedMotion = usePrefersReducedMotion()
   const reducedMotion = forceReducedMotion || systemReducedMotion
+  const wrapRef = useRef<HTMLDivElement>(null)
   const hostRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<BoardSceneController | null>(null)
   const buttons = useRef<(HTMLButtonElement | null)[]>([])
   const [fallback, setFallback] = useState(() => !supportsWebGL())
   const [ready, setReady] = useState(false)
-  const [aspect, setAspect] = useState(2.2)
-  const [pointed, setPointed] = useState<number | null>(null)
-  const [focused, setFocused] = useState<number | null>(null)
+  const [stageWidth, setStageWidth] = useState(0)
+  const [pointed, setPointed] = useState<BoardTarget | null>(null)
+  const [focused, setFocused] = useState<BoardTarget | null>(null)
   const [focusKey, setFocusKey] = useState<string | undefined>(undefined)
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
   const modelRef = useRef(model)
-  const onSelectRef = useRef(onSelect)
-  const shownRef = useRef<number | null>(null)
+  const handlers = useRef({ onSelectDay, onSelectMonth })
+  const shownRef = useRef<BoardTarget | null>(null)
+  const lastProgress = useRef<{ progress: number; finished: boolean } | null>(null)
+  const previousModel = useRef<CapsuleBoardModel | null>(null)
   // Latest values for the scene's callbacks (the scene is created once).
   useLayoutEffect(() => {
     modelRef.current = model
-    onSelectRef.current = onSelect
+    handlers.current = { onSelectDay, onSelectMonth }
     shownRef.current = pointed ?? focused
   })
 
+  const textFor = useCallback((target: BoardTarget) => {
+    const current = modelRef.current
+    if (target.kind === 'month') {
+      const month = current.months[target.month]
+      return month ? boardMonthTooltip(month) : null
+    }
+    const day = current.tiles.find((tile) => tile.day.key === target.key)?.day
+    return day ? capsuleTooltip(day) : null
+  }, [])
+
   const placeTooltip = useCallback(() => {
-    const index = shownRef.current
+    const target = shownRef.current
     const scene = sceneRef.current
-    const day = index === null ? undefined : modelRef.current.tiles[index]?.day
-    if (index === null || !scene || !day) {
+    const text = target ? textFor(target) : null
+    if (!target || !scene || !text) {
       setTooltip(null)
       return
     }
-    const point = scene.tilePoint(index)
+    const point = scene.targetPoint(target)
     if (!point) return
     setTooltip((current) =>
-      current && current.text === capsuleTooltip(day) && Math.abs(current.x - point.x) < 0.5 && Math.abs(current.y - point.y) < 0.5
+      current && current.text === text && Math.abs(current.x - point.x) < 0.5 && Math.abs(current.y - point.y) < 0.5
         ? current
-        : { text: capsuleTooltip(day), x: point.x, y: point.y },
+        : { text, x: point.x, y: point.y },
     )
-  }, [])
+  }, [textFor])
+
+  // The comment's typing progress (kept until the scene exists).
+  useEffect(() => {
+    if (!onEmphasisControl) return
+    onEmphasisControl({
+      setProgress(progress, finished) {
+        lastProgress.current = { progress, finished }
+        sceneRef.current?.setEmphasisProgress(progress, finished)
+      },
+    })
+    return () => onEmphasisControl(null)
+  }, [onEmphasisControl])
+
+  // Stage width (narrow arrangement and aspect).
+  useEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap) return
+    const observer = new ResizeObserver(([entry]) => {
+      const width = Math.round(entry?.contentRect.width ?? 0)
+      setStageWidth(width)
+      onStageWidth?.(width)
+    })
+    observer.observe(wrap)
+    return () => observer.disconnect()
+  }, [onStageWidth, fallback])
 
   // ── Scene lifecycle (lazy chunk; disposed on unmount) ──
   useEffect(() => {
@@ -104,25 +152,31 @@ export function CapsuleBoard({
         controller = createCapsuleBoardScene({
           host,
           reducedMotion,
-          onHover: (index) => setPointed(index),
-          onSelect: (index) => {
-            const day = modelRef.current.tiles[index]?.day
-            if (day) onSelectRef.current(day)
+          view,
+          onHover: setPointed,
+          onSelect: (target) => {
+            if (target.kind === 'month') handlers.current.onSelectMonth(target.month)
+            else {
+              const day = modelRef.current.tiles.find((tile) => tile.day.key === target.key)?.day
+              if (day) handlers.current.onSelectDay(day)
+            }
           },
           onFrame: placeTooltip,
-          onAspect: setAspect,
         })
         sceneRef.current = controller
         onController?.({ benchmark: (ms) => controller!.benchmark(ms) })
         setReady(true)
       })
       .catch(() => {
-        if (!cancelled) setFallback(true)
+        if (cancelled) return
+        setFallback(true)
+        onFallback?.()
       })
     return () => {
       cancelled = true
       controller?.dispose()
       sceneRef.current = null
+      previousModel.current = null
       onController?.(null)
     }
     // The scene is created once; later changes go through the controller below.
@@ -149,9 +203,15 @@ export function CapsuleBoard({
 
   useEffect(() => {
     if (!ready) return
-    // The scene clears its hover (and reports it) when the board changes.
-    sceneRef.current?.setBoard(model, { animate: true })
+    if (previousModel.current === model) return
+    const transition = boardTransition(previousModel.current, model)
+    previousModel.current = model
+    sceneRef.current?.setBoard(model, transition)
   }, [model, ready])
+
+  useEffect(() => {
+    sceneRef.current?.setView(view, true)
+  }, [view, ready])
 
   useEffect(() => {
     sceneRef.current?.setReducedMotion(reducedMotion)
@@ -161,10 +221,20 @@ export function CapsuleBoard({
     if (replayToken) sceneRef.current?.replay()
   }, [replayToken])
 
-  const selectedIndex = selectedKey ? model.tiles.findIndex((tile) => tile.day.key === selectedKey) : -1
   useEffect(() => {
-    sceneRef.current?.setSelected(selectedIndex >= 0 ? selectedIndex : null)
-  }, [selectedIndex, ready, model])
+    sceneRef.current?.setSelected(selectedKey ?? null)
+  }, [selectedKey, ready, model])
+
+  const emphasisKey = emphasis ? `${emphasis.days.join(',')}|${emphasis.streak.join(',')}` : ''
+  useEffect(() => {
+    const scene = sceneRef.current
+    if (!scene) return
+    scene.setEmphasis({ days: emphasis?.days ?? [], streak: emphasis?.streak ?? [] })
+    const last = lastProgress.current
+    if (last) scene.setEmphasisProgress(last.progress, last.finished)
+    // The key stands for the emphasis' content.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emphasisKey, ready])
 
   useEffect(() => {
     sceneRef.current?.setActive(focused)
@@ -172,33 +242,51 @@ export function CapsuleBoard({
 
   useEffect(placeTooltip, [pointed, focused, placeTooltip])
 
-  // ── Keyboard: the same moves as the capsule calendar ──
+  // ── Keyboard: days (the capsule calendar's moves) or the year's months (←→ one, ↑↓ one row) ──
+  const yearMode = model.mode === 'year'
   const days = model.calendar.days
-  const rovingKey = focusKey ?? selectedKey ?? days.find((day) => !day.isFuture)?.key
+  const items = yearMode
+    ? model.months.map((month) => ({ key: month.key, label: boardMonthTooltip(month), disabled: false }))
+    : days.map((day) => ({ key: day.key, label: capsuleTooltip(day), disabled: day.isFuture }))
+  const selectedMonthKey = selectedKey?.slice(0, 7)
+  const rovingKey =
+    (focusKey && items.some((item) => item.key === focusKey) ? focusKey : undefined) ??
+    (yearMode ? items.find((item) => item.key === selectedMonthKey)?.key : selectedKey) ??
+    items.find((item) => !item.disabled)?.key
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const next = capsuleNeighbor(model.mode, index, event.key, days)
+    let next: number | null
+    if (yearMode) {
+      const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -model.yearColumns, ArrowDown: model.yearColumns }[event.key]
+      next = event.key === 'Home' ? 0 : event.key === 'End' ? 11 : step === undefined ? null : Math.min(11, Math.max(0, index + step))
+    } else next = capsuleNeighbor(model.mode, index, event.key, days)
     if (next === null) return
     event.preventDefault()
-    const day = days[next]
-    if (!day) return
-    setFocusKey(day.key)
+    const item = items[next]
+    if (!item) return
+    setFocusKey(item.key)
     buttons.current[next]?.focus()
   }
+
+  const narrow = stageWidth > 0 && stageWidth < BOARD_NARROW_STAGE
 
   if (fallback) {
     return (
       <div className="capsule-board capsule-board--fallback" data-board-fallback>
-        <CapsuleCalendar data={model.calendar} selectedKey={selectedKey} onSelect={onSelect} />
+        <CapsuleLegend mode={model.calendar.mode} showKeepsake={model.hasKeepsake} />
+        <CapsuleCalendar data={model.calendar} selectedKey={selectedKey} onSelect={onSelectDay} />
       </div>
     )
   }
 
   return (
     <div
+      ref={wrapRef}
       className="capsule-board"
       data-mode={model.mode}
+      data-view={view}
       data-focus={focused !== null || undefined}
-      style={{ '--board-aspect': aspect } as CSSProperties}
+      data-narrow={narrow || undefined}
+      style={{ '--board-aspect': boardStageAspect(model.mode, view, narrow) } as CSSProperties}
       onMouseLeave={() => setPointed(null)}
     >
       <div ref={hostRef} className="capsule-board-stage" />
@@ -207,26 +295,41 @@ export function CapsuleBoard({
           {tooltip.text}
         </span>
       )}
-      <div className="sr-only" role="group" aria-label="함께 쌓은 시간 날짜 목록. 방향키로 날짜를 옮기고 Enter로 엽니다.">
-        {days.map((day, index) => (
+      <div
+        className="sr-only"
+        role="group"
+        aria-label={
+          yearMode
+            ? '함께 쌓은 시간 달 목록. 방향키로 달을 옮기고 Enter로 그 달을 크게 봅니다.'
+            : '함께 쌓은 시간 날짜 목록. 방향키로 날짜를 옮기고 Enter로 엽니다.'
+        }
+      >
+        {items.map((item, index) => (
           <button
-            key={day.key}
+            key={item.key}
             ref={(element) => {
               buttons.current[index] = element
             }}
             type="button"
-            data-board-day={day.key}
-            aria-label={capsuleTooltip(day)}
-            aria-pressed={day.key === selectedKey}
-            disabled={day.isFuture}
-            tabIndex={day.key === rovingKey ? 0 : -1}
+            data-board-day={yearMode ? undefined : item.key}
+            data-board-month={yearMode ? item.key : undefined}
+            aria-label={item.label}
+            aria-pressed={yearMode ? undefined : item.key === selectedKey}
+            disabled={item.disabled}
+            tabIndex={item.key === rovingKey ? 0 : -1}
             onFocus={() => {
-              setFocusKey(day.key)
-              setFocused(index)
+              setFocusKey(item.key)
+              setFocused(yearMode ? { kind: 'month', month: index } : { kind: 'day', key: item.key })
             }}
-            onBlur={() => setFocused((current) => (current === index ? null : current))}
+            onBlur={() => setFocused(null)}
             onKeyDown={(event) => onKeyDown(event, index)}
-            onClick={() => onSelect(day)}
+            onClick={() => {
+              if (yearMode) onSelectMonth(index)
+              else {
+                const day = days[index]
+                if (day) onSelectDay(day)
+              }
+            }}
           />
         ))}
       </div>

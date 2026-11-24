@@ -1,10 +1,12 @@
 import type { StudyRecord } from '../../demo/types.ts'
 import type { RecordRange } from '../../reports/record-period.ts'
 import { capsulesForConnection, KEEPSAKE_SCALE } from '../../mates/capsule-jar/capsule-floor-layout.ts'
+import { capsuleBandTheme, capsuleJarTheme } from '../../mates/capsule-jar/capsule-jar-theme.ts'
 import type { CapsuleKeepsake } from '../../mates/capsule-jar/capsule-moments.ts'
 import { buildCapsuleCalendar, type CapsuleCalendarData, type CapsuleDay } from '../capsule-calendar.ts'
 import { connectionDayKey, connectionStartedAt } from '../connection-day.ts'
 import { timeBand, type TimeBand } from '../mate-comment.ts'
+import { dayKey, duration } from '../../../shared/lib/format.ts'
 
 /**
  * 「함께 쌓은 시간」 board (/records, 2.5D): every day is a floor tile and the day's time together stands on it as a
@@ -15,11 +17,21 @@ import { timeBand, type TimeBand } from '../mate-comment.ts'
  * year, so heights compare at a glance. 내 메이트 counts 10 minutes per capsule with at least 3 and at most 18 per
  * connection (`CAPSULE_COUNT`): good for a heap, but its floor of 3 makes a 5-minute and a 30-minute connection the
  * same height and its cap flattens long days, so it is not used for heights. The day total is rounded to whole
- * capsules (±15 min, the tooltip has the exact time) and shared among the day's connections in start order (largest
- * remainder), every connection keeping at least one capsule so each connection's colour shows.
+ * capsules (±15 min, the tooltip has the exact time) and shared among the day's connections (largest remainder),
+ * every connection keeping at least one capsule so each connection's colour shows.
  *
- * Cap: a column is at most `BOARD.maxLevels` capsules tall (4 hours). A taller day keeps all its capsules but packs
- * them into that height (they overlap, so the glass reads denser and brighter) and is marked `compressed`.
+ * Stacking: the capsules of a column touch — each rests in the rounded tip of the one below (`BOARD.stackStep` of a
+ * length apart) and the lowest one sits on the tile. Cap: a column is at most `BOARD.maxLevels` capsules tall
+ * (4 hours); a taller day keeps all its capsules but packs them into that height (`compressed`).
+ *
+ * Colours (user decision 2026-11-25): with 「전체」 every capsule takes its **mate's colour** (채린: the two violet
+ * tones; other mates: their own hue, capsule-jar-theme.ts) and a day with several mates stacks them mate by mate; with
+ * one mate chosen, the capsules take that mate's **time-band tints** (the same rule as 내 메이트).
+ *
+ * Grid (tile pitch 1, the same in every view, so a day keeps its place when the period changes):
+ * - week: one row of 7;
+ * - month: a weekday grid (rows = weeks);
+ * - year: twelve month boards (each the month's weekday grid) in 4 columns × 3 rows, 2 × 6 on narrow screens.
  */
 
 export const BOARD = {
@@ -28,20 +40,31 @@ export const BOARD = {
   maxLevels: 8,
   /** Capsule length in tile units (tile pitch = 1). */
   capsuleLength: 0.5,
-  /** The year's 365 small tiles: longer capsules so the garden reads (heights still compare within the view). */
-  yearCapsuleLength: 0.6,
+  /** Centre-to-centre distance of stacked capsules, in lengths: each rests in the tip of the one below. */
+  stackStep: 0.84,
+  /** How far the lowest capsule's tip sinks into the tile (lengths), so it stands on it. */
+  seat: 0.06,
   /** Floor tile side and thickness (tile pitch = 1). */
   tileSize: 0.86,
   tileHeight: 0.07,
+  /** Gaps between the year's month boards (tile units); the depth gap leaves room for the month label. */
+  yearGapX: 1.1,
+  yearGapZ: 1.8,
+  /** Rows of a month board (the most weeks a month can touch). */
+  monthRows: 6,
 } as const
 
 export type BoardMode = RecordRange['period']
+export type BoardColorMode = 'mate' | 'band'
+export type CapsuleColors = { light: string; tint: string; glow: string }
 
 export type BoardCapsule = {
   /** `${recordId}:${piece}` */
   id: string
   recordId: string
+  mateId: string
   band: TimeBand
+  colors: CapsuleColors
   /** Milestone hours of a keepsake capsule (larger, stars on the seam), else 0. */
   keepsake: number
   /** Centre height above the tile top. */
@@ -56,30 +79,65 @@ export type BoardCapsule = {
 export type BoardTile = {
   index: number
   day: CapsuleDay
-  /** Grid position (x to the right, z towards the viewer). */
+  /** 0-based month of the day (the year's board it belongs to). */
+  month: number
+  /** World position of the tile centre (x to the right, z towards the viewer). */
   x: number
   z: number
   capsules: readonly BoardCapsule[]
-  /** Height of the column above the tile top (0 without records). */
+  /** Height of the column's top above the tile top (0 without records). */
   height: number
   compressed: boolean
 }
 
-export type BoardLabel = { text: string; x: number; z: number; size: number; kind: 'date' | 'month'; today: boolean }
+export type BoardLabel = {
+  /** Date labels follow their tile (`tile` = its index); month labels belong to the year's boards. */
+  kind: 'date' | 'month'
+  key: string
+  text: string
+  tile: number | null
+  /** Anchor: the right end of a date label, the left end of a month label (world). */
+  x: number
+  z: number
+  size: number
+  today: boolean
+}
+
+export type BoardMonth = {
+  month: number
+  /** `YYYY-MM` */
+  key: string
+  label: string
+  /** World rectangle of the month board (tile edges). */
+  x0: number
+  z0: number
+  x1: number
+  z1: number
+  connectionSeconds: number
+  activeDays: number
+  sessions: number
+}
+
+export type BoardMateLegend = { mateId: string; name: string; color: string }
 
 export type CapsuleBoardModel = {
   mode: BoardMode
-  /** Length of one capsule (one 30-minute level) in this view. */
-  capsuleLength: number
-  cols: number
-  rows: number
+  colorMode: BoardColorMode
+  /** Stable for the same days (the period's first day): a model with the same key is the same view. */
+  rangeKey: string
   tiles: readonly BoardTile[]
   labels: readonly BoardLabel[]
+  /** The year's month boards (empty for week and month). */
+  months: readonly BoardMonth[]
   /** The 2D calendar of the same days (fallback without WebGL, keyboard order, tooltips). */
   calendar: CapsuleCalendarData
   /** Tallest column in this view. */
   maxHeight: number
   capsuleCount: number
+  hasKeepsake: boolean
+  /** Mates with capsules in this view, in stacking order (for the 「전체」 legend). */
+  mates: readonly BoardMateLegend[]
+  yearColumns: number
 }
 
 /** Whole capsules for a day's total time (at least one per connection). */
@@ -89,7 +147,8 @@ export function dayCapsuleCount(totalSeconds: number, connections: number) {
 }
 
 /**
- * Shares a day's capsules among its connections (in start order) by their time: largest remainder, at least one each.
+ * Shares a day's capsules among its connections (in stacking order) by their time: largest remainder, at least one
+ * each.
  */
 export function capsulesPerConnection(secondsList: readonly number[]): number[] {
   const seconds = secondsList.map((value) => (Number.isFinite(value) ? Math.max(0, value) : 0))
@@ -120,18 +179,49 @@ function hash(value: string) {
   return (state >>> 0) / 4294967296
 }
 
-/** Lays out one day's column: capsules bottom → top by connection start, the keepsake one larger. */
+export type StackOptions = {
+  keepsakes?: ReadonlyMap<string, CapsuleKeepsake>
+  /** Mate (theme id) of a record. */
+  mateOf?: (record: StudyRecord) => string
+  /** Stacking order of mates (「전체」: mate by mate); unknown mates go last. */
+  mateOrder?: readonly string[]
+  colorMode?: BoardColorMode
+}
+
+const paletteCache = new Map<string, CapsuleColors>()
+/** Capsule colours: the mate's two tones (「전체」) or the mate's tones moved by the time band (one mate). */
+export function capsuleColors(mateId: string, band: TimeBand, colorMode: BoardColorMode): CapsuleColors {
+  const key = `${mateId}|${colorMode === 'band' ? band : ''}`
+  let colors = paletteCache.get(key)
+  if (!colors) {
+    const base = capsuleJarTheme(mateId)
+    const theme = colorMode === 'band' ? capsuleBandTheme(base, band) : base
+    colors = { light: theme.lightHalf, tint: theme.tintHalf, glow: theme.glow }
+    paletteCache.set(key, colors)
+  }
+  return colors
+}
+
+/** Lays out one day's column: capsules bottom → top (mate by mate, then by start), the keepsake one larger. */
 export function stackDay(
   records: readonly StudyRecord[],
-  keepsakes: ReadonlyMap<string, CapsuleKeepsake> = new Map(),
-  capsuleLength: number = BOARD.capsuleLength,
+  { keepsakes = new Map(), mateOf = () => 'chaerin', mateOrder = [], colorMode = 'band' }: StackOptions = {},
 ): { capsules: BoardCapsule[]; height: number; compressed: boolean } {
-  const ordered = [...records].sort((a, b) => connectionStartedAt(a) - connectionStartedAt(b) || a.id.localeCompare(b.id))
+  const rank = (record: StudyRecord) => {
+    const index = mateOrder.indexOf(mateOf(record))
+    return index < 0 ? mateOrder.length : index
+  }
+  const ordered = [...records].sort(
+    (a, b) =>
+      (colorMode === 'mate' ? rank(a) - rank(b) : 0) || connectionStartedAt(a) - connectionStartedAt(b) || a.id.localeCompare(b.id),
+  )
   const counts = capsulesPerConnection(ordered.map((record) => record.studySeconds))
   const pieces: Omit<BoardCapsule, 'y'>[] = []
   ordered.forEach((record, recordIndex) => {
     const count = counts[recordIndex]!
     const band = timeBand(connectionStartedAt(record))
+    const mateId = mateOf(record)
+    const colors = capsuleColors(mateId, band, colorMode)
     const keepsake = keepsakes.get(record.id)
     // The mate's keepsake piece, at the same share of the connection in this column.
     const keepsakePiece = keepsake
@@ -143,40 +233,81 @@ export function stackDay(
       pieces.push({
         id,
         recordId: record.id,
+        mateId,
         band,
+        colors,
         keepsake: isKeepsake ? keepsake!.hours : 0,
-        length: capsuleLength * (isKeepsake ? KEEPSAKE_SCALE : 1),
+        length: BOARD.capsuleLength * (isKeepsake ? KEEPSAKE_SCALE : 1),
         roll: hash(id) * Math.PI * 2,
         glow: 0.55 + hash(`${id}|glow`) * 0.45,
       })
     }
   })
-  const natural = pieces.reduce((sum, piece) => sum + piece.length, 0)
-  const cap = BOARD.maxLevels * capsuleLength
+  if (pieces.length === 0) return { capsules: [], height: 0, compressed: false }
+  // Centre-to-centre steps between neighbours (half of each one's nested length).
+  const steps = pieces.slice(1).map((piece, index) => ((pieces[index]!.length + piece.length) / 2) * BOARD.stackStep)
+  const natural = steps.reduce((sum, step) => sum + step, 0)
+  const cap = (BOARD.maxLevels - 1) * BOARD.capsuleLength * BOARD.stackStep
   const compressed = natural > cap + 1e-9
   const squeeze = compressed ? cap / natural : 1
-  let base = 0
-  const capsules = pieces.map((piece) => {
-    const step = piece.length * squeeze
-    const capsule = { ...piece, y: base + step / 2 }
-    base += step
-    return capsule
+  let y = pieces[0]!.length * (0.5 - BOARD.seat)
+  const capsules = pieces.map((piece, index) => {
+    if (index > 0) y += steps[index - 1]! * squeeze
+    return { ...piece, y }
   })
-  return { capsules, height: base, compressed }
+  const last = capsules[capsules.length - 1]!
+  return { capsules, height: last.y + last.length / 2, compressed }
 }
 
-/** Grid position of a day (index in the period) for each view. */
-export function boardCell(mode: BoardMode, index: number, leadingBlanks: number) {
-  if (mode === 'week') return { x: index, z: 0 }
-  const slot = index + leadingBlanks
-  return mode === 'month' ? { x: slot % 7, z: Math.floor(slot / 7) } : { x: Math.floor(slot / 7), z: slot % 7 }
+/** Month board slot of the year view. */
+export function yearSlot(month: number, columns: number) {
+  const rows = Math.ceil(12 / columns)
+  const col = month % columns
+  const row = Math.floor(month / columns)
+  const width = 7 * columns + BOARD.yearGapX * (columns - 1)
+  const depth = BOARD.monthRows * rows + BOARD.yearGapZ * (rows - 1)
+  return {
+    x0: col * (7 + BOARD.yearGapX) - width / 2,
+    z0: row * (BOARD.monthRows + BOARD.yearGapZ) - depth / 2,
+  }
+}
+
+const weekdayOf = (key: string) => (new Date(`${key}T12:00:00+09:00`).getUTCDay() + 6) % 7
+
+/** First weekday (0 = Monday) of a month. */
+function monthLead(year: number, month: number) {
+  return weekdayOf(`${year}-${String(month + 1).padStart(2, '0')}-01`)
+}
+
+/**
+ * World position (tile centre) of a day in a view. The month and year grids share their shape so a month board moves
+ * as one piece between the two.
+ */
+export function boardCell(mode: BoardMode, key: string, index: number, monthRows: number, yearColumns = 4) {
+  if (mode === 'week') return { x: index - 3, z: 0 }
+  const year = Number(key.slice(0, 4))
+  const month = Number(key.slice(5, 7)) - 1
+  const slot = monthLead(year, month) + Number(key.slice(8, 10)) - 1
+  const col = slot % 7
+  const row = Math.floor(slot / 7)
+  if (mode === 'month') return { x: col - 3, z: row - (monthRows - 1) / 2 }
+  const origin = yearSlot(month, yearColumns)
+  return { x: origin.x0 + col + 0.5, z: origin.z0 + row + 0.5 }
+}
+
+export type BuildBoardOptions = StackOptions & {
+  yearColumns?: number
+  /** Names and colours for the legend. */
+  mateNames?: ReadonlyMap<string, string>
 }
 
 export function buildCapsuleBoard(
   records: readonly StudyRecord[],
   range: RecordRange,
-  keepsakes: ReadonlyMap<string, CapsuleKeepsake> = new Map(),
+  options: BuildBoardOptions = {},
 ): CapsuleBoardModel {
+  const { keepsakes = new Map(), mateOf = () => 'chaerin', colorMode = 'band', yearColumns = 4 } = options
+  const mateOrder = options.mateOrder ?? []
   const keepsakeHours = new Map([...keepsakes].map(([id, keepsake]) => [id, keepsake.hours]))
   const calendar = buildCapsuleCalendar(records, range, keepsakeHours)
   const byDay = new Map<string, StudyRecord[]>()
@@ -187,36 +318,101 @@ export function buildCapsuleBoard(
     byDay.set(key, list)
   }
   const mode = calendar.mode
-  const capsuleLength = mode === 'year' ? BOARD.yearCapsuleLength : BOARD.capsuleLength
-  let cols = 0
-  let rows = 0
+  const monthRows = mode === 'month' ? Math.ceil((calendar.leadingBlanks + calendar.days.length) / 7) : BOARD.monthRows
   let capsuleCount = 0
   let maxHeight = 0
+  let hasKeepsake = false
+  const seenMates = new Set<string>()
   const tiles = calendar.days.map((day, index): BoardTile => {
-    const { x, z } = boardCell(mode, index, calendar.leadingBlanks)
-    cols = Math.max(cols, x + 1)
-    rows = Math.max(rows, z + 1)
-    const stack = day.isFuture
-      ? { capsules: [], height: 0, compressed: false }
-      : stackDay(byDay.get(day.key) ?? [], keepsakes, capsuleLength)
+    const { x, z } = boardCell(mode, day.key, index, monthRows, yearColumns)
+    const dayRecords = day.isFuture ? [] : byDay.get(day.key) ?? []
+    const stack = stackDay(dayRecords, { keepsakes, mateOf, mateOrder, colorMode })
+    for (const capsule of stack.capsules) {
+      seenMates.add(capsule.mateId)
+      if (capsule.keepsake) hasKeepsake = true
+    }
     capsuleCount += stack.capsules.length
     maxHeight = Math.max(maxHeight, stack.height)
-    return { index, day, x, z, ...stack }
+    return { index, day, month: Number(day.key.slice(5, 7)) - 1, x, z, ...stack }
   })
-  if (mode === 'month') cols = 7
-  const labels: BoardLabel[] =
-    mode === 'year'
-      ? // In front of the garden (columns rise away from the viewer, so labels behind would be hidden).
-        calendar.monthMarks.map((mark) => ({ text: mark.label, x: mark.column, z: rows - 0.4, size: 1.5, kind: 'month', today: false }))
-      : tiles.map((tile) => ({
-          text: tile.day.label,
-          x: tile.x,
-          z: tile.z,
-          size: mode === 'week' ? 0.3 : 0.32,
-          kind: 'date',
-          today: tile.day.isToday,
-        }))
-  return { mode, capsuleLength, cols, rows, tiles, labels, calendar, maxHeight, capsuleCount }
+
+  const months: BoardMonth[] = []
+  if (mode === 'year') {
+    const year = Number(range.startDay.slice(0, 4))
+    for (let month = 0; month < 12; month++) {
+      const origin = yearSlot(month, yearColumns)
+      const monthTiles = tiles.filter((tile) => tile.month === month)
+      months.push({
+        month,
+        key: `${year}-${String(month + 1).padStart(2, '0')}`,
+        label: `${month + 1}월`,
+        x0: origin.x0,
+        z0: origin.z0,
+        x1: origin.x0 + 7,
+        z1: origin.z0 + BOARD.monthRows,
+        connectionSeconds: monthTiles.reduce((sum, tile) => sum + tile.day.connectionSeconds, 0),
+        activeDays: monthTiles.filter((tile) => tile.day.sessions > 0).length,
+        sessions: monthTiles.reduce((sum, tile) => sum + tile.day.sessions, 0),
+      })
+    }
+  }
+
+  const half = BOARD.tileSize / 2
+  const todayMonth = range.today.slice(0, 7)
+  // Dates sit at the tile's front-right corner (towards the camera) in 2.5D — never under its own column or the next
+  // one — and at the top-left in 2D (the scene moves them). The year's dates show in 2D only; its month names sit in
+  // front of each month board.
+  const labels: BoardLabel[] = tiles.map((tile) => ({
+    kind: 'date',
+    key: tile.day.key,
+    text: mode === 'year' ? String(Number(tile.day.key.slice(8, 10))) : tile.day.label,
+    tile: tile.index,
+    x: tile.x + half - 0.05,
+    z: tile.z + half - 0.05,
+    size: mode === 'week' ? 0.24 : 0.22,
+    today: tile.day.isToday,
+  }))
+  for (const month of months) {
+    labels.push({
+      kind: 'month',
+      key: month.key,
+      text: month.label,
+      tile: null,
+      x: month.x0 + 0.1,
+      z: month.z1 + 0.2,
+      size: 0.95,
+      today: month.key === todayMonth,
+    })
+  }
+
+  const mates = [...seenMates]
+    .sort((a, b) => {
+      const ra = mateOrder.indexOf(a)
+      const rb = mateOrder.indexOf(b)
+      return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb)
+    })
+    .map((mateId) => ({ mateId, name: options.mateNames?.get(mateId) ?? mateId, color: capsuleJarTheme(mateId).tintHalfShade }))
+
+  return {
+    mode,
+    colorMode,
+    rangeKey: `${mode}|${range.startDay}`,
+    tiles,
+    labels,
+    months,
+    calendar,
+    maxHeight,
+    capsuleCount,
+    hasKeepsake,
+    mates,
+    yearColumns,
+  }
+}
+
+/** Tooltip / label of a year month board. */
+export function boardMonthTooltip(month: BoardMonth) {
+  if (month.sessions === 0) return `${month.label} · 기록 없음`
+  return `${month.label} · 함께한 시간 ${duration(month.connectionSeconds)} · ${month.activeDays}일 · 눌러서 크게 보기`
 }
 
 /**
@@ -239,3 +435,17 @@ export function boardRiseTiming(tiles: readonly Pick<BoardTile, 'capsules'>[], t
     totalMs: filled ? (filled - 1) * dayStepMs + stackMs + riseMs : 0,
   }
 }
+
+/** Period offset (the page's `offset`) whose range contains a day, for switching periods around the same days. */
+export function offsetContaining(period: BoardMode, key: string, today: string) {
+  const year = Number(key.slice(0, 4))
+  const month = Number(key.slice(5, 7))
+  const todayYear = Number(today.slice(0, 4))
+  const todayMonth = Number(today.slice(5, 7))
+  if (period === 'year') return year - todayYear
+  if (period === 'month') return (year - todayYear) * 12 + (month - todayMonth)
+  const mondayOf = (value: string) => Date.parse(`${value}T00:00:00+09:00`) - weekdayOf(value) * 86_400_000
+  return Math.round((mondayOf(key) - mondayOf(today)) / (7 * 86_400_000))
+}
+
+export { dayKey }

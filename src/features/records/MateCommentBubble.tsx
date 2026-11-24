@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useWindupString } from 'windups'
 import { speechPace } from '@/features/session/speech-pace'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
@@ -13,13 +14,20 @@ export function MateCommentBubble({
   comment,
   mateName,
   avatarSrc,
+  onProgress,
 }: {
   comment: MateComment
   mateName: string
   avatarSrc?: string
+  /** Typing progress (0…1) and whether the line is complete — the board lights the days the line speaks about. */
+  onProgress?: (progress: number, finished: boolean) => void
 }) {
   const reducedMotion = useReducedMotion()
   const [typed, { isFinished, skip }] = useWindupString(comment.text, { pace: speechPace, skipped: reducedMotion })
+  const typedLength = typed.length
+  useEffect(() => {
+    onProgress?.(isFinished ? 1 : typedLength / Math.max(1, comment.text.length), isFinished)
+  }, [comment.text.length, isFinished, onProgress, typedLength])
 
   return (
     <section className="records-mate-comment" aria-label={`${mateName}의 한마디`} data-records-mate-comment={comment.kind}>
