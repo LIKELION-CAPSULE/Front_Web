@@ -992,3 +992,147 @@
     translate: 0 0;
   }
 }
+
+/*
+ * Stage layouts (ConnectionPage: click the stage, or the toggle in its corner).
+ * - mate: the mate fills the stage, my camera floats small (the default above)
+ * - split: side by side
+ * - self: my camera fills the stage, the mate floats small
+ * Only the tiles' place and size change, so Live2D and the camera keep running.
+ */
+.connection-stage {
+  cursor: pointer;
+}
+
+.connection-stage .connection-speech-slot {
+  cursor: auto;
+}
+
+.connection-stage[data-layout='split'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.connection-stage[data-layout='split'] .connection-self.desktop-window,
+.connection-stage[data-layout='self'] .connection-self.desktop-window {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  width: auto;
+  height: auto;
+}
+
+.connection-stage[data-layout='self'] .connection-mate {
+  position: absolute;
+  right: 16px;
+  bottom: clamp(92px, 11.5%, 108px);
+  z-index: 15;
+  width: clamp(160px, 21%, 220px);
+  height: clamp(118px, 19%, 160px);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-canvas) 60%, transparent);
+}
+
+/* A small tile has no room for the speech bubble; the line still lands in the chat. */
+.connection-stage[data-layout='self'] .connection-speech-slot {
+  display: none;
+}
+
+.connection-stage[data-layout='self'] .connection-self-titlebar {
+  height: 34px;
+  font-size: 12.5px;
+}
+
+/* The toggle: the current layout, top-left of the stage. */
+.connection-layout-toggle {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
+  backdrop-filter: blur(12px);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-ink);
+  cursor: pointer;
+  opacity: 0.72;
+  transition: opacity 160ms ease, background 160ms ease;
+}
+
+/* With my camera large, its "나" titlebar sits on top; keep the toggle below it. */
+.connection-stage[data-layout='self'] .connection-layout-toggle {
+  top: 46px;
+}
+
+.connection-stage:hover .connection-layout-toggle,
+.connection-layout-toggle:focus-visible {
+  opacity: 1;
+}
+
+.connection-layout-toggle:hover {
+  background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+}
+
+.connection-layout-toggle:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* A tiny diagram of the layout: the mate tile in accent, my tile in ink. */
+.connection-layout-toggle-icon {
+  position: relative;
+  width: 22px;
+  height: 15px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.connection-layout-toggle-icon > span {
+  position: absolute;
+  border-radius: 2px;
+}
+
+.connection-layout-toggle-icon > [data-tile='mate'] { background: var(--color-text-accent); }
+.connection-layout-toggle-icon > [data-tile='self'] { background: var(--color-ink); }
+
+.connection-stage[data-layout='mate'] .connection-layout-toggle-icon > [data-tile='mate'] { inset: 0; }
+.connection-stage[data-layout='mate'] .connection-layout-toggle-icon > [data-tile='self'] { right: 2px; bottom: 2px; width: 8px; height: 6px; outline: 1px solid var(--color-canvas); }
+.connection-stage[data-layout='split'] .connection-layout-toggle-icon > [data-tile='mate'] { inset: 0 calc(50% + 1px) 0 0; }
+.connection-stage[data-layout='split'] .connection-layout-toggle-icon > [data-tile='self'] { inset: 0 0 0 calc(50% + 1px); }
+.connection-stage[data-layout='self'] .connection-layout-toggle-icon > [data-tile='self'] { inset: 0; }
+.connection-stage[data-layout='self'] .connection-layout-toggle-icon > [data-tile='mate'] { z-index: 1; right: 2px; bottom: 2px; width: 8px; height: 6px; outline: 1px solid var(--color-canvas); }
+
+@media (max-width: 680px) {
+  .connection-stage[data-layout='split'] {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+
+  .connection-stage[data-layout='self'] .connection-mate {
+    right: 12px;
+    bottom: 12px;
+    width: 120px;
+    height: 96px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(connection-layout-mate),
+  ::view-transition-group(connection-layout-self) {
+    animation-duration: 420ms;
+    animation-timing-function: cubic-bezier(.65, 0, .35, 1);
+  }
+
+  ::view-transition-old(connection-layout-mate),
+  ::view-transition-new(connection-layout-mate),
+  ::view-transition-old(connection-layout-self),
+  ::view-transition-new(connection-layout-self) {
+    height: 100%;
+    object-fit: cover;
+  }
+}

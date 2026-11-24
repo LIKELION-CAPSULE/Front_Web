@@ -1,4 +1,5 @@
-import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
+import { flushSync } from 'react-dom'
 import { useNavigate, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useSessionSync } from '@/features/backend/use-session-sync'
@@ -42,6 +43,11 @@ type ViewTransitionDocument = Document & {
   startViewTransition?: (callback: () => void | Promise<void>) => { finished: Promise<void> }
 }
 
+/** Stage layouts, in click order: the mate large → side by side → my camera large → the mate large again. */
+const STAGE_LAYOUTS = ['mate', 'split', 'self'] as const
+type StageLayout = (typeof STAGE_LAYOUTS)[number]
+const STAGE_LAYOUT_LABEL = (name: string): Record<StageLayout, string> => ({ mate: `${name} 크게`, split: '나눠 보기', self: '내 화면 크게' })
+
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
   typeof window.matchMedia === 'function' &&
@@ -68,6 +74,8 @@ export default function ConnectionPage() {
   const [infoMenuOpen, setInfoMenuOpen] = useState(false)
   const infoMenuRef = useRef<HTMLDivElement>(null)
   const stageWrapRef = useRef<HTMLDivElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [stageLayout, setStageLayout] = useState<StageLayout>('mate')
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [finishing, setFinishing] = useState(false)
@@ -192,6 +200,25 @@ export default function ConnectionPage() {
       stageEl.style.viewTransitionName = ''
     })
   }, [navigate])
+  // Clicking the stage moves to the next layout. The two tiles only change place and size (never remount), so the
+  // Live2D model and the camera keep running; a view transition morphs them between layouts.
+  const cycleStageLayout = useCallback(() => {
+    const next = STAGE_LAYOUTS[(STAGE_LAYOUTS.indexOf(stageLayout) + 1) % STAGE_LAYOUTS.length]!
+    const doc = document as ViewTransitionDocument
+    const tiles = [...(stageRef.current?.querySelectorAll<HTMLElement>('.connection-mate, .connection-self') ?? [])]
+    if (prefersReducedMotion() || typeof doc.startViewTransition !== 'function' || tiles.length < 2) {
+      setStageLayout(next)
+      return
+    }
+    tiles.forEach((tile, index) => { tile.style.viewTransitionName = index === 0 ? 'connection-layout-mate' : 'connection-layout-self' })
+    const transition = doc.startViewTransition(() => { flushSync(() => setStageLayout(next)) })
+    void transition.finished.finally(() => { tiles.forEach(tile => { tile.style.viewTransitionName = '' }) })
+  }, [stageLayout])
+  const onStageClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    // The speech bubble (skips typing) and any control keep their own click.
+    if ((event.target as Element).closest('button, a, input, textarea, select, .connection-speech-slot')) return
+    cycleStageLayout()
+  }, [cycleStageLayout])
   const serverEnded = useCallback(() => {
     if (!mounted.current || !active || !state.profile.userId) return
     flushFocus()
@@ -545,7 +572,19 @@ export default function ConnectionPage() {
 
       <div className="connection-content" data-chat={chatOpen || undefined}>
         <div ref={stageWrapRef} className="connection-stage-wrap">
-          <div className="connection-stage">
+          <div ref={stageRef} className="connection-stage" data-layout={stageLayout} onClick={onStageClick}>
+            <button
+              type="button"
+              className="connection-layout-toggle"
+              aria-label={`화면 배치 바꾸기, 지금은 ${STAGE_LAYOUT_LABEL(mate.name)[stageLayout]}`}
+              onClick={cycleStageLayout}
+            >
+              <span className="connection-layout-toggle-icon" aria-hidden="true">
+                <span data-tile="mate" />
+                <span data-tile="self" />
+              </span>
+              {STAGE_LAYOUT_LABEL(mate.name)[stageLayout]}
+            </button>
             <section
               className="connection-mate"
               aria-label={mate.name}
