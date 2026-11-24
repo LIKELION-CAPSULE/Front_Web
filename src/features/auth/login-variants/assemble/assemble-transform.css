@@ -1,0 +1,517 @@
+/*
+ * "변신" wake-up sequence (the only /login wake-up effect), ~2.24s:
+ *   dropped   320ms  card absorbed, CAPSULE charges (converging ring + soft core)
+ *   streaming 520ms  a fine light stream flies from the CAPSULE icon to the model; bloom where it lands; silhouette blooms there
+ *   filling   900ms  ONE shared fill boundary (stage/box coordinates) sweeps the whole body bottom -> top, thin light edge
+ *   settling  500ms diagonal gloss sweep over the character + halo behind settles; then Live2D crossfade (260ms)
+ *
+ * Premium texture: soft blooms (blurred radial light), tiny numerous motes, one thin gloss, brand violet -> white.
+ * Everything animates transform / opacity (+ mask-position on two masked boxes).
+ *
+ * Frozen previews (`?assemble=streaming|filling|settling`): every animation is paused at a fixed moment through
+ * `animation-delay: calc(var(--d) - var(--freeze))`, so captures are deterministic.
+ */
+
+/* Closer, steady framing: soften the bottom edge (the source art has no legs) in addition to the right-edge fade. */
+.assemble-stage-mask {
+  -webkit-mask-image:
+    linear-gradient(90deg, #000 calc(100% - 120px), transparent),
+    linear-gradient(180deg, #000 calc(100% - 110px), transparent);
+  mask-image:
+    linear-gradient(90deg, #000 calc(100% - 120px), transparent),
+    linear-gradient(180deg, #000 calc(100% - 110px), transparent);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+/* ================= Stage-level light (origin = CAPSULE icon, target = model torso) ================= */
+.tf-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  --freeze: 0ms;
+}
+
+.tf-burst i {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* --- charge at the icon --- */
+.tf-charge-ring {
+  --d: 0ms;
+  left: var(--ox);
+  top: var(--oy);
+  width: 150px;
+  height: 150px;
+  margin: -75px 0 0 -75px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(214, 200, 255, 0.9);
+  box-shadow:
+    0 0 22px rgba(167, 139, 255, 0.45),
+    inset 0 0 22px rgba(167, 139, 255, 0.3);
+  animation: tf-charge-ring 270ms cubic-bezier(0.3, 0.1, 0.25, 1) calc(var(--d) - var(--freeze)) both;
+}
+
+.tf-charge-core {
+  --d: 90ms;
+  left: var(--ox);
+  top: var(--oy);
+  width: 130px;
+  height: 130px;
+  margin: -65px 0 0 -65px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(222, 210, 255, 0.7) 24%,
+    rgba(148, 118, 255, 0.35) 50%,
+    transparent 72%
+  );
+  animation: tf-charge-core 330ms cubic-bezier(0.25, 0.7, 0.3, 1) calc(var(--d) - var(--freeze)) both;
+}
+
+/* --- stream: element sits at the icon, rotated toward the model; children run along +x --- */
+.tf-stream {
+  position: absolute;
+  left: var(--ox);
+  top: var(--oy);
+  width: 0;
+  height: 0;
+  transform: rotate(var(--ang));
+  transform-origin: 0 0;
+}
+
+.tf-stream-glow {
+  --d: 200ms;
+  left: 0;
+  top: -13px;
+  width: var(--len);
+  height: 26px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(150, 120, 255, 0), rgba(176, 148, 255, 0.55) 70%, rgba(214, 200, 255, 0.2));
+  filter: blur(7px);
+  transform-origin: 0 50%;
+  animation: tf-stream-beam 460ms cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--d) - var(--freeze)) both;
+}
+
+.tf-stream-beam {
+  --d: 200ms;
+  left: 0;
+  top: -1.5px;
+  width: var(--len);
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.85) 78%, rgba(235, 226, 255, 0.4));
+  transform-origin: 0 50%;
+  animation: tf-stream-beam 400ms cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--d) - var(--freeze)) both;
+}
+
+.tf-stream-head {
+  --d: 210ms;
+  left: -22px;
+  top: -22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, rgba(214, 200, 255, 0.75) 35%, transparent 70%);
+  animation: tf-stream-head 390ms cubic-bezier(0.45, 0.05, 0.25, 1) calc(var(--d) - var(--freeze)) both;
+}
+
+.tf-stream-mote {
+  left: 0;
+  top: 0;
+  margin: -1px 0 0 -1px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 1px rgba(196, 176, 255, 0.9);
+  animation: tf-stream-mote var(--dur, 440ms) cubic-bezier(0.3, 0.1, 0.3, 1) calc(var(--d) - var(--freeze)) both;
+}
+
+/* --- arrival: soft bloom at the model torso, where the silhouette is about to appear --- */
+.tf-arrive-bloom {
+  --d: 440ms;
+  left: var(--ax);
+  top: var(--ay);
+  width: 560px;
+  height: 560px;
+  margin: -280px 0 0 -280px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(200, 180, 255, 0.5) 24%,
+    rgba(124, 92, 240, 0.22) 50%,
+    transparent 72%
+  );
+  animation: tf-arrive-bloom 400ms cubic-bezier(0.2, 0.7, 0.25, 1) calc(var(--d) - var(--freeze)) both;
+}
+
+.tf-arrive-ring {
+  --d: 450ms;
+  left: var(--ax);
+  top: var(--ay);
+  width: 300px;
+  height: 300px;
+  margin: -150px 0 0 -150px;
+  border-radius: 50%;
+  border: 1px solid rgba(226, 216, 255, 0.7);
+  animation: tf-arrive-ring 390ms cubic-bezier(0.15, 0.7, 0.3, 1) calc(var(--d) - var(--freeze)) both;
+}
+
+@keyframes tf-charge-ring {
+  0% { opacity: 0; transform: scale(2.3); }
+  40% { opacity: 0.85; }
+  100% { opacity: 0; transform: scale(0.45); }
+}
+
+@keyframes tf-charge-core {
+  0% { opacity: 0; transform: scale(0.25); }
+  55% { opacity: 0.95; transform: scale(0.95); }
+  100% { opacity: 0; transform: scale(0.7); }
+}
+
+@keyframes tf-stream-beam {
+  0% { opacity: 0; transform: scaleX(0); }
+  25% { opacity: 0.85; }
+  60% { opacity: 0.6; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
+}
+
+@keyframes tf-stream-head {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.6); }
+  18% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--len), 0, 0) scale(1.15); }
+}
+
+@keyframes tf-stream-mote {
+  0% { opacity: 0; transform: translate3d(var(--x0), var(--y0), 0) scale(0.6); }
+  20% { opacity: 1; }
+  75% { opacity: 0.85; }
+  100% { opacity: 0; transform: translate3d(var(--len), calc(var(--y0) * 0.18), 0) scale(0.3); }
+}
+
+@keyframes tf-arrive-bloom {
+  0% { opacity: 0; transform: scale(0.35); }
+  38% { opacity: 0.85; }
+  100% { opacity: 0; transform: scale(1.12); }
+}
+
+@keyframes tf-arrive-ring {
+  0% { opacity: 0.7; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(1.45); }
+}
+
+/* ================= Character (inside .assemble-camera, bust framing = Live2D live framing) ================= */
+.tf-viewport {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  --freeze: 0ms;
+}
+
+.tf-viewport[data-visible='true'] {
+  opacity: 1;
+}
+
+/* The full-image box: every effect that follows the character's body shares this one coordinate space. */
+.tf-box {
+  position: absolute;
+}
+
+.tf-box > * {
+  position: absolute;
+  inset: 0;
+}
+
+/* Soft halo behind the model */
+.tf-halo-back {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(176, 148, 255, 0.55) 0%,
+    rgba(124, 92, 240, 0.26) 55%,
+    transparent 100%
+  );
+  opacity: 0.3;
+  will-change: transform, opacity;
+}
+
+/* White -> violet silhouette (alpha of full.webp), with a soft outer glow */
+.tf-silhouette {
+  opacity: 0;
+  filter: drop-shadow(0 0 16px rgba(176, 148, 255, 0.85));
+  will-change: transform, opacity;
+}
+
+.tf-silhouette-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: linear-gradient(180deg, #ffffff 0%, #f1ebff 45%, #cdbcff 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Real picture: all 9 layers inside ONE container, revealed by ONE mask (shared boundary, no per-layer wipes).
+ * The mask gradient is 3x the box height; sliding it with mask-position moves a soft 0.25H boundary bottom -> top.
+ * Boundary midpoint (box px) = (1.475 - 2p)H for mask-position-y p. Base state = fully revealed. */
+.tf-fill {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.tf-fill-layer {
+  position: absolute;
+  display: block;
+  max-width: none;
+  pointer-events: none;
+}
+
+/* Effects clipped to the character's silhouette (static alpha mask; children animate inside it) */
+.tf-fx {
+  overflow: hidden;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.tf-fx > * {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: 0;
+}
+
+/* Soft light band trailing just behind the fill boundary: bright white -> real colour (opacity capped so faces never blow out) */
+.tf-glowband {
+  background: linear-gradient(180deg, #ffffff, #e6dcff);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, transparent 45%, rgba(0, 0, 0, 0.9) 50%, transparent 63.34%);
+  mask-image: linear-gradient(180deg, transparent 0, transparent 45%, rgba(0, 0, 0, 0.9) 50%, transparent 63.34%);
+  -webkit-mask-size: 100% 300%;
+  mask-size: 100% 300%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 0 15%;
+  mask-position: 0 15%;
+}
+
+/* Thin light edge riding the boundary */
+.tf-edge-move {
+  opacity: 1;
+  transform: translate3d(0, 117.5%, 0);
+  will-change: transform;
+}
+
+.tf-edge-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 2px;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, #fff 15%, #fff 85%, transparent);
+  box-shadow:
+    0 0 10px 2px rgba(214, 200, 255, 0.85),
+    0 0 26px 6px rgba(150, 120, 255, 0.45);
+}
+
+/* One diagonal gloss pass over the finished model */
+.tf-gloss {
+  left: -30%;
+  right: auto;
+  width: 60%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0.12) 70%,
+    transparent 100%
+  );
+  transform: translate3d(-10%, 0, 0);
+  will-change: transform, opacity;
+}
+
+/* Fine motes released as the shared boundary passes them */
+.tf-motes {
+  pointer-events: none;
+}
+
+.tf-mote {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 1px rgba(196, 176, 255, 0.9);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* ---------- phase states ---------- */
+/* dropped / streaming: nothing of the real picture yet */
+.tf-viewport[data-phase='dropped'] .tf-halo-back,
+.tf-viewport[data-phase='streaming'] .tf-halo-back {
+  opacity: 0;
+}
+
+.tf-viewport[data-phase='dropped'] .tf-fill,
+.tf-viewport[data-phase='streaming'] .tf-fill {
+  opacity: 0;
+}
+
+/* streaming (520ms): silhouette blooms at the model once the stream lands (+200ms) */
+.tf-viewport[data-phase='streaming'] .tf-silhouette {
+  --d: 200ms;
+  animation: tf-sil-bloom 320ms cubic-bezier(0.2, 0.8, 0.25, 1) calc(var(--d) - var(--sil-freeze, 0ms)) both;
+}
+
+/* filling (900ms): shared boundary sweeps bottom -> top, linear (constant scan speed) */
+.tf-viewport[data-phase='filling'] .tf-halo-back {
+  animation: tf-halo-build 900ms linear calc(0ms - var(--freeze)) both;
+}
+
+.tf-viewport[data-phase='filling'] .tf-silhouette {
+  animation: tf-sil-hold 900ms linear calc(0ms - var(--freeze)) both;
+}
+
+.tf-viewport[data-phase='filling'] .tf-fill {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, transparent 45%, #000 53.34%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0, transparent 45%, #000 53.34%, #000 100%);
+  -webkit-mask-size: 100% 300%;
+  mask-size: 100% 300%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 0 15%;
+  mask-position: 0 15%;
+  animation: tf-fill-sweep 900ms linear calc(0ms - var(--freeze)) both;
+}
+
+.tf-viewport[data-phase='filling'] .tf-glowband {
+  animation:
+    tf-fill-sweep 900ms linear calc(0ms - var(--freeze)) both,
+    tf-glowband-fade 900ms linear calc(0ms - var(--freeze)) both;
+}
+
+.tf-viewport[data-phase='filling'] .tf-edge-move {
+  animation: tf-edge-sweep 900ms linear calc(0ms - var(--freeze)) both;
+}
+
+.tf-viewport[data-phase='filling'] .tf-edge-line {
+  animation: tf-edge-fade 900ms linear calc(0ms - var(--freeze)) both;
+}
+
+.tf-viewport[data-phase='filling'] .tf-mote {
+  animation: tf-mote 640ms ease-out calc(var(--d, 0ms) - var(--freeze)) both;
+}
+
+/* settling (500ms) + live/static handoff: everything filled (base state); gloss pass + halo settle */
+.tf-viewport[data-phase='settling'] .tf-halo-back {
+  animation: tf-halo-settle 700ms cubic-bezier(0.25, 0.6, 0.3, 1) calc(0ms - var(--freeze)) both;
+}
+
+.tf-viewport[data-phase='settling'] .tf-gloss {
+  animation: tf-gloss-sweep 520ms cubic-bezier(0.45, 0.05, 0.3, 1) calc(0ms - var(--freeze)) both;
+}
+
+@keyframes tf-sil-bloom {
+  0% { opacity: 0; transform: scale(0.955); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes tf-sil-hold {
+  0%, 50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes tf-halo-build {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes tf-halo-settle {
+  0% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+  35% { opacity: 0.62; transform: translate(-50%, -50%) scale(1.06); }
+  100% { opacity: 0.28; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+@keyframes tf-fill-sweep {
+  0% { -webkit-mask-position: 0 15%; mask-position: 0 15%; }
+  100% { -webkit-mask-position: 0 95%; mask-position: 0 95%; }
+}
+
+@keyframes tf-glowband-fade {
+  0%, 100% { opacity: 0; }
+  12%, 70% { opacity: 0.5; }
+}
+
+@keyframes tf-edge-sweep {
+  0% { transform: translate3d(0, 117.5%, 0); }
+  100% { transform: translate3d(0, -42.5%, 0); }
+}
+
+@keyframes tf-edge-fade {
+  0%, 8% { opacity: 0; }
+  14%, 70% { opacity: 0.9; }
+  76%, 100% { opacity: 0; }
+}
+
+@keyframes tf-mote {
+  0% { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.6); }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate3d(0, calc(var(--rise, 24px) * -1), 0) scale(0.4); }
+}
+
+@keyframes tf-gloss-sweep {
+  0% { opacity: 0; transform: translate3d(-10%, 0, 0); }
+  18% { opacity: 0.55; }
+  70% { opacity: 0.45; }
+  100% { opacity: 0; transform: translate3d(240%, 0, 0); }
+}
+
+/* ================= Frozen capture previews ================= */
+.assemble-stage-root[data-assemble-frozen='true'] .tf-burst i,
+.assemble-stage-root[data-assemble-frozen='true'] .tf-viewport * {
+  animation-play-state: paused !important;
+}
+
+/* streaming: 600ms after the drop -> stream almost at the model, arrival bloom rising; silhouette 140ms into its bloom */
+.assemble-stage-root[data-assemble-frozen='true'] .tf-burst {
+  --freeze: 600ms;
+}
+
+.assemble-stage-root[data-assemble-frozen='true'] .tf-viewport[data-phase='streaming'] {
+  --sil-freeze: 340ms;
+}
+
+/* filling: halfway through the sweep */
+.assemble-stage-root[data-assemble-frozen='true'] .tf-viewport[data-phase='filling'] {
+  --freeze: 450ms;
+}
+
+/* settling: gloss mid-pass */
+.assemble-stage-root[data-assemble-frozen='true'] .tf-viewport[data-phase='settling'] {
+  --freeze: 230ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-burst,
+  .tf-motes,
+  .tf-fx {
+    display: none;
+  }
+  .tf-silhouette,
+  .tf-halo-back,
+  .tf-fill {
+    animation: none !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+  }
+}

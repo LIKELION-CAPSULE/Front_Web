@@ -1,5 +1,5 @@
-/* PM comparison concepts for /login: illustration · portrait (big face).
-   Same form as the desktop login; only the stage around it changes. */
+/* /login: the wake-up ("채린 깨우기") stage on the left, the login form panel on the right.
+   Stage styles live in assemble/assemble.css; this file holds the shell, mate caption / dialogue box and the form panel. */
 
 .login-variant-root {
   position: relative;
@@ -29,71 +29,30 @@
   user-select: none;
 }
 
-/* Right-side scrim keeps the form readable over any image. */
+/* Right-side scrim keeps the form readable over any image. The form has no card behind it, so the dark starts early
+ * (hair / light effects pass behind the form's left edge) and a soft local darkness sits centred on the form. */
 .login-variant-scrim {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(15, 14, 23, 0) 38%, rgba(15, 14, 23, 0.55) 62%, rgba(15, 14, 23, 0.86) 100%),
+    radial-gradient(
+      ellipse calc(var(--login-panel-width) + 40px) 72% at
+        calc(100% - var(--login-panel-gutter) - var(--login-panel-width) / 2) 50%,
+      rgba(15, 14, 23, 0.5),
+      rgba(15, 14, 23, 0) 100%
+    ),
+    linear-gradient(90deg, rgba(15, 14, 23, 0) 30%, rgba(15, 14, 23, 0.62) 54%, rgba(15, 14, 23, 0.9) 100%),
     linear-gradient(0deg, rgba(15, 14, 23, 0.55) 0%, rgba(15, 14, 23, 0) 28%);
 }
 
-/* Illustration fallback: room scene + mate render composed like a key visual */
-.login-variant-illustration-fallback .login-variant-bg-media {
-  filter: saturate(1.05);
-}
-.login-variant-illustration-mate {
-  position: absolute;
-  bottom: 0;
-  left: 30%;
-  height: min(94dvh, 1000px);
-  transform: translateX(-50%);
-  width: auto;
-  filter: drop-shadow(0 24px 60px rgba(0, 0, 0, 0.45));
-  user-select: none;
-}
-
-/* Portrait (big face): Live2D close-up fills the left ~62% */
-.login-variant-portrait-room {
+/* Room behind the stage: blurred and dimmed so the mate and the form read first. */
+.login-variant-room {
   filter: blur(6px) brightness(0.62) saturate(1.1);
   transform: scale(1.06);
 }
-.login-variant-portrait-stage {
-  position: absolute;
-  inset: 0 38% 0 0;
-  overflow: hidden;
-}
-.login-variant-portrait-fallback {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  height: 210%;
-  width: auto;
-  max-width: none;
-  transform: translate(-50%, -6%);
-  user-select: none;
-}
-.login-variant-portrait-live2d {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 260ms ease;
-}
-.login-variant-portrait-live2d[data-visible='true'] {
-  opacity: 1;
-}
-.login-variant-portrait-stage[data-mate-mode='live2d'] .login-variant-portrait-fallback {
-  opacity: 0;
-  transition: opacity 260ms ease;
-}
-[data-login-variant='portrait'] .login-variant-scrim {
-  background:
-    linear-gradient(90deg, rgba(15, 14, 23, 0) 52%, rgba(15, 14, 23, 0.7) 68%, rgba(15, 14, 23, 0.92) 100%),
-    linear-gradient(0deg, rgba(15, 14, 23, 0.5) 0%, rgba(15, 14, 23, 0) 22%);
-}
 
-/* ---------- Mate caption + speech bubble (bottom-left, over the mate) ---------- */
+/* ---------- Mate caption (top-left) ---------- */
 .login-variant-mate-caption {
   position: fixed;
   top: 24px;
@@ -135,40 +94,111 @@
   font-weight: 500;
 }
 
-.login-variant-bubble-slot {
-  position: fixed;
-  bottom: clamp(28px, 7dvh, 72px);
-  left: clamp(24px, 30vw - 200px, 30vw);
+/* ---------- Mate dialogue (visual-novel style box over the bottom of the stage) ---------- */
+/* Same box as the stage (assemble.css `.assemble-stage-root`), so the dialogue stays on the stage at every size. */
+.login-dialogue-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
   z-index: 3;
-  width: min(420px, calc(100vw - 48px));
+  width: calc(100cqw - var(--login-stage-right));
+  height: 100dvh;
   pointer-events: none;
 }
-[data-login-variant='portrait'] .login-variant-bubble-slot {
-  left: calc(31vw - 210px);
+.login-dialogue {
+  position: absolute;
+  bottom: var(--login-stage-corner-y);
+  /* Leaves the corner to the 「다시 보기」 button so the two never overlap, with or without a line on screen. */
+  left: calc(var(--login-stage-corner-x) + var(--login-replay-width) + 12px);
+  /* Stop short of the form panel: its left edge is `gutter + panel width` from the right of the screen. */
+  right: max(20px, calc(var(--login-panel-gutter) + var(--login-panel-width) + 28px - var(--login-stage-right)));
+  max-width: 760px;
+  margin-inline: auto;
+  /* Same language as the form panel: a thin line, a near-transparent dark fill, no blur or shadow. */
+  border: 1px solid rgba(250, 250, 253, 0.2);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(15, 14, 23, 0.52) 0%, rgba(15, 14, 23, 0.74) 100%);
+  padding: 24px 30px 20px;
+  color: var(--color-ink);
+  animation: login-dialogue-in 220ms ease-out both;
 }
-.login-variant-bubble {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 2px;
-  max-width: 100%;
-  border-radius: 14px;
-  background: rgba(15, 14, 23, 0.84);
-  padding: 9px 16px 10px;
-  backdrop-filter: blur(14px) saturate(135%);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
-  font-size: 15px;
+.login-dialogue[data-leaving] {
+  animation: login-dialogue-out 180ms ease-in both;
+}
+.login-dialogue-name {
+  position: absolute;
+  top: 0;
+  left: 24px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: var(--color-primary);
+  padding: 3px 14px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: 0.02em;
+}
+/* The measure and the typed line share one grid cell: the box is sized by the whole line from the first letter. */
+.login-dialogue-text {
+  display: grid;
+  margin: 0;
+  font-size: 18px;
   font-weight: 500;
-  line-height: 22px;
+  line-height: 30px;
   word-break: keep-all;
+  overflow-wrap: anywhere;
 }
-.login-variant-bubble-name {
-  color: #c7b5ed;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 16px;
+.login-dialogue-text > span {
+  grid-area: 1 / 1;
+}
+.login-dialogue-measure {
+  visibility: hidden;
+}
+/* Small "next" mark once the line has finished typing (no click action). */
+.login-dialogue-next {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  width: 0;
+  height: 0;
+  border-top: 7px solid #c7b5ed;
+  border-right: 6px solid transparent;
+  border-left: 6px solid transparent;
+  animation: login-dialogue-next 1s ease-in-out infinite;
+}
+@keyframes login-dialogue-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes login-dialogue-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@keyframes login-dialogue-next {
+  50% {
+    transform: translateY(3px);
+  }
 }
 
 /* ---------- Form panel (right) ---------- */
+/* Panel geometry shared with the scrim's local darkness and the dialogue box; stage geometry shared with assemble.css. */
+.login-variant-root {
+  --login-stage-right: 38cqw;
+  --login-stage-height: max(46dvh, 360px);
+  --login-dialogue-reserve: 88px;
+  /* Bottom-left corner of the stage: the 「다시 보기」 button (assemble.css) sits here, the dialogue box starts after it. */
+  --login-stage-corner-x: clamp(20px, 3cqw, 48px);
+  --login-stage-corner-y: clamp(16px, 3.2dvh, 36px);
+  --login-replay-width: 76px;
+  /* 500px from ~1430px wide; small laptops (1280 / 1366) step down so the stage keeps its room. */
+  --login-panel-width: clamp(448px, 35vw, 500px);
+  --login-panel-gutter: clamp(24px, 6vw, 112px);
+}
 .login-variant-panel-wrap {
   position: relative;
   z-index: 2;
@@ -176,76 +206,83 @@
   min-height: 100dvh;
   align-items: center;
   justify-content: flex-end;
-  padding: 32px clamp(24px, 6vw, 112px) 32px 24px;
+  padding: 32px var(--login-panel-gutter) 32px 24px;
   /* the empty area must not swallow clicks meant for the background controls */
   pointer-events: none;
 }
 .login-variant-panel-wrap > * {
   pointer-events: auto;
 }
+/* No fill / blur / shadow: a thin line marks the edge and the scrim does the separating. */
 .login-variant-panel {
-  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  width: min(var(--login-panel-width), 100%);
   max-height: calc(100dvh - 64px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  border: 1px solid rgba(250, 250, 253, 0.1);
+  overflow: hidden;
+  border: 1px solid rgba(250, 250, 253, 0.2);
   border-radius: 20px;
-  background: color-mix(in srgb, var(--color-surface-raised) 86%, transparent);
-  padding: 32px 34px 34px;
-  backdrop-filter: blur(22px) saturate(140%);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
+  background: transparent;
   user-select: text;
 }
 
-.login-variant-asset-note {
-  position: fixed;
-  top: 64px;
-  left: 50%;
-  z-index: 5;
-  transform: translateX(-50%);
-  border-radius: 999px;
-  background: rgba(240, 78, 102, 0.18);
-  padding: 5px 12px;
-  color: #ffc2cc;
-  font-size: 12px;
-}
-.login-variant-asset-note code {
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
+/* The scroller sits inside the panel so the panel's own outline / shape never scrolls (or fades) with the content.
+ * Long forms scroll under soft edges instead of being cut off. */
+.login-variant-panel-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 36px 40px 38px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
 }
 
-/* ---------- Comparison switcher (only after ?login=… was used) ---------- */
-.login-variant-switcher {
-  position: fixed;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 6;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid rgba(250, 250, 253, 0.12);
-  border-radius: 999px;
-  background: rgba(15, 14, 23, 0.82);
-  padding: 4px;
-  backdrop-filter: blur(14px);
+/* ---------- Form scale (login panel only) ----------
+ * The form is one step larger than the app's defaults. Only the type / spacing tokens are re-declared, and only
+ * inside the panel, so Tailwind utilities (mt-*, gap-*, min-h-*, text-caption, type-page-title …) and the shared
+ * Button / FormField scale together without touching their global defaults. The legal Dialog lives outside the
+ * panel and keeps its own size. */
+.login-variant-panel {
+  --spacing: 4.5px;
+  --text-page-title: 34px;
+  --text-page-title--line-height: 44px;
+  --text-body: 17px;
+  --text-body--line-height: 28px;
+  --text-body-compact: 15px;
+  --text-body-compact--line-height: 24px;
+  --text-label: 15px;
+  --text-label--line-height: 22px;
+  --text-control: 17px;
+  --text-control--line-height: 26px;
+  --text-button: 17px;
+  --text-button--line-height: 26px;
+  --text-button-compact: 15px;
+  --text-button-compact--line-height: 22px;
+  --text-caption: 13px;
+  --text-caption--line-height: 20px;
+  --login-control-height: 54px;
+  /* Plain text inherits its size from <body>, computed there from the global token: re-resolve it here. */
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+.login-variant-panel .form-input {
+  min-height: var(--login-control-height);
+  padding: 13px 18px;
+}
+.login-variant-panel .kakao-button {
+  min-height: var(--login-control-height);
+}
+.login-variant-panel .kakao-signup-note {
   font-size: 12px;
 }
-.login-variant-switcher-label {
-  padding: 0 6px 0 10px;
-  color: var(--color-subtle);
+
+/* The CAPSULE lockup opens the form: larger, with clearer air below. */
+.login-variant-panel .desktop-login-brand {
+  padding: 2px 0 10px;
 }
-.login-variant-switcher-link {
-  border-radius: 999px;
-  padding: 5px 11px;
-  color: var(--color-muted);
-}
-.login-variant-switcher-link:hover {
-  color: var(--color-ink);
-}
-.login-variant-switcher-link[aria-current='true'] {
-  background: #7c5cf0;
-  color: #fff;
+.login-variant-panel .desktop-login-brand-img {
+  height: 44px;
 }
 
 /* ---------- Half screen (container width) ---------- */
@@ -255,54 +292,79 @@
     justify-content: center;
     align-items: flex-start;
     min-height: auto;
-    padding: max(46dvh, 300px) 20px 40px;
+    /* Stage on top, then room for the dialogue box, then the form. */
+    padding: calc(var(--login-stage-height) + var(--login-dialogue-reserve)) 20px 40px;
   }
   .login-variant-panel {
+    width: min(460px, 100%);
     max-height: none;
     overflow: visible;
   }
-  .login-variant-scrim,
-  [data-login-variant='portrait'] .login-variant-scrim {
+  /* The page scrolls here, not the panel: no inner fade. */
+  .login-variant-panel-scroll {
+    overflow: visible;
+    padding: 30px 30px 32px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  /* Below the mate the form only grows a little over the app defaults. */
+  .login-variant-panel {
+    --spacing: 4.25px;
+    --text-page-title: 30px;
+    --text-page-title--line-height: 40px;
+    --text-body: 16px;
+    --text-body--line-height: 26px;
+    --text-body-compact: 14px;
+    --text-body-compact--line-height: 22px;
+    --text-label: 14px;
+    --text-label--line-height: 20px;
+    --text-control: 16px;
+    --text-control--line-height: 24px;
+    --text-button: 16px;
+    --text-button--line-height: 24px;
+    --text-button-compact: 14px;
+    --text-button-compact--line-height: 20px;
+    --text-caption: 12px;
+    --text-caption--line-height: 18px;
+    --login-control-height: 51px;
+  }
+  .login-variant-panel .form-input {
+    padding: 12px 16px;
+  }
+  .login-variant-panel .kakao-signup-note {
+    font-size: 11px;
+  }
+  .login-variant-panel .desktop-login-brand-img {
+    height: 40px;
+  }
+  .login-variant-scrim {
     background: linear-gradient(0deg, rgba(15, 14, 23, 0.94) 0%, rgba(15, 14, 23, 0.72) 42%, rgba(15, 14, 23, 0) 64%);
-  }
-  .login-variant-portrait-stage {
-    inset: 0 0 auto 0;
-    height: max(60dvh, 380px);
-    transform: translateY(-14dvh);
-  }
-  .login-variant-asset-note {
-    top: 64px;
-    max-width: calc(100% - 32px);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .login-variant-illustration-mate {
-    left: 50%;
-    top: 48px;
-    bottom: auto;
-    height: max(56dvh, 360px);
   }
   .login-variant-bg-media {
     object-position: center 30%;
   }
-  /* Delivered illustration: the mate sits at ~36% of the frame, keep her centered when cropped */
-  .login-variant-illustration-img {
-    object-position: 25% center;
+  /* Below the mate: straddles the faded bottom edge of the stage and the gap reserved above the form, so it never
+   * covers her chest. It scrolls with the page like the form. */
+  .login-dialogue-layer {
+    top: calc(var(--login-stage-height) - 28px);
+    width: 100%;
+    height: auto;
   }
-  .login-variant-bubble-slot,
-  [data-login-variant='portrait'] .login-variant-bubble-slot {
-    top: calc(max(46dvh, 300px) - 64px);
-    bottom: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(420px, calc(100% - 40px));
-    text-align: center;
+  .login-dialogue {
+    position: relative;
+    inset: auto;
+    width: min(560px, calc(100% - 32px));
+    max-width: none;
+    padding: 20px 24px 16px;
+  }
+  .login-dialogue-text {
+    font-size: 17px;
+    line-height: 28px;
   }
   .login-variant-mate-caption {
     display: none;
   }
-  [data-login-variant='assemble'] .login-variant-mate-caption[data-caption-visible='true'] {
+  .login-variant-mate-caption[data-caption-visible='true'] {
     display: flex;
     top: 14px;
     left: 14px;
@@ -310,9 +372,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-variant-portrait-live2d,
-  .login-variant-portrait-stage[data-mate-mode='live2d'] .login-variant-portrait-fallback,
   .login-variant-mate-caption {
     transition: none;
+  }
+  .login-dialogue,
+  .login-dialogue[data-leaving],
+  .login-dialogue-next {
+    animation: none;
   }
 }

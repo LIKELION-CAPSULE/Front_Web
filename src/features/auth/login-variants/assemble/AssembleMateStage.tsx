@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type KeyboardEvent,
+  type MouseEvent,
   type PointerEvent,
 } from 'react'
 import {
@@ -17,8 +17,9 @@ import type { LoginMateProfile } from '@/features/auth/login-backgrounds/desktop
 import { resolveGazeForState } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
 import { AlivingRenderer } from '@/features/mate-render/AlivingRenderer'
 import {
+  CHAERIN_V2_LANDMARKS,
   computeAlivingLayerBox,
-  computeAssembleCamera,
+  computeBustCamera,
   computeFaceScreenPosition,
   computePointerGaze,
   modelPointToScreen,
@@ -28,13 +29,14 @@ import type { MateRenderStatus, MateRenderer } from '@/features/mate-render/type
 import {
   ASSEMBLE_APP_ICON_URL,
   CHAERIN_ASSEMBLE_MANIFEST,
-  type RigJointId,
 } from './assemble-assets'
 import {
   ASSEMBLE_TIMINGS_MS,
+  assembleGreetDelayMs,
   createInitialAssembleState,
   getAssembleStepDurationMs,
   readAssembleSeen,
+  resolveClickActivation,
   transitionAssembleState,
   writeAssembleSeen,
   type AssembleForcePhase,
@@ -44,57 +46,57 @@ import {
   type Live2DReadiness,
 } from './assemble-machine'
 import './assemble.css'
+import './assemble-transform.css'
 
-/** Per-layer assembling timing (ms): back layers 130ms apart, facial features 55ms, front-hair +40ms & 260ms snap.
- * Face/mouth/eyes/lashes/brows cap mesh flash at 0.5 so the face never blows out white. */
-const LAYER_ASSEMBLE_TIMING: Record<number, { delayMs: number; durationMs: number; meshPeak: number }> = {
-  0: { delayMs: 0, durationMs: 320, meshPeak: 0.9 },    // back-hair
-  1: { delayMs: 130, durationMs: 320, meshPeak: 0.9 },  // skirt
-  2: { delayMs: 260, durationMs: 320, meshPeak: 0.9 },  // body
-  3: { delayMs: 390, durationMs: 320, meshPeak: 0.5 },  // face
-  4: { delayMs: 445, durationMs: 320, meshPeak: 0.5 },  // mouth
-  5: { delayMs: 500, durationMs: 320, meshPeak: 0.5 },  // eyes
-  6: { delayMs: 555, durationMs: 320, meshPeak: 0.5 },  // lashes
-  7: { delayMs: 610, durationMs: 320, meshPeak: 0.5 },  // brows
-  8: { delayMs: 650, durationMs: 260, meshPeak: 0.9 },  // front-hair
+/** Tiny deterministic PRNG so the B-style particle fields are identical on every render / capture. */
+function seeded(seed: number): () => number {
+  let t = seed >>> 0
+  return () => {
+    t = (t + 0x6d2b79f5) >>> 0
+    let r = Math.imul(t ^ (t >>> 15), 1 | t)
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r
+    return (((r ^ (r >>> 14)) >>> 0) / 4294967296)
+  }
 }
 
-/** Ordered skeleton bone draw schedule during assembling (+150ms -> +600ms, 450ms total). */
-const RIG_BONE_SCHEDULE: ReadonlyArray<{
-  from: RigJointId
-  to: RigJointId
-  delayMs: number
-  durationMs: number
-}> = [
-  { from: 'neck', to: 'head', delayMs: 150, durationMs: 130 },
-  { from: 'neck', to: 'chest', delayMs: 150, durationMs: 140 },
-  { from: 'chest', to: 'hip', delayMs: 270, durationMs: 160 },
-  { from: 'neck', to: 'shoulderL', delayMs: 210, durationMs: 140 },
-  { from: 'neck', to: 'shoulderR', delayMs: 210, durationMs: 140 },
-  { from: 'shoulderL', to: 'elbowL', delayMs: 330, durationMs: 140 },
-  { from: 'shoulderR', to: 'elbowR', delayMs: 330, durationMs: 140 },
-  { from: 'elbowL', to: 'wristL', delayMs: 450, durationMs: 150 },
-  { from: 'elbowR', to: 'wristR', delayMs: 450, durationMs: 150 },
-]
+/** Fine motes that travel along the light stream from the CAPSULE icon to the model (offsets in px along/around the stream). */
+const TRANSFORM_STREAM_MOTES: ReadonlyArray<{ x0: number; y0: number; delayMs: number; durMs: number; size: number }> =
+  (() => {
+    const rnd = seeded(7)
+    return Array.from({ length: 34 }, (_, i) => ({
+      x0: Math.round(rnd() * 70),
+      y0: Math.round((rnd() - 0.5) * 56),
+      delayMs: 215 + Math.round(i * 7 + rnd() * 40),
+      durMs: 380 + Math.round(rnd() * 140),
+      size: Math.round((1.8 + rnd() * 2) * 10) / 10,
+    }))
+  })()
+
+/** Fill-sweep timing of the shared boundary (must match assemble-transform.css `tf-fill-sweep`). */
+const TRANSFORM_FILL_MS = 900
+const TRANSFORM_FILL_P0 = 0.15
+const TRANSFORM_FILL_P1 = 0.95
 
 /**
- * Visible joint circles (head & neck intentionally omitted — bones only on face/neck).
- * Delay matches the moment each bone reaches that joint during assembling.
+ * Small, numerous motes released as the common fill boundary passes them (bottom -> top).
+ * `delayMs` is when the linear sweep boundary reaches the mote's y; x/y are % of the full-image box.
  */
-const VISIBLE_RIG_JOINTS: ReadonlyArray<{
-  id: RigJointId
-  delayMs: number
-  sparkle: boolean
-}> = [
-  { id: 'chest', delayMs: 280, sparkle: false },
-  { id: 'shoulderL', delayMs: 340, sparkle: true },
-  { id: 'shoulderR', delayMs: 340, sparkle: true },
-  { id: 'hip', delayMs: 420, sparkle: true },
-  { id: 'elbowL', delayMs: 460, sparkle: true },
-  { id: 'elbowR', delayMs: 460, sparkle: true },
-  { id: 'wristL', delayMs: 590, sparkle: true },
-  { id: 'wristR', delayMs: 590, sparkle: true },
-]
+const TRANSFORM_FILL_MOTES: ReadonlyArray<{ x: number; y: number; delayMs: number; size: number; rise: number }> =
+  (() => {
+    const rnd = seeded(23)
+    return Array.from({ length: 44 }, () => {
+      const y = 0.04 + rnd() * 0.9
+      const boundaryP = (1.475 - y) / 2
+      const t = (boundaryP - TRANSFORM_FILL_P0) / (TRANSFORM_FILL_P1 - TRANSFORM_FILL_P0)
+      return {
+        x: 14 + rnd() * 72,
+        y: y * 100,
+        delayMs: Math.max(0, Math.round(t * TRANSFORM_FILL_MS)),
+        size: Math.round((1.4 + rnd() * 1.8) * 10) / 10,
+        rise: 16 + Math.round(rnd() * 22),
+      }
+    })
+  })()
 
 /** Login reaction state -> chaerin-v2 (Aliving2D) expression name mapping. */
 function mapReactionToV2Expression(state: MateReactionState): string | null {
@@ -192,32 +194,39 @@ export function AssembleMateStage({
   const [isHalfScreen, setIsHalfScreen] = useState(
     () => typeof window !== 'undefined' && window.innerWidth <= 959,
   )
-  // Camera pose & crossfade gate: starts in B (and crossfadeDone=true) on revisit, half-screen, reduced-motion, or forced live/static;
-  // otherwise crossfades at Shot A with neutral face & center gaze (0,0), then after 260ms triggers happy + B zoom + cursor tracking.
-  const immediateBInit =
+  // Crossfade gate: starts done (crossfadeDone=true) on revisit, half-screen, reduced-motion, or forced live/static;
+  // otherwise the Live2D crossfade holds a neutral face & center gaze (0,0), then after 260ms triggers happy + cursor tracking.
+  const immediateInit =
     forcePhase === 'live' ||
     forcePhase === 'static' ||
     (forcePhase === null && (initialSeen || reducedMotion)) ||
     (typeof window !== 'undefined' && window.innerWidth <= 959)
-  const [cameraInB, setCameraInB] = useState<boolean>(immediateBInit)
-  const [crossfadeDone, setCrossfadeDone] = useState<boolean>(immediateBInit)
+  const [crossfadeDone, setCrossfadeDone] = useState<boolean>(immediateInit)
 
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [dropHover, setDropHover] = useState(false)
   const [showDemoCursor, setShowDemoCursor] = useState(false)
-  /** If FPS drops below 50 during exploding, omit vertex dots on back-hair & body (edges only). */
-  const [omitHeavyVerts, setOmitHeavyVerts] = useState(false)
-  /** Premount poly.svg elements while idle via requestIdleCallback so meshing has zero mount spike. */
-  const [polyPremounted, setPolyPremounted] = useState(false)
+  /** Gentle "drag me" hint after a plain click/tap: alternates 'a'/'b' so the CSS animation restarts each time. */
+  const [nudge, setNudge] = useState<'a' | 'b' | null>(null)
 
+  /** Where the capsule light burst originates (CAPSULE icon center, stage-relative px) for the `transform` style. */
+  const [burstOrigin, setBurstOrigin] = useState<{ x: number; y: number } | null>(null)
+
+  const wakeStartedRef = useRef(false)
+  const forcePhaseRef = useRef(forcePhase)
   const demoPlayedRef = useRef(false)
   const completedEmittedRef = useRef(false)
-  const skipCameraMoveRef = useRef(
+  /** The greeting has been shown for this wake-up (cleared on `idle`, i.e. replay). */
+  const greetedRef = useRef(false)
+  const skipIntroRef = useRef(
     forcePhase === 'live' || forcePhase === 'static' || (forcePhase === null && initialSeen),
   )
   const onLiveEnteredRef = useRef(onLiveEntered)
   const onGreetBubbleReadyRef = useRef(onGreetBubbleReady)
   const onPhaseChangeRef = useRef(onPhaseChange)
+  useEffect(() => {
+    forcePhaseRef.current = forcePhase
+  }, [forcePhase])
   useEffect(() => {
     onLiveEnteredRef.current = onLiveEntered
   }, [onLiveEntered])
@@ -231,7 +240,7 @@ export function AssembleMateStage({
   // Notify parent whenever assemble phase changes (used to toggle the top-left AI caption)
   useEffect(() => {
     const immediate =
-      skipCameraMoveRef.current || reducedMotion || machine.reducedMotion || forcePhase === 'live' || forcePhase === 'static'
+      skipIntroRef.current || reducedMotion || machine.reducedMotion || forcePhase === 'live' || forcePhase === 'static'
     onPhaseChangeRef.current?.(machine.phase, immediate)
   }, [machine.phase, machine.reducedMotion, reducedMotion, forcePhase])
 
@@ -268,16 +277,26 @@ export function AssembleMateStage({
 
   const cameraPlan = useMemo(() => {
     if (tileSize.w <= 0 || tileSize.h <= 0) return null
-    return computeAssembleCamera(tileSize.w, tileSize.h)
+    // One close bust framing for the whole sequence and for the Live2D live state (no camera moves).
+    return computeBustCamera(tileSize.w, tileSize.h)
   }, [tileSize.w, tileSize.h])
 
   // Boot AlivingRenderer once (preloaded hidden from mount so handoff is seamless)
   useEffect(() => {
     const host = engineHostRef.current
     if (resolvedSource.kind !== 'aliving' || !host) {
+      // No engine (static source, e.g. reduced motion switched on): keep the ref, the state and the machine in sync so
+      // a `live` sequence falls back to the still image instead of showing nothing.
       engineStatusRef.current = 'error'
+      setEngineStatus('error')
+      if (!forcePhaseRef.current) {
+        setMachine((prev) => transitionAssembleState(prev, { type: 'LIVE2D_STATUS_CHANGE', live2dStatus: 'error' }))
+      }
       return
     }
+    // A (new) renderer starts out loading; resync from any earlier source.
+    engineStatusRef.current = 'loading'
+    setEngineStatus('loading')
     const renderer = new AlivingRenderer({
       modelUrl: resolvedSource.modelUrl,
       engineUrl: resolvedSource.engineUrl,
@@ -290,6 +309,8 @@ export function AssembleMateStage({
       const next = toReadiness(renderer.getStatus(), true)
       engineStatusRef.current = next
       setEngineStatus(next)
+      // Forced capture previews (?assemble=...) keep their phase whatever the engine does.
+      if (forcePhaseRef.current) return
       setMachine((prev) =>
         transitionAssembleState(prev, { type: 'LIVE2D_STATUS_CHANGE', live2dStatus: next }),
       )
@@ -376,7 +397,7 @@ export function AssembleMateStage({
       if (!pt || !renderer || !stageEl || document.hidden) return
       const rect = stageEl.getBoundingClientRect()
       if (rect.width <= 0 || rect.height <= 0) return
-      const face = computeFaceScreenPosition(rect, cameraPlan, cameraPlan.shotB)
+      const face = computeFaceScreenPosition(rect, cameraPlan)
       const gaze = computePointerGaze({
         pointerX: pt.x,
         pointerY: pt.y,
@@ -431,84 +452,10 @@ export function AssembleMateStage({
     }
   }, [pointerTrackingActive, cameraPlan])
 
-  // Advance timed phases automatically (unless frozen by explicit exploding/meshing/assembling capture param)
+  // Advance timed phases automatically (unless frozen by explicit streaming/filling/settling capture param)
   const isFrozenPreview =
-    forcePhase === 'exploding' || forcePhase === 'meshing' || forcePhase === 'assembling'
+    forcePhase === 'streaming' || forcePhase === 'filling' || forcePhase === 'settling'
 
-  // Premount inline poly.svg elements during idle via requestIdleCallback (fallback setTimeout 300ms)
-  // so SVG parsing, pathLength geometry, and WebP layer decoding finish before the animation starts;
-  // unmount again on live/static.
-  useEffect(() => {
-    if (machine.phase === 'live' || machine.phase === 'static') {
-      const resetTimer = window.setTimeout(() => setPolyPremounted(false), 0)
-      return () => window.clearTimeout(resetTimer)
-    }
-    if (machine.phase !== 'idle' || reducedMotion || machine.reducedMotion) return
-    const warmUp = () => {
-      setPolyPremounted(true)
-      const root = stageMeasureRef.current
-      if (root) {
-        root.querySelectorAll<HTMLImageElement>('img.assemble-layer-img').forEach((img) => {
-          void img.decode?.().catch(() => {})
-        })
-      }
-    }
-    const w = window as Window & {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number
-      cancelIdleCallback?: (id: number) => void
-    }
-    if (typeof w.requestIdleCallback === 'function') {
-      const idleId = w.requestIdleCallback(warmUp, { timeout: 600 })
-      return () => w.cancelIdleCallback?.(idleId)
-    }
-    const timer = window.setTimeout(warmUp, 300)
-    return () => window.clearTimeout(timer)
-  }, [machine.phase, machine.reducedMotion, reducedMotion])
-
-  // Once poly.svg elements are premounted during idle, warm up SVG pathLength caches off the animation path
-  useEffect(() => {
-    if (!polyPremounted || machine.phase !== 'idle') return
-    const root = stageMeasureRef.current
-    if (!root) return
-    const paths = Array.from(root.querySelectorAll<SVGPathElement>('.assemble-poly-svg .mesh-edges'))
-    if (paths.length === 0) return
-    let idx = 0
-    let handle = 0
-    const step = () => {
-      if (idx >= paths.length) return
-      try {
-        paths[idx]?.getTotalLength()
-      } catch {
-        // Ignore detached nodes
-      }
-      idx += 1
-      if (idx < paths.length) {
-        handle = window.setTimeout(step, 8)
-      }
-    }
-    handle = window.setTimeout(step, 16)
-    return () => window.clearTimeout(handle)
-  }, [polyPremounted, machine.phase])
-
-  // Sample FPS during exploding; if < 50 FPS, omit vertex dots on heavy layers (back-hair & body)
-  useEffect(() => {
-    if (machine.phase !== 'exploding' || isFrozenPreview) return
-    let frames = 0
-    const start = performance.now()
-    let rafId = 0
-    const tick = (now: number) => {
-      frames++
-      const elapsed = now - start
-      if (elapsed >= 400) {
-        const fps = (frames * 1000) / elapsed
-        setOmitHeavyVerts(fps < 50)
-        return
-      }
-      rafId = requestAnimationFrame(tick)
-    }
-    rafId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafId)
-  }, [machine.phase, isFrozenPreview])
   useEffect(() => {
     if (isFrozenPreview) return
     const duration = getAssembleStepDurationMs(machine)
@@ -527,7 +474,10 @@ export function AssembleMateStage({
   // Side effects on terminal phases (live / static): persist seen, A -> B camera move, delayed greet bubble
   useEffect(() => {
     if (machine.phase !== 'live' && machine.phase !== 'static') {
-      if (machine.phase === 'idle') completedEmittedRef.current = false
+      if (machine.phase === 'idle') {
+        completedEmittedRef.current = false
+        greetedRef.current = false
+      }
       return
     }
 
@@ -547,34 +497,36 @@ export function AssembleMateStage({
     }
 
     const immediateB =
-      skipCameraMoveRef.current || isHalfScreen || reducedMotion || machine.reducedMotion
+      skipIntroRef.current || isHalfScreen || reducedMotion || machine.reducedMotion
+    // Greeting: live AND static (reduced motion / engine fallback) greet, once per wake-up. It is marked as shown only
+    // when it fires, so a re-run that cancels a pending timer (live <-> static switch, resize) reschedules it.
+    const greetDelay = assembleGreetDelayMs({
+      phase: machine.phase,
+      alreadyGreeted: greetedRef.current,
+      immediate: immediateB,
+    })
+    const greet = () => {
+      greetedRef.current = true
+      onGreetBubbleReadyRef.current?.()
+    }
     if (immediateB) {
       const immediateTimer = window.setTimeout(() => {
         setCrossfadeDone(true)
-        setCameraInB(true)
-        if (machine.phase === 'live') {
-          rendererRef.current?.setExpression('happy')
-          onGreetBubbleReadyRef.current?.()
-        }
+        if (machine.phase === 'live') rendererRef.current?.setExpression('happy')
+        if (greetDelay !== null) greet()
       }, 0)
       return () => window.clearTimeout(immediateTimer)
     }
 
-    // After 260ms crossfade: apply happy expression, enable cursor tracking, and start 1200ms A -> B zoom
+    // After the 260ms crossfade: apply the happy expression and enable cursor tracking (the framing never changes)
     const moveTimer = window.setTimeout(() => {
       setCrossfadeDone(true)
-      setCameraInB(true)
       if (machine.phase === 'live') {
         rendererRef.current?.setExpression('happy')
       }
     }, ASSEMBLE_TIMINGS_MS.liveFade)
 
-    const bubbleTimer =
-      machine.phase === 'live'
-        ? window.setTimeout(() => {
-            onGreetBubbleReadyRef.current?.()
-          }, ASSEMBLE_TIMINGS_MS.liveFade + ASSEMBLE_TIMINGS_MS.cameraMove)
-        : undefined
+    const bubbleTimer = greetDelay !== null ? window.setTimeout(greet, greetDelay) : undefined
 
     return () => {
       window.clearTimeout(moveTimer)
@@ -604,6 +556,18 @@ export function AssembleMateStage({
     if (showDemoCursor) setShowDemoCursor(false)
   }, [showDemoCursor])
 
+  // Auto-clear the click hint (the shake animation is ~480ms; a repeat click within the window restarts it).
+  useEffect(() => {
+    if (!nudge) return
+    const t = window.setTimeout(() => setNudge(null), 1400)
+    return () => window.clearTimeout(t)
+  }, [nudge])
+
+  /** A click/tap without dragging does NOT wake Chaerin — show a light hint that it must be dragged. */
+  const showDragHint = useCallback(() => {
+    setNudge((prev) => (prev === 'a' ? 'b' : 'a'))
+  }, [])
+
   const computeCardToIconDelta = useCallback((): { x: number; y: number } => {
     const card = cardBtnRef.current?.getBoundingClientRect()
     const icon = iconBtnRef.current?.getBoundingClientRect()
@@ -616,13 +580,23 @@ export function AssembleMateStage({
 
   const triggerWake = useCallback(
     (method: AssembleMethod) => {
-      skipCameraMoveRef.current = false
+      // One start per sequence (Enter keydown + click, double activation, ...): analytics must fire once.
+      if (wakeStartedRef.current) return
+      wakeStartedRef.current = true
+      skipIntroRef.current = false
       const jumpB = isHalfScreen || reducedMotion
-      setCameraInB(jumpB)
       setCrossfadeDone(jumpB)
       setShowDemoCursor(false)
       setDropHover(false)
       setDragOffset(computeCardToIconDelta())
+      const stageRect = stageMeasureRef.current?.getBoundingClientRect()
+      const iconRect = iconBtnRef.current?.getBoundingClientRect()
+      if (stageRect && iconRect) {
+        setBurstOrigin({
+          x: iconRect.left + iconRect.width / 2 - stageRect.left,
+          y: iconRect.top + iconRect.height / 2 - stageRect.top,
+        })
+      }
       emitLoginDesktopEvent({ name: 'login_assemble_started', payload: { method } })
       setMachine((prev) =>
         transitionAssembleState(prev, {
@@ -699,7 +673,8 @@ export function AssembleMateStage({
     }
 
     if (!session.moved) {
-      triggerWake('click')
+      // Plain click/tap: wake-up requires drag-and-drop (keyboard Enter/Space stays as the a11y alternative).
+      showDragHint()
       return
     }
 
@@ -712,18 +687,22 @@ export function AssembleMateStage({
     }
   }
 
-  const handleKeyActivate = (e: KeyboardEvent<HTMLButtonElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
+  // Native click only: Enter / Space on a focused button (and assistive-technology activation) arrive as `detail === 0`
+  // and start the sequence once; real pointer clicks (`detail > 0`) just hint, because pointers must drag-and-drop.
+  // (A click also follows every pointerup on the card; the pointer handlers already cover that case.)
+  const handleActivate = (e: MouseEvent<HTMLButtonElement>) => {
+    if (resolveClickActivation(e.detail) === 'keyboard') {
       triggerWake('keyboard')
+    } else if (e.currentTarget === iconBtnRef.current) {
+      showDragHint()
     }
   }
 
   const handleReplay = () => {
+    wakeStartedRef.current = false
     demoPlayedRef.current = true
-    skipCameraMoveRef.current = false
+    skipIntroRef.current = false
     const jumpB = isHalfScreen || reducedMotion
-    setCameraInB(jumpB)
     setCrossfadeDone(jumpB)
     setDragOffset({ x: 0, y: 0 })
     setDropHover(false)
@@ -736,65 +715,20 @@ export function AssembleMateStage({
   const showDmgDock = phase === 'idle' || phase === 'dragging' || phase === 'dropped'
   const showLayers =
     !machine.reducedMotion &&
-    (phase === 'dropped' || phase === 'exploding' || phase === 'meshing' || phase === 'assembling')
-  const isExploded = phase === 'exploding' || phase === 'meshing'
-  const isMeshing = phase === 'meshing'
-  const isAssembling = phase === 'assembling' && !machine.waitingForLive2D
-  // Premount poly SVGs during idle (visibility:hidden) to avoid meshing mount hitch; unmount on live/static.
-  const isActiveSequence =
-    phase === 'dropped' || phase === 'exploding' || phase === 'meshing' || phase === 'assembling'
-  const mountPolySvgs =
-    !machine.reducedMotion &&
-    !reducedMotion &&
-    (isActiveSequence || (polyPremounted && (phase === 'idle' || phase === 'dragging')))
-  const showPolySvgs = isMeshing || isAssembling
-  // Skeleton SVG mounts only while assembling (opacity 0 during tilted/exploded phases, unmounted on live/static).
-  const mountRigSvg = !machine.reducedMotion && isAssembling
+    (phase === 'dropped' || phase === 'streaming' || phase === 'filling' || phase === 'settling')
+  const showBurst = !machine.reducedMotion && (phase === 'dropped' || phase === 'streaming')
   const showStaticFull = phase === 'static' || (machine.reducedMotion && phase === 'dropped')
   const showEngineCanvas = phase === 'live' && engineStatus === 'ready'
   const showReplay = phase === 'live' || phase === 'static'
 
-  // Precompute skeleton joint coordinates in .assemble-camera pixel space (Shot A front-facing, depth 0)
-  const rigJointCoords = useMemo(() => {
-    if (!cameraPlan || !mountRigSvg) return null
-    const scale = CHAERIN_ASSEMBLE_MANIFEST.frame.scale
-    const out = {} as Record<RigJointId, { x: number; y: number }>
-    for (const [id, [x3, y3]] of Object.entries(CHAERIN_ASSEMBLE_MANIFEST.rig.joints) as Array<
-      [RigJointId, readonly [number, number]]
-    >) {
-      const pt = modelPointToScreen(x3 / scale, y3 / scale, cameraPlan.cameraW, cameraPlan.cameraH, cameraPlan.view)
-      out[id] = { x: pt.x, y: pt.y }
-    }
-    return out
-  }, [cameraPlan, mountRigSvg])
-
-  // Determine active camera shot transform (A / Explode / B)
-  const activeCameraShot = useMemo(() => {
-    if (!cameraPlan) return null
-    if (isHalfScreen || reducedMotion || machine.reducedMotion) return cameraPlan.shotB
-    if (isExploded) return cameraPlan.shotExplode
-    if ((phase === 'live' || phase === 'static') && cameraInB) return cameraPlan.shotB
-    return cameraPlan.shotA
-  }, [cameraPlan, isHalfScreen, reducedMotion, machine.reducedMotion, isExploded, phase, cameraInB])
-
-  const cameraPoseAttr = isHalfScreen || reducedMotion || machine.reducedMotion
-    ? 'B'
-    : isExploded
-      ? 'explode'
-      : (phase === 'live' || phase === 'static') && cameraInB
-        ? 'B'
-        : 'A'
-
-  const cameraStyle: CSSProperties | undefined =
-    cameraPlan && activeCameraShot
-      ? ({
-          left: `${cameraPlan.offsetLeft}px`,
-          top: `${cameraPlan.offsetTop}px`,
-          width: `${cameraPlan.cameraW}px`,
-          height: `${cameraPlan.cameraH}px`,
-          transform: `translate3d(${activeCameraShot.tx}px, ${activeCameraShot.ty}px, 0) scale(${activeCameraShot.scale})`,
-        } as CSSProperties)
-      : undefined
+  const cameraStyle: CSSProperties | undefined = cameraPlan
+    ? ({
+        left: `${cameraPlan.offsetLeft}px`,
+        top: `${cameraPlan.offsetTop}px`,
+        width: `${cameraPlan.cameraW}px`,
+        height: `${cameraPlan.cameraH}px`,
+      } as CSSProperties)
+    : undefined
 
   const fullBox = useMemo(() => {
     if (!cameraPlan) return null
@@ -807,12 +741,51 @@ export function AssembleMateStage({
     )
   }, [cameraPlan])
 
+  // The fill / light effects only need to cover what the bust shot actually shows (down to the stage
+  // bottom), so the shared fill boundary sweeps the visible body for the whole fill step instead of the hidden legs.
+  const tfVisibleHeight = fullBox && cameraPlan
+    ? Math.max(1, Math.min(fullBox.height, cameraPlan.cameraH + 24 - fullBox.top))
+    : 0
+  const tfBoxStyle: CSSProperties | undefined = fullBox
+    ? { left: `${fullBox.left}px`, top: `${fullBox.top}px`, width: `${fullBox.width}px`, height: `${tfVisibleHeight}px` }
+    : undefined
+  // Alpha of full.webp used as a CSS mask so light effects only ever paint on the character's own shape.
+  const tfMaskStyle = useMemo<CSSProperties>(() => {
+    const size = `${fullBox?.width ?? 0}px ${fullBox?.height ?? 0}px`
+    return {
+      WebkitMaskImage: `url(${CHAERIN_ASSEMBLE_MANIFEST.full.url})`,
+      maskImage: `url(${CHAERIN_ASSEMBLE_MANIFEST.full.url})`,
+      WebkitMaskSize: size,
+      maskSize: size,
+      WebkitMaskPosition: '0 0',
+      maskPosition: '0 0',
+    }
+  }, [fullBox?.width, fullBox?.height])
+
+  // Where the model's torso sits on the stage, so the light stream can fly there from the CAPSULE icon.
+  const transformAnchor = useMemo(() => {
+    if (!cameraPlan || !fullBox || tileSize.w <= 0 || tileSize.h <= 0) return null
+    // Light lands mid-torso: inside the bust shot and clear of the face.
+    const pt = modelPointToScreen(
+      CHAERIN_V2_LANDMARKS.centerX,
+      CHAERIN_V2_LANDMARKS.torsoY,
+      cameraPlan.cameraW,
+      cameraPlan.cameraH,
+      cameraPlan.view,
+    )
+    return {
+      stageX: tileSize.w / 2 + (pt.x - cameraPlan.cameraW / 2),
+      stageY: tileSize.h / 2 + (pt.y - cameraPlan.cameraH / 2),
+      boxXPct: ((pt.x - fullBox.left) / fullBox.width) * 100,
+      boxYPct: ((pt.y - fullBox.top) / tfVisibleHeight) * 100,
+    }
+  }, [cameraPlan, fullBox, tfVisibleHeight, tileSize.w, tileSize.h])
+
   return (
     <div
       ref={stageMeasureRef}
       className="assemble-stage-root"
       data-assemble-phase={phase}
-      data-assemble-camera={cameraPoseAttr}
       data-assemble-reduced={machine.reducedMotion || undefined}
       data-assemble-frozen={isFrozenPreview || undefined}
       data-mate-renderer={resolvedSource.kind}
@@ -824,17 +797,9 @@ export function AssembleMateStage({
       <div className="assemble-stage-mask">
         <div
           className="assemble-camera"
-          data-camera-pose={cameraPoseAttr}
-          data-camera-transition={
-            phase === 'live' || phase === 'static'
-              ? 'zoom-b'
-              : phase === 'assembling'
-                ? 'assemble'
-                : 'explode'
-          }
           style={cameraStyle}
         >
-          {/* Aliving2D WebGL2 canvas (rendered in cameraPlan.view so Shot B is native 1:1 and Shot A never clips) */}
+          {/* Aliving2D WebGL2 canvas (rendered in cameraPlan.view: same bust framing as the layers, native 1:1) */}
           <div
             ref={engineHostRef}
             className="assemble-engine-host"
@@ -842,170 +807,85 @@ export function AssembleMateStage({
             data-visible={showEngineCanvas || undefined}
           />
 
-          {/* Pixel-aligned 9-layer 3D watch-exploded rig (depth-only separation, zero XY wobble) */}
-          <div
-            className="assemble-rig-viewport"
-            aria-hidden="true"
-            data-visible={showLayers || undefined}
-            data-exploded={isExploded || undefined}
-            data-meshing={isMeshing || undefined}
-            data-assembling={isAssembling || undefined}
-            data-phase={phase}
-          >
-            {cameraPlan && (
-              <div className="assemble-rig-pivot">
-                {CHAERIN_ASSEMBLE_MANIFEST.layers.map((layer) => {
-                  const box = computeAlivingLayerBox(
-                    layer,
-                    cameraPlan.cameraW,
-                    cameraPlan.cameraH,
-                    cameraPlan.view,
-                    CHAERIN_ASSEMBLE_MANIFEST.frame.scale,
-                  )
-                  const timing = LAYER_ASSEMBLE_TIMING[layer.z] ?? {
-                    delayMs: layer.z * 80,
-                    durationMs: 320,
-                    meshPeak: 0.5,
-                  }
-                  const ez = (layer.z - 4) * 85
-                  const showVerts =
-                    !(omitHeavyVerts && (layer.id === 'back-hair' || layer.id === 'body'))
-                  const vertStrokeW = layer.poly.vertRadius * 2 * (isHalfScreen ? 0.7 : 1)
-                  const slotStyle = {
-                    zIndex: layer.z + 1,
-                    '--z': layer.z,
-                    '--ez': `${ez}px`,
-                    '--assemble-delay': `${timing.delayMs}ms`,
-                    '--assemble-dur': `${timing.durationMs}ms`,
-                    '--mesh-draw-delay': `${layer.z * 25}ms`,
-                    '--mesh-snap-delay': `${timing.delayMs + Math.max(0, timing.durationMs - 100)}ms`,
-                    '--mesh-peak': timing.meshPeak,
-                  } as CSSProperties
-
-                  return (
-                    <div key={layer.id} className="assemble-layer-slot" style={slotStyle}>
-                      <div className="assemble-layer-rot">
-                        <div className="assemble-layer-z">
-                          <div
-                            className="assemble-layer"
-                            style={{
-                              left: `${box.left}px`,
-                              top: `${box.top}px`,
-                              width: `${box.width}px`,
-                              height: `${box.height}px`,
-                            }}
-                          >
-                            <img
-                              src={layer.url}
-                              alt=""
-                              className="assemble-layer-img"
-                              draggable={false}
-                              decoding="async"
-                            />
-                            {mountPolySvgs && (
-                              <svg
-                                className="assemble-poly-svg"
-                                data-active={showPolySvgs || undefined}
-                                viewBox={layer.poly.viewBox}
-                                preserveAspectRatio="none"
-                                aria-hidden="true"
-                              >
-                                <path
-                                  className="mesh-edges"
-                                  d={layer.poly.edgesD}
-                                  pathLength={1}
-                                  fill="none"
-                                  stroke="#d6c8ff"
-                                  strokeWidth={1.6}
-                                  strokeLinecap="round"
-                                  vectorEffect="non-scaling-stroke"
-                                />
-                                {showVerts && (
-                                  <g
-                                    className="mesh-verts"
-                                    fill="none"
-                                    stroke="#ffffff"
-                                    strokeWidth={vertStrokeW}
-                                    strokeLinecap="round"
-                                  >
-                                    {layer.poly.vertBands.map(
-                                      (d, bandIdx) =>
-                                        d && (
-                                          <path
-                                            key={bandIdx}
-                                            className="mesh-vert-band"
-                                            d={d}
-                                            style={{ '--band': bandIdx } as CSSProperties}
-                                          />
-                                        ),
-                                    )}
-                                  </g>
-                                )}
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Skeleton rigging overlay (outside 3D rig, fixed in Shot A front plane depth 0; draws during assembling +150ms) */}
-          {mountRigSvg && cameraPlan && rigJointCoords && (
-            <svg
-              className="assemble-skeleton-svg"
-              viewBox={`0 0 ${cameraPlan.cameraW} ${cameraPlan.cameraH}`}
+          {/* "transform" style (B): light arrives at the model, a white silhouette blooms, then ONE shared fill boundary
+              sweeps the whole body (bottom -> top) turning it into the real picture. No mesh / rig / 3D split. */}
+          {cameraPlan && fullBox && (
+            <div
+              className="tf-viewport"
               aria-hidden="true"
+              data-visible={showLayers || undefined}
               data-phase={phase}
             >
-              <g className="assemble-rig-bones">
-                {RIG_BONE_SCHEDULE.map((bone) => {
-                  const a = rigJointCoords[bone.from]
-                  const b = rigJointCoords[bone.to]
-                  return (
-                    <line
-                      key={`${bone.from}-${bone.to}`}
-                      className="assemble-rig-bone"
-                      x1={a.x}
-                      y1={a.y}
-                      x2={b.x}
-                      y2={b.y}
-                      pathLength={1}
+              <div
+                className="tf-halo-back"
+                style={{
+                  left: `${fullBox.left + fullBox.width * 0.5}px`,
+                  top: `${fullBox.top + tfVisibleHeight * 0.4}px`,
+                  width: `${fullBox.width * 1.5}px`,
+                  height: `${tfVisibleHeight * 1.15}px`,
+                }}
+              />
+              <div className="tf-box" style={tfBoxStyle}>
+                <div
+                  className="tf-silhouette"
+                  style={{ transformOrigin: `${transformAnchor?.boxXPct ?? 50}% ${transformAnchor?.boxYPct ?? 40}%` }}
+                >
+                  <i className="tf-silhouette-fill" style={tfMaskStyle} />
+                </div>
+                <div className="tf-fill">
+                  {CHAERIN_ASSEMBLE_MANIFEST.layers.map((layer) => {
+                    const box = computeAlivingLayerBox(
+                      layer,
+                      cameraPlan.cameraW,
+                      cameraPlan.cameraH,
+                      cameraPlan.view,
+                      CHAERIN_ASSEMBLE_MANIFEST.frame.scale,
+                    )
+                    return (
+                      <img
+                        key={layer.id}
+                        src={layer.url}
+                        alt=""
+                        className="tf-fill-layer"
+                        draggable={false}
+                        decoding="async"
+                        style={{
+                          left: `${box.left - fullBox.left}px`,
+                          top: `${box.top - fullBox.top}px`,
+                          width: `${box.width}px`,
+                          height: `${box.height}px`,
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+                <div className="tf-fx" style={tfMaskStyle}>
+                  <i className="tf-glowband" />
+                  <i className="tf-edge-move">
+                    <b className="tf-edge-line" />
+                  </i>
+                  <i className="tf-gloss" />
+                </div>
+                <div className="tf-motes">
+                  {TRANSFORM_FILL_MOTES.map((m, i) => (
+                    <i
+                      key={i}
+                      className="tf-mote"
                       style={
                         {
-                          '--bone-delay': `${bone.delayMs}ms`,
-                          '--bone-dur': `${bone.durationMs}ms`,
+                          left: `${m.x}%`,
+                          top: `${m.y}%`,
+                          width: `${m.size}px`,
+                          height: `${m.size}px`,
+                          '--d': `${m.delayMs}ms`,
+                          '--rise': `${m.rise}px`,
                         } as CSSProperties
                       }
                     />
-                  )
-                })}
-              </g>
-              <g className="assemble-rig-joints">
-                {VISIBLE_RIG_JOINTS.map((joint) => {
-                  const pt = rigJointCoords[joint.id]
-                  return (
-                    <circle
-                      key={joint.id}
-                      className="assemble-rig-joint"
-                      data-sparkle={joint.sparkle || undefined}
-                      cx={pt.x}
-                      cy={pt.y}
-                      r={isHalfScreen ? 2.8 : 4}
-                      style={
-                        {
-                          '--joint-delay': `${joint.delayMs}ms`,
-                          transformOrigin: `${pt.x}px ${pt.y}px`,
-                        } as CSSProperties
-                      }
-                    />
-                  )
-                })}
-              </g>
-            </svg>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Static full.webp fallback (or reduced-motion crossfade bridge) inside same camera wrapper */}
@@ -1033,6 +913,58 @@ export function AssembleMateStage({
         </div>
       </div>
 
+      {/* "transform" style: capsule charge -> light stream icon => model -> bloom where the model appears (stage level) */}
+      {showBurst && (() => {
+        const ox = burstOrigin?.x ?? tileSize.w * 0.62
+        const oy = burstOrigin?.y ?? tileSize.h * 0.46
+        const ax = transformAnchor?.stageX ?? tileSize.w * 0.5
+        const ay = transformAnchor?.stageY ?? tileSize.h * 0.45
+        const len = Math.max(40, Math.hypot(ax - ox, ay - oy))
+        const ang = (Math.atan2(ay - oy, ax - ox) * 180) / Math.PI
+        return (
+          <div
+            className="tf-burst"
+            aria-hidden="true"
+            style={
+              {
+                '--ox': `${ox}px`,
+                '--oy': `${oy}px`,
+                '--ax': `${ax}px`,
+                '--ay': `${ay}px`,
+                '--len': `${len}px`,
+                '--ang': `${ang}deg`,
+              } as CSSProperties
+            }
+          >
+            <i className="tf-charge-ring" />
+            <i className="tf-charge-core" />
+            <div className="tf-stream">
+              <i className="tf-stream-glow" />
+              <i className="tf-stream-beam" />
+              <i className="tf-stream-head" />
+              {TRANSFORM_STREAM_MOTES.map((m, i) => (
+                <i
+                  key={i}
+                  className="tf-stream-mote"
+                  style={
+                    {
+                      '--x0': `${m.x0}px`,
+                      '--y0': `${m.y0}px`,
+                      '--d': `${m.delayMs}ms`,
+                      '--dur': `${m.durMs}ms`,
+                      width: `${m.size}px`,
+                      height: `${m.size}px`,
+                    } as CSSProperties
+                  }
+                />
+              ))}
+            </div>
+            <i className="tf-arrive-bloom" />
+            <i className="tf-arrive-ring" />
+          </div>
+        )
+      })()}
+
       {/* macOS glass window drag-and-drop dock */}
       {showDmgDock && (
         <div
@@ -1055,7 +987,8 @@ export function AssembleMateStage({
                 ref={cardBtnRef}
                 type="button"
                 className="assemble-card-btn"
-                aria-label="채린이 깨우기"
+                aria-label="채린이 깨우기: 채린 카드를 CAPSULE 아이콘으로 끌어다 놓거나, 이 버튼에서 Enter 키를 누르세요"
+                data-nudge={nudge ?? undefined}
                 data-dragging={phase === 'dragging' || undefined}
                 data-dropped={phase === 'dropped' || undefined}
                 style={
@@ -1068,7 +1001,7 @@ export function AssembleMateStage({
                 onPointerMove={handleCardPointerMove}
                 onPointerUp={(e) => finishCardPointer(e, false)}
                 onPointerCancel={(e) => finishCardPointer(e, true)}
-                onKeyDown={handleKeyActivate}
+                onClick={handleActivate}
               >
                 <span className="assemble-photo-frame" aria-hidden="true">
                   <img
@@ -1092,11 +1025,10 @@ export function AssembleMateStage({
                 ref={iconBtnRef}
                 type="button"
                 className="assemble-icon-btn"
-                aria-label="채린이 깨우기"
+                aria-label="CAPSULE 아이콘: 채린 카드를 여기에 끌어다 놓거나, Enter 키를 눌러 채린이 깨우기"
                 data-drop-hover={dropHover || undefined}
                 data-dropped={phase === 'dropped' || undefined}
-                onClick={() => triggerWake('click')}
-                onKeyDown={handleKeyActivate}
+                onClick={handleActivate}
               >
                 <span className="assemble-icon-dropzone" aria-hidden="true">
                   <img
@@ -1124,13 +1056,6 @@ export function AssembleMateStage({
                   </svg>
                 </span>
               )}
-            </div>
-
-            <div className="assemble-dmg-foot">
-              <span className="assemble-dmg-foot-main">
-                카드를 <b>CAPSULE</b>로 끌어다 놓으면 채린이가 깨어나요
-              </span>
-              <span className="assemble-dmg-kbd">또는 클릭</span>
             </div>
           </div>
         </div>
