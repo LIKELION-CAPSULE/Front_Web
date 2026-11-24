@@ -116,7 +116,6 @@ export default function CapsuleJar({
 }: CapsuleJarProps) {
   const theme = useMemo(() => themeOverride ?? capsuleJarTheme(mateId), [themeOverride, mateId])
   const systemReduced = useMediaQuery('(prefers-reduced-motion: reduce)')
-  const narrow = useMediaQuery('(max-width: 640px)')
   const reducedMotion = forceReducedMotion || systemReduced
   // The pile spans the panel's width (in scene units, the panel is PILE.viewHeight high): measured from the stage.
   const [halfWidth, setHalfWidth] = useState<number>(PILE.defaultHalfWidth)
@@ -167,7 +166,8 @@ export default function CapsuleJar({
   }, [])
 
   // The panel is tall and narrow: the record card opens over its middle (a sheet on narrow screens).
-  const placementFor = useCallback((): CardPlacement => (narrow ? 'sheet' : 'center'), [narrow])
+  // The record card settles in the middle of the window (a collectible card); narrow screens shrink it to fit.
+  const placementFor = useCallback((): CardPlacement => 'center', [])
 
   const openRecord = useCallback(
     (id: string, origin: JarScenePoint | null, animated: boolean, placement: CardPlacement) => {
@@ -476,6 +476,8 @@ export default function CapsuleJar({
           <CapsuleRecordCard
             capsule={selected}
             mateName={mateName}
+            mateId={mateId}
+            frame="viewport"
             placement={recordCard.placement}
             phase={recordCard.phase}
             animated={recordCard.animated && !reducedMotion}

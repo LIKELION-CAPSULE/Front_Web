@@ -1,7 +1,13 @@
 import { useEffect, useId, useLayoutEffect, useRef, type CSSProperties } from 'react'
 import { Link } from 'react-router'
 import { Icon } from '@/shared/ui/Icon'
+import { capsuleLogo } from '@/shared/design/brand-logo'
+import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
+import { capsuleFoil, capsulePaletteFoil, capsulePaletteFoilGradient } from '@/features/reports/capsule-card-material'
+import { useCapsuleCardTilt } from '@/features/reports/capsule-card-tilt'
+import '@/features/reports/capsule-card-effects.css'
 import { formatCapsuleDate, formatCapsuleTimeRange, formatTogether, withParticle } from './capsule-jar-data.ts'
+import { capsulesForConnection } from './capsule-floor-layout.ts'
 import { capsuleJarTheme } from './capsule-jar-theme.ts'
 import type { CapsuleRecord } from './capsule-jar-types.ts'
 import './capsule-record-card.css'
@@ -9,8 +15,14 @@ import './capsule-record-card.css'
 export type CapsuleRecordPager = { index: number; count: number; onPrevious: () => void; onNext: () => void }
 
 /**
- * Record card of one capsule (one connection): date, time of day, time together, the mate's line and a link to the
- * full connection record.
+ * Record card of one capsule (one connection), as a collectible card: the capsule emblem with a faint CAPSULE mark,
+ * 「{메이트}와의 캡슐」, the date, time of day and range, time together, the bundle's capsule count, the mate's line
+ * and a link to the full connection record.
+ *
+ * The card material is the capsule card's (reports: capsule-card-effects.css, the tilt hook), with the foil kept to
+ * the palette's violet and white: it tilts and catches the light with the pointer, and the same way with keyboard
+ * focus; reduced motion keeps it flat. It appears out of the opened capsule's light: a flash at that point, the card
+ * turning in as it grows into the middle of the window, then one sweep of light across it.
  *
  * A native modal `<dialog>` (like the shared Dialog): the page behind it is inert, Tab stays inside, focus starts on
  * 「닫기」, Esc / a click outside the card / 닫기 close it — also while it is folding away — and the opener restores
@@ -48,6 +60,8 @@ export function CapsuleRecordCard({
   pager?: CapsuleRecordPager
 }) {
   const titleId = useId()
+  const reduced = useReducedMotion()
+  const { ref: stageRef, handlers: tiltHandlers } = useCapsuleCardTilt<HTMLDivElement>(reduced)
   const dialogRef = useRef<HTMLDialogElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
@@ -136,48 +150,86 @@ export function CapsuleRecordCard({
       }}
     >
       <div ref={cardRef} className="capsule-jar-card">
-        <div className="capsule-jar-card-light" aria-hidden="true" />
-        <div className="capsule-jar-card-head">
-          <span className="capsule-jar-pill capsule-jar-pill--glow" aria-hidden="true" />
-          <p className="capsule-jar-card-eyebrow">{`${mateName}${withParticle(mateName)}의 캡슐`}</p>
-        </div>
-        <h3 id={titleId} className="capsule-jar-card-date">{formatCapsuleDate(capsule.startedAt)}</h3>
-        {pager && pager.count > 1 && (
-          <div className="capsule-jar-card-pager">
-            <button type="button" onClick={pager.onPrevious} disabled={pager.index === 0} aria-label="이날의 이전 연결">
-              <Icon name="chevron" size={14} style={{ transform: 'rotate(180deg)' }} />
-            </button>
-            <span aria-live="polite">{`이날의 연결 ${pager.index + 1} / ${pager.count}`}</span>
-            <button type="button" onClick={pager.onNext} disabled={pager.index >= pager.count - 1} aria-label="이날의 다음 연결">
-              <Icon name="chevron" size={14} />
-            </button>
+        <div
+          ref={stageRef}
+          className="capsule-card-stage record-holo-stage"
+          style={
+            {
+              '--capsule-foil-gradient': capsulePaletteFoilGradient,
+              '--capsule-foil-hover-opacity': capsulePaletteFoil.darkOpacity,
+              '--capsule-glitter-hover-opacity': capsulePaletteFoil.glitterOpacity,
+              '--capsule-glare-hover-opacity': capsulePaletteFoil.glareOpacity,
+              '--record-holo-foil-scale': `${capsuleFoil.scale * 100}%`,
+            } as CSSProperties
+          }
+          {...tiltHandlers}
+        >
+          <div className="record-holo-flip">
+            <article className="capsule-share-card record-holo-card">
+              <div className="share-portrait record-holo-emblem" aria-hidden="true">
+                <span className="record-holo-watermark" style={{ maskImage: `url("${capsuleLogo.glyph.color}")` }} />
+                <img className="record-holo-logo" src={capsuleLogo.horizontal.white} alt="" draggable={false} />
+                <span className="record-holo-capsule">
+                  <span className="record-holo-capsule-core" />
+                </span>
+              </div>
+              <div className="capsule-card-header record-holo-head">
+                <p className="record-holo-title">{`${mateName}${withParticle(mateName)}의 캡슐`}</p>
+                <h3 id={titleId} className="record-holo-date">
+                  {formatCapsuleDate(capsule.startedAt)}
+                </h3>
+              </div>
+              {pager && pager.count > 1 && (
+                <div className="capsule-jar-card-pager">
+                  <button type="button" onClick={pager.onPrevious} disabled={pager.index === 0} aria-label="이날의 이전 연결">
+                    <Icon name="chevron" size={14} style={{ transform: 'rotate(180deg)' }} />
+                  </button>
+                  <span aria-live="polite">{`이날의 연결 ${pager.index + 1} / ${pager.count}`}</span>
+                  <button type="button" onClick={pager.onNext} disabled={pager.index >= pager.count - 1} aria-label="이날의 다음 연결">
+                    <Icon name="chevron" size={14} />
+                  </button>
+                </div>
+              )}
+              <dl className="record-holo-stats">
+                <div>
+                  <dt>시간대</dt>
+                  <dd>{formatCapsuleTimeRange(capsule)}</dd>
+                </div>
+                <div>
+                  <dt>함께한 시간</dt>
+                  <dd>{formatTogether(capsule.durationSeconds)}</dd>
+                </div>
+                <div>
+                  <dt>캡슐</dt>
+                  <dd>{`${capsulesForConnection(capsule.durationSeconds)}개`}</dd>
+                </div>
+              </dl>
+              {capsule.line && (
+                <blockquote className="record-holo-line">
+                  <p>{capsule.line}</p>
+                  <footer>{mateName}의 한마디</footer>
+                </blockquote>
+              )}
+              <div className="record-holo-actions">
+                {capsule.connectionId && (
+                  <Link to={`/connections/${capsule.connectionId}`} className="capsule-jar-card-link">
+                    연결 기록 보기
+                  </Link>
+                )}
+                <button ref={closeButtonRef} type="button" className="capsule-jar-card-close" onClick={onClose}>
+                  닫기
+                </button>
+              </div>
+              <span className="capsule-card-effects" aria-hidden="true">
+                <span className="capsule-card-foil" />
+                <span className="capsule-card-glitter" />
+                <span className="capsule-card-glare" />
+                <span className="capsule-card-sweep" />
+              </span>
+              {/* The light the card comes out of (fades as the card turns in). */}
+              <span className="record-holo-flash" aria-hidden="true" />
+            </article>
           </div>
-        )}
-        <dl className="capsule-jar-card-stats">
-          <div>
-            <dt>시간대</dt>
-            <dd>{formatCapsuleTimeRange(capsule)}</dd>
-          </div>
-          <div>
-            <dt>함께한 시간</dt>
-            <dd>{formatTogether(capsule.durationSeconds)}</dd>
-          </div>
-        </dl>
-        {capsule.line && (
-          <blockquote className="capsule-jar-card-line">
-            <p>{capsule.line}</p>
-            <footer>{mateName}의 한마디</footer>
-          </blockquote>
-        )}
-        <div className="capsule-jar-card-actions">
-          {capsule.connectionId && (
-            <Link to={`/connections/${capsule.connectionId}`} className="capsule-jar-card-link">
-              연결 기록 보기
-            </Link>
-          )}
-          <button ref={closeButtonRef} type="button" className="capsule-jar-card-close" onClick={onClose}>
-            닫기
-          </button>
         </div>
       </div>
     </dialog>

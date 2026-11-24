@@ -1,6 +1,8 @@
 /* Record card of one capsule (CapsuleRecordCard): my-mates scene and the records calendar.
    The layer is a native modal <dialog>: it sits in the top layer at the rect of its frame (set inline), the page
-   behind it is inert and Tab stays inside. */
+   behind it is inert and Tab stays inside. The card is a collectible card: the capsule card material of
+   reports/capsule-card-effects.css (tilt, depth layers, foil, glitter, glare, one light sweep), with the foil and
+   glitter kept to the palette's violet and white (docs/DESIGN_SYSTEM.md). Only transform and opacity animate. */
 .capsule-jar-card-layer {
   position: fixed;
   inset: auto;
@@ -10,7 +12,7 @@
   margin: 0;
   padding: 16px;
   border: 0;
-  overflow: hidden;
+  overflow: hidden auto;
   background: transparent;
   color: inherit;
   animation: capsule-jar-fade 260ms ease-out both;
@@ -18,7 +20,7 @@
 .capsule-jar-card-layer[open] { display: grid; }
 .capsule-jar-card-layer::backdrop { background: transparent; }
 
-/* Two-tone capsule icon (list rows, card head). */
+/* Two-tone capsule icon (list rows). */
 .capsule-jar-pill {
   flex: none;
   position: relative;
@@ -29,60 +31,156 @@
     linear-gradient(90deg, transparent 52%, var(--jar-tint) 52%, var(--jar-tint-shade) 100%),
     linear-gradient(160deg, var(--jar-light), var(--jar-light-shade));
 }
-.capsule-jar-pill--glow {
-  width: 26px;
-  height: 12px;
-  border-radius: 6px;
-  box-shadow: 0 0 14px 2px color-mix(in srgb, var(--jar-glow) 55%, transparent);
-}
 
-/* Desktop: the scene slides left, the record card unfolds on the right; the mate card stays visible. */
+/* The card settles in the middle of its frame (the window); a dim veil behind it. */
+.capsule-jar-card-layer[data-placement='center'],
+.capsule-jar-card-layer[data-placement='sheet'],
 .capsule-jar-card-layer[data-placement='beside'] {
-  place-items: center end;
-  padding-right: max(16px, 4%);
-  background: linear-gradient(90deg, transparent 45%, color-mix(in srgb, var(--color-canvas) 50%, transparent) 80%);
-}
-.capsule-jar-card-layer[data-placement='center'] {
   place-items: center;
-  background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
+  background: color-mix(in srgb, var(--color-canvas) 66%, transparent);
 }
-/* Narrow screens: a bottom sheet. */
-.capsule-jar-card-layer[data-placement='sheet'] {
-  place-items: end stretch;
-  padding: 0;
-  background: color-mix(in srgb, var(--color-canvas) 55%, transparent);
-}
-.capsule-jar-card-layer[data-phase='closing'] { animation: capsule-jar-fade-out 240ms ease-in both; }
+.capsule-jar-card-layer[data-phase='closing'] { animation: capsule-jar-fade-out 260ms ease-in both; }
 .capsule-jar-card-layer[data-animated='false'] { animation: none; }
 
-.capsule-jar-card {
+/* ── The card ── */
+.capsule-jar-card { position: relative; width: min(320px, calc(100vw - 32px)); }
+.record-holo-stage { width: 100%; max-width: none; }
+.record-holo-flip { transform-style: preserve-3d; }
+.record-holo-stage > .record-holo-flip > .capsule-share-card,
+.record-holo-card {
   position: relative;
-  width: min(340px, 100%);
-  padding: 24px 24px 20px;
-  overflow: hidden;
-  border-radius: 24px;
-  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-panel) 100%);
-  box-shadow: 0 16px 48px #00000066;
+  display: block;
+  padding: 14px 14px 18px;
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse 120% 60% at 50% 0%, color-mix(in srgb, var(--jar-glow, #9c84ff) 22%, transparent), transparent 70%),
+    linear-gradient(165deg, #2a2340 0%, var(--color-panel) 52%, var(--color-canvas) 100%);
+  color: var(--color-ink);
+  transform-style: preserve-3d;
+  transform: rotateX(var(--capsule-rotate-x)) rotateY(var(--capsule-rotate-y));
+  box-shadow: calc(var(--capsule-shift-x) * -0.5) 26px 60px #00000080, 0 4px 16px #0000004d;
+  transition: transform 200ms cubic-bezier(.2, .8, .2, 1), box-shadow 250ms;
 }
-.capsule-jar-card-layer[data-placement='sheet'] .capsule-jar-card {
-  width: 100%;
-  border-radius: 24px 24px 0 0;
-  padding-bottom: max(20px, env(safe-area-inset-bottom));
-}
-.capsule-jar-card-light {
-  position: absolute;
-  inset: 0 0 auto;
+
+/* The card borrows the capsule card's class names for the shared depth rules (capsule-card-effects.css); the
+   artboard sizing those names carry in index.css (360×600, 28px padding, flex header, portrait shade) is not ours. */
+.record-holo-card.capsule-share-card { width: 100%; height: auto; min-height: 0; overflow: visible; border: 0; }
+.record-holo-emblem.share-portrait { margin-top: 0; }
+.record-holo-emblem.share-portrait::after { content: none; }
+.record-holo-head.capsule-card-header { display: block; height: auto; font-size: inherit; line-height: inherit; }
+
+/* Emblem: where a picture would be, the capsule itself glowing in the mate's colours, the CAPSULE mark faint. */
+.record-holo-emblem {
+  position: relative;
+  display: grid;
+  place-items: center;
   height: 150px;
-  pointer-events: none;
-  background: radial-gradient(ellipse 70% 100% at 22% 0%, color-mix(in srgb, var(--jar-glow) 18%, transparent), transparent 72%);
+  overflow: hidden;
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 52%, color-mix(in srgb, var(--jar-glow, #9c84ff) 42%, transparent), transparent 72%),
+    linear-gradient(160deg, #2e2550, #191624 70%);
 }
-.capsule-jar-card > :not(.capsule-jar-card-light) { position: relative; }
+.record-holo-watermark {
+  position: absolute;
+  right: -34px;
+  bottom: -46px;
+  width: 210px;
+  height: 210px;
+  background: #fff;
+  opacity: 0.07;
+  transform: rotate(-24deg);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+}
+.record-holo-logo { position: absolute; top: 12px; left: 14px; width: 74px; height: auto; opacity: 0.62; user-select: none; }
+.record-holo-capsule {
+  position: relative;
+  width: 132px;
+  height: 56px;
+  border-radius: 28px;
+  transform: rotate(-16deg);
+  background:
+    linear-gradient(90deg, transparent 53%, var(--jar-tint, #8d6bff) 53%, var(--jar-tint-shade, #5b3fd1) 100%),
+    linear-gradient(165deg, var(--jar-light, #f6f2ff), var(--jar-light-shade, #c9bcf2));
+  box-shadow: 0 0 34px 6px color-mix(in srgb, var(--jar-glow, #9c84ff) 55%, transparent), inset 0 2px 6px #ffffff8c, inset 0 -4px 10px #00000040;
+}
+.record-holo-capsule::after {
+  /* The seam and a gloss line along the top. */
+  content: '';
+  position: absolute;
+  inset: 7px 14px auto;
+  height: 7px;
+  border-radius: 4px;
+  background: #ffffff73;
+}
+.record-holo-capsule-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, #ffffff, color-mix(in srgb, var(--jar-glow, #9c84ff) 70%, transparent) 38%, transparent 70%);
+}
+
+.record-holo-head { margin: 16px 6px 0; }
+.record-holo-title { margin: 0; font-size: 18px; line-height: 26px; font-weight: 700; color: var(--color-ink); }
+.record-holo-date {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.record-holo-card .capsule-jar-card-pager { margin: 10px 6px 0; }
+
+.record-holo-stats { display: grid; gap: 8px; margin: 14px 6px 0; padding: 12px 0 0; border-top: 1px solid rgb(255 255 255 / 0.08); }
+.record-holo-stats > div { display: flex; justify-content: space-between; gap: 16px; }
+.record-holo-stats dt { font-size: 13px; line-height: 20px; color: var(--color-muted); }
+.record-holo-stats dd {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--color-ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+/* The mate's line: Hahmlet, the card's story sentence. */
+.record-holo-line { margin: 14px 6px 0; padding: 12px 0 0; border-top: 1px solid rgb(255 255 255 / 0.08); }
+.record-holo-line p {
+  margin: 0;
+  font-family: var(--font-story);
+  font-size: 17px;
+  line-height: 28px;
+  font-weight: 500;
+  color: var(--color-ink);
+  word-break: keep-all;
+}
+.record-holo-line footer { margin-top: 4px; font-size: 12px; line-height: 18px; color: var(--color-muted); }
+.record-holo-actions { display: flex; justify-content: flex-end; gap: 8px; margin: 18px 6px 0; }
+
+/* Depth layers while tilted (the shared stage sets --capsule-depth): the emblem floats highest. */
+.record-holo-card .record-holo-stats { transform: translateZ(calc(var(--capsule-depth) * 18px)); }
+.record-holo-card .record-holo-line { transform: translateZ(calc(var(--capsule-depth) * 12px)); }
+.record-holo-card .record-holo-actions { transform: translateZ(calc(var(--capsule-depth) * 10px)); }
+.record-holo-emblem .record-holo-capsule { translate: calc(var(--capsule-shift-x) * -0.25) calc(var(--capsule-shift-y) * -0.25); }
+
+/* Glitter in the palette: white and pale violet only. */
+.record-holo-card .capsule-card-glitter {
+  background-image: radial-gradient(circle, #fff 0 .65px, transparent 1.1px), radial-gradient(circle, #e4dbff 0 .8px, transparent 1.35px), radial-gradient(circle, #f4efff 0 .55px, transparent 1px);
+}
+.record-holo-card .capsule-card-effects { border-radius: 22px; }
+
 .capsule-jar-card-pager {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: -6px;
   font-size: 12px;
   line-height: 18px;
   color: var(--color-muted);
@@ -103,54 +201,6 @@
 .capsule-jar-card-pager button:disabled { opacity: 0.45; cursor: default; }
 .capsule-jar-card-pager button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 
-.capsule-jar-card-head { display: flex; align-items: center; gap: 10px; }
-.capsule-jar-card-eyebrow {
-  margin: 0;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--color-subtle);
-}
-.capsule-jar-card-date {
-  margin: 10px 0 16px;
-  font-size: 20px;
-  line-height: 28px;
-  font-weight: 600;
-  color: var(--color-ink);
-  font-variant-numeric: tabular-nums lining-nums;
-}
-.capsule-jar-card-stats { display: grid; gap: 10px; margin: 0; }
-.capsule-jar-card-stats > div { display: flex; justify-content: space-between; gap: 16px; }
-.capsule-jar-card-stats dt { font-size: 13px; line-height: 20px; color: var(--color-subtle); }
-.capsule-jar-card-stats dd {
-  margin: 0;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--color-ink);
-  text-align: right;
-  font-variant-numeric: tabular-nums lining-nums;
-}
-.capsule-jar-card-line {
-  margin: 18px 0 0;
-  padding: 16px 0 0;
-  border-top: 1px solid var(--color-divider);
-}
-.capsule-jar-card-line p {
-  margin: 0;
-  font-family: var(--font-story);
-  font-size: 17px;
-  line-height: 28px;
-  font-weight: 500;
-  color: var(--color-ink);
-  word-break: keep-all;
-}
-.capsule-jar-card-line footer { margin-top: 6px; font-size: 12px; line-height: 18px; color: var(--color-subtle); }
-
-.capsule-jar-card-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 22px;
-}
 .capsule-jar-card-link,
 .capsule-jar-card-close {
   display: inline-flex;
@@ -168,60 +218,78 @@
 .capsule-jar-card-link:hover { background: var(--color-primary-soft-hover); color: var(--color-text-accent-hover); }
 .capsule-jar-card-close { background: var(--color-control); color: var(--color-ink); }
 .capsule-jar-card-close:hover { background: var(--color-control-hover); }
+.capsule-jar-card-link:focus-visible,
+.capsule-jar-card-close:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 
-/* The card comes out of the light: a bright point that stretches into a slit, then opens. */
-.capsule-jar-card-layer[data-animated='true'][data-phase='open'] .capsule-jar-card {
-  animation: capsule-jar-card-unfold 680ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+/* ── Arrival: out of the opened capsule's light ──
+   The light flashes where the capsule split (the card is a bright point there), the card turns in from the side as it
+   grows into the middle of the window, then one sweep of light crosses it. */
+.record-holo-flash {
+  position: absolute;
+  inset: -12%;
+  border-radius: 40%;
+  background: radial-gradient(ellipse, #ffffff, color-mix(in srgb, var(--jar-glow, #9c84ff) 70%, #ffffff) 35%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateZ(4px);
 }
-.capsule-jar-card-layer[data-animated='true'][data-phase='open'] .capsule-jar-card > :not(.capsule-jar-card-light) {
-  animation: capsule-jar-content-in 680ms ease-out both;
+.capsule-jar-card-layer[data-animated='true'][data-phase='open'] .capsule-jar-card {
+  animation: record-holo-arrive 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.capsule-jar-card-layer[data-animated='true'][data-phase='open'] .record-holo-flip {
+  animation: record-holo-turn 1000ms cubic-bezier(0.3, 0.7, 0.2, 1) both;
+}
+.capsule-jar-card-layer[data-animated='true'][data-phase='open'] .record-holo-flash {
+  animation: record-holo-flash 700ms ease-out both;
+}
+.capsule-jar-card-layer[data-animated='true'][data-phase='open'] .capsule-card-sweep {
+  animation: record-holo-sweep 1100ms ease-in-out 800ms both;
 }
 .capsule-jar-card-layer[data-animated='true'][data-phase='closing'] .capsule-jar-card {
-  animation: capsule-jar-card-fold 240ms cubic-bezier(0.5, 0, 0.75, 0) both;
+  animation: record-holo-leave 260ms cubic-bezier(0.5, 0, 0.75, 0) both;
 }
-.capsule-jar-card-layer[data-placement='sheet'][data-animated='true'][data-phase='open'] .capsule-jar-card {
-  animation: capsule-jar-sheet-up 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-.capsule-jar-card-layer[data-placement='sheet'][data-animated='true'][data-phase='closing'] .capsule-jar-card {
-  animation: capsule-jar-sheet-down 240ms ease-in both;
+.capsule-jar-card-layer[data-animated='true'][data-phase='closing'] .record-holo-flip {
+  animation: record-holo-turn-away 260ms ease-in both;
 }
 
-@keyframes capsule-jar-card-unfold {
-  0% {
-    transform: translate(var(--from-x, 0px), var(--from-y, 0px)) scale(0.05, 0.02);
-    opacity: 0;
-    filter: brightness(2.6);
-  }
-  35% {
-    transform: translate(calc(var(--from-x, 0px) * 0.45), calc(var(--from-y, 0px) * 0.45)) scale(0.85, 0.035);
-    opacity: 1;
-    filter: brightness(2.1);
-  }
-  100% {
-    transform: none;
-    opacity: 1;
-    filter: none;
-  }
+@keyframes record-holo-arrive {
+  0% { transform: translate(var(--from-x, 0px), var(--from-y, 0px)) scale(0.06); opacity: 0; }
+  14% { transform: translate(calc(var(--from-x, 0px) * 0.9), calc(var(--from-y, 0px) * 0.9)) scale(0.14); opacity: 1; }
+  100% { transform: none; opacity: 1; }
 }
-@keyframes capsule-jar-content-in {
-  0%, 45% { opacity: 0; transform: translateY(6px); }
-  100% { opacity: 1; transform: none; }
+@keyframes record-holo-turn {
+  0% { transform: rotateY(80deg) rotateZ(-12deg); }
+  62% { transform: rotateY(-9deg) rotateZ(-3deg); }
+  100% { transform: none; }
 }
-@keyframes capsule-jar-card-fold {
-  0% { transform: none; opacity: 1; filter: none; }
-  100% {
-    transform: translate(calc(var(--from-x, 0px) * 0.5), calc(var(--from-y, 0px) * 0.5)) scale(0.85, 0.03);
-    opacity: 0;
-    filter: brightness(1.8);
-  }
+@keyframes record-holo-flash {
+  0% { opacity: 1; }
+  30% { opacity: 0.85; }
+  100% { opacity: 0; }
 }
-@keyframes capsule-jar-sheet-up { from { transform: translateY(100%); filter: brightness(1.6); } to { transform: none; filter: none; } }
-@keyframes capsule-jar-sheet-down { from { transform: none; } to { transform: translateY(100%); } }
+@keyframes record-holo-sweep {
+  0% { transform: translateX(-100%); opacity: 1; }
+  100% { transform: translateX(100%); opacity: 1; }
+}
+@keyframes record-holo-leave {
+  0% { transform: none; opacity: 1; }
+  100% { transform: translate(calc(var(--from-x, 0px) * 0.5), calc(var(--from-y, 0px) * 0.5)) scale(0.2); opacity: 0; }
+}
+@keyframes record-holo-turn-away { to { transform: rotateY(60deg) rotateZ(-8deg); } }
+@keyframes capsule-jar-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes capsule-jar-fade-out { from { opacity: 1; } to { opacity: 0; } }
 
+/* Narrow screens: the card shrinks to the window's width (it stays a card, centred); touch has no tilt. */
+@media (max-width: 640px) {
+  .capsule-jar-card-layer { padding: 12px; }
+  .record-holo-emblem { height: 124px; }
+}
 
 .capsule-jar-card-layer[data-animated='false'] *,
-.capsule-jar-card-layer[data-animated='false'] *::before { animation: none !important; transition: none !important; }
+.capsule-jar-card-layer[data-animated='false'] *::before { animation: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .capsule-jar-card-layer,
   .capsule-jar-card-layer * { animation: none !important; transition: none !important; }
+  .record-holo-card { transform: none; }
+  .record-holo-card .capsule-card-sweep { opacity: 0; }
 }

@@ -1311,6 +1311,16 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   function setRunning(next: boolean) {
     if (disposed) return
     wanted = next
+    // Paused mid-opening (scrolled off screen, tab hidden): finish it now, or the card it waits for never comes.
+    if (!next && openState) {
+      const state = openState
+      if (state.phase === 'closing') finishClosing(state)
+      else if (state.phase === 'opening') {
+        settleOpening(state, false)
+        state.phase = 'open'
+        hideOpenCapsule()
+      }
+    }
     syncLoop()
     if (next && !running) renderOnce()
   }
@@ -1357,6 +1367,8 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   }
 
   function open(groupId: string, { beside }: { beside: boolean }): Promise<JarScenePoint | null> {
+    // A capsule still folding back from the last card: finish that at once so the new one can open.
+    if (openState?.phase === 'closing') finishClosing(openState)
     const index = pieceOf(groupId)
     if (index < 0 || openState || !shellMesh || disposed) return Promise.resolve(null)
     view.target = beside ? 1 : 0
