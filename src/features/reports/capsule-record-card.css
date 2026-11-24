@@ -11,14 +11,20 @@
   --capsule-record-height: max(640px, calc(100dvh - var(--site-header-height, 83px)));
   display: grid;
   grid-template-columns: 46fr 54fr;
+  align-items: start;
   min-height: var(--capsule-record-height);
   color: var(--color-ink);
 }
 
-/* ─── Mate column ─── */
+/*
+ * ─── Mate column ───
+ * Always one screen tall (below the header), whatever the card's height: a taller stage-up card must not enlarge
+ * the mate. When the card is taller than the screen, the mate stays put while it scrolls.
+ */
 .capsule-record-mate {
-  position: relative;
-  min-height: var(--capsule-record-height);
+  position: sticky;
+  top: var(--site-header-height, 0px);
+  height: var(--capsule-record-height);
   overflow: hidden;
 }
 
@@ -143,6 +149,7 @@
   position: relative;
   display: grid;
   place-items: center;
+  min-height: var(--capsule-record-height);
   padding: clamp(28px, 4vw, 72px) clamp(24px, 4vw, 80px) clamp(28px, 4vw, 72px) clamp(8px, 1vw, 24px);
 }
 
@@ -724,6 +731,8 @@
   }
 
   .capsule-record-mate {
+    position: relative;
+    top: auto;
     height: 55vh;
     min-height: 360px;
   }
@@ -734,6 +743,7 @@
   }
 
   .capsule-record-result {
+    min-height: 0;
     padding: 0 16px 40px;
   }
 
