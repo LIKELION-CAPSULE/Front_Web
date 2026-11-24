@@ -14,7 +14,7 @@ import { Dialog } from '@/shared/ui/Dialog'
 import { chaerinArtwork } from '@/features/mates/artwork'
 import { AssembleMateStage } from './assemble/AssembleMateStage'
 import { MateDialogue } from './MateDialogue'
-import { parseAssembleForcePhase, type AssemblePhase } from './assemble/assemble-machine'
+import { isMateAwake, parseAssembleForcePhase, type AssemblePhase } from './assemble/assemble-machine'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import './login-variants.css'
 
@@ -34,7 +34,11 @@ function usePrefersReducedMotion(): boolean {
   return reduced
 }
 
-/** Mate reactions on the login screen: greet, field focus, error, success. Same lines as the desktop login. */
+/**
+ * Mate reactions on the login screen: greet, field focus, error, success. Same lines as the desktop login.
+ * Chaerin only reacts once she is awake (see `isMateAwake`): before that, reactions are dropped (not queued), so
+ * nothing is said or announced while she is still the 2D card or mid-transform.
+ */
 function useMateReactions() {
   const [state, setState] = useState<MateReactionState>('idle')
   const [nonce, setNonce] = useState(0)
@@ -44,8 +48,14 @@ function useMateReactions() {
   const stateRef = useRef<MateReactionState>('idle')
   const revertTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const focusKind = useRef<'none' | 'email' | 'password'>('none')
+  /** Read synchronously by `apply`, so a reaction fired right after the phase change sees the new value. */
+  const awakeRef = useRef(false)
+  const [awake, setAwakeState] = useState(false)
 
   const apply = useCallback((next: MateReactionState, options?: ReactionOptions) => {
+    // Asleep: drop the reaction entirely (no line, no expression state). Keeping `state` at idle also means a field
+    // focused before waking cannot outrank the greeting; `focusKind` is still tracked so the revert lands correctly.
+    if (!awakeRef.current) return
     if (!options?.force && REACTION_PRIORITY[next] < REACTION_PRIORITY[stateRef.current]) return
     clearTimeout(revertTimer.current)
     stateRef.current = next
@@ -61,6 +71,20 @@ function useMateReactions() {
         stateRef.current = fallback
         setState(fallback)
       }, options.revertAfterMs)
+    }
+  }, [])
+
+  /** Follows the wake-up phase. Going back to sleep (replay) clears the current line and any pending revert. */
+  const setAwake = useCallback((next: boolean) => {
+    if (awakeRef.current === next) return
+    awakeRef.current = next
+    setAwakeState(next)
+    if (!next) {
+      clearTimeout(revertTimer.current)
+      stateRef.current = 'idle'
+      setState('idle')
+      setNonce((n) => n + 1)
+      setSpeech(null)
     }
   }, [])
 
@@ -104,7 +128,7 @@ function useMateReactions() {
     }
   }, [apply])
 
-  return { state, nonce, speech, endSpeech, apply, onFocusIn, onFocusOut }
+  return { state, nonce, speech: awake ? speech : null, endSpeech, apply, setAwake, onFocusIn, onFocusOut }
 }
 
 function parseAssembleDisableEngine(search: string): boolean {
@@ -121,7 +145,7 @@ export default function LoginVariantLayout() {
   const [mate] = useState(() => createLoginMateSource().selectMate())
   const [config, setConfig] = useState<DesktopShellWindowConfig | null>(null)
   const reactions = useMateReactions()
-  const { apply } = reactions
+  const { apply, setAwake } = reactions
   const assembleForcePhase = useMemo(
     () => parseAssembleForcePhase(new URLSearchParams(location.search).get('assemble')),
     [location.search],
@@ -134,13 +158,17 @@ export default function LoginVariantLayout() {
     apply('greet', { revertAfterMs: 4600 })
   }, [apply])
   const [assembleCaption, setAssembleCaption] = useState<{ visible: boolean; immediate: boolean }>(() => ({
-    visible: assembleForcePhase === 'live' || assembleForcePhase === 'static',
+    visible: isMateAwake(assembleForcePhase),
     immediate: assembleForcePhase === 'live' || assembleForcePhase === 'static' || reducedMotion,
   }))
-  const handleAssemblePhaseChange = useCallback((phase: AssemblePhase, immediate: boolean) => {
-    const visible = phase === 'live' || phase === 'static'
-    setAssembleCaption({ visible, immediate })
-  }, [])
+  const handleAssemblePhaseChange = useCallback(
+    (phase: AssemblePhase, immediate: boolean) => {
+      const awake = isMateAwake(phase)
+      setAwake(awake)
+      setAssembleCaption({ visible: awake, immediate })
+    },
+    [setAwake],
+  )
   const captionVisible = assembleCaption.visible
   const captionImmediate = assembleCaption.immediate || reducedMotion
 

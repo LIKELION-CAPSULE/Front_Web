@@ -53,6 +53,15 @@ export const ASSEMBLE_TIMINGS_MS = {
   demoIdleDelay: 6000,
 } as const
 
+/**
+ * Chaerin is "awake" once the wake-up sequence has ended: `live` (Live2D) or `static` (picture: reduced motion or the
+ * engine fallback). Before that (idle card, dragging, the transform animation) she has no voice: no dialogue lines,
+ * no screen-reader announcement, and the top-left caption stays hidden. The single source for that rule.
+ */
+export function isMateAwake(phase: AssemblePhase | null | undefined): boolean {
+  return phase === 'live' || phase === 'static'
+}
+
 /** Greeting bubble waits this long after the 260ms Live2D crossfade on the animated path. */
 export const ASSEMBLE_GREET_DELAY_MS = 380
 
@@ -70,7 +79,7 @@ export function assembleGreetDelayMs(options: {
   immediate: boolean
 }): number | null {
   const { phase, alreadyGreeted, immediate } = options
-  if (alreadyGreeted || (phase !== 'live' && phase !== 'static')) return null
+  if (alreadyGreeted || !isMateAwake(phase)) return null
   return immediate ? 0 : ASSEMBLE_TIMINGS_MS.liveFade + ASSEMBLE_GREET_DELAY_MS
 }
 

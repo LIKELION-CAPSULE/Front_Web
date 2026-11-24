@@ -7,6 +7,7 @@ import {
   assembleGreetDelayMs,
   createInitialAssembleState,
   getAssembleStepDurationMs,
+  isMateAwake,
   parseAssembleForcePhase,
   resolveClickActivation,
   readAssembleSeen,
@@ -232,4 +233,33 @@ test('reduced-motion first visit without Live2D ends in static (which greets)', 
   assert.equal(assembleGreetDelayMs({ phase: state.phase, alreadyGreeted: false, immediate: state.reducedMotion }), 0)
   // Revisit with the same setup starts in static directly.
   assert.equal(createInitialAssembleState({ seen: true, live2dStatus: 'error' }).phase, 'static')
+})
+
+test('isMateAwake: only the terminal phases (live / static) count as awake', () => {
+  assert.equal(isMateAwake('live'), true)
+  assert.equal(isMateAwake('static'), true)
+  for (const phase of ['idle', 'dragging', 'dropped', 'streaming', 'filling', 'settling'] as const) {
+    assert.equal(isMateAwake(phase), false, phase)
+  }
+  assert.equal(isMateAwake(null), false)
+  assert.equal(isMateAwake(undefined), false)
+})
+
+test('isMateAwake follows the wake-up sequence: asleep until the handoff, asleep again after replay', () => {
+  let state = createInitialAssembleState({ seen: false, live2dStatus: 'ready' })
+  assert.equal(isMateAwake(state.phase), false)
+  state = transitionAssembleState(state, { type: 'DRAG_START' })
+  assert.equal(isMateAwake(state.phase), false)
+  state = transitionAssembleState(state, { type: 'TRIGGER', method: 'drag', reducedMotion: false })
+  while (state.phase !== 'live') {
+    assert.equal(isMateAwake(state.phase), false, state.phase)
+    state = transitionAssembleState(state, { type: 'STEP_COMPLETE', live2dStatus: 'ready' })
+  }
+  assert.equal(isMateAwake(state.phase), true)
+  state = transitionAssembleState(state, { type: 'REPLAY' })
+  assert.equal(isMateAwake(state.phase), false)
+
+  // Revisit jumps straight to an awake phase.
+  assert.equal(isMateAwake(createInitialAssembleState({ seen: true, live2dStatus: 'ready' }).phase), true)
+  assert.equal(isMateAwake(createInitialAssembleState({ seen: true, live2dStatus: 'error' }).phase), true)
 })
