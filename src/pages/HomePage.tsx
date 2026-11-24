@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { availableMates } from '@/features/mates/catalog'
 import { MateCard } from '@/features/mates/components/MateCard'
 import { MateWelcome } from '@/features/mates/components/MateWelcome'
-import { MateTutorial } from '@/features/mates/components/MateTutorial'
 import { accountRequest } from '@/features/profile/account-location'
 import { Button } from '@/shared/ui/Button'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
 import { enqueueNotification, type NotificationItem } from '@/shared/ui/notification-queue'
 import '@/features/mates/mates.css'
+
+/** The 「사용법 보기」 coach mark (and the cursor library with gsap): its own chunk, loaded only when it opens. */
+const MateTutorial = lazy(() => import('@/features/mates/components/MateTutorial'))
 
 export default function HomePage() {
   const location = useLocation()
@@ -101,6 +103,6 @@ export default function HomePage() {
       )}
     </section>
     <NotificationStack items={notifications} onDismiss={id => setNotifications(current => current.filter(item => item.id !== id))} />
-    {tutorialOpen && <MateTutorial mates={mates} onClose={() => closeTutorial()} onComplete={() => closeTutorial(true)} />}
+    {tutorialOpen && <Suspense fallback={null}><MateTutorial onClose={() => closeTutorial()} onComplete={() => closeTutorial(true)} /></Suspense>}
   </>
 }

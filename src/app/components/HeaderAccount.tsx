@@ -38,14 +38,14 @@ export function HeaderAccount() {
   return <>
     <div className="header-account ml-auto flex shrink-0 items-center gap-2 sm:gap-3.5">
       {wallet && (
-        <Link to="/credits" className="credit-chip" aria-label="오늘 남은 크레딧">
+        <Link to="/credits" className="credit-chip" aria-label="오늘 남은 크레딧" data-tour="credits">
           <Icon name="coin" size={17} />
           <span className="font-sans tabular-nums text-label font-semibold text-ink">
             {number(wallet.attendance + wallet.invitation)}
           </span>
         </Link>
       )}
-      <button ref={trigger} type="button" aria-label="계정 설정 열기" aria-haspopup="dialog" aria-expanded={open} className="header-avatar-btn flex items-center justify-center rounded-full" onClick={() => setOpen(true)}><Avatar size="sm" /></button>
+      <button ref={trigger} type="button" data-tour="profile" aria-label="계정 설정 열기" aria-haspopup="dialog" aria-expanded={open} className="header-avatar-btn flex items-center justify-center rounded-full" onClick={() => setOpen(true)}><Avatar size="sm" /></button>
     </div>
     {open && <Suspense fallback={<AccountSettingsLoading onClose={close} />}><AccountSettingsDialog key={requested?.view ?? 'local'} initialView={requested?.view} onClose={close} /></Suspense>}
   </>

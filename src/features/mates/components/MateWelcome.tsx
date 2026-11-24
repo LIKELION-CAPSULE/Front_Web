@@ -25,7 +25,7 @@ export function MateWelcome({ mates, onExplore }: { mates: readonly AvailableMat
           {last ? `${withParticle(last.name, '이', '가')} 기다리고 있었어요` : <>노트북 앞의 시간,<br /><span>함께 보낼 메이트를 골라요</span></>}
         </h1>
         {last && <p>{state.profile.name}님, 오늘도 옆에 있을게요.</p>}
-        <div className="mate-welcome-cta">
+        <div className="mate-welcome-cta" data-tour={last ? 'connect' : undefined}>
           {last ? <ConnectMateButton mate={last} label="다시 연결하기" /> : <Button onClick={onExplore}>메이트 둘러보기 <Icon name="arrow" size={18} className="rotate-90" /></Button>}
         </div>
       </div>
