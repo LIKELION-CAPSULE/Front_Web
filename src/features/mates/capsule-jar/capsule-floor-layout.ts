@@ -1,6 +1,7 @@
 import { hashId, seededRandom, sortCapsules } from './capsule-jar-data.ts'
 import { CAPSULE_ASPECT, type CapsulePlacement } from './capsule-jar-layout.ts'
 import type { CapsuleRecord } from './capsule-jar-types.ts'
+import { capsuleBand, capsuleKeepsakes, type TimeBand } from './capsule-moments.ts'
 
 /**
  * Pure layout of the capsule pile at the bottom of the mate panel, seen flat from the side (2D): every capsule lies
@@ -17,6 +18,9 @@ import type { CapsuleRecord } from './capsule-jar-types.ts'
  *   capsules roll over each other and would flatten any free-standing slope).
  * - Bundles go to the bin that is least full for its share and stack on what lies there (a 2D height profile).
  * - The capsule size follows the total count so 30 or 300 capsules both fill the bins to about the same height.
+ * - Every capsule of a bundle carries its connection's time band (its tint) and one capsule of a milestone connection
+ *   is the keepsake: `KEEPSAKE_SCALE` × the base length (so it also takes that room in the pile and in the physics)
+ *   and the brightest glow (capsule-moments.ts).
  * - The order of `placements` is the stacking order: later capsules rest on earlier ones (the pour drops the last).
  * - These are resting poses; with physics the scene drops the last capsules and lets them settle (capsule-physics.ts).
  */
@@ -110,14 +114,28 @@ export function floorCapsuleLength(count: number, halfWidth: number = PILE.defau
   return Math.round(Math.min(PILE.maxLength, Math.max(PILE.minLength, length)) * 100) / 100
 }
 
+/** A keepsake capsule is this much larger than the others (its collision size follows). */
+export const KEEPSAKE_SCALE = 1.4
+
 export type FloorPlacement = CapsulePlacement & {
+  /** Time band of the connection (its tint; the same for the whole bundle). */
+  band: TimeBand
+  /** The milestone (hours) this capsule marks, or 0 (capsule-moments.ts). */
+  keepsake: number
   /** The connection (bundle) this capsule belongs to: the record id. */
   groupId: string
   /** Index of the bundle in `groups`. */
   group: number
 }
 
-export type FloorGroup = { id: string; indices: number[]; durationSeconds: number }
+export type FloorGroup = {
+  id: string
+  indices: number[]
+  durationSeconds: number
+  band: TimeBand
+  /** The milestone (hours) of the bundle's keepsake capsule, or 0. */
+  keepsake: number
+}
 
 export type FloorLayout = {
   kind: 'floor'
@@ -193,13 +211,17 @@ export function layoutFloor(
   const groups: FloorGroup[] = []
   let topHeight = 0
   const binPieces = bins.map(() => 0)
+  const keepsakes = capsuleKeepsakes(sorted, capsulesForConnection)
 
   for (const [groupIndex, capsule] of sorted.entries()) {
     const random = seededRandom(hashId(capsule.id))
     // The bundle's bin: the one least full for its share (ties broken at random); its spot: the lowest of a few.
+    // A bundle with a keepsake always goes to a side bin, so the keepsake shows beside the mate.
+    const hasKeepsake = keepsakes.has(capsule.id)
     let bin = bins[1]!
     let binScore = Infinity
     for (const [index, candidate] of bins.entries()) {
+      if (hasKeepsake && index === 1) continue
       const score = (binPieces[index]! + 1) / candidate.share + random() * 0.5
       if (score < binScore) {
         binScore = score
@@ -217,11 +239,21 @@ export function layoutFloor(
         spot = x
       }
     }
-    const group: FloorGroup = { id: capsule.id, indices: [], durationSeconds: capsule.durationSeconds }
+    const band = capsuleBand(capsule)
+    const keepsake = keepsakes.get(capsule.id)
+    const group: FloorGroup = {
+      id: capsule.id,
+      indices: [],
+      durationSeconds: capsule.durationSeconds,
+      band,
+      keepsake: keepsake?.hours ?? 0,
+    }
     groups.push(group)
 
     for (let piece = 0; piece < counts[groupIndex]!; piece++) {
-      const length = baseLength * (0.88 + random() * 0.24)
+      const isKeepsake = keepsake !== undefined && keepsake.piece === piece
+      const variation = 0.88 + random() * 0.24
+      const length = isKeepsake ? baseLength * KEEPSAKE_SCALE : baseLength * variation
       const radius = (length * CAPSULE_ASPECT) / 2
       const halfAxis = length / 2 - radius
       let best: { x: number; tilt: number; centerY: number; rest: ReturnType<typeof restOn> } | null = null
@@ -235,8 +267,10 @@ export function layoutFloor(
         const tilt = (random() - 0.5) * 2 * PILE.maxTilt
         const rest = restOn(profile, x, tilt, halfAxis, radius)
         const top = rest.centerY + Math.abs(Math.sin(tilt)) * halfAxis + radius
-        // Low and level wins: capsules fill hollows first.
-        const score = top + Math.abs(tilt) * radius * 0.5 + random() * radius * 0.3
+        // Low and level wins: capsules fill hollows first. The keepsake also leans to the bin's outer side (away
+        // from the mate, so she covers less of it).
+        const outward = isKeepsake ? -Math.abs(x) * 0.35 : 0
+        const score = top + Math.abs(tilt) * radius * 0.5 + random() * radius * 0.3 + outward
         if (score < bestScore) {
           bestScore = score
           best = { x, tilt, centerY: rest.centerY, rest }
@@ -259,7 +293,9 @@ export function layoutFloor(
         roll: random() * Math.PI * 2,
         length,
         radius,
-        glow: 0.35 + random() * 0.45,
+        glow: isKeepsake ? 1 : 0.35 + random() * 0.45,
+        band,
+        keepsake: isKeepsake ? keepsake.hours : 0,
       })
     }
   }

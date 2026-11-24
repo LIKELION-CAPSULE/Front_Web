@@ -20,7 +20,7 @@ import {
   writeLastVisit,
 } from '../src/features/mates/capsule-jar/capsule-jar-visit.ts'
 import type { CapsuleRecord } from '../src/features/mates/capsule-jar/capsule-jar-types.ts'
-import { CAPSULE_COUNT, PILE, capsulesForConnection, floorCapsuleLength, layoutFloor, pileBinAt, pileBins, pileHalfWidth } from '../src/features/mates/capsule-jar/capsule-floor-layout.ts'
+import { CAPSULE_COUNT, KEEPSAKE_SCALE, PILE, capsulesForConnection, floorCapsuleLength, layoutFloor, pileBinAt, pileBins, pileHalfWidth } from '../src/features/mates/capsule-jar/capsule-floor-layout.ts'
 
 const NOW = Date.UTC(2026, 10, 24, 3, 0, 0)
 
@@ -172,8 +172,13 @@ test('pile: bundles by connection, flat in the screen plane, inside the panel an
       assert.ok(pieces.every((piece) => piece.groupId === group.id))
       assert.equal(pieces.length, capsulesForConnection(group.durationSeconds))
       for (const piece of pieces) {
-        assert.ok(Math.abs(piece.length / layout.baseLength - 1) <= 0.121, 'only a small natural size variation')
+        // A keepsake is KEEPSAKE_SCALE × the base length; the others vary only a little.
+        if (piece.keepsake) assert.ok(Math.abs(piece.length / layout.baseLength - KEEPSAKE_SCALE) < 1e-9, 'keepsake size')
+        else assert.ok(Math.abs(piece.length / layout.baseLength - 1) <= 0.121, 'only a small natural size variation')
+        assert.equal(piece.band, group.band, 'a bundle shares its time band')
       }
+      assert.ok(pieces.filter((piece) => piece.keepsake).length <= 1, 'at most one keepsake per connection')
+      assert.equal(pieces.some((piece) => piece.keepsake), group.keepsake > 0)
     }
     for (const placement of layout.placements) {
       assert.ok(placement.y >= placement.radius - 1e-6, `${placement.id} sinks into the floor`)

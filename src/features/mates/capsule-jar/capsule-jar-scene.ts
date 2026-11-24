@@ -10,6 +10,8 @@ import { CAPSULE_ASPECT, CAPSULE_SEAM_OFFSET } from './capsule-jar-layout.ts'
 import { PILE, pileBinAt, type FloorLayout } from './capsule-floor-layout.ts'
 import { carryByIds, isStillPresent, planPour, POUR } from './capsule-pour.ts'
 import type { CapsuleJarTheme } from './capsule-jar-types.ts'
+import { capsuleBandTheme } from './capsule-jar-theme.ts'
+import type { TimeBand } from './capsule-moments.ts'
 import type { BodyPose, CapsulePhysics } from './capsule-physics.ts'
 
 /**
@@ -164,6 +166,9 @@ function shellMaterial(instanced: boolean, glow: Color) {
     vertexColors: true,
     uniforms: {
       uGlowColor: { value: glow },
+      uLight: { value: new Color('#ffffff') },
+      uTint: { value: new Color('#ffffff') },
+      uKeepsake: { value: 0 },
       uSeamX: { value: SEAM_X },
       uStrength: { value: 1 },
       uOpacity: { value: 1 },
@@ -171,61 +176,86 @@ function shellMaterial(instanced: boolean, glow: Color) {
       uWeight: { value: 0.6 },
     },
     vertexShader: /* glsl */ `
+      uniform float uSeamX;
       #ifdef SINGLE_CAPSULE
         uniform float uGlow;
         uniform float uWeight;
+        uniform vec3 uGlowColor;
+        uniform vec3 uLight;
+        uniform vec3 uTint;
+        uniform float uKeepsake;
       #else
         attribute float instanceGlow;
         attribute float instanceWeight;
+        attribute vec3 instanceLight;
+        attribute vec3 instanceTint;
+        attribute vec3 instanceGlowColor;
+        attribute float instanceKeepsake;
       #endif
       varying vec3 vN;
       varying vec3 vV;
       varying vec3 vCol;
+      varying vec3 vGlowColor;
       varying float vX;
+      varying float vAngle;
       varying float vGlow;
       varying float vWeight;
+      varying float vKeepsake;
       void main() {
+        // Each capsule's two tones and light: its connection's time band (vertex colours only mark the halves).
         #ifdef SINGLE_CAPSULE
           mat4 m = modelViewMatrix;
           vGlow = uGlow;
           vWeight = uWeight;
+          vCol = position.x < uSeamX ? uLight : uTint;
+          vGlowColor = uGlowColor;
+          vKeepsake = uKeepsake;
         #else
           mat4 m = modelViewMatrix * instanceMatrix;
           vGlow = instanceGlow;
           vWeight = instanceWeight;
+          vCol = position.x < uSeamX ? instanceLight : instanceTint;
+          vGlowColor = instanceGlowColor;
+          vKeepsake = instanceKeepsake;
         #endif
         vec4 mv = m * vec4(position, 1.0);
         vN = normalize(mat3(m) * normal);
         vV = normalize(-mv.xyz);
-        vCol = color;
         vX = position.x;
+        vAngle = atan(position.z, position.y);
         gl_Position = projectionMatrix * mv;
       }
     `,
     fragmentShader: /* glsl */ `
-      uniform vec3 uGlowColor;
       uniform float uSeamX;
       uniform float uStrength;
       uniform float uOpacity;
       varying vec3 vN;
       varying vec3 vV;
       varying vec3 vCol;
+      varying vec3 vGlowColor;
       varying float vX;
+      varying float vAngle;
       varying float vGlow;
       varying float vWeight;
+      varying float vKeepsake;
       void main() {
         vec3 n = normalize(vN);
         vec3 v = normalize(vV);
         float facing = abs(dot(n, v));
         float fresnel = pow(max(0.0, 1.0 - facing), 2.4);
         vec3 body = vCol * (0.03 + 0.36 * fresnel);
-        vec3 inner = mix(vCol, uGlowColor, 0.5) * (0.04 + 0.2 * vWeight) * pow(clamp(facing, 0.0, 1.0), 1.4);
+        vec3 inner = mix(vCol, vGlowColor, 0.5) * (0.04 + 0.2 * vWeight) * pow(clamp(facing, 0.0, 1.0), 1.4);
         float seam = exp(-pow((vX - uSeamX) / 0.018, 2.0));
-        vec3 seamLight = uGlowColor * seam * (0.12 + 0.22 * vWeight);
+        vec3 seamLight = vGlowColor * seam * (0.12 + 0.22 * vWeight);
+        // Keepsake: a wider band of light along the seam with five small white stars on it.
+        float band = exp(-pow((vX - uSeamX) / 0.05, 2.0));
+        float stars = pow(max(0.0, cos(vAngle * 5.0)), 28.0) * exp(-pow((vX - uSeamX) / 0.03, 2.0));
+        vec3 keepsakeLight = vKeepsake * (vGlowColor * band * 0.45 + vec3(1.0, 0.98, 1.0) * stars * 1.3);
         vec3 h = normalize(normalize(vec3(-0.45, 0.75, 0.5)) + v);
         float gloss = pow(max(dot(n, h), 0.0), 40.0) * 0.12;
         float side = gl_FrontFacing ? 1.0 : 0.45;
-        vec3 color = ((body + inner + seamLight) * vGlow * uStrength + vec3(gloss)) * side * uOpacity;
+        vec3 color = ((body + inner + seamLight + keepsakeLight) * vGlow * uStrength + vec3(gloss)) * side * uOpacity;
         gl_FragColor = vec4(color, 1.0);
       }
     `,
@@ -246,14 +276,17 @@ function coreMaterial(glow: Color) {
     vertexShader: /* glsl */ `
       attribute float instanceGlow;
       attribute float instanceWeight;
+      attribute vec3 instanceGlowColor;
       uniform float uTime;
       uniform float uBreath;
       varying vec2 vUv;
       varying float vIntensity;
       varying float vWeight;
+      varying vec3 vGlowColor;
       void main() {
         vUv = uv;
         vWeight = instanceWeight;
+        vGlowColor = instanceGlowColor;
         float breath = 1.0 + uBreath * 0.14 * sin(uTime * 0.85 + float(gl_InstanceID) * 2.399);
         vIntensity = (0.3 + 1.3 * instanceWeight) * instanceGlow * breath;
         vec4 center = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
@@ -263,15 +296,15 @@ function coreMaterial(glow: Color) {
       }
     `,
     fragmentShader: /* glsl */ `
-      uniform vec3 uGlowColor;
       uniform float uStrength;
       varying vec2 vUv;
       varying float vIntensity;
       varying float vWeight;
+      varying vec3 vGlowColor;
       void main() {
         float d = length(vUv - 0.5) * 2.0;
         float core = exp(-d * d * 26.0) * 0.95 + pow(max(0.0, 1.0 - d), 3.0) * 0.3;
-        vec3 color = mix(uGlowColor, vec3(1.0, 0.98, 1.0), exp(-d * d * 70.0) * (0.5 + 0.5 * vWeight));
+        vec3 color = mix(vGlowColor, vec3(1.0, 0.98, 1.0), exp(-d * d * 70.0) * (0.5 + 0.5 * vWeight));
         gl_FragColor = vec4(color * core * vIntensity * uStrength, 1.0);
       }
     `,
@@ -287,11 +320,14 @@ function haloMaterial(glow: Color) {
     uniforms: { glowColor: { value: glow }, strength: { value: 0.16 } },
     vertexShader: /* glsl */ `
       attribute float instanceGlow;
+      attribute vec3 instanceGlowColor;
       varying vec2 vUv;
       varying float vGlow;
+      varying vec3 vGlowColor;
       void main() {
         vUv = uv;
         vGlow = instanceGlow;
+        vGlowColor = instanceGlowColor;
         vec4 center = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
         float size = length(instanceMatrix[0].xyz) * 1.25;
         center.xy += position.xy * size;
@@ -299,15 +335,15 @@ function haloMaterial(glow: Color) {
       }
     `,
     fragmentShader: /* glsl */ `
-      uniform vec3 glowColor;
       uniform float strength;
       varying vec2 vUv;
       varying float vGlow;
+      varying vec3 vGlowColor;
       void main() {
         float d = length(vUv - 0.5) * 2.0;
         float falloff = pow(max(0.0, 1.0 - d), 2.4);
         float value = falloff * strength * vGlow;
-        gl_FragColor = vec4(glowColor * value, value);
+        gl_FragColor = vec4(vGlowColor * value, value);
       }
     `,
     transparent: false,
@@ -524,6 +560,21 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   let haloMesh: InstancedMesh | null = null
   let glowAttribute: InstancedBufferAttribute | null = null
   let weightAttribute: InstancedBufferAttribute | null = null
+  /** Per capsule: its time band's two tones and light, and whether it is a keepsake. */
+  let lightAttribute: InstancedBufferAttribute | null = null
+  let tintAttribute: InstancedBufferAttribute | null = null
+  let glowColorAttribute: InstancedBufferAttribute | null = null
+  let keepsakeAttribute: InstancedBufferAttribute | null = null
+  const bandColors = new Map<TimeBand, { light: Color; tint: Color; glow: Color }>()
+  const colorsOf = (band: TimeBand) => {
+    let colors = bandColors.get(band)
+    if (!colors) {
+      const tinted = capsuleBandTheme(theme, band)
+      colors = { light: new Color(tinted.lightHalf), tint: new Color(tinted.tintHalf), glow: new Color(tinted.glow) }
+      bandColors.set(band, colors)
+    }
+    return colors
+  }
 
   function ensureCapacity(count: number) {
     if (count <= capacity && shellMesh) return
@@ -543,9 +594,17 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     glowAttribute = new InstancedBufferAttribute(new Float32Array(capacity).fill(1), 1)
     glowAttribute.setUsage(DynamicDrawUsage)
     weightAttribute = new InstancedBufferAttribute(new Float32Array(capacity).fill(0.5), 1)
+    lightAttribute = new InstancedBufferAttribute(new Float32Array(capacity * 3).fill(1), 3)
+    tintAttribute = new InstancedBufferAttribute(new Float32Array(capacity * 3).fill(1), 3)
+    glowColorAttribute = new InstancedBufferAttribute(new Float32Array(capacity * 3).fill(1), 3)
+    keepsakeAttribute = new InstancedBufferAttribute(new Float32Array(capacity), 1)
     for (const geometry of [shellGeometry, coreGeometry, haloGeometry]) {
       geometry.setAttribute('instanceGlow', glowAttribute)
       geometry.setAttribute('instanceWeight', weightAttribute)
+      geometry.setAttribute('instanceLight', lightAttribute)
+      geometry.setAttribute('instanceTint', tintAttribute)
+      geometry.setAttribute('instanceGlowColor', glowColorAttribute)
+      geometry.setAttribute('instanceKeepsake', keepsakeAttribute)
     }
     shellMesh = new InstancedMesh(shellGeometry, shellShader, capacity)
     shellMesh.instanceMatrix.setUsage(DynamicDrawUsage)
@@ -789,7 +848,8 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     // Quiet by default; the bundle under the pointer (or opened) and the new bundles stand out.
     glowAttribute!.setX(
       index,
-      0.34 + placement.glow * 0.42 + hover[index]! * 1.15 + (flash[index] ?? 0) * 2.2 + (isNewPiece[index] ? 0.55 : 0) + firstCapsuleBoost,
+      0.34 + placement.glow * 0.42 + hover[index]! * 1.15 + (flash[index] ?? 0) * 2.2 + (isNewPiece[index] ? 0.55 : 0) +
+        (placement.keepsake ? 0.5 : 0) + firstCapsuleBoost,
     )
   }
 
@@ -834,11 +894,17 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
       hover.push(0)
       flash.push(0)
       weightAttribute!.setX(index, placement.glow)
+      const colors = colorsOf(placement.band)
+      lightAttribute!.setXYZ(index, colors.light.r, colors.light.g, colors.light.b)
+      tintAttribute!.setXYZ(index, colors.tint.r, colors.tint.g, colors.tint.b)
+      glowColorAttribute!.setXYZ(index, colors.glow.r, colors.glow.g, colors.glow.b)
+      keepsakeAttribute!.setX(index, placement.keepsake ? 1 : 0)
       updateGlow(index)
     }
     for (const mesh of [shellMesh!, coreMesh!, haloMesh!]) mesh.count = placements.length
     glowAttribute!.needsUpdate = true
     weightAttribute!.needsUpdate = true
+    for (const attribute of [lightAttribute!, tintAttribute!, glowColorAttribute!, keepsakeAttribute!]) attribute.needsUpdate = true
     if (hoveredPiece >= placements.length) hoveredPiece = hoveredGroup = -1
     if (highlightGroup >= next.groups.length) highlightGroup = -1
 
@@ -1375,6 +1441,12 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     capsuleGroup.updateMatrixWorld()
     shellMesh.getMatrixAt(index, matrix)
     openShader.uniforms.uWeight!.value = placements[index]!.glow
+    // The opened capsule keeps its time band's colours (and its keepsake light).
+    const openColors = colorsOf(placements[index]!.band)
+    openShader.uniforms.uLight!.value = openColors.light
+    openShader.uniforms.uTint!.value = openColors.tint
+    openShader.uniforms.uGlowColor!.value = openColors.glow
+    openShader.uniforms.uKeepsake!.value = placements[index]!.keepsake ? 1 : 0
     matrix.premultiply(capsuleGroup.matrixWorld)
     const fromPosition = new Vector3()
     const fromQuaternion = new Quaternion()

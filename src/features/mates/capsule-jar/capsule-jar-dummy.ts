@@ -19,6 +19,16 @@ function typicalMinutes(random: () => number) {
   return 30 + 90 * Math.min(random(), random() * 0.6 + random() * 0.4)
 }
 
+/** Start hour of a day's main connection: 새벽 8% · 아침 17% · 낮 15% · 저녁 40% · 밤 20%. */
+function mainStartHour(random: () => number) {
+  const roll = random()
+  if (roll < 0.08) return 1 + random() * 3.5
+  if (roll < 0.25) return 6 + random() * 4.5
+  if (roll < 0.4) return 11.5 + random() * 5
+  if (roll < 0.8) return 17.2 + random() * 3.5
+  return 21.2 + random() * 2.3
+}
+
 /**
  * Dummy capsules for the preview, going back day by day from `now`: 0–2 connections a day (two-week opening
  * assumption). `minutes` replaces the length distribution, e.g. [15, 40] for the 200-capsule stress test.
@@ -39,10 +49,11 @@ export function generateDummyCapsules(
   for (let dayOffset = 0; result.length < count; dayOffset++) {
     const roll = random()
     const sessions = roll < 0.25 ? 0 : roll < 0.75 ? 1 : 2
-    // Second connection of a day comes earlier (afternoon), the main one in the evening.
+    // The main connection of a day is mostly in the evening, otherwise any time band (capsules are tinted by band);
+    // a second one comes in the afternoon.
     for (let session = 0; session < sessions && result.length < count; session++) {
       const durationMinutes = Math.round(minutes ? minutes[0] + random() * (minutes[1] - minutes[0]) : typicalMinutes(random))
-      const startHour = session === 0 ? 19 + random() * 3.5 : 13 + random() * 4
+      const startHour = session === 0 ? mainStartHour(random) : 13 + random() * 4
       const startedAt = today.getTime() - dayOffset * 24 * HOUR + startHour * HOUR
       // Every dummy connection has ended at least an hour before `now`, so none of them looks "new" on a reload.
       if (startedAt + durationMinutes * 60_000 > now - HOUR) continue

@@ -11,7 +11,8 @@ import {
 } from './capsule-jar-data.ts'
 import { CAPSULE_ASPECT } from './capsule-jar-layout.ts'
 import { PILE, layoutFloor, pileHalfWidth, type FloorLayout } from './capsule-floor-layout.ts'
-import { capsuleJarTheme } from './capsule-jar-theme.ts'
+import { capsuleBandTheme, capsuleJarTheme } from './capsule-jar-theme.ts'
+import { keepsakeTitle } from './capsule-moments.ts'
 import type { CapsuleJarTheme, CapsuleRecord } from './capsule-jar-types.ts'
 import type { JarBenchmark, JarSceneController, JarScenePoint } from './capsule-jar-scene.ts'
 import { CapsuleRecordCard } from './CapsuleRecordCard.tsx'
@@ -122,6 +123,13 @@ export default function CapsuleJar({
   const layout = useMemo(() => layoutFloor(capsules, { halfWidth }), [capsules, halfWidth])
   const byId = useMemo(() => new Map(capsules.map((capsule) => [capsule.id, capsule])), [capsules])
   const summary = capsuleJarSummary(mateName, capsules, layout.placements.length)
+  // Per connection: its time band's light colour and its keepsake milestone (hours, 0 = none), from the layout.
+  const groupById = useMemo(() => new Map(layout.groups.map((group) => [group.id, group])), [layout])
+  const keepsakeOf = (id: string) => groupById.get(id)?.keepsake ?? 0
+  const bandGlowOf = (id: string) => {
+    const group = groupById.get(id)
+    return group ? capsuleBandTheme(theme, group.band).glow : theme.glow
+  }
   const titleId = useId()
 
   const stageRef = useRef<HTMLDivElement>(null)
@@ -427,8 +435,15 @@ export default function CapsuleJar({
           {mode === 'webgl' && hovered && !recordCard && (
             <div ref={tooltipRef} className="capsule-jar-tooltip-anchor" aria-hidden="true">
               <div className="capsule-jar-tooltip">
-                <span className="capsule-jar-tooltip-date">{formatCapsuleShortDate(hovered.startedAt)}</span>
+                <span className="capsule-jar-tooltip-date">
+                  {/* The time band as the capsules' own tint. */}
+                  <span className="capsule-jar-tooltip-band" style={{ background: bandGlowOf(hovered.id) }} />
+                  {formatCapsuleShortDate(hovered.startedAt)}
+                </span>
                 <span className="capsule-jar-tooltip-time">{formatTogether(hovered.durationSeconds)}</span>
+                {keepsakeOf(hovered.id) ? (
+                  <span className="capsule-jar-tooltip-keepsake">{keepsakeTitle(keepsakeOf(hovered.id))}</span>
+                ) : null}
               </div>
             </div>
           )}
@@ -477,6 +492,7 @@ export default function CapsuleJar({
             capsule={selected}
             mateName={mateName}
             mateId={mateId}
+            keepsakeHours={keepsakeOf(selected.id) || undefined}
             frame="viewport"
             placement={recordCard.placement}
             phase={recordCard.phase}

@@ -114,6 +114,17 @@
   font-weight: 700;
   letter-spacing: 0.02em;
 }
+/* Keepsake (a milestone of the time together): a quiet violet text tag, lighter than NEW. */
+.mate-game-keepsake {
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.07);
+  color: var(--color-text-accent);
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+}
 .mate-game-empty { margin: 0; font-size: 13px; line-height: 18px; color: var(--color-subtle); }
 
 /* Short windows (1280×720 and the like): tighter blocks so the recent list still gets two or three rows. */

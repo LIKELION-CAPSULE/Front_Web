@@ -45,7 +45,11 @@
 /* ── The card ── */
 .capsule-jar-card { position: relative; width: min(320px, calc(100vw - 32px)); }
 .record-holo-stage { width: 100%; max-width: none; }
-.record-holo-flip { transform-style: preserve-3d; }
+/* The 3D wrapper must never take clicks: in the card's 3D context it sits at z = 0, so where the tilted card leans
+   behind that plane the (empty) wrapper box would be hit instead of the buttons. Only the card itself takes pointer
+   events; the decoration layers inside it take none (capsule-card-effects.css, .record-holo-flash). */
+.record-holo-flip { transform-style: preserve-3d; pointer-events: none; }
+.record-holo-flip > .record-holo-card { pointer-events: auto; }
 .record-holo-stage > .record-holo-flip > .capsule-share-card,
 .record-holo-card {
   position: relative;
@@ -161,8 +165,59 @@
   color: var(--color-ink);
   word-break: keep-all;
 }
-.record-holo-line footer { margin-top: 4px; font-size: 12px; line-height: 18px; color: var(--color-muted); }
 .record-holo-actions { display: flex; justify-content: flex-end; gap: 8px; margin: 18px 6px 0; }
+
+/* The time band: a small dot in the tint of this connection's capsules (no word for it on the card). */
+.record-holo-stats dd { display: inline-flex; align-items: center; justify-content: flex-end; gap: 7px; }
+.record-holo-band {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--jar-glow, #9c84ff);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--jar-glow, #9c84ff) 70%, transparent);
+}
+
+/* Keepsake capsule (a milestone of the time together): the line in the emblem, a brighter capsule with a ring of
+   small stars, and stronger foil and glare — the same card, a little special. Violet and white only. */
+.record-holo-keepsake {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  margin: 0;
+  color: #fff;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 800;
+  text-align: center;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--jar-glow, #9c84ff) 90%, transparent), 0 1px 2px #0008;
+}
+.capsule-jar-card-layer[data-keepsake] .record-holo-emblem { grid-template-rows: 1fr; padding-bottom: 26px; }
+.capsule-jar-card-layer[data-keepsake] .record-holo-capsule {
+  scale: 1.1;
+  box-shadow: 0 0 46px 10px color-mix(in srgb, var(--jar-glow, #9c84ff) 70%, transparent), inset 0 2px 6px #ffffff8c, inset 0 -4px 10px #00000040;
+}
+.capsule-jar-card-layer[data-keepsake] .record-holo-capsule::before {
+  /* A ring of small stars around the seam. */
+  content: '';
+  position: absolute;
+  inset: -18px -22px;
+  background:
+    radial-gradient(circle at 50% 4%, #fff 0 1.6px, transparent 2.6px),
+    radial-gradient(circle at 92% 30%, #fff 0 1.3px, transparent 2.3px),
+    radial-gradient(circle at 86% 86%, #f1ebff 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 14% 82%, #fff 0 1.3px, transparent 2.3px),
+    radial-gradient(circle at 6% 22%, #f1ebff 0 1.5px, transparent 2.5px);
+  filter: drop-shadow(0 0 3px #fff);
+}
+.capsule-jar-card-layer[data-keepsake] .record-holo-stage {
+  --capsule-foil-hover-opacity: 0.48 !important;
+  --capsule-glare-hover-opacity: 0.55 !important;
+}
+/* At rest a keepsake card already shimmers a little (the hover values come from capsule-card-effects.css). */
+.capsule-jar-card-layer[data-keepsake] .record-holo-stage:not([data-active='pointer'], [data-active='keyboard']) .capsule-card-foil { opacity: 0.2; }
+.capsule-jar-card-layer[data-keepsake] .record-holo-stage:not([data-active='pointer'], [data-active='keyboard']) .capsule-card-glare { opacity: 0.2; }
 
 /* Depth layers while tilted (the shared stage sets --capsule-depth): the emblem floats highest. */
 .record-holo-card .record-holo-stats { transform: translateZ(calc(var(--capsule-depth) * 18px)); }

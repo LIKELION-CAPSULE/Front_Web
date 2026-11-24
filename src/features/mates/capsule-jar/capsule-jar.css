@@ -113,7 +113,9 @@
   font-variant-numeric: tabular-nums lining-nums;
   animation: capsule-jar-fade 140ms ease-out both;
 }
-.capsule-jar-tooltip-date { font-size: 13px; line-height: 20px; font-weight: 600; color: var(--color-ink); }
+.capsule-jar-tooltip-date { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; line-height: 20px; font-weight: 600; color: var(--color-ink); }
+.capsule-jar-tooltip-band { width: 7px; height: 7px; border-radius: 50%; }
+.capsule-jar-tooltip-keepsake { font-size: 12px; line-height: 18px; font-weight: 700; color: var(--color-text-accent); }
 .capsule-jar-tooltip-time { font-size: 12px; line-height: 18px; color: var(--color-muted); }
 
 /* First capsule / no capsule yet: a quiet invitation under the pedestal. */

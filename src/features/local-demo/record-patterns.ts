@@ -45,9 +45,11 @@ function slots(pattern: RecordPattern, weekday: number): Slot[] {
   const minutes = [40, 55, 70, 85, 100, 65, 45]
   switch (pattern) {
     case 'steady': {
-      // Every day for ~two weeks (one gap), today in the morning so it is usually already over.
+      // Every day for ~two weeks (one gap), today in the morning so it is usually already over. The starts cover all
+      // five time bands (my-mates capsules are tinted by band), with night and dawn well under the 「late」 share.
+      const mixed = ['19:00', '13:30', '20:10', '05:40', '20:40', '22:10', '09:20']
       const list: Slot[] = [[0, '07:10', 50]]
-      for (let d = 1; d <= 12; d++) if (d !== 9) list.push([d, evening[d % 7]!, minutes[d % 7]!])
+      for (let d = 1; d <= 12; d++) if (d !== 9) list.push([d, mixed[d % 7]!, minutes[d % 7]!])
       return list
     }
     case 'light': {

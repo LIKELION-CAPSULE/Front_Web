@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { formatCapsuleShortDate, formatTogether, partOfDay } from '@/features/mates/capsule-jar/capsule-jar-data'
 import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
 import type { CapsuleJarTheme, CapsuleRecord } from '@/features/mates/capsule-jar/capsule-jar-types'
+import { capsuleBandTheme } from '@/features/mates/capsule-jar/capsule-jar-theme'
+import { capsuleBand, capsuleKeepsakes } from '@/features/mates/capsule-jar/capsule-moments'
 import type { AffinityProgressView } from '@/features/mates/affinity-progress'
 import { Icon } from '@/shared/ui/Icon'
 import type { IconName } from '@/shared/ui/animate-icons/icons'
@@ -108,6 +110,8 @@ export function MateTimeColumn({
   const [pointed, setPointed] = useState<string | null>(null)
   const [roomRef, limit] = useFittingRows(3)
   const recent = connections.slice(-limit).reverse()
+  // Keepsakes (milestones of the time together) by connection, the same rule as the capsules in the scene.
+  const keepsakes = useMemo(() => capsuleKeepsakes(connections, capsulesForConnection), [connections])
   // NEW: the newest two connections since the last visit, not every one of them.
   const fresh = new Set(connections.filter((connection) => newIds.includes(connection.id)).slice(-MAX_NEW).map((connection) => connection.id))
   const point = (id: string | null) => {
@@ -197,6 +201,7 @@ export function MateTimeColumn({
               {recent.map((connection) => {
                 const { weekday, hour } = seoulWeekdayHour(connection.startedAt)
                 const isNew = fresh.has(connection.id)
+                const keepsake = keepsakes.get(connection.id)
                 const count = capsulesForConnection(connection.durationSeconds)
                 return (
                   <li key={connection.id}>
@@ -211,13 +216,19 @@ export function MateTimeColumn({
                       onBlur={() => point(null)}
                     >
                       <span className="mate-game-slot-item" aria-hidden="true">
-                        <CapsuleGlyph theme={theme} size={26} />
+                        {/* The connection's capsules' own tint (its time band). */}
+                        <CapsuleGlyph theme={capsuleBandTheme(theme, capsuleBand(connection))} size={26} />
                       </span>
                       <span className="mate-game-slot-text">
                         <span className="mate-game-slot-date">
                           {formatCapsuleShortDate(connection.startedAt)} ({weekday}) · {partOfDay(hour)}
                         </span>
                         <span className="mate-game-slot-end">
+                          {keepsake && (
+                            <span className="mate-game-keepsake">
+                              {`기념 ${keepsake.hours}시간`}
+                            </span>
+                          )}
                           {isNew && (
                             <span className="mate-game-new">
                               NEW<span className="sr-only"> 새 캡슐</span>

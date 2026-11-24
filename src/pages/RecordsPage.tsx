@@ -11,7 +11,9 @@ import { CapsuleCalendar, CapsuleLegend } from '@/features/records/CapsuleCalend
 import { CapsuleDayDetail, RecordConnectionRow } from '@/features/records/RecordConnectionRow'
 import { buildCapsuleCalendar, defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-calendar'
 import { isCompletedRecord } from '@/features/records/connection-day'
-import { capsuleFromStudyRecord } from '@/features/mates/capsule-jar/capsule-jar-data'
+import { capsuleFromStudyRecord, capsuleRecordsFromStudyRecords } from '@/features/mates/capsule-jar/capsule-jar-data'
+import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
+import { capsuleKeepsakes } from '@/features/mates/capsule-jar/capsule-moments'
 import { CapsuleRecordCard } from '@/features/mates/capsule-jar/CapsuleRecordCard'
 import {
   getRecordRange,
@@ -205,12 +207,19 @@ export default function RecordsPage() {
   const dayCardMate = dayCardRecord
     ? catalogMates.find((mate) => dayCardRecord.characterIds.includes(mate.characterId))
     : undefined
+  // The same keepsakes as the mate's capsules in 내 메이트: milestones of all that mate's connections.
+  const dayCardKeepsake = dayCardCapsule && dayCardMate
+    ? capsuleKeepsakes(capsuleRecordsFromStudyRecords(state.records, dayCardMate.characterId, now), capsulesForConnection, { now }).get(
+        dayCardCapsule.id,
+      )?.hours
+    : undefined
   const dayCardView = dayCard && dayCardRecord && dayCardCapsule && (
     <CapsuleRecordCard
       key={dayCard.key}
       capsule={dayCardCapsule}
       mateName={mateNameOf(dayCardRecord) ?? '메이트'}
       mateId={dayCardMate?.id ?? 'chaerin'}
+      keepsakeHours={dayCardKeepsake}
       placement="center"
       phase={dayCard.phase}
       animated

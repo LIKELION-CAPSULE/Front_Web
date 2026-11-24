@@ -6,9 +6,10 @@ import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { capsuleFoil, capsulePaletteFoil, capsulePaletteFoilGradient } from '@/features/reports/capsule-card-material'
 import { useCapsuleCardTilt } from '@/features/reports/capsule-card-tilt'
 import '@/features/reports/capsule-card-effects.css'
-import { formatCapsuleDate, formatCapsuleTimeRange, formatTogether, withParticle } from './capsule-jar-data.ts'
+import { formatCapsuleClockRange, formatCapsuleDate, formatTogether, withParticle } from './capsule-jar-data.ts'
 import { capsulesForConnection } from './capsule-floor-layout.ts'
-import { capsuleJarTheme } from './capsule-jar-theme.ts'
+import { capsuleBandTheme, capsuleJarTheme } from './capsule-jar-theme.ts'
+import { capsuleBand, keepsakeTitle } from './capsule-moments.ts'
 import type { CapsuleRecord } from './capsule-jar-types.ts'
 import './capsule-record-card.css'
 
@@ -43,6 +44,7 @@ export function CapsuleRecordCard({
   onClose,
   frame = 'parent',
   pager,
+  keepsakeHours,
 }: {
   capsule: CapsuleRecord
   mateName: string
@@ -58,6 +60,8 @@ export function CapsuleRecordCard({
   frame?: 'parent' | 'viewport'
   /** Several connections on one day (records calendar): previous / next. */
   pager?: CapsuleRecordPager
+  /** The milestone this connection's keepsake capsule marks (hours), if it has one (capsule-moments.ts). */
+  keepsakeHours?: number
 }) {
   const titleId = useId()
   const reduced = useReducedMotion()
@@ -120,16 +124,15 @@ export function CapsuleRecordCard({
     if (phase === 'open' && !cardRef.current?.contains(document.activeElement)) closeButtonRef.current?.focus({ preventScroll: true })
   }, [capsule.id, phase])
 
-  const theme = mateId ? capsuleJarTheme(mateId) : null
-  const themeStyle = theme
-    ? ({
-        '--jar-glow': theme.glow,
-        '--jar-light': theme.lightHalf,
-        '--jar-light-shade': theme.lightHalfShade,
-        '--jar-tint': theme.tintHalf,
-        '--jar-tint-shade': theme.tintHalfShade,
-      } as CSSProperties)
-    : undefined
+  // The mate's colours in this connection's time band (the same tint as its capsules in the pile).
+  const theme = capsuleBandTheme(capsuleJarTheme(mateId ?? 'chaerin'), capsuleBand(capsule))
+  const themeStyle = {
+    '--jar-glow': theme.glow,
+    '--jar-light': theme.lightHalf,
+    '--jar-light-shade': theme.lightHalfShade,
+    '--jar-tint': theme.tintHalf,
+    '--jar-tint-shade': theme.tintHalfShade,
+  } as CSSProperties
 
   return (
     <dialog
@@ -138,6 +141,7 @@ export function CapsuleRecordCard({
       data-phase={phase}
       data-placement={placement}
       data-animated={animated ? 'true' : 'false'}
+      data-keepsake={keepsakeHours ? 'true' : undefined}
       aria-labelledby={titleId}
       style={themeStyle}
       onCancel={(event) => {
@@ -172,6 +176,7 @@ export function CapsuleRecordCard({
                 <span className="record-holo-capsule">
                   <span className="record-holo-capsule-core" />
                 </span>
+                {keepsakeHours ? <p className="record-holo-keepsake">{keepsakeTitle(keepsakeHours)}</p> : null}
               </div>
               <div className="capsule-card-header record-holo-head">
                 <p className="record-holo-title">{`${mateName}${withParticle(mateName)}의 캡슐`}</p>
@@ -192,8 +197,12 @@ export function CapsuleRecordCard({
               )}
               <dl className="record-holo-stats">
                 <div>
-                  <dt>시간대</dt>
-                  <dd>{formatCapsuleTimeRange(capsule)}</dd>
+                  <dt>시간</dt>
+                  <dd>
+                    {/* The time band shows only as the capsules' tint: a small dot of that colour, no word. */}
+                    <span className="record-holo-band" aria-hidden="true" />
+                    {formatCapsuleClockRange(capsule)}
+                  </dd>
                 </div>
                 <div>
                   <dt>함께한 시간</dt>
@@ -207,7 +216,6 @@ export function CapsuleRecordCard({
               {capsule.line && (
                 <blockquote className="record-holo-line">
                   <p>{capsule.line}</p>
-                  <footer>{mateName}의 한마디</footer>
                 </blockquote>
               )}
               <div className="record-holo-actions">

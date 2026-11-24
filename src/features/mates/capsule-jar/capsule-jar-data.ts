@@ -143,6 +143,11 @@ const clockLabel = (timestamp: number) => {
 }
 
 /** `저녁 · 오후 7:10 – 오후 8:40` in Asia/Seoul. */
+/** `오후 7:40 – 오후 8:35` (the time range alone, no time band word). */
+export function formatCapsuleClockRange(capsule: CapsuleRecord) {
+  return `${clockLabel(capsule.startedAt)} – ${clockLabel(capsuleEndedAt(capsule))}`
+}
+
 export function formatCapsuleTimeRange(capsule: CapsuleRecord) {
   const start = capsule.startedAt
   return `${partOfDay(seoulParts(start).hour)} · ${clockLabel(start)} – ${clockLabel(capsuleEndedAt(capsule))}`
