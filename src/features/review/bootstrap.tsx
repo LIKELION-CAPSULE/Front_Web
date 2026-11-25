@@ -295,5 +295,11 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     }
     return undefined
   })()
-  mountApp(root, <ReviewSetup scenario={scenario} />, scenario.session && scenario.session !== 'recover' ? <ReviewStudyGate /> : undefined, createReviewImageStage, accountPort, matePort, featurePort)
+  // Modal design drafts (review only): drawn over the real page, never imported by the product entry.
+  const DialogDesign = scenario.dialogDesign ? (await import('./dialog-design/DialogDesignPreview')).DialogDesignPreview : undefined
+  const extra = <>
+    <ReviewSetup scenario={scenario} />
+    {DialogDesign && scenario.dialogDesign && <DialogDesign variant={scenario.dialogDesign} />}
+  </>
+  mountApp(root, extra, scenario.session && scenario.session !== 'recover' ? <ReviewStudyGate /> : undefined, createReviewImageStage, accountPort, matePort, featurePort)
 }
