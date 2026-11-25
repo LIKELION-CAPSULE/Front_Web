@@ -19,13 +19,16 @@ export function clock(seconds: number) {
     .join(':')
 }
 
+/** One formatter for every day key: building an Intl.DateTimeFormat per call cost ~0.2 ms (a year's board makes thousands). */
+const SEOUL_DAY = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
 export function dayKey(timestamp = Date.now()) {
-  return new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(timestamp)
+  return SEOUL_DAY.format(timestamp)
 }
 
 export function businessDay(timestamp = Date.now()) {

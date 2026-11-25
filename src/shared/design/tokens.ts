@@ -48,7 +48,12 @@ export const designColors = {
   "info": "#8AD0F4",
   "info-bg": "#172D39",
   "floating": "#403E4B",
-  "floating-hover": "#5E5C69"
+  "floating-hover": "#5E5C69",
+  "records-grid-0": "#272630",
+  "records-grid-1": "#312F40",
+  "records-grid-2": "#423F55",
+  "records-grid-3": "#57526E",
+  "records-grid-4": "#6B6587"
 } as const
 
 export const designPalette = {

@@ -133,7 +133,7 @@ async function recordsCalendar() {
   let opened = false
   if (target) {
     // Keyboard: the day's cell, Enter. (Closing a card puts the focus back on its cell: leave it first.)
-    await page.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur())
+    await page.evaluate(() => document.activeElement?.blur?.())
     await page.mouse.move(0, 0)
     await page.locator(`[data-grid-day="${target}"]`).focus()
     check('records: focusing a grid cell shows its tooltip', (await page.locator('.contribution-tooltip').count()) > 0)

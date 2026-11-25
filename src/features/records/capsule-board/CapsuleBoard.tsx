@@ -45,6 +45,7 @@ export function CapsuleBoard({
   reducedMotion: forceReducedMotion = false,
   replayToken = 0,
   onController,
+  onReady,
 }: {
   model: CapsuleBoardModel
   view: BoardView
@@ -63,6 +64,8 @@ export function CapsuleBoard({
   replayToken?: number
   /** Development hook (benchmark). */
   onController?: (controller: { benchmark: (durationMs: number) => Promise<BoardBenchmark> } | null) => void
+  /** The scene exists and draws (BoardViewSwitch starts its move then). */
+  onReady?: () => void
 }) {
   const systemReducedMotion = usePrefersReducedMotion()
   const reducedMotion = forceReducedMotion || systemReducedMotion
@@ -205,6 +208,7 @@ export function CapsuleBoard({
         sceneRef.current = controller
         onController?.({ benchmark: (ms) => controller!.benchmark(ms) })
         setReady(true)
+        onReady?.()
       })
       .catch(() => {
         if (cancelled) return

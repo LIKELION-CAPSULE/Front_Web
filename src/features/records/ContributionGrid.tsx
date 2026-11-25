@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { duration } from '@/shared/lib/format'
 import type { CapsuleDay } from './capsule-calendar'
 import type { CapsuleBoardModel } from './capsule-board/capsule-board-layout'
@@ -11,6 +11,17 @@ import {
   yearWeekdayLabel,
   type GridDayMate,
 } from './contribution-grid'
+import {
+  flipTransform,
+  GRID_CELL_RADIUS,
+  GRID_MORPH_EASING,
+  GRID_MORPH_MS,
+  GRID_SLIDE_MS,
+  GRID_SLIDE_PX,
+  gridMotion,
+  type Box,
+  type GridSnapshot,
+} from './grid-morph'
 import './contribution-grid.css'
 
 /** 「적음 ▢▢▢▢▢ 많음」 (GitHub's legend): the five shades, each named for screen readers. */
@@ -27,11 +38,26 @@ export function ContributionLegend() {
   )
 }
 
+type Snapshot = {
+  meta: GridSnapshot
+  /** The grid's own height (border box). */
+  height: number
+  /** Each day's box relative to the grid, with what a ghost needs to look like it. */
+  cells: Map<string, Box & { level: string | undefined }>
+}
+
+/** A future day's resting opacity (contribution-grid.css `[data-future]`). */
+const FUTURE_OPACITY = 0.32
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+
 /**
  * 내 기록 2D: the contribution grid (contribution-grid.ts). A cell per day, shaded by the day's time together; hover or
  * focus shows the date and the time (with 「전체」 each mate's time too), a press reports the day (the page opens its
  * record card). Arrow keys move between days (one tab stop); future days are disabled. Also the board when WebGL is
- * missing.
+ * missing. Between periods the days morph (grid-morph.ts): the same day moves to its new box, new days fade in, leaving
+ * days fade out, the height follows; the arrows slide. Reduced motion: no motion.
  */
 export function ContributionGrid({
   model,
@@ -87,6 +113,125 @@ export function ContributionGrid({
     buttons.current[next]?.focus()
   }
 
+  // ── Period motion (grid-morph.ts) ──
+  const frameRef = useRef<HTMLDivElement>(null)
+  const snapshot = useRef<Snapshot | null>(null)
+  const running = useRef<{ animations: Animation[]; cleanup: () => void } | null>(null)
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current
+    const frame = frameRef.current
+    if (!wrap || !frame) return
+    const meta: GridSnapshot = { mode, firstKey: days[0]?.key ?? '', lastKey: days.at(-1)?.key ?? '' }
+    // The same days again (the period's records arrived, another mate): a running motion carries on, its target is
+    // already the snapshot.
+    if (running.current && snapshot.current && gridMotion(snapshot.current.meta, meta) === 'none') return
+    // A motion still running ends now: its cells must be measured where they will rest.
+    running.current?.animations.forEach((animation) => animation.cancel())
+    running.current?.cleanup()
+    running.current = null
+    const measure = (): Snapshot => {
+      const origin = wrap.getBoundingClientRect()
+      const cells = new Map<string, Box & { level: string | undefined }>()
+      days.forEach((day, index) => {
+        const element = buttons.current[index]
+        if (!element) return
+        const rect = element.getBoundingClientRect()
+        cells.set(day.key, { x: rect.left - origin.left, y: rect.top - origin.top, w: rect.width, h: rect.height, level: element.dataset.level })
+      })
+      return { meta, height: origin.height, cells }
+    }
+    const previous = snapshot.current
+    const next = measure()
+    snapshot.current = next
+    const motion = gridMotion(previous?.meta ?? null, next.meta)
+    if (!previous || motion === 'none' || prefersReducedMotion()) return
+
+    const animations: Animation[] = []
+    const cleanups: (() => void)[] = []
+    if (previous.height !== next.height) {
+      animations.push(wrap.animate([{ height: `${previous.height}px` }, { height: `${next.height}px` }], {
+        duration: motion === 'morph' ? GRID_MORPH_MS : GRID_SLIDE_MS,
+        easing: GRID_MORPH_EASING,
+      }))
+    }
+    if (motion === 'morph') {
+      wrap.dataset.morphing = ''
+      cleanups.push(() => delete wrap.dataset.morphing)
+      const options = { duration: GRID_MORPH_MS, easing: GRID_MORPH_EASING }
+      days.forEach((day, index) => {
+        const element = buttons.current[index]
+        const box = next.cells.get(day.key)
+        if (!element || !box) return
+        const old = previous.cells.get(day.key)
+        // A day in both periods moves from its old box; a new day fades in as the others land.
+        if (old) animations.push(element.animate([{ transform: flipTransform(old, box) }, { transform: 'none' }], options))
+        else {
+          // Explicit end value (a future day rests faded, contribution-grid.css): an implicit one is not held through
+          // the delay.
+          const rest = element.dataset.future === undefined ? 1 : FUTURE_OPACITY
+          animations.push(element.animate([{ opacity: 0 }, { opacity: rest }], { duration: 420, delay: GRID_MORPH_MS - 420, easing: 'ease-out', fill: 'backwards' }))
+        }
+      })
+      // Days that leave: still shapes where they were, fading out.
+      const ghosts = document.createElement('div')
+      ghosts.className = 'contribution-ghosts'
+      ghosts.setAttribute('aria-hidden', 'true')
+      for (const [key, box] of previous.cells) {
+        if (next.cells.has(key)) continue
+        const ghost = document.createElement('span')
+        ghost.className = 'contribution-ghost'
+        if (box.level !== undefined) ghost.dataset.level = box.level
+        Object.assign(ghost.style, {
+          left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px`,
+          borderRadius: `${GRID_CELL_RADIUS[previous.meta.mode]}px`,
+        })
+        ghosts.append(ghost)
+      }
+      if (ghosts.childElementCount) {
+        wrap.append(ghosts)
+        animations.push(ghosts.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, easing: 'ease-in', fill: 'forwards' }))
+        cleanups.push(() => ghosts.remove())
+      }
+    } else {
+      const sign = motion === 'slide-next' ? 1 : -1
+      animations.push(frame.animate(
+        [{ transform: `translateX(${sign * GRID_SLIDE_PX}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
+        { duration: GRID_SLIDE_MS, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+      ))
+    }
+    const cleanup = () => cleanups.splice(0).forEach((fn) => fn())
+    const current = { animations, cleanup }
+    running.current = current
+    void Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
+      if (running.current !== current) return
+      cleanup()
+      running.current = null
+    })
+  }, [layout, days, mode])
+  useEffect(() => () => {
+    running.current?.animations.forEach((animation) => animation.cancel())
+    running.current?.cleanup()
+  }, [])
+  // The width changes the boxes: measure again (never in the middle of a motion).
+  useEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => {
+      if (running.current || !snapshot.current) return
+      const origin = wrap.getBoundingClientRect()
+      const cells = new Map(snapshot.current.cells)
+      days.forEach((day, index) => {
+        const element = buttons.current[index]
+        if (!element) return
+        const rect = element.getBoundingClientRect()
+        cells.set(day.key, { x: rect.left - origin.left, y: rect.top - origin.top, w: rect.width, h: rect.height, level: element.dataset.level })
+      })
+      snapshot.current = { ...snapshot.current, height: origin.height, cells }
+    })
+    observer.observe(wrap)
+    return () => observer.disconnect()
+  }, [days])
+
   const style = { '--grid-cols': layout.columns, '--grid-rows': layout.rows } as CSSProperties
 
   return (
@@ -99,7 +244,7 @@ export function ContributionGrid({
       onMouseLeave={() => setTooltip(null)}
     >
       <div className="contribution-scroll" ref={scrollRef}>
-        <div className="contribution-frame" style={style}>
+        <div ref={frameRef} className="contribution-frame" style={style}>
           {mode === 'year' && (
             <div className="contribution-months" aria-hidden="true">
               {layout.monthLabels.map((mark) => (

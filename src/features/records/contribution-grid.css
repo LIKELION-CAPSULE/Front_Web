@@ -1,21 +1,24 @@
 /*
- * 내 기록 2D contribution grid (ContributionGrid). Base rules (docs/DESIGN_SYSTEM.md): no outlines, no gold, orange or
- * rainbow; violet only for selection and actions — so the data shade is not violet: it is the ink token stepped over
- * the panel token (a neutral light, like the capsules' light), and the selected day takes the violet ring (selection).
- * Today: a small dot, no border. Future days: faded and disabled.
+ * 내 기록 2D contribution grid (ContributionGrid). Base rules (docs/DESIGN_SYSTEM.md): no gold, orange or rainbow;
+ * violet only for main actions and selection — with one exception (user decision 2026-11-26): the grid's data shade is
+ * a pale violet ramp, the `--color-records-grid-*` tokens (docs/DESIGN_TOKENS.json: the brand's soft violet
+ * `text-accent` 14 / 24 / 36 / 48% over the panel, the empty day a faint ink). The deepest step stays muted (no glare
+ * on large month cells) and keeps ink text at AA (5.25:1). So the selected day is not violet: a bright ink ring around
+ * the cell. Today: a small ink dot, no border. Future days: faded and disabled.
  */
 .contribution-grid,
 .contribution-legend {
-  --grid-0: color-mix(in srgb, var(--color-ink) 6%, var(--color-panel));
-  --grid-1: color-mix(in srgb, var(--color-ink) 20%, var(--color-panel));
-  --grid-2: color-mix(in srgb, var(--color-ink) 36%, var(--color-panel));
-  --grid-3: color-mix(in srgb, var(--color-ink) 54%, var(--color-panel));
-  --grid-4: color-mix(in srgb, var(--color-ink) 76%, var(--color-panel));
+  --grid-0: var(--color-records-grid-0);
+  --grid-1: var(--color-records-grid-1);
+  --grid-2: var(--color-records-grid-2);
+  --grid-3: var(--color-records-grid-3);
+  --grid-4: var(--color-records-grid-4);
 }
 .contribution-grid {
   --grid-gap: 3px;
   --grid-side: 0px;
   position: relative;
+  box-sizing: border-box;
   padding: 8px 0 4px;
 }
 .contribution-grid[data-mode='year'] { --grid-side: 24px; }
@@ -77,18 +80,21 @@
   color: var(--color-muted);
   font: inherit;
   cursor: pointer;
-  transition: filter 120ms ease;
+  /* FLIP from the top-left corner (grid-morph.ts `flipTransform`); a new mate's shades change softly. */
+  transform-origin: 0 0;
+  transition: filter 120ms ease, background-color 300ms ease;
 }
 .contribution-grid[data-mode='month'] .contribution-cell { border-radius: 10px; }
 .contribution-grid[data-mode='week'] .contribution-cell { border-radius: 14px; }
 .contribution-cell[data-level='1'] { background: var(--grid-1); color: var(--color-ink); }
 .contribution-cell[data-level='2'] { background: var(--grid-2); color: var(--color-ink); }
-.contribution-cell[data-level='3'] { background: var(--grid-3); color: var(--color-canvas); }
-.contribution-cell[data-level='4'] { background: var(--grid-4); color: var(--color-canvas); }
+.contribution-cell[data-level='3'] { background: var(--grid-3); color: var(--color-ink); }
+.contribution-cell[data-level='4'] { background: var(--grid-4); color: var(--color-ink); }
 .contribution-cell:hover:not(:disabled) { filter: brightness(1.18); }
 .contribution-cell:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
-/* The selected day (the one below the board): the violet ring of a selection. */
-.contribution-cell[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--color-primary); }
+/* The selected day (the one below the board): a bright ink ring just outside the cell (the fill is the violet data). */
+.contribution-cell[aria-pressed='true'] { outline: 2px solid var(--color-ink); outline-offset: 1px; }
+.contribution-cell[aria-pressed='true']:focus-visible { outline-color: var(--color-focus-ring); }
 .contribution-cell[data-future] { opacity: 0.32; cursor: default; }
 
 /* Month and week: the date at the top-left, the week's time at the bottom. */
@@ -169,6 +175,28 @@
 .contribution-swatch[data-level='3'] { background: var(--grid-3); }
 .contribution-swatch[data-level='4'] { background: var(--grid-4); }
 
+/* ── Period morph (grid-morph.ts): the grid clips to its animated height, cells may pass outside the scroller, the
+   period's labels fade in as the days land, leaving days fade out as ghosts. ── */
+.contribution-grid[data-morphing] { overflow: hidden; }
+.contribution-grid[data-morphing] .contribution-scroll { overflow: visible; }
+.contribution-grid[data-morphing] .contribution-months,
+.contribution-grid[data-morphing] .contribution-weekdays-top,
+.contribution-grid[data-morphing] .contribution-weekdays-side,
+.contribution-grid[data-morphing] .contribution-date,
+.contribution-grid[data-morphing] .contribution-time {
+  animation: contribution-fade-in 340ms ease-out 510ms both;
+}
+@keyframes contribution-fade-in {
+  from { opacity: 0; }
+}
+.contribution-ghosts { position: absolute; inset: 0; pointer-events: none; }
+.contribution-ghost { position: absolute; background: var(--grid-0); }
+.contribution-ghost[data-level='1'] { background: var(--grid-1); }
+.contribution-ghost[data-level='2'] { background: var(--grid-2); }
+.contribution-ghost[data-level='3'] { background: var(--grid-3); }
+.contribution-ghost[data-level='4'] { background: var(--grid-4); }
+
 @media (prefers-reduced-motion: reduce) {
   .contribution-cell { transition: none; }
+  .contribution-grid[data-morphing] * { animation: none !important; }
 }
