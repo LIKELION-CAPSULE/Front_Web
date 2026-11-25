@@ -69,7 +69,8 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
    * QA (session storage, development only): `capsule-local-coming-soon` = a mate's catalogue id (e.g. `dohyun`) makes that
    * mate coming soon (11 · 31 `comingSoon`, 16 refuses it, 46 accepts the alert, 48 leaves it out);
    * `capsule-local-beta-full` = `1` makes a new signup (4) and Kakao (6) answer 403 `BETA_FULL`;
-   * `capsule-local-notifications` = `empty` | `error` empties 43 or makes it fail.
+   * `capsule-local-notifications` = `empty` | `error` empties 43 or makes it fail; `capsule-local-chat-delay` (ms) slows
+   * 32 and `capsule-local-chat-fail` (N) fails its next N reads.
    */
   const qa = (key: string) => { try { return globalThis.sessionStorage?.getItem(key) ?? null } catch { return null } }
   const comingSoon = (mate: LocalMate) => qa('capsule-local-coming-soon') === mate.mateId
@@ -326,6 +327,14 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
         return reply(null, 204)
       }
       if (rest === '/messages') {
+        // QA: `capsule-local-chat-delay` = ms (a slow 32), `capsule-local-chat-fail` = N (the next N reads answer 503).
+        const slow = Number(qa('capsule-local-chat-delay'))
+        if (slow > 0) await new Promise(resolve => setTimeout(resolve, Math.min(slow, 30_000)))
+        const failing = Number(qa('capsule-local-chat-fail'))
+        if (failing > 0) {
+          try { globalThis.sessionStorage?.setItem('capsule-local-chat-fail', String(failing - 1)) } catch { /* Storage blocked. */ }
+          return error('LOCAL_TEST_FAILURE', 503)
+        }
         const size = Number(url.searchParams.get('size') ?? 20)
         if (!Number.isInteger(size) || size < 1 || size > 50) return error('INVALID_REQUEST', 400)
         const list = store.data.messages.filter(message => message.characterId === String(mate.characterId) && /^\d+$/.test(message.sessionId))

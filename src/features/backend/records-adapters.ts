@@ -80,8 +80,8 @@ function unlock(value: MateUnlock): MyMateUnlockView | null {
 export function myMate(value: MyMate): MyMateView {
   if (!isId(value?.id) || !text(value.name) || !isCount(value.connectionCount) ||
     !isSeconds(value.totalPresentSeconds) || !isSeconds(value.totalConnectedSeconds)) throw invalid('내 메이트')
-  if (value.unlocks !== undefined && !Array.isArray(value.unlocks)) throw invalid('내 메이트')
-  if (value.recent !== undefined && !Array.isArray(value.recent)) throw invalid('내 메이트')
+  if (value.unlocks != null && !Array.isArray(value.unlocks)) throw invalid('내 메이트')
+  if (value.recent != null && !Array.isArray(value.recent)) throw invalid('내 메이트')
   const relation = settlement(value.relation)
   return {
     serverIds: [value.id],
@@ -169,8 +169,8 @@ export function records(dto: RecordsResponse | null | undefined): RecordsView {
   if (!dto || typeof dto.from !== 'string' || !DAY_KEY.test(dto.from) || typeof dto.to !== 'string' || !DAY_KEY.test(dto.to) ||
     !isSeconds(dto.totalPresentSeconds) || !isSeconds(dto.totalConnectedSeconds) || !isCount(dto.connectedDays) ||
     !isCount(dto.connectionCount) || !Array.isArray(dto.buckets)) throw invalid('내 기록')
-  if (dto.mates !== undefined && !Array.isArray(dto.mates)) throw invalid('내 기록')
-  if (dto.recent !== undefined && !Array.isArray(dto.recent)) throw invalid('내 기록')
+  if (dto.mates != null && !Array.isArray(dto.mates)) throw invalid('내 기록')
+  if (dto.recent != null && !Array.isArray(dto.recent)) throw invalid('내 기록')
   return {
     from: dto.from, to: dto.to,
     totalPresentSeconds: dto.totalPresentSeconds, totalConnectedSeconds: dto.totalConnectedSeconds,
@@ -182,11 +182,15 @@ export function records(dto: RecordsResponse | null | undefined): RecordsView {
 }
 
 /**
- * Several answers as one: the months of a year read with MONTH (so the year board keeps its days), or one range read for
- * the two server entries of one persona. Sums; buckets added up by key (in date order); mates added up by id; the
- * newest 5 connections. Connected days add up: exact across months, at most an overestimate for one persona's two ids.
+ * Several answers as one. Two cases:
+ * - different periods (the months of a year, read with MONTH so the year board keeps its days): everything adds up,
+ *   connected days too (no day is in two months);
+ * - the same period for one persona's several server ids (`samePeriod`): sums add up, but a day with connections to
+ *   both ids is one day — connected days are the union of the days with connected time (buckets are days: WEEK and
+ *   MONTH reads), never fewer than either part says.
+ * Buckets added up by key (in date order); mates added up by id; the newest 5 connections.
  */
-export function mergeRecords(parts: readonly RecordsView[]): RecordsView {
+export function mergeRecords(parts: readonly RecordsView[], { samePeriod = false }: { samePeriod?: boolean } = {}): RecordsView {
   if (!parts.length) throw invalid('내 기록')
   const mates = new Map<number, RecordsMateView>()
   for (const part of parts) {
@@ -203,14 +207,24 @@ export function mergeRecords(parts: readonly RecordsView[]): RecordsView {
   }
   const sum = (pick: (part: RecordsView) => number) => parts.reduce((total, part) => total + pick(part), 0)
   const sorted = parts.slice().sort((a, b) => a.from.localeCompare(b.from))
+  const buckets = sumBuckets(sorted.flatMap(part => part.buckets))
+  const connectedDays = samePeriod ? unionDays(parts, buckets) : sum(part => part.connectedDays)
   return {
     from: sorted[0]!.from, to: sorted.at(-1)!.to,
     totalPresentSeconds: sum(part => part.totalPresentSeconds), totalConnectedSeconds: sum(part => part.totalConnectedSeconds),
-    connectedDays: sum(part => part.connectedDays), connectionCount: sum(part => part.connectionCount),
-    buckets: sumBuckets(sorted.flatMap(part => part.buckets)),
+    connectedDays, connectionCount: sum(part => part.connectionCount),
+    buckets,
     mates: [...mates.values()],
     recent: parts.flatMap(part => part.recent).sort((a, b) => b.endedAt - a.endedAt).slice(0, 5),
   }
+}
+
+/** Connected days of one period read for several ids: the days with connected time in any of them. */
+function unionDays(parts: readonly RecordsView[], buckets: readonly RecordsBucketView[]) {
+  const atLeast = Math.max(0, ...parts.map(part => part.connectedDays))
+  // Month buckets (a YEAR read) cannot tell the days apart: the most any one id counts is all that is certain.
+  if (!buckets.every(item => DAY_KEY.test(item.key))) return atLeast
+  return Math.max(atLeast, buckets.filter(item => item.connectedSeconds > 0).length)
 }
 
 function sumBuckets(buckets: readonly RecordsBucketView[]): RecordsBucketView[] {

@@ -21,8 +21,8 @@ export type NotificationView = {
 const invalid = () => new ApiError('알림 응답을 확인하지 못했어요.', 502)
 
 /**
- * Only paths inside the app (`/…`, never `//host` or `scheme:`) open from a notification. The old invite path is the
- * current one.
+ * Only paths inside the app (`/…`, never `//host` or `scheme:`) open from a notification, checked before and after
+ * normalising (`/.//host`, `/%2e%2e//host` normalise into `//host`). The old invite path is the current one.
  */
 export function inAppLink(link: unknown): string | null {
   if (typeof link !== 'string') return null
@@ -32,7 +32,9 @@ export function inAppLink(link: unknown): string | null {
     const url = new URL(value, 'https://capsule.invalid')
     if (url.origin !== 'https://capsule.invalid') return null
     const path = url.pathname === '/credits/charge' || url.pathname === '/invite' ? '/credits/invite' : url.pathname
-    return `${path}${url.search}${url.hash}`
+    const result = `${path}${url.search}${url.hash}`
+    // Dot segments (also encoded, `%2e`) and backslashes can normalise into `//host`: check what comes out again.
+    return /^\/(?![/\\])/.test(result) ? result : null
   } catch {
     return null
   }
@@ -84,6 +86,25 @@ export function relativeTime(at: number, now = Date.now()): string {
   if (days < 7) return `${days}일 전`
   const date = new Date(at + 9 * 3600 * 1000)
   return `${date.getUTCMonth() + 1}월 ${date.getUTCDate()}일`
+}
+
+/**
+ * The unread count comes from several requests (43 reads, 44 results) that can answer out of order. Each takes a
+ * number when it is sent; an answer counts only if no later-sent request has answered already — so a 43 read sent
+ * before a 44 「읽음」 cannot put the old count back when it lands after it.
+ */
+export function createCountGate() {
+  let sent = 0, applied = 0
+  return {
+    /** Before sending a request that will report the count. */
+    next: () => ++sent,
+    /** When it answers: true if this answer is the newest so far (and is now the applied one). */
+    accept(ticket: number) {
+      if (ticket <= applied) return false
+      applied = ticket
+      return true
+    },
+  }
 }
 
 /** Unread count refresh: on entry, when the tab shows again, and at most this often while it stays visible. */

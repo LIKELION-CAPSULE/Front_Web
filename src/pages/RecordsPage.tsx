@@ -10,7 +10,7 @@ import { useRecordsData } from '@/features/records/use-records-data'
 import { isDayRecord, recordsSummary, type RecordsMate } from '@/features/records/records-source'
 import { mateAvatar } from '@/features/mates/artwork'
 import { MateCommentBubble } from '@/features/records/MateCommentBubble'
-import { buildMateComment, voiceFor } from '@/features/records/mate-comment'
+import { collectRecordsFacts, mateCommentFromFacts, voiceFor } from '@/features/records/mate-comment'
 import { CapsuleDayDetail, DayRemainderRow, RecordConnectionRow } from '@/features/records/RecordConnectionRow'
 import { defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-calendar'
 import { connectionDayKey } from '@/features/records/connection-day'
@@ -261,27 +261,26 @@ export default function RecordsPage() {
     />
   )
 
-  // Mate comment: the selected mate speaks; with "전체" the mate met most in this period (else most recently).
+  // Mate comment: the selected mate speaks; with "전체" the mate with most connections in this period (else the one
+  // met most recently). It speaks only from what is certain (mate-comment.ts `collectRecordsFacts`): that mate's 38
+  // sums and day buckets for this range and 37's first meeting — never a day's sum taken for one connection.
+  const views = data.data?.views
   const speaker =
     activeMate ??
     (() => {
-      const counts = new Map<string, number>()
-      for (const r of periodRecords) for (const id of r.characterIds) counts.set(id, (counts.get(id) ?? 0) + 1)
-      const top = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0]
-      return connectedMates?.find((m) => m.characterId === top) ?? connectedMates?.[0] ?? catalogMates[0] ?? null
+      const top = (connectedMates ?? [])
+        .map((m) => ({ m, count: views?.[m.id]?.connectionCount ?? 0 }))
+        .filter((entry) => entry.count > 0)
+        .sort((a, b) => b.count - a.count)[0]?.m
+      return top ?? connectedMates?.[0] ?? catalogMates[0] ?? null
     })()
   const speakerCatalog = speaker ? catalogMates.find((m) => m.characterId === speaker.characterId) : undefined
-  // 38 gives this range only: the comment speaks of it (no comparison with earlier periods).
-  const speakerRecords = speaker ? periodRecords.filter((r) => r.characterIds.includes(speaker.characterId)) : []
-  const mateComment = speaker
-    ? buildMateComment({
-        range,
-        offset,
-        now,
-        records: speakerRecords,
-        seedKey: `${state.profile.userId ?? 'guest'}|${speaker.characterId}`,
-        voice: voiceFor(speakerCatalog?.id),
-      })
+  const speakerMet = speaker ? myMates.byMate.get(speaker.id) : undefined
+  const mateComment = speaker && data.data
+    ? mateCommentFromFacts(
+        collectRecordsFacts({ range, offset, view: views?.[speaker.id] ?? null, met: Boolean(speakerMet), firstMetAt: speakerMet?.firstMetAt ?? null }),
+        { range, seedKey: `${state.profile.userId ?? 'guest'}|${speaker.characterId}`, voice: voiceFor(speakerCatalog?.id) },
+      )
     : null
   const onCommentProgress = useCallback((progress: number, finished: boolean) => {
     emphasisControl.current?.setProgress(progress, finished)

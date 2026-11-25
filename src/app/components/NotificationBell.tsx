@@ -4,7 +4,7 @@ import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
 import { getNotifications, readNotifications } from '@/features/backend/server-api'
 import {
-  appendNotifications, markRead, NOTIFICATION_COPY, notificationPage, relativeTime, UNREAD_REFRESH_MS, unreadIds,
+  appendNotifications, createCountGate, markRead, NOTIFICATION_COPY, notificationPage, relativeTime, UNREAD_REFRESH_MS, unreadIds,
   type NotificationView,
 } from '@/features/notifications/notifications'
 import { api } from '@/shared/api/client'
@@ -45,14 +45,17 @@ export function NotificationBell() {
   const trigger = useRef<HTMLButtonElement>(null)
   const panelId = useId()
   const count = unread.userId === userId ? unread.count : 0
+  /** Out-of-order answers (43 · 44) cannot put an older unread count back. */
+  const [gate] = useState(createCountGate)
 
   // ── Unread count ──
   useEffect(() => {
     if (status !== 'ready' || userId === undefined) return
     let alive = true
     const refresh = () => {
+      const ticket = gate.next()
       getNotifications(api, { size: 1 })
-        .then(dto => { if (alive) setUnread({ userId, count: notificationPage(dto).unreadCount }) })
+        .then(dto => { const count = notificationPage(dto).unreadCount; if (alive && gate.accept(ticket)) setUnread({ userId, count }) })
         .catch(() => { /* Keep the last count; the next refresh tries again. */ })
     }
     refresh()
@@ -60,30 +63,32 @@ export function NotificationBell() {
     document.addEventListener('visibilitychange', onVisible)
     const timer = window.setInterval(() => { if (document.visibilityState === 'visible') refresh() }, UNREAD_REFRESH_MS)
     return () => { alive = false; document.removeEventListener('visibilitychange', onVisible); window.clearInterval(timer) }
-  }, [status, userId])
+  }, [status, userId, gate])
 
   // ── The list ──
   const markShownRead = useCallback(async (items: readonly NotificationView[]) => {
     const ids = unreadIds(items)
     if (!ids.length) return
+    const ticket = gate.next()
     try {
       const result = await readNotifications(api, ids)
-      if (typeof result?.unreadCount === 'number') setUnread({ userId, count: result.unreadCount })
+      if (typeof result?.unreadCount === 'number' && gate.accept(ticket)) setUnread({ userId, count: result.unreadCount })
       setList(current => ({ ...current, items: markRead(current.items, ids) }))
     } catch { /* They stay unread on the server; the dots stay too. */ }
-  }, [userId])
+  }, [userId, gate])
 
   const loadFirst = useCallback(async () => {
     setList({ items: [], nextBefore: null, status: 'loading', fresh: new Set() })
+    const ticket = gate.next()
     try {
       const page = notificationPage(await getNotifications(api, { size: PAGE_SIZE }))
-      setUnread({ userId, count: page.unreadCount })
+      if (gate.accept(ticket)) setUnread({ userId, count: page.unreadCount })
       setList({ items: page.items, nextBefore: page.nextBefore, status: 'ready', fresh: new Set(unreadIds(page.items)) })
       void markShownRead(page.items)
     } catch {
       setList(current => ({ ...current, status: 'error' }))
     }
-  }, [userId, markShownRead])
+  }, [userId, gate, markShownRead])
 
   const loadMore = useCallback(async () => {
     if (loadingMore || list.status !== 'ready' || list.nextBefore === null) return
@@ -102,9 +107,10 @@ export function NotificationBell() {
   }, [loadingMore, list.status, list.nextBefore, markShownRead])
 
   async function readAll() {
+    const ticket = gate.next()
     try {
       const result = await readNotifications(api)
-      setUnread({ userId, count: typeof result?.unreadCount === 'number' ? result.unreadCount : 0 })
+      if (gate.accept(ticket)) setUnread({ userId, count: typeof result?.unreadCount === 'number' ? result.unreadCount : 0 })
       setList(current => ({ ...current, items: markRead(current.items) }))
     } catch { /* Nothing changes. */ }
   }

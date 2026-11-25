@@ -54,6 +54,9 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     if (scenario.fault === 'coming-soon') sessionStorage.setItem('capsule-local-coming-soon', 'dohyun')
     if (scenario.fault === 'notifications-empty') sessionStorage.setItem('capsule-local-notifications', 'empty')
     if (scenario.fault === 'notifications-error') sessionStorage.setItem('capsule-local-notifications', 'error')
+    // A slow 32 for checking the chat while older pages load (`?chatDelay=ms` on the preview address).
+    const chatDelay = new URLSearchParams(location.search).get('chatDelay')
+    if (chatDelay && /^\d+$/.test(chatDelay)) sessionStorage.setItem('capsule-local-chat-delay', chatDelay)
   } catch { /* The review storage is in memory; nothing to do without it. */ }
   // 32's history (`chat-history`): earlier turns with 채린 on a finished connection, more than one page. The lines are the
   // mock's existing ones; no new character dialogue is authored.

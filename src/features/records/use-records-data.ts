@@ -25,7 +25,7 @@ export function useRecordsData(range: RecordRange, mates: readonly RecordsMate[]
     const reads = recordsRequests(range)
     const read = async (mateId?: number) =>
       mergeRecords(await Promise.all(reads.map(async request => records(await getRecords(api, { ...request, ...(mateId ? { mateId } : {}) })))))
-    const readMate = async (mate: RecordsMate) => mergeRecords(await Promise.all(mate.serverIds.map(id => read(id))))
+    const readMate = async (mate: RecordsMate) => mergeRecords(await Promise.all(mate.serverIds.map(id => read(id))), { samePeriod: true })
     const all = mates ?? []
     const totals = selected ? await readMate(selected) : await read()
     const parts = selected
@@ -40,6 +40,7 @@ export function useRecordsData(range: RecordRange, mates: readonly RecordsMate[]
       records: boardRecords(parts, recent),
       recent,
       matesInRange: parts.filter(part => part.view.totalConnectedSeconds > 0).length,
+      views: Object.fromEntries(parts.map(part => [part.mate.id, part.view])),
     }
   }, userId === undefined ? null : String(userId))
 }

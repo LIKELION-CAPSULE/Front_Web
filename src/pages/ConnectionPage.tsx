@@ -50,6 +50,7 @@ import { MateTap, onMate } from '@/features/mates/mate-tap'
 import { playHangup, whenRendered, type HangupPlayback } from '@/features/mates/hangup-sequence'
 import { takePickup } from '@/features/mates/pickup-sequence'
 import { useChatHistory } from '@/features/mates/use-chat-history'
+import { ChatHistoryStatus } from '@/features/mates/components/ChatHistoryStatus'
 import { ReplyActions, ReportedReply } from '@/features/mates/components/ReplyActions'
 import { CreditShortNotice } from '@/features/mates/components/CreditShortNotice'
 import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback, VOICE_REPLIES_REQUESTED } from '@/features/mates/credit-notice'
@@ -356,13 +357,30 @@ export default function ConnectionPage() {
     hasConversation: mate ? backend.mateDetails[mate.id]?.hasConversation : undefined,
   })
   const messages = chat.messages
-  /** Reached the top of the chat: the older page, keeping the lines in view where they were. */
+  /**
+   * Reached the top of the chat: the older page. The first line in view stays where it was when the page lands (lines
+   * can land above it and, out of order, below it). Articles follow `messages` one to one.
+   */
+  const olderAnchor = useRef<{ id: string; offset: number } | null>(null)
   const loadOlderMessages = async () => {
     const node = messageList.current
-    if (!node) return
-    const fromBottom = node.scrollHeight - node.scrollTop
-    if (await chat.loadOlder()) requestAnimationFrame(() => { if (messageList.current) messageList.current.scrollTop = messageList.current.scrollHeight - fromBottom })
+    if (!node || olderAnchor.current) return
+    const articles = [...node.querySelectorAll<HTMLElement>(':scope > article')]
+    const index = articles.findIndex(article => article.offsetTop + article.offsetHeight > node.scrollTop)
+    const id = index >= 0 ? messages[index]?.id : undefined
+    if (id) olderAnchor.current = { id, offset: articles[index]!.offsetTop - node.scrollTop }
+    await chat.loadOlder()
+    // The page lands in a render after this; the layout effect below uses the anchor, this frame drops a leftover.
+    requestAnimationFrame(() => { olderAnchor.current = null })
   }
+  const firstMessageId = messages[0]?.id
+  useLayoutEffect(() => {
+    const node = messageList.current, anchor = olderAnchor.current
+    if (!node || !anchor) return
+    olderAnchor.current = null
+    const article = node.querySelectorAll<HTMLElement>(':scope > article')[messages.findIndex(message => message.id === anchor.id)]
+    if (article) node.scrollTop = article.offsetTop - anchor.offset
+  }, [firstMessageId]) // eslint-disable-line react-hooks/exhaustive-deps -- only when lines land above
   // 고급 모드 short of credits (409 CREDIT_INSUFFICIENT): the line that did not go, to send again in 기본 모드.
   const [creditShort, setCreditShort] = useState<{ text: string; inputType: 'TEXT' | 'QUICK'; credits: number | null } | null>(null)
   const [voiceNote, setVoiceNote] = useState<'none' | 'shown' | 'done'>('none')
@@ -882,10 +900,10 @@ export default function ConnectionPage() {
               onScroll={() => {
                 const node = messageList.current
                 if (node) followMessages.current = node.scrollHeight - node.scrollTop - node.clientHeight < 64
-                if (node && node.scrollTop < 48 && chat.room.nextCursor) void loadOlderMessages()
+                if (node && node.scrollTop < 48 && chat.room.nextCursor && !chat.room.failed) void loadOlderMessages()
               }}
             >
-              {chat.room.status === 'loading' && <p className="connection-history-status" role="status">이전 대화를 불러오고 있어요.</p>}
+              <ChatHistoryStatus room={chat.room} onRetry={chat.retry} />
               {messages.map(message => (
                 <article key={message.id} data-sender={message.sender}>
                   <small>{message.sender === 'user' ? state.profile.name : mate.name}</small>

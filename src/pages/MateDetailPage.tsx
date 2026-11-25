@@ -2,7 +2,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
-import { ageRatingLabel, availableMates } from '@/features/mates/catalog'
+import { ageRatingLabel, availableMates, withComingSoon } from '@/features/mates/catalog'
 import { ConnectMateButton } from '@/features/mates/components/ConnectMateButton'
 import { MateAlertButton } from '@/features/mates/components/MateAlertButton'
 import { matePortrait } from '@/features/mates/artwork'
@@ -60,6 +60,7 @@ export default function MateDetailPage() {
   const role = detail?.role ?? mate.role
   const intro = detail?.intro ?? mate.intro
   // 31 wins over the /home card (it is read for this page): coming soon closes the connection, the rating is the server's.
+  // The connect button gets the same value (a card still marked coming soon must not stop a mate 31 says is open).
   const comingSoon = detail?.comingSoon ?? Boolean(mate.comingSoon)
   const ageRating = detail?.ageRating ?? mate.ageRating
   // The outline name behind the hero is set in two staggered halves (채 / 린).
@@ -178,7 +179,7 @@ export default function MateDetailPage() {
             </div>
 
             <div className="mate-hero-actions" data-tour="mate-detail-connect">
-              {comingSoon ? <MateAlertButton mate={mate} /> : <ConnectMateButton mate={mate} pickup />}
+              {comingSoon ? <MateAlertButton mate={mate} /> : <ConnectMateButton mate={withComingSoon(mate, comingSoon)} pickup />}
             </div>
 
             {loadMateDetail && !detail && !error && (

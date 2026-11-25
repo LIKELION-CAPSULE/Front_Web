@@ -196,6 +196,6 @@ test('48: the login 채린 takes her own server entry (not 「말포이」), a u
   assert.equal(loginMateWithServer(base, null), base)
   // A usable model (engine URL) replaces the default; the warm hand-off key is built from these same URLs.
   const withEngine = loginMateWithServer(base, { mates: [{ ...production.mates![1]!, model: { ...production.mates![1]!.model!, engineUrl: 'https://cdn/engine.js', playerUrl: 'https://cdn/player.js' } }] })
-  assert.deepEqual(withEngine.v2Model, { modelJsonUrl: 'https://cdn/chaerin/v5/model.json', engineUrl: 'https://cdn/engine.js', playerUrl: 'https://cdn/player.js' })
+  assert.deepEqual(withEngine.v2Model, { modelJsonUrl: 'https://cdn/chaerin/v5/model.json', engineUrl: 'https://cdn/engine.js', playerUrl: 'https://cdn/player.js', format: 'ALIVING2D_V2' })
   } finally { await server.close() }
 })

@@ -63,7 +63,7 @@ export function checkedMateDetail(value: MateDetailContent, characterId: number)
     if (typeof value[key] !== 'string') throw invalid()
     result[key] = value[key]
   }
-  if (value.tags !== undefined) {
+  if (value.tags != null) { // An optional list: null is none.
     if (!Array.isArray(value.tags) || !value.tags.every(tag => typeof tag === 'string')) throw invalid()
     result.tags = [...new Set(value.tags.map(tag => tag.trim()).filter(Boolean))]
   }

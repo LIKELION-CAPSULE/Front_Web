@@ -27,6 +27,8 @@ export interface LoginMateV2ModelConfig {
   engineUrl: string
   playerUrl?: string
   reactionsUrl?: string
+  /** 48's `model.format` (e.g. `ALIVING2D_V2`): the model URL need not end in `/model.json` when this says what it is. */
+  format?: string
 }
 
 export interface LoginMateBubblePosition {
@@ -123,6 +125,7 @@ export function loginV2ModelsFromServer(response: LoginMatesResponse | null | un
       modelJsonUrl: model.modelJsonUrl, engineUrl: model.engineUrl,
       ...(model.playerUrl ? { playerUrl: model.playerUrl } : {}),
       ...(model.reactionsUrl ? { reactionsUrl: model.reactionsUrl } : {}),
+      ...(typeof model.format === 'string' && model.format.trim() ? { format: model.format.trim() } : {}),
     }
   }
   return result

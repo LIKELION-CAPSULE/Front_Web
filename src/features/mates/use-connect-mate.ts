@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { EndedConnectionError } from '@/features/backend/ended-connection'
-import { availableMates, type AvailableMate } from './catalog'
+import { availableMates, connectBlockedMessage, type AvailableMate } from './catalog'
 import { playPickup } from './pickup-sequence'
 
 /**
@@ -21,8 +21,11 @@ export function useConnectMate(mate: AvailableMate | null | undefined) {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
 
   const connect = useCallback(async (options: { pickup?: boolean } = {}) => {
+    if (busy || !mate) return
     // A coming-soon mate cannot be connected (16 answers 409 MATE_COMING_SOON): its page offers the alert instead.
-    if (busy || !mate || mate.comingSoon) return
+    // Said, not silently ignored (the same words as the server's refusal).
+    const blocked = connectBlockedMessage(mate)
+    if (blocked) { setError(blocked); return }
     setBusy(true)
     setError('')
     const pickup = options.pickup ? playPickup({ name: mate.name, reduced: prefersReducedMotion() }) : null

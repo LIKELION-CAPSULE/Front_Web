@@ -132,3 +132,12 @@ export function mateByName(name: string | undefined, mates: readonly AvailableMa
   const profile = mateProfileByName(name)
   return profile ? mates.find(mate => mate.id === profile.id) : undefined
 }
+
+/** The mate with the coming-soon state a page decided (31 over the /home card), for the connect action. */
+export function withComingSoon(mate: AvailableMate, comingSoon: boolean): AvailableMate {
+  return Boolean(mate.comingSoon) === comingSoon ? mate : { ...mate, comingSoon }
+}
+
+export const MATE_COMING_SOON_MESSAGE = '아직 준비 중인 메이트예요.'
+/** Why connecting cannot start (said on screen, not silently ignored), or null. */
+export const connectBlockedMessage = (mate: Pick<AvailableMate, 'comingSoon'>) => (mate.comingSoon ? MATE_COMING_SOON_MESSAGE : null)

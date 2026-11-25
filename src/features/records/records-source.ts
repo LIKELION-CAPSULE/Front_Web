@@ -29,6 +29,8 @@ export type RecordsData = {
   recent: readonly StudyRecord[]
   /** Mates with time in this range. */
   matesInRange: number
+  /** Each read mate's own 38 answer for the range (by mate id): the records comment speaks from these sums. */
+  views: Readonly<Record<string, RecordsView>>
 }
 
 /** The 38 reads for a range: one WEEK / MONTH read, or the started months of a year. */

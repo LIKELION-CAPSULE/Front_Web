@@ -92,4 +92,9 @@
 .voice-fallback-note { margin: 0 12px 8px; color: var(--color-subtle); font-size: var(--text-caption); }
 .voice-fallback-note { animation: voice-fallback-note 6s ease forwards; }
 @keyframes voice-fallback-note { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
-.connection-history-status { margin: 0 0 8px; color: var(--color-subtle); font-size: var(--text-caption); text-align: center; }
+.connection-history-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; margin: 0 0 8px; color: var(--color-subtle); font-size: var(--text-caption); line-height: 26px; text-align: center; }
+/* An older page on its way: over the top of the list (no height of its own), so the lines in view do not move. */
+.connection-history-status--over { position: sticky; z-index: 1; top: 0; width: fit-content; height: 26px; margin: 0 auto -26px; border-radius: 999px; background: color-mix(in srgb, var(--color-panel) 92%, transparent); padding: 0 12px; pointer-events: none; }
+.connection-history-retry { border-radius: var(--radius-control); padding: 0 8px; color: var(--color-muted); text-decoration: underline; text-underline-offset: 3px; }
+.connection-history-retry:hover { background: var(--color-control); color: var(--color-ink); }
+.connection-history-retry:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
