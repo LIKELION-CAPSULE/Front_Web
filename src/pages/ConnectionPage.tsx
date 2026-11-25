@@ -1095,11 +1095,12 @@ export default function ConnectionPage() {
       )}
       {settingsOpen && <AccountSettingsDialog initialView="settings" onClose={() => setSettingsOpen(false)} />}
 
-      <Dialog open={privacyOpen} onClose={() => setPrivacyOpen(false)} title="카메라 사용 안내" tone="info">
+      {/* 「카메라 없이 하기」 is the way back (Esc and the backdrop do the same), so no X in the header (2026-11-26). */}
+      <Dialog open={privacyOpen} onClose={() => setPrivacyOpen(false)} title="카메라 사용 안내" tone="info" showCloseButton={false}>
         <p className="text-muted">카메라를 켜면 자리 비움·복귀에 메이트가 반응해요. 영상은 이 기기 안에서만 확인하고 저장하거나 보내지 않아요.</p>
         <div className="mt-6 flex gap-3">
           <Button onClick={() => { setPrivacySeen(true); setPrivacyOpen(false); void controller.request('camera') }}>카메라 켜기</Button>
-          <Button variant="secondary" onClick={() => setPrivacyOpen(false)}>카메라 없이 하기</Button>
+          <Button variant="secondary" onClick={() => setPrivacyOpen(false)} data-dialog-initial-focus>카메라 없이 하기</Button>
         </div>
       </Dialog>
 

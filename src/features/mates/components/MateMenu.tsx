@@ -153,6 +153,8 @@ export function MateMenu({
         tone="danger"
         onClose={close}
         dismissible={!busy}
+        // 「취소」 is the way back (Esc and the backdrop do the same), so no X in the header (2026-11-26).
+        showCloseButton={false}
         className="mate-reset-dialog"
       >
         <dl className="mate-reset-scope">
