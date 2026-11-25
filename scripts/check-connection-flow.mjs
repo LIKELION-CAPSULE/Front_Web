@@ -85,7 +85,11 @@ async function minorLimit() {
 async function autoAway() {
   const { context, page } = await open({ clock: true })
   await connectChaerin(page)
-  for (let i = 0; i < 40 && !/\/connect\/chaerin/.test(page.url()); i++) await page.clock.runFor(250)
+  // The home card plays the pickup (Web Animations, real time) before it moves on: let real time pass too.
+  for (let i = 0; i < 80 && !/\/connect\/chaerin/.test(page.url()); i++) {
+    await page.clock.runFor(250)
+    await page.waitForTimeout(100)
+  }
   await page.clock.runFor(3000)
   check('idle: the call screen is open (camera off)', /\/connect\/chaerin/.test(page.url()), page.url())
   // Ten minutes without input: the call ends by itself. The hang-up then plays in real time.

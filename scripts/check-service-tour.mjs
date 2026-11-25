@@ -170,7 +170,7 @@ async function slow() {
   check('slow chunk: app is locked at once (inert, no scroll) while the tour loads', state.rootInert && state.overflow === 'hidden', JSON.stringify(state))
   check('slow chunk: a 「사용법 불러오는 중 · 그만보기」 panel shows', loading === 1)
   // Try the real 「연결하기」 (connectMate) and a card while it loads: nothing may happen.
-  for (const selector of ['[data-tour="mate-card-connect"]', '[data-tour="connect"]', '.home-mate-card-link']) {
+  for (const selector of ['[data-tour="mate-card-connect"]', '.home-mate-card-link']) {
     const control = page.locator(selector).first()
     if (await control.count()) await control.click({ force: true, timeout: 2000 }).catch(() => {})
   }

@@ -40,7 +40,7 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
   const comingSoon = Boolean(mate.comingSoon)
   return (
     <article className="home-mate-card home-mate-card--active" data-coming-soon={comingSoon || undefined} data-tour={tour ? 'mate-card' : undefined}>
-      {/* The whole card opens the mate's page; the arrow starts the connection. */}
+      {/* The whole card opens the mate's page; the arrow starts the connection (with the pickup sequence). */}
       <Link to={`/mates/${mate.id}`} className="home-mate-card-link" aria-label={`${mate.name} 메이트 보기`} />
       <div className="home-mate-card-art">
         <img className="home-mate-card-bg" src={mateCallBackground(mate.id).landscape} alt="" loading="lazy" decoding="async" draggable={false} />
@@ -75,7 +75,8 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
           className="home-round-button home-mate-card-enter"
           data-tour={tour ? 'mate-card-connect' : undefined}
           aria-label={HOME_COPY.connectMate(mate.name)}
-          onClick={() => void connect()}
+          // Starting from home picks up the phone (the hang-up in reverse) on the way into the call.
+          onClick={() => void connect({ pickup: true })}
           disabled={busy}
         >
           <Icon name="chevron" size={18} />

@@ -73,15 +73,17 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'home-mates', screen: 'home',
     marks: [
       { targets: ['[data-tour="mate-card"]'], at: { x: 0.96, y: 0.42 }, action: 'hover' },
-      // The card's 「○○와 연결하기」 arrow; then the hero's CTA (「○○와 연결하기」 once checked in) or the card badge.
-      { targets: ['[data-tour="mate-card-connect"]', '[data-tour="connect"]', '[data-tour="mate-card-status"]'], at: CORNER, action: 'click', preview: ['영상통화처럼 함께', '음성 대화', 'PIP로 띄우기'] },
+      // The card's 「○○와 연결하기」 arrow, or its badge while the mate is coming soon.
+      { targets: ['[data-tour="mate-card-connect"]', '[data-tour="mate-card-status"]'], at: CORNER, action: 'click', preview: ['영상통화처럼 함께', '음성 대화', 'PIP로 띄우기'] },
     ],
     say: '같이 있을 메이트는 카드에서 골라. 연결하면 영상통화처럼 같이 있고, 음성이랑 PIP도 돼.',
   },
   {
     id: 'home-attendance', screen: 'home', labelSide: 'left',
-    marks: [{ targets: ['[data-tour="home-attendance"]'], at: EDGE, action: 'hover' }],
-    say: '매일 출석하면 크레딧을 받아. 날마다 보상이 달라지니까 빠지지 말고 와.',
+    // The hero's attendance path: its box keeps the art's clear right margin, so the arrow comes in at the road's start
+    // (lower left) and the line sits over the empty space beside it, leaving the pads and the day-7 capsule in view.
+    marks: [{ targets: ['[data-tour="home-attendance"]'], at: { x: 0.08, y: 0.86 }, action: 'hover' }],
+    say: '매일 출석하면 크레딧을 받고 발판을 한 칸씩 건너. 7일째엔 캡슐 선물이 기다려.',
   },
   // 메이트 상세
   {
