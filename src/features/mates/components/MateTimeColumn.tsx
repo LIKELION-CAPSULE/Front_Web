@@ -27,17 +27,31 @@ const RECENT_MAX = 10
 /** NEW marks only the newest connections since the last visit. */
 const MAX_NEW = 2
 
-/** An expression the next stage unlocks (counted in the affinity block's last line). */
-export type StageReward = { id: string; label: string; thumbnail?: string; tint?: string }
 
-/** Header of a block: one style everywhere, a small icon and the title (and an optional note on the right). */
-function BlockLabel({ id, icon, children, note }: { id: string; icon: IconName; children: ReactNode; note?: ReactNode }) {
+/**
+ * Header of a block: one style everywhere, a small icon and the title, an optional count right beside the title (a
+ * muted figure; read as `countLabel`), and an optional note at the far right (an action).
+ */
+function BlockLabel({ id, icon, children, count, countLabel, note }: {
+  id: string
+  icon: IconName
+  children: ReactNode
+  count?: number
+  countLabel?: string
+  note?: ReactNode
+}) {
   return (
     <p className="mate-game-label">
       <span className="mate-game-label-icon" aria-hidden="true">
         <Icon name={icon} size={14} />
       </span>
       <span id={id}>{children}</span>
+      {count !== undefined && (
+        <span className="mate-game-label-count">
+          <span aria-hidden="true">{count.toLocaleString('ko-KR')}</span>
+          <span className="sr-only">{countLabel ?? `${count}개`}</span>
+        </span>
+      )}
       {note && <span className="mate-game-label-note">{note}</span>}
     </p>
   )
@@ -76,7 +90,6 @@ export function MateTimeColumn({
   capsuleCount,
   newIds,
   affinity,
-  nextRewards,
   expressions = null,
   theme,
   onOpen,
@@ -94,8 +107,6 @@ export function MateTimeColumn({
   newIds: readonly string[]
   /** Null: no affinity data (feature off) — the block is left out. */
   affinity: AffinityProgressView | null
-  /** Expressions the next stage unlocks. */
-  nextRewards: readonly StageReward[]
   /**
    * 표정 컬렉션 (feature on; null: the block is left out): the tiles and the count for the title. Picking one makes
    * the panel's big mate wear it. The tiles get `my-mates-expressions-label` as their label.
@@ -113,6 +124,7 @@ export function MateTimeColumn({
   const [pointed, setPointed] = useState<string | null>(null)
   const [roomRef, limit] = useFittingRows(3)
   const recent = connections.slice(-limit).reverse()
+  const total = connectionCount ?? connections.length
   // Keepsakes (milestones of the time together) by connection, the same rule as the capsules in the scene.
   const keepsakes = useMemo(() => capsuleKeepsakes(connections, capsulesForConnection), [connections])
   // NEW: the newest two connections since the last visit, not every one of them.
@@ -159,9 +171,6 @@ export function MateTimeColumn({
             />
           )}
           {caption && <p className="mate-game-level-caption">{caption}</p>}
-          {nextRewards.length > 0 && !affinity.isLast && (
-            <p className="mate-game-level-reward">다음 단계에서 표정 {nextRewards.length}개가 열려요</p>
-          )}
         </section>
       )}
 
@@ -187,12 +196,10 @@ export function MateTimeColumn({
         <BlockLabel
           id="my-mates-recent-label"
           icon="sparkle"
-          note={
-            <>
-              {(connectionCount ?? connections.length) > recent.length && <span className="mate-game-recent-total">전체 {connectionCount ?? connections.length}개</span>}
-              {listToggle}
-            </>
-          }
+          // The count right after the title (all connections, not only the newest listed); the toggle alone at the far right.
+          count={total > 0 ? total : undefined}
+          countLabel={`전체 ${total}개`}
+          note={listToggle}
         >
           최근 캡슐
         </BlockLabel>

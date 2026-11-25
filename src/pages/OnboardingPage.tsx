@@ -5,7 +5,7 @@ import { useWindupString } from 'windups'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
 import { AvatarDial } from '@/features/profile/components/AvatarDial'
-import { safeReturnPath } from '@/shared/lib/format'
+import { postAuthDestination } from '@/features/auth/post-auth'
 import { Button } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
@@ -430,7 +430,8 @@ export default function OnboardingPage() {
           if (desktopShell && !reduced) await new Promise((resolve) => setTimeout(resolve, 180))
           // reload() shows the route loading screen, which unmounts this page for a moment: navigate regardless.
           await backend.reload()
-          navigate(safeReturnPath(params.get('next'), '/'), { replace: true })
+          // Just signed up: home, unless `next` is a link someone sent (post-auth.ts).
+          navigate(postAuthDestination({ next: params.get('next'), newAccount: true }), { replace: true })
         },
       })
       if (result === 'invalid') referralInputRef.current?.focus()

@@ -257,8 +257,10 @@
 
 /*
  * Profile tab: onboarding step 1 inside the dialog (ProfileEditor). The avatar arc at the content's left edge, the big
- * Live2D stage with the name and greeting over its faded foot (AvatarDial `arc`, avatar-dial.css), and the fields on the
- * login / onboarding panel at the right: a thin light edge, 20px corners (the design system's panel-outline exception).
+ * Live2D stage with the name and greeting on the avatar's legs (AvatarDial `arc`, avatar-dial.css — the onboarding rule),
+ * and the fields at the right with no outline or surface of their own (2026-11-26: the modal is a surface already, and
+ * a faint one on it read as a box in a box; the inputs carry their own fill. The outline exception stays with the
+ * sign-up and login panels).
  */
 .profile-editor {
   --profile-panel-width: clamp(320px, 33cqw, 388px);
@@ -300,16 +302,18 @@
 }
 .profile-editor .avatar-picker[data-layout='arc'] .avatar-picker-main { padding-top: 12px; }
 .profile-editor .avatar-picker[data-layout='arc'] .avatar-picker-name { font-size: 26px; line-height: 34px; }
-.profile-editor .avatar-picker[data-layout='arc'] .avatar-picker-caption { bottom: 28px; }
 
-/* The panel column: centred in the height, clear of the close button at the top right. */
+/*
+ * The panel column: clear of the close button at the top right, and a little above the middle so the panel's lower
+ * edge meets the name and greeting on the avatar's legs (the onboarding balance; the extra bottom room lifts it ~40px).
+ */
 .profile-editor-side {
   display: flex;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
   justify-content: center;
-  padding: 64px 32px 28px 0;
+  padding: 64px 32px 106px 0;
 }
 
 .profile-editor-panel {
@@ -322,9 +326,7 @@
   max-height: 100%;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(250, 250, 253, 0.2);
   border-radius: 20px;
-  background: color-mix(in srgb, var(--color-canvas) 30%, transparent);
 }
 .profile-editor-panel-scroll {
   display: flex;

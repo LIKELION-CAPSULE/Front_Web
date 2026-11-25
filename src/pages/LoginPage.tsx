@@ -7,7 +7,7 @@ import { authNotice } from '@/features/auth/auth-notices'
 import { rememberLoginProvider, saveKakaoLogin } from '@/features/auth/auth-storage'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
 import { enqueueNotification, type NotificationContent, type NotificationItem } from '@/shared/ui/notification-queue'
-import { safeReturnPath } from '@/shared/lib/format'
+import { postAuthDestination } from '@/features/auth/post-auth'
 import { Button } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
 import { EmailAuthForm, type EmailAuthMode } from '@/features/auth/components/EmailAuthForm'
@@ -61,7 +61,8 @@ export default function LoginPage() {
       ? mode
       : 'welcome'
   const verifying = view === 'signup' && signupDraft !== null
-  const next = safeReturnPath(params.get('next'), '/')
+  // Signing in again: back to `next`; a new account goes through onboarding, which applies the new-account rule.
+  const next = postAuthDestination({ next: params.get('next'), newAccount: false })
   const noticeCode = params.get('notice')
   const hasErrorNotification = notifications.some((item) => item.tone === 'error')
 

@@ -28,7 +28,9 @@
   font-weight: 700;
 }
 .mate-game-label-icon { display: inline-grid; place-items: center; color: var(--color-muted); }
-.mate-game-label-note { margin-left: auto; color: var(--color-subtle); font-size: 12px; font-weight: 500; }
+.mate-game-label-note { flex: none; margin-left: auto; color: var(--color-subtle); font-size: 12px; font-weight: 500; }
+/* The count beside the title (e.g. 「최근 캡슐 76」): a small muted figure, not a part of the action on the right. */
+.mate-game-label-count { flex: none; color: var(--color-subtle); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* ── 함께한 시간: the total and one line of counts ── */
 .mate-game-total-value {
@@ -67,7 +69,6 @@
   transform-origin: 0 50%;
 }
 .mate-game-level-caption { margin: 0; color: var(--color-muted); font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums lining-nums; }
-.mate-game-level-reward { margin: 2px 0 0; color: var(--color-subtle); font-size: 13px; line-height: 18px; }
 
 /* ── 최근 캡슐: rows divided by thin lines ──
    The column is as tall as the panel and never scrolls: every block keeps its height and the recent list takes

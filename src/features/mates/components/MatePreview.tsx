@@ -30,6 +30,7 @@ import { CharacterSpeechBubble } from '@/features/session/components/CharacterSp
 import { Button } from '@/shared/ui/Button'
 import { QuarterRingSpinner } from '@/shared/ui/QuarterRingSpinner'
 import type { VoiceSampleStatus } from './VoiceSampleButton'
+import { engineAllowlist } from '@/features/mate-render/engine-allowlist'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 
 export function MatePreview({
@@ -92,10 +93,7 @@ export function MatePreview({
     () =>
       resolvePreviewSource(
         { modelJsonUrl, engineUrl, playerUrl, reactionsUrl, format },
-        {
-          pageOrigin: typeof window !== 'undefined' ? window.location.origin : '',
-          apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
-        },
+        engineAllowlist(),
       ),
     [modelJsonUrl, engineUrl, playerUrl, reactionsUrl, format],
   )

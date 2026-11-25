@@ -118,9 +118,9 @@ test('inviter reward is idempotent and capped at ten completed invited friends',
 })
 test('local profile and logout persist without storing passwords or a production token', () => {
   const disk = storage(), store = new LocalBetaStore(disk, now)
-  store.data.details.callName = '내 호칭'; store.profile('새 닉네임'); store.logout()
+  store.data.details.aboutMe = '내 소개'; store.profile('새 닉네임'); store.logout()
   const reloaded = new LocalBetaStore(disk, now)
-  assert.equal(reloaded.data.details.callName, '내 호칭')
+  assert.equal(reloaded.data.details.aboutMe, '내 소개')
   assert.equal(reloaded.data.nickname, '새 닉네임')
   assert.equal(reloaded.data.authenticated, false)
   assert.doesNotMatch(disk.getItem(LOCAL_STORAGE_KEY)!, /password|accessToken|refreshToken/)

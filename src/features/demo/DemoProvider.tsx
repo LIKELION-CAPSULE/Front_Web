@@ -34,6 +34,7 @@ import { birthDateError } from '@/features/auth/birth-date'
 import { nicknameError } from '@/features/profile/profile-input'
 import type { MateContentPort } from '@/features/mates/mate-contract'
 import { checkedMateDetail } from '@/features/mates/mate-contract'
+import { engineAllowlist } from '@/features/mate-render/engine-allowlist'
 import { forgetAllChatRooms, forgetChatRoom } from '@/features/mates/chat-room'
 import type { BetaFeaturePort, BetaFeatureSnapshot } from '@/features/backend/beta-feature-port'
 
@@ -50,7 +51,6 @@ const errorMessage = (error: unknown) => error instanceof Error ? error.message 
 const createLive2DStage: SessionModelFactory = (url, layout) => new Live2DStage(url, layout, new URL(import.meta.env.BASE_URL, location.href).href)
 /** v2 (Aliving2D) session models; engine scripts run only from this page's origin or the API origin. */
 const createAlivingStage: AlivingStageFactory = (source, options) => new AlivingSessionStage(source, { stillImage: options.stillImage })
-const engineAllowlist = () => ({ pageOrigin: location.origin, apiBaseUrl: import.meta.env.VITE_API_BASE_URL })
 
 /** Cached reports may belong to mates no longer returned by /home. */
 function registerCachedReportRooms(records: DemoState['records']) {
@@ -519,7 +519,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     if (!accountPort) throw new ApiError('요청을 처리하지 못했어요.', 501)
     const userId = stateRef.current.profile.userId
     if (!userId) throw new ApiError('로그인이 필요해요.', 401)
-    const result = await accountScope(() => epoch.current).wait(accountPort.saveProfile(userId, { ...input, nickname: input.nickname.trim(), callName: input.callName.trim(), aboutMe: input.aboutMe.trim() }))
+    const result = await accountScope(() => epoch.current).wait(accountPort.saveProfile(userId, { ...input, nickname: input.nickname.trim(), aboutMe: input.aboutMe.trim() }))
     applyAccountResult(result, input.avatarId)
   }, [accountPort, applyAccountResult])
   // Retired source previews still type-check, but cannot call the schedule API.

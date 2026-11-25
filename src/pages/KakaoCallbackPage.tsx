@@ -4,7 +4,7 @@ import { useBackend } from '@/features/backend/backend-context'
 import { api } from '@/shared/api/client'
 import { deviceHash } from '@/shared/api/device-hash'
 import type { KakaoRequest, KakaoResponse } from '@/shared/api/types'
-import { safeReturnPath } from '@/shared/lib/format'
+import { postAuthDestination } from '@/features/auth/post-auth'
 import { kakaoErrorNotice } from '@/features/auth/auth-notices'
 import { clearKakaoLogin, readKakaoLogin, rememberLoginProvider } from '@/features/auth/auth-storage'
 import { RouteLoading } from '@/app/components/RouteLoading'
@@ -25,7 +25,8 @@ export default function KakaoCallbackPage() {
       // 11-25: `deviceHash` is required for existing users too (400 without it).
       const body: KakaoRequest = { code, redirectUri: saved.redirect, deviceHash: await deviceHash() }
       const result = await api.request<KakaoResponse>('/auth/social/KAKAO', { method: 'POST', auth: false, body })
-      const next = safeReturnPath(saved.next ?? null, '/')
+      // Signing in again: back to `next`; a new account goes through onboarding, which applies the new-account rule.
+      const next = postAuthDestination({ next: saved.next, newAccount: false })
       setDestination(next)
       const me = await authenticate(result)
       clearKakaoLogin()

@@ -11,11 +11,10 @@ type Client = Pick<ApiClient, 'request'>
 
 const text = (value: string | null | undefined) => typeof value === 'string' ? value : undefined
 
-/** `/me` → the profile fields the onboarding and profile screens edit (`honorific` is the front-end `callName`). */
+/** `/me` → the profile fields the onboarding and profile screens edit (`honorific` is not used: 2026-11-26). */
 export function accountDetails(me: MeResponse, referralRegistered?: boolean): BetaAccountDetails {
   return {
     ...(me.birthDate ? { birthDate: me.birthDate } : {}),
-    callName: me.honorific ?? '',
     aboutMe: me.aboutMe ?? '',
     ...(referralRegistered === undefined ? {} : { referralRegistered }),
   }
@@ -65,7 +64,6 @@ export function createServerAccountPort(client: Client, device: () => Promise<st
       const me = await updateMe(client, {
         nickname: input.nickname,
         ...(input.avatarId === undefined ? {} : { avatarId: input.avatarId }),
-        honorific: input.callName,
         aboutMe: input.aboutMe,
       })
       return { me, details: accountDetails(me) }

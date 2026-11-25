@@ -94,7 +94,7 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
   const figures = () => {
     const mate = store.activeMate()
     return { connectionId: store.data.active!.id, mate: figure(mate),
-      me: { nickname: store.data.nickname, honorific: store.data.details.callName || null, profileImageUrl: image() },
+      me: { nickname: store.data.nickname, honorific: null, profileImageUrl: image() },
       serverTime: new Date().toISOString(), minorRemainingSeconds: minorRemaining(), backgrounds: [], background: null }
   }
   const detail = (mate: LocalMate): MateDetailResponse => ({

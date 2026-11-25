@@ -118,7 +118,7 @@ function withPatternRecords(data: Pick<LocalData, 'records' | 'messages' | 'reco
 
 function seed(now: number, recordPattern: RecordPattern = 'steady'): LocalData {
   const { records, messages } = withPatternRecords({ recordPattern, records: [], messages: [] }, now)
-  return { version: 1, authenticated: true, nickname: '로컬 사용자', onboardingRequired: false, details: { birthDate: '2000-01-01', callName: '', aboutMe: '' },
+  return { version: 1, authenticated: true, nickname: '로컬 사용자', onboardingRequired: false, details: { birthDate: '2000-01-01', aboutMe: '' },
     scenario: 'normal', recordPattern, nextSessionId: 992001, active: null, points: 62, settings: { voice: false, advanced: false }, rewardedCodes: [], records, messages,
     wallet: { attendance: 1500, invitation: 2000, usedToday: 0, attendanceExpiresAt: nextAttendanceExpiry(now), entries: [
       { id: 'local-attendance', at: now, description: '출석 크레딧', kind: 'attendance', change: 1500, balance: 3500 },
@@ -196,7 +196,7 @@ export class LocalBetaStore {
   me = (image?: string): MeResponse => ({ userId: LOCAL_USER_ID, nickname: this.data.nickname, email: 'local@capsule.invalid',
     onboardingRequired: this.data.onboardingRequired || !this.data.details.birthDate, profileImage: image ?? null,
     activeConnection: this.summary(), birthDate: this.data.details.birthDate ?? null, isMinor: false,
-    honorific: this.data.details.callName || null, aboutMe: this.data.details.aboutMe || null, referralCode: this.data.invitation.code,
+    honorific: null, aboutMe: this.data.details.aboutMe || null, referralCode: this.data.invitation.code,
     credits: this.credits(), loginType: 'EMAIL', unreadNotifications: 0 })
   /** The mate of the running connection (채린 for sessions saved before 서도현 existed). */
   activeMate = () => localMate(this.data.active?.characterId)
@@ -207,7 +207,7 @@ export class LocalBetaStore {
   }
   login() { this.data.authenticated = true; this.changed(); return { accessToken: 'local-beta-access', ...this.me() } }
   beginOnboarding() {
-    this.reset('empty'); this.data.details = { callName: '', aboutMe: '' }; this.data.onboardingRequired = true
+    this.reset('empty'); this.data.details = { aboutMe: '' }; this.data.onboardingRequired = true
     return this.login()
   }
   setPreviewExpression(value: string | null) { this.previewExpression = value }
@@ -222,7 +222,6 @@ export class LocalBetaStore {
   /** API 10: only the fields sent; the birth date is saved once. */
   updateMe(body: UpdateMeRequest) {
     if (body.birthDate && !this.data.details.birthDate) this.data.details.birthDate = body.birthDate
-    if (typeof body.honorific === 'string') this.data.details.callName = body.honorific
     if (typeof body.aboutMe === 'string') this.data.details.aboutMe = body.aboutMe
     return this.profile(typeof body.nickname === 'string' ? body.nickname : this.data.nickname, body.avatarId)
   }

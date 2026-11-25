@@ -157,7 +157,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       { targets: ['[data-account-view="settings"]'], at: CORNER, action: 'hover' },
       { targets: ['[data-account-view="security"]'], at: CORNER, action: 'hover' },
     ],
-    say: '프로필에선 아바타랑 닉네임, 호칭을 정하고, 설정에선 말 거는 정도랑 기기, PIP를 바꿔. 비밀번호랑 탈퇴는 보안 탭에 있어.',
+    say: '프로필에선 아바타랑 닉네임을 정하고, 설정에선 말 거는 정도랑 기기, PIP를 바꿔. 비밀번호랑 탈퇴는 보안 탭에 있어.',
   },
   // 마무리
   { id: 'outro', screen: 'outro', marks: [], say: '이제 만나러 가 볼까?' },

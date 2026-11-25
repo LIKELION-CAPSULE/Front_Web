@@ -33,34 +33,20 @@ test('prefers stageProgress when both stageProgress and stageSeconds/stageTarget
   assert.equal(resolveStageProgress({ stageProgress: 0.25, stageSeconds: 1800, stageTargetSeconds: 3600 }), 0.25)
 })
 
-test('my-mates affinity view: stage, progress, next stage and the expressions it opens', async () => {
+test('my-mates affinity view: stage, progress and the next stage', async () => {
   const { affinityProgressView } = await import('../src/features/mates/affinity-progress.ts')
   const format = (seconds: number) => `${Math.round(seconds / 60)}분`
-  const expressions = [
-    { unlocked: true, unlockStage: 1 },
-    { unlocked: false, unlockStage: 3 },
-    { unlocked: false, unlockStage: 3 },
-    { unlocked: false, unlockStage: 4 },
-  ]
   const view = affinityProgressView(
     { stage: 2, stageName: '아는 사이', nextStageName: '친구', nextLevelSeconds: 1800, stageSeconds: 900, stageTargetSeconds: 3600 },
-    expressions,
     5,
     format,
   )
   assert.equal(view.progress, 0.25)
   assert.equal(view.nextCaption, '친구까지 30분')
-  assert.equal(view.nextUnlocks, 2)
   assert.equal(view.isLast, false)
-  // Server data without stages on the expressions: the next stage's name in the condition.
-  const byName = affinityProgressView(
-    { stage: 2, stageName: '아는 사이', nextStageName: '친구' },
-    [{ unlocked: false, condition: '친구 단계에서 열려요' }, { unlocked: false, condition: '단짝 단계에서 열려요' }],
-    5,
-    format,
-  )
-  assert.equal(byName.nextUnlocks, 1)
-  assert.equal(byName.nextCaption, null)
-  assert.equal(byName.progress, null)
-  assert.equal(affinityProgressView({ stage: 5, stageName: '단짝' }, [], 5, format).isLast, true)
+  // Without the remaining time or the stage seconds: no caption, no bar.
+  const bare = affinityProgressView({ stage: 2, stageName: '아는 사이', nextStageName: '친구' }, 5, format)
+  assert.equal(bare.nextCaption, null)
+  assert.equal(bare.progress, null)
+  assert.equal(affinityProgressView({ stage: 5, stageName: '단짝' }, 5, format).isLast, true)
 })

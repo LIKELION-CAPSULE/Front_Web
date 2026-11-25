@@ -46,28 +46,6 @@
   }
   .onboarding-step-one > .avatar-picker { align-self: stretch; }
   /*
-   * The avatar's name and greeting sit on its legs, at about the height of the panel's lower edge (user decision
-   * 2026-11-26): 22% of the stage height below the stage's centre, i.e. at 72% of the stage — the knees of a full-body
-   * avatar, the faded lower body of a waist-up one. The stage is `min(100cqh, 125cqw)` tall (avatar-dial.css), so the
-   * place follows its size; the Live2D credit stays at the very bottom, well apart. The stage's fade reaches the
-   * name earlier here, and a soft dark glow of the page colour behind the lines keeps them readable on the model.
-   */
-  .onboarding-step-one .avatar-picker[data-layout='arc'] .avatar-picker-caption {
-    top: calc(50% + 0.22 * min(100cqh, 125cqw));
-    bottom: auto;
-  }
-  .onboarding-step-one .avatar-picker[data-layout='arc'] .avatar-picker-caption::before {
-    position: absolute;
-    z-index: -1;
-    inset: -84px 0 -64px;
-    background: radial-gradient(closest-side, color-mix(in srgb, var(--color-canvas) 70%, transparent), color-mix(in srgb, var(--color-canvas) 44%, transparent) 42%, color-mix(in srgb, var(--color-canvas) 14%, transparent) 74%, transparent);
-    content: '';
-  }
-  .onboarding-step-one .avatar-picker[data-layout='arc'] .avatar-picker-figure {
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 64%, rgb(0 0 0 / 0.62) 80%, transparent 96%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 64%, rgb(0 0 0 / 0.62) 80%, transparent 96%);
-  }
-  /*
    * The panel's top stays put when the step changes: it is placed where a panel of the reserved height (the taller
    * step, ~step 2) would be centred, and a step only grows or shrinks at the bottom. OnboardingPage raises
    * `--onboarding-panel-reserve` if a step turns out taller (long text, large type).

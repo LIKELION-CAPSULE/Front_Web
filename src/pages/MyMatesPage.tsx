@@ -17,12 +17,12 @@ import { MateSwitcher, type MateSwitcherItem } from '@/features/mates/components
 import { formatTogether, totalCapsuleSeconds } from '@/features/mates/capsule-jar/capsule-jar-data'
 import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
 import type { CapsuleJarHandle } from '@/features/mates/capsule-jar/CapsuleJar'
-import { MateTimeColumn, type StageReward } from '@/features/mates/components/MateTimeColumn'
+import { MateTimeColumn } from '@/features/mates/components/MateTimeColumn'
 import { PixelSnow } from '@/features/mates/pixel-snow/PixelSnow'
 import { waistFraming } from '@/features/mates/my-mates-framing'
 import { capsuleJarTheme } from '@/features/mates/capsule-jar/capsule-jar-theme'
-import { affinityProgressView, opensAtNextStage } from '@/features/mates/affinity-progress'
-import { affinityStageLabel, normalizeAffinityStage } from '@/features/mates/affinity-stages'
+import { affinityProgressView } from '@/features/mates/affinity-progress'
+import { normalizeAffinityStage } from '@/features/mates/affinity-stages'
 import type { StudySettlement } from '@/shared/api/types'
 import { capsuleVisitKey } from '@/features/mates/capsule-jar/capsule-jar-visit'
 import { useCapsuleVisit } from '@/features/mates/capsule-jar/use-capsule-visit'
@@ -264,19 +264,7 @@ export default function MyMatesPage() {
       null)
     : null
   // The one progress on the page: the affinity stage (the panel caption shows the stage, the column the rest).
-  const affinity = relation ? affinityProgressView(relation, expressions ?? [], AFFINITY_STAGE_COUNT, formatTogether) : null
-  // The next stage's rewards: its locked expressions, shown as locked slots beside the progress.
-  const nextRewards: StageReward[] =
-    relation && expressions
-      ? expressions
-          .filter((item) => opensAtNextStage(item, relation.stage, affinity?.nextStageName ?? null))
-          .map((item) => ({
-            id: item.id,
-            label: item.label,
-            thumbnail: expressionThumbnail(previewMate ? 'chaerin' : selectedMate.id, item.expressionFile),
-            tint: previewMate?.tint,
-          }))
-      : []
+  const affinity = relation ? affinityProgressView(relation, AFFINITY_STAGE_COUNT, formatTogether) : null
   // Preview mates reuse 채린's art, so they reuse her face thumbnails too.
   const thumbnailMateId = previewMate ? 'chaerin' : selectedMate.id
 
@@ -311,7 +299,6 @@ export default function MyMatesPage() {
   const caption = (
     <>
       <p className="my-mates-caption-name">{mateName}</p>
-      {relation && <p className="my-mates-caption-stage">{affinityStageLabel(relation.stage, relation.stageName)}</p>}
       {firstMetAt && <p className="my-mates-caption-date">처음 만난 날 {formatFirstMetDate(firstMetAt)}</p>}
     </>
   )
@@ -352,7 +339,7 @@ export default function MyMatesPage() {
         <div className="my-mates-meet-group" data-tour="my-mates-meet">
           {meet.error && <FeedbackMessage tone="error">{meet.error}</FeedbackMessage>}
           {resetDone === selectedMate.id && <FeedbackMessage tone="success">대화를 초기화했어요.</FeedbackMessage>}
-          <Button className="my-mates-meet" loading={meet.busy} onClick={() => void meet.connect()}>
+          <Button className="my-mates-meet" loading={meet.busy} onClick={() => void meet.connect({ pickup: true })}>
             {`${mateName} 만나러 가기`}
             <Icon name="chevron" size={16} />
           </Button>
@@ -406,7 +393,6 @@ export default function MyMatesPage() {
           capsuleCount={capsuleCount}
           newIds={visit.dropIds}
           affinity={affinity}
-          nextRewards={nextRewards}
           expressions={expressionBlock}
           theme={capsuleJarTheme(selectedId)}
           onOpen={(id) => jarRef.current?.openCapsule(id)}
