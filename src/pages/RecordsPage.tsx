@@ -15,8 +15,9 @@ import { CapsuleDayDetail, DayRemainderRow, RecordConnectionRow } from '@/featur
 import { defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-calendar'
 import { connectionDayKey } from '@/features/records/connection-day'
 import { CapsuleBoard } from '@/features/records/capsule-board/CapsuleBoard'
+import { ContributionGrid, ContributionLegend } from '@/features/records/ContributionGrid'
 import { SatinBackdrop } from '@/features/records/satin-backdrop/SatinBackdrop'
-import { BOARD, buildCapsuleBoard, offsetContaining } from '@/features/records/capsule-board/capsule-board-layout'
+import { buildCapsuleBoard, offsetContaining } from '@/features/records/capsule-board/capsule-board-layout'
 import {
   boardViewSlot,
   defaultBoardView,
@@ -105,7 +106,7 @@ export default function RecordsPage() {
   /** Record card opened from a board day (that day's connections, newest first). */
   const [dayCard, setDayCard] = useState<{ key: string; index: number; phase: 'open' | 'closing' } | null>(null)
   const dayCardReturnFocus = useRef<HTMLElement | null>(null)
-  // Board: 2D / 2.5D (the viewer's last choice, else 2.5D on desktop and 2D under 960 px), stage width, WebGL.
+  // Board: 2D (the contribution grid) / 2.5D (the viewer's last choice, else 2D), stage width, WebGL.
   const [boardViews, setBoardViews] = useState<StoredBoardViews>(readStoredBoardViews)
   const [stageWidth, setStageWidth] = useState(0)
   const [boardFallback, setBoardFallback] = useState(() => !supportsWebGL())
@@ -116,8 +117,9 @@ export default function RecordsPage() {
 
   const { period, offset, mate: selectedMateId } = parseRecordsParams(searchParams)
   // 2D / 2.5D per period: week and month share the viewer's choice, the year keeps its own (2D until chosen).
-  const [viewportWidth] = useState(() => window.innerWidth)
-  const boardView = defaultBoardView(viewportWidth, boardViews, period)
+  const boardView = defaultBoardView(boardViews, period)
+  // The contribution grid: the 2D view, and the board wherever WebGL is missing.
+  const showGrid = boardView === '2d' || boardFallback
   const range = useMemo(() => getRecordRange(period, now - DAY_START_MS, offset), [period, now, offset])
   const prevRange = getRecordRange(period, now - DAY_START_MS, offset - 1)
   const canShiftPrev = prevRange.startDay !== range.startDay
@@ -348,7 +350,14 @@ export default function RecordsPage() {
 
   // 「함께한 메이트 n명」: only for 「전체」 with two or more mates.
   const showMateCard = connectedMates.length >= 2 && !activeMate
-  const showMateLegend = !activeMate && board.mates.length >= 2
+  const showMateLegend = !activeMate && board.mates.length >= 2 && !showGrid
+  // The year's 2.5D picks months (each opens its month); its days list stays folded.
+  const yearMonths = board.mode === 'year' && !showGrid
+  const selectDay = (day: (typeof capsuleCalendar.days)[number]) => {
+    setSelectedCellKey(day.key)
+    // A day with listed connections opens the same record card as a capsule in 내 메이트.
+    if (day.sessions > 0 && periodRecords.some((record) => !isDayRecord(record) && connectionDayKey(record) === day.key)) openDayCard(day.key)
+  }
 
   return (
     <RecordsWindowFrame>
@@ -471,16 +480,7 @@ export default function RecordsPage() {
                 함께 쌓은 시간
               </BlockTitle>
               <div className="records-board-tools">
-                <p className="records-board-legend">
-                  {boardView === '2d' ? '칩' : '캡슐'} 1개 = {BOARD.minutesPerCapsule}분
-                  {activeMate || board.mates.length < 2 ? ' · 색은 만난 시간대' : ''}
-                  {board.hasKeepsake && (
-                    <>
-                      {' · '}
-                      <span aria-hidden="true">✦</span> 기념
-                    </>
-                  )}
-                </p>
+                {showGrid && <ContributionLegend />}
                 {!boardFallback && (
                   <div className="records-view-toggle" role="group" aria-label="보기 방식" data-tour="records-view">
                     {(['2d', '25d'] as const).map((value) => (
@@ -519,30 +519,36 @@ export default function RecordsPage() {
                 })}
               </ul>
             )}
-            <CapsuleBoard
-              model={board}
-              view={boardView}
-              selectedKey={activeDay?.key}
-              emphasis={mateComment?.highlight ?? null}
-              onEmphasisControl={onEmphasisControl}
-              onStageWidth={setStageWidth}
-              onFallback={() => setBoardFallback(true)}
-              onController={exposeBoardBenchmark}
-              onSelectDay={(day) => {
-                setSelectedCellKey(day.key)
-                // A day with listed connections opens the same record card as a capsule in 내 메이트.
-                if (day.sessions > 0 && periodRecords.some((record) => !isDayRecord(record) && connectionDayKey(record) === day.key)) openDayCard(day.key)
-              }}
-              onSelectMonth={(month) => {
-                const key = `${range.startDay.slice(0, 4)}-${String(month + 1).padStart(2, '0')}-01`
-                // A month that has not begun cannot be opened (the board disables it too).
-                if (key > range.today) return
-                updateParams({ period: 'month', offset: Math.min(0, offsetContaining('month', key, range.today)) })
-              }}
-            />
+            {showGrid ? (
+              <ContributionGrid
+                model={board}
+                selectedKey={activeDay?.key}
+                showMates={!activeMate && board.mates.length >= 2}
+                onSelect={selectDay}
+              />
+            ) : (
+              <CapsuleBoard
+                model={board}
+                view="25d"
+                selectedKey={activeDay?.key}
+                emphasis={mateComment?.highlight ?? null}
+                onEmphasisControl={onEmphasisControl}
+                onStageWidth={setStageWidth}
+                onFallback={() => setBoardFallback(true)}
+                onController={exposeBoardBenchmark}
+                onSelectDay={selectDay}
+                onSelectMonth={(month) => {
+                  const key = `${range.startDay.slice(0, 4)}-${String(month + 1).padStart(2, '0')}-01`
+                  // A month that has not begun cannot be opened (the board disables it too).
+                  if (key > range.today) return
+                  updateParams({ period: 'month', offset: Math.min(0, offsetContaining('month', key, range.today)) })
+                }}
+              />
+            )}
             {selectedDay && (
-              // Folded away (not removed) in the year, with the board's morph, so the block does not jump.
-              <div className="records-day-detail-slot" data-collapsed={board.mode === 'year' || undefined} inert={board.mode === 'year'}>
+              // Folded away (not removed) in the year's 2.5D (it picks months, not days), with the board's morph, so the
+              // block does not jump. The 2D grid picks days in the year too.
+              <div className="records-day-detail-slot" data-collapsed={yearMonths || undefined} inert={yearMonths}>
                 <div className="records-day-detail-slot-inner">
                   <CapsuleDayDetail
                     selection={selectedDay}
@@ -551,7 +557,7 @@ export default function RecordsPage() {
                       isDayRecord(record) ? (
                         <DayRemainderRow record={record} mateName={mateNameOf(record)} />
                       ) : (
-                        <RecordConnectionRow record={record} mateName={mateNameOf(record)} when="time" />
+                        <RecordConnectionRow record={record} mateName={mateNameOf(record)} />
                       )
                     }
                   />
@@ -561,19 +567,6 @@ export default function RecordsPage() {
             {dayCardView}
           </section>
 
-          <section className="records-block records-recent-section" aria-labelledby="records-recent-title">
-            <BlockTitle id="records-recent-title" icon="book">
-              최근 연결
-            </BlockTitle>
-            {/* 38 lists the newest five connections of the range (no full list or paging). */}
-            <ul className="records-row-list">
-              {(data.data?.recent ?? []).map((record) => (
-                <li key={record.id}>
-                  <RecordConnectionRow record={record} mateName={mateNameOf(record)} />
-                </li>
-              ))}
-            </ul>
-          </section>
         </>
       )}
     </RecordsWindowFrame>

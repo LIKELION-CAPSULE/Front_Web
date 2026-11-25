@@ -1,0 +1,174 @@
+/*
+ * 내 기록 2D contribution grid (ContributionGrid). Base rules (docs/DESIGN_SYSTEM.md): no outlines, no gold, orange or
+ * rainbow; violet only for selection and actions — so the data shade is not violet: it is the ink token stepped over
+ * the panel token (a neutral light, like the capsules' light), and the selected day takes the violet ring (selection).
+ * Today: a small dot, no border. Future days: faded and disabled.
+ */
+.contribution-grid,
+.contribution-legend {
+  --grid-0: color-mix(in srgb, var(--color-ink) 6%, var(--color-panel));
+  --grid-1: color-mix(in srgb, var(--color-ink) 20%, var(--color-panel));
+  --grid-2: color-mix(in srgb, var(--color-ink) 36%, var(--color-panel));
+  --grid-3: color-mix(in srgb, var(--color-ink) 54%, var(--color-panel));
+  --grid-4: color-mix(in srgb, var(--color-ink) 76%, var(--color-panel));
+}
+.contribution-grid {
+  --grid-gap: 3px;
+  --grid-side: 0px;
+  position: relative;
+  padding: 8px 0 4px;
+}
+.contribution-grid[data-mode='year'] { --grid-side: 24px; }
+.contribution-grid[data-mode='month'] { --grid-gap: 6px; }
+.contribution-grid[data-mode='week'] { --grid-gap: 10px; }
+
+.contribution-scroll { overflow-x: auto; overflow-y: hidden; padding-bottom: 2px; }
+
+/* The frame's width sets the cell size: at most 20 px (year), 76 px (month) or 128 px (week) a cell. */
+.contribution-frame { margin-inline: auto; }
+.contribution-grid[data-mode='year'] .contribution-frame {
+  width: min(100%, calc(var(--grid-side) + var(--grid-cols) * 23px));
+  min-width: calc(var(--grid-side) + var(--grid-cols) * 13px);
+}
+.contribution-grid[data-mode='month'] .contribution-frame { width: min(100%, calc(7 * 82px)); }
+.contribution-grid[data-mode='week'] .contribution-frame { width: min(100%, calc(7 * 138px)); }
+
+.contribution-months,
+.contribution-weekdays-top {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr));
+  gap: var(--grid-gap);
+  margin: 0 0 6px var(--grid-side);
+  color: var(--color-subtle);
+  font-size: 11px;
+  line-height: 14px;
+}
+.contribution-months > span { grid-row: 1; white-space: nowrap; }
+.contribution-weekdays-top > span { text-align: center; font-size: 12px; }
+
+.contribution-body { display: flex; align-items: stretch; }
+.contribution-weekdays-side {
+  display: grid;
+  flex: none;
+  grid-template-rows: repeat(7, minmax(0, 1fr));
+  gap: var(--grid-gap);
+  width: var(--grid-side);
+  color: var(--color-subtle);
+  font-size: 10px;
+}
+.contribution-weekdays-side > span { display: flex; align-items: center; }
+
+.contribution-cells {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr));
+  gap: var(--grid-gap);
+}
+
+.contribution-cell {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: var(--grid-0);
+  color: var(--color-muted);
+  font: inherit;
+  cursor: pointer;
+  transition: filter 120ms ease;
+}
+.contribution-grid[data-mode='month'] .contribution-cell { border-radius: 10px; }
+.contribution-grid[data-mode='week'] .contribution-cell { border-radius: 14px; }
+.contribution-cell[data-level='1'] { background: var(--grid-1); color: var(--color-ink); }
+.contribution-cell[data-level='2'] { background: var(--grid-2); color: var(--color-ink); }
+.contribution-cell[data-level='3'] { background: var(--grid-3); color: var(--color-canvas); }
+.contribution-cell[data-level='4'] { background: var(--grid-4); color: var(--color-canvas); }
+.contribution-cell:hover:not(:disabled) { filter: brightness(1.18); }
+.contribution-cell:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+/* The selected day (the one below the board): the violet ring of a selection. */
+.contribution-cell[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--color-primary); }
+.contribution-cell[data-future] { opacity: 0.32; cursor: default; }
+
+/* Month and week: the date at the top-left, the week's time at the bottom. */
+.contribution-date {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.contribution-grid[data-mode='week'] .contribution-date { top: 10px; left: 12px; font-size: 13px; }
+.contribution-time {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  left: 12px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Today: a dot in the corner, in the cell's text colour (no border). */
+.contribution-today {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+}
+.contribution-grid[data-mode='month'] .contribution-today,
+.contribution-grid[data-mode='week'] .contribution-today { top: 12px; right: 10px; left: auto; width: 6px; height: 6px; transform: none; }
+.contribution-grid[data-mode='week'] .contribution-today { top: 15px; right: 14px; }
+
+.contribution-tooltip {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  gap: 1px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-floating);
+  box-shadow: var(--popover-shadow);
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 6px));
+}
+.contribution-tooltip-date { color: var(--color-ink); font-weight: 600; }
+
+/* 「적음 ▢▢▢▢▢ 많음」 */
+.contribution-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  color: var(--color-subtle);
+  font-size: 12px;
+  line-height: 16px;
+}
+.contribution-legend > span:first-child { margin-right: 2px; }
+.contribution-legend > span:last-child { margin-left: 2px; }
+.contribution-swatch { width: 11px; height: 11px; border-radius: 3px; background: var(--grid-0); }
+.contribution-swatch[data-level='1'] { background: var(--grid-1); }
+.contribution-swatch[data-level='2'] { background: var(--grid-2); }
+.contribution-swatch[data-level='3'] { background: var(--grid-3); }
+.contribution-swatch[data-level='4'] { background: var(--grid-4); }
+
+@media (prefers-reduced-motion: reduce) {
+  .contribution-cell { transition: none; }
+}

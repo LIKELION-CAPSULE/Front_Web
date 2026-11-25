@@ -318,13 +318,6 @@
   gap: 8px 14px;
 }
 
-.records-board-legend {
-  margin: 0;
-  color: var(--color-subtle);
-  font-size: 12px;
-  line-height: 18px;
-}
-
 /* 2D / 2.5D: a small segmented switch, the chosen view in the selection colour. */
 .records-view-toggle {
   display: inline-flex;
@@ -546,21 +539,6 @@
 .records-row-chevron {
   flex: none;
   color: var(--color-subtle);
-}
-
-/* Recent Connections */
-.records-recent-section {
-  margin-top: 12px;
-}
-
-.records-recent-section > .records-block-title {
-  margin-bottom: 6px;
-}
-
-.records-more-wrap {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
 }
 
 /* Empty & Loading States */
