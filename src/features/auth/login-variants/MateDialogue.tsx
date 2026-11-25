@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useWindupString } from 'windups'
 import { reactionBubbleDurationMs } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
 import { speechPace } from '@/features/session/speech-pace'
+import './mate-dialogue.css'
 
 /** Length of the `login-dialogue-out` animation in login-variants.css. */
 const LEAVE_MS = 180
