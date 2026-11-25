@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { Button } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
+import { PixelImage } from '@/shared/ui/pixel/PixelFrame'
 import { CREDIT_NOTICE_COPY } from '../credit-notice'
 import '../reply-actions.css'
 import { INVITE_PATH } from '@/features/credits/components/CreditsAppWindow'
@@ -19,6 +20,7 @@ export function CreditShortNotice({ credits, busy, onBasic, onClose }: {
   return (
     <div className="credit-short-notice" role="alert" data-credit-short>
       <div className="credit-short-notice-head">
+        <PixelImage name="coin" scale={1.5} />
         <p className="credit-short-notice-title">{CREDIT_NOTICE_COPY.title}</p>
         <button type="button" className="credit-short-notice-close" aria-label="닫기" onClick={onClose} disabled={busy}>
           <Icon name="close" size={14} />

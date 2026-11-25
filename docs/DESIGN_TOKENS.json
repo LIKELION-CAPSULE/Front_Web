@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.19",
-  "updatedAt": "2026-11-05",
+  "version": "1.0.20",
+  "updatedAt": "2026-11-26",
   "status": "implemented-in-web-code",
   "cssCascade": {
     "layerOrder": ["properties", "theme", "base", "components", "utilities"],
@@ -71,6 +71,11 @@
       "danger-solid-active": "#941927",
       "info": "#8AD0F4",
       "info-bg": "#172D39"
+    },
+    "night": {
+      "roof": "#3B2C82",
+      "roofDither": "#30246B",
+      "surface": "#1E1A31"
     }
   },
   "color": {
@@ -318,6 +323,21 @@
       "ref": "neutral.600",
       "value": "#5E5C69",
       "cssVariable": "--color-floating-hover"
+    },
+    "dialog-roof": {
+      "ref": "night.roof",
+      "value": "#3B2C82",
+      "cssVariable": "--color-dialog-roof"
+    },
+    "dialog-roof-dither": {
+      "ref": "night.roofDither",
+      "value": "#30246B",
+      "cssVariable": "--color-dialog-roof-dither"
+    },
+    "dialog-surface": {
+      "ref": "night.surface",
+      "value": "#1E1A31",
+      "cssVariable": "--color-dialog-surface"
     }
   },
   "font": {
@@ -1402,6 +1422,94 @@
         "foregroundHex": "#FAFAFD",
         "backgroundHex": "#5E5C69",
         "ratio": 6.278043178761372,
+        "minimum": 4.5,
+        "passes": true,
+        "expectedPass": true
+      },
+      {
+        "name": "ink / dialog-surface",
+        "foreground": "ink",
+        "background": "dialog-surface",
+        "foregroundHex": "#FAFAFD",
+        "backgroundHex": "#1E1A31",
+        "ratio": 16.160682878646167,
+        "minimum": 4.5,
+        "passes": true,
+        "expectedPass": true
+      },
+      {
+        "name": "muted / dialog-surface",
+        "foreground": "muted",
+        "background": "dialog-surface",
+        "foregroundHex": "#CAC9D4",
+        "backgroundHex": "#1E1A31",
+        "ratio": 10.275427261481395,
+        "minimum": 4.5,
+        "passes": true,
+        "expectedPass": true
+      },
+      {
+        "name": "subtle / dialog-surface",
+        "foreground": "subtle",
+        "background": "dialog-surface",
+        "foregroundHex": "#A4A3B0",
+        "backgroundHex": "#1E1A31",
+        "ratio": 6.769997063994698,
+        "minimum": 4.5,
+        "passes": true,
+        "expectedPass": true
+      },
+      {
+        "name": "danger / dialog-surface",
+        "foreground": "danger",
+        "background": "dialog-surface",
+        "foregroundHex": "#F4AFA8",
+        "backgroundHex": "#1E1A31",
+        "ratio": 9.255134383381675,
+        "minimum": 4.5,
+        "passes": true,
+        "expectedPass": true
+      },
+      {
+        "name": "text-accent / dialog-surface",
+        "foreground": "text-accent",
+        "background": "dialog-surface",
+        "foregroundHex": "#C4B9F3",
+        "backgroundHex": "#1E1A31",
+        "ratio": 9.284727089465436,
+        "minimum": 4.5,
+        "passes": true,
+        "expectedPass": true
+      },
+      {
+        "name": "ink / dialog-roof",
+        "foreground": "ink",
+        "background": "dialog-roof",
+        "foregroundHex": "#FAFAFD",
+        "backgroundHex": "#3B2C82",
+        "ratio": 10.787582788660655,
+        "minimum": 4.5,
+        "passes": true,
+        "expectedPass": true
+      },
+      {
+        "name": "ink / dialog-roof-dither",
+        "foreground": "ink",
+        "background": "dialog-roof-dither",
+        "foregroundHex": "#FAFAFD",
+        "backgroundHex": "#30246B",
+        "ratio": 12.674958243461647,
+        "minimum": 4.5,
+        "passes": true,
+        "expectedPass": true
+      },
+      {
+        "name": "muted / dialog-roof-dither",
+        "foreground": "muted",
+        "background": "dialog-roof-dither",
+        "foregroundHex": "#CAC9D4",
+        "backgroundHex": "#30246B",
+        "ratio": 8.059103222989227,
         "minimum": 4.5,
         "passes": true,
         "expectedPass": true

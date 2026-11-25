@@ -14,7 +14,7 @@ import faceSulky from '@/assets/characters/chaerin-v2/expressions/sulky.webp'
 import faceShy from '@/assets/characters/chaerin-v2/expressions/shy.webp'
 import faceFocus from '@/assets/characters/chaerin-v2/expressions/focus.webp'
 import faceLaugh from '@/assets/characters/chaerin-v2/expressions/laugh.webp'
-import { PIXEL_ART, pixelArtSize, pixelArtUrl, type PixelArtName } from './pixel-art'
+import { PIXEL_ART, pixelArtSize, pixelArtUrl, type PixelArtName } from '@/shared/ui/pixel/pixel-art'
 import './dialog-design.css'
 
 /**

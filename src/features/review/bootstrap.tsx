@@ -190,10 +190,13 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     return undefined
   })()
   // Modal design drafts (review only): drawn over the real page, never imported by the product entry.
-  const DialogDesign = scenario.dialogDesign ? (await import('./dialog-design/DialogDesignPreview')).DialogDesignPreview : undefined
+  const design = scenario.dialogDesign
+  const DialogDesign = design && design !== 'toast' ? (await import('./dialog-design/DialogDesignPreview')).DialogDesignPreview : undefined
+  const ToastCandidates = design === 'toast' ? (await import('./dialog-design/ToastCandidates')).ToastCandidates : undefined
   const extra = <>
     <ReviewSetup scenario={scenario} />
-    {DialogDesign && scenario.dialogDesign && <DialogDesign variant={scenario.dialogDesign} />}
+    {DialogDesign && design && design !== 'toast' && <DialogDesign variant={design} />}
+    {ToastCandidates && <ToastCandidates />}
   </>
   mountApp(root, extra, scenario.session && scenario.session !== 'recover' ? <ReviewStudyGate /> : undefined, createReviewImageStage, accountPort, matePort, featurePort)
 }

@@ -15,10 +15,11 @@
   max-height: 90dvh;
   overflow: hidden;
   border: 0;
-  border-radius: var(--radius-panel);
+  /* Pixel frame (design B2): stepped corners from the shared clip-path, roof strip from the shared Dialog. */
+  border-radius: 0;
   background: var(--color-panel);
   padding: 0;
-  box-shadow: var(--floating-shadow);
+  box-shadow: none;
 }
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

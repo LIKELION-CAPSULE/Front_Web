@@ -337,35 +337,6 @@ a.mate-card:hover { transform: translateY(-4px); }
   background: var(--color-control-hover);
 }
 
-.app-dialog.mate-reset-dialog--desktop {
-  width: min(480px, calc(100% - 32px));
-  max-width: 480px;
-  padding: 0;
-  overflow: hidden;
-  border: 1px solid rgba(196, 185, 243, 0.18);
-  border-radius: 16px;
-  background: var(--color-surface-raised);
-  box-shadow:
-    0 28px 84px rgba(0, 0, 0, 0.68),
-    0 6px 24px rgba(15, 14, 23, 0.45);
-}
-
-.mate-reset-dialog-body {
-  padding: 24px 26px 26px;
-}
-
-.mate-reset-dialog-body p {
-  text-wrap: pretty;
-  word-break: keep-all;
-}
-
-.mate-reset-dialog-heading {
-  margin: 0;
-  font-size: var(--text-card-title);
-  font-weight: 600;
-  color: var(--color-ink);
-}
-
 @media (max-width: 960px) {
   .mate-detail {
     padding-top: 28px;
@@ -405,7 +376,7 @@ a.mate-card:hover { transform: translateY(-4px); }
 
 
 /* 47 reset confirmation: what goes and what stays. */
-.mate-reset-scope { display: grid; gap: 10px; margin: 14px 0 0; }
+.mate-reset-scope { display: grid; gap: 10px; margin: 0; }
 .mate-reset-scope > div { display: grid; gap: 2px; border-radius: var(--radius-control); background: color-mix(in srgb, var(--color-canvas) 60%, transparent); padding: 10px 12px; }
 .mate-reset-scope dt { color: var(--color-subtle); font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
 .mate-reset-scope dd { margin: 0; color: var(--color-ink); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); }

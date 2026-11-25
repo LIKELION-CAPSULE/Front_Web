@@ -71,16 +71,24 @@
   .reply-actions { transition: none; }
 }
 
-/* 고급 모드 short of credits (CreditShortNotice): a quiet card over the composer; violet only on the main action. */
+/*
+ * 고급 모드 short of credits (CreditShortNotice): a quiet card over the composer; violet only on the main action.
+ * Pixel frame at small size like the toasts (design B2, 2026-11-26): one-step corners, a roof line along the top, the
+ * credit coin (credit gold exception) in front of the title.
+ */
 .credit-short-notice {
   display: grid;
   gap: 8px;
   margin: 0 12px 10px;
-  border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--color-canvas) 70%, transparent);
-  padding: 12px 14px;
+  background:
+    linear-gradient(var(--color-dialog-roof) 0 2px, transparent 2px) 0 0 / 100% 2px no-repeat,
+    conic-gradient(from 90deg at 2px 2px, var(--color-dialog-roof-dither) 0 25%, transparent 0 50%, var(--color-dialog-roof-dither) 0 75%, transparent 0) 0 2px / 4px 4px repeat-x,
+    var(--color-dialog-surface);
+  clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
+  padding: 14px 14px 12px;
 }
-.credit-short-notice-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.credit-short-notice-head { display: flex; align-items: center; gap: 8px; }
+.credit-short-notice-head > .credit-short-notice-title { flex: 1 1 auto; min-width: 0; }
 .credit-short-notice-title { margin: 0; color: var(--color-ink); font-weight: 700; font-size: var(--text-body-compact); }
 .credit-short-notice-close { display: inline-grid; width: 28px; height: 28px; place-items: center; border-radius: var(--radius-control); color: var(--color-subtle); }
 .credit-short-notice-close:hover { background: var(--color-control); color: var(--color-ink); }
