@@ -62,13 +62,12 @@ function Switch({ labelledBy, describedBy, checked, onChange }: { labelledBy: st
   )
 }
 
-function Row({ id, label, hint, badge, children }: { id: string; label: string; hint?: ReactNode; badge?: string; children: ReactNode }) {
+function Row({ id, label, hint, children }: { id: string; label: string; hint?: ReactNode; children: ReactNode }) {
   return (
     <li className="settings-row">
       <div className="settings-row-text">
         <span id={id} className="settings-row-label">
           {label}
-          {badge && <span className="settings-row-badge">{badge}</span>}
         </span>
         {hint && <p id={`${id}-hint`} className="settings-row-hint">{hint}</p>}
       </div>
@@ -143,38 +142,49 @@ export function ConnectionSettingsPanel() {
 
   return (
     <>
-      <h2 className="account-settings-title">설정</h2>
       <ul className="settings-rows connection-settings-groups" data-tour="account-settings" aria-label="연결 설정">
         {/* T-1 */}
         <Row id={`${id}-talk`} label="말 걸기 빈도" hint={TALK_OPTIONS.find((option) => option.value === settings.talk)?.description}>
           <Segment label="말 걸기 빈도" value={settings.talk} onChange={(talk) => updateSettings({ talk })} options={TALK_OPTIONS} />
         </Row>
-        {/* T-2 */}
-        <Row id={`${id}-voice`} label="메이트 음성" badge="준비 중" hint="끄면 크레딧이 들지 않아요">
-          <Switch labelledBy={`${id}-voice`} describedBy={`${id}-voice-hint`} checked={settings.voice} onChange={(voice) => updateSettings({ voice })} />
-        </Row>
-        {/* T-3 */}
-        <Row id={`${id}-volume`} label="음성 볼륨">
-          <div className="settings-slider">
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={settings.volume}
-              aria-labelledby={`${id}-volume`}
-              aria-valuetext={`${settings.volume}`}
-              style={{ '--value': `${settings.volume}%` } as CSSProperties}
-              onChange={(event) => updateSettings({ volume: Number(event.target.value) })}
-            />
-            <output className="settings-slider-value" aria-hidden="true">{settings.volume}</output>
-          </div>
-        </Row>
-        {/* T-4 */}
-        <Row id={`${id}-speed`} label="음성 속도">
-          <Segment label="음성 속도" value={settings.speed} onChange={(speed) => updateSettings({ speed })}
-            options={[{ value: 'slow', label: '느리게' }, { value: 'normal', label: '보통' }, { value: 'fast', label: '빠르게' }]} />
-        </Row>
+        {/* T-2…T-4: the mate's voice is not ready yet, so its three controls sit in one 「준비 중」 group and are all
+            disabled the same way (a disabled fieldset); the saved values are kept as they are. */}
+        <li className="settings-group">
+          <fieldset disabled className="settings-group-fields">
+            <legend className="settings-group-title">
+              음성
+              <span className="settings-row-badge">준비 중</span>
+            </legend>
+            <ul className="settings-rows">
+              {/* T-2 */}
+              <Row id={`${id}-voice`} label="메이트 음성" hint={`메이트 음성을 끄면 음성 크레딧(${CREDIT_PRICING.voice})이 들지 않아요`}>
+                <Switch labelledBy={`${id}-voice`} describedBy={`${id}-voice-hint`} checked={settings.voice} onChange={(voice) => updateSettings({ voice })} />
+              </Row>
+              {/* T-3 */}
+              <Row id={`${id}-volume`} label="음성 볼륨">
+                <div className="settings-slider">
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={settings.volume}
+                    aria-labelledby={`${id}-volume`}
+                    aria-valuetext={`${settings.volume}`}
+                    style={{ '--value': `${settings.volume}%` } as CSSProperties}
+                    onChange={(event) => updateSettings({ volume: Number(event.target.value) })}
+                  />
+                  <output className="settings-slider-value" aria-hidden="true">{settings.volume}</output>
+                </div>
+              </Row>
+              {/* T-4 */}
+              <Row id={`${id}-speed`} label="음성 속도">
+                <Segment label="음성 속도" value={settings.speed} onChange={(speed) => updateSettings({ speed })}
+                  options={[{ value: 'slow', label: '느리게' }, { value: 'normal', label: '보통' }, { value: 'fast', label: '빠르게' }]} />
+              </Row>
+            </ul>
+          </fieldset>
+        </li>
         {/* T-5 */}
         <Row id={`${id}-microphone`} label="마이크" hint={speechSupported ? '음성 입력(누르고 말하기)은 브라우저 기본 마이크를 써요' : undefined}>
           {device('microphone')}

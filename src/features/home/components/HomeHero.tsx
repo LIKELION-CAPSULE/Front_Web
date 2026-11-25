@@ -9,7 +9,7 @@ import { HOME_COPY } from '../home-copy'
 /**
  * The home hero: copy and the attendance CTA on the left, the companion illustration fading into the room behind.
  * Before today's check-in the CTA plays the attendance widget's sequence (in the mates section below); afterwards
- * it opens the study room, the way "다시 연결하기" used to.
+ * it starts the connection with the mate (「○○와 연결하기」), the way "다시 연결하기" used to.
  */
 export function HomeHero({ mate, onExplore }: { mate: AvailableMate | null; onExplore: () => void }) {
   const { state, busy, isLoading, start } = useAttendanceController()
@@ -63,7 +63,7 @@ export function HomeHero({ mate, onExplore }: { mate: AvailableMate | null; onEx
           >
             <span className="home-hero-cta-labels">
               <span data-active={!done || undefined} aria-hidden={done}>{HOME_COPY.ctaCheckIn}</span>
-              <span data-active={done || undefined} aria-hidden={!done}>{HOME_COPY.ctaStudy(name)}</span>
+              <span data-active={done || undefined} aria-hidden={!done}>{HOME_COPY.ctaConnect(name)}</span>
             </span>
             <Icon name="chevron" size={18} />
           </button>

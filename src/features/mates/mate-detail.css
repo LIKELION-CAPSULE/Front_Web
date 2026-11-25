@@ -192,9 +192,10 @@
   text-shadow: none;
 }
 
+/* Brand purple, not gold: gold is kept for the attendance rewards only (DESIGN_SYSTEM.md). */
 .mate-hero-mark svg {
-  color: var(--color-warning);
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-warning) 60%, transparent));
+  color: var(--color-text-accent);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 60%, transparent));
 }
 
 .mate-hero-tagline {

@@ -213,7 +213,23 @@
 
 /* ── 「함께한 시간」 column: game-style blocks in components/mate-time-column.css ── */
 .my-mates-actions { display: grid; grid-template-columns: minmax(0, 1fr); margin-top: auto; }
+.my-mates-meet-group { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .my-mates-actions .my-mates-meet { width: 100%; }
+/* 「프로필 보기」: a quiet secondary link under the main action (which connects right away). */
+.my-mates-profile-link {
+  justify-self: center;
+  border-radius: 8px;
+  padding: 4px 8px;
+  color: var(--color-muted);
+  font-size: var(--text-body-compact);
+  line-height: var(--text-body-compact--line-height);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+}
+.my-mates-profile-link:hover { color: var(--color-ink); }
+.my-mates-profile-link:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 /* 「목록으로 보기」 in the recent block's title row: a small neutral pill (violet only when pressed). */
 .my-mates-list-toggle {
   height: 26px;

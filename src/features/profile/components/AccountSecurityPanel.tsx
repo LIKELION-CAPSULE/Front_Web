@@ -42,7 +42,6 @@ export function AccountSecurityPanel({
 
   return (
     <>
-      <h2 className="account-settings-title">보안</h2>
       <fieldset disabled={busy} className="account-security-fields">
         <section className="account-security-row" aria-labelledby={`${passwordId}-heading`}>
           <h3 id={`${passwordId}-heading`} className="account-security-label">

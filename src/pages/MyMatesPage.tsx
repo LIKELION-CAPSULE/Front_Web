@@ -1,6 +1,6 @@
 import { AppPanel } from '@/shared/ui/AppPanel'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
 import { availableMates, mateByName, type AvailableMate } from '@/features/mates/catalog'
@@ -25,7 +25,9 @@ import { affinityStageLabel, normalizeAffinityStage } from '@/features/mates/aff
 import type { StudySettlement } from '@/shared/api/types'
 import { capsuleVisitKey } from '@/features/mates/capsule-jar/capsule-jar-visit'
 import { useCapsuleVisit } from '@/features/mates/capsule-jar/use-capsule-visit'
-import { ButtonLink } from '@/shared/ui/Button'
+import { Button, ButtonLink } from '@/shared/ui/Button'
+import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import { useConnectMate } from '@/features/mates/use-connect-mate'
 import { Icon } from '@/shared/ui/Icon'
 import '@/features/mates/mates.css'
 import '@/features/mates/my-mates.css'
@@ -118,6 +120,9 @@ export default function MyMatesPage() {
   const selectedMate = (requestedMateId ? mates.find((mate) => mate.id === requestedMateId) : undefined) ?? mates[0]
   const selectedId = previewMate?.id ?? selectedMate?.id
   const detail = selectedMate ? mateDetails[selectedMate.id] : undefined
+  // 「○○ 만나러 가기」 starts the connection right away, the same path as the home card's arrow (credits and an
+  // ongoing connection are handled there); 「프로필 보기」 below it opens the mate's page.
+  const meet = useConnectMate(selectedMate)
 
   // The big Live2D mate: the hero still shows first; the model is fetched only after the entry pour is over (the
   // scene reports it, so it is on screen too) and the browser is idle, then MatePreview crossfades to it.
@@ -324,10 +329,15 @@ export default function MyMatesPage() {
       {import.meta.env.DEV && previewMate ? (
         <span className="my-mates-meet my-mates-meet--disabled" aria-disabled="true" data-tour="my-mates-meet">시안 메이트예요</span>
       ) : (
-        <ButtonLink to={`/mates/${selectedMate.id}`} className="my-mates-meet" data-tour="my-mates-meet">
-          {`${mateName} 만나러 가기`}
-          <Icon name="chevron" size={16} />
-        </ButtonLink>
+        // The tour's 「만나러 와」 step points at both actions together, so its line never covers 「프로필 보기」.
+        <div className="my-mates-meet-group" data-tour="my-mates-meet">
+          {meet.error && <FeedbackMessage tone="error">{meet.error}</FeedbackMessage>}
+          <Button className="my-mates-meet" loading={meet.busy} onClick={() => void meet.connect()}>
+            {`${mateName} 만나러 가기`}
+            <Icon name="chevron" size={16} />
+          </Button>
+          <Link to={`/mates/${selectedMate.id}`} className="my-mates-profile-link">프로필 보기</Link>
+        </div>
       )}
     </>
   )

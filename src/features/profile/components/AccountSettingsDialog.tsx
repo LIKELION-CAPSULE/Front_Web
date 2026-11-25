@@ -207,25 +207,30 @@ export default function AccountSettingsDialog({
               />
             </section>
 
-            <div ref={main} className="account-settings-main" hidden={view === 'profile'}>
-              <section
-                role="tabpanel"
-                id={`${prefix}-panel-settings`}
-                aria-labelledby={`${prefix}-tab-settings`}
-                hidden={view !== 'settings'}
-                className="account-settings-panel"
-              >
-                {view === 'settings' && <ConnectionSettingsPanel />}
-              </section>
-              <section
-                role="tabpanel"
-                id={`${prefix}-panel-security`}
-                aria-labelledby={`${prefix}-tab-security`}
-                hidden={view !== 'security'}
-                className="account-settings-panel"
-              >
-                {view === 'security' && <AccountSecurityPanel busy={busy} onBusyChange={setBusy} />}
-              </section>
+            <div className="account-settings-main" hidden={view === 'profile'}>
+              {/* The title stays above the scrolling rows, beside the close button, so nothing scrolls under the
+                  button (the panels no longer carry their own title). */}
+              <h2 className="account-settings-title account-settings-main-title">{view === 'security' ? '보안' : '설정'}</h2>
+              <div ref={main} className="account-settings-main-scroll">
+                <section
+                  role="tabpanel"
+                  id={`${prefix}-panel-settings`}
+                  aria-labelledby={`${prefix}-tab-settings`}
+                  hidden={view !== 'settings'}
+                  className="account-settings-panel"
+                >
+                  {view === 'settings' && <ConnectionSettingsPanel />}
+                </section>
+                <section
+                  role="tabpanel"
+                  id={`${prefix}-panel-security`}
+                  aria-labelledby={`${prefix}-tab-security`}
+                  hidden={view !== 'security'}
+                  className="account-settings-panel"
+                >
+                  {view === 'security' && <AccountSecurityPanel busy={busy} onBusyChange={setBusy} />}
+                </section>
+              </div>
             </div>
           </div>
         </div>

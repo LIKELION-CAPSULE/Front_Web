@@ -352,9 +352,10 @@ export default function LoginPage() {
   )
 
   return (
-    <main id="main-content" tabIndex={-1} className="focus:outline-none">
+    // The layout (LoginVariantLayout) already provides `<main id="main-content">`; this is only a wrapper inside it.
+    <>
       {formContent}
       <NotificationStack items={notifications} onDismiss={dismissNotification} />
-    </main>
+    </>
   )
 }

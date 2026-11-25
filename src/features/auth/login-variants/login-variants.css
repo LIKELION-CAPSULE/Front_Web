@@ -61,16 +61,22 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+/* The name joins the AI badge once she is awake: it fades in (and out on replay) and takes no room meanwhile. */
+.login-variant-mate-caption .login-variant-mate-name {
   opacity: 1;
-  visibility: visible;
-  transition: opacity 300ms ease, visibility 300ms ease;
+  transition: opacity 300ms ease, display 300ms allow-discrete;
 }
-.login-variant-mate-caption[data-caption-visible='false'] {
+@starting-style {
+  .login-variant-mate-caption[data-caption-visible='true'] .login-variant-mate-name {
+    opacity: 0;
+  }
+}
+.login-variant-mate-caption[data-caption-visible='false'] .login-variant-mate-name {
+  display: none;
   opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
 }
-.login-variant-mate-caption[data-caption-immediate='true'] {
+.login-variant-mate-caption[data-caption-immediate='true'] .login-variant-mate-name {
   transition: none;
 }
 .login-variant-mate-name {
@@ -381,17 +387,13 @@
     line-height: 28px;
   }
   .login-variant-mate-caption {
-    display: none;
-  }
-  .login-variant-mate-caption[data-caption-visible='true'] {
-    display: flex;
     top: 14px;
     left: 14px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-variant-mate-caption {
+  .login-variant-mate-caption .login-variant-mate-name {
     transition: none;
   }
   .login-dialogue,
