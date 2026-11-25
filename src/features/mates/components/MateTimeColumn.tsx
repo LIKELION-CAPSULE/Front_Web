@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { formatCapsuleShortDate, formatTogether, partOfDay } from '@/features/mates/capsule-jar/capsule-jar-data'
 import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
 import type { CapsuleJarTheme, CapsuleRecord } from '@/features/mates/capsule-jar/capsule-jar-types'
 import { capsuleBandTheme } from '@/features/mates/capsule-jar/capsule-jar-theme'
 import { capsuleBand, capsuleKeepsakes } from '@/features/mates/capsule-jar/capsule-moments'
 import type { AffinityProgressView } from '@/features/mates/affinity-progress'
-import { Icon } from '@/shared/ui/Icon'
-import type { IconName } from '@/shared/ui/animate-icons/icons'
+import type { MateWorld } from '@/features/mates/mate-worlds'
 import { NumberCounter } from '@/shared/ui/number-counter/NumberCounter'
 import { AnimatedDuration } from '@/shared/ui/number-counter/AnimatedDuration'
+import { AffinityWorldCard } from './AffinityWorldCard'
+import { BlockLabel } from './BlockLabel'
 import { CapsuleGlyph } from './game-glyphs'
 import './mate-time-column.css'
 
@@ -20,42 +21,13 @@ const seoulWeekdayHour = (timestamp: number) => {
 
 /**
  * Recent connections shown: as many rows as the room left in the column holds (the column never scrolls; the rest
- * are in 「목록으로 보기」), at least one and at most `RECENT_MAX`. With the affinity and expression blocks off the
- * list simply gets more rows.
+ * are in 「목록으로 보기」), at least one and at most `RECENT_MAX`. With the affinity card off the list simply gets
+ * more rows.
  */
 const RECENT_MAX = 10
 /** NEW marks only the newest connections since the last visit. */
 const MAX_NEW = 2
 
-
-/**
- * Header of a block: one style everywhere, a small icon and the title, an optional count right beside the title (a
- * muted figure; read as `countLabel`), and an optional note at the far right (an action).
- */
-function BlockLabel({ id, icon, children, count, countLabel, note }: {
-  id: string
-  icon: IconName
-  children: ReactNode
-  count?: number
-  countLabel?: string
-  note?: ReactNode
-}) {
-  return (
-    <p className="mate-game-label">
-      <span className="mate-game-label-icon" aria-hidden="true">
-        <Icon name={icon} size={14} />
-      </span>
-      <span id={id}>{children}</span>
-      {count !== undefined && (
-        <span className="mate-game-label-count">
-          <span aria-hidden="true">{count.toLocaleString('ko-KR')}</span>
-          <span className="sr-only">{countLabel ?? `${count}개`}</span>
-        </span>
-      )}
-      {note && <span className="mate-game-label-note">{note}</span>}
-    </p>
-  )
-}
 
 /** Rows of `rowSelector` that fit in the element (measured; the element's height never depends on its rows). */
 function useFittingRows(fallback: number) {
@@ -78,9 +50,10 @@ function useFittingRows(fallback: number) {
 
 /**
  * 「함께한 시간」 column beside the mate panel. Plain blocks on the report panel's glass (my-mates.css), one title style
- * (small icon + title): the total with one line of counts, the affinity as a title, one progress bar, what is left and
- * what the next stage opens (when the affinity feature is on), the expressions, the latest connections (each opens
- * its record card and lights its capsules in the scene; its title row holds 「목록으로 보기」) and the main action.
+ * (small icon + title): the total with one line of counts, the affinity card (the stage, one progress bar, what is
+ * left, and the five worlds under it; AffinityWorldCard) when the affinity feature is on, the latest connections
+ * (each opens its record card and lights its capsules in the scene; its title row holds 「목록으로 보기」) and the main
+ * action.
  * No badges, ribbons or stickers.
  */
 export function MateTimeColumn({
@@ -90,7 +63,9 @@ export function MateTimeColumn({
   capsuleCount,
   newIds,
   affinity,
-  expressions = null,
+  worlds = null,
+  worldKey,
+  mateName,
   theme,
   onOpen,
   onPoint,
@@ -107,11 +82,11 @@ export function MateTimeColumn({
   newIds: readonly string[]
   /** Null: no affinity data (feature off) — the block is left out. */
   affinity: AffinityProgressView | null
-  /**
-   * 표정 컬렉션 (feature on; null: the block is left out): the tiles and the count for the title. Picking one makes
-   * the panel's big mate wear it. The tiles get `my-mates-expressions-label` as their label.
-   */
-  expressions?: { tiles: ReactNode; unlocked: number; total: number } | null
+  /** The five worlds under the affinity (feature on; null: the card shows the affinity alone). */
+  worlds?: readonly MateWorld[] | null
+  mateName: string
+  /** The card shows the current world again when this changes (the mate and its stage). */
+  worldKey: string
   /** Mate colours of the scene's capsules. */
   theme: CapsuleJarTheme
   onOpen: (id: string) => void
@@ -134,13 +109,6 @@ export function MateTimeColumn({
     onPoint(id)
   }
 
-  // One progress bar toward the next stage (full at the last stage).
-  const progress = affinity ? (affinity.isLast ? 1 : affinity.progress) : null
-  const caption = affinity
-    ? (affinity.nextCaption ??
-      (affinity.nextStageName ? `다음 단계: ${affinity.nextStageName}` : affinity.isLast ? '가장 가까운 사이가 됐어요' : null))
-    : null
-
   return (
     <div className="my-mates-info mate-game" data-affinity={affinity ? 'true' : 'false'}>
       <section className="mate-game-block mate-game-total" data-tour="my-mates-total" aria-labelledby="my-mates-total-label">
@@ -154,42 +122,14 @@ export function MateTimeColumn({
       </section>
 
       {affinity && (
-        <section className="mate-game-block mate-game-affinity" data-tour="my-mates-affinity" aria-labelledby="my-mates-affinity-label">
-          <BlockLabel id="my-mates-affinity-label" icon="heart">친밀도</BlockLabel>
-          <p className="mate-game-level-name">
-            {affinity.stage}단계 · {affinity.stageName}
-          </p>
-          {progress !== null && (
-            <div
-              className="mate-game-progress"
-              role="progressbar"
-              aria-label={affinity.nextStageName ? `${affinity.nextStageName}까지` : '친밀도'}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(progress * 100)}
-              style={{ '--progress': progress } as CSSProperties}
-            />
-          )}
-          {caption && <p className="mate-game-level-caption">{caption}</p>}
-        </section>
-      )}
-
-      {expressions && (
-        <section className="mate-game-block mate-game-expressions" data-tour="my-mates-expressions" aria-labelledby="my-mates-expressions-label">
-          <BlockLabel
-            id="my-mates-expressions-label"
-            icon="user"
-            note={
-              <>
-                {expressions.unlocked} / {expressions.total}
-                <span className="sr-only">개 모았어요</span>
-              </>
-            }
-          >
-            표정 컬렉션
-          </BlockLabel>
-          {expressions.tiles}
-        </section>
+        <AffinityWorldCard
+          className="mate-game-block mate-game-affinity"
+          affinity={affinity}
+          worlds={worlds}
+          mateName={mateName}
+          resetKey={worldKey}
+          tour={{ affinity: 'my-mates-affinity', world: 'my-mates-world' }}
+        />
       )}
 
       <section className="mate-game-block mate-game-recent" data-tour="my-mates-recent" aria-labelledby="my-mates-recent-label">

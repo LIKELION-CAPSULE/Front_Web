@@ -47,7 +47,7 @@ test('47 reset: 204 with no body or revision; its only conflict is 409 CONNECTIO
 
 test('47 reset dialog lists what is cleared and what stays, without overlap', () => {
   assert.deepEqual([...MATE_RESET_CLEARS], ['대화 기록', '대화 맥락(메이트가 기억한 내용)'])
-  assert.deepEqual([...MATE_RESET_KEEPS], ['친밀도와 열린 표정', '연결 기록', '크레딧'])
+  assert.deepEqual([...MATE_RESET_KEEPS], ['친밀도와 열린 세계관', '연결 기록', '크레딧'])
   assert.equal(MATE_RESET_CLEARS.some(item => (MATE_RESET_KEEPS as readonly string[]).includes(item)), false)
 })
 

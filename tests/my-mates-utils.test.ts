@@ -1,39 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import {
-  countMateUnlocks,
-  groupLockedVoices,
-  type MateUnlocks,
-} from '../src/features/mates/my-mates-utils.ts'
+import { groupLockedVoices } from '../src/features/mates/my-mates-utils.ts'
 import { formatNextStageCaption } from '../src/features/mates/affinity-progress.ts'
 import { duration } from '../src/shared/lib/format.ts'
 
-
-test('countMateUnlocks counts unlocked and total across expressions and voices, returning null when absent/empty', () => {
-  assert.equal(countMateUnlocks(undefined), null)
-  assert.equal(countMateUnlocks(null), null)
-  assert.equal(countMateUnlocks({ expressions: [], voices: [] }), null)
-
-  const unlocks: MateUnlocks = {
-    expressions: [
-      { id: 'e1', label: '미소', expressionFile: 'files/009.exp3.json', unlocked: true },
-      { id: 'e2', label: '웃음', expressionFile: 'files/010.exp3.json', unlocked: true },
-      { id: 'e3', label: '놀람', expressionFile: 'files/006.exp3.json', unlocked: false },
-      { id: 'e4', label: '눈감음', expressionFile: 'files/005.exp3.json', unlocked: false },
-    ],
-    voices: [
-      { id: 'v1', text: '안녕', unlocked: true },
-      { id: 'v2', text: '', unlocked: false },
-      { id: 'v3', text: '', unlocked: false },
-      { id: 'v4', text: '', unlocked: false },
-      { id: 'v5', text: '', unlocked: false },
-      { id: 'v6', text: '', unlocked: false },
-      { id: 'v7', text: '', unlocked: false },
-      { id: 'v8', text: '', unlocked: false },
-    ],
-  }
-  assert.deepEqual(countMateUnlocks(unlocks), { unlocked: 3, total: 12 })
-})
 
 test('formatNextStageCaption formats remaining time with nextStageName or fallback', () => {
   assert.equal(formatNextStageCaption(undefined, duration), null)

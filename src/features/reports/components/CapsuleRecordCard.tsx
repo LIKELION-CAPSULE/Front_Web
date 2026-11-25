@@ -201,14 +201,14 @@ function LevelUpBlock({ mateName, stage, nextStageCaption, stageProgress, unlock
         <div className="capsule-record-unlock">
           <span className="capsule-record-unlock-icon"><Icon name="sparkle" size={22} /></span>
           <span className="capsule-record-unlock-copy">
-            <strong>{COPY.unlockTitle}</strong>
-            <span>{unlock.kind} 「{unlock.label}」 · {COPY.unlockSub}</span>
+            <strong>{unlock.line}</strong>
+            <span>{COPY.unlockSub}</span>
           </span>
-          {unlock.onView && (
-            <button type="button" className="capsule-record-unlock-view" aria-pressed={unlock.viewing} onClick={unlock.onView}>
-              <Icon name="play" size={14} />
-              {unlock.viewing ? COPY.viewing : COPY.view}
-            </button>
+          {unlock.to && (
+            <Link to={unlock.to} className="capsule-record-unlock-view">
+              <Icon name="book" size={14} />
+              {COPY.view}
+            </Link>
           )}
         </div>
       )}

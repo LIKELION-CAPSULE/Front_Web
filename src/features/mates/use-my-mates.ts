@@ -8,7 +8,7 @@ import { api } from '@/shared/api/client'
 import { availableMates } from './catalog'
 import { myMatesByLaunchMate } from './my-mates-source'
 
-export { capsulesFromConnections, estimatedCapsuleCount, expressionUnlocks, myMatesByLaunchMate } from './my-mates-source'
+export { capsulesFromConnections, estimatedCapsuleCount, myMatesByLaunchMate } from './my-mates-source'
 
 /**
  * 37 내 메이트, by launch mate (catalog.ts): a server mate is matched by id, else by its server name, so the two 「서진」

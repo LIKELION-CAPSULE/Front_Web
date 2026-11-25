@@ -171,32 +171,8 @@ export async function mountReview(root: HTMLElement, id: string | null) {
         setSettings: () => {},
       }
     }
-    if (scenario.id === 'my-mates-full') {
-      const silentWav = (() => {
-        const sampleBytes = 32000 // 2 seconds at 8000 Hz, 16-bit mono
-        const bytes = new Uint8Array(44 + sampleBytes)
-        const view = new DataView(bytes.buffer)
-        const text = (at: number, value: string) =>
-          [...value].forEach((ch, idx) => view.setUint8(at + idx, ch.charCodeAt(0)))
-        text(0, 'RIFF')
-        view.setUint32(4, bytes.length - 8, true)
-        text(8, 'WAVE')
-        text(12, 'fmt ')
-        view.setUint32(16, 16, true)
-        view.setUint16(20, 1, true)
-        view.setUint16(22, 1, true)
-        view.setUint32(24, 8000, true)
-        view.setUint32(28, 16000, true)
-        view.setUint16(32, 2, true)
-        view.setUint16(34, 16, true)
-        text(36, 'data')
-        view.setUint32(40, sampleBytes, true)
-        let binary = ''
-        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!)
-        return `data:audio/wav;base64,${btoa(binary)}`
-      })()
-      const unlockDay1 = Date.UTC(2026, 10, 17, 12, 0, 0)
-      const unlockDay2 = Date.UTC(2026, 10, 20, 14, 0, 0)
+    if (scenario.id === 'my-mates-full' || scenario.id === 'connection-record-levelup') {
+      // The beta port as these screens were reviewed with (the worlds come from the stage, mate-worlds.ts).
       return {
         read: () => ({
           wallet: baseWallet,
@@ -205,94 +181,6 @@ export async function mountReview(root: HTMLElement, id: string | null) {
           messages: [],
           affinities: {},
           settings: { voice: false, advanced: false },
-          mateUnlocks: {
-            chaerin: {
-              expressions: [
-                {
-                  id: 'expr-smile',
-                  label: '따뜻한 미소',
-                  expressionFile: 'files/009.exp3.json',
-                  unlocked: true,
-                  unlockedAt: unlockDay1,
-                },
-                {
-                  id: 'expr-playful',
-                  label: '장난스러운 웃음',
-                  expressionFile: 'files/010.exp3.json',
-                  unlocked: true,
-                  unlockedAt: unlockDay2,
-                },
-                {
-                  id: 'expr-eyes-closed',
-                  label: '눈 감고 웃음',
-                  expressionFile: 'files/005.exp3.json',
-                  unlocked: false,
-                  condition: '4단계 · 친한 친구에서 열려요',
-                },
-                {
-                  id: 'expr-surprise',
-                  label: '깜짝 놀람',
-                  expressionFile: 'files/006.exp3.json',
-                  unlocked: false,
-                  condition: '5단계 · 단짝에서 열려요',
-                },
-              ],
-              voices: [
-                {
-                  id: 'voice-1',
-                  text: '오늘도 왔네? 기다리고 있었어.',
-                  audioUrl: silentWav,
-                  unlocked: true,
-                },
-                {
-                  id: 'voice-2',
-                  text: '옆에 있으니까 좀 든든하다.',
-                  audioUrl: silentWav,
-                  unlocked: true,
-                },
-                {
-                  id: 'voice-3',
-                  text: '잠깐 기지개 한 번 펴고 갈까?',
-                  audioUrl: silentWav,
-                  unlocked: true,
-                },
-                {
-                  id: 'voice-4',
-                  text: '오늘 하루도 잘 보내고 있어?',
-                  audioUrl: silentWav,
-                  unlocked: true,
-                },
-                { id: 'voice-5', text: '', unlocked: false, condition: '4단계 · 친한 친구에서 열려요' },
-                { id: 'voice-6', text: '', unlocked: false, condition: '4단계 · 친한 친구에서 열려요' },
-                { id: 'voice-7', text: '', unlocked: false, condition: '5단계 · 단짝에서 열려요' },
-                { id: 'voice-8', text: '', unlocked: false, condition: '5단계 · 단짝에서 열려요' },
-              ],
-            },
-          },
-        }),
-        subscribe: () => () => {},
-        redeemInvitation: async () => {},
-        setSettings: () => {},
-      }
-    }
-    if (scenario.id === 'connection-record-levelup') {
-      // The reviewed session opened a new expression, so the level-up card shows its unlock box.
-      return {
-        read: () => ({
-          wallet: baseWallet,
-          invitation: baseInvitation,
-          records: [],
-          messages: [],
-          affinities: {},
-          settings: { voice: false, advanced: false },
-          mateUnlocks: {
-            chaerin: {
-              expressions: [
-                { id: 'expr-eyes-closed', label: '눈 감고 웃음', expressionFile: 'files/005.exp3.json', unlocked: true, unlockedAt: now },
-              ],
-              voices: [],
-            },
-          },
         }),
         subscribe: () => () => {},
         redeemInvitation: async () => {},

@@ -550,6 +550,8 @@ export type MateUnlock = {
   expressionName?: string | null
   assetUrl?: string | null
   unlocked?: boolean
+  /** Not in the 11-25 document; read when sent (세계관, mate-worlds.ts). */
+  unlockedAt?: string | null
 }
 /** 37 `recent[]` (the real shape; OpenAPI merged it with 38's). */
 export type MyMateRecent = { connectionId?: number; endedAt?: string; presentSeconds?: number; connectedSeconds?: number }

@@ -1,29 +1,10 @@
 
-export type MateExpressionUnlock = {
-  id: string
-  label: string
-  /** Existing Live2D model expression file (e.g. 'files/009.exp3.json'). */
-  expressionFile: string
-  unlocked: boolean
-  unlockedAt?: number
-  condition?: string
-  /** Affinity stage that unlocks it, when known (links the collection to the stage progress). */
-  unlockStage?: number
-  /** That stage's name, e.g. "친한 친구": the short text on a locked tile (the full `condition` is its label). */
-  unlockStageName?: string
-}
-
 export type MateVoiceUnlock = {
   id: string
   text: string
   audioUrl?: string
   unlocked: boolean
   condition?: string
-}
-
-export type MateUnlocks = {
-  expressions: readonly MateExpressionUnlock[]
-  voices: readonly MateVoiceUnlock[]
 }
 
 /** Relation figures of the development samples (mate-sample-data.ts). Production reads 37 (use-my-mates.ts). */
@@ -37,21 +18,6 @@ export type MateServerRelationStats = {
   stageTargetSeconds?: number
   nextStageName?: string
   nextLevelSeconds?: number
-}
-
-/** Counts unlocked vs total unlock items (expressions + voices).
- * Returns null when unlocks data is absent or empty.
- */
-export function countMateUnlocks(unlocks?: MateUnlocks | null): { unlocked: number; total: number } | null {
-  if (!unlocks) return null
-  const expressions = unlocks.expressions ?? []
-  const voices = unlocks.voices ?? []
-  const total = expressions.length + voices.length
-  if (total === 0) return null
-  const unlocked =
-    expressions.filter((item) => item.unlocked).length +
-    voices.filter((item) => item.unlocked).length
-  return { unlocked, total }
 }
 
 export type LockedVoiceGroup = {
@@ -112,9 +78,3 @@ export function formatFirstMetDate(timestamp: number): string {
   const d = parts.find((p) => p.type === 'day')?.value ?? ''
   return `${y}.${m}.${d}`
 }
-
-/** Unlocked / all expressions, for the 표정 컬렉션 title. */
-export const expressionCount = (expressions: readonly MateExpressionUnlock[]) => ({
-  unlocked: expressions.filter((item) => item.unlocked).length,
-  total: expressions.length,
-})
