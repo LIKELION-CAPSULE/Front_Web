@@ -715,3 +715,16 @@
 }
 .connection-settings-save-retry:hover { background: var(--color-control-hover, var(--color-control)); }
 .connection-settings-save-retry:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+
+/* Settings tab sections (메이트와 대화 · 메이트 음성 · 마이크 · 카메라 · PIP): a small title over each group of rows, set apart by
+   space only — no boxes or rules (docs/DESIGN_SYSTEM.md). */
+.connection-settings-sections { display: grid; gap: 26px; }
+.connection-settings-section { display: grid; gap: 10px; min-width: 0; }
+.connection-settings-section > .connection-settings-group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0 4px;
+}
+.connection-settings-sections > .connection-settings-save-error { margin: 0; }

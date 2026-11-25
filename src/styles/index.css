@@ -78,12 +78,25 @@
   }
 }
 
+/*
+ * Page frame shared by the header and every app page (user decision 2026-11-25): content at most `--page-max` wide,
+ * `--page-gutter` from the window edge, so the logo, the page's left edge, the account icon and the page's right edge
+ * line up at every width (1440 → 32px, 1920 → 160px, 2560 → 480px each side; 900 and below → 20px).
+ */
+:root {
+  --page-max: 1600px;
+  --page-gutter: 32px;
+}
+@media (max-width: 900px) {
+  :root { --page-gutter: 20px; }
+}
+
 @layer components {
   .page-container {
     width: 100%;
-    max-width: 1360px;
+    max-width: calc(var(--page-max) + 2 * var(--page-gutter));
     margin-inline: auto;
-    padding-inline: 48px;
+    padding-inline: var(--page-gutter);
   }
   .brand-wordmark {
     display: block;
@@ -120,8 +133,6 @@
     align-items: center;
     gap: 48px;
   }
-  /* The header spans the window (no max width), 32px from each edge; the page content keeps `.page-container`. */
-  .page-container.site-header-inner { max-width: none; padding-inline: 32px; }
   .site-header-brand { justify-self: start; }
   .site-header-account { min-width: 0; justify-self: end; }
   .app-navigation {
@@ -179,7 +190,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px 32px;
-    border-top: 1px solid var(--color-divider);
+    /* The divider runs on the content lines (inside the gutters), like everything else in the page frame. */
+    background: linear-gradient(var(--color-divider), var(--color-divider)) top center / calc(100% - 2 * var(--page-gutter)) 1px no-repeat;
     padding-block: 24px;
     color: var(--color-subtle);
     font-size: var(--text-caption); line-height: var(--text-caption--line-height);
@@ -1108,9 +1120,6 @@
   .site-header-inner:has(> .detail-breadcrumb) { column-gap: 24px; }
 }
 @media (max-width: 1100px) {
-  .page-container {
-    padding-inline: 32px;
-  }
   .site-header-inner {
     gap: 30px;
   }
@@ -1166,9 +1175,6 @@
   .study-topbar .session-timer { font-size: clamp(13px, 4.2vw, 16px); }
 }
 @media (max-width: 767px) {
-  .page-container {
-    padding-inline: 22px;
-  }
   .site-header-inner {
     min-height: 100px;
     grid-template-columns: auto minmax(0, 1fr);
@@ -1270,6 +1276,3 @@
   }
 }
 
-@media (max-width: 900px) {
-  .page-container.site-header-inner { padding-inline: 20px; }
-}

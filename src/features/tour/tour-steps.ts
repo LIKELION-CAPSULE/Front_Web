@@ -49,6 +49,11 @@ export type TourContext = {
 const CORNER: TourPoint = { x: 0.9, y: 0.94 }
 /** Right edge of a large block, a little above the middle. */
 const EDGE: TourPoint = { x: 0.97, y: 0.4 }
+/**
+ * Right end of a wide button under other controls (메이트 상세 「연결하기」 below the age · voice tiles): her line starts
+ * past the column's right edge, so it never reaches the tiles above.
+ */
+const BUTTON_END: TourPoint = { x: 0.99, y: 0.55 }
 
 export const TOUR_STEPS: readonly TourStep[] = [
   // 홈
@@ -60,7 +65,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   { id: 'detail-intro', screen: 'mate-detail', targets: ['[data-tour="mate-detail-tagline"]', '[data-tour="mate-detail-intro"]', '[data-tour="mate-detail-name"]'], at: CORNER, action: 'hover', waitMs: 6000, say: '어떤 메이트인지, 어떤 상황에서 만나는지는 여기서 봐.' },
   { id: 'detail-age', screen: 'mate-detail', targets: ['[data-tour="mate-detail-age"]'], at: CORNER, action: 'hover', say: '메이트마다 연령 등급이 있어.' },
   { id: 'detail-voice', screen: 'mate-detail', targets: ['[data-tour="mate-detail-voice"] button', '[data-tour="mate-detail-voice"]'], at: CORNER, action: 'click', say: '목소리는 여기서 미리 들어 볼 수 있어.' },
-  { id: 'detail-connect', screen: 'mate-detail', targets: ['[data-tour="mate-detail-connect"] button', '[data-tour="mate-detail-connect"] a'], at: CORNER, action: 'click', say: '연결하기를 누르면 바로 통화가 시작돼.' },
+  { id: 'detail-connect', screen: 'mate-detail', targets: ['[data-tour="mate-detail-connect"] button', '[data-tour="mate-detail-connect"] a'], at: BUTTON_END, action: 'click', say: '연결하기를 누르면 바로 통화가 시작돼.' },
   // 연습 통화
   { id: 'call-mate', screen: 'call', targets: ['[data-tour="call-mate"]'], at: EDGE, action: 'hover', waitMs: 6000, say: '통화 중엔 내가 여기서 반응하고 먼저 말도 걸어. 나를 눌러 봐도 돼.' },
   { id: 'call-mode', screen: 'call', targets: ['[data-tour="call-mode"]'], at: CORNER, action: 'hover', say: '기본은 크레딧 없이, 고급은 한 턴에 크레딧을 써서 더 깊게 얘기해.' },
