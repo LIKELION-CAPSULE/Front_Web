@@ -17,11 +17,10 @@ test('서도현 is a launch mate (id dohyun, 15세 이용가) matched by his ser
   assert.equal(profile?.introduction, '말은 퉁명스러워도 늘 곁에 있는 무뚝뚝한 소꿉친구')
   assert.equal(profile?.role, '어릴 때부터 함께 자란 소꿉친구이자 공부 메이트')
   assert.equal(profile?.firstLine, '왔냐. 네 자리 맡아놨으니까 앉아. …뭐 해, 공부 안 하고.')
-  const mates = availableMates({ rooms: [
-    { id: 11, characters: [{ id: 42, name: '채린' }] },
-    { id: 12, characters: [{ id: 43, name: '서도현' }] },
-  ] })
-  assert.deepEqual(mates.map((mate) => [mate.id, mate.roomId, mate.characterId]), [['chaerin', '11', '42'], ['dohyun', '12', '43']])
+  const mates = availableMates({ mates: [{ id: 42, name: '채린' }, { id: 43, name: '서도현' }] })
+  assert.deepEqual(mates.map((mate) => [mate.id, mate.roomId, mate.characterId]), [['chaerin', '42', '42'], ['dohyun', '43', '43']])
+  // The production server name 「서진」 maps to the same persona (name to be settled with the backend).
+  assert.equal(availableMates({ mates: [{ id: 2, name: '서진' }] })[0]?.id, 'dohyun')
   // Only the two approved mates.
   assert.deepEqual(launchMates.map((mate) => mate.id), ['chaerin', 'dohyun'])
 })
@@ -67,7 +66,7 @@ test('the seojin bundle is served like chaerin-v2: runtime files only', () => {
 })
 
 test('the local mock has both mates and gives every third generated connection to 서도현', () => {
-  assert.deepEqual(LOCAL_MATES.map((mate) => [mate.mateId, mate.name]), [['chaerin', '채린'], ['dohyun', '서도현']])
+  assert.deepEqual(LOCAL_MATES.map((mate) => [mate.mateId, mate.name]), [['chaerin', '채린'], ['dohyun', '서진']], 'server names, as in production')
   assert.equal(localMate(undefined).mateId, 'chaerin', 'sessions saved before 서도현 existed')
   const store = new LocalBetaStore(null)
   const byMate = new Map<string, number>()

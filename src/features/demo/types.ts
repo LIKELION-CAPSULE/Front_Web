@@ -57,7 +57,10 @@ export type ActiveSession = {
   serverSession?: boolean
   serverOffsetMs?: number
   presenceKnown?: boolean
+  /** Legacy local studies only (dummy state). */
   initialAwaySeconds?: number
+  /** API 17 resume: the last heartbeat totals the measurement continues from (connected time is `studySeconds`). */
+  initialTotals?: { presentSeconds: number; cameraOnSeconds: number; pipSeconds: number }
   focus?: FocusTotals
   targetSeconds?: number
   id: string

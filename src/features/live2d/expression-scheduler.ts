@@ -16,7 +16,8 @@ export type ExpressionSchedule = { shown: Shown | null; pending: ExpressionReque
 /** `file` is the expression to fade to; `null` fades back to the default face. */
 export type ExpressionCommand = { file: string | null }
 
-const STATE_EVENTS = new Set(['FOCUS', 'AWAY', 'RETURN', 'BREAK'])
+// FOCUS · BREAK: retired 11-22 events, still produced by legacy local studies.
+const STATE_EVENTS = new Set(['PRESENT', 'AWAY', 'RETURN', 'FOCUS', 'BREAK'])
 /** How long the face of a tap on the mate stays (mate-tap.ts TAP_FACE_MS). */
 const TAP_HOLD_MS = 1800
 

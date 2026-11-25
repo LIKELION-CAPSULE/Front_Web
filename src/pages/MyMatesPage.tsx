@@ -3,7 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useSearchParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
-import { availableMates, mateByName, type AvailableMate } from '@/features/mates/catalog'
+import { availableMates, type AvailableMate } from '@/features/mates/catalog'
 import { chaerinArtwork, mateArtwork, matePortrait } from '@/features/mates/artwork'
 import { expressionCount, formatFirstMetDate, latestConnectedTimestamp, summarizeMateRecords, type MateExpressionUnlock } from '@/features/mates/my-mates-utils'
 import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate-features'
@@ -103,7 +103,7 @@ export default function MyMatesPage() {
   const mates = useMemo(() => {
     const isActive = (mate: AvailableMate) =>
       Boolean(state.activeSession?.characterIds.includes(mate.characterId)) ||
-      Boolean(mateByName(activeSummary?.characterName, [mate]))
+      String(activeSummary?.mateId) === mate.characterId
     return availableMates(home)
       .slice()
       .sort(

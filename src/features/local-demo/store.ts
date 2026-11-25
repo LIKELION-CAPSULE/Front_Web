@@ -1,8 +1,9 @@
 import type { BetaAccountDetails } from '../auth/beta-account.ts'
 import type { BetaWallet, BetaInvitation } from '../credits/beta-types.ts'
 import type { Message, StudyRecord } from '../demo/types.ts'
-import type { ReportResponse, MeResponse, AffinityChange } from '../../shared/api/types.ts'
+import type { ReportResponse, MeResponse, AffinityChange, ActiveConnectionSummary, ConnectionTotals, Credits, EndType, IntimacyView, UpdateMeRequest } from '../../shared/api/types.ts'
 import { LOCAL_CACHE_PREFIX, LOCAL_PANEL_OPEN_KEY } from './storage.ts'
+import { mateProfileByName } from '../mates/catalog.ts'
 import { REFERRAL_STORAGE_KEY } from '../auth/referral-code.ts'
 import { isPatternRecordId, isRecordPattern, PATTERN_ID_BASE, patternSessions, type RecordPattern } from './record-patterns.ts'
 
@@ -15,23 +16,27 @@ export {
 } from './local-asset-urls.ts'
 
 export const LOCAL_USER_ID = 990101
-export const LOCAL_ROOM_ID = 990201
+/** 11-25: the mate id is the character id (16 `mateId` = 20 `characterId`). */
 export const LOCAL_CHARACTER_ID = 990301
-/** 서도현 (second mate, model bundle `seojin`): like the published API, one room per character. */
-export const LOCAL_DOHYUN_ROOM_ID = 990202
+/** 서도현 (second mate, model bundle `seojin`; server name 「서진」, mapped by catalog.ts `sourceNames`). */
 export const LOCAL_DOHYUN_CHARACTER_ID = 990302
+/** @deprecated 11-22 room ids; the app's room id is the mate id since 11-25. */
+export const LOCAL_ROOM_ID = LOCAL_CHARACTER_ID
+/** @deprecated see LOCAL_ROOM_ID. */
+export const LOCAL_DOHYUN_ROOM_ID = LOCAL_DOHYUN_CHARACTER_ID
 export const LOCAL_STORAGE_KEY = 'capsule-local-beta:v1'
 export const LOCAL_REPLY = '좋아, 우리 조금만 더 집중해 보자!'
 const CHAERIN_CLOSING_LINE = '오늘도 같이 있어서 좋았어. 다음에도 여기서 만나자.'
 
 /**
- * The local mates, in the server's shape (character id, room id, server name). `mateId` is the front-end catalog id.
+ * The local mates, in the server's shape (mate id = character id, server name). `mateId` is the front-end catalog id.
+ * The boy mate carries the production server name 「서진」 so the name mapping is exercised as against the real server.
  * Replies and closing lines are each mate's own (서도현's from his persona, mate-lines.ts), never mixed.
  */
 export const LOCAL_MATES = [
-  { characterId: LOCAL_CHARACTER_ID, roomId: LOCAL_ROOM_ID, name: '채린', mateId: 'chaerin', reply: LOCAL_REPLY, closingLine: CHAERIN_CLOSING_LINE },
-  { characterId: LOCAL_DOHYUN_CHARACTER_ID, roomId: LOCAL_DOHYUN_ROOM_ID, name: '서도현', mateId: 'dohyun',
-    reply: '잠깐 봐봐. …아, 이거네. 여기부터 다시 해.', closingLine: '다 했네. 오늘 좀 열심히 했다? 수고했어.' },
+  { characterId: LOCAL_CHARACTER_ID, name: '채린', mateId: 'chaerin', reply: LOCAL_REPLY, closingLine: CHAERIN_CLOSING_LINE, myRole: '당신은 채린의 같은 반 친구예요' },
+  { characterId: LOCAL_DOHYUN_CHARACTER_ID, name: '서진', mateId: 'dohyun',
+    reply: '잠깐 봐봐. …아, 이거네. 여기부터 다시 해.', closingLine: '다 했네. 오늘 좀 열심히 했다? 수고했어.', myRole: '어릴 때부터 함께 자란 소꿉친구이자 공부 메이트' },
 ] as const
 export type LocalMate = (typeof LOCAL_MATES)[number]
 /** The local mate of a character id (채린 for unknown ids, as in data saved before 서도현 existed). */
@@ -52,9 +57,16 @@ export const LOCAL_AFFINITY = {
   stageTargetSeconds: 10 * 3600,
   nextLevelSeconds: 1.5 * 3600,
 } as const
+/** The same sample as 22 · 23 `relation` (IntimacyView; `stageProgress` 0–100). */
+export function localIntimacy(stageUp = false): IntimacyView {
+  return { stageBefore: LOCAL_AFFINITY.stage, stageAfter: LOCAL_AFFINITY.stage, stageName: LOCAL_AFFINITY.stageName, stageUp,
+    creditedSeconds: 0, nextStageSeconds: LOCAL_AFFINITY.nextLevelSeconds,
+    stageProgress: Math.round(LOCAL_AFFINITY.stageSeconds / LOCAL_AFFINITY.stageTargetSeconds * 100), unlocked: [] }
+}
 export const localScenarios = ['normal', 'empty', 'loading', 'failure', 'exhausted', 'guest'] as const
 export type LocalScenario = typeof localScenarios[number]
-type Session = { id: number; startedAt: number; studySeconds: number; presentSeconds: number; targetMinutes: number; characterId?: number }
+/** A running connection; the totals are the last heartbeat's (API 21), as the server keeps them for 17. */
+type Session = { id: number; startedAt: number; characterId?: number; studySeconds: number; presentSeconds: number; cameraOnSeconds?: number; pipSeconds?: number }
 type LocalData = {
   version: 1; authenticated: boolean; nickname: string; onboardingRequired: boolean; avatarId?: number
   details: BetaAccountDetails; scenario: LocalScenario; nextSessionId: number; active: Session | null
@@ -82,11 +94,10 @@ function patternRecords(pattern: RecordPattern, now: number): StudyRecord[] {
     const mate = index % 3 === 1 ? LOCAL_MATES[1] : LOCAL_MATES[0]
     // 서도현's records get their own (still pattern) ids: the app keeps cached reports by id.
     const sessionId = mate.characterId === LOCAL_CHARACTER_ID ? session.id : PATTERN_ID_BASE + ((session.id - PATTERN_ID_BASE + 45_000_000) % 90_000_000)
-    const report: ReportResponse = { sessionId, roomName: mate.name, character: { id: mate.characterId, name: mate.name },
-      startedAt: new Date(session.startedAt).toISOString(), endedAt: new Date(session.endedAt).toISOString(), endType: 'USER',
-      studySeconds: session.seconds, presentSeconds: session.seconds - 60, awaySeconds: 60, returnCount: 1,
-      relation: { levelBefore: 3, levelAfter: 3, pointsBefore: 61, pointsAfter: 62, ...LOCAL_AFFINITY },
-      closingLine: mate.closingLine }
+    const report: ReportResponse = { connectionId: sessionId, mate: { id: mate.characterId, name: mate.name, myRole: mate.myRole },
+      startedAt: new Date(session.startedAt).toISOString(), endedAt: new Date(session.endedAt).toISOString(), endType: 'NORMAL',
+      connectedSeconds: session.seconds, presentSeconds: session.seconds - 60, cameraOnSeconds: session.seconds, awaySeconds: 60, returnCount: 1,
+      messageCount: 3, relation: localIntimacy(), closingLine: mate.closingLine, referralReward: null, betaFeedbackAvailable: false }
     return toRecord(report)
   })
 }
@@ -116,10 +127,12 @@ function seed(now: number, recordPattern: RecordPattern = 'steady'): LocalData {
 }
 
 function toRecord(report: ReportResponse): StudyRecord {
-  const seconds = report.studySeconds ?? 0
-  const mate = localMate(report.character?.id)
-  return { id: String(report.sessionId), roomId: String(mate.roomId), characterIds: [String(mate.characterId)], tier: 'basic',
-    roomName: mate.name, characterName: mate.name, serverReport: report, startedAt: Date.parse(report.startedAt!), endedAt: Date.parse(report.endedAt!),
+  const seconds = report.connectedSeconds ?? 0
+  const mate = localMate(report.mate?.id)
+  // The display name, as the app's report adapter maps it (서진 → 서도현).
+  const name = mateProfileByName(mate.name)?.name ?? mate.name
+  return { id: String(report.connectionId), roomId: String(mate.characterId), characterIds: [String(mate.characterId)], tier: 'basic',
+    roomName: name, characterName: name, serverReport: report, startedAt: Date.parse(report.startedAt!), endedAt: Date.parse(report.endedAt!),
     studySeconds: seconds, focusSeconds: report.presentSeconds ?? 0, awaySeconds: report.awaySeconds ?? 0, returns: report.returnCount ?? 0,
     cameraFocus: { observedMs: seconds * 1000, focusedMs: Math.floor(seconds * .8) * 1000, returns: 1 }, completed: false, automatic: false }
 }
@@ -130,7 +143,7 @@ export class LocalBetaStore {
   previewExpression: string | null = null
   storageAvailable = true
   private listeners = new Set<() => void>()
-  private replies = new Map<string, { content: string; affinity: AffinityChange }>()
+  private replies = new Map<string, { content: string; affinity: AffinityChange; charged: number }>()
   private storage: StoragePort | null
   private now: () => number
   constructor(storage: StoragePort | null, now = () => Date.now()) {
@@ -172,13 +185,24 @@ export class LocalBetaStore {
   snapshot = () => ({ wallet: structuredClone(this.data.wallet), invitation: structuredClone(this.data.invitation), records: structuredClone(this.data.records),
     messages: structuredClone(this.data.messages), affinities: Object.fromEntries(LOCAL_MATES.map(mate => [mate.characterId, this.affinity()])), settings: { ...this.data.settings } })
   affinity = (): AffinityChange => ({ points: this.data.points, level: 3, stage: LOCAL_AFFINITY.stage, stageName: LOCAL_AFFINITY.stageName })
-  me = (image?: string): MeResponse => ({ userId: LOCAL_USER_ID, nickname: this.data.nickname, onboardingRequired: this.data.onboardingRequired, profileImage: image, activeSession: this.summary() ?? undefined })
+  /** 8 · 16 · 20 `credits` from the local wallet. */
+  credits = (): Credits => {
+    const wallet = this.data.wallet, todayRemaining = wallet.attendance + wallet.invitation
+    return { todayRemaining, attendanceRemaining: wallet.attendance, attendanceExpiresAt: new Date(wallet.attendanceExpiresAt).toISOString(),
+      inviteBalance: wallet.invitation, low: todayRemaining < 100, exhausted: todayRemaining === 0, attendanceGrantedNow: false }
+  }
+  /** 8 `/me`. The onboarding rule is the server's: avatar or birth date missing. */
+  me = (image?: string): MeResponse => ({ userId: LOCAL_USER_ID, nickname: this.data.nickname, email: 'local@capsule.invalid',
+    onboardingRequired: this.data.onboardingRequired || !this.data.details.birthDate, profileImage: image ?? null,
+    activeConnection: this.summary(), birthDate: this.data.details.birthDate ?? null, isMinor: false,
+    honorific: this.data.details.callName || null, aboutMe: this.data.details.aboutMe || null, referralCode: this.data.invitation.code,
+    credits: this.credits(), loginType: 'EMAIL', unreadNotifications: 0 })
   /** The mate of the running connection (채린 for sessions saved before 서도현 existed). */
   activeMate = () => localMate(this.data.active?.characterId)
-  summary = () => {
+  summary = (): ActiveConnectionSummary | null => {
     if (!this.data.active) return null
     const mate = this.activeMate()
-    return { sessionId: this.data.active.id, roomId: mate.roomId, roomName: mate.name, characterName: mate.name, startedAt: new Date(this.data.active.startedAt).toISOString() }
+    return { connectionId: this.data.active.id, mateId: mate.characterId, mateName: mate.name, startedAt: new Date(this.data.active.startedAt).toISOString() }
   }
   login() { this.data.authenticated = true; this.changed(); return { accessToken: 'local-beta-access', ...this.me() } }
   beginOnboarding() {
@@ -193,43 +217,74 @@ export class LocalBetaStore {
     this.changed()
   }
   logout() { this.data.authenticated = false; this.changed() }
-  profile(nickname: string, avatarId?: number) { this.data.nickname = nickname; this.data.avatarId = avatarId; this.data.onboardingRequired = false; this.changed(); return this.me() }
+  profile(nickname: string, avatarId?: number) { this.data.nickname = nickname; if (avatarId !== undefined) this.data.avatarId = avatarId; this.data.onboardingRequired = false; this.changed(); return this.me() }
+  /** API 10: only the fields sent; the birth date is saved once. */
+  updateMe(body: UpdateMeRequest) {
+    if (body.birthDate && !this.data.details.birthDate) this.data.details.birthDate = body.birthDate
+    if (typeof body.honorific === 'string') this.data.details.callName = body.honorific
+    if (typeof body.aboutMe === 'string') this.data.details.aboutMe = body.aboutMe
+    return this.profile(typeof body.nickname === 'string' ? body.nickname : this.data.nickname, body.avatarId)
+  }
+  /** API 36 (codes as simulateMockReferralValidation: FRIEND1000 · CAPSULE2026). Returns an error code or null. */
+  enterReferral(raw: string): string | null {
+    const code = raw.trim().toUpperCase()
+    if (this.data.details.referralRegistered || !this.data.invitation.canRedeem) return 'REFERRAL_ALREADY_ENTERED'
+    if (code === this.data.invitation.code || code === 'SELF') return 'REFERRAL_SELF'
+    if (code !== 'FRIEND1000' && code !== 'CAPSULE2026') return 'REFERRAL_CODE_NOT_FOUND'
+    this.data.details.referralRegistered = true; this.data.invitation.canRedeem = false
+    if (!this.data.rewardedCodes.includes(code)) this.data.rewardedCodes.push(code)
+    this.changed()
+    return null
+  }
   setSettings = (settings: Partial<LocalData['settings']>) => { this.data.settings = { ...this.data.settings, ...settings }; this.changed() }
-  start(targetMinutes: number, characterId: number = LOCAL_CHARACTER_ID) {
+  start(characterId: number = LOCAL_CHARACTER_ID) {
     if (this.data.active) return this.data.active
-    this.data.active = { id: this.data.nextSessionId++, startedAt: this.now(), studySeconds: 0, presentSeconds: 0, targetMinutes, characterId }
+    this.data.active = { id: this.data.nextSessionId++, startedAt: this.now(), studySeconds: 0, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, characterId }
     this.changed()
     return this.data.active
   }
-  heartbeat(studySeconds: number, presentSeconds: number) {
+  /** API 21: keeps the last totals (17 resumes from them). */
+  heartbeat(totals: ConnectionTotals) {
     if (!this.data.active) return
-    this.data.active.studySeconds = studySeconds; this.data.active.presentSeconds = presentSeconds; this.changed()
+    Object.assign(this.data.active, { studySeconds: totals.connectedSeconds, presentSeconds: totals.presentSeconds, cameraOnSeconds: totals.cameraOnSeconds, pipSeconds: totals.pipSeconds })
+    this.changed()
   }
-  reply(requestId: string, content: string) {
+  /**
+   * 20 · 28. `advanced`: the request's `mode: ADVANCED` (30); the local voice switch simulates a voice turn (20).
+   * As on the server an ADVANCED turn without 30 credits is refused (`null` → 409 `CREDIT_INSUFFICIENT`), a voice turn
+   * without credits just comes without voice.
+   */
+  reply(requestId: string, content: string, advanced = this.data.settings.advanced) {
     const old = this.replies.get(requestId)
     if (old) return old
     const persisted = this.data.messages.find(message => message.id === `local-reply-${requestId}`)
-    if (persisted) return { content: persisted.text, affinity: this.affinity() }
-    const wallet = this.data.wallet, cost = (this.data.settings.voice ? 20 : 0) + (this.data.settings.advanced ? 30 : 0)
-    if (cost && wallet.attendance + wallet.invitation >= cost) {
+    if (persisted) return { content: persisted.text, affinity: this.affinity(), charged: 0 }
+    const wallet = this.data.wallet
+    if (advanced && wallet.attendance + wallet.invitation < 30) return null
+    const voice = this.data.settings.voice && wallet.attendance + wallet.invitation >= (advanced ? 50 : 20)
+    const cost = (voice ? 20 : 0) + (advanced ? 30 : 0)
+    if (cost) {
       const attendance = Math.min(wallet.attendance, cost)
       wallet.attendance -= attendance; wallet.invitation -= cost - attendance; wallet.usedToday += cost
-      this.ledger('use', -cost, this.data.settings.voice && this.data.settings.advanced ? '음성 · 고급 대화' : this.data.settings.voice ? '음성 대화' : '고급 대화')
-    } else if (cost) this.data.settings = { voice: false, advanced: false }
+      this.ledger('use', -cost, voice && advanced ? '음성 · 고급 대화' : voice ? '음성 대화' : '고급 대화')
+    }
     const mate = this.activeMate()
     const sessionId = String(this.data.active!.id), characterId = String(mate.characterId)
     this.data.messages.push({ id: `local-user-${requestId}`, requestId, sessionId, characterId, sender: 'user', text: content, voice: false, delivery: 'confirmed', createdAt: this.now() },
       { id: `local-reply-${requestId}`, requestId, sessionId, characterId, sender: 'character', text: mate.reply, voice: false, delivery: 'confirmed', createdAt: this.now() })
-    const result = { content: mate.reply, affinity: this.affinity() }
+    const result = { content: mate.reply, affinity: this.affinity(), charged: cost }
     this.replies.set(requestId, result); this.changed(); return result
   }
-  finish(studySeconds: number, presentSeconds: number) {
+  /** API 22. */
+  finish(totals: ConnectionTotals, endType: EndType = 'NORMAL') {
     const active = this.data.active!
     const mate = this.activeMate()
-    const report: ReportResponse = { sessionId: active.id, roomName: mate.name, character: { id: mate.characterId, name: mate.name }, startedAt: new Date(active.startedAt).toISOString(), endedAt: new Date(this.now()).toISOString(), endType: 'USER',
-      studySeconds, presentSeconds, awaySeconds: Math.max(0, studySeconds - presentSeconds), returnCount: 0,
-      relation: { levelBefore: 3, levelAfter: 3, pointsBefore: this.data.points, pointsAfter: this.data.points, ...LOCAL_AFFINITY },
-      closingLine: mate.closingLine }
+    const messageCount = this.data.messages.filter(message => message.sessionId === String(active.id) && message.sender === 'character').length
+    const reward = this.rewardFirstConnection()
+    const report: ReportResponse = { connectionId: active.id, mate: { id: mate.characterId, name: mate.name, myRole: mate.myRole }, startedAt: new Date(active.startedAt).toISOString(), endedAt: new Date(this.now()).toISOString(), endType,
+      connectedSeconds: totals.connectedSeconds, presentSeconds: totals.presentSeconds, cameraOnSeconds: totals.cameraOnSeconds,
+      awaySeconds: Math.max(0, totals.cameraOnSeconds - totals.presentSeconds), returnCount: 0, messageCount,
+      relation: localIntimacy(), closingLine: mate.closingLine, referralReward: reward ? { amount: 1000 } : null, betaFeedbackAvailable: true }
     const record = toRecord(report)
     // New camera measurements belong to MediaProvider, never to a generated percentage.
     delete record.cameraFocus
@@ -242,10 +297,12 @@ export class LocalBetaStore {
     // Entering a code never pays early. The first completed connection triggers the local reward.
     this.data.rewardedCodes.push(code); this.data.invitation.canRedeem = false; this.changed()
   }
+  /** The referral reward of the first connection ending after a code was entered; true when paid now. */
   rewardFirstConnection() {
-    if (!this.data.rewardedCodes.some(code => !code.startsWith('__')) || this.data.rewardedCodes.includes('__rewarded__')) return
+    if (!this.data.rewardedCodes.some(code => !code.startsWith('__')) || this.data.rewardedCodes.includes('__rewarded__')) return false
     this.data.rewardedCodes.push('__rewarded__'); this.data.wallet.invitation += 1000
     this.ledger('invite', 1000, '친구 초대'); this.changed()
+    return true
   }
   completeInvitedFriend(friendId: string) {
     const marker = `__friend:${friendId}__`

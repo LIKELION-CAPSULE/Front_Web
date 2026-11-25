@@ -45,8 +45,8 @@ function spies({ emptyMates = false } = {}) {
       const response = await fetcher.call(this, input, init)
       if (emptyMates && /\/api\/backend\/home(\?|$)/.test(url) && response.ok) {
         const body = await response.clone().json()
-        // The API envelope is { success, data }.
-        const data = body && typeof body === 'object' && 'data' in body ? { ...body, data: { ...body.data, rooms: [] } } : { ...body, rooms: [] }
+        // The API envelope is { success, data }; since 11-25 the mate list is `mates`.
+        const data = body && typeof body === 'object' && 'data' in body ? { ...body, data: { ...body.data, mates: [] } } : { ...body, mates: [] }
         return new Response(JSON.stringify(data), { status: 200, headers: { 'content-type': 'application/json' } })
       }
       return response

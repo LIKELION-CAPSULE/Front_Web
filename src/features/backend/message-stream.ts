@@ -1,5 +1,5 @@
 import { ApiError, toApiError, unwrapApiResponse, type ApiClient } from '../../shared/api/client.ts'
-import type { MessageRequest, MessageResponse, MessageStreamReply } from '../../shared/api/types.ts'
+import type { MessageRequest, MessageResponse, MessageStreamAudio, MessageStreamAudioEnd, MessageStreamReply } from '../../shared/api/types.ts'
 
 /** First send plus two resends with the same `requestId`. */
 export const MESSAGE_STREAM_ATTEMPTS = 3
@@ -15,12 +15,12 @@ function messagePayload(value: unknown): MessageResponse {
 
 /** User-facing text for `error` event codes; the backend's `message` repeats the code. */
 const streamErrorMessages: Record<string, string> = {
-  SESSION_ENDED: '답장을 받는 사이 연결이 끝났어요. 연결 기록을 확인해 주세요.',
+  CONNECTION_ENDED: '답장을 받는 사이 연결이 끝났어요. 연결 기록을 확인해 주세요.',
   INTERNAL_ERROR: '답장을 만들지 못했어요. 잠시 후 다시 보내 주세요.',
 }
 
 /**
- * `error` event data is the usual error body (`{ code, message, detail }`, code `SESSION_ENDED` or `INTERNAL_ERROR`).
+ * `error` event data is the usual error body (`{ code, message, detail }`, e.g. code `CONNECTION_ENDED` or `INTERNAL_ERROR`).
  * The HTTP status is already 200, so the error is told apart by `code`; status 502 here only marks it as not resendable.
  * Plain text data is shown as it is.
  */
@@ -46,18 +46,24 @@ export function isRetryableMessageError(error: unknown) {
 type Handlers = {
   /** Every `reply` event: the whole reply so far. */
   onReply: (content: string) => void
+  /** 28 `audio` pieces (voice turns, `tts: true`), in order; `audio_end` closes them. Ignored when absent. */
+  onAudio?: (audio: MessageStreamAudio) => void
+  onAudioEnd?: (end: MessageStreamAudioEnd) => void
   /** Returning false stops resending (logout, another session). */
   alive?: () => boolean
 }
 type StreamOptions = { attempts?: number; signal?: AbortSignal }
 
-/** API 28: streams one chat reply and resolves with the `done` payload (the API 20 response). */
-export async function streamMessage(client: Pick<ApiClient, 'stream'>, sessionId: number, body: MessageRequest, handlers: Handlers, options: StreamOptions = {}): Promise<MessageResponse> {
+/** API 28 `POST /connections/{id}/messages/stream`: streams one chat reply and resolves with the `done` payload (the API 20 response). */
+export async function streamMessage(client: Pick<ApiClient, 'stream'>, connectionId: number, body: MessageRequest, handlers: Handlers, options: StreamOptions = {}): Promise<MessageResponse> {
   const { attempts = MESSAGE_STREAM_ATTEMPTS, signal } = options
   for (let attempt = 1; ; attempt++) {
     try {
       const received: { done?: MessageResponse } = {}
-      const outcome = await client.stream<MessageResponse>(`/sessions/${sessionId}/messages/stream`, { method: 'POST', body, signal }, event => {
+      const outcome = await client.stream<MessageResponse>(`/connections/${connectionId}/messages/stream`, { method: 'POST', body, signal }, event => {
+        // Voice pieces also follow `done`; nothing else does.
+        if (event.event === 'audio') { const audio = parseJson(event.data); if (audio && typeof audio === 'object') handlers.onAudio?.(audio as MessageStreamAudio); return }
+        if (event.event === 'audio_end') { const end = parseJson(event.data); if (end && typeof end === 'object') handlers.onAudioEnd?.(end as MessageStreamAudioEnd); return }
         if (received.done) return
         if (event.event === 'reply') {
           const reply = parseJson(event.data) as MessageStreamReply | null
@@ -76,7 +82,7 @@ export async function streamMessage(client: Pick<ApiClient, 'stream'>, sessionId
   }
 }
 
-/** API 20 `POST /sessions/{id}/messages`: the same request answered with one JSON response (no streaming). */
-export function postMessage(client: Pick<ApiClient, 'request'>, sessionId: number, body: MessageRequest) {
-  return client.request<MessageResponse>(`/sessions/${sessionId}/messages`, { method: 'POST', body })
+/** API 20 `POST /connections/{id}/messages`: the same request answered with one JSON response (no streaming, no voice). */
+export function postMessage(client: Pick<ApiClient, 'request'>, connectionId: number, body: MessageRequest) {
+  return client.request<MessageResponse>(`/connections/${connectionId}/messages`, { method: 'POST', body })
 }

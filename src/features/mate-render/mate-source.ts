@@ -81,7 +81,8 @@ export type MateModelFormat = 'aliving2d' | 'cubism'
 
 function normalizeFormat(format: string | null | undefined): MateModelFormat | null {
   const value = format?.trim().toLowerCase()
-  if (value === 'aliving2d' || value === 'aliving') return 'aliving2d'
+  // Server enum (11-25 ModelInfo.format): `ALIVING2D_V2` · `CUBISM`.
+  if (value === 'aliving2d' || value === 'aliving' || value === 'aliving2d_v2') return 'aliving2d'
   if (value === 'cubism' || value === 'live2d-cubism') return 'cubism'
   return null
 }

@@ -49,7 +49,7 @@ export function AccountSecurityPanel({
             비밀번호 재설정
           </h3>
           <div className="account-security-content account-password-form">
-            <PasswordRecoveryForm defaultEmail={me?.email} onBusyChange={onBusyChange} />
+            <PasswordRecoveryForm defaultEmail={me?.email ?? undefined} onBusyChange={onBusyChange} />
           </div>
         </section>
 

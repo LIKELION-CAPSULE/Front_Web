@@ -179,7 +179,7 @@ test('history and companion summaries weight valid measurement time and preserve
 })
 
 test('a server presence settlement never substitutes for missing camera measurement', () => {
-  const result = serverReport({ sessionId: 101, character: { id: 201 }, startedAt: new Date(now).toISOString(), endedAt: new Date(now + 60000).toISOString(), studySeconds: 60, presentSeconds: 54, awaySeconds: 6, returnCount: 2 }, '101')
+  const result = serverReport({ connectionId: 101, mate: { id: 201 }, startedAt: new Date(now).toISOString(), endedAt: new Date(now + 60000).toISOString(), connectedSeconds: 60, presentSeconds: 54, awaySeconds: 6, returnCount: 2 })
   assert.equal(result.focusSeconds, 54)
   assert.equal(focusMeasuredSeconds(result), 0)
   assert.equal(focusDetectedSeconds(result), 0)
@@ -189,7 +189,7 @@ test('a server presence settlement never substitutes for missing camera measurem
 })
 
 test('live camera totals remain the report and history basis even when server presence differs', () => {
-  const result = serverReport({ sessionId: 101, character: { id: 201 }, startedAt: new Date(now).toISOString(), endedAt: new Date(now + 60000).toISOString(), studySeconds: 60, presentSeconds: 54, awaySeconds: 6, returnCount: 2 }, '101')
+  const result = serverReport({ connectionId: 101, mate: { id: 201 }, startedAt: new Date(now).toISOString(), endedAt: new Date(now + 60000).toISOString(), connectedSeconds: 60, presentSeconds: 54, awaySeconds: 6, returnCount: 2 })
   result.cameraFocus = { observedMs: 40000, focusedMs: 30000, returns: 1 }
   assert.equal(recordFocusPercent(result), 75)
   assert.equal(focusMeasuredSeconds(result), 40)

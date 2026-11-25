@@ -9,16 +9,15 @@ import type { BackendContextValue } from '../src/features/backend/backend-contex
 import type { ApiClient } from '../src/shared/api/client.ts'
 import type { LoginResponse, ReportResponse } from '../src/shared/api/types.ts'
 
-test('the provider sends runtime-valid session requests and reads wrapped JSON and raw SSE payloads', async () => {
+test('the provider sends 11-25 connection requests and reads wrapped JSON and raw SSE payloads', async () => {
   const seen: string[] = []
-  const room = { id: 11, name: '시험용 룸', characters: [{ id: 42, name: '말포이 TS' }] }
+  const mate = { id: 42, name: '말포이', cardImageUrl: '/malfoy.webp' }
   const now = new Date().toISOString()
-  let nickname = '공부친구', targetMinutes = 50
+  let nickname = '공부친구'
   const me = () => ({ userId: 7, nickname, onboardingRequired: false })
-  const session = () => ({ sessionId: 31, room, character: { id: 42, name: '말포이 TS', modelJsonUrl: '/malfoy.model3.json' },
-    targetMinutes, serverTime: now })
-  const report = { sessionId: 31, roomName: room.name, character: room.characters[0], startedAt: now, endedAt: now,
-    studySeconds: 60, presentSeconds: 50, awaySeconds: 10, returnCount: 1 }
+  const figures = () => ({ connectionId: 31, mate: { id: 42, name: '말포이', format: 'CUBISM', modelJsonUrl: '/malfoy.model3.json' }, serverTime: now })
+  const report = { connectionId: 31, mate: { id: 42, name: '말포이' }, startedAt: now, endedAt: now,
+    connectedSeconds: 60, presentSeconds: 50, cameraOnSeconds: 55, awaySeconds: 5, returnCount: 1, messageCount: 1 }
   const success = (data: unknown, status = 200) => Response.json({ success: true, data }, { status })
   const transport: typeof fetch = async (input, init) => {
     const path = String(input).replace('/api/backend', '')
@@ -29,27 +28,19 @@ test('the provider sends runtime-valid session requests and reads wrapped JSON a
     if (path === '/me' && init?.method === 'PATCH') { nickname = String(body.nickname); return success(me()) }
     if (path === '/me') return success(me())
     if (path === '/avatars') return success({ avatars: [] })
-    if (path === '/home') return success({ todayStudySeconds: 0, rooms: [room] })
-    if (path === '/rooms/11') return success(room)
-    if (path === '/me/memories' && init?.method === 'POST') return success({ ...body, memoryId: 9 }, 201)
-    if (path === '/me/memories?status=ALL') return success({ memories: [] })
-    if (path === '/sessions') {
-      // SessionService.start requires this even though OpenAPI omits it from `required`.
-      const minutes = body.targetMinutes
-      if (typeof minutes !== 'number' || !Number.isInteger(minutes) || !(minutes === 3 || minutes >= 5 && minutes <= 180 && minutes % 5 === 0)) {
-        return Response.json({ success: false, code: 'INVALID_TARGET_MINUTES', message: 'INVALID_TARGET_MINUTES' }, { status: 400 })
-      }
-      assert.deepEqual(body, { roomId: 11, characterId: 42, targetMinutes: 55 })
-      targetMinutes = minutes
-      return success({ ...session(), startedAt: now }, 201)
+    if (path === '/home') return success({ todayPresentSeconds: 0, todayConnectedSeconds: 0, activeConnection: null, lastMate: null, mates: [mate] })
+    if (path === '/connections') {
+      assert.deepEqual(body, { mateId: 42 })
+      return success({ ...figures(), startedAt: now }, 201)
     }
-    if (path === '/sessions/31/resume') return success({ ...session(), studySeconds: 60, presentSeconds: 50, breakSeconds: 0 })
-    if (path === '/sessions/31/messages/stream') {
-      const message = { requestId: body.requestId, characterId: body.characterId, content: '같이 집중하자!' }
+    if (path === '/connections/31/resume') return success({ ...figures(), connectedSeconds: 60, presentSeconds: 50, cameraOnSeconds: 55, pipSeconds: 0 })
+    if (path === '/connections/31/messages/stream') {
+      assert.equal(body.mode, 'BASIC')
+      const message = { requestId: body.requestId, characterId: body.characterId, content: '같이 집중하자!', mode: 'BASIC', charged: 0 }
       return new Response(`event: reply\ndata: ${JSON.stringify({ content: '같이' })}\n\nevent: done\ndata: ${JSON.stringify(message)}\n\n`,
         { headers: { 'content-type': 'text/event-stream' } })
     }
-    if (path === '/sessions/31/end' || path === '/sessions/32/report') return success({ ...report, sessionId: path.endsWith('/report') ? 32 : 31 })
+    if (path === '/connections/31/end' || path === '/connections/32') return success({ ...report, connectionId: path.endsWith('/32') ? 32 : 31 })
     throw new Error(`Unexpected API request: ${init?.method} ${path}`)
   }
   const server = await createServer({ configFile: false, envDir: false, logLevel: 'silent',
@@ -77,17 +68,21 @@ test('the provider sends runtime-valid session requests and reads wrapped JSON a
     assert.equal((await api.request<{ nickname: string }>('/me')).nickname, '새 닉네임')
     await assert.rejects(backend.createMemory({ kind: '목표', title: '함께 공부하기', date: '', time: '' }), {status:410})
     assert.equal(seen.some(path=>path.includes('/me/memories')),false)
-    const active = await backend.startSession('11', '42', 55)
+    const active = await backend.startSession('42', '42', 55)
+    assert.equal(active.id, '31')
     assert.equal(active.targetSeconds, undefined)
     assert.equal(active.serverSession, true)
     assert.equal((await backend.sendMessage('42', '같이 공부하자')).content, '같이 집중하자!')
-    assert.equal((await backend.resumeSession('31')).studySeconds, 60)
+    const resumed = await backend.resumeSession('31')
+    assert.equal(resumed.studySeconds, 60)
+    assert.deepEqual(resumed.initialTotals, { presentSeconds: 50, cameraOnSeconds: 55, pipSeconds: 0 })
     // Server rendering does not mount the presence clock required by finishSession; check its transport directly.
-    const reportData = await api.request<ReportResponse>('/sessions/31/end', { method: 'POST', body: { studySeconds: 60, presentSeconds: 50 } })
-    assert.equal(reportData.sessionId, 31)
-    assert.equal(reportData.studySeconds, 60)
+    const reportData = await api.request<ReportResponse>('/connections/31/end', { method: 'POST', body: { connectedSeconds: 60, presentSeconds: 50, cameraOnSeconds: 55, pipSeconds: 0, endType: 'NORMAL' } })
+    assert.equal(reportData.connectionId, 31)
+    assert.equal(reportData.connectedSeconds, 60)
     await backend.loadReport('32')
-    assert.ok(seen.includes('GET /sessions/32/report'))
+    assert.ok(seen.includes('GET /connections/32'))
+    assert.equal(seen.some(path => path.includes('/sessions') || path.includes('/rooms')), false)
     assert.deepEqual(prepared, ['/malfoy.model3.json'])
   } finally {
     globalThis.fetch = originalFetch

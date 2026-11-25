@@ -25,7 +25,7 @@ export function useConnectMate(mate: AvailableMate | null | undefined) {
       if (mounted.current) navigate(`/connect/${mate.id}`)
     } catch (reason) {
       if (!mounted.current) return
-      if (reason instanceof EndedConnectionError) navigate(`/connections/${reason.sessionId}`, { replace: true })
+      if (reason instanceof EndedConnectionError) navigate(`/connections/${reason.connectionId}`, { replace: true })
       else setError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.')
     } finally {
       if (mounted.current) setBusy(false)

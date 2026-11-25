@@ -146,7 +146,7 @@ export default function RecordsPage() {
       }
     }
     for (const r of actualRecords) {
-      const char = r.serverReport?.character
+      const char = r.serverReport?.mate
       if (!char) continue
       const charId = String(char.id)
       if (!byCharId.has(charId)) {
@@ -242,7 +242,7 @@ export default function RecordsPage() {
     defaultCapsuleDay(capsuleCalendar.days)
   const selectedDay = activeDay ? selectCapsuleDay(periodRecords, activeDay) : null
   const mateNameOf = (record: (typeof periodRecords)[number]) =>
-    mateNameByCharId.get(record.characterIds[0] ?? '') ?? record.serverReport?.character?.name
+    mateNameByCharId.get(record.characterIds[0] ?? '') ?? record.serverReport?.mate?.name
 
   // ── Record card of a board day ──
   const openDayCard = (key: string) => {

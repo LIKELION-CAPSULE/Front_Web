@@ -64,17 +64,23 @@ export function mateProfile(id: string | undefined): MateProfile | undefined {
 }
 
 export type AvailableMate = MateProfile & {
-  /** Compatibility with the currently published room/session API; never invented locally. */
+  /**
+   * The server mate id (11 `mates[].id` = character id = 16 `mateId`). The app still keys rooms and characters
+   * separately, so both carry the same value since 11-25.
+   */
   roomId: string
   characterId: string
   image?: string
+  /** 11 `comingSoon`: shown, but 16 refuses it (409 `MATE_COMING_SOON`). */
+  comingSoon?: boolean
 }
 
-// Temporary display mapping explicitly requested by the user on 2026-11-22.
-// Server IDs, model URLs and source responses keep their original identity.
+// Display mapping of server names to the front-end catalogue (user decisions 2026-11-22 · 2026-11-25).
+// Server IDs, model URLs and source responses keep their original identity. 서진 is the server name of the boy mate
+// whose persona is 서도현 here (name to be settled with the backend/PM; docs/API_FRONT_GAP_2026-11-25.md §17).
 const sourceNames: Readonly<Record<string, readonly string[]>> = {
   chaerin: ['채린', '말포이 TS', '말포이'],
-  dohyun: ['서도현', '도현'],
+  dohyun: ['서도현', '도현', '서진'],
 }
 const normalizedName = (name: string | undefined) => name?.replace(/\s+/g, '').toLocaleLowerCase('ko-KR')
 export function mateProfileByName(name: string | undefined) {
@@ -84,31 +90,27 @@ export function mateProfileByName(name: string | undefined) {
 
 const validId = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 
-/** Do not supplement the server catalogue with the old nine-room demo catalogue. */
+/**
+ * The launch mates found in 11 `/home` `mates[]`, in catalogue order. Each profile takes the first server mate under its
+ * preferred source name (채린 before the old 말포이 entry); among several with that name an open one wins over a coming-soon
+ * one, then the server order (서진 id 2 before id 3). Never supplemented with the old demo catalogue.
+ */
 export function availableMates(home: HomeResponse | null): AvailableMate[] {
   const result: AvailableMate[] = []
+  const cards = (home?.mates ?? []).filter(card => validId(card.id) && card.name)
   for (const profile of launchMates) {
-    // Prefer a real Chaerin entry when both the new and temporary source exist.
     for (const sourceName of sourceNames[profile.id] ?? [profile.name]) {
-      for (const room of home?.rooms ?? []) {
-        if (!validId(room.id)) continue
-        const character = room.characters?.find(value => normalizedName(value.name) === normalizedName(sourceName) && validId(value.id))
-        if (!character || !validId(character.id)) continue
-        const farewellLine =
-          typeof (character as { farewellLine?: unknown }).farewellLine === 'string' &&
-          (character as { farewellLine: string }).farewellLine.trim()
-            ? (character as { farewellLine: string }).farewellLine.trim()
-            : profile.farewellLine
-        result.push({
-          ...profile,
-          ...(farewellLine ? { farewellLine } : {}),
-          roomId: String(room.id),
-          characterId: String(character.id),
-          image: character.profileImageUrl,
-        })
-        break
-      }
-      if (result.some(value => value.id === profile.id)) break
+      const matches = cards.filter(card => normalizedName(card.name) === normalizedName(sourceName))
+      const card = matches.find(value => !value.comingSoon) ?? matches[0]
+      if (!card) continue
+      result.push({
+        ...profile,
+        roomId: String(card.id),
+        characterId: String(card.id),
+        ...(card.cardImageUrl ? { image: card.cardImageUrl } : {}),
+        ...(card.comingSoon ? { comingSoon: true } : {}),
+      })
+      break
     }
   }
   return result

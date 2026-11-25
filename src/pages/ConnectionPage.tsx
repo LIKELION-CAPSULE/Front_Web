@@ -369,7 +369,7 @@ export default function ConnectionPage() {
         if (mounted.current) { setEnding(null); setEndingWait(false) }
       }
       if (!mounted.current) return
-      if (reason instanceof ApiError && reason.code === 'SESSION_ENDED') serverEnded()
+      if (reason instanceof ApiError && reason.code === 'CONNECTION_ENDED') serverEnded()
       else { setFinishError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.'); setLeaveOpen(true) }
     }
     finally { busy.current = false; if (mounted.current) setFinishing(false) }
@@ -396,7 +396,7 @@ export default function ConnectionPage() {
       return true
     } catch (reason) {
       if (mounted.current) {
-        if (reason instanceof ApiError && reason.code === 'SESSION_ENDED') serverEnded()
+        if (reason instanceof ApiError && reason.code === 'CONNECTION_ENDED') serverEnded()
         else setError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.')
       }
       return false

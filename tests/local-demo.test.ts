@@ -9,6 +9,7 @@ function storage() {
   return { getItem: (key: string) => map.get(key) ?? null, setItem: (key: string, value: string) => { map.set(key, value) }, removeItem: (key: string) => { map.delete(key) }, key: (index: number) => [...map.keys()][index] ?? null, get length() { return map.size } }
 }
 const now = () => new Date(2026, 10, 22, 12).getTime()
+const totals = (connectedSeconds: number, presentSeconds: number) => ({ connectedSeconds, presentSeconds, cameraOnSeconds: presentSeconds, pipSeconds: 0 })
 
 test('local fixture starts with one isolated account, varied records and persistent conversation', () => {
   const store = new LocalBetaStore(storage(), now)
@@ -22,21 +23,22 @@ test('local fixture starts with one isolated account, varied records and persist
 })
 test('ending and reconnecting keeps the mate conversation, while refresh preserves the active session', () => {
   const disk = storage(), store = new LocalBetaStore(disk, now)
-  const first = store.start(50)
+  const first = store.start()
   store.reply('request-1', '안녕')
-  store.heartbeat(60, 50)
+  store.heartbeat(totals(60, 50))
   const reloaded = new LocalBetaStore(disk, now)
-  assert.equal(reloaded.start(50).id, first.id)
+  assert.equal(reloaded.start().id, first.id)
   assert.equal(reloaded.data.active?.presentSeconds, 50)
-  const report = reloaded.finish(60, 50)
-  assert.equal(report.sessionId, first.id)
+  const report = reloaded.finish(totals(60, 50))
+  assert.equal(report.connectionId, first.id)
+  assert.equal(report.messageCount, 1)
   assert.equal(reloaded.data.records[0]?.cameraFocus, undefined)
-  assert.notEqual(reloaded.start(50).id, first.id)
+  assert.notEqual(reloaded.start().id, first.id)
   assert.ok(reloaded.data.messages.some(message => message.text === '안녕'))
 })
 test('voice plus advanced costs 50 from attendance first and idempotent retries never charge twice', () => {
   const disk = storage(), store = new LocalBetaStore(disk, now)
-  store.start(50); store.data.wallet.attendance = 20; store.data.wallet.invitation = 100
+  store.start(); store.data.wallet.attendance = 20; store.data.wallet.invitation = 100
   store.setSettings({ voice: true, advanced: true })
   store.reply('same-request', '안녕')
   assert.equal(store.data.wallet.attendance, 0)
@@ -50,11 +52,13 @@ test('voice plus advanced costs 50 from attendance first and idempotent retries 
   assert.equal(reloaded.data.wallet.invitation, 70)
   assert.equal(reloaded.data.messages.length, count)
 })
-test('insufficient credits disable paid modes and continue the same basic connection', () => {
+test('without credits an advanced turn is refused (409) and a voice turn comes as text only', () => {
   const store = new LocalBetaStore(storage(), now)
-  store.reset('exhausted'); const { id } = store.start(50)
-  assert.ok(store.reply('low-credit', '안녕').content)
-  assert.deepEqual(store.data.settings, { voice: false, advanced: false })
+  store.reset('exhausted'); const { id } = store.start()
+  assert.equal(store.reply('low-credit-advanced', '안녕', true), null, 'the transport answers 409 CREDIT_INSUFFICIENT')
+  const basic = store.reply('low-credit', '안녕', false)
+  assert.ok(basic?.content)
+  assert.equal(basic?.charged, 0)
   assert.equal(store.data.wallet.usedToday, 0)
   assert.equal(store.data.active?.id, id)
   assert.equal(store.data.wallet.attendance + store.data.wallet.invitation, 0)
@@ -80,7 +84,7 @@ test('invitation rejects own and duplicate codes and rewards only after a comple
   await store.redeemInvitation('FRIEND123')
   assert.equal(store.data.wallet.invitation, 2000)
   await assert.rejects(store.redeemInvitation('FRIEND123'))
-  store.start(50); store.finish(60, 50); store.rewardFirstConnection(); store.rewardFirstConnection()
+  store.start(); store.finish(totals(60, 50)); store.rewardFirstConnection(); store.rewardFirstConnection()
   assert.equal(store.data.wallet.invitation, 3000)
 })
 test('reset clears only the mock account snapshots, preserves real credentials and does not resurrect history', () => {
@@ -124,9 +128,9 @@ test('local profile and logout persist without storing passwords or a production
 test('unavailable or invalid storage still permits an in-memory local connection', () => {
   const disk = storage(); disk.setItem(LOCAL_STORAGE_KEY, '{bad json')
   const store = new LocalBetaStore(disk, now)
-  assert.ok(store.start(50))
+  assert.ok(store.start())
   const memory = new LocalBetaStore(null, now)
-  memory.start(50); assert.ok(memory.reply('memory', '안녕').content)
+  memory.start(); assert.ok(memory.reply('memory', '안녕').content)
 })
 test('all legacy preferences and account caches use an isolated persistent storage view', () => {
   const disk = storage(), scoped = createLocalStorageScope(disk)
@@ -164,7 +168,7 @@ test('legacy fixed fixture records are replaced by the pattern history', () => {
 })
 test('switching record patterns keeps locally finished connections and the empty scenario stays empty', () => {
   const disk = storage(), store = new LocalBetaStore(disk, now)
-  store.start(50); store.finish(60, 50)
+  store.start(); store.finish(totals(60, 50))
   const finished = store.data.records[0]!.id
   store.setRecordPattern('none')
   assert.deepEqual(store.data.records.map(record => record.id), [finished])

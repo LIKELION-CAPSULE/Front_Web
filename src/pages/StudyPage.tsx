@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageNavigation } from '@/app/PageNavigation'
+import { connectionBackground } from '@/features/backend/adapters'
 import { useDemo } from '@/features/demo/demo-context'
 import { BREAK_SECONDS, sessionElapsed, sessionStudySeconds } from '@/features/demo/reducer'
 import { getStudyRoom } from '@/features/rooms/services/room-service'
@@ -92,7 +93,7 @@ export default function StudyPage() {
   const chatOpen = isStudyChatOpen(params, resting)
   const previousPhase = useRef(active?.phase)
   // The companion and my avatar keep independent models and canvases.
-  const live2dFigure = inSession ? backend.visuals?.character : null
+  const live2dFigure = inSession ? backend.visuals?.mate : null
   const live2dCharacterId = live2dFigure?.id ? String(live2dFigure.id) : null
   const live2d = backend.live2dStage
   const selfAvatar = useAvatarModel(inSession ? backend.visuals?.avatar : undefined, sessionId)
@@ -190,21 +191,21 @@ export default function StudyPage() {
     return () => document.removeEventListener('keydown', handleKey)
   }, [inSession, resting, focused?.id, selfFocused, selected, defaultFocus, setParams])
   const route = resolveStudyRoute({
-    sessionId, activeSessionId: active?.id, summarySessionId: backend.activeSummary?.sessionId,
+    sessionId, activeSessionId: active?.id, summarySessionId: backend.activeSummary?.connectionId,
     completedSessionIds: state.records.map(record => record.id), finishing,
   })
   if (route === 'report') return <Navigate to={`/reports/${sessionId}`} replace />
   if (route === 'finishing') return null
   if (route === 'resume' && backend.activeSummary) {
     return <main id="main-content" className="page-container grid min-h-dvh place-items-center">
-      <section><h1 className="type-page-title">다시 공부를 시작할까요?</h1><p className="mt-4 text-muted">{backend.activeSummary.roomName}에서 하던 공부를 이어가요.</p>
+      <section><h1 className="type-page-title">다시 공부를 시작할까요?</h1><p className="mt-4 text-muted">{backend.activeSummary.mateName}와 하던 공부를 이어가요.</p>
       {sessionError && <FeedbackMessage tone="error">{sessionError}</FeedbackMessage>}
       <Button className="mt-5" loading={resuming} onClick={async () => {
         if (resuming || !sessionId) return
         setResuming(true); setSessionError('')
         try { await backend.resumeSession(sessionId); setParams({}, { replace: true }) }
         catch (reason) {
-          if (reason instanceof ApiError && reason.code === 'SESSION_ENDED') navigate(`/reports/${sessionId}`, { replace: true })
+          if (reason instanceof ApiError && reason.code === 'CONNECTION_ENDED') navigate(`/reports/${sessionId}`, { replace: true })
           else setSessionError(reason instanceof Error ? reason.message : '공부를 이어가지 못했어요.')
         }
         finally { setResuming(false) }
@@ -373,7 +374,7 @@ export default function StudyPage() {
         {selfSpeaking && <span className="sr-only">{microphoneSpeaking ? '음성 입력 중' : '메시지 전송'}</span>}
         <StudySelfView stream={devices.camera.stream} showCamera={cameraVisible} avatar={state.profile.avatar}
           image={backend.visuals?.avatar?.profileImageUrl ?? backend.visuals?.me?.profileImageUrl ?? state.profile.profileImage}
-          roomBackground={backend.visuals?.room?.backgroundImageUrl} model={selfAvatar.stage} modelStatus={selfAvatar.status}
+          roomBackground={connectionBackground(backend.visuals)} model={selfAvatar.stage} modelStatus={selfAvatar.status}
           onRetryModel={selfAvatar.retry} small={small} expanded={selfFocused} />
         <button type="button" className="tile-interaction" aria-label={selfFocused ? '내 화면 확대 닫기' : '내 화면 크게 보기'}
           aria-expanded={selfFocused} onClick={() => setParams(resting ? toggleBreakSelfFocus(params, selected!.id) : toggleStudyFocus(params, SELF_STUDY_TILE_ID, defaultFocus))} />
@@ -421,7 +422,7 @@ export default function StudyPage() {
           />
         </div>
       </header>
-      {active.serverSession && backend.visuals?.character && !backend.visuals.character.modelJsonUrl && <DummyNotice>친구의 모델이 준비되기 전까지 기존 이미지를 표시해요. 공부와 대화는 서버에 연결돼요.</DummyNotice>}
+      {active.serverSession && backend.visuals?.mate && !backend.visuals.mate.modelJsonUrl && <DummyNotice>친구의 모델이 준비되기 전까지 기존 이미지를 표시해요. 공부와 대화는 서버에 연결돼요.</DummyNotice>}
       {!active.serverSession && <DummyNotice>체험용 친구와 공부 중이에요. 대화는 샘플 답변이며 기록은 이 브라우저에 저장돼요.</DummyNotice>}
       {upgradeOpen && <UpgradePanel now={now} onClose={() => setUpgradeOpen(false)} />}
       <div className="study-workspace" data-chat-open={chatOpen || undefined}>
@@ -435,7 +436,7 @@ export default function StudyPage() {
                 key={character.id}
                 character={character}
                 live2d={character.id === live2dCharacterId ? live2d : null}
-                background={backend.visuals?.room?.backgroundImageUrl}
+                background={connectionBackground(backend.visuals)}
                 variant={
                   hasFocus
                     ? character.id === focused?.id
@@ -487,7 +488,7 @@ export default function StudyPage() {
             <CharacterTile
               character={selected}
               live2d={selected.id === live2dCharacterId ? live2d : null}
-              background={backend.visuals?.room?.backgroundImageUrl}
+              background={connectionBackground(backend.visuals)}
               variant="rest"
               speaking={speakingCharacters.has(selected.id)}
               status={speakingCharacters.has(selected.id) ? '말하는 중' : '쉬는 중'}
@@ -507,7 +508,7 @@ export default function StudyPage() {
                       className={cn('break-thumbnail', speakingCharacters.has(character.id) && 'is-speaking')}
                       data-speaking={speakingCharacters.has(character.id) || undefined}
                     >
-                      {character.id === live2dCharacterId && live2d ? <StudyCharacterFigure character={character} stage={live2d} background={backend.visuals?.room?.backgroundImageUrl} /> : <img
+                      {character.id === live2dCharacterId && live2d ? <StudyCharacterFigure character={character} stage={live2d} background={connectionBackground(backend.visuals)} /> : <img
                         src={character.avatarUrl ?? getCharacterArtwork(character.artworkId ?? character.id).affection}
                         alt=""
                         className="size-full object-cover"

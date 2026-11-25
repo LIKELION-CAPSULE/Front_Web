@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { ActiveSession, Memory, StudyRecord, TierId } from '../demo/types'
-import type { ActiveSessionSummary, AffinityChange, AvatarItem, HomeResponse, LoginResponse, MeResponse, MessageResponse, StartResponse, ResumeResponse, TermVersion } from '@/shared/api/types'
+import type { ActiveConnectionSummary, AffinityChange, EndType, AvatarItem, HomeResponse, LoginResponse, MeResponse, MessageResponse, StartResponse, ResumeResponse, TermVersion } from '@/shared/api/types'
 import type { LoadingStage } from '@/shared/lib/loading-screen'
 import type { SessionModelStage } from '@/features/live2d/session-model'
 import type { BetaInvitation, BetaWallet } from '@/features/credits/beta-types'
@@ -39,7 +39,8 @@ export type BackendContextValue = {
   mateUnlocks?: Record<string, MateUnlocks>
   mateRelationStats?: Record<string, MateServerRelationStats>
   redeemInvitation: ((code: string) => Promise<void>) | null
-  activeSummary: ActiveSessionSummary | null
+  /** 8 · 11 `activeConnection`: a connection to continue (17), when not running on this screen. */
+  activeSummary: ActiveConnectionSummary | null
   avatars: AvatarItem[]
   terms: TermVersion[]
   visuals: StartResponse | ResumeResponse | null
@@ -59,8 +60,8 @@ export type BackendContextValue = {
   startSession: (roomId: string, characterId: string, minutes?: number, options?: { tier?: TierId; characterIds?: string[] }) => Promise<ActiveSession>
   connectMate: (mateId: string) => Promise<ActiveSession>
   resumeSession: (sessionId: string) => Promise<ActiveSession>
-  /** `acceptUnknownPresence`: the user confirmed ending although earlier presence could not be restored. */
-  finishSession: (options?: { acceptUnknownPresence?: boolean }) => Promise<StudyRecord>
+  /** API 22. `endType` defaults to `NORMAL` (`AUTO_AWAY` after 10 minutes away or idle, `MINOR_LIMIT` at the under-19 limit). */
+  finishSession: (options?: { acceptUnknownPresence?: boolean; endType?: EndType }) => Promise<StudyRecord>
   /** Clear only a connection the server has authoritatively reported as ended. Does not send /end again. */
   acknowledgeEndedSession: (sessionId: string, expectedUserId: number) => boolean
   sendMessage: (characterId: string, content: string, inputType?: 'TEXT' | 'QUICK') => Promise<MessageResponse>

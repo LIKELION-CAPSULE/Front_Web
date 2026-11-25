@@ -83,7 +83,7 @@ export default function PreparePage() {
     setStarting(true); setError('')
     let departing = false
     try {
-      if (backend.activeSummary?.sessionId) { navigate(`/study/${backend.activeSummary.sessionId}?resume=1`, { replace: true }); return }
+      if (backend.activeSummary?.connectionId) { navigate(`/study/${backend.activeSummary.connectionId}?resume=1`, { replace: true }); return }
       const nextScreen = loadStudyPage()
       const animation = departure.current?.play({
         nickname: state.profile.name, targetMinutes: goalMinutes,
@@ -100,10 +100,10 @@ export default function PreparePage() {
       departing = false
       if (!mounted.current) return
       departure.current?.reset()
-      if (reason instanceof ApiError && reason.code === 'SESSION_ALREADY_IN_PROGRESS' && typeof reason.detail.sessionId === 'number') {
+      if (reason instanceof ApiError && reason.code === 'CONNECTION_ALREADY_IN_PROGRESS' && typeof reason.detail.connectionId === 'number') {
         try {
           await backend.reload()
-          if (mounted.current) navigate(`/study/${reason.detail.sessionId}?resume=1`, { replace: true })
+          if (mounted.current) navigate(`/study/${reason.detail.connectionId}?resume=1`, { replace: true })
         } catch (reloadError) {
           if (mounted.current) setError(reloadError instanceof Error ? reloadError.message : '진행 중인 공부를 확인하지 못했어요.')
         }
