@@ -2,8 +2,10 @@ import { forwardRef, type Ref } from 'react'
 import { Link } from 'react-router'
 import { mateCallBackground, matePortrait } from '@/features/mates/artwork'
 import { ageRatingLabel, type AvailableMate } from '@/features/mates/catalog'
+import { AiCharacterBadge } from '@/shared/ui/AiCharacterBadge'
 import { useConnectMate } from '@/features/mates/use-connect-mate'
 import { AttendanceWidget } from '@/features/attendance/components/AttendanceWidget'
+import { ATTENDANCE_COPY } from '@/features/attendance/attendance-config'
 import { Button } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Icon } from '@/shared/ui/Icon'
@@ -18,24 +20,29 @@ export const HomeMateSection = forwardRef(function HomeMateSection(
   headingRef: Ref<HTMLHeadingElement>,
 ) {
   return (
-    <section className="home-mates" aria-labelledby="mates-heading">
-      <div className="home-section-heading">
-        <h2 ref={headingRef} tabIndex={-1} id="mates-heading" className="home-section-title">{HOME_COPY.matesTitle}</h2>
-        <Link to="/mates/me" className="home-more">
-          {HOME_COPY.more} <Icon name="chevron" size={16} />
-        </Link>
-      </div>
-      <div className="home-mate-grid">
-        {mates.length
-          ? mates.map((mate, index) => <MateShowcaseCard key={mate.id} mate={mate} tour={index === 0} />)
-          : <MateLoadFailedCard onRetry={onRetry} />}
-        {/* The row holds two mate slots beside the rewards; 「추가 예정」 fills the second until a mate takes it. */}
-        {mates.length < 2 && <UpcomingMateCard />}
-        <div className="home-attendance" data-tour="home-attendance">
-          <AttendanceWidget size="compact" visibleSlots={4} />
+    // Two sections side by side on wide screens (each column under its own title), stacked below that.
+    <div className="home-mates">
+      <section className="home-mates-column" aria-labelledby="mates-heading">
+        <div className="home-section-heading">
+          <h2 ref={headingRef} tabIndex={-1} id="mates-heading" className="home-section-title">{HOME_COPY.matesTitle}</h2>
         </div>
-      </div>
-    </section>
+        <div className="home-mate-grid">
+          {mates.length
+            ? mates.map((mate, index) => <MateShowcaseCard key={mate.id} mate={mate} tour={index === 0} />)
+            : <MateLoadFailedCard onRetry={onRetry} />}
+          {/* Two mate slots; 「추가 예정」 fills the second until a mate takes it. */}
+          {mates.length < 2 && <UpcomingMateCard />}
+        </div>
+      </section>
+      <section className="home-attendance-column" aria-labelledby="home-attendance-title">
+        <div className="home-section-heading">
+          <h2 id="home-attendance-title" className="home-section-title">{ATTENDANCE_COPY.title}</h2>
+        </div>
+        <div className="home-attendance" data-tour="home-attendance">
+          <AttendanceWidget size="compact" visibleSlots={4} headingId="home-attendance-title" />
+        </div>
+      </section>
+    </div>
   )
 })
 
@@ -49,13 +56,18 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
         <img className="home-mate-card-bg" src={mateCallBackground(mate.id).landscape} alt="" loading="lazy" decoding="async" draggable={false} />
         <img className="home-mate-card-figure" src={matePortrait(mate.id, mate.image)} alt="" loading="lazy" decoding="async" draggable={false} />
       </div>
+      {/* Age rating and the AI tag at the top left, the status at the top right: one row of chips over the art
+          (the name row keeps its layout). */}
+      <div className="home-mate-chips">
+        <span className="home-mate-badge home-mate-badge--rating" data-rating={mate.ageRating}>{ageRatingLabel(mate.ageRating)}</span>
+        <AiCharacterBadge tone="overlay" className="home-mate-ai" />
+      </div>
       <span className="home-mate-badge home-mate-badge--online" data-tour={tour ? 'mate-card-status' : undefined}>{HOME_COPY.available}</span>
       <div className="home-mate-card-copy">
         <div className="home-mate-card-name">
           <h3>{mate.name}</h3>
-          {mate.relationTag && <span className="home-mate-tag"><Icon name="heart" size={12} />{mate.relationTag}</span>}
-          {/* An age-rated mate (none at launch: 채린 and 서도현 are 전연령) shows it on the card, as on their page. */}
-          {mate.ageRating !== 'all' && <span className="mate-age-badge" data-rating={mate.ageRating}>{ageRatingLabel(mate.ageRating)}</span>}
+          {/* A study relationship (짝꿍형, 소꿉친구형): no heart or pink, nothing that reads as romance. */}
+          {mate.relationTag && <span className="home-mate-tag"><Icon name="book" size={12} />{mate.relationTag}</span>}
         </div>
         <p>{mate.tagline ?? mate.introduction}</p>
         {error && <FeedbackMessage tone="error" className="mt-2">{error}</FeedbackMessage>}

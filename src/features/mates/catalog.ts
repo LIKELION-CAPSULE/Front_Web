@@ -36,16 +36,19 @@ export function ageRatingLabel(rating: MateAgeRating | undefined): string {
  * world and keyword book of each persona live on the server; only display copy is kept here.
  */
 export const launchMates: readonly MateProfile[] = [{
+  // Persona 2026-11-25 (team template; name tag 강채린). 전연령 by user decision (the template says 15+). No romance:
+  // a classmate and after-school study partner.
   id: 'chaerin',
   name: '채린',
-  introduction: '시험기간에 같이 있는 귀여운 여고생',
+  introduction: '남들한텐 차갑지만 너한테만 따뜻한 갸루 짝꿍',
   description: '',
-  role: '당신은 채린의 같은 반 친구예요',
-  intro: '',
+  role: '함께 공부하는 학생',
+  intro: '모든 수업이 끝나고 교실에 남아서 자습을 하는 상황',
+  firstLine: '내가 어쩌다가 너랑 단둘이 공부를 하게 됐지… 야! 책이나 봐!',
+  farewellLine: '내일도 늦으면 딸기우유 쏘는 거다. …조심히 가.',
   tags: [],
   ageRating: 'all',
-  relationTag: '연애형',
-  tagline: '시간이 지나도, 변하지 않는 마음이 있어요.',
+  relationTag: '짝꿍형',
 }, {
   // Model bundle `seojin` (local-assets/seojin, src/assets/characters/seojin); the persona's name is 서도현.
   id: 'dohyun',

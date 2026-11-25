@@ -25,8 +25,9 @@ export const LOCAL_ROOM_ID = LOCAL_CHARACTER_ID
 /** @deprecated see LOCAL_ROOM_ID. */
 export const LOCAL_DOHYUN_ROOM_ID = LOCAL_DOHYUN_CHARACTER_ID
 export const LOCAL_STORAGE_KEY = 'capsule-local-beta:v1'
-export const LOCAL_REPLY = '좋아, 우리 조금만 더 집중해 보자!'
-const CHAERIN_CLOSING_LINE = '오늘도 같이 있어서 좋았어. 다음에도 여기서 만나자.'
+/** 채린's local reply and closing line: her persona lines (mate-lines.ts), as 서도현's are his. */
+export const LOCAL_REPLY = '…그거 나도 몰라. 같이 찾아보든가. 너 혼자 끙끙대는 거 보기 답답하니까.'
+const CHAERIN_CLOSING_LINE = '다 했네? …뭐, 오늘은 좀 봐줄게. 수고했어.'
 
 /**
  * The local mates, in the server's shape (mate id = character id, server name). `mateId` is the front-end catalog id.
@@ -34,7 +35,7 @@ const CHAERIN_CLOSING_LINE = '오늘도 같이 있어서 좋았어. 다음에도
  * Replies and closing lines are each mate's own (서도현's from his persona, mate-lines.ts), never mixed.
  */
 export const LOCAL_MATES = [
-  { characterId: LOCAL_CHARACTER_ID, name: '채린', mateId: 'chaerin', reply: LOCAL_REPLY, closingLine: CHAERIN_CLOSING_LINE, myRole: '당신은 채린의 같은 반 친구예요' },
+  { characterId: LOCAL_CHARACTER_ID, name: '채린', mateId: 'chaerin', reply: LOCAL_REPLY, closingLine: CHAERIN_CLOSING_LINE, myRole: '함께 공부하는 학생' },
   { characterId: LOCAL_DOHYUN_CHARACTER_ID, name: '서진', mateId: 'dohyun',
     reply: '잠깐 봐봐. …아, 이거네. 여기부터 다시 해.', closingLine: '다 했네. 오늘 좀 열심히 했다? 수고했어.', myRole: '어릴 때부터 함께 자란 소꿉친구이자 공부 메이트' },
 ] as const

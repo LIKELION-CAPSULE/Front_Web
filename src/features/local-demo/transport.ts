@@ -15,17 +15,18 @@ import type {
  * (`live2d_expressions.name`), mirroring the backend seed table (reactions.default.json v3). Lines are local copy.
  * Keys are API 18 types (`AWAY` · `RETURN` · `IDLE_TALK`; `PRESENT` has no reaction).
  */
+const line = (mateId: string, key: Parameters<typeof mateLine>[1], expression: string) => ({ expression, line: mateLine(mateId, key)! })
+/** 채린: her persona's lines (mate-lines.ts) on the closest model expressions. */
 const CHAERIN_REACTIONS: Record<string, { expression: string; line: string }> = {
-  AWAY: { expression: '삐짐', line: '어디 갔어? 금방 와.' },
-  RETURN: { expression: '웃음', line: '왔네! 다시 해 보자.' },
-  IDLE_TALK: { expression: '웃음', line: '조용하네, 뭐 해?' },
+  AWAY: line('chaerin', 'away', '삐짐'),
+  RETURN: line('chaerin', 'back', '웃음'),
+  IDLE_TALK: line('chaerin', 'quiet', '하품'),
 }
 /** 서도현: his persona's lines (mate-lines.ts) on the closest model expressions; never 채린's lines. */
-const dohyun = (key: Parameters<typeof mateLine>[1], expression: string) => ({ expression, line: mateLine('dohyun', key)! })
 const DOHYUN_REACTIONS: Record<string, { expression: string; line: string }> = {
-  AWAY: dohyun('away', '삐짐'),
-  RETURN: dohyun('back', '웃음'),
-  IDLE_TALK: dohyun('quiet', '집중'),
+  AWAY: line('dohyun', 'away', '삐짐'),
+  RETURN: line('dohyun', 'back', '웃음'),
+  IDLE_TALK: line('dohyun', 'quiet', '집중'),
 }
 const LOCAL_REACTIONS: Record<string, Record<string, { expression: string; line: string }>> = { chaerin: CHAERIN_REACTIONS, dohyun: DOHYUN_REACTIONS }
 const LOCAL_REPLY_EXPRESSIONS: Record<string, { name: string }> = { chaerin: { name: '웃음' }, dohyun: { name: '집중' } }

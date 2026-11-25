@@ -1,3 +1,4 @@
+import { AiCharacterBadge } from '@/shared/ui/AiCharacterBadge'
 import { AppPanel } from '@/shared/ui/AppPanel'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
@@ -294,7 +295,7 @@ export default function MyMatesPage() {
   )
   const caption = (
     <>
-      <p className="my-mates-caption-name">{mateName}</p>
+      <p className="my-mates-caption-name">{mateName}<AiCharacterBadge className="my-mates-ai-badge" /></p>
       {relation && <p className="my-mates-caption-stage">{affinityStageLabel(relation.stage, relation.stageName)}</p>}
       {firstMetAt && <p className="my-mates-caption-date">처음 만난 날 {formatFirstMetDate(firstMetAt)}</p>}
     </>

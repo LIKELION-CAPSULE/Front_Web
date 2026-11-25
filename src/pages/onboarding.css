@@ -42,6 +42,15 @@
     padding: 12px var(--onboarding-panel-gutter) 12px 0;
   }
   .onboarding-step-one > .avatar-picker { align-self: stretch; }
+  /*
+   * The panel's top stays put when the step changes: it is placed where a panel of the reserved height (the taller
+   * step, ~step 2) would be centred, and a step only grows or shrinks at the bottom. OnboardingPage raises
+   * `--onboarding-panel-reserve` if a step turns out taller (long text, large type).
+   */
+  .onboarding-step-one > .onboarding-panel {
+    align-self: start;
+    margin-top: max(0px, calc((max(600px, 100dvh - var(--site-header-height, 83px)) - 24px - var(--onboarding-panel-reserve, 620px)) / 2));
+  }
 
   /*
    * The panel: the login screen's right panel (login-variants.css `.login-variant-panel`, not shared as a component
@@ -97,7 +106,9 @@
 
   /* Step 2 */
   .onboarding-invite { width: 100%; }
-  .onboarding-invite-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -8px -8px 0; }
+  /* One line as tall as the step meter, so the meter sits exactly where step 1 has it; 「이전」 is centred on that line
+     and overflows it evenly into the panel's padding. */
+  .onboarding-invite-top { display: grid; grid-template-columns: auto auto; grid-template-rows: var(--text-caption--line-height); justify-content: space-between; align-items: center; gap: 12px; margin: 0 -8px; }
   .onboarding-invite-top .onboarding-steps { margin-right: 8px; }
   .onboarding-back { gap: 6px; color: var(--color-muted); }
   .onboarding-invite-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
@@ -136,7 +147,7 @@
       padding: 8px 0 40px;
     }
     .onboarding-step-one > .avatar-picker { justify-self: stretch; }
-    .onboarding-step-one > .onboarding-panel { width: min(460px, calc(100% - 40px)); padding: 30px 30px 32px; }
+    .onboarding-step-one > .onboarding-panel { width: min(460px, calc(100% - 40px)); margin-top: 0; padding: 30px 30px 32px; }
     .onboarding-step-one .avatar-picker[data-layout='arc'] { --arc-r: 420px; --arc-step: 15deg; --arc-bulge: 74px; --arc-size: 68px; --arc-w: 128px; }
     .onboarding-step-one .avatar-picker[data-layout='arc'] .avatar-picker-name { font-size: 28px; line-height: 36px; }
   }

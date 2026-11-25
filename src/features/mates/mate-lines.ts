@@ -2,8 +2,8 @@ import type { MateReactionState } from '../auth/login-backgrounds/desktop/deskto
 
 /**
  * Front-end lines a mate says on its own (preview bubbles, the home hero, the local mock's reactions). Each mate keeps
- * its own lines so one mate's voice never shows on another. 채린's are the login screen's table
- * (`DEFAULT_REACTION_LINES`); other mates list theirs here. A state a mate has no line for shows no bubble.
+ * its own lines so one mate's voice never shows on another. 채린 also keeps the login screen's table
+ * (`DEFAULT_REACTION_LINES`) for the login-only states. A state a mate has no line for shows no bubble.
  * Conversation lines come from the server persona; these are only the fixed ones.
  */
 export type MateLineKey =
@@ -38,7 +38,28 @@ const DOHYUN_LINES: Readonly<Record<MateLineKey, string>> = {
   cheer: '야, 너무 조급해하지 마. 너 원래 끝까지 하면 해내잖아.',
 }
 
-export const MATE_LINES: Readonly<Record<string, Readonly<Record<MateLineKey, string>>>> = { dohyun: DOHYUN_LINES }
+/**
+ * 채린 (persona 2026-11-25, short blunt 반말: 「~거든?」 「~잖아.」 「…뭐.」 「됐어.」 「착각하지 마.」 「책이나 봐!」).
+ * greet · returnAfterLong · quiet · praised · question · farewell are the persona's own lines; the rest are drafts in
+ * her voice awaiting the user's review (docs/MATE_MODEL_V2_CONTRACT.md).
+ */
+const CHAERIN_LINES: Readonly<Record<MateLineKey, string>> = {
+  greet: '…왔냐. 늦었잖아. 빨리 앉기나 해.',
+  returnAfterLong: '뭐야, 살아 있었네? …딱히 기다린 건 아니거든.',
+  quiet: '…야, 졸아? 모르는 거 있으면 그냥 물어봐. 안 잡아먹어.',
+  praised: '뭐래, 갑자기 왜 그래? …뭐 사줄 거 있으면 그냥 말해.',
+  question: '…그거 나도 몰라. 같이 찾아보든가. 너 혼자 끙끙대는 거 보기 답답하니까.',
+  farewell: '내일도 늦으면 딸기우유 쏘는 거다. …조심히 가.',
+  away: '어디 가? …빨리 와. 심심해서 그러는 거 아니거든?',
+  back: '왔네. 늦었잖아. …됐어, 책이나 봐!',
+  breakStart: '쉬어? …뭐, 잠깐만이다. 오는 길에 딸기우유나 사 와.',
+  breakEnd: '다 쉬었지? 이제 책이나 봐!',
+  goalDone: '다 했네? …뭐, 오늘은 좀 봐줄게. 수고했어.',
+  givingUp: '벌써 포기하게? 됐어, 조금만 더 해. 나도 할 거니까.',
+  cheer: '너 할 수 있잖아. …착각하지 마, 응원하는 거 아니거든?',
+}
+
+export const MATE_LINES: Readonly<Record<string, Readonly<Record<MateLineKey, string>>>> = { chaerin: CHAERIN_LINES, dohyun: DOHYUN_LINES }
 
 export function mateLine(mateId: string | undefined, key: MateLineKey): string | null {
   return (mateId && MATE_LINES[mateId]?.[key]) || null
@@ -48,11 +69,13 @@ export function mateLine(mateId: string | undefined, key: MateLineKey): string |
 const STATE_LINES: Partial<Record<MateReactionState, MateLineKey>> = { greet: 'greet', idleLong: 'quiet' }
 
 /**
- * The bubble line for a preview reaction: 채린 (and unknown mates) use the shared table (`sharedLine`, the login
- * screen's `getDefaultLineForState`), others their own lines.
+ * The bubble line for a preview reaction: a mate's own line for greet and the long-idle nudge. Otherwise 채린 (and
+ * unknown mates) use the shared table (`sharedLine`, the login screen's `getDefaultLineForState`, written for her);
+ * other mates show no bubble rather than her lines.
  */
 export function mateLineForState(mateId: string | undefined, state: MateReactionState, sharedLine: (state: MateReactionState) => string | null): string | null {
-  if (!mateId || mateId === 'chaerin' || !MATE_LINES[mateId]) return sharedLine(state)
   const key = STATE_LINES[state]
-  return key ? mateLine(mateId, key) : null
+  if (mateId && MATE_LINES[mateId] && key) return mateLine(mateId, key)
+  if (!mateId || mateId === 'chaerin' || !MATE_LINES[mateId]) return sharedLine(state)
+  return null
 }

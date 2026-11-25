@@ -1,3 +1,4 @@
+import { AiCharacterBadge } from '@/shared/ui/AiCharacterBadge'
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { LegalDocumentBody } from '@/features/auth/components/LegalDocumentBody'
@@ -151,6 +152,7 @@ function MobileNoticeScreen() {
                 draggable={false}
               />
             </div>
+            <AiCharacterBadge className="mobile-notice-ai" />
 
             <h1 id={headingId} className="mobile-notice-title">
               캡슐은 PC에서 만날 수 있어요

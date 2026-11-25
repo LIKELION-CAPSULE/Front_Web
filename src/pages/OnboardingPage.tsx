@@ -212,7 +212,22 @@ export default function OnboardingPage() {
   useLayoutEffect(() => {
     const node = panelInner.current
     if (!node || typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(([entry]) => setPanelHeight(Math.ceil(entry?.borderBoxSize?.[0]?.blockSize ?? node.offsetHeight)))
+    // The panel's top is anchored for the taller step (onboarding.css `--onboarding-panel-reserve`); a step that turns
+    // out taller than the reserve raises it once, so later step changes keep the top where it is.
+    let reserve = 0
+    const observer = new ResizeObserver(([entry]) => {
+      const height = Math.ceil(entry?.borderBoxSize?.[0]?.blockSize ?? node.offsetHeight)
+      setPanelHeight(height)
+      const panel = node.closest<HTMLElement>('.onboarding-panel')
+      if (!panel) return
+      const frame = panel.offsetHeight - (panel.querySelector<HTMLElement>('.onboarding-panel-clip')?.offsetHeight ?? 0)
+      const fallback = parseFloat(getComputedStyle(panel).getPropertyValue('--onboarding-panel-reserve')) || 620
+      const needed = height + frame
+      if (needed > Math.max(reserve, fallback)) {
+        reserve = needed
+        panel.parentElement?.style.setProperty('--onboarding-panel-reserve', `${needed}px`)
+      }
+    })
     observer.observe(node)
     return () => observer.disconnect()
   }, [])
@@ -551,10 +566,11 @@ export default function OnboardingPage() {
               </Button>
               <StepMeter step={2} total={totalSteps} />
             </div>
-            <MateHello key={helloText} text={helloText} />
             <h1 ref={headingMounted} data-step="2" id={`${fieldId}-invite-title`} tabIndex={-1} className="onboarding-title type-page-title">
               초대 코드
             </h1>
+            {/* Under the title, so the meter and the title stay where step 1 has them. */}
+            <MateHello key={helloText} text={helloText} />
             <div className="onboarding-benefit">
               <Icon name="gift" size={22} className="onboarding-benefit-icon" />
               <div>

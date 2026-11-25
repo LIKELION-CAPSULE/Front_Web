@@ -120,6 +120,8 @@
     align-items: center;
     gap: 48px;
   }
+  /* The header spans the window (no max width), 32px from each edge; the page content keeps `.page-container`. */
+  .page-container.site-header-inner { max-width: none; padding-inline: 32px; }
   .site-header-brand { justify-self: start; }
   .site-header-account { min-width: 0; justify-self: end; }
   .app-navigation {
@@ -1266,4 +1268,8 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+@media (max-width: 900px) {
+  .page-container.site-header-inner { padding-inline: 20px; }
 }

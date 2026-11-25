@@ -8,7 +8,7 @@ import type { AvatarItem } from '@/shared/api/types'
  * in the middle of the arc (vertical centre), largest, and the others shrink and fade towards the ends.
  *
  * - Kept from the old dial: the unbounded anchor and shortest-way rotation (the last → the first slides one step),
- *   slots entering / leaving at the ends of the arc, the arc as a thin line.
+ *   slots entering / leaving one step beyond the ends of the arc, the arc as a thin line.
  * - Choose with ↑ ↓ (and ← →, Home, End), the wheel (one step per notch), a vertical drag, or a click.
  * - Reduced motion: no sliding (positions change at once).
  * Placement is CSS (`--arc` per still; avatar-dial.css): top = centre + R·sin(arc·step), left = bulge − R·(1 − cos).
@@ -25,11 +25,12 @@ const CAPACITY = 7
 
 type Choice = AvatarItem & { id: number }
 
-function ArcOption({ avatar, index, offset, edge, checked, disabled, reduced, name, portrait, onChoose, onKey }: {
+function ArcOption({ avatar, index, offset, ends, checked, disabled, reduced, name, portrait, onChoose, onKey }: {
   avatar: Choice
   index: number
   offset: number
-  edge: number
+  /** One step beyond the outermost slots: where slots come in from and go out to. */
+  ends: readonly [number, number]
   checked: boolean
   disabled: boolean
   reduced: boolean
@@ -39,6 +40,7 @@ function ArcOption({ avatar, index, offset, edge, checked, disabled, reduced, na
   onKey: (event: KeyboardEvent<HTMLInputElement>, index: number) => void
 }) {
   const present = useIsPresent()
+  const clamp = (value: number) => Math.min(ends[1], Math.max(ends[0], value))
   return (
     <motion.label
       title={avatar.name}
@@ -46,13 +48,17 @@ function ArcOption({ avatar, index, offset, edge, checked, disabled, reduced, na
       data-checked={checked || undefined}
       aria-hidden={!present || undefined}
       inert={!present}
-      style={{ '--arc': offset, zIndex: checked ? 3 : 2 - Math.min(2, Math.abs(Math.round(offset))) } as CSSProperties}
+      // `--arc` belongs to motion alone: a style value here would paint the target before `enter` and make the slot jump.
+      style={{ zIndex: checked ? 3 : 2 - Math.min(2, Math.abs(Math.round(offset))) } as CSSProperties}
       initial={reduced ? false : 'enter'}
       animate={{ '--arc': offset, opacity: 1 }}
       exit="leave"
+      // `shift` (AnimatePresence `custom`, read by entering and leaving slots alike): how far the choice moved, signed.
+      // Every slot slides by −shift, so a new slot comes from `offset + shift` and a leaving one goes to `offset − shift`
+      // (its last offset): both on their own side of the arc, the way the others move.
       variants={{
-        enter: (travel: number) => ({ '--arc': Math.sign(travel || 1) * edge, opacity: 0 }),
-        leave: (travel: number) => ({ '--arc': -Math.sign(travel || 1) * edge, opacity: 0 }),
+        enter: (shift: number) => ({ '--arc': clamp(offset + (shift || 0)), opacity: 0 }),
+        leave: (shift: number) => ({ '--arc': clamp(offset - (shift || 0)), opacity: 0 }),
       }}
       transition={{ duration: reduced ? 0 : 0.46, ease: [0.22, 1, 0.36, 1] }}
     >
@@ -87,19 +93,20 @@ export function AvatarArcRail({ choices, selectedIndex, disabled, reduced, name,
   const count = choices.length
   // An unbounded position, so wrapping from the last avatar to the first slides one step.
   const [anchor, setAnchor] = useState(selectedIndex)
-  const [travel, setTravel] = useState(1)
+  /** The last move of the choice, signed (+ down the arc): how far every slot slides, and where slots enter and leave. */
+  const [shift, setShift] = useState(1)
   const center = anchor + shortestDistance(selectedIndex - wrap(anchor, count), count)
   const visible = Math.min(count, CAPACITY)
   const before = Math.floor((visible - 1) / 2)
   const slots = Array.from({ length: visible }, (_, index) => center - before + index)
-  const edge = before + 1.4
+  const ends = [-before - 1, visible - before] as const
   const root = useRef<HTMLDivElement>(null)
 
   function step(to: number, focus = false) {
     if (disabled || !count) return
     const target = wrap(to, count)
     const distance = shortestDistance(target - selectedIndex, count)
-    if (distance) setTravel(Math.sign(distance))
+    if (distance) setShift(distance)
     setAnchor(center + distance)
     onChoose(target, focus)
   }
@@ -183,7 +190,7 @@ export function AvatarArcRail({ choices, selectedIndex, disabled, reduced, name,
   return (
     <div ref={root} className="avatar-arc" data-draggable={(!disabled && count > 1) || undefined} {...drag}>
       <div className="avatar-arc-line" aria-hidden="true" />
-      <AnimatePresence initial={false} custom={travel}>
+      <AnimatePresence initial={false} custom={shift}>
         {slots.map((slot) => {
           const index = wrap(slot, count)
           const avatar = choices[index]!
@@ -193,7 +200,7 @@ export function AvatarArcRail({ choices, selectedIndex, disabled, reduced, name,
               avatar={avatar}
               index={index}
               offset={slot - center}
-              edge={edge}
+              ends={ends}
               checked={index === selectedIndex && slot === center}
               disabled={disabled}
               reduced={reduced}

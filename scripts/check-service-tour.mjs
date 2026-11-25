@@ -20,12 +20,16 @@
 // with 1 when any fails.
 /* global window, document, history, innerWidth, innerHeight, PopStateEvent, HTMLVideoElement -- page.evaluate / init script bodies run in the browser */
 
+import { startWatchdog, warmUpDevServer } from './lib/browser-check-guard.mjs'
+
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const [origin = 'http://127.0.0.1:5231', ...picked] = process.argv.slice(2)
+const watchdog = startWatchdog('check-service-tour', Number(process.env.CHECK_TIMEOUT_MS) || 15 * 60_000)
 const scenarios = picked.length ? picked : ['slow', 'wrong-step', 'empty', 'guest', 'account', 'leave', 'full']
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined, args: ['--headless=new'] })
 const failures = []
 const check = (name, ok, detail = '') => {
+  watchdog.step(name)
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`)
   if (!ok) failures.push(name)
 }
@@ -326,7 +330,10 @@ async function full({ reducedMotion = false } = {}) {
 }
 
 const run = { slow, 'wrong-step': wrongStep, empty, guest, account, leave, full: async () => { await full(); await full({ reducedMotion: true }) } }
+watchdog.step('warm-up')
+await warmUpDevServer(browser, origin, ['/', '/mates/me', '/records', '/mates/chaerin'])
 for (const name of scenarios) {
+  watchdog.step(name)
   console.log(`— ${name}`)
   try {
     await run[name]()
@@ -335,5 +342,6 @@ for (const name of scenarios) {
   }
 }
 await browser.close()
+watchdog.stop()
 console.log(failures.length ? `\n${failures.length} failed` : '\nall checks passed')
 process.exit(failures.length ? 1 : 0)
