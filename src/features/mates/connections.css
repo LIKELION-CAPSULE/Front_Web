@@ -501,6 +501,27 @@
 .connection-stage-up-close:hover { background: rgb(255 255 255 / 0.14); color: var(--color-ink); }
 .connection-stage-up-close:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 
+/* 「소리 켜기」: the browser held the mate's voice until a press (autoplay rule). */
+.connection-voice-unlock {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  cursor: pointer;
+}
+.connection-voice-intro {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-ink);
+  font-size: 13px;
+  line-height: 18px;
+}
+.connection-voice-unlock:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+
 /* Floating Bottom-Center Glass Dock */
 .connection-controls.glass-dock {
   position: absolute;

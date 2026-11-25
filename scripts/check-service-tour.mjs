@@ -132,7 +132,7 @@ const count = async (page) => {
 /** 채린's line (cursor label or reduced-motion line) against the controls around the target. */
 const lineOverControls = (page) => page.evaluate(() => {
   const line = document.querySelector('.service-tour-pointer .showcase-pointer-cursor-label, .service-tour-line')
-  if (!line) return null
+  if (!line || (line.checkVisibility && !line.checkVisibility({ opacityProperty: true, visibilityProperty: true }))) return null
   const box = line.getBoundingClientRect()
   if (!box.width) return null
   const hit = (other) => box.left < other.right - 1 && other.left < box.right - 1 && box.top < other.bottom - 1 && other.top < box.bottom - 1
@@ -145,6 +145,8 @@ const lineOverControls = (page) => page.evaluate(() => {
   // With the account modal open only its own controls show; the page behind is covered by it.
   const scope = document.querySelector('dialog[open]') ?? document
   const controls = [...scope.querySelectorAll('a[href], button, input, select, textarea, [role="tab"], [role="button"], [tabindex="0"]')]
+    // A disabled control (the records grid's future days) takes no input: covering it hides nothing the user can use.
+    .filter((element) => !element.matches(':disabled'))
     .filter((element) => !tour?.contains(element) && !(target && (target.contains(element) || element.contains(target))))
     .filter((element) => !element.checkVisibility || element.checkVisibility({ opacityProperty: true, visibilityProperty: true }))
   const covered = controls.filter((element) => {
@@ -401,6 +403,13 @@ async function full({ reducedMotion = false } = {}) {
     if (!seen.has(n)) {
       seen.add(n)
       await page.waitForTimeout(reducedMotion ? 700 : 2700)
+      // Reduced motion: the line stays hidden until the new screen's area is lit; measure it once it has its place.
+      if (reducedMotion) {
+        await page.waitForFunction(() => {
+          const line = document.querySelector('.service-tour-line')
+          return !line || line.checkVisibility({ visibilityProperty: true })
+        }, null, { timeout: 4000 }).catch(() => {})
+      }
       const line = await lineOverControls(page)
       if (line && (line.covered.length || line.overPanel || line.offScreen)) covered.push(`${n}: ${JSON.stringify(line)}`)
       if (n === total) break

@@ -51,6 +51,9 @@
   --color-info-bg: #172D39;
   --color-floating: #403E4B;
   --color-floating-hover: #5E5C69;
+  --color-dialog-roof: #3B2C82;
+  --color-dialog-roof-dither: #30246B;
+  --color-dialog-surface: #1E1A31;
   --color-records-grid-0: #272630;
   --color-records-grid-1: #312F40;
   --color-records-grid-2: #423F55;

@@ -1,8 +1,8 @@
 # CAPSULE 통합 디자인 기준
 
-버전 **1.0.19** · 기준일 **2026-11-05 (Asia/Seoul)** · 상태 **Front_Web 전체 화면에 코드 적용**
+버전 **1.0.20** · 기준일 **2026-11-26 (Asia/Seoul)** · 상태 **Front_Web 전체 화면에 코드 적용**
 
-후속 검수의 스타일 충돌 **7건과 개선안 6개를 반영**했다. [수정 결과와 검증](STYLE_CASCADE_AUDIT_2026-11-03.md#수정-결과와-검증)을 함께 확인한다. 사용자 요청으로 공부 화면 독은 디자인 시스템 적용 전의 유리 재질·색·원형 버튼을 유지하는 명시적 예외다. 또 금색·주황을 쓰지 않는 원칙에도 명시적 예외가 하나 있다(2026-11-25 사용자 결정): 홈 출석 보상 위젯(`src/features/attendance/`, 홈에서는 `src/features/home/components/HomeMateSection.tsx`가 표시)의 보상 강조에 한정해 금색을 쓴다. 대상은 `attendance.css`의 `.att-sparkle`·`.att-slot-ring`·`.att-gold-*`(마일스톤 배지 글자)·`.att-slot[data-milestone] .att-slot-capsule-float img`(특별 보상일 캡슐의 금빛 그림자)·`.att-reward-flight`(+N 크레딧), `AttendanceEffects.tsx`의 `SPARK_COLORS`·`CONFETTI_COLORS` 금색 값, 그리고 `check_coin.webp`·`milestone_badge.webp` 그림이다. 다른 화면에서는 금색·주황을 쓰지 않는다.
+후속 검수의 스타일 충돌 **7건과 개선안 6개를 반영**했다. [수정 결과와 검증](STYLE_CASCADE_AUDIT_2026-11-03.md#수정-결과와-검증)을 함께 확인한다. 사용자 요청으로 공부 화면 독은 디자인 시스템 적용 전의 유리 재질·색·원형 버튼을 유지하는 명시적 예외다. 또 금색·주황을 쓰지 않는 원칙에는 명시적 예외가 두 개 있다. **예외 1**(2026-11-25 사용자 결정): 홈 출석 보상 위젯(`src/features/attendance/`, 홈에서는 `src/features/home/components/HomeMateSection.tsx`가 표시)의 보상 강조에 한정해 금색을 쓴다. 대상은 `attendance.css`의 `.att-sparkle`·`.att-slot-ring`·`.att-gold-*`(마일스톤 배지 글자)·`.att-slot[data-milestone] .att-slot-capsule-float img`(특별 보상일 캡슐의 금빛 그림자)·`.att-reward-flight`(+N 크레딧), `AttendanceEffects.tsx`의 `SPARK_COLORS`·`CONFETTI_COLORS` 금색 값, 그리고 `check_coin.webp`·`milestone_badge.webp` 그림이다. 다른 화면에서는 금색·주황을 쓰지 않는다. **예외 2**(2026-11-26 사용자 결정): 크레딧 표시. 크레딧 아이콘·「남은 크레딧 N」 칩·크레딧 부족 안내의 픽셀 동전(`src/shared/ui/pixel/pixel-art.ts`의 `coin`, `warning` 계열 `#F4B95F`·`#352A18`과 동전 음영 `#8A6430`·`#FFE3B0`)에 금색·주황을 쓴다. 그 밖의 장식에는 계속 쓰지 않는다. 경고 상태색(`warning`)은 의미가 있을 때 아이콘과 함께 쓰는 기존 규칙을 따른다. 또 **계단형 픽셀 모서리**는 모달·알림 전용 장식으로 허용한다(2026-11-26, [4.1 모달 픽셀 프레임](#모달-픽셀-프레임-2026-11-26)).
 
 이 문서는 Front_Web의 컬러와 타이포그래피를 결정하는 기준이다. Landing_Page도 적용 대상(2026-11-24 사용자 결정). 참고 이미지의 레이아웃·외곽선·안내 문구·기능 정책을 그대로 옮기지는 않는다.
 
@@ -140,7 +140,7 @@ CSS 이름은 `--color-<이름>`, Figma 이름은 `color/<이름>`으로 대응�
 | 페이지 | `canvas` | 섹션 간격 40px |
 | 큰 정보 그룹 | `panel` 또는 바탕 없음 | 같은 제목·정렬, 내부 간격 24px |
 | 누를 수 있는 카드 | `surface` | 실행 가능한 제목/아이콘·호버·포커스 |
-| 모달·선택창 | `surface-raised` | 오버레이 + `0 16px 48px #00000066` 그림자 |
+| 모달·선택창 | 픽셀 프레임: `dialog-surface` → `panel` 그라데이션, 머리 띠 `dialog-roof`·`dialog-roof-dither` | 오버레이 + 계단형 픽셀 모서리(clip-path라 그림자 없음). 아래 「모달 픽셀 프레임」 |
 | 툴팁·팝오버·프로필/도구 메뉴 | `floating` | 공통 FloatingSurface의 popover-shadow. 기본 외곽선 없음 |
 | 일반 입력창 | `surface` | 라벨·안쪽 여백·포커스, 입력 예외는 1px 선 |
 | 일반 보조 버튼 | `control` | 버튼 크기·일관된 상태 변화 |
@@ -148,7 +148,20 @@ CSS 이름은 `--color-<이름>`, Figma 이름은 `color/<이름>`으로 대응�
 | 이미지 위 짧은 대사 | 기본 `#191823F2`, 대체 `#191823` | 배경 이미지와 합성한 실제 대비 확인 |
 | 공부 화면 독 | 적용 전의 반투명 그라데이션·밝은 원형 버튼·분홍 종료 버튼 | 전용 legacyStudyDock 재질. 24px blur·140% 채도 유지 |
 
-카드를 구분하려고 안쪽 1px 하이라이트·상시 링·얇은 그림자 띠를 두르지 않는다. 필요한 내부 구분선은 유지한다. 기본 간격은 4·8·12·16·24·32·40·48px, 모서리는 컨트롤 12px·카드 20px·모달 24px를 유지한다. 이 문서가 새로운 페이지 레이아웃이나 애니메이션을 정의하지는 않는다.
+#### 모달 픽셀 프레임 · 2026-11-26
+
+사용자 결정으로 모든 모달·안내 팝업·큰 창 머리를 시안 B2 「픽셀 프레임」으로 통일했다. 공용 `Dialog`(`src/shared/ui/Dialog.tsx`)가 기본으로 그리며 재질·동작은 `src/shared/ui/pixel/pixel-frame.css`, 픽셀 그림은 `pixel-art.ts`에 둔다.
+
+- **모양**: 4px 단위 3계단(16·8·4px) 픽셀 모서리를 clip-path로 자른다. 외곽선·둥근 모서리는 쓰지 않는다. 계단형 모서리는 모달·알림 전용 장식이며 카드·버튼에는 쓰지 않는다. clip-path가 그림자를 자르므로 모달은 그림자 없이 오버레이로 구분한다.
+- **머리 띠**: 위 56px. `dialog-roof`(#3B2C82) 14px → `dialog-roof-dither`(#30246B) 14px → 2px 체커 디더링 50%·25%·12.5%로 본문(`dialog-surface` #1E1A31 → `panel`)에 스며든다. 가운데에 로고 캡슐을 20×10 픽셀로 다시 그린 8비트 캡슐을 둔다. 본문만 스크롤하므로 긴 약관에서도 머리 띠는 고정이다.
+- **제목**: 머리 띠 아래 한 줄에 `[픽셀 아이콘] 제목 [닫기]`. 아이콘은 선택 prop `tone`: `danger`(대화 초기화·답장 신고), `info`(카메라 사용 안내), `celebrate`(세계관 상세), `credit`(크레딧 금색, 예외 2). 없으면 제목만 둔다.
+- **픽셀 눈**: 내 메이트 PixelSnow의 점·눈송이가 머리 띠에서 본문 위로 떨어진다. 대화상자 높이의 위 62%에 깔고, 머리 띠 아래부터 마스크로 45% → 0으로 흐려져 본문 중간쯤에서 사라진다. 글자 뒤 레이어(z-index −1)이며 transform만 움직인다. `celebrate`는 눈을 더 많이 내리고 캡슐 옆 픽셀 반짝임을 몇 번 깜빡인다.
+- **동작**: 프레임이 위에서 아래로 5단계(steps)로 차오르고, 제목·본문이 4단계, 캡슐이 3단계로 나타난다. 닫을 때는 4단계로 8px 내려가며 사라진다(`display`·`overlay` allow-discrete). 모션 감소에서는 즉시 표시·즉시 닫힘, 눈은 제자리에 멈춘다.
+- **자체 배치 창**(`showHeader={false}`, 계정 설정): 같은 계단 모서리와 위 20px 얇은 머리 띠(디더링 + 캡슐)만 맞춘다. 눈은 내리지 않는다.
+- **작은 크기**: 토스트(`NotificationStack`)·크레딧 부족 안내·알림 목록은 1단계(알림 목록은 2단계) 계단 모서리와 위쪽 2px `dialog-roof` 줄 + 2px 체커 한 줄, 왼쪽 픽셀 아이콘(성공 체크·정보·경고·오류)으로 줄였다. 리뷰 `dialog-design-toast`에서 세 후보(위쪽 줄·왼쪽 세로 띠·아이콘 밤하늘 타일)를 비교해 위쪽 줄을 골랐다.
+- **토큰**: 시안 전용 HEX였던 `#3B2C82`·`#30246B`·`#1E1A31`을 `dialog-roof`·`dialog-roof-dither`·`dialog-surface`로 올렸다([DESIGN_TOKENS.json](DESIGN_TOKENS.json) 1.0.20, 대비는 8장). 픽셀 그림 팔레트(로고 캡슐, 상태 아이콘, 눈, 크레딧 동전)는 일러스트 색이며 상태 아이콘은 상태 토큰과 같은 값을 쓴다.
+
+카드를 구분하려고 안쪽 1px 하이라이트·상시 링·얇은 그림자 띠를 두르지 않는다. 필요한 내부 구분선은 유지한다. 기본 간격은 4·8·12·16·24·32·40·48px, 모서리는 컨트롤 12px·카드 20px를 유지한다. 모달은 위 픽셀 프레임의 계단형 모서리를 쓴다. 이 문서가 새로운 페이지 레이아웃이나 애니메이션을 정의하지는 않는다.
 
 공부 화면의 `채린 · 공부 중` 같은 상태 라벨은 해당 사진 프레임과 같은 모서리 값을 공유한다. 기존 사진 프레임을 기준으로 기본·확대는 16px, 공부 확대 화면의 작은 썸네일은 12px, 휴식 썸네일은 10px를 유지하며 `--study-tile-radius`로 프레임과 라벨을 함께 제어한다.
 
@@ -282,7 +295,7 @@ Hahmlet은 룸의 분위기를 소개하는 제목과 한 영역의 대표 문�
 
 홈 배너의 인사 말풍선은 `home-greeting`을 사용한다. Pretendard 16/24·500, 640px 미만에서는 14/22·500으로 표시하고 현재의 짧은 인사는 한 줄로 유지한다. 대표 대사용 `story-quote`를 적용하지 않는다. 문구 추가 시 320px에서도 줄바꿈·잘림 없이 들어가는 길이로 작성한다.
 
-목표 기본 스택은 `Pretendard, Apple SD Gothic Neo, sans-serif`, 포인트 스택은 `Hahmlet, Pretendard, serif`다. Hahmlet은 공식 Google Fonts 가변 TTF를 수정 없이 자체 호스팅한다. [폰트 배포 기록](../src/assets/brand/README.md)과 [OFL 원문 고지](../public/licenses/Hahmlet-OFL.txt)를 포함하며, 500·700 굵기를 사용한다. `font-display: swap`과 대체 폰트에서도 버튼·제목·내보내기 레이아웃이 유지되어야 한다.
+목표 기본 스택은 `Pretendard, Apple SD Gothic Neo, sans-serif`, 포인트 스택은 `Hahmlet, Pretendard, serif`다. Hahmlet은 공식 Google Fonts 가변 TTF를 글리프·글자 범위 변경 없이 WOFF2로 압축만 해 자체 호스팅한다. [폰트 배포 기록](../src/assets/brand/README.md)과 [OFL 원문 고지](../public/licenses/Hahmlet-OFL.txt)를 포함하며, 500·700 굵기를 사용한다. `font-display: swap`과 대체 폰트에서도 버튼·제목·내보내기 레이아웃이 유지되어야 한다.
 
 코드 이름은 `--font-sans`, `--font-story`를 사용하고, 숫자 계열은 `--font-sans`를 공유한다. JSON의 `font.numeric`은 다른 폰트 파일이 아니라 숫자 기능 설정이다. Figma에서도 같은 두 서체 계열을 사용한다.
 
@@ -417,6 +430,10 @@ AnimatedClock은 Pretendard의 숫자 폭을 고정하고, 숫자 셀은 `1ch` �
 | muted / panel | 10.71:1 | 보조 설명 통과 |
 | subtle / surface | 5.90:1 | 캡션·placeholder 통과 |
 | text-accent / panel | 9.68:1 | 링크·선택 글자 통과 |
+| ink / dialog-surface | 16.16:1 | 모달 제목·본문 통과 |
+| muted / dialog-surface | 10.28:1 | 모달 보조 설명 통과 |
+| subtle / dialog-surface | 6.77:1 | 모달 캡션 통과 |
+| ink / dialog-roof-dither | 12.67:1 | 머리 띠 위 글자(계정 설정 닫기 등) 통과 |
 | 순백 / primary | 4.68:1 | 기본 버튼 통과. 순백 유지 |
 | 순백 / primary-hover | 7.23:1 | 호버 버튼 통과 |
 | 순백 / primary-active | 9.74:1 | 누름 버튼 통과 |
@@ -527,6 +544,8 @@ AnimatedClock은 Pretendard의 숫자 폭을 고정하고, 숫자 셀은 `1ch` �
 | 2026-11-05 | 1.0.17 | 공부 상태 라벨의 모서리를 사진 프레임과 통일. 목표 도달 시 자동 휴식 제거, 사용자 조작으로만 휴식 시작·초과 공부 시간 집계 |
 | 2026-11-05 | 1.0.18 | 공부 확대 화면 우측 하단 썸네일을 최대 180×120px로 확대, 대사와의 간격 및 좁은 화면 대응 유지 |
 | 2026-11-05 | 1.0.19 | 배포 HTML에서 CSS 계층 순서를 선등록. 공통 아이콘 청크가 먼저 로드돼 홈·룸 상세의 가운데 정렬/여백과 버튼 배경이 초기화되는 오류 수정 |
+| 2026-11-26 | 1.0.20 | 모든 모달·안내 팝업·큰 창 머리를 픽셀 프레임(시안 B2)으로 통일: 계단형 픽셀 모서리(모달·알림 전용), 디더링 머리 띠·8비트 캡슐, 본문 중간에서 사라지는 픽셀 눈, 제목 앞 픽셀 아이콘(`tone`), 토스트·크레딧 부족·알림 목록은 작은 픽셀 프레임. 토큰 `dialog-roof`·`dialog-roof-dither`·`dialog-surface` 추가. 금색 예외 2(크레딧 표시) |
+| 2026-11-26 | 1.0.21 | 내 기록 잔디의 데이터 진하기 토큰 `records-grid-0`~`4`(옅은 보라 계열, 보라 예외) 추가. 가장 진한 칸도 ink 글자 5.25:1, 고른 날은 밝은 외곽선 |
 
 ## 12. 코드 적용 기록 · 2026-11-03
 

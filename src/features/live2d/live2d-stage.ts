@@ -142,6 +142,7 @@ export class Live2DStage {
   private lookOverride: { x: number; y: number; headScale: number; eyeScale: number; tiltDeg: number } | null = null
   private lookAnim = { extraEyeX: 0, extraEyeY: 0, tiltDeg: 0 }
   private expression: string | null = null
+  private mouthSource: (() => number | null) | null = null
   private blink: BlinkState = createBlinkState(performance.now())
   private readonly modelJsonUrl: string
   private readonly layout: Live2DLayout
@@ -231,14 +232,19 @@ export class Live2DStage {
     let eyeBallXIndex = -1
     let eyeBallYIndex = -1
     let angleZIndex = -1
+    let mouthIndex = -1
     for (let index = 0; index < core.getParameterCount(); index++) {
       const id = core.getParameterId(index).getString().s
       if (ids.includes(id)) eyes.push(index)
       else if (id === 'ParamEyeBallX') eyeBallXIndex = index
       else if (id === 'ParamEyeBallY') eyeBallYIndex = index
       else if (id === 'ParamAngleZ') angleZIndex = index
+      else if (id === 'ParamMouthOpenY') mouthIndex = index
     }
     model.internalModel.on('beforeModelUpdate', () => {
+      // A voice playing opens the mouth by its level; after motions and expressions, so it wins over a closed mouth.
+      const level = mouthIndex >= 0 ? this.mouthSource?.() : null
+      if (typeof level === 'number') core.setParameterValueByIndex(mouthIndex, Math.max(core.getParameterValueByIndex(mouthIndex), level))
       if (eyes.length) {
         const step = stepBlink(this.blink, performance.now())
         this.blink = step.state
@@ -367,6 +373,11 @@ export class Live2DStage {
   }
 
   /** Breaks only: the face follows the cursor. Turning it off eases the face back to the front. */
+  /** The mouth follows a voice (`level` 0–1, null while none plays); read once per model update. */
+  setMouthSource(source: (() => number | null) | null) {
+    this.mouthSource = source
+  }
+
   setTracking(enabled: boolean) {
     if (this.tracking === enabled) return
     this.tracking = enabled

@@ -2,6 +2,9 @@ import { useId, useLayoutEffect, useRef } from 'react'
 import type { MouseEvent, PointerEvent, ReactNode } from 'react'
 import { cn } from '@/shared/lib/cn'
 import { Icon } from './Icon'
+import { PixelRoofStrip, PixelSnowfall, PixelToneIcon, type PixelTone } from './pixel/PixelFrame'
+
+export type DialogTone = PixelTone
 
 function isBackdrop(event: MouseEvent<HTMLDialogElement> | PointerEvent<HTMLDialogElement>) {
   if (event.target !== event.currentTarget) return false
@@ -23,6 +26,7 @@ export function Dialog({
   titleAlign = 'start',
   dismissible = true,
   onOpen,
+  tone,
 }: {
   open: boolean
   onClose: () => void
@@ -37,6 +41,11 @@ export function Dialog({
   titleAlign?: 'start' | 'center'
   dismissible?: boolean
   onOpen?: (dialog: HTMLDialogElement) => void | (() => void)
+  /**
+   * Optional pixel icon in front of the title (same line): danger, info, celebrate (also denser snow and sparkles on the
+   * roof), credit (credit gold). Without a tone the header shows the title alone.
+   */
+  tone?: DialogTone
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const startedOnBackdrop = useRef(false)
@@ -112,26 +121,38 @@ export function Dialog({
         startedOnBackdrop.current = false
         if (shouldDismiss) dismiss()
       }}
+      data-frame={showHeader ? 'header' : 'custom'}
+      data-tone={tone}
       className={cn(
-        'app-dialog m-auto max-h-[90dvh] w-[calc(100%_-_32px)] max-w-lg overflow-y-auto bg-surface-raised text-ink',
-        presentation === 'modal' ? 'rounded-3xl p-6 sm:p-8' : presentation === 'sheet' ? 'rounded-t-card p-panel-compact' : 'rounded-card p-content-compact',
+        // Pixel frame (design B2): surface, stepped corners, roof, motion in src/shared/ui/pixel/pixel-frame.css.
+        'app-dialog m-auto max-h-[90dvh] w-[calc(100%_-_32px)] max-w-lg text-ink',
+        // With the header the dialog owns its layout (roof, header, scrolling body); without it the content does.
+        showHeader ? 'p-0' : cn('overflow-y-auto', presentation === 'modal' ? 'p-6 sm:p-8' : presentation === 'sheet' ? 'p-panel-compact' : 'p-content-compact'),
         className,
       )}
     >
-      {showHeader ? <div className={cn('relative mb-5 flex items-start gap-4', titleAlign === 'center' ? 'justify-center' : 'justify-between')}>
-        <h2 id={titleId} className={cn(presentation === 'modal' ? 'type-dialog-title' : 'type-card-title', titleAlign === 'center' && 'w-full text-center', titleAlign === 'center' && showCloseButton && 'px-12')}>
-          {title}
-        </h2>
-        {showCloseButton && dismissible && <button
-          type="button"
-          onClick={dismiss}
-          aria-label={closeLabel}
-          className={cn('-mt-1 flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-subtle transition-colors hover:bg-control-hover', titleAlign === 'center' && 'absolute right-0')}
-        >
-          <Icon name="close" size={20} />
-        </button>}
-      </div> : <h2 id={titleId} className="sr-only">{title}</h2>}
-      {children}
+      {showHeader ? <>
+        <PixelSnowfall celebrate={tone === 'celebrate'} />
+        <div className={cn('app-dialog-head', titleAlign === 'center' && 'justify-center')}>
+          {tone && <PixelToneIcon tone={tone} />}
+          <h2 id={titleId} className={cn(presentation === 'modal' ? 'type-dialog-title' : 'type-card-title', titleAlign === 'center' && 'text-center', titleAlign === 'center' && showCloseButton && 'px-12')}>
+            {title}
+          </h2>
+          {showCloseButton && dismissible && <button
+            type="button"
+            onClick={dismiss}
+            aria-label={closeLabel}
+            className={cn('app-dialog-close flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-subtle transition-colors hover:bg-control-hover', titleAlign === 'center' && 'absolute right-[var(--px-pad)]')}
+          >
+            <Icon name="close" size={20} />
+          </button>}
+        </div>
+        <div className="app-dialog-body">{children}</div>
+      </> : <>
+        <h2 id={titleId} className="sr-only">{title}</h2>
+        {presentation === 'modal' && <PixelRoofStrip />}
+        {children}
+      </>}
     </dialog>
   )
 }

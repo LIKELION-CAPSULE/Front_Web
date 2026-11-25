@@ -84,22 +84,9 @@
   .segmented-option:active {
     transform: scale(0.97);
   }
-  .app-dialog[open] {
-    animation: dialog-enter 0.22s ease-out;
-  }
   .form-input:focus-visible {
     outline: 2px solid var(--color-focus-ring);
     outline-offset: 4px;
-  }
-}
-@keyframes dialog-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 @keyframes skeleton-sweep {
@@ -108,7 +95,6 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .app-dialog[open],
   .skeleton-line::after {
     animation: none;
   }

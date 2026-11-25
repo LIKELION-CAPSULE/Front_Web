@@ -1,0 +1,186 @@
+/*
+ * Pixel frame of every modal (design B2 「픽셀 프레임」, user decision 2026-11-26; docs/DESIGN_SYSTEM.md 4.2).
+ * - Shape: stepped pixel corners (4px unit, 16 / 8 / 4px) cut with clip-path. No outline, no rounded radius.
+ * - Roof: the top 56px is the night (`dialog-roof` → `dialog-roof-dither`) dithered into the body (2px checker at
+ *   50 / 25 / 12.5%), with the 8-bit capsule in the middle. Pure background layers: painted once.
+ * - Snow: a few pixel flakes fall from the roof over the body behind the text and fade out around the middle (mask).
+ * - Motion: stepped. The frame fills downward in 5 steps (registered `--px-reveal` in the clip polygon), the text in
+ *   4, the capsule drops in 3. Leaving: 4 steps down and out. Reduced motion: shown at once, the snow stands still.
+ * Only transform / opacity move continuously; the clip changes 5 times per opening.
+ */
+@property --px-reveal {
+  syntax: '<length-percentage>';
+  inherits: false;
+  initial-value: 100%;
+}
+
+@layer components {
+  .app-dialog {
+    --px-roof-h: 56px;
+    --px-pad: 24px;
+    --px-night: var(--color-dialog-roof-dither);
+    --px-dither-50: conic-gradient(from 90deg at 2px 2px, var(--px-night) 0 25%, transparent 0 50%, var(--px-night) 0 75%, transparent 0);
+    --px-dither-25: conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--px-night) 0 75%, transparent 0);
+    clip-path: polygon(
+      0 16px, 4px 16px, 4px 8px, 8px 8px, 8px 4px, 16px 4px, 16px 0,
+      calc(100% - 16px) 0, calc(100% - 16px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 16px, 100% 16px,
+      100% calc(var(--px-reveal) - 16px), calc(100% - 4px) calc(var(--px-reveal) - 16px), calc(100% - 4px) calc(var(--px-reveal) - 8px), calc(100% - 8px) calc(var(--px-reveal) - 8px), calc(100% - 8px) calc(var(--px-reveal) - 4px), calc(100% - 16px) calc(var(--px-reveal) - 4px), calc(100% - 16px) var(--px-reveal),
+      16px var(--px-reveal), 16px calc(var(--px-reveal) - 4px), 8px calc(var(--px-reveal) - 4px), 8px calc(var(--px-reveal) - 8px), 4px calc(var(--px-reveal) - 8px), 4px calc(var(--px-reveal) - 16px), 0 calc(var(--px-reveal) - 16px)
+    );
+    border-radius: 0;
+    /* The clip cuts any outer shadow; the dark overlay behind separates the frame instead. */
+    box-shadow: none;
+    background: linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
+    transition:
+      opacity 200ms steps(4, jump-end),
+      transform 200ms steps(4, jump-end),
+      overlay 200ms allow-discrete,
+      display 200ms allow-discrete;
+  }
+  /* Roof: background layers of the dialog itself (they never scroll: with a header the body is the scroller). */
+  .app-dialog[data-frame='header'] {
+    background:
+      linear-gradient(var(--color-dialog-roof) 0 14px, var(--px-night) 14px 28px, transparent 28px) 0 0 / 100% 28px no-repeat,
+      var(--px-dither-50) 0 28px / 4px 4px repeat-x,
+      var(--px-dither-50) 0 32px / 4px 4px repeat-x,
+      var(--px-dither-25) 0 36px / 4px 4px repeat-x,
+      var(--px-dither-25) 2px 40px / 4px 4px repeat-x,
+      var(--px-dither-25) 0 44px / 8px 4px repeat-x,
+      var(--px-dither-25) 4px 48px / 8px 4px repeat-x,
+      linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
+  }
+  /* Dialogs that draw their own layout (계정 설정): a thin roof strip over the top edge, the capsule in its middle. */
+  .px-roof-strip {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 20px;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--color-dialog-roof) 0 4px, var(--px-night) 4px 8px, transparent 8px) 0 0 / 100% 8px no-repeat,
+      var(--px-dither-50) 0 8px / 4px 4px repeat-x,
+      var(--px-dither-25) 0 12px / 4px 4px repeat-x,
+      var(--px-dither-25) 0 16px / 8px 4px repeat-x;
+  }
+  .px-roof-strip > .px-image { position: absolute; top: 0; left: 50%; margin-left: -20px; }
+  .app-dialog[open] .px-roof-strip > .px-image { animation: px-drop 240ms steps(3, jump-end) 180ms backwards; }
+  @media (min-width: 640px) {
+    .app-dialog { --px-pad: 32px; }
+  }
+  .app-dialog:not([open]) {
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+  }
+  .app-dialog::backdrop {
+    transition: opacity 200ms ease-in, overlay 200ms allow-discrete, display 200ms allow-discrete;
+  }
+  .app-dialog:not([open])::backdrop {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .app-dialog[open] {
+    animation: px-reveal 300ms steps(5, jump-start) backwards;
+  }
+  .app-dialog[open]::backdrop {
+    animation: px-fade 220ms ease-out;
+  }
+
+  /* Dialog-owned header: the frame does not scroll, the body does (the roof stays over long text). */
+  .app-dialog[data-frame='header'][open] {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .app-dialog-head {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 12px;
+    padding: calc(var(--px-roof-h) + 14px) var(--px-pad) 0;
+    margin-bottom: 16px;
+  }
+  .app-dialog-head > h2 { flex: 1 1 auto; min-width: 0; }
+  .app-dialog-head > .app-dialog-close { margin: -6px -10px -6px 0; }
+  .app-dialog-body {
+    position: relative;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* Native focus scrolling must leave the outer focus ring inside the scroll viewport. */
+    scroll-padding: 8px;
+    padding: 0 var(--px-pad) var(--px-pad);
+  }
+  .app-dialog[open] :is(.app-dialog-head, .app-dialog-body) {
+    animation: px-fade 240ms steps(4, jump-end) 160ms backwards;
+  }
+
+  .px-image {
+    display: block;
+    flex: none;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    image-rendering: pixelated;
+  }
+  .app-dialog[open] .px-tone-icon { animation: px-drop 210ms steps(3, jump-end) 200ms backwards; }
+
+  /* Snow: under the text, top ~60% of the dialog, fading out below the roof. */
+  .px-snow {
+    position: absolute;
+    z-index: -1;
+    inset: 0 0 auto;
+    height: 62%;
+    overflow: hidden;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(var(--px-roof-h) - 6px), #0008 calc(var(--px-roof-h) + 10px), transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0, #000 calc(var(--px-roof-h) - 6px), #0008 calc(var(--px-roof-h) + 10px), transparent 100%);
+  }
+  .px-snow-track {
+    position: absolute;
+    top: 0;
+    width: 14px;
+    height: 100%;
+    transform: translateY(var(--px-rest, -50%));
+    animation: px-fall var(--px-fall, 14s) steps(72) var(--px-at, 0s) infinite;
+  }
+  .px-snow-track > .px-image { position: absolute; bottom: 0; left: 0; opacity: 0.8; }
+  .px-roof-capsule {
+    position: absolute;
+    z-index: 1;
+    top: 14px;
+    left: 50%;
+    margin-left: -20px;
+    pointer-events: none;
+  }
+  .app-dialog[open] .px-roof-capsule { animation: px-drop 240ms steps(3, jump-end) 180ms backwards; }
+  .px-roof-spark { position: absolute; opacity: 0; }
+  .px-roof-spark--a { top: -10px; right: -12px; }
+  .px-roof-spark--b { bottom: -8px; left: -12px; }
+  .px-roof-spark--c { top: -4px; left: -6px; }
+  .app-dialog[open] .px-roof-spark { animation: px-blink 280ms steps(2, jump-none) 420ms 5 alternate forwards; }
+  .app-dialog[open] .px-roof-spark--b { animation-delay: 560ms; }
+  .app-dialog[open] .px-roof-spark--c { animation-delay: 490ms; }
+
+  @keyframes px-reveal { from { --px-reveal: 20%; } to { --px-reveal: 100%; } }
+  @keyframes px-fade { from { opacity: 0; } }
+  @keyframes px-drop { from { opacity: 0; transform: translateY(-6px); } }
+  @keyframes px-blink { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes px-fall { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-dialog,
+    .app-dialog::backdrop,
+    .app-dialog[open],
+    .app-dialog[open]::backdrop,
+    .app-dialog :is(.app-dialog-head, .app-dialog-body, .px-tone-icon, .px-roof-capsule, .px-roof-spark, .px-roof-strip > .px-image),
+    .px-snow-track {
+      animation: none !important;
+      transition: none !important;
+    }
+    .app-dialog[open] .px-roof-spark { opacity: 1; }
+  }
+}

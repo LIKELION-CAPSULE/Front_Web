@@ -8,7 +8,7 @@ import {
   nextRating, REPORT_DETAIL_MAX, REPORT_REASONS, reportRequest, setReplyRating,
 } from '../src/features/mates/chat-room.ts'
 import { appendNotifications, inAppLink, markRead, notificationPage, relativeTime, unreadIds, UNREAD_REFRESH_MS } from '../src/features/notifications/notifications.ts'
-import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback, VOICE_REPLIES_REQUESTED } from '../src/features/mates/credit-notice.ts'
+import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback } from '../src/features/mates/credit-notice.ts'
 
 // Examples built from docs/BACKEND_API.md (11-25) 32 · 40 · 41 · 43 · 44 tables.
 
@@ -294,9 +294,8 @@ test('409 CREDIT_INSUFFICIENT: the notice with the remaining credits (number or 
   assert.equal(CREDIT_NOTICE_COPY.invite, '친구 초대로 받기')
 })
 
-test('done.voice false: a short note once, and only when a voice reply was asked for (not yet: tts is off)', () => {
-  assert.equal(VOICE_REPLIES_REQUESTED, false)
-  assert.equal(shouldNoteVoiceFallback({ requestedVoice: VOICE_REPLIES_REQUESTED, voice: false, noted: false }), false)
+test('done.voice false: a short note once, and only when a voice reply was asked for', () => {
+  assert.equal(shouldNoteVoiceFallback({ requestedVoice: false, voice: false, noted: false }), false)
   assert.equal(shouldNoteVoiceFallback({ requestedVoice: true, voice: false, noted: false }), true)
   assert.equal(shouldNoteVoiceFallback({ requestedVoice: true, voice: false, noted: true }), false)
   assert.equal(shouldNoteVoiceFallback({ requestedVoice: true, voice: true, noted: false }), false)

@@ -3,6 +3,7 @@ import { FaceLandmarker, FilesetResolver, GestureRecognizer, ObjectDetector } fr
 import { PHONE_DETECTOR_SCORE } from './behavior-constants'
 import { yawFromMatrix, type FaceSignal, type HandSignal } from './behavior-rules'
 import type { FrameResult, VisionMessage, VisionRequest, VisionTask } from './types'
+import { fetchVerifiedModel, REMOTE_VISION_MODELS } from './vision-models'
 
 type Fileset = Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>
 type StudyTask = Exclude<VisionTask, 'face'>
@@ -52,26 +53,37 @@ async function initialize(baseUrl: string) {
   send({ type: 'status', value: { status: 'ready', faceBackend: created.backend } })
 }
 
+/**
+ * The dev server serves the local copy; production does not deploy these models and downloads the official file,
+ * accepting it only when its SHA-256 matches (a mismatch fails the task like any other load error).
+ */
+async function studyModel(task: StudyTask) {
+  const model = REMOTE_VISION_MODELS[task]
+  if (import.meta.env.DEV) return { modelAssetPath: `${modelsUrl}${model.file}` }
+  return { modelAssetBuffer: await fetchVerifiedModel(model) }
+}
+
 /** Gesture and phone models load the first time a study frame asks for them, one at a time. */
 function load(task: StudyTask) {
   if (loading.has(task)) return
   loading.add(task)
   loadQueue = loadQueue.then(async () => {
     try {
+      const asset = await studyModel(task)
       if (task === 'gesture') {
         gesture = (await create(task, (fileset, delegate) => GestureRecognizer.createFromOptions(fileset, {
           runningMode: 'VIDEO', numHands: 1, canvas: new OffscreenCanvas(640, 480),
-          baseOptions: { modelAssetPath: `${modelsUrl}gesture_recognizer.task`, delegate },
+          baseOptions: { ...asset, delegate },
         }))).model
       } else {
         phone = (await create(task, (fileset, delegate) => ObjectDetector.createFromOptions(fileset, {
           runningMode: 'VIDEO', maxResults: 1, scoreThreshold: PHONE_DETECTOR_SCORE,
           categoryAllowlist: ['cell phone'], canvas: new OffscreenCanvas(640, 480),
-          baseOptions: { modelAssetPath: `${modelsUrl}efficientdet_lite2.tflite`, delegate },
+          baseOptions: { ...asset, delegate },
         }))).model
       }
     } catch (error) {
-      console.error(`Local ${task} model failed`, error)
+      console.error(`Vision ${task} model failed`, error)
       if (task === 'gesture') gesture = null
       else phone = null
       send({ type: 'task-error', task })

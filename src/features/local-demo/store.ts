@@ -250,18 +250,19 @@ export class LocalBetaStore {
     this.changed()
   }
   /**
-   * 20 · 28. `advanced`: the request's `mode: ADVANCED` (30); the local voice switch simulates a voice turn (20).
-   * As on the server an ADVANCED turn without 30 credits is refused (`null` → 409 `CREDIT_INSUFFICIENT`), a voice turn
-   * without credits just comes without voice.
+   * 20 · 28. `advanced`: the request's `mode: ADVANCED` (30); `voiceAsked`: `tts: true` with 「메이트 음성」 on (the
+   * transport decides; the local voice switch otherwise), a voice turn (20). As on the server an ADVANCED turn without
+   * 30 credits is refused (`null` → 409 `CREDIT_INSUFFICIENT`), a voice turn without credits just comes without voice.
+   * A resend gets the stored reply without voice.
    */
-  reply(requestId: string, content: string, advanced = this.data.settings.advanced) {
+  reply(requestId: string, content: string, advanced = this.data.settings.advanced, voiceAsked = this.data.settings.voice) {
     const old = this.replies.get(requestId)
-    if (old) return old
+    if (old) return { ...old, voice: false }
     const persisted = this.data.messages.find(message => message.id === `local-reply-${requestId}`)
-    if (persisted) return { content: persisted.text, affinity: this.affinity(), charged: 0 }
+    if (persisted) return { content: persisted.text, affinity: this.affinity(), charged: 0, voice: false }
     const wallet = this.data.wallet
     if (advanced && wallet.attendance + wallet.invitation < 30) return null
-    const voice = this.data.settings.voice && wallet.attendance + wallet.invitation >= (advanced ? 50 : 20)
+    const voice = voiceAsked && wallet.attendance + wallet.invitation >= (advanced ? 50 : 20)
     const cost = (voice ? 20 : 0) + (advanced ? 30 : 0)
     if (cost) {
       const attendance = Math.min(wallet.attendance, cost)
@@ -272,8 +273,19 @@ export class LocalBetaStore {
     const sessionId = String(this.data.active!.id), characterId = String(mate.characterId)
     this.data.messages.push({ id: `local-user-${requestId}`, requestId, sessionId, characterId, sender: 'user', text: content, voice: false, delivery: 'confirmed', createdAt: this.now() },
       { id: `local-reply-${requestId}`, requestId, sessionId, characterId, sender: 'character', text: mate.reply, voice: false, delivery: 'confirmed', createdAt: this.now() })
-    const result = { content: mate.reply, affinity: this.affinity(), charged: cost }
+    const result = { content: mate.reply, affinity: this.affinity(), charged: cost, voice }
     this.replies.set(requestId, result); this.changed(); return result
+  }
+  /** 19 with `tts: true` and 「메이트 음성」 on: the line's voice costs 20; without 20 credits the line comes as text. */
+  voiceLine(): boolean {
+    this.expireAttendance()
+    const wallet = this.data.wallet
+    if (wallet.attendance + wallet.invitation < 20) return false
+    const attendance = Math.min(wallet.attendance, 20)
+    wallet.attendance -= attendance; wallet.invitation -= 20 - attendance; wallet.usedToday += 20
+    this.ledger('use', -20, '음성 대사')
+    this.changed()
+    return true
   }
   /** API 22. */
   finish(totals: ConnectionTotals, endType: EndType = 'NORMAL') {

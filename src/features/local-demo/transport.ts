@@ -6,6 +6,7 @@ import terms from '../auth/data/legal/terms.md?raw'
 import privacy from '../auth/data/legal/privacy.md?raw'
 import { LOCAL_AFFINITY, LOCAL_MATES, type LocalBetaStore, type LocalMate } from './store'
 import { LOCAL_V2_MODELS } from './local-asset-urls'
+import { LOCAL_VOICE_TONE_MP3, localVoicePieces } from './voice-tone'
 import type {
   ChatMessage, ConnectionTotals, CreditTransaction, EndType, MateCard, MateDetailResponse, MyMate, RecordsResponse,
   UserSettings,
@@ -424,7 +425,10 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       if (!type) return error('EVENT_NOT_FOUND', 404)
       if (typeof body.requestId !== 'string') return error('INVALID_REQUEST', 400)
       const face = reactions[type]
-      return reply({ requestId: body.requestId, characters: [{ characterId: activeMate.characterId, ...(face ? { content: face.line, expression: { name: face.expression, file: null } } : {}), fallback: false, audioBase64: null }], charged: 0, credits: null })
+      // `tts: true` with 「메이트 음성」 on: the line comes with the test tone for 20 credits (text only when short).
+      const voice = Boolean(face) && body.tts === true && settings.voiceEnabled && store.voiceLine()
+      return reply({ requestId: body.requestId, characters: [{ characterId: activeMate.characterId, ...(face ? { content: face.line, expression: { name: face.expression, file: null } } : {}), fallback: false, audioBase64: voice ? LOCAL_VOICE_TONE_MP3 : null }],
+        charged: voice ? 20 : 0, credits: body.tts === true ? store.credits() : null })
     }
     if (operation === 'messages/stream' || operation === 'messages') {
       if (body.characterId !== activeMate.characterId) return error('CHARACTER_NOT_IN_SESSION', 400)
@@ -433,20 +437,33 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       if (body.mode !== undefined && body.mode !== 'BASIC' && body.mode !== 'ADVANCED') return error('INVALID_REQUEST', 400)
       store.expireAttendance()
       const advanced = body.mode === 'ADVANCED' || body.mode === undefined && store.data.settings.advanced
-      const answer = store.reply(body.requestId, body.content, advanced)
+      // 28 with `tts: true` and 「메이트 음성」 on: a voice turn (20 more), the test tone in pieces (20 never asks: no voice).
+      const answer = store.reply(body.requestId, body.content, advanced, operation === 'messages/stream' && body.tts === true && settings.voiceEnabled)
       if (!answer) return error('CREDIT_INSUFFICIENT', 409, { credits: store.credits() })
       const result = { requestId: body.requestId, characterId: activeMate.characterId, content: answer.content, affinity: answer.affinity, emotion: '웃음',
         expression: LOCAL_REPLY_EXPRESSIONS[activeMate.mateId] ?? LOCAL_REPLY_EXPRESSIONS.chaerin, fallback: false, audioBase64: null, motion: null,
-        mode: advanced ? 'ADVANCED' : 'BASIC', charged: answer.charged, credits: store.credits(), safety: null, background: null, voice: false }
+        mode: advanced ? 'ADVANCED' : 'BASIC', charged: answer.charged, credits: store.credits(), safety: null, background: null, voice: answer.voice }
       if (operation === 'messages') return reply(result)
+      // As the server: voice pieces between the replies and after `done`, then `audio_end`.
+      const pieces = answer.voice ? localVoicePieces(3) : []
       const stream = new ReadableStream<Uint8Array>({ async start(controller) {
         const encoder = new TextEncoder()
+        const send = (event: string, data: unknown) => controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
+        let seq = 0
         for (const content of [result.content.slice(0, 3), result.content]) {
           if (signal?.aborted) { controller.close(); return }
-          controller.enqueue(encoder.encode(`event: reply\ndata: ${JSON.stringify({ content })}\n\n`))
+          send('reply', { content })
+          if (seq < pieces.length - 1) send('audio', { seq, format: 'mp3', data: pieces[seq++] })
           await new Promise(resolve => setTimeout(resolve, 100))
         }
-        controller.enqueue(encoder.encode(`event: done\ndata: ${JSON.stringify(result)}\n\n`)); controller.close()
+        send('done', result)
+        for (; seq < pieces.length; seq++) {
+          await new Promise(resolve => setTimeout(resolve, 120))
+          if (signal?.aborted) { controller.close(); return }
+          send('audio', { seq, format: 'mp3', data: pieces[seq] })
+        }
+        if (pieces.length) send('audio_end', { chunks: pieces.length, complete: true })
+        controller.close()
       } })
       return new Response(stream, { headers: { 'content-type': 'text/event-stream' } })
     }

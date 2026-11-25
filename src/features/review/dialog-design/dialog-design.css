@@ -80,11 +80,14 @@
   .dd-v-a .dd-scroll, .dd-v-c .dd-scroll { padding-top: 34px; }
 
   .app-dialog.dd-dialog {
+    /* The drafts keep their own shapes: no shared pixel frame (clip, roof strip) from the product Dialog. */
+    clip-path: none;
     background: transparent;
     box-shadow: none;
     transition: opacity 180ms ease-in, transform 180ms ease-in, overlay 180ms allow-discrete, display 180ms allow-discrete;
   }
   .app-dialog.dd-dialog[open] { animation: none; }
+  .app-dialog.dd-dialog > .px-roof-strip { display: none; }
   .app-dialog.dd-dialog:not([open]) { opacity: 0; transform: translateY(6px) scale(0.97); }
   .app-dialog.dd-dialog::backdrop { transition: opacity 200ms ease-in, overlay 200ms allow-discrete, display 200ms allow-discrete; }
   .app-dialog.dd-dialog[open]::backdrop { animation: dd-fade 240ms ease-out; }
@@ -403,5 +406,49 @@
     .button-primary .dd-b3-spark > * {
       animation: none !important;
     }
+  }
+}
+
+/* Toast candidates (dialog-design-toast, 2026-11-26). T1 = product style; T2/T3 override it here only. */
+@layer components {
+  .dd-toast-compare {
+    position: fixed;
+    z-index: 70;
+    inset: 0;
+    display: grid;
+    overflow: auto;
+    grid-template-columns: repeat(3, minmax(0, 420px));
+    justify-content: center;
+    align-content: start;
+    gap: 28px;
+    padding: 48px 32px;
+    background: var(--color-overlay);
+    backdrop-filter: blur(8px);
+  }
+  .dd-toast-candidate h2 { font-size: var(--text-card-title); font-weight: 700; line-height: var(--text-card-title--line-height); }
+  .dd-toast-candidate p { margin-top: 4px; color: var(--color-muted); font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
+  .dd-toast-candidate-stack { position: relative; min-height: 420px; margin-top: 12px; }
+  .dd-toast-candidate-stack .notification-stack { width: 100%; padding: 0; }
+
+  /* T2: no top line; a 6px tone strip on the left that dithers out to the right. */
+  [data-toast-candidate='t2'] .notification-card {
+    padding: 16px 16px 16px 22px;
+    background:
+      linear-gradient(var(--notification-accent), var(--notification-accent)) 0 0 / 4px 100% repeat-y,
+      conic-gradient(from 90deg at 2px 2px, var(--notification-accent) 0 25%, transparent 0 50%, var(--notification-accent) 0 75%, transparent 0) 4px 0 / 4px 4px repeat-y,
+      conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--notification-accent) 0 75%, transparent 0) 8px 0 / 4px 4px repeat-y,
+      linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
+  }
+  /* T3: plain card, the icon cell is a tiny night roof tile. */
+  [data-toast-candidate='t3'] .notification-card {
+    padding: 16px;
+    background: linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
+  }
+  [data-toast-candidate='t3'] .notification-icon {
+    background:
+      linear-gradient(var(--color-dialog-roof) 0 14px, var(--color-dialog-roof-dither) 14px 24px, transparent 24px) 0 0 / 100% 24px no-repeat,
+      conic-gradient(from 90deg at 2px 2px, var(--color-dialog-roof-dither) 0 25%, transparent 0 50%, var(--color-dialog-roof-dither) 0 75%, transparent 0) 0 24px / 4px 4px repeat-x,
+      conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--color-dialog-roof-dither) 0 75%, transparent 0) 0 28px / 4px 4px repeat-x,
+      var(--color-panel);
   }
 }

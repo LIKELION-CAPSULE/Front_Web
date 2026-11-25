@@ -5,12 +5,12 @@ import { DemoContext } from './demo-context'
 import { betaReducer, type ConnectionAction } from '@/features/backend/beta-reducer'
 import { readConnectionCache, serverMessages, serverRecords, writeConnectionCache } from '@/features/backend/connection-cache'
 import type { DemoState, FocusTotals, Message, TierId } from './types'
-import type { ConnectionModeChoice } from '@/features/backend/backend-context'
+import type { ConnectionModeChoice, MessageVoice } from '@/features/backend/backend-context'
 import { normalizeFocusTotals } from '@/features/session/focus'
 import { api, ApiError } from '@/shared/api/client'
 import { QueryCache } from '@/shared/api/query-cache'
 import { removeAccountSnapshots } from '@/features/auth/account-storage'
-import type { ActiveConnectionSummary, AffinityChange, AvatarsResponse, EndType, HomeResponse, MeResponse, LoginResponse, StartRequest, StartResponse, ResumeResponse, EndRequest, ReportResponse, TermsResponse } from '@/shared/api/types'
+import type { ActiveConnectionSummary, AffinityChange, AvatarsResponse, EndType, HomeResponse, MeResponse, LoginResponse, StartRequest, StartResponse, ResumeResponse, EndRequest, MessageStreamAudio, MessageStreamAudioEnd, ReportResponse, TermsResponse } from '@/shared/api/types'
 import { BackendContext } from '@/features/backend/backend-context'
 import { streamMessage } from '@/features/backend/message-stream'
 import { accountScope } from '@/features/backend/account-scope'
@@ -725,7 +725,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
       return record
     } finally { operations.delete('end') }
   }, [patch, invalidateSessionQueries, releaseModel])
-  const sendMessage = useCallback(async (characterId: string, content: string, inputType: 'TEXT' | 'QUICK' = 'TEXT') => {
+  const sendMessage = useCallback(async (characterId: string, content: string, inputType: 'TEXT' | 'QUICK' = 'TEXT', voice?: MessageVoice) => {
     const current = stateRef.current.activeSession
     if (!current) throw new ApiError('진행 중인 연결이 없어요.', 400)
     if (!content.trim() || content.length > 300) throw new ApiError('메시지는 1~300자로 입력해 주세요.', 400)
@@ -756,8 +756,14 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     upsert({ id: `${requestId}:user`, requestId, sessionId: current.id, characterId, sender: 'user', text: content.trim(), voice: false, createdAt: Date.now(), delivery: 'pending' })
     const mode = connectionModeRef.current.id === current.id && connectionModeRef.current.mode === 'advanced' ? 'ADVANCED' : 'BASIC'
     try {
-      const result = await accountScope(() => epoch.current).wait(streamMessage(api, adapt.numericId(current.id), { requestId, characterId: adapt.numericId(characterId), content: content.trim(), inputType, mode, tts: false }, {
+      const result = await accountScope(() => epoch.current).wait(streamMessage(api, adapt.numericId(current.id), { requestId, characterId: adapt.numericId(characterId), content: content.trim(), inputType, mode, tts: voice?.tts === true }, {
         onReply: text => { if (live()) upsert(reply(text)) },
+        // Voice pieces keep coming after `done` (this resolves there); the player drops those of a stopped voice.
+        ...(voice?.tts ? {
+          onAudio: (audio: MessageStreamAudio) => { if (live()) voice.onAudio?.(audio) },
+          onAudioEnd: (end: MessageStreamAudioEnd) => { if (live()) voice.onAudioEnd?.(end) },
+          onAudioClose: () => voice.onClose?.(),
+        } : {}),
         alive: live,
       }))
       if (result.requestId !== requestId || adapt.id(result.characterId) !== characterId || !result.content) throw new ApiError('답장 응답을 확인하지 못했어요.', 502)

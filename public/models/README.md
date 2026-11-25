@@ -1,6 +1,9 @@
 # Browser vision models
 
-The official, unmodified MediaPipe Face Landmarker, Selfie Segmenter, Gesture Recognizer and EfficientDet-Lite2 Object Detector models are self-hosted here; their versions, original URLs, sizes and SHA-256 digests are pinned in [manifest.json](manifest.json).
+The official, unmodified MediaPipe models are kept here; their versions, original URLs, sizes, SHA-256 digests and delivery are pinned in [manifest.json](manifest.json).
+
+- **Self-hosted** (`"delivery": "self-hosted"`): the Face Landmarker is deployed with the app and served from the application origin.
+- **Remote** (`"delivery": "remote"`): the Gesture Recognizer and EfficientDet-Lite2 Object Detector are used only by study-time behavior detection, which is currently off. The build drops them from `dist`; when enabled, production downloads them from the manifest `source` (Google's official bucket) and uses them only when the SHA-256 matches, otherwise that detection stays off. The dev server keeps using the copies in this folder.
 
 - MediaPipe Face Landmarker combines BlazeFace, FaceMesh V2 and Blendshape V2. Their Google model cards identify Apache-2.0: [BlazeFace](https://storage.googleapis.com/mediapipe-assets/MediaPipe%20BlazeFace%20Model%20Card%20%28Short%20Range%29.pdf), [FaceMesh V2](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20MediaPipe%20Face%20Mesh%20V2.pdf), [Blendshape V2](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Blendshape%20V2.pdf).
 - MediaPipe Selfie Segmenter separates the person from the background for the camera virtual background. Its Google model card identifies Apache-2.0: [Selfie Segmentation](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20MediaPipe%20Selfie%20Segmentation.pdf). It is loaded only after a non-default background is chosen and runs on the displayed preview; focus scoring still uses the Face Landmarker on original frames.
@@ -8,6 +11,6 @@ The official, unmodified MediaPipe Face Landmarker, Selfie Segmenter, Gesture Re
 
 Original notices are distributed in [/licenses/vision](../licenses/vision). Camera frames stay in browser memory and are transferred to a local Worker for inference. The microphone is connected only to a local Web Audio analyser; it is neither recorded nor sent for speech recognition. No microphone playback connection is made.
 
-`npm ci`, `npm run dev` and `npm run build` prepare the pinned MediaPipe JS/WASM runtime in `public/runtime/`. This generated directory is ignored by Git. All runtime assets are served from the application origin.
+`npm ci`, `npm run dev` and `npm run build` prepare the pinned MediaPipe JS/WASM runtime in `public/runtime/`. This generated directory is ignored by Git. The runtime and the face model are served from the application origin; only the remote models above come from Google.
 
 MVP scoring uses valid face-presence measurements only. Missing-face intervals reduce the focus ratio; camera off, initialization, errors, pauses and hidden tabs do not create observations. Behavior detections are not stored or used for the focus score.

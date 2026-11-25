@@ -16,7 +16,7 @@
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('../assets/brand/HahmletVariable.ttf') format('truetype');
+  src: url('../assets/brand/HahmletVariable.woff2') format('woff2');
 }
 
 @layer base {
@@ -266,11 +266,10 @@
     }
   }
   .app-dialog {
-    /* Native focus scrolling must leave the outer focus ring inside the dialog viewport. */
+    /* Native focus scrolling must leave the outer focus ring inside the dialog viewport. Surface, pixel frame and motion:
+       src/shared/ui/pixel/pixel-frame.css (design B2, 2026-11-26). */
     scroll-padding: 8px;
     border: 0;
-    background: var(--color-surface-raised);
-    box-shadow: 0 16px 48px #0006;
     overscroll-behavior: contain;
   }
   .app-dialog::backdrop {

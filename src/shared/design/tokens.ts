@@ -49,6 +49,9 @@ export const designColors = {
   "info-bg": "#172D39",
   "floating": "#403E4B",
   "floating-hover": "#5E5C69",
+  "dialog-roof": "#3B2C82",
+  "dialog-roof-dither": "#30246B",
+  "dialog-surface": "#1E1A31",
   "records-grid-0": "#272630",
   "records-grid-1": "#312F40",
   "records-grid-2": "#423F55",
@@ -115,6 +118,11 @@ export const designPalette = {
     "danger-solid-active": "#941927",
     "info": "#8AD0F4",
     "info-bg": "#172D39"
+  },
+  "night": {
+    "roof": "#3B2C82",
+    "roofDither": "#30246B",
+    "surface": "#1E1A31"
   }
 } as const
 
