@@ -1002,7 +1002,7 @@ export default function ConnectionPage() {
       )}
       {settingsOpen && <AccountSettingsDialog initialView="settings" onClose={() => setSettingsOpen(false)} />}
 
-      <Dialog open={privacyOpen} onClose={() => setPrivacyOpen(false)} title="카메라 사용 안내">
+      <Dialog open={privacyOpen} onClose={() => setPrivacyOpen(false)} title="카메라 사용 안내" tone="info">
         <p className="text-muted">카메라를 켜면 자리 비움·복귀에 메이트가 반응해요. 영상은 이 기기 안에서만 확인하고 저장하거나 보내지 않아요.</p>
         <div className="mt-6 flex gap-3">
           <Button onClick={() => { setPrivacySeen(true); setPrivacyOpen(false); void controller.request('camera') }}>카메라 켜기</Button>
@@ -1014,59 +1014,37 @@ export default function ConnectionPage() {
         open={leaveOpen}
         onClose={() => { if (!finishing) setLeaveOpen(false) }}
         dismissible={!finishing}
-        showHeader={false}
         title={`${withParticle(mate.name, '과', '와')}의 연결을 끊을까요?`}
-        className="mate-reset-dialog mate-reset-dialog--desktop connection-leave-dialog"
+        className="connection-leave-dialog"
       >
-        <header className="desktop-window-titlebar mate-window-titlebar-static">
-          <div className="desktop-window-title-left">연결 끊기</div>
-          <div className="desktop-window-title-right">
-            <div className="desktop-window-controls">
-              <button
-                type="button"
-                className="desktop-window-dot desktop-window-dot--close"
-                aria-label="닫기"
-                disabled={finishing}
-                onClick={() => setLeaveOpen(false)}
-              >
-                <span aria-hidden="true">×</span>
-              </button>
-              <span className="desktop-window-dot" aria-hidden="true" />
-              <span className="desktop-window-dot" aria-hidden="true" />
-            </div>
+        {leaveQuote && (
+          <div className="connection-leave-quote">
+            <span className="connection-leave-quote-name">{mate.name}</span>
+            <p>{leaveQuote}</p>
           </div>
-        </header>
-        <div className="mate-reset-dialog-body">
-          <h2 className="mate-reset-dialog-heading">{withParticle(mate.name, '과', '와')}의 연결을 끊을까요?</h2>
-          {leaveQuote && (
-            <div className="connection-leave-quote">
-              <span className="connection-leave-quote-name">{mate.name}</span>
-              <p>{leaveQuote}</p>
-            </div>
-          )}
-          {finishError && <FeedbackMessage tone="error" className="mt-4">{finishError}</FeedbackMessage>}
-          {shown.presenceKnown === false && (
-            <p className="mt-3 text-muted">
-              이전 자리 지킴 시간을 불러오지 못했어요. 지금 끝내면 이어서 연결한 동안의 자리 지킴만 기록돼요.
-            </p>
-          )}
-          <div className="mt-6 flex justify-end gap-3">
-            <Button
-              variant="secondary"
-              disabled={finishing}
-              onClick={() => setLeaveOpen(false)}
-              data-dialog-initial-focus
-            >
-              계속하기
-            </Button>
-            <Button
-              variant="danger-solid"
-              loading={finishing}
-              onClick={() => { void finish(true) }}
-            >
-              연결 끊기
-            </Button>
-          </div>
+        )}
+        {finishError && <FeedbackMessage tone="error" className="mt-4">{finishError}</FeedbackMessage>}
+        {shown.presenceKnown === false && (
+          <p className="mt-3 text-muted">
+            이전 자리 지킴 시간을 불러오지 못했어요. 지금 끝내면 이어서 연결한 동안의 자리 지킴만 기록돼요.
+          </p>
+        )}
+        <div className="mt-6 flex justify-end gap-3">
+          <Button
+            variant="secondary"
+            disabled={finishing}
+            onClick={() => setLeaveOpen(false)}
+            data-dialog-initial-focus
+          >
+            계속하기
+          </Button>
+          <Button
+            variant="danger-solid"
+            loading={finishing}
+            onClick={() => { void finish(true) }}
+          >
+            연결 끊기
+          </Button>
         </div>
       </Dialog>
     </main>

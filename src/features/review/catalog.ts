@@ -35,7 +35,7 @@ export type ReviewScenario = {
   kakaoSignup?: 'active' | 'expired'
   steps?: ReviewStep[]
   /** Modal/popup design draft (dialog-design/). Renders over the real page; never part of the product. */
-  dialogDesign?: 'a' | 'b' | 'c' | 'b2' | 'b3'
+  dialogDesign?: 'a' | 'b' | 'c' | 'b2' | 'b3' | 'toast'
 }
 
 const click = (text: string): ReviewStep => ({ click: text })
@@ -209,6 +209,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'dialog-design-b', group: '디자인 시안', title: '모달 시안 B · 밤하늘', path: '/', dialogDesign: 'b', note: '2026-11-26 시안: 어두운 보라 그라데이션 위 픽셀 별·눈송이(내 메이트 PixelSnow 스프라이트), 위쪽 가장자리를 흐르는 빛' },
   { id: 'dialog-design-b2', group: '디자인 시안', title: '모달 시안 B2 · 픽셀 프레임', path: '/', dialogDesign: 'b2', note: '2026-11-26 B 발전안: 계단형 픽셀 모서리(clip-path, 선 없음)·디더링 머리 띠·8비트 로고 캡슐·머리 띠 안에서만 천천히 내리는 픽셀 눈·steps() 5단계로 차오르는 등장. 세계관 열림은 「새 세계관이 열렸어요 · EP.03 도서관」' },
   { id: 'dialog-design-b3', group: '디자인 시안', title: '모달 시안 B3 · 픽셀 액센트', path: '/', dialogDesign: 'b3', note: '2026-11-26 B 발전안(절제): 둥근 모서리 유지, 픽셀은 제목 앞 아이콘·머리 아래 한 줄 별자리·주요 버튼 hover 반짝임 세 곳만. 본문은 차분하게' },
+  { id: 'dialog-design-toast', group: '디자인 시안', title: '토스트 후보 · 픽셀 프레임', path: '/', dialogDesign: 'toast', note: '2026-11-26 앱 전체 B2 적용 때 토스트 후보 3개 비교: T1 위쪽 디더링 줄(운영 적용)·T2 왼쪽 세로 픽셀 띠·T3 아이콘 밤하늘 타일. 실제 NotificationStack 사용' },
   { id: 'dialog-design-c', group: '디자인 시안', title: '모달 시안 C · 메이트와 함께', path: '/', dialogDesign: 'c', note: '2026-11-26 시안: 모서리에서 메이트 얼굴(정지 이미지)이 고개를 내밀고 말풍선 꼬리로 안내. 확인 창은 버튼에 따라 표정이 바뀜' },
   { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/?ref=CAP-7K2Q', note: '휴대폰 접속 시 PC 안내 창·초대 코드 유지·약관 열기' },
 ]

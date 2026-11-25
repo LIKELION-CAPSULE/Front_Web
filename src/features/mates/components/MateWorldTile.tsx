@@ -55,7 +55,7 @@ export function MateWorldTile({ world, layout, onOpen }: { world: MateWorld; lay
 /** A world's detail: the background large, the outfit still (when there is one), the place and the sample line. */
 export function MateWorldDialog({ world, mateName, onClose }: { world: MateWorld; mateName: string; onClose: () => void }) {
   return (
-    <Dialog open onClose={onClose} title={worldLabel(world)} className="mate-world-dialog">
+    <Dialog open onClose={onClose} title={worldLabel(world)} tone="celebrate" className="mate-world-dialog">
       <div className="mate-world-scene">
         <WorldBackdrop world={world} className="mate-world-scene-backdrop" />
         {world.outfitPreviewUrl && (

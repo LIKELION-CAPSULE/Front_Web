@@ -72,7 +72,8 @@
 }
 .app-surface dialog.app-dialog {
   border: 0;
-  border-radius: var(--radius-panel);
+  /* The pixel frame's stepped corners come from clip-path (src/shared/ui/pixel/pixel-frame.css). */
+  border-radius: 0;
   box-shadow: none;
 }
 .app-surface :is(.mate-menu-panel, .mate-detail-control-bar, .mate-preview-status) { border: 0; }

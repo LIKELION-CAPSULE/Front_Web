@@ -149,59 +149,38 @@ export function MateMenu({
       )}
       <Dialog
         open={confirm}
-        title="대화 초기화"
+        title={`${withParticle(mateName, '과', '와')}의 대화를 초기화할까요?`}
+        tone="danger"
         onClose={close}
         dismissible={!busy}
-        showHeader={false}
-        className="mate-reset-dialog mate-reset-dialog--desktop"
+        className="mate-reset-dialog"
       >
-        <header className="desktop-window-titlebar mate-window-titlebar-static">
-          <div className="desktop-window-title-left">대화 초기화</div>
-          <div className="desktop-window-title-right">
-            <div className="desktop-window-controls">
-              <button
-                type="button"
-                className="desktop-window-dot desktop-window-dot--close"
-                aria-label="닫기"
-                disabled={busy}
-                onClick={close}
-              >
-                <span aria-hidden="true">×</span>
-              </button>
-              <span className="desktop-window-dot" aria-hidden="true" />
-              <span className="desktop-window-dot" aria-hidden="true" />
-            </div>
+        <dl className="mate-reset-scope">
+          <div>
+            <dt>지워지는 것</dt>
+            <dd>{MATE_RESET_CLEARS.join(', ')}</dd>
           </div>
-        </header>
-        <div className="mate-reset-dialog-body">
-          <h2 className="mate-reset-dialog-heading">{withParticle(mateName, '과', '와')}의 대화를 초기화할까요?</h2>
-          <dl className="mate-reset-scope">
-            <div>
-              <dt>지워지는 것</dt>
-              <dd>{MATE_RESET_CLEARS.join(', ')}</dd>
-            </div>
-            <div>
-              <dt>그대로 남는 것</dt>
-              <dd>{MATE_RESET_KEEPS.join(', ')}</dd>
-            </div>
-          </dl>
-          <p className="mt-3 text-danger">초기화한 대화는 되돌릴 수 없어요.</p>
-          {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
-          <div className="mt-6 flex justify-end gap-3">
-            <Button variant="secondary" disabled={busy} onClick={close} data-dialog-initial-focus>
-              취소
-            </Button>
-            <Button
-              variant="danger-solid"
-              loading={busy}
-              disabled={!resetMateConversation || busy}
-              onClick={() => {
-                void reset()
-              }}
-            >
-              초기화하기
-            </Button>
+          <div>
+            <dt>그대로 남는 것</dt>
+            <dd>{MATE_RESET_KEEPS.join(', ')}</dd>
           </div>
+        </dl>
+        <p className="mt-3 text-danger">초기화한 대화는 되돌릴 수 없어요.</p>
+        {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="secondary" disabled={busy} onClick={close} data-dialog-initial-focus>
+            취소
+          </Button>
+          <Button
+            variant="danger-solid"
+            loading={busy}
+            disabled={!resetMateConversation || busy}
+            onClick={() => {
+              void reset()
+            }}
+          >
+            초기화하기
+          </Button>
         </div>
       </Dialog>
     </div>

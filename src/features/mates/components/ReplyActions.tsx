@@ -113,7 +113,7 @@ function ReportDialog({ userId, characterId, requestId, onClose }: { userId: num
   }
 
   return (
-    <Dialog open title={REPLY_ACTIONS_COPY.reportTitle} onClose={onClose} dismissible={!busy} className="reply-report-dialog">
+    <Dialog open title={REPLY_ACTIONS_COPY.reportTitle} tone="danger" onClose={onClose} dismissible={!busy} className="reply-report-dialog">
       <form noValidate onSubmit={event => { event.preventDefault(); void submit() }}>
         <p className="text-body-compact text-muted">{REPLY_ACTIONS_COPY.reportLead}</p>
         <fieldset className="reply-report-reasons" disabled={busy}>

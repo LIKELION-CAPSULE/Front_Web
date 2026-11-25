@@ -1,7 +1,9 @@
 /**
- * Pixel pictures for the B2/B3 modal drafts (review only). Rows of characters, `.` = empty, every other character a
- * colour from the picture's palette. Each picture is turned into one SVG data URL once and drawn at 2 CSS px per art
- * pixel, so the browser rasterizes it a single time (no per-pixel DOM).
+ * Pixel pictures of the modal / notification frame (design B2 「픽셀 프레임」, applied app-wide 2026-11-26; also used by the
+ * review drafts). Rows of characters, `.` = empty, every other character a colour from the picture's palette. Each
+ * picture is turned into one SVG data URL once and drawn at 2 CSS px per art pixel, so the browser rasterizes it a single
+ * time (no per-pixel DOM). Palettes are illustration colours: status pictures use the status token values
+ * (docs/DESIGN_TOKENS.json), the capsule the logo v2 colours, the coin the credit gold (credit display exception).
  */
 
 export type PixelArt = { rows: readonly string[]; palette: Readonly<Record<string, string>> }
@@ -73,6 +75,29 @@ const STAR: PixelArt = {
   palette: { a: '#AC95F8', b: '#C4B9F3', w: '#FFFFFF' },
 }
 
+const INFO: PixelArt = {
+  rows: [
+    '...aaaaa...',
+    '.aaaaaaaaa.',
+    '.aaaabaaaa.',
+    'aaaaaaaaaaa',
+    'aaaabbaaaaa',
+    'aaaaabaaaaa',
+    'aaaaabaaaaa',
+    'aaaaabaaaaa',
+    '.aaabbbaaa.',
+    '.aaaaaaaaa.',
+    '...aaaaa...',
+  ],
+  palette: { a: '#8AD0F4', b: '#172D39' },
+}
+
+/** Snow (the same pixel dot and flake as 내 메이트 PixelSnow), white and pale lilac. */
+const SNOW_DOT: PixelArt = { rows: ['.a.', 'aaa', '.a.'], palette: { a: '#FFFFFF' } }
+const SNOW_DOT_LILAC: PixelArt = { rows: SNOW_DOT.rows, palette: { a: '#E6DEFF' } }
+const SNOW_FLAKE: PixelArt = { rows: ['...a...', '.a.a.a.', '..aaa..', 'aaa.aaa', '..aaa..', '.a.a.a.', '...a...'], palette: { a: '#FFFFFF' } }
+const SNOW_FLAKE_LILAC: PixelArt = { rows: SNOW_FLAKE.rows, palette: { a: '#E6DEFF' } }
+
 const CHECK: PixelArt = {
   rows: [
     '.......aa',
@@ -108,7 +133,12 @@ export const PIXEL_ART = {
   capsule: CAPSULE,
   warning: { rows: WARNING_ROWS, palette: { a: '#F4AFA8', b: '#3D2028' } },
   warningStatus: { rows: WARNING_ROWS, palette: { a: '#F4B95F', b: '#352A18' } },
+  info: INFO,
   coin: COIN,
+  snowDot: SNOW_DOT,
+  snowDotLilac: SNOW_DOT_LILAC,
+  snowFlake: SNOW_FLAKE,
+  snowFlakeLilac: SNOW_FLAKE_LILAC,
   star: STAR,
   check: CHECK,
   spark: SPARK,

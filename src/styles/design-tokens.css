@@ -51,6 +51,9 @@
   --color-info-bg: #172D39;
   --color-floating: #403E4B;
   --color-floating-hover: #5E5C69;
+  --color-dialog-roof: #3B2C82;
+  --color-dialog-roof-dither: #30246B;
+  --color-dialog-surface: #1E1A31;
   --text-hero-title: 48px;
   --text-hero-title--line-height: 60px;
   --text-page-title: 30px;

@@ -2,13 +2,16 @@ import { useRef, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useIsPresent } from 'motion/react'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
-import { Icon, type IconName } from './Icon'
+import { Icon } from './Icon'
+import { PixelImage } from './pixel/PixelFrame'
+import type { PixelArtName } from './pixel/pixel-art'
 import { Button } from './Button'
 import type { FeedbackTone } from './FeedbackMessage'
 import type { NotificationItem } from './notification-queue'
 import './notification-stack.css'
 
-const icons: Record<FeedbackTone, IconName> = { success: 'check', warning: 'warning', error: 'warning', info: 'info' }
+/** Pixel icon per tone (status token colours): the toast's pixel frame (design B2, 2026-11-26). */
+const icons: Record<FeedbackTone, PixelArtName> = { success: 'check', warning: 'warningStatus', error: 'warning', info: 'info' }
 
 function NotificationCard({ item, onDismiss }: { item: NotificationItem; onDismiss: (id: string) => void }) {
   const reduced = useReducedMotion()
@@ -45,7 +48,7 @@ function NotificationCard({ item, onDismiss }: { item: NotificationItem; onDismi
     exit={{ x: reduced ? 0 : 72, opacity: 0, transition: { duration: reduced ? 0 : 0.18 } }}
     transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 38 }}
   >
-    <span className="notification-icon"><Icon name={icons[item.tone]} size={21} /></span>
+    <span className="notification-icon"><PixelImage name={icons[item.tone]} /></span>
     <div className="notification-content">
       <p id={`${item.id}-title`} className="notification-title">{item.title}</p>
       <p id={`${item.id}-description`} className="notification-description">{item.text}</p>
