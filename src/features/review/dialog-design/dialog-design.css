@@ -281,3 +281,127 @@
     .dd-b-flow { opacity: 0; }
   }
 }
+
+/*
+ * B2 「픽셀 프레임」 and B3 「픽셀 액센트」 (2026-11-26, B 발전안). Pixel pictures are single SVG data URLs drawn at
+ * 2 CSS px per art pixel. Stepped motion uses steps(); clip-path changes only a handful of times per entrance.
+ */
+@layer components {
+  .dd-v-b2 {
+    /* Stepped corner, 4px unit: rows 16 / 8 / 4 px in from the edge. No outline: the shape is the clip itself. */
+    --px-shape: polygon(
+      0 16px, 4px 16px, 4px 8px, 8px 8px, 8px 4px, 16px 4px, 16px 0,
+      calc(100% - 16px) 0, calc(100% - 16px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 16px, 100% 16px,
+      100% calc(100% - 16px), calc(100% - 4px) calc(100% - 16px), calc(100% - 4px) calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) calc(100% - 4px), calc(100% - 16px) calc(100% - 4px), calc(100% - 16px) 100%,
+      16px 100%, 16px calc(100% - 4px), 8px calc(100% - 4px), 8px calc(100% - 8px), 4px calc(100% - 8px), 4px calc(100% - 16px), 0 calc(100% - 16px)
+    );
+    --px-top: polygon(
+      0 16px, 4px 16px, 4px 8px, 8px 8px, 8px 4px, 16px 4px, 16px 0,
+      calc(100% - 16px) 0, calc(100% - 16px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 16px, 100% 16px,
+      100% 100%, 0 100%
+    );
+    --px-small: polygon(
+      0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px,
+      100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%,
+      8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px)
+    );
+    --px-night: #30246B;
+  }
+  .dd-pixel { flex: none; }
+
+  /* ── B2 surface ────────────────────────────────────────────────────────────────────────────────────────── */
+  .dd-v-b2 .dd-bg { border-radius: 0; background: linear-gradient(180deg, #1E1A31 0%, #191823 100%); box-shadow: none; clip-path: var(--px-shape); }
+  .dd-px-shade { position: absolute; z-index: -2; inset: 6px; border-radius: 16px; box-shadow: var(--floating-shadow); pointer-events: none; }
+  .dd-px-roof { position: absolute; z-index: -1; top: 0; right: 0; left: 0; height: 64px; overflow: hidden; background: linear-gradient(180deg, #3B2C82 0 14px, var(--px-night) 14px 28px, transparent 28px); clip-path: var(--px-top); pointer-events: none; }
+  .dd-px-dither { position: absolute; right: 0; left: 0; height: 12px; }
+  .dd-px-dither--50 { top: 28px; background: conic-gradient(from 90deg at 2px 2px, var(--px-night) 0 25%, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 0 0 / 4px 4px; }
+  .dd-px-dither--25 { top: 40px; background: conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 0 0 / 4px 4px; }
+  .dd-px-dither--12 {
+    top: 52px;
+    background:
+      conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 0 0 / 8px 8px,
+      conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 4px 4px / 8px 8px;
+  }
+  .dd-px-snow { position: absolute; opacity: 0.75; animation: dd-px-fall var(--dd-fall, 12s) steps(36) var(--dd-at, 0s) infinite; }
+  .dd-px-capsule { position: absolute; z-index: 0; top: 18px; left: 50%; margin-left: -20px; pointer-events: none; }
+  .dd-v-b2 .dd-scroll { padding-top: 80px; }
+  .dd-v-b2 :is(.dd-badge, .dd-chip, .dd-toast-icon) { border-radius: 0; clip-path: var(--px-small); }
+  .dd-k-large.dd-v-b2 .dd-large-head { border-bottom: 0; }
+  .dd-k-large .dd-px-roof { height: 100%; background: linear-gradient(180deg, #3B2C82 0 16px, var(--px-night) 16px 48px, transparent 48px); }
+  .dd-k-large .dd-px-dither { height: 8px; }
+  .dd-k-large .dd-px-dither--50 { top: 48px; }
+  .dd-k-large .dd-px-dither--25 { top: 56px; }
+  .dd-k-large .dd-px-dither--12 { top: 64px; }
+  .dd-k-large .dd-px-capsule { top: 26px; }
+
+  .app-dialog.dd-dialog.dd-v-b2 { transition-timing-function: steps(4, jump-end); }
+  .app-dialog.dd-dialog.dd-v-b2:not([open]) { transform: translateY(8px); }
+  .app-dialog.dd-dialog.dd-v-b2::backdrop { transition-timing-function: steps(4, jump-end); }
+  .dd-surface.dd-v-b2:is([open], .dd-static) { animation: dd-px-fill 300ms steps(5, jump-start) backwards; }
+  .dd-surface.dd-v-b2:is([open], .dd-static) :is(.dd-scroll, .dd-large-body, .dd-large-title, .dd-close) { animation: dd-fade 240ms steps(4, jump-end) 160ms backwards; }
+  .dd-surface.dd-v-b2:is([open], .dd-static) .dd-px-capsule { animation: dd-px-drop 240ms steps(3, jump-end) 180ms backwards; }
+
+  .dd-v-b2.dd-toast { border-radius: 0; animation: dd-px-toast-in 280ms steps(4, jump-start) both; }
+  .dd-v-b2.dd-toast .dd-bg {
+    border-radius: 0;
+    box-shadow: none;
+    clip-path: var(--px-small);
+    background:
+      linear-gradient(var(--px-night), var(--px-night)) 0 0 / 100% 6px no-repeat,
+      conic-gradient(from 90deg at 2px 2px, var(--px-night) 0 25%, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 0 6px / 4px 4px repeat-x,
+      conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 0 10px / 4px 4px repeat-x,
+      #1E1A31;
+  }
+  .dd-v-b2.dd-toast .dd-px-shade { inset: 4px; border-radius: 12px; box-shadow: 0 14px 40px #0004; }
+  .dd-v-b2.dd-toast[data-leaving][data-tone] { animation: dd-px-toast-out 200ms steps(4, jump-end) forwards; }
+
+  /* ── B3 surface: round, calm; pixels in three places only ─────────────────────────────────────────────── */
+  .dd-v-b3 .dd-bg { background: linear-gradient(180deg, #241C3E 0px, #1E1A31 132px, #191823 100%); }
+  .dd-b3-head { position: absolute; z-index: 0; top: 0; left: 12%; width: 76%; height: 72px; background: radial-gradient(50% 60% at 50% 0%, #AC95F81F 0%, transparent 100%); pointer-events: none; }
+  .dd-v-b3 .dd-heading { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .dd-v-b3 .dd-heading .dd-badge { width: auto; height: auto; background: none; }
+  .dd-v-b3 .dd-title { flex: 1 1 0; min-width: 0; }
+  .dd-b3-stars { display: block; flex: 0 0 100%; height: 6px; margin-top: 4px; background-repeat: repeat-x; background-size: 160px 6px; }
+  .dd-b3-stars--head { position: absolute; right: 28px; bottom: -3px; left: 28px; margin: 0; }
+  .dd-k-large.dd-v-b3 .dd-large-head { border-bottom: 0; }
+  .dd-b3-mini { position: relative; z-index: 1; }
+  .dd-v-b3 .dd-text { margin-top: 14px; }
+  .dd-v-b3 .button-primary { position: relative; }
+  .dd-b3-spark { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+  .dd-b3-spark > * { position: absolute; }
+  .dd-b3-spark-a { top: -7px; right: -5px; }
+  .dd-b3-spark-b { bottom: -6px; left: -4px; }
+  .dd-b3-spark-c { top: -3px; left: 22%; }
+  .button-primary:is(:hover, :focus-visible) .dd-b3-spark { opacity: 1; }
+  .button-primary:is(:hover, :focus-visible) .dd-b3-spark > * { animation: dd-px-blink 560ms steps(2, jump-none) infinite alternate; }
+  .button-primary:is(:hover, :focus-visible) .dd-b3-spark-b { animation-delay: 280ms; }
+  .button-primary:is(:hover, :focus-visible) .dd-b3-spark-c { animation-delay: 140ms; }
+  .dd-v-b3.dd-toast .dd-bg { background: linear-gradient(135deg, #241C3E 0%, #191823 100%); }
+  .dd-v-b3.dd-toast .dd-toast-icon { background: none; }
+  .dd-v-b3.dd-toast { animation-name: dd-b-toast-in; }
+
+  .dd-surface.dd-v-b3:is([open], .dd-static) { animation: dd-b-panel 340ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .dd-surface.dd-v-b3:is([open], .dd-static) :is(.dd-scroll, .dd-large-body) { animation: dd-rise 280ms ease-out 60ms both; }
+  .dd-surface.dd-v-b3:is([open], .dd-static) .dd-badge > .dd-pixel { animation: dd-px-drop 210ms steps(3, jump-end) 140ms backwards; }
+  .dd-surface.dd-v-b3:is([open], .dd-static) .dd-b3-stars { animation: dd-px-reveal 400ms steps(8, jump-start) 180ms backwards; }
+
+  @keyframes dd-px-fill { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+  @keyframes dd-px-drop { from { opacity: 0; transform: translateY(-6px); } }
+  @keyframes dd-px-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+  @keyframes dd-px-blink { from { opacity: 0.25; } to { opacity: 1; } }
+  @keyframes dd-px-fall {
+    0% { opacity: 0; transform: translateY(-12px); }
+    12% { opacity: 0.8; }
+    78% { opacity: 0.6; }
+    100% { opacity: 0; transform: translateY(60px); }
+  }
+  @keyframes dd-px-toast-in { from { opacity: 0; transform: translateX(32px); } }
+  @keyframes dd-px-toast-out { to { opacity: 0; transform: translateX(24px); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dd-px-snow,
+    .button-primary .dd-b3-spark > * {
+      animation: none !important;
+    }
+  }
+}

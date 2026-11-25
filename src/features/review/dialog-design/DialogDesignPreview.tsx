@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/shared/lib/cn'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
@@ -14,22 +14,28 @@ import faceSulky from '@/assets/characters/chaerin-v2/expressions/sulky.webp'
 import faceShy from '@/assets/characters/chaerin-v2/expressions/shy.webp'
 import faceFocus from '@/assets/characters/chaerin-v2/expressions/focus.webp'
 import faceLaugh from '@/assets/characters/chaerin-v2/expressions/laugh.webp'
+import { PIXEL_ART, pixelArtSize, pixelArtUrl, type PixelArtName } from './pixel-art'
 import './dialog-design.css'
 
 /**
- * Modal / popup design drafts (2026-11-26, review catalog only: `dialog-design-a|b|c`). Nothing here is used by the
+ * Modal / popup design drafts (2026-11-26, review catalog only: `dialog-design-a|b|c|b2|b3`; B2/B3 push B's pixel
+ * look further: B2 「픽셀 프레임」 stepped corners, dithered roof, 8-bit capsule, slow snow, stepped entrance; B3
+ * 「픽셀 액센트」 keeps B's round shape with pixels in three places only). Nothing here is used by the
  * product. The modal kinds use the real shared `Dialog` (focus, Esc, backdrop click unchanged) with a style class and
  * decorations around its content; enter is a CSS keyframe on `[open]`, leave is a CSS transition with
  * `display`/`overlay` allow-discrete, so the component API stays as it is. Only transform and opacity move.
  */
 
-export type DialogDesignVariant = 'a' | 'b' | 'c'
+export type DialogDesignVariant = 'a' | 'b' | 'c' | 'b2' | 'b3'
 type Kind = 'confirm' | 'credit' | 'unlock' | 'toast' | 'large'
 type View = Kind | 'all' | 'none'
 type Face = 'neutral' | 'happy' | 'sulky' | 'shy' | 'focus' | 'laugh'
 type ToastTone = 'success' | 'warning'
 
-const VARIANT_NAME: Record<DialogDesignVariant, string> = { a: '캡슐 유리', b: '밤하늘', c: '메이트와 함께' }
+const VARIANT_NAME: Record<DialogDesignVariant, string> = { a: '캡슐 유리', b: '밤하늘', c: '메이트와 함께', b2: '픽셀 프레임', b3: '픽셀 액센트' }
+const isPixel = (variant: DialogDesignVariant) => variant === 'b2' || variant === 'b3'
+/** The surface's variant, for the pieces deep inside the bodies (pixel icons, the B3 button sparkle). */
+const VariantContext = createContext<DialogDesignVariant>('a')
 const VIEWS: readonly { id: Exclude<View, 'none'>; label: string }[] = [
   { id: 'all', label: '모두 보기' },
   { id: 'confirm', label: '확인' },
@@ -82,6 +88,35 @@ function PixelSprite({ kind, tone = 0, className, style }: { kind: SnowKind; ton
   />
 }
 
+function Pixel({ name, scale = 2, className, style }: { name: PixelArtName; scale?: number; className?: string; style?: CSSProperties }) {
+  const art = PIXEL_ART[name]
+  return <span className={cn('dd-pixel', className)} style={{ ...pixelArtSize(art, scale), backgroundImage: pixelArtUrl(art), ...style }} aria-hidden="true" />
+}
+
+/** B2 snow inside the roof: x in %, top in px, fall duration in s, start offset in s (negative = already falling). */
+const ROOF_SNOW: readonly { kind: SnowKind; x: number; top: number; s: number; at: number; tone: number }[] = [
+  { kind: 'dot', x: 14, top: 10, s: 11, at: -2, tone: 0 },
+  { kind: 'flake', x: 30, top: 24, s: 14, at: -9, tone: 1 },
+  { kind: 'dot', x: 68, top: 6, s: 12, at: -6, tone: 1 },
+  { kind: 'flake', x: 82, top: 30, s: 15, at: -3, tone: 0 },
+  { kind: 'dot', x: 92, top: 16, s: 10, at: -7, tone: 0 },
+]
+
+function PixelRoof({ compact = false }: { compact?: boolean }) {
+  return <span className="dd-px-roof" aria-hidden="true">
+    <span className="dd-px-dither dd-px-dither--50" />
+    <span className="dd-px-dither dd-px-dither--25" />
+    <span className="dd-px-dither dd-px-dither--12" />
+    {(compact ? ROOF_SNOW.slice(1) : ROOF_SNOW).map((flake, index) => <PixelSprite
+      key={index}
+      kind={flake.kind}
+      tone={flake.tone}
+      className="dd-px-snow"
+      style={{ left: `${flake.x}%`, top: flake.top, '--dd-fall': `${flake.s}s`, '--dd-at': `${flake.at}s` } as CSSProperties}
+    />)}
+  </span>
+}
+
 /**
  * Fixed star field for variant B: x/y in % of the band above the heading (76px), kept right of the icon badge so no
  * sprite sits on a word. d = delay step.
@@ -107,6 +142,11 @@ function Decor({ variant, face, compact = false }: { variant: DialogDesignVarian
       <span className="dd-a-seam" />
     </span>}
   </>
+  if (variant === 'b2') return <>
+    <PixelRoof compact={compact} />
+    <Pixel name="capsule" className="dd-px-capsule" />
+  </>
+  if (variant === 'b3') return <span className="dd-b3-head" aria-hidden="true" />
   if (variant === 'b') return <>
     <span className="dd-b-glow" aria-hidden="true" />
     <span className="dd-b-sky" aria-hidden="true">
@@ -130,12 +170,31 @@ function Decor({ variant, face, compact = false }: { variant: DialogDesignVarian
 
 /* ── Surface contents ────────────────────────────────────────────────────────────────────────────────────────── */
 
+const PIXEL_ICON: Partial<Record<IconName, PixelArtName>> = { warning: 'warning', coin: 'coin', sparkle: 'star' }
+
 function Heading({ icon, tone, eyebrow, children }: { icon: IconName; tone: 'danger' | 'warning' | 'accent'; eyebrow?: string; children: ReactNode }) {
+  const variant = useContext(VariantContext)
+  const pixel = isPixel(variant) ? PIXEL_ICON[icon] : undefined
   return <div className="dd-heading">
-    <span className="dd-badge" data-tone={tone}><Icon name={icon} size={20} /></span>
+    <span className="dd-badge" data-tone={tone}>{pixel ? <Pixel name={pixel} /> : <Icon name={icon} size={20} />}</span>
     {eyebrow && <p className="dd-eyebrow">{eyebrow}</p>}
     <h2 className="dd-title">{children}</h2>
+    {variant === 'b3' && <Constellation />}
   </div>
+}
+
+/** B3: one row of dotted pixel stars under the heading (the only divider of the head). */
+function Constellation({ head = false }: { head?: boolean }) {
+  return <span className={cn('dd-b3-stars', head && 'dd-b3-stars--head')} style={{ backgroundImage: pixelArtUrl(PIXEL_ART.constellation) }} aria-hidden="true" />
+}
+
+/** B3: pixel sparkles around the main button, shown on hover / keyboard focus only. */
+function Sparkle() {
+  return useContext(VariantContext) === 'b3' ? <span className="dd-b3-spark" aria-hidden="true">
+    <Pixel name="spark" className="dd-b3-spark-a" />
+    <Pixel name="spark" className="dd-b3-spark-b" />
+    <Pixel name="spark" scale={1} className="dd-b3-spark-c" />
+  </span> : null
 }
 
 function ConfirmBody({ onClose, onFace }: { onClose: () => void; onFace: (face: Face | null) => void }) {
@@ -162,18 +221,29 @@ function ConfirmBody({ onClose, onFace }: { onClose: () => void; onFace: (face: 
 }
 
 function CreditBody({ onClose }: { onClose: () => void }) {
+  const pixel = isPixel(useContext(VariantContext))
   return <>
     <Heading icon="coin" tone="warning">{CREDIT_NOTICE_COPY.title}</Heading>
     <p className="dd-text">{CREDIT_NOTICE_COPY.body}</p>
-    <p className="dd-chip"><Icon name="coin" size={16} />{CREDIT_NOTICE_COPY.remaining(20)}</p>
+    <p className="dd-chip">{pixel ? <Pixel name="coin" scale={1} /> : <Icon name="coin" size={16} />}{CREDIT_NOTICE_COPY.remaining(20)}</p>
     <div className="dd-actions">
       <Button variant="secondary" onClick={onClose}>{CREDIT_NOTICE_COPY.invite}</Button>
-      <Button variant="primary" data-dialog-initial-focus onClick={onClose}>{CREDIT_NOTICE_COPY.basic}</Button>
+      <Button variant="primary" data-dialog-initial-focus onClick={onClose}>{CREDIT_NOTICE_COPY.basic}<Sparkle /></Button>
     </div>
   </>
 }
 
 function UnlockBody({ onClose }: { onClose: () => void }) {
+  const pixel = isPixel(useContext(VariantContext))
+  // B2/B3 use the revised copy (2026-11-26): a 세계관 is a place, background and outfit set, named by episode.
+  if (pixel) return <>
+    <Heading icon="sparkle" tone="accent">새 세계관이 열렸어요 <span className="dd-ep">· EP.03 도서관</span></Heading>
+    <p className="dd-text">{MATE}과 도서관에서 만날 수 있어요.</p>
+    <div className="dd-actions">
+      <Button variant="ghost" onClick={onClose}>나중에</Button>
+      <Button variant="primary" data-dialog-initial-focus onClick={onClose}>보러 가기<Sparkle /></Button>
+    </div>
+  </>
   return <>
     <Heading icon="sparkle" tone="accent" eyebrow="새로 열렸어요">{MATE}의 세계관이 열렸어요</Heading>
     <p className="dd-text">메이트 상세에서 {MATE}가 지내는 곳과 지금까지의 이야기를 볼 수 있어요.</p>
@@ -191,8 +261,10 @@ function LargeBody({ variant, face, onClose }: { variant: DialogDesignVariant; f
     <header className="dd-large-head">
       <Decor variant={variant} face={face} compact />
       {variant === 'a' && <span className="dd-a-mini" aria-hidden="true"><span className="dd-a-half dd-a-half--l" /><span className="dd-a-half dd-a-half--r" /><span className="dd-a-seam" /></span>}
+      {variant === 'b3' && <Pixel name="capsule" className="dd-b3-mini" />}
       <h2 className="dd-large-title">계정 설정</h2>
       <button type="button" className="dd-close" aria-label="닫기" onClick={onClose}><Icon name="close" size={20} /></button>
+      {variant === 'b3' && <Constellation head />}
     </header>
     <div className="dd-large-body">
       <nav className="dd-large-nav" aria-label="계정 설정 메뉴(시안)">
@@ -230,7 +302,11 @@ function DesignSurface({ variant, kind, mode, open = false, onClose }: {
         {kind === 'unlock' && <UnlockBody onClose={onClose} />}
       </div>
     </>
-  const inner = <><span className="dd-bg" aria-hidden="true" />{body}</>
+  const inner = <VariantContext value={variant}>
+    {variant === 'b2' && <span className="dd-px-shade" aria-hidden="true" />}
+    <span className="dd-bg" aria-hidden="true" />
+    {body}
+  </VariantContext>
   const className = cn('dd-surface', `dd-v-${variant}`, `dd-k-${kind}`)
   if (mode === 'static') return <section className={cn(className, 'dd-static')} aria-label={`${TITLE[kind]} 미리보기`} inert>{inner}</section>
   return <Dialog
@@ -265,7 +341,10 @@ function DesignToast({ variant, item, onDismiss, still = false }: { variant: Dia
       <PixelSprite kind="dot" tone={1} className="dd-b-star" style={{ left: '84%', top: '76%', '--dd-d': 3 } as CSSProperties} />
     </span>}
     {variant === 'a' && <span className="dd-a-sheen" aria-hidden="true" />}
-    {variant === 'c'
+    {variant === 'b2' && <span className="dd-px-shade" aria-hidden="true" />}
+    {isPixel(variant)
+      ? <span className="dd-toast-icon" aria-hidden="true"><Pixel name={item.tone === 'warning' ? 'warningStatus' : 'check'} /></span>
+      : variant === 'c'
       ? <span className="dd-toast-face" aria-hidden="true"><img src={FACES[copy.face]} alt="" draggable={false} /><span className="dd-toast-face-badge"><Icon name={copy.icon} size={12} /></span></span>
       : <span className="dd-toast-icon" aria-hidden="true"><Icon name={copy.icon} size={18} /></span>}
     <div className="dd-toast-content">
