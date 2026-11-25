@@ -4,6 +4,7 @@ import type { LoginResponse, MateDetailResponse, MeResponse, SignupRequest, Upda
 import type { BetaAccountDetails, BetaAccountPort } from '../auth/beta-account.ts'
 import { normalizeReferralCode, type ReferralValidationResult } from '../auth/referral-code.ts'
 import type { MateContentPort, MateDetailContent } from '../mates/mate-contract.ts'
+import { serverAgeRating } from '../mates/catalog.ts'
 import { checkReferral, enterReferral, getMateDetail, getMe, getMyReferral, updateMe } from './server-api.ts'
 
 type Client = Pick<ApiClient, 'request'>
@@ -108,6 +109,9 @@ export function mateDetailContent(dto: MateDetailResponse, characterId: number):
     ...Object.fromEntries(Object.entries(optional).filter(([, value]) => value !== undefined && value.trim() !== '')),
     ...(Array.isArray(dto.hashtags) ? { tags: dto.hashtags.filter(tag => typeof tag === 'string') } : {}),
     ...(model ? { model } : {}),
+    ...(serverAgeRating(dto.ageRating) ? { ageRating: serverAgeRating(dto.ageRating) } : {}),
+    ...(typeof dto.comingSoon === 'boolean' ? { comingSoon: dto.comingSoon } : {}),
+    ...(typeof dto.hasConversation === 'boolean' ? { hasConversation: dto.hasConversation } : {}),
   }
 }
 

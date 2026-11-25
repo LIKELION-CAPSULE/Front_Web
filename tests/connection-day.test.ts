@@ -42,10 +42,13 @@ test('a connection across Seoul midnight belongs to the day it started', () => {
   const late = connection('2026-11-23T23:30:00', '2026-11-24T00:40:00')
   assert.equal(connectionStartedAt(late), at('2026-11-23T23:30:00'))
   assert.equal(connectionDayKey(late), '2026-11-23')
-  // 00:00 exactly is already the next day.
-  assert.equal(connectionDayKey(connection('2026-11-24T00:00:00', '2026-11-24T00:30:00')), '2026-11-24')
+  // The day runs from 05:00 Seoul time (the server's rule for 38): 00:00 and 04:59 are still the evening before …
+  assert.equal(connectionDayKey(connection('2026-11-24T00:00:00', '2026-11-24T00:30:00')), '2026-11-23')
+  assert.equal(connectionDayKey(connection('2026-11-24T04:59:00', '2026-11-24T05:30:00')), '2026-11-23')
+  // … 05:00 begins the next day.
+  assert.equal(connectionDayKey(connection('2026-11-24T05:00:00', '2026-11-24T05:30:00')), '2026-11-24')
   // Without a start the end is used.
-  assert.equal(connectionDayKey({ startedAt: 0, endedAt: at('2026-11-24T00:10:00') }), '2026-11-24')
+  assert.equal(connectionDayKey({ startedAt: 0, endedAt: at('2026-11-24T00:10:00') }), '2026-11-23')
 })
 
 test('month end and year end: the connection stays in the month / year it started', () => {

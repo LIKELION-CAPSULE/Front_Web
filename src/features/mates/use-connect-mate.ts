@@ -21,7 +21,8 @@ export function useConnectMate(mate: AvailableMate | null | undefined) {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
 
   const connect = useCallback(async (options: { pickup?: boolean } = {}) => {
-    if (busy || !mate) return
+    // A coming-soon mate cannot be connected (16 answers 409 MATE_COMING_SOON): its page offers the alert instead.
+    if (busy || !mate || mate.comingSoon) return
     setBusy(true)
     setError('')
     const pickup = options.pickup ? playPickup({ name: mate.name, reduced: prefersReducedMotion() }) : null

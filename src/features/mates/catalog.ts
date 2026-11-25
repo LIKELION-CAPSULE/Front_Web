@@ -1,10 +1,11 @@
 import type { HomeResponse } from '../../shared/api/types.ts'
 
 /**
- * `all`: 전연령. `15`: 15세 이용가. Both launch mates are `all` (서도현 moved from 15 to 전연령, user decision 2026-11-25);
- * `15` and its badge (home card, MateCard) stay for a later age-rated mate. The login screen shows `all` mates only.
+ * `all`: 전연령. `adult`: 성인(server `ADULT`). `15`: 15세 이용가 (front-end only, no server value). Both launch mates are
+ * `all` (서도현 moved from 15 to 전연령, user decision 2026-11-25); the server's value (11 · 31 `ageRating`) is shown when
+ * it sends one. The login screen shows `all` mates only.
  */
-export type MateAgeRating = 'all' | '15'
+export type MateAgeRating = 'all' | 'adult' | '15'
 
 export type MateProfile = {
   id: string
@@ -26,7 +27,11 @@ export type MateProfile = {
   tagline?: string
 }
 
-export const AGE_RATING_LABELS: Readonly<Record<MateAgeRating, string>> = { all: '전연령', 15: '15세 이용가' }
+export const AGE_RATING_LABELS: Readonly<Record<MateAgeRating, string>> = { all: '전연령', adult: '성인', 15: '15세 이용가' }
+/** 11 · 31 · 48 `ageRating` → the front-end rating; unknown values are left out (the catalogue's stays). */
+export function serverAgeRating(value: unknown): MateAgeRating | undefined {
+  return value === 'ALL' ? 'all' : value === 'ADULT' ? 'adult' : undefined
+}
 export function ageRatingLabel(rating: MateAgeRating | undefined): string {
   return AGE_RATING_LABELS[rating ?? 'all'] ?? AGE_RATING_LABELS.all
 }
@@ -115,6 +120,7 @@ export function availableMates(home: HomeResponse | null): AvailableMate[] {
         characterId: String(card.id),
         ...(card.cardImageUrl ? { image: card.cardImageUrl } : {}),
         ...(card.comingSoon ? { comingSoon: true } : {}),
+        ...(serverAgeRating(card.ageRating) ? { ageRating: serverAgeRating(card.ageRating)! } : {}),
       })
       break
     }

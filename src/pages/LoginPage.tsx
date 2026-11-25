@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
-import { api } from '@/shared/api/client'
+import { api, ApiError } from '@/shared/api/client'
 import type { EmailRequest, ExpiresResponse, LoginRequest, LoginResponse } from '@/shared/api/types'
 import { authNotice } from '@/features/auth/auth-notices'
 import { rememberLoginProvider, saveKakaoLogin } from '@/features/auth/auth-storage'
@@ -13,6 +13,7 @@ import { Icon } from '@/shared/ui/Icon'
 import { EmailAuthForm, type EmailAuthMode } from '@/features/auth/components/EmailAuthForm'
 import { EmailVerificationForm } from '@/features/auth/components/EmailVerificationForm'
 import { PasswordRecoveryForm } from '@/features/auth/components/PasswordRecoveryForm'
+import { BetaWaitlistForm } from '@/features/auth/components/BetaWaitlistForm'
 import type { LegalDocumentId } from '@/features/auth/data/legal-documents'
 import { hasRequiredLegalTerms } from '@/features/auth/legal-content'
 import { birthDateError } from '@/features/auth/birth-date'
@@ -25,10 +26,11 @@ const neutralLinkClass = 'inline-flex min-h-11 items-center text-muted underline
 const signupLinkClass = 'inline-flex min-h-11 items-center text-text-accent underline underline-offset-4'
 
 function loginWindowTitle(
-  view: 'welcome' | 'login' | 'signup' | 'forgot-password',
+  view: 'welcome' | 'login' | 'signup' | 'forgot-password' | 'waitlist',
   verifying: boolean,
 ): string {
   if (verifying) return 'CAPSULE — 이메일 인증'
+  if (view === 'waitlist') return 'CAPSULE — 출시 알림'
   if (view === 'login') return 'CAPSULE — 로그인'
   if (view === 'signup') return 'CAPSULE — 회원가입'
   if (view === 'forgot-password') return 'CAPSULE — 비밀번호 찾기'
@@ -55,7 +57,7 @@ export default function LoginPage() {
   const mode = params.get('mode')
   const view = params.has('token')
     ? 'forgot-password'
-    : mode === 'login' || mode === 'signup' || mode === 'forgot-password'
+    : mode === 'login' || mode === 'signup' || mode === 'forgot-password' || mode === 'waitlist'
       ? mode
       : 'welcome'
   const verifying = view === 'signup' && signupDraft !== null
@@ -92,7 +94,7 @@ export default function LoginPage() {
     [],
   )
   useEffect(() => {
-    document.title = `CAPSULE · ${verifying ? '이메일 인증' : view === 'login' ? '로그인' : view === 'signup' ? '회원가입' : view === 'forgot-password' ? '비밀번호 찾기' : '나만의 메이트가 기다리고 있어요'}`
+    document.title = `CAPSULE · ${verifying ? '이메일 인증' : view === 'login' ? '로그인' : view === 'signup' ? '회원가입' : view === 'forgot-password' ? '비밀번호 찾기' : view === 'waitlist' ? '출시 알림' : '나만의 메이트가 기다리고 있어요'}`
     panel.current
       ?.querySelector<HTMLElement>(verifying ? 'input[autocomplete="one-time-code"]' : 'h1')
       ?.focus({ preventScroll: true })
@@ -112,7 +114,7 @@ export default function LoginPage() {
     })
     return () => cancelAnimationFrame(frame)
   }, [noticeCode, params, location.pathname, location.hash, location.state, navigate, showNotification])
-  function authPath(target?: EmailAuthMode | 'forgot-password') {
+  function authPath(target?: EmailAuthMode | 'forgot-password' | 'waitlist') {
     const search = new URLSearchParams(params)
     if (target !== 'forgot-password') search.delete('token')
     if (target) search.set('mode', target)
@@ -192,7 +194,9 @@ export default function LoginPage() {
             if (!hasRequiredLegalTerms(backend.terms))
               throw new Error('약관 정보를 불러오지 못했어요. 페이지를 새로고침해 다시 시도해 주세요.')
             if (!backend.betaSignup) throw new Error('요청을 처리하지 못했어요.')
-            const result = await backend.betaSignup({
+            let result: LoginResponse
+            try {
+              result = await backend.betaSignup({
               verificationToken,
               password: signupDraft.password,
               nickname: signupDraft.nickname,
@@ -201,13 +205,28 @@ export default function LoginPage() {
                 .filter((term) => term.required)
                 .map((term) => term.termVersionId!),
               ...(signupDraft.referralCode ? { referralCode: signupDraft.referralCode } : {}),
-            })
+              })
+            } catch (reason) {
+              // The beta is full (4 → 403 BETA_FULL): the launch notice sign-up instead, with this email filled in.
+              if (reason instanceof ApiError && reason.code === 'BETA_FULL') {
+                const email = signupDraft.email
+                setSignupDraft(null)
+                navigate(authPath('waitlist'), { state: { waitlistEmail: email } })
+                return
+              }
+              throw reason
+            }
             await complete(result, Boolean(signupDraft.referralCode))
           }}
         />
       )}
       <div hidden={verifying}>
-        {view === 'welcome' ? (
+        {view === 'waitlist' ? (
+          <BetaWaitlistForm
+            defaultEmail={typeof (location.state as { waitlistEmail?: unknown } | null)?.waitlistEmail === 'string' ? (location.state as { waitlistEmail: string }).waitlistEmail : ''}
+            onBack={() => navigate(authPath('login'), { replace: true })}
+          />
+        ) : view === 'welcome' ? (
           <>
             <h1 tabIndex={-1} className="mt-6 focus:outline-none type-page-title">
               나만의 메이트가

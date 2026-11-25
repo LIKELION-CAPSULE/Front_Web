@@ -5,12 +5,15 @@ import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
 import type { StudyRecord } from '@/features/demo/types'
 import { availableMates } from '@/features/mates/catalog'
+import { useMyMates } from '@/features/mates/use-my-mates'
+import { useRecordsData } from '@/features/records/use-records-data'
+import { isDayRecord, recordsSummary, type RecordsMate } from '@/features/records/records-source'
 import { mateAvatar } from '@/features/mates/artwork'
 import { MateCommentBubble } from '@/features/records/MateCommentBubble'
 import { buildMateComment, voiceFor } from '@/features/records/mate-comment'
-import { CapsuleDayDetail, RecordConnectionRow } from '@/features/records/RecordConnectionRow'
+import { CapsuleDayDetail, DayRemainderRow, RecordConnectionRow } from '@/features/records/RecordConnectionRow'
 import { defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-calendar'
-import { isCompletedRecord } from '@/features/records/connection-day'
+import { connectionDayKey } from '@/features/records/connection-day'
 import { CapsuleBoard } from '@/features/records/capsule-board/CapsuleBoard'
 import { SatinBackdrop } from '@/features/records/satin-backdrop/SatinBackdrop'
 import { BOARD, buildCapsuleBoard, offsetContaining } from '@/features/records/capsule-board/capsule-board-layout'
@@ -26,17 +29,15 @@ import {
   type BoardView,
 } from '@/features/records/capsule-board/capsule-board-view'
 import type { BoardBenchmark } from '@/features/records/capsule-board/capsule-board-scene'
-import { capsuleFromStudyRecord, capsuleRecordsFromStudyRecords } from '@/features/mates/capsule-jar/capsule-jar-data'
-import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
-import { capsuleKeepsakes, type CapsuleKeepsake } from '@/features/mates/capsule-jar/capsule-moments'
+import { capsuleFromStudyRecord } from '@/features/mates/capsule-jar/capsule-jar-data'
+import type { CapsuleKeepsake } from '@/features/mates/capsule-jar/capsule-moments'
 import { CapsuleRecordCard } from '@/features/mates/capsule-jar/CapsuleRecordCard'
 import {
   getRecordRange,
   recordPeriods,
-  recordsInRange,
   type RecordPeriod,
 } from '@/features/reports/record-period'
-import { parseRecordsParams, resolveSummaryDisplay } from '@/features/reports/records-view-utils'
+import { parseRecordsParams } from '@/features/reports/records-view-utils'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { duration } from '@/shared/lib/format'
@@ -44,11 +45,10 @@ import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
 import '@/features/reports/records-window.css'
 
-type RecordMateOption = {
-  id: string
-  characterId: string
-  name: string
-}
+/** The server counts a day from 05:00 Seoul time (38): "today" is the day that began at the last 05:00. */
+const DAY_START_MS = 5 * 3600 * 1000
+/** 38 has no keepsakes (they need every connection of a mate): the board shows none. */
+const NO_KEEPSAKES: ReadonlyMap<string, CapsuleKeepsake> = new Map()
 
 function isReviewRecordsLoading(): boolean {
   return (
@@ -102,7 +102,6 @@ export default function RecordsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [now] = useState(Date.now)
   const [selectedCellKey, setSelectedCellKey] = useState<string | null>(null)
-  const [visibleCount, setVisibleCount] = useState(5)
   /** Record card opened from a board day (that day's connections, newest first). */
   const [dayCard, setDayCard] = useState<{ key: string; index: number; phase: 'open' | 'closing' } | null>(null)
   const dayCardReturnFocus = useRef<HTMLElement | null>(null)
@@ -115,59 +114,46 @@ export default function RecordsPage() {
     emphasisControl.current = control
   }, [])
 
-  const loading = status === 'loading' || isReviewRecordsLoading()
   const { period, offset, mate: selectedMateId } = parseRecordsParams(searchParams)
   // 2D / 2.5D per period: week and month share the viewer's choice, the year keeps its own (2D until chosen).
   const [viewportWidth] = useState(() => window.innerWidth)
   const boardView = defaultBoardView(viewportWidth, boardViews, period)
-  const range = useMemo(() => getRecordRange(period, now, offset), [period, now, offset])
-  const prevRange = getRecordRange(period, now, offset - 1)
+  const range = useMemo(() => getRecordRange(period, now - DAY_START_MS, offset), [period, now, offset])
+  const prevRange = getRecordRange(period, now - DAY_START_MS, offset - 1)
   const canShiftPrev = prevRange.startDay !== range.startDay
   const canShiftNext = offset < 0
 
   const catalogMates = useMemo(() => availableMates(home), [home])
 
-  // Real server-reported non-dummy connections that have ended (records/connection-day.ts: one cutoff for the
-  // summary, comment, board and list).
-  const actualRecords = useMemo(
-    () =>
-      state.records.filter(
-        (record) => Boolean(record.serverReport) && record.dataSource !== 'dummy' && isCompletedRecord(record, now),
-      ),
-    [state.records, now],
-  )
-
-  // Connected mates list (catalog mates + any additional mate present in server reports), in a stable order.
-  const connectedMates = useMemo<RecordMateOption[]>(() => {
-    const byCharId = new Map<string, RecordMateOption>()
-    for (const m of catalogMates) {
-      if (actualRecords.some((r) => r.characterIds.includes(m.characterId))) {
-        byCharId.set(m.characterId, { id: m.id, characterId: m.characterId, name: m.name })
-      }
-    }
-    for (const r of actualRecords) {
-      const char = r.serverReport?.mate
-      if (!char) continue
-      const charId = String(char.id)
-      if (!byCharId.has(charId)) {
-        const name = char.name?.trim() || `메이트 ${charId}`
-        byCharId.set(charId, { id: `mate-${charId}`, characterId: charId, name })
-      }
-    }
-    return [...byCharId.values()]
-  }, [actualRecords, catalogMates])
+  // Mates met at least once (37), in the server's order (most recent first): the filter chips. Each keeps its server
+  // id(s) for the reads of 38 (one persona can have two).
+  const myMates = useMyMates()
+  const connectedMates = useMemo<RecordsMate[] | null>(() => {
+    if (!myMates.data) return null
+    return catalogMates
+      .filter((mate) => myMates.byMate.has(mate.id))
+      .sort((a, b) => (myMates.byMate.get(b.id)?.lastConnectedAt ?? 0) - (myMates.byMate.get(a.id)?.lastConnectedAt ?? 0))
+      .map((mate) => ({ id: mate.id, characterId: mate.characterId, name: mate.name, serverIds: myMates.byMate.get(mate.id)!.serverIds }))
+  }, [catalogMates, myMates.byMate, myMates.data])
 
   const mateNameByCharId = useMemo(() => {
     const map = new Map<string, string>()
     for (const m of catalogMates) map.set(m.characterId, m.name)
-    for (const m of connectedMates) map.set(m.characterId, m.name)
+    for (const m of connectedMates ?? []) map.set(m.characterId, m.name)
     return map
   }, [catalogMates, connectedMates])
 
   const activeMate =
-    selectedMateId && connectedMates.length >= 2
+    selectedMateId && connectedMates && connectedMates.length >= 2
       ? connectedMates.find((m) => m.id === selectedMateId) ?? null
       : null
+
+  // 38 for the range and the filter (records-source.ts: day records from the buckets, the newest connections real).
+  const data = useRecordsData(range, connectedMates, activeMate)
+  const loading =
+    status === 'loading' || (myMates.status === 'loading' && !myMates.data) || (data.status === 'loading' && !data.data) ||
+    isReviewRecordsLoading()
+  const failed = myMates.status === 'error' && !myMates.data ? myMates : data.status === 'error' && !data.data ? data : null
 
   const updateParams = useCallback(
     (patch: { period?: RecordPeriod; offset?: number; mate?: string | null }) => {
@@ -184,7 +170,6 @@ export default function RecordsPage() {
       else next.set('mate', nextMate)
 
       setSelectedCellKey(null)
-      setVisibleCount(5)
       setDayCard(null)
       setSearchParams(next)
     },
@@ -197,39 +182,22 @@ export default function RecordsPage() {
     updateParams({ period: nextPeriod, offset: Math.min(0, offsetContaining(nextPeriod, anchor, range.today)) })
   }
 
-  const periodRecords = useMemo(() => {
-    const inPeriod = recordsInRange(actualRecords, range)
-    if (!activeMate) return inPeriod
-    return inPeriod.filter((r) => r.characterIds.includes(activeMate.characterId))
-  }, [actualRecords, activeMate, range])
-
-  // Keepsakes (milestones of the time together) by record id, counted over each mate's whole history the same way
-  // as the capsules of 내 메이트 (MyMatesPage: `capsuleRecordsFromStudyRecords(state.records, …)`).
-  const keepsakes = useMemo(() => {
-    const result = new Map<string, CapsuleKeepsake>()
-    for (const mate of connectedMates) {
-      const capsules = capsuleRecordsFromStudyRecords(state.records, mate.characterId, now)
-      for (const [id, keepsake] of capsuleKeepsakes(capsules, capsulesForConnection, { now })) result.set(id, keepsake)
-    }
-    return result
-  }, [connectedMates, state.records, now])
+  const periodRecords = useMemo(() => data.data?.records ?? [], [data.data])
+  const keepsakes = NO_KEEPSAKES
 
   const isCurrentPeriod = offset === 0
-  const summary = useMemo(
-    () => resolveSummaryDisplay(periodRecords, range, isCurrentPeriod),
-    [isCurrentPeriod, periodRecords, range],
-  )
+  const summary = data.data ? recordsSummary(data.data.totals, range, isCurrentPeriod, data.data.matesInRange) : null
 
   // The board: mate colours with 「전체」 (mate by mate in a column), the chosen mate's time-band tints otherwise.
   const yearColumns = yearColumnsFor(stageWidth || 1200)
-  const mateIdByCharId = useMemo(() => new Map(connectedMates.map((mate) => [mate.characterId, mate.id])), [connectedMates])
+  const mateIdByCharId = useMemo(() => new Map((connectedMates ?? []).map((mate) => [mate.characterId, mate.id])), [connectedMates])
   const board = useMemo(
     () =>
       buildCapsuleBoard(periodRecords, range, {
         keepsakes,
         mateOf: (record: StudyRecord) => mateIdByCharId.get(record.characterIds[0] ?? '') ?? 'chaerin',
-        mateOrder: connectedMates.map((mate) => mate.id),
-        mateNames: new Map(connectedMates.map((mate) => [mate.id, mate.name])),
+        mateOrder: (connectedMates ?? []).map((mate) => mate.id),
+        mateNames: new Map((connectedMates ?? []).map((mate) => [mate.id, mate.name])),
         colorMode: activeMate ? 'band' : 'mate',
         yearColumns,
       }),
@@ -262,7 +230,8 @@ export default function RecordsPage() {
     }, 240)
     return () => window.clearTimeout(timer)
   }, [dayCard?.phase])
-  const dayCardRecords = dayCard && selectedDay?.day.key === dayCard.key ? selectedDay.records : []
+  // Only real connections open a record card (a day record has no time of day or connection record behind it).
+  const dayCardRecords = dayCard && selectedDay?.day.key === dayCard.key ? selectedDay.records.filter((record) => !isDayRecord(record)) : []
   const dayCardRecord = dayCard ? dayCardRecords[Math.min(dayCard.index, dayCardRecords.length - 1)] : undefined
   const dayCardCapsule = dayCardRecord ? capsuleFromStudyRecord(dayCardRecord) : null
   const dayCardMateId = dayCardRecord ? mateIdByCharId.get(dayCardRecord.characterIds[0] ?? '') : undefined
@@ -298,11 +267,12 @@ export default function RecordsPage() {
     (() => {
       const counts = new Map<string, number>()
       for (const r of periodRecords) for (const id of r.characterIds) counts.set(id, (counts.get(id) ?? 0) + 1)
-      const top = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? actualRecords[0]?.characterIds[0]
-      return connectedMates.find((m) => m.characterId === top) ?? connectedMates[0] ?? catalogMates[0] ?? null
+      const top = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0]
+      return connectedMates?.find((m) => m.characterId === top) ?? connectedMates?.[0] ?? catalogMates[0] ?? null
     })()
   const speakerCatalog = speaker ? catalogMates.find((m) => m.characterId === speaker.characterId) : undefined
-  const speakerRecords = speaker ? actualRecords.filter((r) => r.characterIds.includes(speaker.characterId)) : []
+  // 38 gives this range only: the comment speaks of it (no comparison with earlier periods).
+  const speakerRecords = speaker ? periodRecords.filter((r) => r.characterIds.includes(speaker.characterId)) : []
   const mateComment = speaker
     ? buildMateComment({
         range,
@@ -353,7 +323,18 @@ export default function RecordsPage() {
     )
   }
 
-  if (actualRecords.length === 0) {
+  if (failed) {
+    return (
+      <RecordsWindowFrame>
+        <div className="records-block records-empty-box" role="alert">
+          <p className="records-empty-title">함께한 기록을 불러오지 못했어요.</p>
+          <Button onClick={failed.retry}>다시 시도</Button>
+        </div>
+      </RecordsWindowFrame>
+    )
+  }
+
+  if (!connectedMates?.length || !summary) {
     return (
       <RecordsWindowFrame>
         {mateCommentView}
@@ -449,7 +430,7 @@ export default function RecordsPage() {
         </nav>
       )}
 
-      {periodRecords.length === 0 ? (
+      {summary.sessions === 0 ? (
         <>
           {mateCommentView}
           <div className="records-block records-empty-box">
@@ -466,7 +447,7 @@ export default function RecordsPage() {
             <section className="records-stat-card records-stat-card--primary">
               <BlockTitle icon="clock">{summary.primaryLabel}</BlockTitle>
               <p className="records-stat-value">{duration(summary.primarySeconds)}</p>
-              {summary.cameraCaption && <p className="records-stat-sub">{summary.cameraCaption}</p>}
+              {summary.cameraSeconds > 0 && <p className="records-stat-sub">카메라로 함께한 시간 {duration(summary.cameraSeconds)}</p>}
             </section>
             <section className="records-stat-card">
               <BlockTitle icon="check">함께한 날</BlockTitle>
@@ -550,8 +531,8 @@ export default function RecordsPage() {
               onController={exposeBoardBenchmark}
               onSelectDay={(day) => {
                 setSelectedCellKey(day.key)
-                // A day with connections opens the same record card as a capsule in 내 메이트.
-                if (day.sessions > 0) openDayCard(day.key)
+                // A day with listed connections opens the same record card as a capsule in 내 메이트.
+                if (day.sessions > 0 && periodRecords.some((record) => !isDayRecord(record) && connectionDayKey(record) === day.key)) openDayCard(day.key)
               }}
               onSelectMonth={(month) => {
                 const key = `${range.startDay.slice(0, 4)}-${String(month + 1).padStart(2, '0')}-01`
@@ -564,7 +545,17 @@ export default function RecordsPage() {
               // Folded away (not removed) in the year, with the board's morph, so the block does not jump.
               <div className="records-day-detail-slot" data-collapsed={board.mode === 'year' || undefined} inert={board.mode === 'year'}>
                 <div className="records-day-detail-slot-inner">
-                  <CapsuleDayDetail selection={selectedDay} mateNameOf={mateNameOf} />
+                  <CapsuleDayDetail
+                    selection={selectedDay}
+                    mateNameOf={mateNameOf}
+                    renderRecord={(record) =>
+                      isDayRecord(record) ? (
+                        <DayRemainderRow record={record} mateName={mateNameOf(record)} />
+                      ) : (
+                        <RecordConnectionRow record={record} mateName={mateNameOf(record)} when="time" />
+                      )
+                    }
+                  />
                 </div>
               </div>
             )}
@@ -575,24 +566,14 @@ export default function RecordsPage() {
             <BlockTitle id="records-recent-title" icon="book">
               최근 연결
             </BlockTitle>
+            {/* 38 lists the newest five connections of the range (no full list or paging). */}
             <ul className="records-row-list">
-              {periodRecords.slice(0, visibleCount).map((record) => (
+              {(data.data?.recent ?? []).map((record) => (
                 <li key={record.id}>
                   <RecordConnectionRow record={record} mateName={mateNameOf(record)} />
                 </li>
               ))}
             </ul>
-            {periodRecords.length > visibleCount && (
-              <div className="records-more-wrap">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setVisibleCount((v) => v + 5)}
-                >
-                  더 보기
-                </Button>
-              </div>
-            )}
           </section>
         </>
       )}

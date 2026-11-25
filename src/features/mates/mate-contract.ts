@@ -1,5 +1,6 @@
 import type { ModelInfo } from '../../shared/api/types.ts'
 import { ApiError } from '../../shared/api/client.ts'
+import type { MateAgeRating } from './catalog.ts'
 
 /**
  * Mate preview model. `ModelInfo` (Cubism: `modelJsonUrl` + layout) plus the v2 (Aliving2D) runtime URLs.
@@ -29,6 +30,12 @@ export type MateDetailContent = {
   model?: MateModelInfo
   voiceSampleUrl?: string
   conversationRevision?: string
+  /** 31 `ageRating` (`ALL` · `ADULT`). */
+  ageRating?: MateAgeRating
+  /** 31 `comingSoon`: shown, but the connection is closed (16 answers 409 `MATE_COMING_SOON`); 46 '알림 받기' instead. */
+  comingSoon?: boolean
+  /** 31 `hasConversation`: earlier messages in the chat room (32). */
+  hasConversation?: boolean
 }
 export const resetScopes = ['messages', 'memory', 'intimacy', 'unlocks'] as const
 export type MateResetReceipt = {
@@ -81,6 +88,12 @@ export function checkedMateDetail(value: MateDetailContent, characterId: number)
   if (value.voiceSampleUrl !== undefined) {
     if (!assetUrl(value.voiceSampleUrl, true)) throw invalid()
     result.voiceSampleUrl = value.voiceSampleUrl
+  }
+  if (value.ageRating === 'all' || value.ageRating === 'adult') result.ageRating = value.ageRating
+  for (const key of ['comingSoon', 'hasConversation'] as const) {
+    if (value[key] === undefined) continue
+    if (typeof value[key] !== 'boolean') throw invalid()
+    result[key] = value[key]
   }
   return result
 }

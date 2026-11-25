@@ -72,6 +72,7 @@ function useFittingRows(fallback: number) {
 export function MateTimeColumn({
   totalSeconds,
   connections,
+  connectionCount,
   capsuleCount,
   newIds,
   affinity,
@@ -86,6 +87,8 @@ export function MateTimeColumn({
   totalSeconds: number
   /** Connections, oldest first (as the scene gets them). */
   connections: readonly CapsuleRecord[]
+  /** All connections with the mate (37 `connectionCount`); `connections` may hold only the newest of them. */
+  connectionCount?: number
   capsuleCount: number
   /** Connections new since the last visit. */
   newIds: readonly string[]
@@ -134,7 +137,7 @@ export function MateTimeColumn({
           <AnimatedDuration seconds={totalSeconds} />
         </p>
         <p className="mate-game-total-meta">
-          연결 <NumberCounter value={connections.length} />회 · 캡슐 <NumberCounter value={capsuleCount} />개
+          연결 <NumberCounter value={connectionCount ?? connections.length} />회 · 캡슐 <NumberCounter value={capsuleCount} />개
         </p>
       </section>
 
@@ -186,7 +189,7 @@ export function MateTimeColumn({
           icon="sparkle"
           note={
             <>
-              {connections.length > recent.length && <span className="mate-game-recent-total">전체 {connections.length}개</span>}
+              {(connectionCount ?? connections.length) > recent.length && <span className="mate-game-recent-total">전체 {connectionCount ?? connections.length}개</span>}
               {listToggle}
             </>
           }

@@ -48,6 +48,11 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     store.data.nextSessionId = REVIEW_SESSION_ID
     store.start(LOCAL_CHARACTER_ID)
   }
+  // The local mock's QA switches (local-demo/transport.ts): a full beta (4 · 6 → 403 BETA_FULL), a coming-soon 서도현.
+  try {
+    if (scenario.fault === 'beta-full') sessionStorage.setItem('capsule-local-beta-full', '1')
+    if (scenario.fault === 'coming-soon') sessionStorage.setItem('capsule-local-coming-soon', 'dohyun')
+  } catch { /* The review storage is in memory; nothing to do without it. */ }
   const local = createLocalTransport(store, original, location.origin)
   let syncFailures = scenario.fault === 'sync' ? 1 : 0
   let reportFailures = scenario.fault === 'server-ended-report' ? 1 : 0

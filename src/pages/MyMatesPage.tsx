@@ -6,7 +6,8 @@ import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
 import { availableMates, type AvailableMate } from '@/features/mates/catalog'
 import { chaerinArtwork, mateArtwork, matePortrait } from '@/features/mates/artwork'
-import { expressionCount, formatFirstMetDate, latestConnectedTimestamp, summarizeMateRecords, type MateExpressionUnlock } from '@/features/mates/my-mates-utils'
+import { expressionCount, formatFirstMetDate, type MateExpressionUnlock } from '@/features/mates/my-mates-utils'
+import { capsulesFromConnections, estimatedCapsuleCount, expressionUnlocks, useMyMates } from '@/features/mates/use-my-mates'
 import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate-features'
 import { expressionThumbnail } from '@/features/mates/expression-thumbnails'
 import { expressionBust } from '@/features/mates/expression-busts'
@@ -14,7 +15,7 @@ import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { MatePreview } from '@/features/mates/components/MatePreview'
 import { MateExpressionCollection } from '@/features/mates/components/MateExpressionCollection'
 import { MateSwitcher, type MateSwitcherItem } from '@/features/mates/components/MateSwitcher'
-import { capsuleRecordsFromStudyRecords, formatTogether, totalCapsuleSeconds } from '@/features/mates/capsule-jar/capsule-jar-data'
+import { formatTogether, totalCapsuleSeconds } from '@/features/mates/capsule-jar/capsule-jar-data'
 import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
 import type { CapsuleJarHandle } from '@/features/mates/capsule-jar/CapsuleJar'
 import { MateTimeColumn, type StageReward } from '@/features/mates/components/MateTimeColumn'
@@ -85,7 +86,9 @@ function cardArtFor(mate: AvailableMate) {
 }
 
 export default function MyMatesPage() {
-  const { home, activeSummary, status, mateDetails, loadMateDetail, mateUnlocks, mateRelationStats } = useBackend()
+  const { home, activeSummary, status, mateDetails, loadMateDetail } = useBackend()
+  // 37 내 메이트: totals, affinity, the expression collection and the latest connections, by launch mate.
+  const server = useMyMates()
   const { state } = useDemo()
   const [searchParams, setSearchParams] = useSearchParams()
   const [modelAttempt, setModelAttempt] = useState(0)
@@ -100,27 +103,27 @@ export default function MyMatesPage() {
   // Every development-only branch below starts with `import.meta.env.DEV` so production builds drop it entirely.
   const previewMates =
     import.meta.env.DEV && devSamples && searchParams.get('mates') === 'demo' ? devSamples.PREVIEW_MATES : null
-  const loading = status === 'loading' || isReviewMyMatesLoading()
+  const loading = status === 'loading' || (server.status === 'loading' && !server.data) || isReviewMyMatesLoading()
 
-  // Every open mate, the most recently connected first (the first one is shown when `?mate=` is absent).
+  // Every open mate, the most recently connected first (the first one is shown when `?mate=` is absent): a running
+  // connection first, then by 37 `lastConnectedAt`.
   const mates = useMemo(() => {
-    const isActive = (mate: AvailableMate) =>
-      Boolean(state.activeSession?.characterIds.includes(mate.characterId)) ||
+    const latest = (mate: AvailableMate) =>
+      state.activeSession?.mateId === mate.id || Boolean(state.activeSession?.characterIds.includes(mate.characterId)) ||
       String(activeSummary?.mateId) === mate.characterId
+        ? Number.MAX_SAFE_INTEGER
+        : server.byMate.get(mate.id)?.lastConnectedAt ?? 0
     return availableMates(home)
       .slice()
-      .sort(
-        (a, b) =>
-          latestConnectedTimestamp(b.characterId, state.records, isActive(b)) -
-          latestConnectedTimestamp(a.characterId, state.records, isActive(a)),
-      )
-  }, [home, state.activeSession, state.records, activeSummary])
+      .sort((a, b) => latest(b) - latest(a))
+  }, [home, state.activeSession, activeSummary, server.byMate])
 
   const requestedMateId = searchParams.get('mate')
   const previewMate = import.meta.env.DEV ? previewMates?.find((mate) => mate.id === requestedMateId) : undefined
   const selectedMate = (requestedMateId ? mates.find((mate) => mate.id === requestedMateId) : undefined) ?? mates[0]
   const selectedId = previewMate?.id ?? selectedMate?.id
   const detail = selectedMate ? mateDetails[selectedMate.id] : undefined
+  const mine = selectedMate ? server.byMate.get(selectedMate.id) : undefined
   // 「○○ 만나러 가기」 starts the connection right away, the same path as the home card's arrow (credits and an
   // ongoing connection are handled there); 「프로필 보기」 below it opens the mate's page.
   const meet = useConnectMate(selectedMate)
@@ -177,8 +180,9 @@ export default function MyMatesPage() {
     if (import.meta.env.DEV && previewMate && devSamples) {
       return devSamples.generateDummyCapsules(previewMate.count, { seed: previewMate.seed, idPrefix: previewMate.id })
     }
-    return selectedMate ? capsuleRecordsFromStudyRecords(state.records, selectedMate.characterId) : []
-  }, [previewMate, devSamples, selectedMate, state.records])
+    // 37 lists a mate's newest five connections: those are the jar's capsules (each opens its record card).
+    return capsulesFromConnections(mine?.recent ?? [])
+  }, [previewMate, devSamples, mine])
   const visit = useCapsuleVisit(capsuleVisitKey(state.profile.userId, selectedId ?? 'none'), capsules)
 
   if (CapsuleJarPreview && searchParams.get('capsules') === 'preview') {
@@ -213,6 +217,17 @@ export default function MyMatesPage() {
     )
   }
 
+  if (server.status === 'error' && !server.data) {
+    return (
+      <MyMatesWindowFrame>
+        <div className="my-mates-empty-box" role="alert">
+          <p className="my-mates-empty-title">내 메이트 정보를 불러오지 못했어요.</p>
+          <Button onClick={server.retry}>다시 시도</Button>
+        </div>
+      </MyMatesWindowFrame>
+    )
+  }
+
   if (!selectedMate || !selectedId) {
     return (
       <MyMatesWindowFrame>
@@ -225,26 +240,25 @@ export default function MyMatesPage() {
   }
 
   const mateName = previewMate?.name ?? selectedMate.name
-  const totalSeconds = totalCapsuleSeconds(capsules)
-  const summary = summarizeMateRecords(state.records, selectedMate.characterId, mateRelationStats?.[selectedMate.id])
-  const firstMetAt = previewMate ? capsules[0]?.startedAt ?? null : summary.firstMetAt
+  const totalSeconds = previewMate ? totalCapsuleSeconds(capsules) : mine?.totalConnectedSeconds ?? 0
+  const firstMetAt = previewMate ? capsules[0]?.startedAt ?? null : mine?.firstMetAt ?? null
 
   // Affinity: the server's stage when it sends one, sample data in development (mate-features.ts decides).
   // The stage is put on the one stage table (affinity-stages.ts) by its name.
   // Development only: `?affinity=1…5` puts the page at that stage with sample progress (the local mock tool sets it).
-  const serverStage = normalizeAffinityStage(summary.relation?.stage, summary.relation?.stageName)
+  const serverStage = normalizeAffinityStage(mine?.relation?.stage, mine?.relation?.stageName)
   const devStage = import.meta.env.DEV ? Number(searchParams.get('affinity')) : Number.NaN
   const relation: (Partial<StudySettlement> & { stage: number; stageName: string }) | null = features.affinity
     ? import.meta.env.DEV && devSamples && Number.isInteger(devStage) && devStage >= 1 && devStage <= 5
       ? devSamples.sampleRelation(devSamples.sampleSecondsForStage(devStage))
       : serverStage && !previewMate
-      ? { ...summary.relation, ...serverStage }
+      ? { ...mine?.relation, ...serverStage }
       : import.meta.env.DEV
         ? (devSamples?.sampleRelation(totalSeconds) ?? null)
         : null
     : null
   const expressions = features.expressions
-    ? ((!previewMate ? mateUnlocks?.[selectedMate.id]?.expressions : undefined) ??
+    ? ((!previewMate ? expressionUnlocks(mine) : undefined) ??
       (import.meta.env.DEV ? devSamples?.sampleUnlocks(relation?.stage ?? 1, firstMetAt ?? undefined, previewMate ? 'chaerin' : selectedMate.id).expressions : null) ??
       null)
     : null
@@ -318,7 +332,10 @@ export default function MyMatesPage() {
         }
       : null
 
-  const capsuleCount = capsules.reduce((sum, capsule) => sum + capsulesForConnection(capsule.durationSeconds), 0)
+  // The jar holds the newest five connections; the count covers all of them (37 totals, estimated past the five).
+  const capsuleCount = previewMate || !mine
+    ? capsules.reduce((sum, capsule) => sum + capsulesForConnection(capsule.durationSeconds), 0)
+    : estimatedCapsuleCount(mine)
   // The list toggle sits in the recent block's title row; the main action takes the column's full width.
   const listToggle = (
     <button type="button" className="my-mates-list-toggle" aria-pressed={listView} onClick={() => setListView(!listView)}>
@@ -377,6 +394,7 @@ export default function MyMatesPage() {
         <MateTimeColumn
           totalSeconds={totalSeconds}
           connections={capsules}
+          connectionCount={previewMate ? undefined : mine?.connectionCount ?? 0}
           capsuleCount={capsuleCount}
           newIds={visit.dropIds}
           affinity={affinity}

@@ -9,7 +9,8 @@ const finitePositive = (value: unknown): value is number =>
  * Maps the app's connection records to capsules, oldest first. Only connections that have ended by `now` count
  * (records/connection-day.ts, the same cutoff as the records page).
  *
- * Source: `useDemo().state.records` (the same list `summarizeMateRecords` and the records page read).
+ * Source: connection records (`useDemo().state.records`; the capsule preview and the tests). 내 메이트 itself reads 37
+ * (use-my-mates.ts `capsulesFromConnections`).
  * Only server-reported records count as connections. `durationSeconds` is the connection time (`studySeconds`)
  * because camera-measured together time is 0 for connections made without a camera, which would leave most capsules
  * at the minimum size. The line is the server's `closingLine`; it stays empty when the server sent none.

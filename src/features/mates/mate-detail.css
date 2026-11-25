@@ -465,3 +465,14 @@
     font-size: clamp(44px, 11vw, 64px);
   }
 }
+
+/* Coming soon (31 `comingSoon`): the note over 「공개 알림 받기」 (MateAlertButton). */
+.mate-alert-action { display: grid; gap: 10px; }
+.mate-alert-note { margin: 0; color: var(--color-muted); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); }
+/* Requested: no longer an action, so not violet (the design system keeps violet for actions and selection). */
+.mate-hero-actions .mate-alert-action .ui-button:disabled {
+  background: var(--color-disabled);
+  box-shadow: none;
+  color: var(--color-text-disabled);
+  opacity: 1;
+}
