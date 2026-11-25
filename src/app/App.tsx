@@ -13,7 +13,7 @@ import { BetaLegacyRedirect } from '@/app/components/BetaLegacyRedirect'
 import { PageNavigation } from '@/app/PageNavigation'
 import { saveStoredReferralCode } from '@/features/auth/referral-code'
 import { isLoginLayoutPath } from '@/features/auth/kakao-signup'
-import { TourCallRoute, TourLayout } from '@/features/tour/TourLayout'
+import { TourCallRoute, TourLayout, TourOverlay } from '@/features/tour/TourLayout'
 
 const RecordsPage = lazy(() => import('@/pages/RecordsPage'))
 const CreditsPage = lazy(() => import('@/pages/CreditsPage'))
@@ -126,6 +126,8 @@ export function App() {
           </Route>
         </Routes>
       </Suspense>
+      {/* Outside the keyed Suspense: the tour stays mounted while the address changes (src/features/tour). */}
+      <TourOverlay />
     </div>
   )
   return <MobileAccessGate>{content}</MobileAccessGate>
