@@ -93,6 +93,21 @@ export const SPOT_RADIUS = 18
 /** No hole: an empty one in the middle of the screen (the shades meet and cover it all). */
 export const closedSpot = (width: number, height: number): SpotRect => ({ left: Math.round(width / 2), top: Math.round(height / 2), width: 0, height: 0 })
 
+/** How far inside the screen's sides the lit edge stays (its 2px violet ring included). */
+export const SPOT_EDGE = 6
+
+/**
+ * The lit area kept inside the screen's left and right sides, so its violet edge shows all round: a target wider than the
+ * screen (the home hero's attendance path runs past the right edge at 1280 / 1440, UX review 9-1) is lit up to
+ * `SPOT_EDGE` from the side instead of being cut there. Top and bottom are left alone (a scroll brings them in).
+ */
+export function insideScreen(spot: SpotRect, width: number): SpotRect {
+  const left = Math.max(spot.left, SPOT_EDGE)
+  const right = Math.min(spot.left + spot.width, width - SPOT_EDGE)
+  if (right <= left) return spot
+  return { ...spot, left, width: right - left }
+}
+
 export type SpotTransforms = {
   top: string
   bottom: string

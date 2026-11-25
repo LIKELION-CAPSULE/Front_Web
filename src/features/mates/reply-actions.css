@@ -97,6 +97,9 @@
 .credit-short-notice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .credit-short-notice-invite { color: var(--color-muted); font-size: var(--text-caption); text-decoration: underline; text-underline-offset: 3px; }
 .credit-short-notice-invite:hover { color: var(--color-ink); }
+/* Opens in a new tab (CreditShortNotice): an arrow pointing up and out, as links that leave the page do. */
+.credit-short-notice-invite { display: inline-flex; align-items: center; gap: 3px; }
+.credit-short-notice-invite-icon { rotate: -45deg; }
 .voice-fallback-note { margin: 0 12px 8px; color: var(--color-subtle); font-size: var(--text-caption); }
 .voice-fallback-note { animation: voice-fallback-note 6s ease forwards; }
 @keyframes voice-fallback-note { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }

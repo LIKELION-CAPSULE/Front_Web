@@ -226,6 +226,9 @@
   .home-mate-badge--soon::before { width: 7px; height: 7px; border-radius: 999px; background: currentColor; opacity: 0.7; content: ''; }
 
   .home-mate-card-copy { position: relative; z-index: 1; padding: 20px 68px 20px 20px; }
+  /* A connectable card keeps a row under the copy for 「바로 연결」; the line itself runs the full width. */
+  .home-mate-card:has(> .home-mate-card-enter) .home-mate-card-copy { padding: 20px 20px 64px; }
+  .home-mate-card--upcoming .home-mate-card-copy, .home-mate-card[data-coming-soon] .home-mate-card-copy { padding-right: 20px; }
   .home-mate-card-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .home-mate-card-name h3 { margin: 0; font-size: 20px; font-weight: 700; }
   .home-mate-tag {
@@ -256,7 +259,21 @@
   }
   button.home-round-button:not(:disabled):hover { border-color: rgb(185 166 255 / 0.8); background: rgb(124 92 255 / 0.35); }
   .home-round-button[data-disabled], .home-round-button:disabled { opacity: 0.45; }
-  .home-mate-card-enter { position: absolute; right: 16px; bottom: 18px; z-index: 3; }
+  /* 「바로 연결」 (UX review 2-1): a labelled call control under the copy, not a bare `>` (which reads as "open"). */
+  .home-mate-card-enter {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 3;
+    gap: 6px;
+    width: auto;
+    height: 36px;
+    padding: 0 14px 0 12px;
+    font-size: var(--text-body-compact);
+    font-weight: 600;
+    line-height: 20px;
+    white-space: nowrap;
+  }
 
   .home-mate-card--failed { align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; }
   .home-mate-card--failed p { color: var(--color-muted); }

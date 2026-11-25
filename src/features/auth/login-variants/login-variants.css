@@ -226,10 +226,12 @@
 
 /* ---------- Half screen (container width) ---------- */
 @container login-variant (max-width: 959px) {
-  /* A taller stage on top: the mate gets room to read at this width (descendants, since a container query cannot style
-   * the container itself). */
+  /* The stage on top is kept short enough that the form's main action (카카오로 시작 · 동의하고 시작하기) shows in the
+   * first screen at 900×800, 768 and 390 wide (UX review 1-2); the mate still reads at this size. The dialogue box
+   * reserve shrinks with it. (Descendants, since a container query cannot style the container itself.) */
   .login-variant-root > * {
-    --login-stage-height: max(54dvh, 440px);
+    --login-stage-height: clamp(240px, 34dvh, 340px);
+    --login-dialogue-reserve: 64px;
   }
   /* Half screen: mate fills the top half, the form follows below and the page scrolls. */
   .login-variant-panel-wrap {

@@ -118,7 +118,8 @@ export default function TourCallPage() {
                   <CharacterSpeechBubble name={mate.name} text={greet} expanded variant="pill" />
                 </div>
               </section>
-              <section className="connection-self desktop-window" aria-label="내 화면">
+              {/* `call-self`: kept clear by 채린's line (tour subjects, ServiceTour avoidAround). */}
+              <section className="connection-self desktop-window" aria-label="내 화면" data-tour="call-self">
                 <div className="connection-self-titlebar">
                   <span className="connection-self-title">나</span>
                   <span className="connection-self-camera-state" aria-hidden="true">

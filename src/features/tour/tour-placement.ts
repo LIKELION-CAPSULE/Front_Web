@@ -1,7 +1,9 @@
 /**
  * Where 채린's line goes so it does not cover the page's own controls (service tour). Dependency-free: the controller
  * measures the screen and asks here. A candidate box costs the area it shares with each control near the target, with
- * the tour panel, and what falls off screen (weighted); the cheapest wins, the step's preferred side on a tie.
+ * the tour panel, and what falls off screen (weighted); the cheapest wins. Among the equally cheap, the one covering
+ * the least of the screen's subjects (the target itself, the step's other targets, headings — UX review 9-1) wins, then
+ * the step's preferred side.
  */
 
 export type Box = { left: number; top: number; right: number; bottom: number }
@@ -12,12 +14,28 @@ export type Point = { x: number; y: number }
 export type LabelSide = 'right-down' | 'left-down' | 'right-up' | 'left-up'
 export const LABEL_SIDES: readonly LabelSide[] = ['right-down', 'left-down', 'right-up', 'left-up']
 
+/** How far inside the screen's sides the line stays. */
+export const LABEL_EDGE = 16
+
+/**
+ * How far the label slides sideways to stay on screen (`screenWidth` given; service-tour.css
+ * `--service-tour-label-shift`): it sits above or below the arrow's row, so sliding never puts it over the arrow.
+ */
+export function labelShift(side: LabelSide, tip: Point, size: Size, screenWidth?: number): number {
+  if (!screenWidth) return 0
+  const left = side.startsWith('right') ? tip.x + 19 : tip.x - 8 - size.width
+  if (left + size.width > screenWidth - LABEL_EDGE) return Math.max(LABEL_EDGE - left, screenWidth - LABEL_EDGE - size.width - left)
+  if (left < LABEL_EDGE) return LABEL_EDGE - left
+  return 0
+}
+
 /**
  * Mirrors service-tour.css: right of the tip at +19px, left ending 8px before it; below at +27px; above ending 6px over
  * the target's top edge (`lift` = how far the tip sits below that edge), so a label above never covers the target's row.
+ * With `screenWidth`, slid sideways to stay on screen (labelShift).
  */
-export function labelBox(side: LabelSide, tip: Point, size: Size, lift = 0): Box {
-  const left = side.startsWith('right') ? tip.x + 19 : tip.x - 8 - size.width
+export function labelBox(side: LabelSide, tip: Point, size: Size, lift = 0, screenWidth?: number): Box {
+  const left = (side.startsWith('right') ? tip.x + 19 : tip.x - 8 - size.width) + labelShift(side, tip, size, screenWidth)
   const top = side.endsWith('down') ? tip.y + 27 : tip.y - lift - 6 - size.height
   return { left, top, right: left + size.width, bottom: top + size.height }
 }
@@ -28,7 +46,17 @@ export function overlap(a: Box, b: Box): number {
   return width > 0 && height > 0 ? width * height : 0
 }
 
-export type Avoid = { controls: readonly Box[]; panel?: Box | null; viewport: Size; margin?: number }
+export type Avoid = {
+  controls: readonly Box[]
+  panel?: Box | null
+  viewport: Size
+  margin?: number
+  /**
+   * What the line is explained over and should leave readable (the target, the step's other targets, headings). Only a
+   * tie-break: covering a control, the panel or the screen edge still costs first.
+   */
+  subjects?: readonly Box[]
+}
 
 export function cost(box: Box, avoid: Avoid): number {
   const margin = avoid.margin ?? 8
@@ -43,24 +71,48 @@ export function cost(box: Box, avoid: Avoid): number {
   return total
 }
 
-/** The cheapest of the boxes; the first one (the preferred place) wins a tie. */
+/** The area of the box over the subjects (see Avoid). */
+export function subjectCost(box: Box, avoid: Avoid): number {
+  let total = 0
+  for (const subject of avoid.subjects ?? []) total += overlap(box, subject)
+  return total
+}
+
+/**
+ * The cheapest of the boxes; among the equally cheap, the one over the least of the subjects; the first one (the
+ * preferred place) wins a tie.
+ */
 export function cheapest<T extends { box: Box }>(candidates: readonly T[], avoid: Avoid): T {
   let best = candidates[0]!
   let bestCost = cost(best.box, avoid)
+  let bestCover = subjectCost(best.box, avoid)
   for (const candidate of candidates.slice(1)) {
     const value = cost(candidate.box, avoid)
-    if (value < bestCost - 0.5) {
+    const cover = subjectCost(candidate.box, avoid)
+    if (value < bestCost - 0.5 || (Math.abs(value - bestCost) <= 0.5 && cover < bestCover - 0.5)) {
       best = candidate
       bestCost = value
+      bestCover = cover
     }
   }
   return best
 }
 
+/**
+ * A line with no target (the outro): where the arrow rests and the side of its line. The points are tried in order
+ * (viewport px, preferred first), each with every side; the cheapest place wins (see `cheapest`).
+ */
+export function chooseRestingPlace(points: readonly Point[], size: Size, avoid: Avoid, preferred: LabelSide = 'right-down'): { tip: Point; side: LabelSide } {
+  const sides = [preferred, ...LABEL_SIDES.filter((side) => side !== preferred)]
+  const candidates = points.flatMap((tip) => sides.map((side) => ({ tip, side, box: labelBox(side, tip, size, 0, avoid.viewport.width) })))
+  const { tip, side } = cheapest(candidates, avoid)
+  return { tip, side }
+}
+
 /** The cursor label's side for an arrow tip, preferred side first. */
 export function chooseLabelSide(tip: Point, size: Size, avoid: Avoid, preferred: LabelSide = 'right-down', lift = 0): LabelSide {
   const order = [preferred, ...LABEL_SIDES.filter((side) => side !== preferred)]
-  return cheapest(order.map((side) => ({ side, box: labelBox(side, tip, size, lift) })), avoid).side
+  return cheapest(order.map((side) => ({ side, box: labelBox(side, tip, size, lift, avoid.viewport.width) })), avoid).side
 }
 
 /**
