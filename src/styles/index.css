@@ -120,6 +120,8 @@
     align-items: center;
     gap: 48px;
   }
+  /* The header spans the window (no max width), 32px from each edge; the page content keeps `.page-container`. */
+  .page-container.site-header-inner { max-width: none; padding-inline: 32px; }
   .site-header-brand { justify-self: start; }
   .site-header-account { min-width: 0; justify-self: end; }
   .app-navigation {
@@ -187,12 +189,10 @@
   .app-footer-links { display: flex; flex-wrap: wrap; gap: 6px 22px; }
   .app-footer a { color: var(--color-subtle); transition: color 0.15s ease; }
   .app-footer a:hover { color: var(--color-ink); }
-  /* 「사용법 보기」 is a button (it starts the tour) dressed as the footer's links. */
+  /* 「사용법 보기」 (starts the tour) and the legal links (open a dialog) are buttons dressed as the footer's links. */
   .app-footer-links button { border: 0; background: none; padding: 0; font: inherit; color: var(--color-subtle); cursor: pointer; transition: color 0.15s ease; }
   .app-footer-links button:not(:disabled):hover { color: var(--color-ink); }
   .app-footer-links button:disabled { opacity: 0.5; cursor: default; }
-  .app-footer-social { display: flex; gap: 14px; }
-  .app-footer-social a { display: inline-flex; }
   .ui-button, .button-subtle { border: 0; }
   .button-primary { background: var(--color-primary); color: var(--color-on-solid); }
   .button-primary:not(:disabled, [aria-disabled='true']):hover { background: var(--color-primary-hover); }
@@ -212,8 +212,8 @@
   .button-danger-solid { background: var(--color-danger-solid); color: var(--color-on-solid); }
   .button-danger-solid:not(:disabled, [aria-disabled='true']):hover { background: var(--color-danger-solid-hover); }
   .button-danger-solid:not(:disabled, [aria-disabled='true']):active { background: var(--color-danger-solid-active); }
+  /* Every variant, primary included, goes to disabled + text-disabled (DESIGN_SYSTEM.md: never dim a button with opacity). */
   .ui-button:is(:disabled, [aria-disabled='true']):not([data-loading]), .button-subtle:disabled { background: var(--color-disabled); color: var(--color-text-disabled); opacity: 1; }
-  .button-primary:is(:disabled, [aria-disabled='true']):not([data-loading]) { background: var(--color-primary); color: var(--color-on-solid); opacity: 0.45; }
   .button-ghost:is(:disabled, [aria-disabled='true']):not([data-loading]) { background: transparent; }
   .ui-button[data-loading] { position: relative; cursor: wait; }
   .ui-button-label { display: inline-flex; align-items: center; justify-content: center; gap: inherit; opacity: 0; }
@@ -1268,4 +1268,8 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+@media (max-width: 900px) {
+  .page-container.site-header-inner { padding-inline: 20px; }
 }

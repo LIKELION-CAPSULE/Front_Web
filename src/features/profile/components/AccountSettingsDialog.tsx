@@ -113,8 +113,9 @@ export default function AccountSettingsDialog({
   function selectView(next: AccountView, focusTab = false) {
     setView(next)
     main.current?.scrollTo({ top: 0 })
-    if (focusTab) {
-      document.getElementById(`${prefix}-tab-${next}`)?.focus()
+    // 보안 keeps the focus on its tab: the withdrawal field below is open from the start and must never take it.
+    if (focusTab || next === 'security') {
+      document.getElementById(`${prefix}-tab-${next}`)?.focus({ preventScroll: true })
     } else if (document.activeElement instanceof HTMLElement && document.activeElement.getAttribute('role') === 'tab') {
       document.activeElement.blur()
     }
@@ -207,25 +208,30 @@ export default function AccountSettingsDialog({
               />
             </section>
 
-            <div ref={main} className="account-settings-main" hidden={view === 'profile'}>
-              <section
-                role="tabpanel"
-                id={`${prefix}-panel-settings`}
-                aria-labelledby={`${prefix}-tab-settings`}
-                hidden={view !== 'settings'}
-                className="account-settings-panel"
-              >
-                {view === 'settings' && <ConnectionSettingsPanel />}
-              </section>
-              <section
-                role="tabpanel"
-                id={`${prefix}-panel-security`}
-                aria-labelledby={`${prefix}-tab-security`}
-                hidden={view !== 'security'}
-                className="account-settings-panel"
-              >
-                {view === 'security' && <AccountSecurityPanel busy={busy} onBusyChange={setBusy} />}
-              </section>
+            <div className="account-settings-main" hidden={view === 'profile'}>
+              {/* The title stays above the scrolling rows, beside the close button, so nothing scrolls under the
+                  button (the panels no longer carry their own title). */}
+              <h2 className="account-settings-title account-settings-main-title">{view === 'security' ? '보안' : '설정'}</h2>
+              <div ref={main} className="account-settings-main-scroll">
+                <section
+                  role="tabpanel"
+                  id={`${prefix}-panel-settings`}
+                  aria-labelledby={`${prefix}-tab-settings`}
+                  hidden={view !== 'settings'}
+                  className="account-settings-panel"
+                >
+                  {view === 'settings' && <ConnectionSettingsPanel />}
+                </section>
+                <section
+                  role="tabpanel"
+                  id={`${prefix}-panel-security`}
+                  aria-labelledby={`${prefix}-tab-security`}
+                  hidden={view !== 'security'}
+                  className="account-settings-panel"
+                >
+                  {view === 'security' && <AccountSecurityPanel busy={busy} onBusyChange={setBusy} />}
+                </section>
+              </div>
             </div>
           </div>
         </div>

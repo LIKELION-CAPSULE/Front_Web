@@ -4,6 +4,7 @@ import { speechPace } from '@/features/session/speech-pace'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import type { MateComment } from './mate-comment'
 import './mate-comment.css'
+import { AiCharacterBadge } from '@/shared/ui/AiCharacterBadge'
 
 /**
  * The mate's one-line comment on the records page: avatar + glass speech bubble.
@@ -39,8 +40,11 @@ export function MateCommentBubble({
         </span>
       )}
       <div className="records-mate-comment-bubble" data-typing={!isFinished || undefined} onClick={isFinished ? undefined : skip}>
-        <span className="records-mate-comment-name" aria-hidden="true">
-          {mateName}
+        <span className="records-mate-comment-head">
+          <span className="records-mate-comment-name" aria-hidden="true">
+            {mateName}
+          </span>
+          <AiCharacterBadge />
         </span>
         <p className="records-mate-comment-text">
           <span className="sr-only">{comment.text}</span>

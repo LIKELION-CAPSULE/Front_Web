@@ -179,7 +179,7 @@ export default function MateDetailPage() {
 
             {loadMateDetail && !detail && !error && (
               <p role="status" className="mate-hero-status">
-                캐릭터를 불러오고 있어요.
+                메이트를 불러오고 있어요.
               </p>
             )}
             {error && (

@@ -45,8 +45,8 @@ const login = [fill('input[name="email"]', 'review@example.invalid'), fill('inpu
 const signup = [fill('input[name="email"]', 'review@example.invalid'), fill('input[name="password"]', 'Review-only-2026!'), fill('input[name="confirmPassword"]', 'Review-only-2026!'), fill('input[name="nickname"]', '문구 검토'), ...fillBirthDate('2000-01-01'), { click: '', selector: 'input[name="agreeTerms"]' }, { click: '', selector: 'input[name="agreePrivacy"]' }, click('회원가입'), { wait: '이메일 인증' }] satisfies ReviewStep[]
 const account = [click('계정 설정 열기')] satisfies ReviewStep[]
 const security = [...account, click('보안')] satisfies ReviewStep[]
-const withdrawOpen = [...security, { click: '회원탈퇴', selector: '[data-withdraw-trigger]' }] satisfies ReviewStep[]
-const withdraw = [...withdrawOpen, fill('input[name="withdrawalConfirmation"]', WITHDRAWAL_CONFIRMATION)] satisfies ReviewStep[]
+// The withdrawal confirmation is open from the start on the security tab (no button to unfold it).
+const withdraw = [...security, fill('input[name="withdrawalConfirmation"]', WITHDRAWAL_CONFIRMATION)] satisfies ReviewStep[]
 const passwordRequest = [...security, fill('input[name="email"]', 'review@example.invalid'), click('재설정 링크 받기')] satisfies ReviewStep[]
 
 export const reviewScenarios: ReviewScenario[] = [
@@ -89,7 +89,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'onboarding-loading', group: '온보딩·홈', title: '프로필 선택 로딩', path: '/onboarding', onboarding: true, fault: 'avatars-pending', loading: 'onboarding', note: '계정 확인 후 아바타 데이터 대기' },
   { id: 'onboarding-beta', group: '온보딩·홈', title: '카카오 가입 · 생년월일', path: '/onboarding', onboarding: true, accountContract: true, note: '신규 계정 계약 모의 포트: 생년월일 입력·아바타 저장' },
   { id: 'email-onboarding', group: '온보딩·홈', title: '이메일 가입 · 아바타 선택', path: '/onboarding', onboarding: true, accountContract: true, note: '모의 포트에 가입 시 생년월일이 저장된 경우 재입력 없음' },
-  { id: 'onboarding-error', group: '온보딩·홈', title: '온보딩 저장 실패', path: '/onboarding', onboarding: true, accountContract: true, fault: 'profile', steps: [...fillBirthDate('2000-01-01'), click('이 모습으로 시작하기')], note: '신규 계정 계약 모의 포트: 저장 실패·입력 유지' },
+  { id: 'onboarding-error', group: '온보딩·홈', title: '온보딩 저장 실패', path: '/onboarding', onboarding: true, accountContract: true, fault: 'profile', steps: [...fillBirthDate('2000-01-01'), click('다음'), click('시작하기')], note: '신규 계정 계약 모의 포트: 저장 실패·입력 유지' },
   { id: 'home-first', group: '온보딩·홈', title: '홈 · 첫 방문', path: '/', note: '캡슐 메이트 탐색·서버 출시 메이트 목록' },
   { id: 'home-tutorial', group: '온보딩·홈', title: '홈 · 새 3단계 사용법', path: '/?tutorial=1', note: '최종 문서의 메이트 고르기·연결하기·연결 기록. 임의 대사와 미연동 기능 안내 없음' },
   { id: 'home-return', group: '온보딩·홈', title: '홈 · 재방문', path: '/', returning: true, note: '오늘 연결 시간·메이트 탐색' },
@@ -109,7 +109,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'connection-record-error', group: '메이트·연결', title: '연결 기록 · 조회 실패', path: '/connections/9001', fault: 'report', note: '같은 창 안 오류 안내·다시 시도·홈 이동' },
   { id: 'connection-model-missing', group: '메이트·연결', title: '연결 · 모델 없음', path: '/connect/chaerin', fault: 'model-missing', steps: [click('연결하기')], note: '다른 모델이나 사진으로 연결 성공을 대신하지 않음' },
   { id: 'connection-model-ended-retry', group: '메이트·연결', title: '연결 · 모델 실패 뒤 서버 종료', path: '/connect/chaerin', fault: 'model-ended-retry', steps: [click('연결하기')], note: '모델 실패 뒤 재개하면 SESSION_ENDED. 종료된 임시 연결 제거·기록 조회·새 ID로 연결' },
-  { id: 'connection-camera-error', group: '메이트·연결', title: '연결 · 카메라 거절', path: '/connect/chaerin', steps: [click('연결하기'),click('카메라'),click('카메라 켜기')], note: '카메라 권한 거절 후 연결 유지' },
+  { id: 'connection-camera-error', group: '메이트·연결', title: '연결 · 카메라 거절', path: '/connect/chaerin', steps: [click('연결하기'), click('카메라 켜기')], note: '카메라 권한 거절 후 연결 유지' },
   { id: 'connection-message-error', group: '메이트·연결', title: '연결 · 답장 실패', path: '/connect/chaerin', fault: 'message', steps: [click('연결하기'),fill('textarea','검토 메시지'),click('메시지 보내기')], note: '입력 유지·재시도' },
   { id: 'connection-finish', group: '메이트·연결', title: '연결 · 끊기 확인', path: '/connect/chaerin', steps: [click('연결하기'),click('연결 끊기')], note: '끊기·계속하기 (전용 끊기 멘트 없음)' },
   { id: 'connection-finish-with-line', group: '메이트·연결', title: '연결 · 끊기 확인(전용 멘트)', path: '/connect/chaerin', farewellLine: '잠깐 쉬고 와도 괜찮아. 여기서 기다리고 있을게.', steps: [click('연결하기'),click('연결 끊기')], note: '전용 끊기 멘트 필드가 있을 때만 말풍선 표시' },
@@ -156,16 +156,15 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'account-profile-nocontract', group: '계정·공통', title: '계정 설정 · 프로필(계약 없음)', path: '/', steps: account, note: 'saveBetaProfile 없음: 호칭·나에 대해 숨김' },
   { id: 'account-narrow', group: '계정·공통', title: '계정 설정 · 좁은 창 가로 탭', path: '/', accountContract: true, steps: account, note: '720px 미만 컨테이너에서 가로 탭·프로필 하단 로그아웃 전환' },
   { id: 'account-settings', group: '계정·공통', title: '계정 설정 · 설정', path: '/?account=settings', note: '통화 기기·PIP·대화 비용 3묶음. 장치 목록 조회 시 권한 요청 없음' },
-  { id: 'account-security', group: '계정·공통', title: '계정 설정 · 보안', path: '/', steps: security, note: '이메일 미리 채움·접힌 회원탈퇴 안내' },
-  { id: 'account-withdraw-open', group: '계정·공통', title: '계정 설정 · 보안(탈퇴 펼침)', path: '/', steps: withdrawOpen, note: '회원탈퇴 버튼 클릭 후 확인 카드 펼침' },
+  { id: 'account-security', group: '계정·공통', title: '계정 설정 · 보안', path: '/', steps: security, note: '이메일 미리 채움·처음부터 펼친 회원탈퇴 확인 카드(포커스는 입력칸으로 가지 않음)' },
   { id: 'account-password-edit', group: '계정·공통', title: '보안 · 재설정 이메일 입력', path: '/', steps: security, note: '보안 탭에서 바로 보이는 이메일 입력·재설정 링크 요청' },
   { id: 'account-password-requested', group: '계정·공통', title: '보안 · 재설정 메일 접수', path: '/', steps: passwordRequest, note: '가상 202 응답·실제 메일 발송 없음' },
   { id: 'account-password-error', group: '계정·공통', title: '보안 · 재설정 메일 요청 실패', path: '/', fault: 'reset-request', steps: passwordRequest, note: '요청 실패·입력 유지·재시도' },
   { id: 'account-password-pending', group: '계정·공통', title: '보안 · 재설정 메일 요청 중', path: '/', fault: 'reset-request-pending', steps: passwordRequest, note: '로딩 스피너·중복 요청·탈퇴·닫기 방지' },
   { id: 'account-logout', group: '계정·공통', title: '계정 설정 · 로그아웃 버튼', path: '/', steps: account, note: '좌측 하단의 로그아웃 실행 버튼' },
   { id: 'account-logout-error', group: '계정·공통', title: '계정 설정 · 로그아웃 실패', path: '/', fault: 'logout', steps: [...account, { click: '로그아웃', selector: 'button[data-account-logout]' }], note: '좌측 하단의 실패 안내·재시도' },
-  { id: 'withdraw', group: '계정·공통', title: '회원탈퇴 확인', path: '/', steps: withdrawOpen, note: '보안 탭의 탈퇴 확인 카드·문장 입력·취소·탈퇴' },
-  { id: 'withdraw-incorrect', group: '계정·공통', title: '탈퇴 · 확인 문장 불일치', path: '/', steps: [...withdrawOpen, fill('input[name="withdrawalConfirmation"]', '탈퇴합니다')], note: '지정한 문장과 다르면 탈퇴 버튼 비활성화' },
+  { id: 'withdraw', group: '계정·공통', title: '회원탈퇴 확인', path: '/', steps: security, note: '보안 탭의 탈퇴 확인 카드·문장 입력·취소(입력 지우기)·탈퇴' },
+  { id: 'withdraw-incorrect', group: '계정·공통', title: '탈퇴 · 확인 문장 불일치', path: '/', steps: [...security, fill('input[name="withdrawalConfirmation"]', '탈퇴합니다')], note: '지정한 문장과 다르면 탈퇴 버튼 비활성화' },
   { id: 'withdraw-conflict', group: '계정·공통', title: '탈퇴 · 진행 중 공부', path: '/', fault: 'withdraw-conflict', steps: [...withdraw, click('회원탈퇴')], note: '409·공부를 먼저 마치라는 안내' },
   { id: 'withdraw-error', group: '계정·공통', title: '탈퇴 실패', path: '/', fault: 'withdraw', steps: [...withdraw, click('회원탈퇴')], note: '서버 오류·계정 유지' },
   { id: 'withdraw-pending', group: '계정·공통', title: '탈퇴 처리 중', path: '/', fault: 'withdraw-pending', steps: [...withdraw, click('회원탈퇴')], note: '로딩·중복 클릭·닫기 방지' },

@@ -4,13 +4,13 @@ import { awayIntensity, escalateAway, eventQueued, REACTION_HOLD_MS, takeHeldRea
 
 const away = (): EventFlow => ({ revision: 3, away: { eventId: 41, at: 0, intensity: 1 } })
 
-test('motion events neither cancel reactions nor reset the away escalation', () => {
+test('IDLE_TALK neither cancels reactions nor resets the away escalation', () => {
   let flow = away()
-  for (const type of ['DROWSY', 'YAWN', 'WAVE', 'HEAD_TURN']) flow = eventQueued(flow, type)
+  flow = eventQueued(flow, 'IDLE_TALK')
   assert.deepEqual(flow, away())
   let step = escalateAway(flow, 60_000)
   assert.equal(step.intensity, 2)
-  flow = eventQueued(step.flow, 'YAWN')
+  flow = eventQueued(step.flow, 'IDLE_TALK')
   step = escalateAway(flow, 300_000)
   assert.equal(step.intensity, 3)
   assert.equal(escalateAway(step.flow, 400_000).intensity, null, 'each level is requested once')
@@ -18,7 +18,7 @@ test('motion events neither cancel reactions nor reset the away escalation', () 
 
 test('state events supersede earlier reactions, and only AWAY keeps the absence', () => {
   assert.deepEqual(eventQueued(away(), 'AWAY'), { revision: 4, away: away().away })
-  for (const type of ['RETURN', 'BREAK', 'FOCUS']) assert.deepEqual(eventQueued(away(), type), { revision: 4, away: null })
+  for (const type of ['RETURN', 'PRESENT']) assert.deepEqual(eventQueued(away(), type), { revision: 4, away: null })
   assert.deepEqual(escalateAway(eventQueued(away(), 'RETURN'), 600_000).intensity, null)
 })
 

@@ -1,3 +1,4 @@
+import { AiCharacterBadge } from '@/shared/ui/AiCharacterBadge'
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { LegalDocumentBody } from '@/features/auth/components/LegalDocumentBody'
@@ -151,6 +152,7 @@ function MobileNoticeScreen() {
                 draggable={false}
               />
             </div>
+            <AiCharacterBadge className="mobile-notice-ai" />
 
             <h1 id={headingId} className="mobile-notice-title">
               캡슐은 PC에서 만날 수 있어요
@@ -164,7 +166,7 @@ function MobileNoticeScreen() {
                 <p className="mobile-notice-invite-code">
                   {inviter ? `${inviter}님이 초대했어요 · 코드 ${code}` : `초대 코드 · ${code}`}
                 </p>
-                <p className="mobile-notice-invite-sub">PC에서 가입하면 둘 다 1,000 크레딧</p>
+                <p className="mobile-notice-invite-sub">PC에서 가입하고 첫 연결을 마치면 둘 다 1,000 크레딧</p>
               </div>
             )}
 

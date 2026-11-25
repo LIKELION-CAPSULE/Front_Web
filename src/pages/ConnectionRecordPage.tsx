@@ -12,6 +12,7 @@ import { HeaderAccount } from '@/app/components/HeaderAccount'
 import { SiteHeader } from '@/app/components/SiteHeader'
 import { CapsuleRecordCard, CapsuleRecordLayout } from '@/features/reports/components/CapsuleRecordCard'
 import { recordAmountText, recordModeLabel } from '@/features/reports/capsule-record'
+import { reportSettlement } from '@/features/backend/adapters'
 import { formatNextStageCaption, resolveStageProgress } from '@/features/mates/affinity-progress'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
@@ -45,7 +46,7 @@ export default function ConnectionRecordPage() {
       ? mates[0]
       : undefined
   const profile = record
-    ? matchedMate ?? mateProfileByName(record.characterName ?? record.serverReport?.character?.name)
+    ? matchedMate ?? mateProfileByName(record.characterName ?? record.serverReport?.mate?.name)
     : matchedMate
 
   const mateId = matchedMate?.id
@@ -134,7 +135,7 @@ export default function ConnectionRecordPage() {
   const name = profile.name
   const mate = matchedMate
   const report = record.serverReport
-  const relation = report?.relation
+  const relation = reportSettlement(report)
   const recordLevelUp = Boolean(relation?.levelUp && relation.stageName?.trim())
   const levelUp = devLevelUp ?? recordLevelUp
   // A forced stage-up (dev only) borrows the wireframe's stages when the record has none.
@@ -187,14 +188,14 @@ export default function ConnectionRecordPage() {
             />
           }
           quote={report?.closingLine?.trim() || undefined}
-          modeLabel={recordModeLabel(report?.mode)}
+          modeLabel={recordModeLabel(undefined /* 22 · 23 have no `mode` yet (backend request) */)}
           endedAt={record.endedAt}
           stage={stage}
           levelUp={levelUp}
           stats={{
             togetherSeconds: record.cameraFocus ? focusDetectedSeconds(record) : null,
             connectionSeconds: record.studySeconds,
-            dialogueCount: typeof report?.dialogueCount === 'number' ? report.dialogueCount : undefined,
+            dialogueCount: typeof report?.messageCount === 'number' ? report.messageCount : undefined,
           }}
           nextStageCaption={formatNextStageCaption(relation, recordAmountText) ?? undefined}
           stageProgress={stageProgress ?? undefined}

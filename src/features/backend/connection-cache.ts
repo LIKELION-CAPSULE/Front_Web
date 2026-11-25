@@ -14,17 +14,19 @@ function camera(value: unknown): FocusTotals | undefined {
   return { observedMs: value.observedMs, focusedMs: value.focusedMs, returns: value.returns }
 }
 
-/** Cached reports must retain their real API identity. Demo metrics never become beta history. */
+/**
+ * Cached reports must retain their real API identity. Demo metrics never become beta history.
+ * Reports cached before 11-25 (`sessionId` · `character`) no longer match the record shape and are dropped.
+ */
 export function serverRecords(value: unknown): StudyRecord[] {
   if (!Array.isArray(value)) return []
   return value.flatMap(item => {
     if (!object(item) || item.dataSource === 'dummy' || !numeric(item.id) || !object(item.serverReport)) return []
     const dto = item.serverReport as ReportResponse
-    if (String(dto.sessionId) !== item.id || !dto.character || !numeric(String(dto.character.id)) ||
-      !Array.isArray(item.characterIds) || item.characterIds.length !== 1 || item.characterIds[0] !== String(dto.character.id) ||
-      typeof item.roomId !== 'string' || !(numeric(item.roomId) || item.roomId === `report-${item.id}`)) return []
+    if (String(dto.connectionId) !== item.id || !dto.mate || !numeric(String(dto.mate.id)) ||
+      !Array.isArray(item.characterIds) || item.characterIds.length !== 1 || item.characterIds[0] !== String(dto.mate.id)) return []
     try {
-      const result = report(dto, item.roomId)
+      const result = report(dto)
       if (result.endedAt < result.startedAt) return []
       result.cameraFocus = camera(item.cameraFocus)
       return [result]

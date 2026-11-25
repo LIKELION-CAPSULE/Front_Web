@@ -1,6 +1,9 @@
 import type { HomeResponse } from '../../shared/api/types.ts'
 
-/** `all`: 전연령. `15`: 15세 이용가. The login screen shows `all` mates only. */
+/**
+ * `all`: 전연령. `15`: 15세 이용가. Both launch mates are `all` (서도현 moved from 15 to 전연령, user decision 2026-11-25);
+ * `15` and its badge (home card, MateCard) stay for a later age-rated mate. The login screen shows `all` mates only.
+ */
 export type MateAgeRating = 'all' | '15'
 
 export type MateProfile = {
@@ -33,16 +36,19 @@ export function ageRatingLabel(rating: MateAgeRating | undefined): string {
  * world and keyword book of each persona live on the server; only display copy is kept here.
  */
 export const launchMates: readonly MateProfile[] = [{
+  // Persona 2026-11-25 (team template; name tag 강채린). 전연령 by user decision (the template says 15+). No romance:
+  // a classmate and after-school study partner.
   id: 'chaerin',
   name: '채린',
-  introduction: '시험기간에 같이 있는 귀여운 여고생',
+  introduction: '남들한텐 차갑지만 너한테만 따뜻한 갸루 짝꿍',
   description: '',
-  role: '당신은 채린의 같은 반 친구예요',
-  intro: '',
+  role: '함께 공부하는 학생',
+  intro: '모든 수업이 끝나고 교실에 남아서 자습을 하는 상황',
+  firstLine: '내가 어쩌다가 너랑 단둘이 공부를 하게 됐지… 야! 책이나 봐!',
+  farewellLine: '내일도 늦으면 딸기우유 쏘는 거다. …조심히 가.',
   tags: [],
   ageRating: 'all',
-  relationTag: '연애형',
-  tagline: '시간이 지나도, 변하지 않는 마음이 있어요.',
+  relationTag: '짝꿍형',
 }, {
   // Model bundle `seojin` (local-assets/seojin, src/assets/characters/seojin); the persona's name is 서도현.
   id: 'dohyun',
@@ -54,7 +60,7 @@ export const launchMates: readonly MateProfile[] = [{
   firstLine: '왔냐. 네 자리 맡아놨으니까 앉아. …뭐 해, 공부 안 하고.',
   farewellLine: '벌써 가냐. …그래, 내일 보자. 조심히 가고.',
   tags: [],
-  ageRating: '15',
+  ageRating: 'all',
   relationTag: '소꿉친구형',
 }]
 
@@ -64,17 +70,23 @@ export function mateProfile(id: string | undefined): MateProfile | undefined {
 }
 
 export type AvailableMate = MateProfile & {
-  /** Compatibility with the currently published room/session API; never invented locally. */
+  /**
+   * The server mate id (11 `mates[].id` = character id = 16 `mateId`). The app still keys rooms and characters
+   * separately, so both carry the same value since 11-25.
+   */
   roomId: string
   characterId: string
   image?: string
+  /** 11 `comingSoon`: shown, but 16 refuses it (409 `MATE_COMING_SOON`). */
+  comingSoon?: boolean
 }
 
-// Temporary display mapping explicitly requested by the user on 2026-11-22.
-// Server IDs, model URLs and source responses keep their original identity.
+// Display mapping of server names to the front-end catalogue (user decisions 2026-11-22 · 2026-11-25).
+// Server IDs, model URLs and source responses keep their original identity. 서진 is the server name of the boy mate
+// whose persona is 서도현 here (name to be settled with the backend/PM; docs/API_FRONT_GAP_2026-11-25.md §17).
 const sourceNames: Readonly<Record<string, readonly string[]>> = {
   chaerin: ['채린', '말포이 TS', '말포이'],
-  dohyun: ['서도현', '도현'],
+  dohyun: ['서도현', '도현', '서진'],
 }
 const normalizedName = (name: string | undefined) => name?.replace(/\s+/g, '').toLocaleLowerCase('ko-KR')
 export function mateProfileByName(name: string | undefined) {
@@ -84,31 +96,27 @@ export function mateProfileByName(name: string | undefined) {
 
 const validId = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 
-/** Do not supplement the server catalogue with the old nine-room demo catalogue. */
+/**
+ * The launch mates found in 11 `/home` `mates[]`, in catalogue order. Each profile takes the first server mate under its
+ * preferred source name (채린 before the old 말포이 entry); among several with that name an open one wins over a coming-soon
+ * one, then the server order (서진 id 2 before id 3). Never supplemented with the old demo catalogue.
+ */
 export function availableMates(home: HomeResponse | null): AvailableMate[] {
   const result: AvailableMate[] = []
+  const cards = (home?.mates ?? []).filter(card => validId(card.id) && card.name)
   for (const profile of launchMates) {
-    // Prefer a real Chaerin entry when both the new and temporary source exist.
     for (const sourceName of sourceNames[profile.id] ?? [profile.name]) {
-      for (const room of home?.rooms ?? []) {
-        if (!validId(room.id)) continue
-        const character = room.characters?.find(value => normalizedName(value.name) === normalizedName(sourceName) && validId(value.id))
-        if (!character || !validId(character.id)) continue
-        const farewellLine =
-          typeof (character as { farewellLine?: unknown }).farewellLine === 'string' &&
-          (character as { farewellLine: string }).farewellLine.trim()
-            ? (character as { farewellLine: string }).farewellLine.trim()
-            : profile.farewellLine
-        result.push({
-          ...profile,
-          ...(farewellLine ? { farewellLine } : {}),
-          roomId: String(room.id),
-          characterId: String(character.id),
-          image: character.profileImageUrl,
-        })
-        break
-      }
-      if (result.some(value => value.id === profile.id)) break
+      const matches = cards.filter(card => normalizedName(card.name) === normalizedName(sourceName))
+      const card = matches.find(value => !value.comingSoon) ?? matches[0]
+      if (!card) continue
+      result.push({
+        ...profile,
+        roomId: String(card.id),
+        characterId: String(card.id),
+        ...(card.cardImageUrl ? { image: card.cardImageUrl } : {}),
+        ...(card.comingSoon ? { comingSoon: true } : {}),
+      })
+      break
     }
   }
   return result

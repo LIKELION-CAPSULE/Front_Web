@@ -15,7 +15,7 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
   const latest = state.records.find(record => !record.id.startsWith('sample-'))
   const { activeSummary, home } = useBackend()
   const room = getStudyRooms()[0]
-  const active = state.activeSession ?? (activeSummary?.sessionId ? { id: String(activeSummary.sessionId) } : null)
+  const active = state.activeSession ?? (activeSummary?.connectionId ? { id: String(activeSummary.connectionId) } : null)
   const returning = !!active || !state.firstVisit || !!latest
   const copy = active ? welcomeCopy.active : returning ? welcomeCopy.returning : welcomeCopy.fresh
   const preparationPath = room ? `/rooms/${room.id}/prepare` : '/'
@@ -45,7 +45,7 @@ export function StudyWelcomeBanner({ onExplore }: { onExplore: () => void }) {
               {returning && `${state.profile.name}님, `}
               {copy.description}
             </p>
-            {home?.todayStudySeconds !== undefined && <p className="mt-3 text-body-compact text-muted">오늘 함께 공부한 시간 {Math.floor(home.todayStudySeconds / 60)}분</p>}
+            {home?.todayConnectedSeconds !== undefined && <p className="mt-3 text-body-compact text-muted">오늘 함께 공부한 시간 {Math.floor(home.todayConnectedSeconds / 60)}분</p>}
             <div className="welcome-actions">
               {returning ? (
                 <ButtonLink

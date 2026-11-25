@@ -19,7 +19,7 @@ test('beta account operations preserve birth dates, validate responses, and reje
     let data: unknown
     if (path === '/me' && init?.method === 'PATCH') { nickname = String(body.nickname); data = { ...me(), userId: wrongProfileUser ? 99 : userId } }
     else if (path === '/me') data = me()
-    else if (path === '/home') data = { rooms: [] }
+    else if (path === '/home') data = { mates: [] }
     else if (path === '/avatars') data = { avatars: [] }
     else throw new Error(`Unexpected API request: ${path}`)
     return new Response(JSON.stringify({ success: true, data }), { headers: { 'content-type': 'application/json' } })

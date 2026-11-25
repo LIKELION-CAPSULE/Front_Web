@@ -9,9 +9,9 @@ import { legacyBetaDestination } from '../src/features/mates/legacy-destination.
 import { removeAccountSnapshots } from '../src/features/auth/account-storage.ts'
 import { launchMates, type AvailableMate } from '../src/features/mates/catalog.ts'
 
-const dto = { sessionId:9001,character:{id:201,name:'채린'},startedAt:'2026-11-22T03:00:00Z',endedAt:'2026-11-22T03:30:00Z',studySeconds:1500,presentSeconds:1380,awaySeconds:120,returnCount:2,closingLine:'서버 대사' }
-const actual = () => ({...report(dto,'101'),cameraFocus:{observedMs:1500000,focusedMs:1380000,returns:2}})
-const mate:AvailableMate = {...launchMates[0]!,roomId:'101',characterId:'201'}
+const dto = { connectionId:9001,mate:{id:201,name:'채린'},startedAt:'2026-11-22T03:00:00Z',endedAt:'2026-11-22T03:30:00Z',connectedSeconds:1500,presentSeconds:1380,cameraOnSeconds:1450,awaySeconds:120,returnCount:2,closingLine:'서버 대사' }
+const actual = () => ({...report(dto),cameraFocus:{observedMs:1500000,focusedMs:1380000,returns:2}})
+const mate:AvailableMate = {...launchMates[0]!,roomId:'201',characterId:'201'}
 function storage() {
   const values=new Map<string,string>()
   return {values,get length(){return values.size},key:(i:number)=>[...values.keys()][i]??null,getItem:(key:string)=>values.get(key)??null,setItem:(key:string,value:string)=>{values.set(key,value)},removeItem:(key:string)=>{values.delete(key)}}
@@ -55,13 +55,11 @@ test('malformed cache, mismatched report identities, invalid camera values and u
  assert.equal(readConnectionCache({getItem:()=>{throw new Error('blocked')}},7).records.length,0)
  assert.equal(writeConnectionCache({setItem:()=>{throw new Error('blocked')}},7,{records:[],messages:[],latestRecordId:null}),false)
 })
-test('retired study goals are ignored in start/resume responses and never become connection limits',()=>{
- const base={room:{id:101},character:{id:201},sessionId:9001,serverTime:dto.endedAt}
- for(const targetMinutes of [undefined,0,3,180]){
-  const active=session({...base,startedAt:dto.startedAt,targetMinutes},Date.parse(dto.endedAt))
-  assert.equal(active.targetSeconds,undefined)
-  assert.equal(session({...base,studySeconds:1500,targetMinutes},Date.parse(dto.endedAt)).studySeconds,1500)
- }
+test('start and resume responses never create connection limits; resume continues from connectedSeconds',()=>{
+ const base={mate:{id:201},connectionId:9001,serverTime:dto.endedAt}
+ const active=session({...base,startedAt:dto.startedAt},Date.parse(dto.endedAt))
+ assert.equal(active.targetSeconds,undefined)
+ assert.equal(session({...base,connectedSeconds:1500,presentSeconds:0,cameraOnSeconds:0,pipSeconds:0},Date.parse(dto.endedAt)).studySeconds,1500)
 })
 test('production reducer cannot purchase, start simulated sessions, send scripted replies or add schedules',()=>{
  const state=emptyState()
@@ -69,7 +67,7 @@ test('production reducer cannot purchase, start simulated sessions, send scripte
  for(const action of retired)assert.equal(betaReducer(state,action),state)
 })
 test('production camera totals remain monotonic, bounded by connected time and scoped to the active server session',()=>{
- const active=session({sessionId:9001,room:{id:101},character:{id:201},startedAt:dto.startedAt,serverTime:dto.startedAt},0)
+ const active=session({connectionId:9001,mate:{id:201},startedAt:dto.startedAt,serverTime:dto.startedAt},0)
  const state={...emptyState(),activeSession:active}
  const next=betaReducer(state,{type:'FACE_FOCUS',sessionId:'9001',totals:{observedMs:5000,focusedMs:5000,returns:1},now:1000})
  assert.equal(next.activeSession?.focus?.observedMs,1000)
@@ -90,7 +88,7 @@ test('camera graphs never substitute connected time for unknown camera time or m
 })
 test('legacy URLs resolve to approved mate/detail/connection records without starting a new session',()=>{
  const destination=(path:string)=>legacyBetaDestination(path,[mate],null,null,[])
- assert.equal(destination('/rooms/101/prepare'),'/mates/chaerin')
+ assert.equal(destination('/rooms/201/prepare'),'/mates/chaerin')
  assert.equal(destination('/rooms/dawn-library'),'/mates/chaerin')
  assert.equal(destination('/rooms/hogwarts-night-library'),'/')
  assert.equal(destination('/characters/chaerin'),'/mates/chaerin')
@@ -98,5 +96,5 @@ test('legacy URLs resolve to approved mate/detail/connection records without sta
  assert.equal(destination('/capsules/9001'),'/connections/9001')
  assert.equal(destination('/reports/demo-report'),'/records')
  assert.equal(destination('/study/9001'),'/connections/9001')
- assert.equal(legacyBetaDestination('/study/9001',[mate],null,{sessionId:9001,roomId:101,characterName:'채린'},[]),'/connect/chaerin')
+ assert.equal(legacyBetaDestination('/study/9001',[mate],null,{connectionId:9001,mateId:201,mateName:'채린'},[]),'/connect/chaerin')
 })

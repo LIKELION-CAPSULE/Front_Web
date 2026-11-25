@@ -1,0 +1,28 @@
+/* The call screen's short notice (ConnectionNotice): top centre, over the stage, never blocking it. */
+@layer components {
+  .connection-notice {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 64px);
+    left: 50%;
+    z-index: 60;
+    max-width: min(480px, calc(100vw - 32px));
+    margin: 0;
+    border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--color-canvas) 86%, transparent);
+    padding: 8px 14px;
+    color: var(--color-ink);
+    font-size: 13px;
+    line-height: 20px;
+    text-align: center;
+    word-break: keep-all;
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+    translate: -50% 0;
+    animation: connection-notice-in 240ms ease both;
+  }
+  .connection-notice[hidden] { display: none; }
+  .connection-notice[data-tone='warning'] { border-color: color-mix(in srgb, var(--color-warning) 45%, transparent); }
+  @keyframes connection-notice-in { from { opacity: 0; translate: -50% -6px; } }
+  @media (prefers-reduced-motion: reduce) { .connection-notice { animation: none; } }
+}

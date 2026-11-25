@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { api } from '@/shared/api/client'
+import { deviceHash } from '@/shared/api/device-hash'
 import type { KakaoRequest, KakaoResponse } from '@/shared/api/types'
 import { safeReturnPath } from '@/shared/lib/format'
 import { kakaoErrorNotice } from '@/features/auth/auth-notices'
@@ -21,7 +22,8 @@ export default function KakaoCallbackPage() {
       const code = params.get('code')
       if (params.has('error')) { clearKakaoLogin(); navigate('/login?notice=kakao-cancelled', { replace: true }); return }
       if (!saved || saved.state !== params.get('state') || !code) { clearKakaoLogin(); navigate('/login?notice=kakao-invalid-request', { replace: true }); return }
-      const body: KakaoRequest = { code, redirectUri: saved.redirect }
+      // 11-25: `deviceHash` is required for existing users too (400 without it).
+      const body: KakaoRequest = { code, redirectUri: saved.redirect, deviceHash: await deviceHash() }
       const result = await api.request<KakaoResponse>('/auth/social/KAKAO', { method: 'POST', auth: false, body })
       const next = safeReturnPath(saved.next ?? null, '/')
       setDestination(next)

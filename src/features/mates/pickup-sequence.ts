@@ -50,6 +50,8 @@ export type PickupPlayback = {
   handoff: (root: HTMLElement | null) => void
   /** Remove the overlay at once (e.g. the connect request failed). */
   cancel: () => void
+  /** Name another mate in the label: the connection that continued was with them (409 hand-off). */
+  rename: (name: string) => void
 }
 
 let current: PickupPlayback | null = null
@@ -74,9 +76,12 @@ export function playPickup({ name, reduced }: { name: string; reduced: boolean }
     </div>
     <p class="call-pickup-label" aria-hidden="true"><span class="call-pickup-label-dot"></span><strong></strong></p>
     <p class="sr-only" role="status"></p>`
-  const label = `${withParticle(name, '과', '와')} 연결하는 중`
-  overlay.querySelector('strong')!.textContent = label
-  overlay.querySelector('[role="status"]')!.textContent = `${label}이에요.`
+  const setLabel = (value: string) => {
+    const label = `${withParticle(value, '과', '와')} 연결하는 중`
+    overlay.querySelector('strong')!.textContent = label
+    overlay.querySelector('[role="status"]')!.textContent = `${label}이에요.`
+  }
+  setLabel(name)
   document.body.append(overlay)
 
   const animations: Animation[] = []
@@ -160,6 +165,7 @@ export function playPickup({ name, reduced }: { name: string; reduced: boolean }
       cancelled = true
       remove()
     },
+    rename: setLabel,
     handoff(root) {
       clearTimeout(orphanTimer)
       const screen = root?.querySelector<HTMLElement>('.connection-screen')

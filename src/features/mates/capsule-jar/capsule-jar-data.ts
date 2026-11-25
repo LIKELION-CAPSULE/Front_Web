@@ -36,8 +36,8 @@ export function capsuleFromStudyRecord(record: StudyRecord): CapsuleRecord | nul
   if (!record.serverReport) return null
   const durationSeconds = finitePositive(record.studySeconds)
     ? record.studySeconds
-    : finitePositive(record.serverReport.studySeconds)
-      ? record.serverReport.studySeconds
+    : finitePositive(record.serverReport.connectedSeconds)
+      ? record.serverReport.connectedSeconds
       : 0
   const endedAt = finitePositive(record.endedAt) ? record.endedAt : undefined
   const startedAt = finitePositive(record.startedAt)

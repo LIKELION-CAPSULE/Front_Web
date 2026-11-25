@@ -23,7 +23,7 @@ export function RecordConnectionRow({
   when?: 'date' | 'time'
 }) {
   const cameraSeconds = record.cameraFocus ? focusDetectedSeconds(record) : 0
-  const leveledUp = Boolean(record.serverReport?.relation?.levelUp)
+  const leveledUp = Boolean(record.serverReport?.relation?.stageUp)
   const parts: ReactNode[] = []
   if (mateName) parts.push(<span key="mate">{mateName}</span>)
   parts.push(<span key="together" className="records-row-together">함께한 시간 {duration(record.studySeconds)}</span>)

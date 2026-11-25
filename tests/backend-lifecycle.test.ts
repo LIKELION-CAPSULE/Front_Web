@@ -103,14 +103,13 @@ test('acknowledging a server-ended connection releases only the matching account
   const paths: string[] = [], backend = mount(() => ({
     getStatus: () => 'ready', subscribe: () => () => {}, attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() { destroyed++ },
   }))
-  const room = { id: 11, name: 'server room' }, character = { id: 42, name: 'server mate', modelJsonUrl: '/mate.model3.json' }
+  const character = { id: 42, name: 'server mate', modelJsonUrl: '/mate.model3.json' }
   api.request = async <T>(path: string) => {
     paths.push(path)
     if (path === '/me') return me as T
     if (path === '/avatars') return { avatars: [] } as T
-    if (path === '/home') return { rooms: [] } as T
-    if (path === '/rooms/11') return { ...room, characters: [character] } as T
-    if (path.endsWith('/resume')) return { sessionId: Number(path.split('/')[2]), room, character, studySeconds: 65, serverTime: new Date().toISOString() } as T
+    if (path === '/home') return { mates: [] } as T
+    if (path.endsWith('/resume')) return { connectionId: Number(path.split('/')[2]), mate: character, connectedSeconds: 65, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     throw new Error(`Unexpected request: ${path}`)
   }
   await backend.authenticate({ accessToken: 'isolated-ended-session' })
@@ -134,9 +133,8 @@ test('a late message failure after authentication changes cannot report the new 
   api.request = async <T>(path: string) => {
     if (path === '/me') return me as T
     if (path === '/avatars') return { avatars: [] } as T
-    if (path === '/home') return { rooms: [] } as T
-    if (path === '/rooms/11') return { id: 11, name: 'room', characters: [{ id: 42, name: 'mate' }] } as T
-    if (path.endsWith('/resume')) return { sessionId: Number(path.split('/')[2]), room: { id: 11, name: 'room' }, character: { id: 42, name: 'mate', modelJsonUrl: '/mate.model3.json' }, studySeconds: 65, serverTime: new Date().toISOString() } as T
+    if (path === '/home') return { mates: [] } as T
+    if (path.endsWith('/resume')) return { connectionId: Number(path.split('/')[2]), mate: { id: 42, name: 'mate', modelJsonUrl: '/mate.model3.json' }, connectedSeconds: 65, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     throw new Error(`Unexpected request: ${path}`)
   }
   await backend.authenticate({ accessToken: 'isolated-before' })
@@ -149,7 +147,7 @@ test('a late message failure after authentication changes cannot report the new 
     const rejected = assert.rejects(send, { status: 401, code: 'AUTH_SESSION_CHANGED' })
     await backend.authenticate({ accessToken: 'isolated-after' })
     await backend.resumeSession('32')
-    reject(Object.assign(new Error('old server ended'), { status: 409, code: 'SESSION_ENDED' }))
+    reject(Object.assign(new Error('old server ended'), { status: 409, code: 'CONNECTION_ENDED' }))
     await rejected
     assert.equal(backend.acknowledgeEndedSession('31', 7), false)
     assert.equal(backend.acknowledgeEndedSession('32', 7), true)
@@ -163,72 +161,88 @@ test('a model-failed connection that ended on the server is discarded before the
   api.request = async <T>(path: string) => {
     if (path === '/me') return me as T
     if (path === '/avatars') return { avatars: [] } as T
-    if (path === '/home') return { rooms: [] } as T
-    if (path === '/sessions') {
+    if (path === '/home') return { mates: [] } as T
+    if (path === '/connections') {
       starts++
-      return { sessionId: 30 + starts, room, character: { ...character, ...(starts > 1 ? { modelJsonUrl: '/mate.model3.json' } : {}) }, startedAt: new Date().toISOString(), serverTime: new Date().toISOString() } as T
+      return { connectionId: 30 + starts, mate: { ...character, ...(starts > 1 ? { modelJsonUrl: '/mate.model3.json' } : {}) }, startedAt: new Date().toISOString(), serverTime: new Date().toISOString() } as T
     }
-    if (path === '/sessions/31/resume') { resumes++; throw new ServerApiError('이미 종료된 연결이에요. 연결 기록을 확인해 주세요.', 409, 'SESSION_ENDED') }
+    if (path === '/connections/31/resume') { resumes++; throw new ServerApiError('이미 종료된 연결이에요. 연결 기록을 확인해 주세요.', 409, 'CONNECTION_ENDED') }
     throw new Error(`Unexpected request: ${path}`)
   }
   await backend.authenticate({ accessToken: 'isolated-model-retry' })
-  setServerRooms([{ id: '11', name: room.name, serverRoom: true, characters: [{ id: '42', name: character.name, serverCharacter: true }] }])
-  await assert.rejects(backend.startSession('11', '42'), /모델/)
+  setServerRooms([{ id: '42', name: room.name, serverRoom: true, characters: [{ id: '42', name: character.name, serverCharacter: true }] }])
+  await assert.rejects(backend.startSession('42', '42'), /모델/)
   assert.equal(prepared, 0)
-  await assert.rejects(backend.startSession('11', '42'), { code: 'SESSION_ENDED', sessionId: '31' })
-  assert.equal((await backend.startSession('11', '42')).id, '32')
+  await assert.rejects(backend.startSession('42', '42'), { code: 'CONNECTION_ENDED', connectionId: '31' })
+  assert.equal((await backend.startSession('42', '42')).id, '32')
   assert.equal(starts, 2); assert.equal(resumes, 1); assert.equal(prepared, 1)
   assert.equal(backend.acknowledgeEndedSession('31', 7), false)
   assert.equal(destroyed, 0)
   assert.equal(backend.acknowledgeEndedSession('32', 7), true)
 })
 
-test('session creation uses the existing 50-minute wire default and validates explicit targets before sending', async () => {
+test('connection start sends only the mate id and ignores the retired target minutes', async () => {
   const bodies: unknown[] = []
   const backend = mount(() => ({ getStatus: () => 'ready', subscribe: () => () => {}, attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() {} }))
-  const room = { id: 11, name: 'room' }, character = { id: 42, name: 'mate', modelJsonUrl: '/mate.model3.json' }
+  const character = { id: 42, name: 'mate', modelJsonUrl: '/mate.model3.json' }
   api.request = async <T>(path: string, options?: { body?: unknown }) => {
     if (path === '/me') return me as T
     if (path === '/avatars') return { avatars: [] } as T
-    if (path === '/home') return { rooms: [] } as T
-    if (path === '/sessions') {
+    if (path === '/home') return { mates: [] } as T
+    if (path === '/connections') {
       bodies.push(options?.body)
-      return { sessionId: 31, room, character, startedAt: new Date().toISOString(), serverTime: new Date().toISOString() } as T
+      return { connectionId: 31, mate: character, startedAt: new Date().toISOString(), serverTime: new Date().toISOString() } as T
     }
     throw new Error(`Unexpected request: ${path}`)
   }
   await backend.authenticate({ accessToken: 'isolated-api-target' })
-  setServerRooms([{ id: '11', name: room.name, serverRoom: true, characters: [{ id: '42', name: character.name, serverCharacter: true }] }])
-  for (const target of [0, 2, 4, 52, 185, 5.5, NaN, Infinity]) {
-    await assert.rejects(backend.startSession('11', '42', target), { status: 400, code: 'INVALID_TARGET_MINUTES' })
-  }
-  assert.deepEqual(bodies, [])
-  for (const target of [undefined, 3, 5, 55, 180]) {
-    const connection = await backend.startSession('11', '42', target)
-    assert.deepEqual(bodies.at(-1), { roomId: 11, characterId: 42, targetMinutes: target ?? 50 })
-    assert.equal(connection.targetSeconds, undefined, 'the wire target never becomes a beta UI countdown')
+  setServerRooms([{ id: '42', name: 'room', serverRoom: true, characters: [{ id: '42', name: character.name, serverCharacter: true }] }])
+  for (const target of [undefined, 3, 52, NaN]) {
+    const connection = await backend.startSession('42', '42', target)
+    assert.deepEqual(bodies.at(-1), { mateId: 42 })
+    assert.equal(connection.targetSeconds, undefined, 'no countdown')
     assert.equal(backend.acknowledgeEndedSession('31', 7), true)
   }
-  assert.equal(bodies.length, 5)
+  assert.equal(bodies.length, 4)
+})
+
+test('a start refused as already in progress continues that connection (409 detail.connectionId)', async () => {
+  const paths: string[] = []
+  const backend = mount(() => ({ getStatus: () => 'ready', subscribe: () => () => {}, attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() {} }))
+  const character = { id: 42, name: 'mate', modelJsonUrl: '/mate.model3.json' }
+  api.request = async <T>(path: string) => {
+    paths.push(path)
+    if (path === '/me') return me as T
+    if (path === '/avatars') return { avatars: [] } as T
+    if (path === '/connections') throw new ServerApiError('이미 진행 중인 연결이 있어요.', 409, 'CONNECTION_ALREADY_IN_PROGRESS', { connectionId: 77 })
+    if (path === '/connections/77/resume') return { connectionId: 77, mate: character, connectedSeconds: 30, presentSeconds: 10, cameraOnSeconds: 20, pipSeconds: 0, serverTime: new Date().toISOString() } as T
+    throw new Error(`Unexpected request: ${path}`)
+  }
+  await backend.authenticate({ accessToken: 'isolated-in-progress' })
+  setServerRooms([{ id: '42', name: 'room', serverRoom: true, characters: [{ id: '42', name: character.name, serverCharacter: true }] }])
+  const connection = await backend.startSession('42', '42')
+  assert.equal(connection.id, '77')
+  assert.deepEqual(connection.initialTotals, { presentSeconds: 10, cameraOnSeconds: 20, pipSeconds: 0 })
+  assert.deepEqual(paths.filter(path => path.startsWith('/connections')), ['/connections', '/connections/77/resume'])
+  assert.equal(backend.acknowledgeEndedSession('77', 7), true)
 })
 
 test('confirmed start and resume responses invalidate home even when the model cannot load', async () => {
   let homeReads = 0, prepared = 0
   const backend = mount(() => { prepared++; throw new Error('A missing model must not be prepared') })
-  const room = { id: 11, name: 'room' }, character = { id: 42, name: 'mate' }
+  const character = { id: 42, name: 'mate' }
   api.request = async <T>(path: string) => {
     if (path === '/me') return { ...me, onboardingRequired: false } as T
-    if (path === '/home') { homeReads++; return { rooms: [{ id: room.id }] } as T }
-    if (path === '/rooms/11') return { ...room, characters: [character] } as T
-    if (path === '/sessions') return { sessionId: 31, room, character, startedAt: new Date().toISOString(), serverTime: new Date().toISOString() } as T
-    if (path === '/sessions/31/resume') return { sessionId: 31, room, character, studySeconds: 0, serverTime: new Date().toISOString() } as T
+    if (path === '/home') { homeReads++; return { mates: [{ id: 42, name: 'mate' }] } as T }
+    if (path === '/connections') return { connectionId: 31, mate: character, startedAt: new Date().toISOString(), serverTime: new Date().toISOString() } as T
+    if (path === '/connections/31/resume') return { connectionId: 31, mate: character, connectedSeconds: 0, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     throw new Error(`Unexpected request: ${path}`)
   }
   await backend.authenticate({ accessToken: 'isolated-home-invalidation' })
   assert.equal(homeReads, 1)
   await backend.refreshHome()
   assert.equal(homeReads, 1, 'an unchanged home uses its cache')
-  await assert.rejects(backend.startSession('11', '42'), /모델/)
+  await assert.rejects(backend.startSession('42', '42'), /모델/)
   await backend.refreshHome()
   assert.equal(homeReads, 2, 'the successful server start invalidates home before model preparation')
   await backend.refreshHome()
@@ -239,20 +253,20 @@ test('confirmed start and resume responses invalidate home even when the model c
   assert.equal(prepared, 0)
 })
 
-test('resume rejects a different session, room or character before replacing the current model', async () => {
+test('resume rejects a different connection or mate before replacing the current model', async () => {
   let mismatch = '', prepared = 0, destroyed = 0
   const backend = mount(() => { prepared++; return { getStatus: () => 'ready', subscribe: () => () => {}, attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() { destroyed++ } } })
   api.request = async <T>(path: string) => {
     if (path === '/me') return me as T
     if (path === '/avatars') return { avatars: [] } as T
-    if (path === '/home') return { rooms: [] } as T
-    if (path === '/sessions/31/resume') return { sessionId: mismatch === 'session' ? 32 : 31, room: { id: mismatch === 'room' ? 12 : 11, name: 'room' }, character: { id: mismatch === 'character' ? 43 : 42, name: 'mate', modelJsonUrl: '/mate.model3.json' }, studySeconds: 65, serverTime: new Date().toISOString() } as T
+    if (path === '/home') return { mates: [] } as T
+    if (path === '/connections/31/resume') return { connectionId: mismatch === 'session' ? 32 : 31, mate: { id: mismatch === 'mate' ? 43 : 42, name: 'mate', modelJsonUrl: '/mate.model3.json' }, connectedSeconds: 65, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     throw new Error(`Unexpected request: ${path}`)
   }
   await backend.authenticate({ accessToken: 'isolated-resume-identity' })
-  setServerRooms([{ id: '11', name: 'room', serverRoom: true, characters: [{ id: '42', name: 'mate', serverCharacter: true }] }])
+  setServerRooms([{ id: '42', name: 'room', serverRoom: true, characters: [{ id: '42', name: 'mate', serverCharacter: true }] }])
   await backend.resumeSession('31')
-  for (const field of ['session', 'room', 'character']) { mismatch = field; await assert.rejects(backend.resumeSession('31'), { status: 502 }) }
+  for (const field of ['session', 'mate']) { mismatch = field; await assert.rejects(backend.resumeSession('31'), { status: 502 }) }
   assert.equal(prepared, 1); assert.equal(destroyed, 0)
   assert.equal(backend.acknowledgeEndedSession('31', 7), true)
 })
@@ -266,28 +280,28 @@ test('an old pending-model resume rejection cannot clear a new authentication an
   api.request = async <T>(path: string) => {
     if (path === '/me') return me as T
     if (path === '/avatars') return { avatars: [] } as T
-    if (path === '/home') return { rooms: [] } as T
-    if (path === '/sessions') {
+    if (path === '/home') return { mates: [] } as T
+    if (path === '/connections') {
       starts++
-      const dto = { sessionId: 30 + starts, room: { id: 11, name: 'room' }, character: { id: 42, name: 'mate', ...(starts > 1 ? { modelJsonUrl: '/mate.model3.json' } : {}) }, startedAt: new Date().toISOString(), serverTime: new Date().toISOString() }
+      const dto = { connectionId: 30 + starts, mate: { id: 42, name: 'mate', ...(starts > 1 ? { modelJsonUrl: '/mate.model3.json' } : {}) }, startedAt: new Date().toISOString(), serverTime: new Date().toISOString() }
       if (starts === 2) return new Promise(resolve => { releaseNew = () => resolve(dto as T); newRequested.resolve() })
       return dto as T
     }
-    if (path === '/sessions/31/resume') { requested.resolve(); return new Promise((_resolve, fail) => { reject = fail }) }
+    if (path === '/connections/31/resume') { requested.resolve(); return new Promise((_resolve, fail) => { reject = fail }) }
     throw new Error(`Unexpected request: ${path}`)
   }
-  const rooms = [{ id: '11', name: 'room', serverRoom: true, characters: [{ id: '42', name: 'mate', serverCharacter: true }] }]
+  const rooms = [{ id: '42', name: 'room', serverRoom: true, characters: [{ id: '42', name: 'mate', serverCharacter: true }] }]
   await backend.authenticate({ accessToken: 'isolated-pending-before' }); setServerRooms(rooms)
-  await assert.rejects(backend.startSession('11', '42'), /모델/)
-  const retry = backend.startSession('11', '42')
+  await assert.rejects(backend.startSession('42', '42'), /모델/)
+  const retry = backend.startSession('42', '42')
   const rejected = assert.rejects(retry, { code: 'AUTH_SESSION_CHANGED' })
   await requested.promise
   await backend.authenticate({ accessToken: 'isolated-pending-after' }); setServerRooms(rooms)
-  const newEntry = backend.startSession('11', '42')
+  const newEntry = backend.startSession('42', '42')
   await newRequested.promise
-  reject(new ServerApiError('이미 종료된 연결이에요.', 409, 'SESSION_ENDED'))
+  reject(new ServerApiError('이미 종료된 연결이에요.', 409, 'CONNECTION_ENDED'))
   await rejected
-  await assert.rejects(backend.startSession('11', '42'), { status: 409 })
+  await assert.rejects(backend.startSession('42', '42'), { status: 409 })
   assert.equal(starts, 2, 'the old finally cannot unlock a new account operation')
   releaseNew()
   assert.equal((await newEntry).id, '32')
@@ -306,17 +320,16 @@ for (const entry of ['start', 'resume'] as const) {
         attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() {},
       }
     })
-    const room = { id: 11, name: 'room' }
     const character = { id: 42, name: '말포이 TS', modelJsonUrl: '/malfoy.model3.json' }
-    setServerRooms([{ id: '11', name: 'room', serverRoom: true, characters: [{ id: '42', name: character.name, serverCharacter: true }] }])
+    setServerRooms([{ id: '42', name: 'room', serverRoom: true, characters: [{ id: '42', name: character.name, serverCharacter: true }] }])
     api.request = async <T>(path: string) => {
-      if (path !== '/sessions' && path !== '/sessions/31/resume') throw new Error(`Unexpected request: ${path}`)
+      if (path !== '/connections' && path !== '/connections/31/resume') throw new Error(`Unexpected request: ${path}`)
       const now = new Date().toISOString()
-      return { sessionId: 31, room, character, targetMinutes: 3, serverTime: now,
-        ...(entry === 'start' ? { startedAt: now } : { studySeconds: 65 }),
+      return { connectionId: 31, mate: character, serverTime: now,
+        ...(entry === 'start' ? { startedAt: now } : { connectedSeconds: 65, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0 }),
       } as T
     }
-    const active = entry === 'start' ? await backend.startSession('11', '42', 3) : await backend.resumeSession('31')
+    const active = entry === 'start' ? await backend.startSession('42', '42', 3) : await backend.resumeSession('31')
     assert.equal(active.id, '31')
     assert.equal(active.serverSession, true)
     assert.deepEqual(active.characterIds, ['42'])
@@ -333,8 +346,8 @@ test('a cancelled entry cannot destroy the pending model reused by a newer entry
     attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() { destroyed++ },
   }
   const backend = mount(() => stage)
-  const room = { id: 11, name: 'room' }, character = { id: 42, name: 'friend', modelJsonUrl: '/friend.model3.json' }
-  const roomInfo = [{ id: '11', name: 'room', characters: [], serverRoom: true }]
+  const character = { id: 42, name: 'friend', modelJsonUrl: '/friend.model3.json' }
+  const roomInfo = [{ id: '42', name: 'room', characters: [], serverRoom: true }]
   const resumed = deferred<void>()
   let requests = 0
   api.request = async <T>(path: string) => {
@@ -342,7 +355,7 @@ test('a cancelled entry cannot destroy the pending model reused by a newer entry
     if (path === '/avatars') return { avatars: [] } as T
     if (path.endsWith('/resume')) {
       if (++requests === 2) resumed.resolve()
-      return { sessionId: 31, room, character, studySeconds: 0, targetMinutes: 3, serverTime: new Date().toISOString() } as T
+      return { connectionId: 31, mate: character, connectedSeconds: 0, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     }
     throw new Error(`Unexpected request: ${path}`)
   }
@@ -376,11 +389,11 @@ test('changing accounts releases the old model and its late completion cannot de
     stages.push(model)
     return model.stage
   })
-  const roomInfo = [{ id: '11', name: 'room', characters: [], serverRoom: true }]
+  const roomInfo = [{ id: '42', name: 'room', characters: [], serverRoom: true }]
   api.request = async <T>(path: string) => {
     if (path === '/me') return me as T
     if (path === '/avatars') return { avatars: [] } as T
-    if (path.endsWith('/resume')) return { sessionId: 31, room: { id: 11, name: 'room' }, character: { id: 42, modelJsonUrl: '/friend.model3.json' }, studySeconds: 0, serverTime: new Date().toISOString() } as T
+    if (path.endsWith('/resume')) return { connectionId: 31, mate: { id: 42, modelJsonUrl: '/friend.model3.json' }, connectedSeconds: 0, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     throw new Error(`Unexpected request: ${path}`)
   }
   setServerRooms(roomInfo)
@@ -403,4 +416,55 @@ test('changing accounts releases the old model and its late completion cannot de
   stages[1]!.listeners.forEach(callback => callback())
   assert.equal((await newEntry).id, '31')
   assert.equal(stages[1]!.destroyed, 0)
+})
+
+test('a start handed over (409) to a connection with another mate resumes that mate\'s connection', async () => {
+  const backend = mount(() => ({ getStatus: () => 'ready', subscribe: () => () => {}, attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() {} }))
+  api.request = async <T>(path: string) => {
+    if (path === '/me') return me as T
+    if (path === '/avatars') return { avatars: [] } as T
+    if (path === '/connections') throw new ServerApiError('이미 진행 중인 연결이 있어요.', 409, 'CONNECTION_ALREADY_IN_PROGRESS', { connectionId: 77 })
+    if (path === '/connections/77/resume') return { connectionId: 77, mate: { id: 43, name: '서진', modelJsonUrl: '/seojin.model3.json' }, connectedSeconds: 30, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
+    throw new Error(`Unexpected request: ${path}`)
+  }
+  await backend.authenticate({ accessToken: 'isolated-other-mate' })
+  setServerRooms([{ id: '42', name: '채린', serverRoom: true, characters: [{ id: '42', name: '채린', serverCharacter: true }] }])
+  const connection = await backend.startSession('42', '42')
+  assert.equal(connection.id, '77')
+  assert.deepEqual(connection.characterIds, ['43'], 'the mate the server is connected with')
+  assert.equal(backend.acknowledgeEndedSession('77', 7), true)
+})
+
+test('production (no feature port) sends the connection mode it holds; not enough credits falls back to BASIC', async () => {
+  const backend = mount(() => ({ getStatus: () => 'ready', subscribe: () => () => {}, attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() {} }))
+  const character = { id: 42, name: '채린', modelJsonUrl: '/mate.model3.json' }
+  api.request = async <T>(path: string) => {
+    if (path === '/me') return { ...me, onboardingRequired: false } as T
+    if (path === '/home') return { mates: [{ id: 42, name: '채린' }] } as T
+    if (path === '/connections') return { connectionId: 31, mate: character, startedAt: new Date().toISOString(), serverTime: new Date().toISOString(), settings: { defaultMode: 'BASIC' } } as T
+    throw new Error(`Unexpected request: ${path}`)
+  }
+  await backend.authenticate({ accessToken: 'isolated-mode' })
+  setServerRooms([{ id: '42', name: '채린', serverRoom: true, characters: [{ id: '42', name: '채린', serverCharacter: true }] }])
+  await backend.startSession('42', '42')
+  const modes: unknown[] = []
+  let refuse = false
+  const originalStream = api.stream
+  api.stream = (async (_path: string, options: { body?: { mode?: string; requestId?: string; characterId?: number } }, onEvent: (event: { event: string; data: string }) => void) => {
+    modes.push(options.body?.mode)
+    if (refuse) throw new ServerApiError('크레딧이 부족해요.', 409, 'CREDIT_INSUFFICIENT', { credits: {} })
+    onEvent({ event: 'done', data: JSON.stringify({ requestId: options.body?.requestId, characterId: options.body?.characterId, content: '응.' }) })
+    return { type: 'events' }
+  }) as typeof api.stream
+  try {
+    await backend.sendMessage('42', '안녕')
+    backend.setConnectionMode('advanced')
+    await backend.sendMessage('42', '고급으로')
+    refuse = true
+    await assert.rejects(backend.sendMessage('42', '또 고급'), { code: 'CREDIT_INSUFFICIENT' })
+    refuse = false
+    await backend.sendMessage('42', '이번엔')
+    assert.deepEqual(modes, ['BASIC', 'ADVANCED', 'ADVANCED', 'BASIC'])
+  } finally { api.stream = originalStream }
+  assert.equal(backend.acknowledgeEndedSession('31', 7), true)
 })
