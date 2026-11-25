@@ -66,10 +66,9 @@ export async function mountReview(root: HTMLElement, id: string | null) {
       parent.postMessage({ type: 'capsule-review:notice', text: '외부 이동은 미리보기에서 실행하지 않아요. 카카오 상태는 왼쪽 목록에서 선택해 주세요.' }, location.origin)
     }
   }, true)
-  const [{ mountApp }, { ReviewSetup }, { ReviewDraftRoutes, ReviewStudyGate }] = await Promise.all([
-    import('@/app/bootstrap'), import('./ReviewSetup'), import('./ReviewDraftRoutes'),
+  const [{ mountApp }, { ReviewSetup }, { ReviewStudyGate }] = await Promise.all([
+    import('@/app/bootstrap'), import('./ReviewSetup'), import('./ReviewStudyGate'),
   ])
-  const legacyReducer = scenario.draft ? (await import('@/features/demo/reducer')).demoReducer : undefined
   const accountPort = scenario.accountContract ? (await import('./account-port')).createReviewAccountPort(scenario) : undefined
   const matePort = scenario.mateContract ? (await import('./mate-port')).createReviewMatePort(scenario) : undefined
   const featurePort = (() => {
@@ -296,5 +295,5 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     }
     return undefined
   })()
-  mountApp(root, <ReviewSetup scenario={scenario} />, scenario.draft ? <ReviewDraftRoutes /> : scenario.session && scenario.session !== 'recover' ? <ReviewStudyGate /> : undefined, createReviewImageStage, legacyReducer, accountPort, matePort, featurePort)
+  mountApp(root, <ReviewSetup scenario={scenario} />, scenario.session && scenario.session !== 'recover' ? <ReviewStudyGate /> : undefined, createReviewImageStage, accountPort, matePort, featurePort)
 }

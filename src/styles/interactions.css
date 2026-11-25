@@ -1,40 +1,4 @@
 @layer components {
-  .room-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 10px 16px;
-    min-width: 0;
-    max-width: 100%;
-    margin-left: auto;
-  }
-  .rooms-section .section-heading {
-    align-items: center;
-  }
-  .room-search {
-    --search-width: clamp(240px, 22vw, 300px);
-  }
-  .filter-count {
-    display: inline-flex;
-    min-width: 17px;
-    height: 17px;
-    justify-content: center;
-    align-items: center;
-    border-radius: 999px;
-    background: var(--color-surface);
-    color: var(--color-text-accent);
-    font-size: var(--text-caption); line-height: var(--text-caption--line-height);
-  }
-  .search-result-count {
-    margin-bottom: 18px;
-    color: var(--color-subtle);
-    font-size: var(--text-caption); line-height: var(--text-caption--line-height);
-  }
-  .room-empty {
-    padding: 44px 20px;
-    text-align: center;
-  }
   .progress-ring {
     position: relative;
     display: inline-flex;
@@ -68,17 +32,6 @@
     font-size: var(--text-caption); line-height: var(--text-caption--line-height);
     color: var(--color-muted);
   }
-  .activity-summary {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    border: 0;
-    border-radius: 999px;
-    background: transparent;
-    padding: 6px 10px;
-    color: var(--color-text-accent);
-    font-size: var(--text-caption); line-height: var(--text-caption--line-height);
-  }
   [data-level='0'] {
     background: var(--color-surface);
     color: var(--color-muted);
@@ -104,7 +57,6 @@
   }
   .page-skeleton .skeleton-line { background: var(--color-panel); }
   .page-skeleton .welcome-copy .skeleton-line { background: var(--color-surface); }
-  .page-skeleton .search-field > * { visibility: hidden; }
   .skeleton-line {
     position: relative;
     overflow: hidden;
@@ -153,17 +105,6 @@
 @keyframes skeleton-sweep {
   to {
     transform: translateX(100%);
-  }
-}
-@media (max-width: 767px) {
-  .room-toolbar {
-    width: 100%;
-    justify-content: flex-start;
-    margin-left: 0;
-  }
-  .room-search {
-    --search-width: 100%;
-    flex-basis: 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {

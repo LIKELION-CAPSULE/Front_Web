@@ -6,6 +6,9 @@ import {
   LOCAL_V2_REACTIONS_URL,
 } from '@/features/local-demo/local-asset-urls'
 import { chaerinArtwork } from '@/features/mates/artwork'
+import { mateProfileByName } from '@/features/mates/catalog'
+import { detectModelFormat } from '@/features/mate-render/mate-source'
+import type { LoginMatesResponse } from '@/shared/api/types'
 import {
   DEFAULT_BUBBLE_POSITION,
   DEFAULT_EXPRESSION_MAPPING,
@@ -103,15 +106,40 @@ function selectRotatingMate(candidates: readonly LoginMateProfile[]): LoginMateP
 }
 
 /**
+ * API 48 (`GET /login-mates`, public) → the v2 model of a login-screen mate, by front-end catalogue id. Only Aliving2D
+ * models with an engine URL qualify (2026-11-25 production: every `engineUrl` is null, so this returns nothing and the
+ * still portrait stays). The URLs are the same values as 31's `model` (same server mapper), so the warm hand-off key
+ * (`warmKey`: model · engine · player · reactions URL) matches between the login screen and the mate preview.
+ * The engine origin is still checked at render time (`isAllowedEngineUrl`).
+ */
+export function loginV2ModelsFromServer(response: LoginMatesResponse | null | undefined): Partial<Record<string, LoginMateV2ModelConfig>> {
+  const result: Partial<Record<string, LoginMateV2ModelConfig>> = {}
+  for (const mate of response?.mates ?? []) {
+    const id = mateProfileByName(mate.name)?.id
+    const model = mate.model
+    if (!id || result[id] || !model?.modelJsonUrl || !model.engineUrl) continue
+    if (detectModelFormat(model.modelJsonUrl, model.format) !== 'aliving2d') continue
+    result[id] = {
+      modelJsonUrl: model.modelJsonUrl, engineUrl: model.engineUrl,
+      ...(model.playerUrl ? { playerUrl: model.playerUrl } : {}),
+      ...(model.reactionsUrl ? { reactionsUrl: model.reactionsUrl } : {}),
+    }
+  }
+  return result
+}
+
+/**
  * Port for login-screen mate metadata & Live2D model availability.
  * - mock mode (development builds with VITE_DATA_SOURCE !== 'api'): serves the local Chaerin Live2D model + portrait.
- * - api mode, and every production build whatever its data source: static portrait only (model: null)
- *   until backend exposes a public pre-login mate endpoint.
+ * - api mode, and every production build whatever its data source: static portrait only (model: null), or the v2 model
+ *   of API 48 when the caller passes `serverModels` (loginV2ModelsFromServer). The login layout does not fetch 48 yet.
  */
 export function createLoginMateSource(
   mode: 'mock' | 'api' = import.meta.env.DEV && import.meta.env.VITE_DATA_SOURCE !== 'api' ? 'mock' : 'api',
+  serverModels: Partial<Record<string, LoginMateV2ModelConfig>> = {},
 ): LoginMateSource {
-  const candidates: readonly LoginMateProfile[] = [createDefaultChaerin(mode === 'mock')]
+  const chaerin = createDefaultChaerin(mode === 'mock')
+  const candidates: readonly LoginMateProfile[] = [mode === 'api' && serverModels.chaerin ? { ...chaerin, v2Model: serverModels.chaerin } : chaerin]
   return {
     getCandidates: () => candidates,
     selectMate: () => selectRotatingMate(candidates),

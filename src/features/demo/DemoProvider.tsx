@@ -2,27 +2,30 @@ import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState }
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { DemoContext } from './demo-context'
-import { betaReducer, type ConnectionReducer } from '@/features/backend/beta-reducer'
+import { betaReducer, type ConnectionAction } from '@/features/backend/beta-reducer'
 import { readConnectionCache, serverMessages, serverRecords, writeConnectionCache } from '@/features/backend/connection-cache'
 import type { DemoState, FocusTotals, Message, TierId } from './types'
+import type { ConnectionModeChoice } from '@/features/backend/backend-context'
 import { normalizeFocusTotals } from '@/features/session/focus'
 import { api, ApiError } from '@/shared/api/client'
 import { QueryCache } from '@/shared/api/query-cache'
 import { removeAccountSnapshots } from '@/features/auth/account-storage'
-import type { AffinityChange, AvatarsResponse, HomeResponse, MeResponse, LoginResponse, RoomDetail, StartRequest, StartResponse, ResumeResponse, EndRequest, ReportResponse, TermsResponse } from '@/shared/api/types'
-import { isSessionTargetMinutes, LEGACY_SESSION_TARGET_MINUTES } from '@/shared/api/constraints'
+import type { ActiveConnectionSummary, AffinityChange, AvatarsResponse, EndType, HomeResponse, MeResponse, LoginResponse, StartRequest, StartResponse, ResumeResponse, EndRequest, ReportResponse, TermsResponse } from '@/shared/api/types'
 import { BackendContext } from '@/features/backend/backend-context'
 import { streamMessage } from '@/features/backend/message-stream'
 import { accountScope } from '@/features/backend/account-scope'
-import { EndedConnectionError } from '@/features/backend/ended-connection'
+import { EndedConnectionError, isConnectionEnded } from '@/features/backend/ended-connection'
 import * as adapt from '@/features/backend/adapters'
-import { getStudyRooms, registerReportRoom, setServerRooms } from '@/features/rooms/services/room-service'
-import { flushSessionEvents, getSessionTotals, presenceKey, readSessionStorageItem } from '@/features/backend/use-session-sync'
+import { getMateRooms, registerReportRoom, setMateRooms } from '@/features/mates/mate-rooms'
+import { flushSessionEvents, getSessionTotals, readSessionStorageItem } from '@/features/backend/use-session-sync'
 import type { BackendContextValue } from '@/features/backend/backend-context'
 import { Live2DStage } from '@/features/live2d/live2d-stage'
 import { SessionModel, type AlivingStageFactory, type SessionModelFactory, type SessionModelStage } from '@/features/live2d/session-model'
 import { AlivingSessionStage } from '@/features/mate-render/AlivingSessionStage'
-import { availableMates, mateByName } from '@/features/mates/catalog'
+import { availableMates } from '@/features/mates/catalog'
+import { showConnectionNotice } from '@/features/mates/connection-notice'
+import { connectedMate, frontMateOf } from '@/features/mates/connected-mate'
+import { withParticle } from '@/shared/lib/korean'
 import { isSessionSurface } from '@/features/mates/session-surface'
 import { matePortrait } from '@/features/mates/artwork'
 import type { BetaAccountPort, BetaAccountResult, BetaOnboardingInput, BetaProfileInput, BetaSignupInput } from '@/features/auth/beta-account'
@@ -39,7 +42,7 @@ type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'sig
  * how long data changed on another device can remain cached here.
  */
 const HOME_MAX_AGE = 60_000
-const ROOM_MAX_AGE = 300_000
+const MATE_MAX_AGE = 300_000
 const AVATARS_MAX_AGE = 300_000
 const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null, signedOutNotice: null, me: null, accountDetails: null, home: null, homeContentVersion: 0, mateDetails: {}, mateContentVersion: 0, wallet: null, invitation: null, mateUnlocks: undefined, mateRelationStats: undefined, redeemInvitation: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : '요청을 처리하지 못했어요.'
@@ -48,21 +51,28 @@ const createLive2DStage: SessionModelFactory = (url, layout) => new Live2DStage(
 const createAlivingStage: AlivingStageFactory = (source, options) => new AlivingSessionStage(source, { stillImage: options.stillImage })
 const engineAllowlist = () => ({ pageOrigin: location.origin, apiBaseUrl: import.meta.env.VITE_API_BASE_URL })
 
-/** Cached reports may belong to rooms no longer returned by /home. */
+/** Cached reports may belong to mates no longer returned by /home. */
 function registerCachedReportRooms(records: DemoState['records']) {
   for (const record of records) {
-    if (!record.serverReport || getStudyRooms().some(room => room.id === record.roomId)) continue
-    registerReportRoom({ id: record.roomId, serverRoom: true, name: record.roomName ?? record.serverReport.roomName ?? '',
+    if (!record.serverReport || getMateRooms().some(room => room.id === record.roomId)) continue
+    const name = record.characterName ?? adapt.mateName(record.serverReport.mate?.name)
+    registerReportRoom({ id: record.roomId, serverRoom: true, name: record.roomName ?? name,
       description: '', introduction: '', contentStatus: 'preview', characters: [{ id: record.characterIds[0]!,
-        name: record.characterName ?? record.serverReport.character?.name ?? '', description: '', serverCharacter: true }],
+        name, description: '', serverCharacter: true }],
     })
   }
 }
+/** The connection summary (8 · 11 `activeConnection`) of a running connection the user left. */
+function connectionSummary(active: DemoState['activeSession'] & object, mateName: string | undefined): ActiveConnectionSummary {
+  return { connectionId: Number(active.id), mateId: Number(active.characterIds[0]), mateName,
+    startedAt: new Date(active.startedAt + (active.serverOffsetMs ?? 0)).toISOString() }
+}
+const summaryId = (summary: ActiveConnectionSummary | null | undefined) => summary?.connectionId === undefined ? undefined : String(summary.connectionId)
 
 /** Server-backed beta state. Optional UI ports inject isolated local previews; legacy demo saves are never loaded. */
-export function DemoProvider({ children, modelFactory = createLive2DStage, reducer = betaReducer, accountPort, matePort, featurePort }: { children: ReactNode; modelFactory?: SessionModelFactory; reducer?: ConnectionReducer; accountPort?: BetaAccountPort; matePort?: MateContentPort; featurePort?: BetaFeaturePort }) {
+export function DemoProvider({ children, modelFactory = createLive2DStage, accountPort, matePort, featurePort }: { children: ReactNode; modelFactory?: SessionModelFactory; accountPort?: BetaAccountPort; matePort?: MateContentPort; featurePort?: BetaFeaturePort }) {
   const { pathname } = useLocation()
-  const [state, reducerDispatch] = useReducer(reducer, undefined, adapt.emptyState)
+  const [state, reducerDispatch] = useReducer(betaReducer, undefined, adapt.emptyState)
   const [meta, setMeta] = useState<Meta>(initialMeta)
   const [betaSettings, setBetaSettings] = useState<BetaFeatureSnapshot['settings']>()
   const [models] = useState(() => new SessionModel(modelFactory, undefined, { createAliving: createAlivingStage, allowlist: engineAllowlist }))
@@ -72,10 +82,10 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   const currentPath = useRef(pathname)
   const stateRef = useRef(state)
   const [storageAvailable, setStorageAvailable] = useState(true)
-  const dispatch = useCallback((action: Parameters<ConnectionReducer>[1]) => {
-    stateRef.current = reducer(stateRef.current, action)
+  const dispatch = useCallback((action: ConnectionAction) => {
+    stateRef.current = betaReducer(stateRef.current, action)
     reducerDispatch(action)
-  }, [reducer])
+  }, [])
   const epoch = useRef(0)
   const bootstrap = useRef<Promise<void> | null>(null)
   const termsLoaded = useRef(false)
@@ -89,6 +99,16 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   const mateReads = useRef(new Map<string, number>())
   const resettingMates = useRef(new Set<string>())
   const previousPath = useRef(pathname)
+  /** A referral code typed at signup, entered (36) after the new account signs in. */
+  const pendingReferral = useRef<string | null>(null)
+  /**
+   * The conversation mode of the running connection (T-7; BASIC 0 · ADVANCED 30 credits a turn), the same in production
+   * and the local mock: starts from the start response's `settings.defaultMode`, the call screen applies the account
+   * setting and its toggle, and every message sends it (20 · 28 `mode`).
+   */
+  const [connectionMode, setConnectionModeState] = useState<{ id: string | null; mode: ConnectionModeChoice }>({ id: null, mode: 'basic' })
+  const connectionModeRef = useRef(connectionMode)
+  useLayoutEffect(() => { connectionModeRef.current = connectionMode }, [connectionMode])
   useLayoutEffect(() => { stateRef.current = state }, [state])
   useLayoutEffect(() => { currentPath.current = pathname }, [pathname])
   useEffect(() => () => models.release(), [models])
@@ -136,18 +156,14 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     previousPath.current = pathname
     const active = stateRef.current.activeSession
     if (!active || !isSessionSurface(before, active) || pathname === before) return
-    if (!active.serverSession) { dispatch({ type: 'PAUSE_SESSION', now: Date.now() }); return }
+    if (!active.serverSession) return
     // Returning through browser history must use the same server recovery as a reload.
     queueMicrotask(() => {
       if (stateRef.current.activeSession?.id !== active.id) return
-      const room = getStudyRooms().find(value => value.id === active.roomId)
+      const room = getMateRooms().find(value => value.id === active.roomId)
       releaseModel()
       patch({ activeSession: null, messages: stateRef.current.messages.filter(message => message.sessionId !== active.id || message.delivery !== 'pending') })
-      setMeta(previous => ({ ...previous, visuals: null, activeSummary: {
-        sessionId: Number(active.id), roomId: Number(active.roomId), roomName: room?.name,
-        characterName: room?.characters.find(value => value.id === active.characterIds[0])?.name,
-        startedAt: new Date(active.startedAt + (active.serverOffsetMs ?? 0)).toISOString(),
-      } }))
+      setMeta(previous => ({ ...previous, visuals: null, activeSummary: connectionSummary(active, room?.characters.find(value => value.id === active.characterIds[0])?.name) }))
     })
   }, [pathname, patch, releaseModel, dispatch])
   const clear = useCallback((signedOutNotice: Meta['signedOutNotice'] = null) => {
@@ -163,7 +179,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     mateReads.current.clear()
     resettingMates.current = new Set()
     api.setToken(null)
-    setServerRooms([])
+    setMateRooms([])
     patch(adapt.emptyState())
     setMeta(previous => ({ ...initialMeta, terms: previous.terms, status: 'ready', signedOutNotice }))
   }, [patch, releaseModel])
@@ -178,15 +194,13 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     const cache = queries.current
     const home = await cache.load('home', async () => {
       const value = await api.request<HomeResponse>('/home')
-      if (!Array.isArray(value.rooms)) throw new ApiError('홈 정보를 확인하지 못했어요.', 502)
+      if (!Array.isArray(value.mates)) throw new ApiError('홈 정보를 확인하지 못했어요.', 502)
       return value
     }, HOME_MAX_AGE)
     if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
     if (homeVersion !== homeRevision.current) return { home, rooms: [] }
-    const rooms = await Promise.all(home.rooms!.map(value => {
-      const roomId = adapt.id(value.id)
-      return cache.load(`room:${roomId}`, async () => adapt.room(await api.request<RoomDetail>(`/rooms/${roomId}`)), ROOM_MAX_AGE)
-    }))
+    // 11-25: one card per mate; the app's room/character pair is that mate (/rooms/* was removed).
+    const rooms = home.mates!.flatMap(card => { try { return [adapt.mateRoom(card)] } catch { return [] } })
     return { home, rooms }
   }, [])
   const loadUser = useCallback(() => {
@@ -201,13 +215,13 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
       const me = await api.request<MeResponse>('/me')
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
       const userProfile = adapt.profile(me)
-      const accountDetails = accountPort ? checkedAccountDetails(await accountPort.read(me.userId!)) : null
+      const accountDetails = accountPort ? checkedAccountDetails(await accountPort.read(me.userId!, me)) : null
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
       setMeta(previous => ({ ...previous, loadingStage: me.onboardingRequired ? 'onboarding' : 'page' }))
       if (me.onboardingRequired) {
         const avatars = await loadAvatars()
         if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
-        setServerRooms([])
+        setMateRooms([])
         let cache = { records: [] as DemoState['records'], messages: [] as DemoState['messages'], latestRecordId: null as string | null }
         try { cache = readConnectionCache(localStorage, me.userId!) } catch { /* No local cache. */ }
         patch({ ...adapt.emptyState(), ...cache, profile: userProfile })
@@ -217,7 +231,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
       // Avatars are only needed by onboarding and the profile editor, which loads them itself.
       const { home, rooms } = await homeData
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
-      if (homeVersion === homeRevision.current) setServerRooms(rooms)
+      if (homeVersion === homeRevision.current) setMateRooms(rooms)
       const previous = stateRef.current
       const sameUser = previous.profile.userId === me.userId
       let cache = { records: [] as DemoState['records'], messages: [] as DemoState['messages'], latestRecordId: null as string | null }
@@ -234,10 +248,10 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
         profile: { ...userProfile, avatarId: userProfile.avatarId ?? (sameUser ? previous.profile.avatarId : undefined) },
         savedRooms: [], credits: 0, ledger: [], pass: null, gifts: [], affection: {},
         memories: [],
-        ...(homeVersion === homeRevision.current ? { firstVisit: (home.todayStudySeconds ?? 0) === 0 && !home.activeSession } : {}),
+        ...(homeVersion === homeRevision.current ? { firstVisit: (home.todayConnectedSeconds ?? 0) === 0 && !home.activeConnection } : {}),
       })
       setMeta(previousMeta => ({ ...previousMeta, status: 'ready', error: null, me, accountDetails,
-        ...(homeVersion === homeRevision.current ? { home, activeSummary: stateRef.current.activeSession ? null : me.activeSession ?? home.activeSession ?? null } : {}),
+        ...(homeVersion === homeRevision.current ? { home, activeSummary: stateRef.current.activeSession ? null : me.activeConnection ?? home.activeConnection ?? null } : {}),
       }))
       return me
     })()
@@ -270,7 +284,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   }, [clear, loadUser])
   useEffect(() => {
     api.onExpired(clear)
-    setServerRooms([])
+    setMateRooms([])
     if (!bootstrap.current) bootstrap.current = reload()
     return () => api.onExpired(null)
   }, [clear, reload])
@@ -285,18 +299,35 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   }, [pathname])
   const authenticate = useCallback(async (result: LoginResponse) => {
     if (!result.accessToken) throw new ApiError('로그인 응답을 확인하지 못했어요.', 502)
+    const referral = pendingReferral.current
+    pendingReferral.current = null
     // A failed second login must never leave the previous account's profile or history on screen.
     clear()
     api.setToken(result.accessToken)
     const generation = epoch.current
     setMeta(previous => ({ ...previous, status: 'loading', error: null, loadingStage: 'auth' }))
-    try { return await loadUser() } catch (error) {
+    try {
+      // The referral code typed at signup (36). Its failure (REFERRAL_* codes) never fails the signup itself.
+      if (referral && accountPort?.enterReferral) {
+        try { await accountPort.enterReferral(referral) } catch { /* The code can still be entered on the invite screen within 7 days. */ }
+      }
+      return await loadUser()
+    } catch (error) {
       if (generation === epoch.current) setMeta(previous => ({ ...previous, status: 'error', error: errorMessage(error) }))
       throw error
     }
-  }, [clear, loadUser])
+  }, [clear, loadUser, accountPort])
+  /** Work to finish before signing out (e.g. settings still waiting to be saved); each gets at most 2 s. */
+  const beforeSignOut = useRef(new Set<() => Promise<unknown>>())
+  const onBeforeSignOut = useCallback((task: () => Promise<unknown>) => {
+    const tasks = beforeSignOut.current
+    tasks.add(task)
+    return () => { tasks.delete(task) }
+  }, [])
   const logout = useCallback(async () => {
     const account = accountScope(() => epoch.current)
+    const pendingWork = [...beforeSignOut.current].map(task => Promise.race([task().catch(() => undefined), new Promise(resolve => setTimeout(resolve, 2000))]))
+    if (pendingWork.length) await account.wait(Promise.all(pendingWork))
     await account.wait(api.waitForRefresh())
     await account.wait(api.request('/auth/logout', { method: 'POST', auth: false }))
     clear()
@@ -332,20 +363,19 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     const task = (async () => {
       const { home, rooms } = await loadHome()
       if (generation !== epoch.current || homeVersion !== homeRevision.current) return
-      setServerRooms(rooms)
+      setMateRooms(rooms)
       registerCachedReportRooms(stateRef.current.records)
-      patch({ memories: [], firstVisit: (home.todayStudySeconds ?? 0) === 0 && !home.activeSession })
-      setMeta(previous => ({ ...previous, home, activeSummary: stateRef.current.activeSession ? null : home.activeSession ?? null }))
+      patch({ memories: [], firstVisit: (home.todayConnectedSeconds ?? 0) === 0 && !home.activeConnection })
+      setMeta(previous => ({ ...previous, home, activeSummary: stateRef.current.activeSession ? null : home.activeConnection ?? null }))
     })()
     const entry = { generation, task }
     homeTask.current = entry
     try { await task } finally { if (homeTask.current === entry) homeTask.current = null }
   }, [patch, loadHome])
-  const invalidateSessionQueries = useCallback((roomId: string) => {
+  const invalidateSessionQueries = useCallback(() => {
     homeRevision.current++
     homeTask.current = null
     queries.current.invalidate('home')
-    queries.current.invalidate(`room:${roomId}`)
     setMeta(previous => ({ ...previous, homeContentVersion: previous.homeContentVersion + 1 }))
   }, [])
   const acknowledgeEndedSession = useCallback((sessionId: string, expectedUserId: number) => {
@@ -355,10 +385,10 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     const cached = pendingSession.current
     if (!stateRef.current.profile.loggedIn || stateRef.current.profile.userId !== expectedUserId) return false
     const active = current?.serverSession && current.id === sessionId ? current : null
-    const summaryMatches = summary && String(summary.sessionId) === sessionId
-    const pendingMatches = cached && String(cached.sessionId) === sessionId
+    const summaryMatches = summaryId(summary) === sessionId
+    const pendingMatches = cached && String(cached.connectionId) === sessionId
     if (!active && !summaryMatches && !pendingMatches) return false
-    invalidateSessionQueries(active?.roomId ?? String(summaryMatches ? summary.roomId : cached!.room?.id))
+    invalidateSessionQueries()
     if (pendingMatches) pendingSession.current = null
     if (active || pendingMatches && !current) {
       modelEntry.current = null
@@ -371,12 +401,11 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
       patch({ activeSession: null, messages: stateRef.current.messages.filter(message => message.sessionId !== sessionId || message.delivery !== 'pending') })
     }
     for (const key of failedMessages.current.keys()) if (key.startsWith(`message:${sessionId}:`)) failedMessages.current.delete(key)
-    try { localStorage.removeItem(presenceKey(expectedUserId, sessionId)) } catch { /* Nothing to clean up. */ }
     setMeta(previous => ({ ...previous,
-      activeSummary: String(previous.activeSummary?.sessionId) === sessionId ? null : previous.activeSummary,
-      visuals: String(previous.visuals?.sessionId) === sessionId ? null : previous.visuals,
-      me: String(previous.me?.activeSession?.sessionId) === sessionId ? { ...previous.me!, activeSession: undefined } : previous.me,
-      home: String(previous.home?.activeSession?.sessionId) === sessionId ? { ...previous.home!, activeSession: undefined } : previous.home,
+      activeSummary: summaryId(previous.activeSummary) === sessionId ? null : previous.activeSummary,
+      visuals: String(previous.visuals?.connectionId) === sessionId ? null : previous.visuals,
+      me: summaryId(previous.me?.activeConnection) === sessionId ? { ...previous.me!, activeConnection: null } : previous.me,
+      home: summaryId(previous.home?.activeConnection) === sessionId ? { ...previous.home!, activeConnection: null } : previous.home,
     }))
     return true
   }, [meta.activeSummary, invalidateSessionQueries, patch, releaseModel])
@@ -404,7 +433,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     const version = mateVersions.current.get(mate.characterId) ?? 0
     const read = mateReads.current.get(mate.characterId) ?? 0
     const value = await accountScope(() => epoch.current).wait(queries.current.load(`mate:${mate.characterId}`, async () =>
-      checkedMateDetail(await matePort.load(userId, adapt.numericId(mate.characterId)), adapt.numericId(mate.characterId)), ROOM_MAX_AGE))
+      checkedMateDetail(await matePort.load(userId, adapt.numericId(mate.characterId)), adapt.numericId(mate.characterId)), MATE_MAX_AGE))
     if (version !== (mateVersions.current.get(mate.characterId) ?? 0) || read !== (mateReads.current.get(mate.characterId) ?? 0)) throw new ApiError('요청을 처리하지 못했어요.', 409)
     setMeta(previous => previous.mateDetails[mateId] === value ? previous : { ...previous, mateDetails: { ...previous.mateDetails, [mateId]: value } })
     return value
@@ -421,10 +450,10 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
       checkMateReset(receipt, adapt.numericId(mate.characterId), revision)
       mateVersions.current.set(mate.characterId, (mateVersions.current.get(mate.characterId) ?? 0) + 1)
       queries.current.invalidate(`mate:${mate.characterId}`)
-      invalidateSessionQueries(mate.roomId)
+      invalidateSessionQueries()
       patch({ messages: stateRef.current.messages.filter(message => message.characterId !== mate.characterId) })
       for (const key of failedMessages.current.keys()) if (key.endsWith(`:${mate.characterId}`)) failedMessages.current.delete(key)
-      setServerRooms(getStudyRooms().map(room => ({ ...room, characters: room.characters.map(character => character.id === mate.characterId ? { ...character, relation: undefined } : character) })))
+      setMateRooms(getMateRooms().map(room => ({ ...room, characters: room.characters.map(character => character.id === mate.characterId ? { ...character, relation: undefined } : character) })))
       setMeta(previous => {
         const mateDetails = { ...previous.mateDetails }, affinities = { ...previous.affinities }
         delete mateDetails[mateId]; delete affinities[mate.characterId]
@@ -456,9 +485,12 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     if (error) throw new ApiError(error, 400)
     if (!accountPort) throw new ApiError('요청을 처리하지 못했어요.', 501)
     const referralCode = input.referralCode?.trim().toUpperCase() || undefined
-    return accountScope(() => epoch.current).wait(
+    const result = await accountScope(() => epoch.current).wait(
       accountPort.signup({ ...input, nickname: input.nickname.trim(), ...(referralCode ? { referralCode } : {}) }),
     )
+    // 11-25: signup (4) has no referral field; the code is entered (36) once the new account is signed in (`authenticate`).
+    pendingReferral.current = referralCode && accountPort.enterReferral ? referralCode : null
+    return result
   }, [accountPort])
   const completeOnboarding = useCallback(async (input: BetaOnboardingInput) => {
     const birthDate = meta.accountDetails?.birthDate || input.birthDate || ''
@@ -496,56 +528,50 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   }, [accountPort, applyAccountResult])
   // Retired source previews still type-check, but cannot call the schedule API.
   const createMemory = useCallback(async (): Promise<never> => { throw new ApiError('요청을 처리하지 못했어요.', 410) }, [])
+  const setConnectionMode = useCallback((mode: ConnectionModeChoice) => {
+    const active = stateRef.current.activeSession
+    if (!active) return
+    if (connectionModeRef.current.id === active.id && connectionModeRef.current.mode === mode) return
+    connectionModeRef.current = { id: active.id, mode }
+    setConnectionModeState(connectionModeRef.current)
+    // The local preview's credit simulation follows the same choice.
+    featurePort?.setSettings({ advanced: mode === 'advanced' })
+  }, [featurePort])
   const installSession = useCallback(async (dto: StartResponse | ResumeResponse) => {
     const generation = epoch.current
     const entry = { pathname: currentPath.current }
     modelEntry.current = entry
     try {
       const active = adapt.session(dto)
-      try {
-        const mate = availableMates(meta.home).find(value => value.characterId === active.characterIds[0] && value.roomId === active.roomId)
-        if (mate) active.mateId = mate.id
-      } catch { /* Missing local conversation settings use basic. */ }
-      active.presenceKnown = true
-      active.initialAwaySeconds = 0
-      if ('studySeconds' in dto) {
+      // By id, else by the server name (one persona listed twice: 서진 id 2 · 3), so the call opens as that mate.
+      const mate = frontMateOf(active.characterIds[0], dto.mate?.name, availableMates(meta.home))
+      if (mate) active.mateId = mate.id
+      if ('connectedSeconds' in dto) {
+        // Camera measurement shown on this device's records continues from the snapshot of this connection, if any.
         try {
           const stored = JSON.parse(readSessionStorageItem(`capsule-session:${stateRef.current.profile.userId}:${active.id}`) ?? 'null') as { focus?: FocusTotals } | null
           active.focus = normalizeFocusTotals(stored?.focus)
         } catch { /* Only newly measured camera time is used when no snapshot can be restored. */ }
-        const extended = dto as ResumeResponse & { presentSeconds?: number }
-        if (typeof extended.presentSeconds === 'number') {
-          active.initialAwaySeconds = Math.max(0, active.studySeconds - extended.presentSeconds)
-        } else {
-          active.presenceKnown = false
-          // Without a saved baseline, earlier study counts as away so a missing record never turns absences into presence.
-          active.initialAwaySeconds = active.studySeconds
-          try {
-            // localStorage (not sessionStorage) so a new tab or a browser restart on this device keeps the baseline.
-            const saved = JSON.parse(readSessionStorageItem(presenceKey(stateRef.current.profile.userId, active.id)) ?? 'null') as { studySeconds: number; presentSeconds: number; known?: boolean } | null
-            if (saved && saved.known !== false && Number.isFinite(saved.studySeconds) && Number.isFinite(saved.presentSeconds)) {
-              active.presenceKnown = true
-              active.initialAwaySeconds = Math.max(0, Math.min(active.studySeconds, saved.studySeconds - saved.presentSeconds))
-            }
-          } catch { /* The conservative baseline above stays. */ }
-        }
       }
-      if (!getStudyRooms().some(value => value.id === active.roomId)) {
-        const detail = await api.request<RoomDetail>(`/rooms/${active.roomId}`)
-        if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
-        setServerRooms([...getStudyRooms(), adapt.room(detail)])
+      if (!getMateRooms().some(value => value.id === active.roomId) && dto.mate?.name) {
+        setMateRooms([...getMateRooms(), adapt.mateRoom({ id: dto.mate.id, name: dto.mate.name, cardImageUrl: dto.mate.profileImageUrl })])
       }
       if (generation !== epoch.current || currentPath.current !== entry.pathname || modelEntry.current !== entry) throw new ApiError('연결이 취소됐어요.', 409)
       // The same still the call screen shows without a model (matePortrait), used if the v2 model breaks mid-call.
-      const stage = await models.prepare(dto.character, { stillImage: matePortrait(active.mateId ?? '', dto.character?.profileImageUrl) })
+      const stage = await models.prepare(dto.mate, { stillImage: matePortrait(active.mateId ?? '', dto.mate?.profileImageUrl) })
       if (generation !== epoch.current || currentPath.current !== entry.pathname || modelEntry.current !== entry) {
         if (modelEntry.current === entry) releaseModel()
         throw new ApiError('연결이 취소됐어요.', 409)
       }
       setLive2dStage(stage)
       pendingSession.current = null
+      const previousMode = connectionModeRef.current
+      const mode: ConnectionModeChoice = previousMode.id === active.id ? previousMode.mode
+        : 'settings' in dto && dto.settings?.defaultMode === 'ADVANCED' ? 'advanced' : 'basic'
+      connectionModeRef.current = { id: active.id, mode }
+      setConnectionModeState(connectionModeRef.current)
       patch({ activeSession: active, firstVisit: false })
-      invalidateSessionQueries(active.roomId)
+      invalidateSessionQueries()
       setMeta(previous => ({ ...previous, visuals: dto, activeSummary: null }))
       try {
         localStorage.setItem(`capsule-session:${stateRef.current.profile.userId}:${active.id}`, JSON.stringify({ roomId: active.roomId, startedAt: active.startedAt, focus: active.focus, mateId: active.mateId }))
@@ -559,55 +585,69 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     const current = stateRef.current.activeSession
     if (current?.id === id && !current.serverSession) throw new ApiError('요청을 처리하지 못했어요.', 410)
     const cached = pendingSession.current
-    const expected = current?.id === id ? { roomId: current.roomId, characterId: current.characterIds[0] }
-      : cached?.sessionId === requestedId ? { roomId: String(cached.room?.id), characterId: String(cached.character?.id) } : null
+    const summary = meta.activeSummary
+    const expectedMate = current?.id === id ? current.characterIds[0]
+      : cached?.connectionId === requestedId ? String(cached.mate?.id)
+        : summaryId(summary) === id && summary?.mateId !== undefined ? String(summary.mateId) : null
     const userId = stateRef.current.profile.userId
     const account = accountScope(() => epoch.current)
     const entryPath = currentPath.current
     try {
       await account.wait(flushSessionEvents(id))
-      const dto = await account.wait(api.request<ResumeResponse>(`/sessions/${requestedId}/resume`, { method: 'POST' }))
-      if (dto.sessionId !== requestedId || expected && (String(dto.room?.id) !== expected.roomId || String(dto.character?.id) !== expected.characterId)) throw new ApiError('연결 응답을 확인하지 못했어요.', 502)
-      const roomId = adapt.id(dto.room?.id)
-      adapt.id(dto.character?.id)
+      const dto = await account.wait(api.request<ResumeResponse>(`/connections/${requestedId}/resume`, { method: 'POST' }))
+      if (dto.connectionId !== requestedId || expectedMate && String(dto.mate?.id) !== expectedMate) throw new ApiError('연결 응답을 확인하지 못했어요.', 502)
+      adapt.id(dto.mate?.id)
       pendingSession.current = dto
-      invalidateSessionQueries(roomId)
+      invalidateSessionQueries()
       if (currentPath.current !== entryPath) {
         throw new ApiError('연결이 취소됐어요.', 409)
       }
       return installSession(dto)
     } catch (error) {
-      if (error instanceof ApiError && error.code === 'SESSION_ENDED' && userId) {
+      if (isConnectionEnded(error) && userId) {
         acknowledgeEndedSession(id, userId)
         throw new EndedConnectionError(error, id)
       }
       throw error
     }
-  }, [installSession, acknowledgeEndedSession, invalidateSessionQueries])
-  const startSession = useCallback(async (roomId: string, characterId: string, minutes = LEGACY_SESSION_TARGET_MINUTES, options: { tier?: TierId; characterIds?: string[] } = {}) => {
+  }, [installSession, acknowledgeEndedSession, invalidateSessionQueries, meta.activeSummary])
+  /** API 16. `roomId` and `characterId` are both the mate id since 11-25; the old target minutes are ignored. */
+  const startSession = useCallback(async (roomId: string, characterId: string, _minutes?: number, options: { tier?: TierId; characterIds?: string[] } = {}) => {
     const operations = pending.current
-    const room = getStudyRooms().find(value => value.id === roomId)
+    const room = getMateRooms().find(value => value.id === roomId)
     const character = room?.characters.find(value => value.id === characterId)
     const ids = options.characterIds ?? [characterId]
     if (!room || !character || !ids.length || !ids.includes(characterId) || !ids.every(id => room.characters.some(c => c.id === id))) throw new ApiError('메이트를 선택해 주세요.', 400)
     if (stateRef.current.activeSession || meta.activeSummary) throw new ApiError('진행 중인 연결을 먼저 이어가 주세요.', 409)
     if (resettingMates.current.has(characterId)) throw new ApiError('요청을 처리하지 못했어요.', 409)
     if (!room.serverRoom || !character.serverCharacter || ids.length !== 1 || (options.tier && options.tier !== 'basic')) throw new ApiError('요청을 처리하지 못했어요.', 400)
-    if (!isSessionTargetMinutes(minutes)) throw new ApiError('연결 시작에 필요한 시간 설정이 올바르지 않아요.', 400, 'INVALID_TARGET_MINUTES')
     if (operations.has('start')) throw new ApiError('연결하고 있어요.', 409)
     operations.add('start')
     const generation = epoch.current
     const account = accountScope(() => epoch.current)
     const entryPath = currentPath.current
+    const mateId = adapt.numericId(characterId)
     try {
       const cached = pendingSession.current
-      if (cached?.room?.id === adapt.numericId(roomId) && cached.character?.id === adapt.numericId(characterId)) return await resumeSession(adapt.id(cached.sessionId))
-      const body: StartRequest = { roomId: adapt.numericId(roomId), characterId: adapt.numericId(characterId), targetMinutes: minutes }
-      const dto = await account.wait(api.request<StartResponse>('/sessions', { method: 'POST', body }))
+      if (cached?.mate?.id === mateId && cached.connectionId) return await resumeSession(String(cached.connectionId))
+      const body: StartRequest = { mateId }
+      let dto: StartResponse
+      try {
+        dto = await account.wait(api.request<StartResponse>('/connections', { method: 'POST', body }))
+      } catch (error) {
+        // Another tab or device already connected: continue that connection (409 + `detail.connectionId`).
+        const existing = error instanceof ApiError && error.code === 'CONNECTION_ALREADY_IN_PROGRESS' ? error.detail.connectionId : undefined
+        if (typeof existing === 'number' && Number.isSafeInteger(existing) && existing > 0) {
+          operations.delete('start')
+          return await resumeSession(String(existing))
+        }
+        throw error
+      }
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
-      if (dto.room?.id !== adapt.numericId(roomId) || dto.character?.id !== adapt.numericId(characterId)) throw new ApiError('요청을 처리하지 못했어요.', 502)
+      if (dto.mate?.id !== mateId) throw new ApiError('요청을 처리하지 못했어요.', 502)
+      adapt.id(dto.connectionId)
       pendingSession.current = dto
-      invalidateSessionQueries(roomId)
+      invalidateSessionQueries()
       // A late start response can still be resumed, but must not load a model on the screen the user left for.
       if (currentPath.current !== entryPath) throw new ApiError('연결이 취소됐어요.', 409)
       const active = await installSession(dto)
@@ -618,39 +658,45 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     const mate = availableMates(meta.home).find(value => value.id === mateId)
     if (!mate) throw new ApiError('요청을 처리하지 못했어요.', 404)
     if (resettingMates.current.has(mate.characterId)) throw new ApiError('요청을 처리하지 못했어요.', 409)
+    // Only one connection at a time: name the mate it is with, so the user knows which one to finish first.
+    const busyWith = (name: string | undefined) => new ApiError(
+      name ? `${withParticle(name, '과', '와')} 연결 중이에요. 그 연결을 먼저 마쳐 주세요.` : '진행 중인 연결을 먼저 마쳐 주세요.', 409)
     const current = stateRef.current.activeSession
-    if (current && (current.roomId !== mate.roomId || current.characterIds.length !== 1 || current.characterIds[0] !== mate.characterId || !current.serverSession)) {
-      throw new ApiError('요청을 처리하지 못했어요.', 409)
+    const mates = availableMates(meta.home)
+    // The same launch mate counts as the same, whichever of its server entries the connection is with.
+    const frontOf = (characterId: string | number | undefined, name?: string) => frontMateOf(characterId === undefined ? undefined : String(characterId), name, mates)
+    const currentMate = current && (current.mateId ? mates.find(value => value.id === current.mateId) : frontOf(current.characterIds[0]))
+    if (current && (current.characterIds.length !== 1 || currentMate?.id !== mate.id || !current.serverSession)) {
+      throw busyWith(currentMate?.name)
     }
-    if (meta.activeSummary && (!mateByName(meta.activeSummary.characterName, [mate]) || String(meta.activeSummary.roomId) !== mate.roomId)) {
-      throw new ApiError('요청을 처리하지 못했어요.', 409)
-    }
-    // The current API requires a legacy target. Keep it in the request only; the beta UI
-    // does not use it as a countdown or an automatic end condition. See REQUEST.md R09.
-    const active = current ?? (meta.activeSummary?.sessionId
-      ? await resumeSession(String(meta.activeSummary.sessionId))
+    const summary = meta.activeSummary
+    const summaryMate = summary && frontOf(summary.mateId, summary.mateName)
+    if (summary && summaryMate?.id !== mate.id) throw busyWith(summaryMate?.name ?? summary.mateName)
+    const active = current ?? (summary?.connectionId
+      ? await resumeSession(String(summary.connectionId))
       : await startSession(mate.roomId, mate.characterId))
-    const connection = { ...active, mateId: mate.id }
+    // The 409 hand-off may continue another mate's connection: it stays that mate's (connected-mate.ts).
+    const actual = connectedMate(mate, active.characterIds[0], mates, active.mateId)
+    if (actual.notice) showConnectionNotice(actual.notice)
+    // No launch mate for it: `mateId` stays empty (use-connect-mate.ts does not open the mate asked for).
+    const connection = { ...active, mateId: actual.mate?.id }
     patch({ activeSession: connection })
     return connection
   }, [meta.home, meta.activeSummary, startSession, resumeSession, patch])
-  const finishSession = useCallback(async (options: { acceptUnknownPresence?: boolean } = {}) => {
+  const finishSession = useCallback(async (options: { acceptUnknownPresence?: boolean; endType?: EndType } = {}) => {
     const operations = pending.current
     if (operations.has('end')) throw new ApiError('연결을 마무리하고 있어요.', 409)
     const current = stateRef.current.activeSession
     if (!current) throw new ApiError('진행 중인 연결이 없어요.', 400)
     if (!current.serverSession) throw new ApiError('요청을 처리하지 못했어요.', 410)
-    // An unknown baseline already counts earlier study as away; ending then needs the user's explicit confirmation.
-    if (current.presenceKnown === false && !options.acceptUnknownPresence) throw new ApiError('이전 자리 지킴 시간을 불러오지 못했어요. 처음 연결한 브라우저에서 이어가 주세요.', 409)
     const account = accountScope(() => epoch.current)
     operations.add('end')
     try {
       await account.wait(flushSessionEvents(current.id))
-      const totals = getSessionTotals(current)
-      const body: EndRequest = { studySeconds: totals.studySeconds, presentSeconds: totals.presentSeconds }
-      const dto = await account.wait(api.request<ReportResponse>(`/sessions/${adapt.numericId(current.id)}/end`, { method: 'POST', body }))
-      if (String(dto.sessionId) !== current.id || String(dto.character?.id) !== current.characterIds[0]) throw new ApiError('연결 기록을 확인하지 못했어요.', 502)
-      const record = adapt.report(dto, current.roomId)
+      const body: EndRequest = { ...getSessionTotals(current), endType: options.endType ?? 'NORMAL' }
+      const dto = await account.wait(api.request<ReportResponse>(`/connections/${adapt.numericId(current.id)}/end`, { method: 'POST', body }))
+      if (String(dto.connectionId) !== current.id || String(dto.mate?.id) !== current.characterIds[0]) throw new ApiError('연결 기록을 확인하지 못했어요.', 502)
+      const record = adapt.report(dto)
       const active = stateRef.current.activeSession
       const finished = active?.id === current.id ? active : current
       record.tier = finished.tier
@@ -660,26 +706,25 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
           roomId: current.roomId, startedAt: current.startedAt, focus: record.cameraFocus, mateId: current.mateId,
         }))
       } catch { /* The current report retains its camera measurement in memory. */ }
-      invalidateSessionQueries(current.roomId)
+      invalidateSessionQueries()
       const cached = pendingSession.current
-      if (String(cached?.sessionId) === current.id) pendingSession.current = null
+      if (String(cached?.connectionId) === current.id) pendingSession.current = null
       patch({
         ...(active?.id === current.id ? { activeSession: null } : {}),
         messages: stateRef.current.messages.filter(message => message.sessionId !== current.id || message.delivery !== 'pending'),
         records: [record, ...stateRef.current.records.filter(value => value.id !== record.id)], latestRecordId: record.id,
       })
       // The user may have left this connection and prepared another while /end was pending.
-      if ((!active || active.id === current.id) && (!cached || String(cached.sessionId) === current.id)) {
+      if ((!active || active.id === current.id) && (!cached || String(cached.connectionId) === current.id)) {
         modelEntry.current = null
         releaseModel()
       }
       for (const key of failedMessages.current.keys()) if (key.startsWith(`message:${current.id}:`)) failedMessages.current.delete(key)
-      try { localStorage.removeItem(presenceKey(stateRef.current.profile.userId, current.id)) } catch { /* Nothing to clean up. */ }
       setMeta(previous => ({ ...previous,
-        activeSummary: String(previous.activeSummary?.sessionId) === current.id ? null : previous.activeSummary,
-        visuals: String(previous.visuals?.sessionId) === current.id ? null : previous.visuals,
-        me: String(previous.me?.activeSession?.sessionId) === current.id ? { ...previous.me!, activeSession: undefined } : previous.me,
-        home: String(previous.home?.activeSession?.sessionId) === current.id ? { ...previous.home!, activeSession: undefined } : previous.home,
+        activeSummary: summaryId(previous.activeSummary) === current.id ? null : previous.activeSummary,
+        visuals: String(previous.visuals?.connectionId) === current.id ? null : previous.visuals,
+        me: summaryId(previous.me?.activeConnection) === current.id ? { ...previous.me!, activeConnection: null } : previous.me,
+        home: summaryId(previous.home?.activeConnection) === current.id ? { ...previous.home!, activeConnection: null } : previous.home,
       }))
       return record
     } finally { operations.delete('end') }
@@ -713,8 +758,9 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     })
     // The user's line shows right away so streamed reply text appears below it.
     upsert({ id: `${requestId}:user`, requestId, sessionId: current.id, characterId, sender: 'user', text: content.trim(), voice: false, createdAt: Date.now(), delivery: 'pending' })
+    const mode = connectionModeRef.current.id === current.id && connectionModeRef.current.mode === 'advanced' ? 'ADVANCED' : 'BASIC'
     try {
-      const result = await accountScope(() => epoch.current).wait(streamMessage(api, adapt.numericId(current.id), { requestId, characterId: adapt.numericId(characterId), content: content.trim(), inputType, tts: false }, {
+      const result = await accountScope(() => epoch.current).wait(streamMessage(api, adapt.numericId(current.id), { requestId, characterId: adapt.numericId(characterId), content: content.trim(), inputType, mode, tts: false }, {
         onReply: text => { if (live()) upsert(reply(text)) },
         alive: live,
       }))
@@ -730,33 +776,34 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     } catch (error) {
       // As with API 20, a failed send leaves no messages; sending the same text again reuses the requestId.
       if (live()) patch({ messages: stateRef.current.messages.filter(value => value.requestId !== requestId) })
+      // Not enough credits for ADVANCED (409, nothing saved): back to BASIC, as the server suggests; the message says so.
+      if (error instanceof ApiError && error.code === 'CREDIT_INSUFFICIENT' && connectionModeRef.current.id === current.id) setConnectionMode('basic')
       throw error
     } finally { operations.delete(key) }
-  }, [patch, updateAffinity])
+  }, [patch, updateAffinity, setConnectionMode])
+  /** API 23 `GET /connections/{id}`: the record of an ended connection (409 `CONNECTION_IN_PROGRESS` while it runs). */
   const loadReport = useCallback(async (sessionId: string) => {
     if (stateRef.current.records.some(value => value.id === sessionId)) return
     if (!/^\d+$/.test(sessionId)) throw new ApiError('이 브라우저에 저장된 연결 기록이 없어요.', 404)
     const generation = epoch.current
-    const dto = await api.request<ReportResponse>(`/sessions/${adapt.numericId(sessionId)}/report`)
+    const dto = await api.request<ReportResponse>(`/connections/${adapt.numericId(sessionId)}`)
     if (generation !== epoch.current) return
-    if (String(dto.sessionId) !== sessionId) throw new ApiError('연결 기록을 확인하지 못했어요.', 502)
-    let room = getStudyRooms().find(value => value.name === dto.roomName)
-    if (!room) {
-      room = { id: `report-${sessionId}`, serverRoom: true, name: dto.roomName ?? '', description: '', introduction: '', contentStatus: 'preview', characters: [{ id: adapt.id(dto.character?.id), name: dto.character?.name ?? '', description: '', serverCharacter: true }] }
-      registerReportRoom(room)
+    if (String(dto.connectionId) !== sessionId) throw new ApiError('연결 기록을 확인하지 못했어요.', 502)
+    const record = adapt.report(dto)
+    if (!getMateRooms().some(value => value.id === record.roomId)) {
+      registerReportRoom({ id: record.roomId, serverRoom: true, name: record.characterName ?? '', description: '', introduction: '', contentStatus: 'preview',
+        characters: [{ id: record.characterIds[0]!, name: record.characterName ?? '', description: '', serverCharacter: true }] })
     }
-    let cameraFocus: FocusTotals | undefined
     try {
       const stored = JSON.parse(readSessionStorageItem(`capsule-session:${stateRef.current.profile.userId}:${sessionId}`) ?? 'null') as { focus?: FocusTotals } | null
-      if (stored?.focus) cameraFocus = normalizeFocusTotals(stored.focus)
-    } catch { /* Do not invent a target missing from the report. */ }
-    const record = adapt.report(dto, room.id)
-    record.cameraFocus = cameraFocus
+      if (stored?.focus) record.cameraFocus = normalizeFocusTotals(stored.focus)
+    } catch { /* Do not invent a camera measurement missing from the report. */ }
     patch({ records: [...stateRef.current.records.filter(value => value.id !== record.id), record] })
   }, [patch])
   return (
     <DemoContext value={{ state, dispatch, storageAvailable }}>
-      <BackendContext value={{ ...meta, featurePort, betaSettings, loadMateDetail: matePort ? loadMateDetail : null, resetMateConversation: matePort?.resetConversation ? resetMateConversation : null, previewModelFactory: modelFactory, betaSignup: accountPort ? betaSignup : null, completeOnboarding: accountPort ? completeOnboarding : null, saveBetaProfile: accountPort ? saveBetaProfile : null, validateReferralCode: accountPort?.validateReferralCode ? validateReferralCode : null, live2dStage, reload, refreshHome, ensureAvatars, updateAffinity, authenticate, logout, withdrawAccount, forgetAuthentication: clear, saveProfile, createMemory, startSession, connectMate, resumeSession, finishSession, acknowledgeEndedSession, sendMessage, loadReport }}>
+      <BackendContext value={{ ...meta, featurePort, betaSettings, loadMateDetail: matePort ? loadMateDetail : null, resetMateConversation: matePort?.resetConversation ? resetMateConversation : null, previewModelFactory: modelFactory, betaSignup: accountPort ? betaSignup : null, completeOnboarding: accountPort ? completeOnboarding : null, saveBetaProfile: accountPort ? saveBetaProfile : null, validateReferralCode: accountPort?.validateReferralCode ? validateReferralCode : null, live2dStage, reload, refreshHome, ensureAvatars, updateAffinity, authenticate, logout, withdrawAccount, forgetAuthentication: clear, saveProfile, createMemory, startSession, connectMate, resumeSession, finishSession, acknowledgeEndedSession, sendMessage, loadReport,
+        connectionMode: connectionMode.id && connectionMode.id === state.activeSession?.id ? connectionMode.mode : 'basic', setConnectionMode, onBeforeSignOut }}>
         {children}
       </BackendContext>
     </DemoContext>

@@ -14,11 +14,15 @@
 // Prints one line per check and exits with 1 when any fails.
 /* global document -- page.evaluate bodies run in the browser */
 
+import { startWatchdog, warmUpDevServer } from './lib/browser-check-guard.mjs'
+
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const [origin = 'http://127.0.0.1:5231'] = process.argv.slice(2)
+const watchdog = startWatchdog('check-capsule-record-card')
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined, args: ['--headless=new'] })
 const failures = []
 const check = (name, ok, detail = '') => {
+  watchdog.step(name)
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`)
   if (!ok) failures.push(name)
 }
@@ -174,9 +178,15 @@ async function recordsCalendar() {
   await context.close()
 }
 
+watchdog.step('warm-up')
+await warmUpDevServer(browser, origin, ['/mates/me', '/records'])
+watchdog.step('my mates (motion)')
 await myMates({ reducedMotion: false })
+watchdog.step('my mates (reduced motion)')
 await myMates({ reducedMotion: true })
+watchdog.step('records calendar')
 await recordsCalendar()
 await browser.close()
+watchdog.stop()
 console.log(failures.length ? `\n${failures.length} check(s) failed` : '\nall checks passed')
 process.exit(failures.length ? 1 : 0)

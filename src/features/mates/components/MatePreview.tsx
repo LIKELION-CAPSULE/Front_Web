@@ -352,12 +352,13 @@ export function MatePreview({
       {status === 'loading' && !isAliving && (
         <div className="mate-preview-status" role="status">
           <QuarterRingSpinner />
-          <span>캐릭터를 불러오고 있어요.</span>
+          <span>메이트를 불러오고 있어요.</span>
         </div>
       )}
+      {/* Not a blocker: the still stays and connecting still works, so it is a polite status, not an alert. */}
       {status === 'error' && (
-        <div className="mate-preview-status" role="alert">
-          <span>모델을 불러오지 못했어요.</span>
+        <div className="mate-preview-status" role="status">
+          <span>움직이는 모습을 불러오지 못했어요. 지금 상태로도 연결할 수 있어요.</span>
           <Button
             size="sm"
             variant="secondary"

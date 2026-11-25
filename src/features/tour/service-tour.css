@@ -23,6 +23,23 @@
   background: var(--service-tour-avatar) center / cover no-repeat, color-mix(in srgb, #fff 24%, transparent);
   content: '';
 }
+/* The AI character tag (AiCharacterBadge's look) right after her avatar; screen readers get it from the panel's live line. */
+.service-tour-pointer .showcase-pointer-cursor-label > * { order: 2; }
+.service-tour-pointer .showcase-pointer-cursor-label::after {
+  flex: none;
+  order: 1;
+  align-self: center;
+  border-radius: 999px;
+  background: rgba(15, 14, 23, 0.42);
+  padding: 1px 7px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 15px;
+  white-space: nowrap;
+  content: 'AI 캐릭터';
+}
+.service-tour-line-ai { margin-left: 6px; }
 /* Targets at the right edge (credits, profile): the label opens to the left of the arrow. */
 .service-tour-pointer--label-left .showcase-pointer-cursor-label-anchor { right: 8px; left: auto; }
 

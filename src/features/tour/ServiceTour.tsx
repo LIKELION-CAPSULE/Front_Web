@@ -1,3 +1,4 @@
+import { AiCharacterBadge } from '@/shared/ui/AiCharacterBadge'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { ShowcasePointer, type CursorConfig, type CursorStep, type CursorTarget } from '@/shared/ui/showcase-pointer/showcase-pointer'
@@ -257,7 +258,7 @@ export default function ServiceTour() {
     return [{ id: 'chaerin', name: '채린', color: CHAERIN_COLOR, textColor: '#FFFFFF', start, script }]
   }, [reduced, ready, step, element, next, previous, go])
 
-  const live = `${index + 1}/${steps.length}, ${SCREEN_LABELS[step.screen]}. 채린: ${step.say}${step.screen === 'outro' ? ' 메이트 만나러 가기 또는 다시 보기를 고를 수 있어요.' : ''}`
+  const live = `${index + 1}/${steps.length}, ${SCREEN_LABELS[step.screen]}. 채린(AI 캐릭터): ${step.say}${step.screen === 'outro' ? ' 메이트 만나러 가기 또는 다시 보기를 고를 수 있어요.' : ''}`
   const side: LabelSide = placed?.id === step.id ? placed.side : preferredSide(step)
   const lift = placed?.id === step.id ? placed.lift : 0
   // Reduced motion: 채린's line beside the lit target — below, above, right or left, wherever it covers no control.
@@ -317,7 +318,7 @@ export default function ServiceTour() {
       {reduced && ready && (
         <div className="service-tour-line" aria-hidden="true" style={lineStyle}>
           <img src={mateAvatar('chaerin')} alt="" width={24} height={24} />
-          <span><b>채린</b>{step.say}</span>
+          <span><b>채린<AiCharacterBadge tone="overlay" className="service-tour-line-ai" /></b>{step.say}</span>
         </div>
       )}
 

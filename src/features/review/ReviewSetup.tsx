@@ -1,12 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
-import { createDemoState } from '@/features/demo/seed'
-import { studyRooms } from '@/features/rooms/data/rooms'
-import { setServerRooms } from '@/features/rooms/services/room-service'
-import { getCharacterArtwork } from '@/features/characters/artwork'
-import { getRoomArtwork } from '@/features/rooms/artwork'
-import { roomPosters } from '@/features/rooms/posters'
 import type { ReviewScenario, ReviewStep } from './catalog'
 import { captureReviewMessages } from './capture-messages'
 
@@ -54,21 +48,14 @@ async function runStep(step: ReviewStep) {
 
 export function ReviewSetup({ scenario }: { scenario: ReviewScenario }) {
   const { status, resumeSession, loadReport } = useBackend()
-  const { state, dispatch } = useDemo()
+  const { state } = useDemo()
   const initialized = useRef(false)
   useEffect(() => {
     if (initialized.current || (status === 'loading' && !scenario.loading)) return
     initialized.current = true
     const run = async () => {
-      if (scenario.draft) {
-        setServerRooms(studyRooms.map(room => ({ ...room, coverUrl: roomPosters[getRoomArtwork(room.id).tone],
-          characters: room.characters.map(character => ({ ...character, avatarUrl: getCharacterArtwork(character.id).study })) })))
-        const sample = createDemoState()
-        dispatch({ type: 'SERVER_SYNC', patch: { ...sample, profile: { ...sample.profile, name: '검토하는 나', loggedIn: true, onboarded: true }, ...(scenario.empty ? { records: [] } : {}) } })
-      }
       if (scenario.session && scenario.session !== 'recover') {
         await resumeSession('9001')
-        if (scenario.session === 'break') dispatch({ type: 'TAKE_BREAK', now: Date.now() })
         await new Promise(resolve => setTimeout(resolve, 160))
       }
       for (const id of scenario.reports ?? []) await loadReport(String(id))
@@ -82,7 +69,7 @@ export function ReviewSetup({ scenario }: { scenario: ReviewScenario }) {
     void run().catch(error => {
       parent.postMessage({ type: 'capsule-review:notice', text: error instanceof Error ? error.message : '자동 준비를 마치지 못했어요. 화면에서 직접 조작할 수 있어요.' }, location.origin)
     })
-  }, [status, resumeSession, loadReport, dispatch, scenario])
+  }, [status, resumeSession, loadReport, scenario])
 
   useEffect(() => {
     let last = ''

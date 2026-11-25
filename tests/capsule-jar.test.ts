@@ -38,7 +38,7 @@ function record(overrides: Partial<StudyRecord> & { id: string }): StudyRecord {
     returns: 0,
     completed: true,
     automatic: false,
-    serverReport: { sessionId: 1, studySeconds: 1_800 },
+    serverReport: { connectionId: 1, connectedSeconds: 1_800 },
     ...overrides,
   }
 }
@@ -51,7 +51,7 @@ function capsule(id: string, endedAt: number, durationSeconds = 3_600): CapsuleR
 
 test('maps server-reported records of the mate to capsules, oldest first', () => {
   const records = [
-    record({ id: 'b', endedAt: NOW - 1_000, serverReport: { closingLine: '  내일 봐  ', studySeconds: 1_800 } }),
+    record({ id: 'b', endedAt: NOW - 1_000, serverReport: { closingLine: '  내일 봐  ', connectedSeconds: 1_800 } }),
     record({ id: 'a', endedAt: NOW - 90_000_000, studySeconds: 5_400 }),
     record({ id: 'other-mate', characterIds: ['999'] }),
     record({ id: 'local-only', serverReport: undefined }),
@@ -67,7 +67,7 @@ test('maps server-reported records of the mate to capsules, oldest first', () =>
 
 test('falls back to the server study seconds and derives a missing start time', () => {
   const [mapped] = capsuleRecordsFromStudyRecords(
-    [record({ id: 'x', startedAt: 0, endedAt: NOW, studySeconds: 0, serverReport: { studySeconds: 600 } })],
+    [record({ id: 'x', startedAt: 0, endedAt: NOW, studySeconds: 0, serverReport: { connectedSeconds: 600 } })],
     '201',
   )
   assert.equal(mapped!.durationSeconds, 600)

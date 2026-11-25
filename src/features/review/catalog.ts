@@ -17,7 +17,7 @@ export type ReviewScenario = {
   onboarding?: boolean
   empty?: boolean
   returning?: boolean
-  session?: 'recover' | 'study' | 'break' | 'unknown'
+  session?: 'recover' | 'study' | 'unknown'
   reports?: number[]
   cameraFocus?: FocusTotals
   /** Explicit mock of the missing beta account contract. Never enabled by the production entry point. */
@@ -29,7 +29,6 @@ export type ReviewScenario = {
   /** Optional dedicated farewell line for connection leave dialog review. */
   farewellLine?: string
   fault?: string
-  draft?: boolean
   loading?: SkeletonScreen | 'auth' | 'credits' | 'invite' | 'my-mates' | 'records'
   loginNext?: string
   steps?: ReviewStep[]
@@ -45,8 +44,8 @@ const login = [fill('input[name="email"]', 'review@example.invalid'), fill('inpu
 const signup = [fill('input[name="email"]', 'review@example.invalid'), fill('input[name="password"]', 'Review-only-2026!'), fill('input[name="confirmPassword"]', 'Review-only-2026!'), fill('input[name="nickname"]', '문구 검토'), ...fillBirthDate('2000-01-01'), { click: '', selector: 'input[name="agreeTerms"]' }, { click: '', selector: 'input[name="agreePrivacy"]' }, click('회원가입'), { wait: '이메일 인증' }] satisfies ReviewStep[]
 const account = [click('계정 설정 열기')] satisfies ReviewStep[]
 const security = [...account, click('보안')] satisfies ReviewStep[]
-const withdrawOpen = [...security, { click: '회원탈퇴', selector: '[data-withdraw-trigger]' }] satisfies ReviewStep[]
-const withdraw = [...withdrawOpen, fill('input[name="withdrawalConfirmation"]', WITHDRAWAL_CONFIRMATION)] satisfies ReviewStep[]
+// The withdrawal confirmation is open from the start on the security tab (no button to unfold it).
+const withdraw = [...security, fill('input[name="withdrawalConfirmation"]', WITHDRAWAL_CONFIRMATION)] satisfies ReviewStep[]
 const passwordRequest = [...security, fill('input[name="email"]', 'review@example.invalid'), click('재설정 링크 받기')] satisfies ReviewStep[]
 
 export const reviewScenarios: ReviewScenario[] = [
@@ -55,8 +54,6 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'login-doze', group: '로그인·가입', title: '로그인 · 졸고 있는 채린', path: '/login', guest: true, note: '노트북 앞에서 꾸벅꾸벅 조는 채린(큰 Z, 「채린이를 톡 눌러서 깨워 봐」 안내). 다가가거나 누르거나 키를 누르면, 또는 10초 뒤 스스로 깸' },
   { id: 'login-doze-awake', group: '로그인·가입', title: '로그인 · 깬 채린', path: '/login?doze=awake', guest: true, note: '깨어나 웃으며 「앗, 왔어? 기다리고 있었어.」라고 인사한 상태(다시 보기 버튼 포함). Live2D가 있으면 커서를 따라봄' },
   { id: 'login-doze-static', group: '로그인·가입', title: '로그인 · 정지 이미지 경로', path: '/login?static=1', guest: true, note: 'Live2D 없이 조는 모습 → 하품 → 웃음 정지 이미지 크로스페이드. 운영(로그인 메이트 API 전)과 움직임 줄이기에서 보이는 화면' },
-  { id: 'login-alt-illustration', group: '로그인·가입', title: '로그인 시안 · 일러스트', path: '/login?login=illustration', guest: true, note: 'PM 비교용 시안. 일러스트 파일이 없으면 방 배경 + 메이트 렌더로 대체. 오른쪽 아래에서 시안 전환' },
-  { id: 'login-alt-portrait', group: '로그인·가입', title: '로그인 시안 · 얼굴 크게', path: '/login?login=portrait', guest: true, note: 'PM 비교용 시안. Live2D 얼굴 클로즈업, 비밀번호 입력 시 눈 감기 등 같은 반응' },
   { id: 'login-error', group: '로그인·가입', title: '로그인 실패', path: '/login?mode=login', guest: true, fault: 'login', steps: login, note: '잘못된 인증정보 안내' },
   { id: 'login-locked', group: '로그인·가입', title: '로그인 잠금', path: '/login?mode=login', guest: true, fault: 'locked', steps: login, note: '반복 실패·5분 뒤 재시도' },
   { id: 'signup', group: '로그인·가입', title: '회원가입', path: '/login?mode=signup', guest: true, note: '입력 항목·필수 약관 동의' },
@@ -89,7 +86,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'onboarding-loading', group: '온보딩·홈', title: '프로필 선택 로딩', path: '/onboarding', onboarding: true, fault: 'avatars-pending', loading: 'onboarding', note: '계정 확인 후 아바타 데이터 대기' },
   { id: 'onboarding-beta', group: '온보딩·홈', title: '카카오 가입 · 생년월일', path: '/onboarding', onboarding: true, accountContract: true, note: '신규 계정 계약 모의 포트: 생년월일 입력·아바타 저장' },
   { id: 'email-onboarding', group: '온보딩·홈', title: '이메일 가입 · 아바타 선택', path: '/onboarding', onboarding: true, accountContract: true, note: '모의 포트에 가입 시 생년월일이 저장된 경우 재입력 없음' },
-  { id: 'onboarding-error', group: '온보딩·홈', title: '온보딩 저장 실패', path: '/onboarding', onboarding: true, accountContract: true, fault: 'profile', steps: [...fillBirthDate('2000-01-01'), click('이 모습으로 시작하기')], note: '신규 계정 계약 모의 포트: 저장 실패·입력 유지' },
+  { id: 'onboarding-error', group: '온보딩·홈', title: '온보딩 저장 실패', path: '/onboarding', onboarding: true, accountContract: true, fault: 'profile', steps: [...fillBirthDate('2000-01-01'), click('다음'), click('시작하기')], note: '신규 계정 계약 모의 포트: 저장 실패·입력 유지' },
   { id: 'home-first', group: '온보딩·홈', title: '홈 · 첫 방문', path: '/', note: '캡슐 메이트 탐색·서버 출시 메이트 목록' },
   { id: 'home-tutorial', group: '온보딩·홈', title: '홈 · 새 3단계 사용법', path: '/?tutorial=1', note: '최종 문서의 메이트 고르기·연결하기·연결 기록. 임의 대사와 미연동 기능 안내 없음' },
   { id: 'home-return', group: '온보딩·홈', title: '홈 · 재방문', path: '/', returning: true, note: '오늘 연결 시간·메이트 탐색' },
@@ -109,7 +106,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'connection-record-error', group: '메이트·연결', title: '연결 기록 · 조회 실패', path: '/connections/9001', fault: 'report', note: '같은 창 안 오류 안내·다시 시도·홈 이동' },
   { id: 'connection-model-missing', group: '메이트·연결', title: '연결 · 모델 없음', path: '/connect/chaerin', fault: 'model-missing', steps: [click('연결하기')], note: '다른 모델이나 사진으로 연결 성공을 대신하지 않음' },
   { id: 'connection-model-ended-retry', group: '메이트·연결', title: '연결 · 모델 실패 뒤 서버 종료', path: '/connect/chaerin', fault: 'model-ended-retry', steps: [click('연결하기')], note: '모델 실패 뒤 재개하면 SESSION_ENDED. 종료된 임시 연결 제거·기록 조회·새 ID로 연결' },
-  { id: 'connection-camera-error', group: '메이트·연결', title: '연결 · 카메라 거절', path: '/connect/chaerin', steps: [click('연결하기'),click('카메라'),click('카메라 켜기')], note: '카메라 권한 거절 후 연결 유지' },
+  { id: 'connection-camera-error', group: '메이트·연결', title: '연결 · 카메라 거절', path: '/connect/chaerin', steps: [click('연결하기'), click('카메라 켜기')], note: '카메라 권한 거절 후 연결 유지' },
   { id: 'connection-message-error', group: '메이트·연결', title: '연결 · 답장 실패', path: '/connect/chaerin', fault: 'message', steps: [click('연결하기'),fill('textarea','검토 메시지'),click('메시지 보내기')], note: '입력 유지·재시도' },
   { id: 'connection-finish', group: '메이트·연결', title: '연결 · 끊기 확인', path: '/connect/chaerin', steps: [click('연결하기'),click('연결 끊기')], note: '끊기·계속하기 (전용 끊기 멘트 없음)' },
   { id: 'connection-finish-with-line', group: '메이트·연결', title: '연결 · 끊기 확인(전용 멘트)', path: '/connect/chaerin', farewellLine: '잠깐 쉬고 와도 괜찮아. 여기서 기다리고 있을게.', steps: [click('연결하기'),click('연결 끊기')], note: '전용 끊기 멘트 필드가 있을 때만 말풍선 표시' },
@@ -134,7 +131,6 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'mate-load-error', group: '메이트·연결', title: '메이트 상세 · 조회 실패', path: '/mates/chaerin', mateContract: true, fault: 'mate-load', note: '조회 실패·다시 시도, 연결 자동 생성 없음' },
   { id: 'mate-model-error', group: '메이트·연결', title: '메이트 상세 · 모델 실패', path: '/mates/chaerin', mateContract: true, fault: 'mate-model', note: '미리보기 실패·재시도. 연결 모델과 별도 소유' },
   { id: 'mate-audio-error', group: '메이트·연결', title: '메이트 상세 · 샘플 재생 실패', path: '/mates/chaerin', mateContract: true, fault: 'mate-audio', note: '재생 오류·재시도·화면 이탈 시 정리' },
-  { id: 'mate-reset', group: '메이트·연결', title: '메이트 상세 · 초기화 확인', path: '/mates/chaerin', mateContract: true, mateHistory: true, reports: [9001], steps: [click('메이트 메뉴'),click('대화 초기화')], note: '모의 포트와 두 메이트의 메시지/보고서 샘플로 취소·선택 메이트 캐시 갱신만 검토. 서버 삭제 검증 아님' },
   { id: 'mate-reset-error', group: '메이트·연결', title: '메이트 상세 · 초기화 실패', path: '/mates/chaerin', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-reset', note: '실패 시 모의 메시지/보고서 캐시 보존·명시적으로 재시도' },
   { id: 'mate-reset-conflict', group: '메이트·연결', title: '메이트 상세 · 초기화 충돌', path: '/mates/chaerin', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-conflict', note: '다른 버전의 대화에 자동 초기화하지 않음·새 버전 조회 후 재확인' },
   { id: 'mate-reset-partial', group: '메이트·연결', title: '메이트 상세 · 불완전한 초기화 응답', path: '/mates/chaerin', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-partial', note: '일부 범위만 지운 응답을 성공으로 취급하지 않음' },
@@ -142,10 +138,10 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'credits-filled', group: '크레딧·초대', title: '내 크레딧 · 내역 있음', path: '/credits', note: '로컬 미리보기용 지갑 주입(실제 서버 연동 아님): 잔액 1,180·출석 980·초대 200·오늘 사용 320·이틀치 내역 6건' },
   { id: 'credits-empty', group: '크레딧·초대', title: '내 크레딧 · 내역 없음', path: '/credits', note: '로컬 미리보기용 지갑 주입(실제 서버 연동 아님): 잔액 있음·내역 0건' },
   { id: 'credits-loading', group: '크레딧·초대', title: '내 크레딧 · 불러오는 중', path: '/credits', loading: 'credits', note: '로컬 미리보기용: 창 내부 스켈레톤 상태' },
-  { id: 'invite', group: '크레딧·초대', title: '친구 초대 · 값 없음', path: '/credits/charge', note: '서버 계약 대기(값 없음) 오류·재시도 상태' },
-  { id: 'invite-filled', group: '크레딧·초대', title: '친구 초대 · 진행 중', path: '/credits/charge', note: '로컬 미리보기용 초대 정보 주입(실제 서버 연동 아님): 코드 CAP-7K2Q·3명 초대·코드 입력 가능' },
-  { id: 'invite-full', group: '크레딧·초대', title: '친구 초대 · 10명 달성', path: '/credits/charge', note: '로컬 미리보기용 초대 정보 주입(실제 서버 연동 아님): 10명 초대 완료·이미 코드 등록함' },
-  { id: 'invite-loading', group: '크레딧·초대', title: '친구 초대 · 불러오는 중', path: '/credits/charge', loading: 'invite', note: '로컬 미리보기용: 창 내부 스켈레톤 상태' },
+  { id: 'invite', group: '크레딧·초대', title: '친구 초대 · 값 없음', path: '/credits/invite', note: '서버 계약 대기(값 없음) 오류·재시도 상태' },
+  { id: 'invite-filled', group: '크레딧·초대', title: '친구 초대 · 진행 중', path: '/credits/invite', note: '로컬 미리보기용 초대 정보 주입(실제 서버 연동 아님): 코드 CAP-7K2Q·3명 초대·코드 입력 가능' },
+  { id: 'invite-full', group: '크레딧·초대', title: '친구 초대 · 10명 달성', path: '/credits/invite', note: '로컬 미리보기용 초대 정보 주입(실제 서버 연동 아님): 10명 초대 완료·이미 코드 등록함' },
+  { id: 'invite-loading', group: '크레딧·초대', title: '친구 초대 · 불러오는 중', path: '/credits/invite', loading: 'invite', note: '로컬 미리보기용: 창 내부 스켈레톤 상태' },
   { id: 'app-loading', group: '온보딩·홈', title: '앱 로딩', path: '/', fault: 'bootstrap-pending', loading: 'auth', note: '로그인 상태 확인 전: 로고·공통 로딩' },
   { id: 'home-loading', group: '온보딩·홈', title: '홈 데이터 로딩', path: '/', fault: 'home-pending', loading: 'home', note: '홈으로 이동할 계정임을 확인한 뒤의 데이터 대기' },
   { id: 'app-error', group: '온보딩·홈', title: '앱 연결 실패', path: '/', fault: 'bootstrap', note: '홈 화면·연결 실패 알림·다시 연결하기' },
@@ -156,16 +152,15 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'account-profile-nocontract', group: '계정·공통', title: '계정 설정 · 프로필(계약 없음)', path: '/', steps: account, note: 'saveBetaProfile 없음: 호칭·나에 대해 숨김' },
   { id: 'account-narrow', group: '계정·공통', title: '계정 설정 · 좁은 창 가로 탭', path: '/', accountContract: true, steps: account, note: '720px 미만 컨테이너에서 가로 탭·프로필 하단 로그아웃 전환' },
   { id: 'account-settings', group: '계정·공통', title: '계정 설정 · 설정', path: '/?account=settings', note: '통화 기기·PIP·대화 비용 3묶음. 장치 목록 조회 시 권한 요청 없음' },
-  { id: 'account-security', group: '계정·공통', title: '계정 설정 · 보안', path: '/', steps: security, note: '이메일 미리 채움·접힌 회원탈퇴 안내' },
-  { id: 'account-withdraw-open', group: '계정·공통', title: '계정 설정 · 보안(탈퇴 펼침)', path: '/', steps: withdrawOpen, note: '회원탈퇴 버튼 클릭 후 확인 카드 펼침' },
+  { id: 'account-security', group: '계정·공통', title: '계정 설정 · 보안', path: '/', steps: security, note: '이메일 미리 채움·처음부터 펼친 회원탈퇴 확인 카드(포커스는 입력칸으로 가지 않음)' },
   { id: 'account-password-edit', group: '계정·공통', title: '보안 · 재설정 이메일 입력', path: '/', steps: security, note: '보안 탭에서 바로 보이는 이메일 입력·재설정 링크 요청' },
   { id: 'account-password-requested', group: '계정·공통', title: '보안 · 재설정 메일 접수', path: '/', steps: passwordRequest, note: '가상 202 응답·실제 메일 발송 없음' },
   { id: 'account-password-error', group: '계정·공통', title: '보안 · 재설정 메일 요청 실패', path: '/', fault: 'reset-request', steps: passwordRequest, note: '요청 실패·입력 유지·재시도' },
   { id: 'account-password-pending', group: '계정·공통', title: '보안 · 재설정 메일 요청 중', path: '/', fault: 'reset-request-pending', steps: passwordRequest, note: '로딩 스피너·중복 요청·탈퇴·닫기 방지' },
   { id: 'account-logout', group: '계정·공통', title: '계정 설정 · 로그아웃 버튼', path: '/', steps: account, note: '좌측 하단의 로그아웃 실행 버튼' },
   { id: 'account-logout-error', group: '계정·공통', title: '계정 설정 · 로그아웃 실패', path: '/', fault: 'logout', steps: [...account, { click: '로그아웃', selector: 'button[data-account-logout]' }], note: '좌측 하단의 실패 안내·재시도' },
-  { id: 'withdraw', group: '계정·공통', title: '회원탈퇴 확인', path: '/', steps: withdrawOpen, note: '보안 탭의 탈퇴 확인 카드·문장 입력·취소·탈퇴' },
-  { id: 'withdraw-incorrect', group: '계정·공통', title: '탈퇴 · 확인 문장 불일치', path: '/', steps: [...withdrawOpen, fill('input[name="withdrawalConfirmation"]', '탈퇴합니다')], note: '지정한 문장과 다르면 탈퇴 버튼 비활성화' },
+  { id: 'withdraw', group: '계정·공통', title: '회원탈퇴 확인', path: '/', steps: security, note: '보안 탭의 탈퇴 확인 카드·문장 입력·취소(입력 지우기)·탈퇴' },
+  { id: 'withdraw-incorrect', group: '계정·공통', title: '탈퇴 · 확인 문장 불일치', path: '/', steps: [...security, fill('input[name="withdrawalConfirmation"]', '탈퇴합니다')], note: '지정한 문장과 다르면 탈퇴 버튼 비활성화' },
   { id: 'withdraw-conflict', group: '계정·공통', title: '탈퇴 · 진행 중 공부', path: '/', fault: 'withdraw-conflict', steps: [...withdraw, click('회원탈퇴')], note: '409·공부를 먼저 마치라는 안내' },
   { id: 'withdraw-error', group: '계정·공통', title: '탈퇴 실패', path: '/', fault: 'withdraw', steps: [...withdraw, click('회원탈퇴')], note: '서버 오류·계정 유지' },
   { id: 'withdraw-pending', group: '계정·공통', title: '탈퇴 처리 중', path: '/', fault: 'withdraw-pending', steps: [...withdraw, click('회원탈퇴')], note: '로딩·중복 클릭·닫기 방지' },
@@ -173,18 +168,19 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'records-empty', group: '내 기록', title: '내 기록 · 기록 없음', path: '/records', empty: true, note: '아직 함께한 기록이 없는 빈 상태·홈 이동 버튼' },
   { id: 'not-found', group: '계정·공통', title: '없는 주소 · 홈 안내', path: '/review-not-found', note: '홈으로 이동·우측 상단 알림·한 번만 안내' },
   { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/?ref=CAP-7K2Q', note: '휴대폰 접속 시 PC 안내 창·초대 코드 유지·약관 열기' },
-  { id: 'draft-charge', group: '보관 화면 · 현재 미노출', title: '충전 원본', path: '/credits/charge', draft: true, note: '상품·결제 수단·동의·결제 완료' },
-  { id: 'draft-charge-receipt', group: '보관 화면 · 현재 미노출', title: '영수증 · 3D 출력', path: '/credits/charge', draft: true,
-    steps: [click('시험 기간 응원 패스 결제하기'), { click: '', selector: '.charge-checkout input[type="checkbox"]' }, click('6,900원 체험 결제하기')],
-    note: 'CAPSULE 프린터 · 가로 출력·모바일 세로 출력·영수증 떼기·재출력' },
 ]
 
-// Saved review links open the current beta screen without installing legacy sample state.
+// Saved review links of retired scenarios open the current screen instead.
 const restoredReviewIds: Readonly<Record<string, string>> = {
   'draft-records': 'records',
   'draft-records-empty': 'records-empty',
   'draft-characters': 'my-mates',
   'draft-credits': 'credits',
+  'draft-charge': 'credits',
+  'draft-charge-receipt': 'credits',
+  'login-alt-illustration': 'login',
+  'login-alt-portrait': 'login',
+  'mate-reset': 'mate-reset-error',
 }
 
 const reviewGroupOrder = [
@@ -196,7 +192,6 @@ const reviewGroupOrder = [
   '내 기록',
   '크레딧·초대',
   '계정·공통',
-  '보관 화면 · 현재 미노출',
 ] as const
 
 export const reviewGroups = [...new Set(reviewScenarios.map(scenario => scenario.group))].sort((a, b) => {

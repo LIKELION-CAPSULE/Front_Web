@@ -41,7 +41,7 @@ test('replies replace the text, done resolves with the API 20 payload, and the r
   const result = await streamMessage(api, 12, body, { onReply: text => replies.push(text) })
   assert.deepEqual(replies, ['물', '물 마시고'])
   assert.deepEqual(result, done)
-  assert.equal(seen[0]!.url, '/api/backend/sessions/12/messages/stream')
+  assert.equal(seen[0]!.url, '/api/backend/connections/12/messages/stream')
   assert.equal((seen[0]!.init.headers as Record<string, string>).accept, 'text/event-stream, application/json')
   assert.deepEqual(JSON.parse(String(seen[0]!.init.body)), body)
 })
@@ -62,7 +62,7 @@ test('a wrapped SSE done exposes the message payload and keeps streamed replies'
 })
 
 test('failed or empty SSE done envelopes never complete as a chat reply', async () => {
-  for (const payload of [{ success: false, code: 'SESSION_ENDED', detail: { sessionId: 12 } }, { success: true, data: null }]) {
+  for (const payload of [{ success: false, code: 'CONNECTION_ENDED', detail: { connectionId: 12 } }, { success: true, data: null }]) {
     const seen: { url: string; init: RequestInit }[] = []
     await assert.rejects(streamMessage(client([() => sse([event('done', payload)])], seen), 12, body, { onReply() {} }),
       (error: unknown) => error instanceof ApiError && error.status === 502)
@@ -90,10 +90,10 @@ test('an empty JSON envelope cannot complete as a message', async () => {
 
 test('error events are told apart by code (message repeats the code) and are not resent', async () => {
   const seen: { url: string; init: RequestInit }[] = []
-  const ended = { code: 'SESSION_ENDED', message: 'SESSION_ENDED', detail: {} }
+  const ended = { code: 'CONNECTION_ENDED', message: 'CONNECTION_ENDED', detail: {} }
   await assert.rejects(
     streamMessage(client([() => sse([event('reply', { content: '물' }), event('error', ended)])], seen), 12, body, { onReply() {} }),
-    (error: unknown) => error instanceof ApiError && error.code === 'SESSION_ENDED' && error.message === '답장을 받는 사이 연결이 끝났어요. 연결 기록을 확인해 주세요.',
+    (error: unknown) => error instanceof ApiError && error.code === 'CONNECTION_ENDED' && error.message === '답장을 받는 사이 연결이 끝났어요. 연결 기록을 확인해 주세요.',
   )
   assert.equal(seen.length, 1)
   assert.equal(streamEventError(JSON.stringify({ code: 'INTERNAL_ERROR', message: 'INTERNAL_ERROR', detail: {} })).message, '답장을 만들지 못했어요. 잠시 후 다시 보내 주세요.')
@@ -144,14 +144,14 @@ test('401 renews the token and sends the stream request once more', async () => 
   const api = client([() => json({}, 401), () => json({ accessToken: 'new' }), () => sse([event('done', done)])], seen)
   api.setToken('old')
   assert.deepEqual(await streamMessage(api, 12, body, { onReply() {} }), done)
-  assert.deepEqual(seen.map(request => request.url), ['/api/backend/sessions/12/messages/stream', '/api/backend/auth/refresh', '/api/backend/sessions/12/messages/stream'])
+  assert.deepEqual(seen.map(request => request.url), ['/api/backend/connections/12/messages/stream', '/api/backend/auth/refresh', '/api/backend/connections/12/messages/stream'])
   assert.equal((seen[2]!.init.headers as Record<string, string>).authorization, 'Bearer new')
 })
 
 test('only lost connections are retryable', () => {
   assert.equal(isRetryableMessageError(new ApiError('x', 0)), true)
   assert.equal(isRetryableMessageError(new ApiError('x', 409)), false)
-  assert.equal(isRetryableMessageError(new ApiError('x', 502, 'SESSION_ENDED')), false)
+  assert.equal(isRetryableMessageError(new ApiError('x', 502, 'CONNECTION_ENDED')), false)
   assert.equal(isRetryableMessageError(new ApiError('x', 502, 'STREAM_ERROR')), false)
   assert.equal(isRetryableMessageError(new Error('x')), false)
 })

@@ -12,7 +12,7 @@ export function useServerReport(sessionId?: string) {
   const [attempt, setAttempt] = useState(0)
   const error = !record && failure?.id === sessionId ? failure : null
   const redirectTo = reportDestination({ sessionId, hasRecord: !!record, activeSessionId: state.activeSession?.id,
-    summarySessionId: activeSummary?.sessionId, missing: error?.status === 404 })
+    summarySessionId: activeSummary?.connectionId, missing: error?.status === 404 })
   useEffect(() => {
     if (!sessionId || record || redirectTo) return
     let alive = true

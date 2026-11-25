@@ -16,11 +16,6 @@ const labels: Record<SkeletonScreen, string> = {
   mate: '메이트를 불러오고 있어요.',
   connection: '연결 화면을 불러오고 있어요.',
   'connection-record': '연결 기록을 불러오고 있어요.',
-  room: '메이트를 불러오고 있어요.',
-  prepare: '연결 화면을 불러오고 있어요.',
-  study: '연결 화면을 불러오고 있어요.',
-  report: '연결 기록을 불러오고 있어요.',
-  capsule: '연결 기록을 불러오고 있어요.',
 }
 
 function Line({ className }: { className?: string }) {
@@ -175,8 +170,8 @@ function Record() {
 function Content({ screen }: { screen: SkeletonScreen }) {
   if (screen === 'home') return <Home />
   if (screen === 'onboarding') return <Onboarding />
-  if (screen === 'mate' || screen === 'room') return <Mate />
-  if (screen === 'connection' || screen === 'study' || screen === 'prepare') return <Connection />
+  if (screen === 'mate') return <Mate />
+  if (screen === 'connection') return <Connection />
   return <Record />
 }
 

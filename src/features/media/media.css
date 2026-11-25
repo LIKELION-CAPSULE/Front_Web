@@ -1,27 +1,4 @@
 @layer components {
   .device-privacy-info { position: relative; display: flex; flex-shrink: 0; }
   .device-privacy-tooltip { position: absolute; z-index: 40; top: 100%; right: 0; width: min(340px, calc(100vw - 80px)); padding-top: 10px; }
-  .virtual-background { position: absolute; inset: 0; overflow: hidden; }
-  .virtual-background-media { position: absolute; inset: 0; }
-  .virtual-background-media > :is(video, canvas) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .virtual-background-notice { position: absolute; z-index: 2; bottom: 12px; left: 50%; width: max-content; max-width: calc(100% - 24px); translate: -50% 0; padding: 5px 10px; border-radius: 999px; background: color-mix(in srgb, var(--color-surface) 86.27%, transparent); color: var(--color-ink); font-size: var(--text-caption); line-height: var(--text-caption--line-height);  text-align: center; }
-  .behavior-badges { display: flex; max-width: 100%; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; pointer-events: none; }
-  .behavior-badges > li { padding: 3px 8px; border-radius: 999px; background: #171b28d0; color: #fff; font-size: 11px; font-weight: 600; line-height: 1.5; }
-  .behavior-badges > li[data-kind='away'], .behavior-badges > li[data-kind='drowsy'], .behavior-badges > li[data-kind='phone'] { background: #b4235bd8; }
-  .camera-background-picker { display: flex; min-width: 0; flex-wrap: wrap; gap: 8px; border: 0; margin: 0; padding: 0; }
-  .camera-background-picker > legend { margin-bottom: 8px; padding: 0; font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 700; }
-  .camera-background-option { display: grid; width: 64px; justify-items: center; gap: 4px; cursor: pointer; }
-  .camera-background-thumb { display: grid; width: 64px; height: 48px; place-items: center; overflow: hidden; border: 2px solid transparent; border-radius: 10px; background: var(--color-surface); color: var(--color-muted); transition: border-color 120ms; }
-  .camera-background-thumb > img { width: 100%; height: 100%; object-fit: cover; }
-  .camera-background-thumb[data-kind='blur'] { background: radial-gradient(circle at 50% 40%, var(--color-primary), var(--color-control) 70%); color: var(--color-ink); }
-  .camera-background-option:hover .camera-background-thumb { border-color: var(--color-divider); }
-  .camera-background-option:has(input:checked) .camera-background-thumb { border-color: var(--color-text-accent); }
-  .camera-background-option:has(input:focus-visible) .camera-background-thumb { outline: 2px solid var(--color-focus-ring); outline-offset: 4px; }
-  .camera-background-label { width: 100%; color: var(--color-muted); font-size: var(--text-caption); line-height: var(--text-caption--line-height);  text-align: center; word-break: keep-all; }
-  .camera-background-option:has(input:checked) .camera-background-label { color: var(--color-ink); font-weight: 600; }
-  .detection-status { margin-top: 16px; font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height);  }
-  .detection-status.is-compact { margin-top: 0; font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
-  .study-self-feedback { position: absolute; z-index: 12; top: 12px; right: 12px; left: 12px; display: grid; justify-items: start; gap: 8px; color: white; pointer-events: none; }
-  .study-self-feedback button { pointer-events: auto; }
-  .study-self-feedback .detection-status { width: fit-content; padding: 3px 8px; border-radius: 8px; background: color-mix(in srgb, var(--color-surface) 74.12%, transparent); }
 }

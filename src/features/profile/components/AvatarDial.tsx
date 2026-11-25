@@ -18,6 +18,9 @@ import {
 import './avatar-dial.css'
 
 /** Shown wherever the Live2D sample avatars can be picked (Live2D free material license, attribution duty). */
+/** No avatar to choose (an empty `GET /avatars`): the server gives the default avatar. */
+const EMPTY_AVATARS = '선택할 수 있는 아바타가 없어요. 기본 아바타로 시작해요.'
+
 export const LIVE2D_CREDIT = '본 서비스의 아바타 캐릭터에는 주식회사 Live2D의 저작물이 이용되었습니다.'
 
 type PreviewEntry = { key: string; model: ModelInfo; name: string }
@@ -199,7 +202,11 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
       {choices.length
         ? <AvatarArcRail choices={choices} selectedIndex={selectedIndex} disabled={disabled} reduced={reduced} name={radioName}
           portraitOf={avatar => <AvatarPortrait avatar={avatar} fallback={fallback} />} onChoose={(index, focus) => choose(index, focus)} />
-        : <p className="avatar-picker-empty" role="status">선택할 수 있는 아바타가 없어요. 기본 아바타로 시작해요.</p>}
+        // The rail keeps its place: one empty slot where the choice would sit, the note under it.
+        : <div className="avatar-arc" data-empty>
+          <span className="avatar-arc-empty-slot" aria-hidden="true" />
+          <p className="avatar-picker-empty" role="status">{EMPTY_AVATARS}</p>
+        </div>}
       <div className="avatar-picker-main">
         {stage}
         {caption}
@@ -230,7 +237,7 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
           })}
         </div>
       </div>
-      : <p className="avatar-picker-empty" role="status">선택할 수 있는 아바타가 없어요. 기본 아바타로 시작해요.</p>}
+      : <div className="avatar-picker-rail" data-empty><p className="avatar-picker-empty" role="status">{EMPTY_AVATARS}</p></div>}
 
     {credit}
   </fieldset>

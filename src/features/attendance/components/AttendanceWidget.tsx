@@ -54,9 +54,11 @@ function slideTrack(element: HTMLElement | null, x: number, seconds: number) {
  * attended, and one continuous check-in sequence (jump, land, collect, coin, reward flight). It has no button of its
  * own: it hands the sequence to the attendance controller, and the hero CTA starts it.
  */
-export function AttendanceWidget({ size = 'fit', visibleSlots = SLOTS_PER_PAGE }: {
+export function AttendanceWidget({ size = 'fit', visibleSlots = SLOTS_PER_PAGE, headingId }: {
   /** `fit` grows with the room it has; `compact` always uses the small set (e.g. inside a card row). */
   size?: 'fit' | 'compact'
+  /** The id of a section title outside the widget (home): the inner 「출석 보상」 bubble is then left out. */
+  headingId?: string
   /** Days visible at once; the pages slide by this many, the last one pulled back to stay full. */
   visibleSlots?: number
 }) {
@@ -306,7 +308,7 @@ export function AttendanceWidget({ size = 'fit', visibleSlots = SLOTS_PER_PAGE }
     <section
       ref={root}
       className="att-widget"
-      aria-labelledby="attendance-title"
+      aria-labelledby={headingId ?? 'attendance-title'}
       data-ready={assetsReady || undefined}
       data-paused={paused || undefined}
       data-playing={playing || undefined}
@@ -321,12 +323,14 @@ export function AttendanceWidget({ size = 'fit', visibleSlots = SLOTS_PER_PAGE }
 
       <div className="att-orbits" aria-hidden="true"><span /><span /></div>
 
-      <header className="att-header">
-        <h2 id="attendance-title" className="att-bubble">
-          <span className="att-sparkle" aria-hidden="true" />
-          {ATTENDANCE_COPY.title}
-        </h2>
-      </header>
+      {!headingId && (
+        <header className="att-header">
+          <h2 id="attendance-title" className="att-bubble">
+            <span className="att-sparkle" aria-hidden="true" />
+            {ATTENDANCE_COPY.title}
+          </h2>
+        </header>
+      )}
 
       <AttendanceTrack
         ref={viewport}

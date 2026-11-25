@@ -139,19 +139,19 @@ export default function LoginVariantLayout() {
   const [config, setConfig] = useState<DesktopShellWindowConfig | null>(null)
   const reactions = useMateReactions()
   const { apply, setAwake } = reactions
-  /** Mate caption (top left): shown while she is awake; `immediate` skips its fade. */
-  const [caption, setCaption] = useState<{ visible: boolean; immediate: boolean }>({ visible: false, immediate: true })
+  /** Mate caption (top left): her status dot is red while she dozes, green once awake; `immediate` skips the fade. */
+  const [caption, setCaption] = useState<{ awake: boolean; immediate: boolean }>({ awake: false, immediate: true })
   const handleAwakeChange = useCallback(
     (awake: boolean, immediate: boolean) => {
       setAwake(awake)
-      setCaption({ visible: awake, immediate })
+      setCaption({ awake, immediate })
     },
     [setAwake],
   )
   /** Where the stage draws her (stage px): the dialogue box centres on it (login-variants.css `--login-mate-*`). */
   const [mateFrame, setMateFrame] = useState<{ cx: number; width: number } | null>(null)
   const handleGreet = useCallback((line: string) => apply('greet', { line, revertAfterMs: 4600 }), [apply])
-  const captionVisible = caption.visible
+  const captionAwake = caption.awake
   const captionImmediate = caption.immediate || reducedMotion
 
   const hasError = config?.hasErrorNotification ?? false
@@ -196,15 +196,18 @@ export default function LoginVariantLayout() {
           <div className="login-variant-scrim" />
         </div>
 
+        {/* Her name, status and the AI disclosure from the start. The dot is red while she dozes and green once she is
+            awake (status colours); the state is also in words for screen readers, so colour never carries it alone.
+            The stage announces the change itself, so this is not a live region. */}
         <div
           className="login-variant-mate-caption"
-          data-caption-visible={captionVisible ? 'true' : 'false'}
+          data-awake={captionAwake ? 'true' : 'false'}
           data-caption-immediate={captionImmediate ? 'true' : undefined}
-          aria-hidden={!captionVisible || undefined}
         >
           <span className="login-variant-mate-name">
-            <span className="desktop-mate-dot" aria-hidden="true" />
+            <span className="desktop-mate-dot login-variant-mate-dot" aria-hidden="true" />
             {mate.name}
+            <span className="sr-only"> · {captionAwake ? '깨어 있음' : '자는 중'}</span>
           </span>
           <span className="login-variant-ai-badge">AI 캐릭터</span>
         </div>

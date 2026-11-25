@@ -46,6 +46,7 @@
 
 ## 현재 API 연동
 
+- **2026-11-25 주의:** 백엔드가 세션 API를 연결 API(`/api/connections/*`)로 바꾸고 룸 · 일정 API를 지웠습니다. 아래 항목은 프런트 코드의 현재 동작(11-22 계약)이며, 실제 서버에 붙이면 홈 조회부터 실패합니다. 바뀐 점과 연결 순서는 [프런트 연결 갭 분석](docs/API_FRONT_GAP_2026-11-25.md)을 따릅니다.
 - 2026-11-22 기준 기본 백엔드는 `https://api.capsule.ai.kr`입니다. 브라우저의 `/api/backend/*`는 서버 게이트웨이를 통해 같은 경로의 `/api/*`로 전달합니다. `BACKEND_API_ORIGIN`으로 다른 서버를 지정할 수 있습니다.
 - 최신 성공 응답 `{ success: true, data: ... }`는 공통 `ApiClient`에서 한 번 해제해 화면에 전달합니다. 로그인·토큰 갱신·홈·프로필·일정·공부 세션·리포트에 공통 적용하며, 본문 없는 완료 응답도 처리합니다. `{ success: false, code, message, detail }` 오류 정보는 유지합니다.
 - 스트리밍 대화는 `reply`의 누적 글을 표시하고 `done`의 원본 또는 감싼 응답을 처리합니다. JSON 응답으로 돌아오는 경우에도 같은 `data` 해제를 적용합니다. 최신 명세는 [공개 OpenAPI](https://api.capsule.ai.kr/v3/api-docs)에서 확인합니다.
@@ -64,7 +65,7 @@
 - 준비 화면에서 함께할 친구와 대화 옵션을 선택합니다. 목표는 기본 50분이며 5~180분을 5분 단위로 조절합니다. 선택한 시간이 시작 요청·타이머·리포트에 반영되고, 목표에 도달해도 수동 휴식 전까지 계속 공부합니다.
 - 서버에 있는 룸+친구 1명은 실제 공부 API를 사용합니다. 서버에 없는 룸·친구 및 여러 친구와의 공부는 로컬 타이머·샘플 대화·리포트·캡슐 카드로 연결합니다. 모델 URL이 없는 서버 친구는 기존 이미지를 표시합니다.
 - API가 없는 잔액·충전·패스·대화 등급은 체험용입니다. 첫 사용 시 5,000 크레딧을 제공하며 실제 결제는 없습니다. 내 기록은 최근 30일 샘플과 이 브라우저에서 완료한 공부를 표시합니다.
-- 더미 부분은 화면에 안내하고 계정별로 저장합니다. **[더미 항목·소스 위치·실제 API 교체 안내](src/features/dummy/README.md)**에서 전체 목록을 확인하거나 `rg -n 'DUMMY_API' src`로 찾을 수 있습니다.
+- 더미 부분은 화면에 안내하고 계정별로 저장합니다. (이 체험용 더미 코드 `src/features/dummy/`는 2026-11-25 정리에서 삭제했습니다. 현재 로컬 더미는 위 「로컬 더미 모드」를 참고하세요.)
 
 ## 공부 레벨과 호감도
 
@@ -141,12 +142,13 @@ npm run preview
 홈의 친구 환영 장면, 포스터형 스터디룸 카드, 일러스트 기반 공부·휴식 화면, 친구 관계·기록·크레딧 화면을 같은 색상·컨트롤로 연결했습니다. 룸/친구 검색·저장 필터·SVG 아바타 미리보기를 지원하고, 캡슐 카드의 실제 PNG에도 친구 그림이 들어갑니다.
 
 - 색상·폰트·글자 역할: `docs/DESIGN_TOKENS.json` → `npm run tokens:sync` → `src/styles/design-tokens.css` / 런타임 `src/shared/design/tokens.ts`
-- 공통 UI: `src/shared/ui`의 `Brand`, `Icon`, `AvatarIllustration`, `Button`, `Panel` 등
-- 친구 그림·표정·인물별 표시 영역: `src/features/characters/artwork.ts` / 공통 렌더링: `CharacterArtwork`
-- 룸 문구·친구 구성: `src/features/rooms/data/rooms.ts` / 원본 포스터: `src/features/rooms/posters.ts` / 이미지 결합: `services/room-service.ts`
-- 룸 장면의 배경·친구·책상·제목: `src/features/rooms/artwork.ts` / `src/styles/scenes.css`
+- 공통 UI: `src/shared/ui`의 `Brand`, `Icon`, `AvatarIllustration`, `Button`, `AppPanel` 등
+- 메이트 그림(카드·히어로·통화 배경·정지 이미지): `src/features/mates/artwork.ts` / 메이트 목록·서버 이름 매핑: `src/features/mates/catalog.ts`
+- 메이트를 앱의 1인 「룸」으로 등록하는 레지스트리: `src/features/mates/mate-rooms.ts` (옛 `features/rooms`·`features/characters`는 2026-11-25 정리에서 삭제)
 - 탐색·기록·공통 피드백 스타일: `src/styles/interactions.css`
 - 적용된 기준: [통합 디자인 기준](docs/DESIGN_SYSTEM.md) · [토큰 정의](docs/DESIGN_TOKENS.json). Front_Web 앱 전체에 반영했고, Landing_Page는 적용 대상에서 제외합니다. 적용 범위·예외·검증은 디자인 문서 12장에 기록했습니다. `npm run tokens:check`로 생성물과 정적 대비를 검사합니다.
+
+> 아래 문단들(룸 포스터·장면·공부 화면·리포트·캡슐 카드·룸 상세 등)은 옛 스터디 버전의 기록입니다. 관련 코드와 에셋(`features/rooms`·`session`·`reports`의 옛 화면, `src/assets/scenes`·`room-*`·`welcome-banners`·`reports` 등)은 2026-11-25 정리에서 삭제했고, 본문의 링크는 git 이력에서 볼 수 있습니다.
 
 참고 사이트의 기존 조사로 활동 달력·자리 지킴률 링·공통 로딩을 추가했습니다. 조용히 집중 버튼과 전용 상태는 후속 사용자 요청으로 제거했습니다. 현재 52곳을 재조사한 뒤 메인 히어로의 큰 슬로건과 소개는 방문 상태별로 바꾸고, 우측 하단 대사를 초상화·이름·꼬리 없는 글래스모피즘 형태로 정리했습니다. 확인 범위·접근 오류·적용 판단은 [52곳 재조사 기록](docs/WELCOME_HERO_RESEARCH.md)에 있습니다. 재사용 컴포넌트는 `CompanionGreeting`, 전용 스타일은 `src/styles/welcome.css`입니다. 현재 메인 배너는 [호버 지우기 전환](src/shared/ui/hover-scratch/README.md)을 사용합니다. [채린·수아·다희 전용 가로 이미지](src/assets/welcome-banners/README.md)를 생성했으며, 현재 이미지와 HTML 대사는 하나의 마스크로 함께 지워집니다. 마우스가 지나간 자리에 다음 이미지와 다음 대사가 보이고 면적 40%가 지워지면 나머지를 정리한 뒤 다음 이미지로 순환합니다. 첫 방문·이어하기 문구와 버튼은 HTML로 관리합니다. 모바일·터치·모션 감소에서는 친구 선택 버튼으로 전환합니다. 이전 하프톤 시안은 현재 화면에서 연결을 해제했습니다.
 
@@ -195,7 +197,7 @@ React + TypeScript(strict) + Vite + Tailwind CSS v4를 사용합니다. 공통 U
 로컬의 [문서 목록](docs/README.md)에서 기획 근거와 구조를 확인할 수 있습니다. API 연동 문서·검토 기록·OpenAPI 원본과 관련 프로젝트 개요는 사용자 요청에 따라 Git에서 제외하고 로컬에 보관합니다. 아래 링크 중 로컬 문서는 새로 복제한 저장소에 포함되지 않습니다.
 
 - [프로젝트 개요](docs/PROJECT_OVERVIEW.md) — 현재 코드 기준 두 앱의 역할, MVP 동작, 상태·미디어·배포 경계.
-- [백엔드 API 정리](docs/BACKEND_API.md) — 이전 연동 기록. 현재 경로·응답 형식은 [최신 Swagger](https://api.capsule.ai.kr/swagger-ui/index.html#/)와 위의 현재 API 연동 항목을 기준으로 합니다.
+- [백엔드 API 정리](docs/BACKEND_API.md) — 2026-11-25 OpenAPI 기준 44개 API. 프런트가 아직 옛 계약(`/api/sessions/*`)으로 부르는 부분과 연결 순서는 [프런트 연결 갭 분석](docs/API_FRONT_GAP_2026-11-25.md)을 따릅니다. 최신 명세는 [Swagger](https://api.capsule.ai.kr/swagger-ui/index.html#/)에서 확인합니다.
 - [OpenAPI 원본 스냅샷](docs/BACKEND_OPENAPI_2026-11-05.json) — 2026-11-05 조회 기준.
 - [원본 서비스 기획 정리](docs/CAPSULE_서비스_기획_정리.md) — 내용 수정 없이 `docs`로 이동.
 - [서비스·와이어프레임 분석](docs/SERVICE_ANALYSIS.md) — 핵심 경험, 우선순위, 문서 간 차이.

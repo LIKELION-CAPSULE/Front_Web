@@ -66,7 +66,17 @@ const DOHYUN_EXPRESSIONS: readonly SampleExpression[] = [
   { name: 'shy', stage: 4, label: '멋쩍음' },
 ]
 
-const SAMPLES_BY_MATE: Readonly<Record<string, readonly SampleExpression[]>> = { dohyun: DOHYUN_EXPRESSIONS }
+/**
+ * 채린's four unlock expressions (persona, 2026-11-25) on her v3 model's expressions: 웃음 → laugh, 짜증(장난) → sulky
+ * (a pout fits playful annoyance; angry reads as real anger), 부끄러움 → shy.
+ */
+const CHAERIN_EXPRESSIONS: readonly SampleExpression[] = [
+  { name: 'neutral', stage: 1, label: '기본' },
+  { name: 'laugh', stage: 2, label: '웃음' },
+  { name: 'sulky', stage: 3, label: '짜증(장난)' },
+  { name: 'shy', stage: 4, label: '부끄러움' },
+]
+const SAMPLES_BY_MATE: Readonly<Record<string, readonly SampleExpression[]>> = { chaerin: CHAERIN_EXPRESSIONS, dohyun: DOHYUN_EXPRESSIONS }
 
 export function sampleUnlocks(stage: number, firstMetAt?: number, mateId?: string): MateUnlocks {
   const list = (mateId && SAMPLES_BY_MATE[mateId]) || SAMPLE_EXPRESSIONS

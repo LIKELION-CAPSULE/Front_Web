@@ -41,11 +41,14 @@ export function checkedAccountDetails(value: BetaAccountDetails): BetaAccountDet
   }
 }
 
-/** Must be implemented against an agreed backend contract before production can save the new fields. */
+/** Account operations; `server-ports.ts` implements them on the 11-25 API (4 · 8 · 10 · 35 · 36 · 39). */
 export type BetaAccountPort = {
-  read: (userId: number) => Promise<BetaAccountDetails>
+  /** `me`: the `/me` response just read, when the caller has it. */
+  read: (userId: number, me?: MeResponse) => Promise<BetaAccountDetails>
   signup: (input: BetaSignupInput) => Promise<LoginResponse>
   completeOnboarding: (userId: number, input: BetaOnboardingInput) => Promise<BetaAccountResult>
   saveProfile: (userId: number, input: BetaProfileInput) => Promise<BetaAccountResult>
   validateReferralCode?: (code: string) => Promise<ReferralValidationResult>
+  /** API 36 after signup (the signup request has no referral field). */
+  enterReferral?: (code: string) => Promise<void>
 }

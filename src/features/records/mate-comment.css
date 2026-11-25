@@ -53,9 +53,14 @@
   }
 }
 
+.records-mate-comment-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
 .records-mate-comment-name {
   display: block;
-  margin-bottom: 2px;
   color: var(--color-text-accent);
   font-size: 12.5px;
   font-weight: 600;

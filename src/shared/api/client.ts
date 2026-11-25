@@ -166,26 +166,38 @@ export function toApiError(status: number, data: unknown, fallbackMessage?: stri
 }
 
 const errorMessages: Record<string, string> = {
+  // Common (CommonErrorCode)
   INVALID_REQUEST: '요청 내용을 확인해 주세요.', UNAUTHORIZED: '로그인이 필요해요.',
   AUTH_TOKEN_EXPIRED: '로그인이 만료됐어요. 다시 로그인해 주세요.', REFRESH_TOKEN_INVALID: '다시 로그인해 주세요.',
   NOT_FOUND: '요청한 정보를 찾지 못했어요.', METHOD_NOT_ALLOWED: '지원하지 않는 요청이에요.',
   INTERNAL_ERROR: '서버에서 요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.',
-  INVALID_SETTING: '현재 설정을 사용할 수 없어요. 잠시 후 다시 시도해 주세요.',
-  INVALID_CREDENTIALS: '이메일 또는 비밀번호를 확인해 주세요.', LOGIN_LOCKED: '로그인을 여러 번 실패했어요. 5분 뒤 다시 시도해 주세요.',
+  TOO_MANY_REQUESTS: '요청이 많아요. 잠시 후 다시 시도해 주세요.',
+  // Auth · account (1–10, 25–27)
+  INVALID_CREDENTIALS: '이메일 또는 비밀번호를 확인해 주세요.', LOGIN_LOCKED: '로그인을 여러 번 실패했어요. 10분 뒤 다시 시도해 주세요.',
   INVALID_EMAIL: '이메일 주소를 확인해 주세요.', EMAIL_ALREADY_USED: '이미 가입한 이메일이에요.', INVALID_PASSWORD: '비밀번호는 8자 이상, 72바이트 이하로 입력해 주세요.',
   INVALID_NICKNAME: '닉네임은 1~20자로 입력해 주세요.', INVALID_CODE: '인증번호가 올바르지 않아요.', CODE_EXPIRED: '인증번호의 유효 시간이 지났어요.',
   VERIFICATION_EXPIRED: '이메일 인증이 만료됐어요. 인증번호를 다시 받아 주세요.', TERMS_REQUIRED: '필수 약관에 동의해 주세요.',
-  TOO_MANY_REQUESTS: '요청이 많아요. 잠시 후 다시 시도해 주세요.', TOO_MANY_ATTEMPTS: '인증 시도 횟수를 초과했어요. 새 인증번호를 받아 주세요.',
+  TOO_MANY_ATTEMPTS: '인증 시도 횟수를 초과했어요. 새 인증번호를 받아 주세요.',
   SOCIAL_AUTH_FAILED: '카카오 로그인을 완료하지 못했어요. 다시 시도해 주세요.', RESET_TOKEN_INVALID: '재설정 링크가 만료됐거나 이미 사용됐어요.',
+  UNDER_14: '만 14세 이상만 가입할 수 있어요.', INVALID_BIRTH_DATE: '생년월일을 확인해 주세요.',
+  INVALID_HONORIFIC: '호칭은 1~10자로 입력해 주세요.', INVALID_ABOUT_ME: '나에 대해는 50자 이하로 입력해 주세요.',
+  BETA_FULL: '베타 정원이 가득 찼어요. 출시 알림을 신청해 주세요.',
   AVATAR_NOT_FOUND: '선택한 아바타를 찾지 못했어요. 다시 선택해 주세요.',
-  ROOM_NOT_FOUND: '선택한 메이트를 찾지 못했어요.', SESSION_NOT_FOUND: '연결 정보를 찾지 못했어요.',
-  CHARACTER_NOT_IN_ROOM: '선택한 메이트와 연결할 수 없어요. 다시 선택해 주세요.',
+  ONBOARDING_REQUIRED: '프로필 설정을 완료해 주세요.', INVALID_SETTINGS: '설정 값을 확인해 주세요.',
+  // Mates · connections (16–23, 28, 31, 32, 46, 47)
+  MATE_NOT_FOUND: '선택한 메이트를 찾지 못했어요.', MATE_COMING_SOON: '아직 준비 중인 메이트예요.', MATE_ALREADY_OPEN: '이미 공개된 메이트예요.',
+  MINOR_DAILY_LIMIT: '오늘 연결할 수 있는 시간을 모두 썼어요. 내일 다시 만나요.',
+  CONNECTION_NOT_FOUND: '연결 정보를 찾지 못했어요.', CONNECTION_ALREADY_IN_PROGRESS: '이미 진행 중인 연결이 있어요.',
+  CONNECTION_ENDED: '이미 종료된 연결이에요. 연결 기록을 확인해 주세요.', CONNECTION_IN_PROGRESS: '아직 연결이 진행 중이에요.',
+  INVALID_CONNECTION_TIME: '서버에서 연결 시간을 확인하지 못했어요.',
   CHARACTER_NOT_IN_SESSION: '현재 연결 중인 메이트에게만 보낼 수 있어요.',
-  ONBOARDING_REQUIRED: '프로필 설정을 완료해 주세요.', EVENT_NOT_FOUND: '상태 기록을 찾지 못했어요.',
-  INVALID_EVENT: '상태 기록을 저장하지 못했어요. 다시 시도해 주세요.', EMPTY_MESSAGE: '메시지를 입력해 주세요.',
-  INVALID_TARGET_MINUTES: '연결 시작에 필요한 시간 설정이 올바르지 않아요.', SESSION_ALREADY_IN_PROGRESS: '이미 진행 중인 연결이 있어요.',
-  SESSION_ENDED: '이미 종료된 연결이에요. 연결 기록을 확인해 주세요.', INVALID_STUDY_TIME: '서버에서 연결 시간을 확인하지 못했어요.',
-  INVALID_MEMORY: '일정 이름과 날짜를 확인해 주세요.', INVALID_DATE_RANGE: '조회 기간을 확인해 주세요.', SESSION_IN_PROGRESS: '아직 연결이 진행 중이에요.',
+  EVENT_NOT_FOUND: '상태 기록을 찾지 못했어요.', INVALID_EVENT: '상태 기록을 저장하지 못했어요. 다시 시도해 주세요.', EMPTY_MESSAGE: '메시지를 입력해 주세요.',
+  CHAT_SUSPENDED: '안전 정책에 따라 대화가 잠시 멈췄어요.', CREDIT_INSUFFICIENT: '크레딧이 부족해요. 기본 모드로 대화해 주세요.',
+  // Messages · feedback · referrals (36, 39–42)
+  MESSAGE_NOT_FOUND: '메시지를 찾지 못했어요.', ALREADY_REPORTED: '이미 신고한 답장이에요.', FEEDBACK_ALREADY_TODAY: '오늘은 이미 평가를 남겼어요.',
+  REFERRAL_CODE_NOT_FOUND: '확인할 수 없는 초대 코드예요.', REFERRAL_SELF: '내 초대 코드는 입력할 수 없어요.',
+  REFERRAL_EXPIRED: '초대 코드는 가입 후 7일 안에만 입력할 수 있어요.', REFERRAL_SAME_DEVICE: '같은 기기에서 가입한 계정의 코드는 입력할 수 없어요.',
+  REFERRAL_ALREADY_ENTERED: '이미 초대 코드를 입력했어요.',
 }
 
 export const api = new ApiClient()

@@ -1,12 +1,14 @@
-import type { DemoState } from '../demo/types.ts'
-import type { DemoAction } from '../demo/reducer.ts'
+import type { DemoState, FocusTotals } from '../demo/types.ts'
 import { normalizeFocusTotals } from '../session/focus.ts'
 import { sessionStudySeconds } from '../session/connection-time.ts'
 
-/** Production accepts server patches and camera measurements, never the old local purchase/chat/session simulator. */
-export function betaReducer(state: DemoState, action: DemoAction): DemoState {
+/** What the app state accepts: server patches and camera measurements (the old local session simulator is gone). */
+export type ConnectionAction =
+  | { type: 'SERVER_SYNC'; patch: Partial<DemoState> }
+  | { type: 'FACE_FOCUS'; sessionId: string; totals: FocusTotals; now: number }
+
+export function betaReducer(state: DemoState, action: ConnectionAction): DemoState {
   if (action.type === 'SERVER_SYNC') return { ...state, ...action.patch }
-  if (action.type !== 'FACE_FOCUS') return state
   const active = state.activeSession
   if (!active?.serverSession || active.id !== action.sessionId || !Number.isFinite(action.now) || action.now < active.startedAt) return state
   const previous = normalizeFocusTotals(active.focus), next = normalizeFocusTotals(action.totals)
@@ -15,4 +17,3 @@ export function betaReducer(state: DemoState, action: DemoAction): DemoState {
   const focus = { observedMs, focusedMs: Math.min(observedMs, next.focusedMs), returns: next.returns }
   return previous.observedMs === focus.observedMs && previous.focusedMs === focus.focusedMs && previous.returns === focus.returns ? state : { ...state, activeSession: { ...active, focus } }
 }
-export type ConnectionReducer = typeof betaReducer

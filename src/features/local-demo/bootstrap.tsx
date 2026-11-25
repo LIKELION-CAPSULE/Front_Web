@@ -26,7 +26,7 @@ export async function mountLocalDemo(root: HTMLElement) {
     import('@/app/bootstrap'), import('./LocalControls'), import('./ports'), import('../live2d/live2d-stage'),
   ])
   const stages = new Set<InstanceType<typeof Live2DStage>>()
-  const { accountPort, matePort, featurePort } = createLocalPorts(store)
+  const { featurePort } = createLocalPorts(store)
   mountApp(root, <LocalControls store={store} stages={stages} />, undefined, (url, layout) => {
     const stage = new Live2DStage(url, layout, new URL(import.meta.env.BASE_URL, location.href).href)
     stage.setExpression(store.previewExpression)
@@ -34,5 +34,5 @@ export async function mountLocalDemo(root: HTMLElement) {
     const destroy = stage.destroy.bind(stage)
     stage.destroy = () => { stages.delete(stage); destroy() }
     return stage
-  }, undefined, accountPort, matePort, featurePort)
+  }, undefined, undefined, featurePort)
 }

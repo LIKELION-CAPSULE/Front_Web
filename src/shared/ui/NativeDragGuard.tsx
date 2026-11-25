@@ -2,8 +2,7 @@ import { useEffect } from 'react'
 
 const visualControls = [
   '.site-header-brand', '.app-navigation', '.detail-breadcrumb', '.ui-button',
-  '.room-card', '.character-picker-item', '.avatar-dial-stage', '.scratch-media',
-  '.wheel-column', '.payment-receipt[data-phase="ready"] .receipt-paper',
+  '.payment-receipt[data-phase="ready"] .receipt-paper',
   '[data-no-native-drag]',
 ].join(', ')
 

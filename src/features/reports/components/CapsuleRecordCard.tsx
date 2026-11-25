@@ -1,3 +1,4 @@
+import { AiCharacterBadge } from '@/shared/ui/AiCharacterBadge'
 import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router'
 import { capsuleLogo } from '@/shared/design/brand-logo'
@@ -28,7 +29,7 @@ export function CapsuleRecordCard(props: CapsuleRecordCardProps) {
           <MateDecor levelUp={levelUp} />
           {quote && (
             <figure className="capsule-record-quote" {...reveal(5)}>
-              <figcaption><Icon name="chat" size={16} />{mateName}</figcaption>
+              <figcaption><Icon name="chat" size={16} />{mateName}<AiCharacterBadge /></figcaption>
               <blockquote><p>{quote}</p></blockquote>
             </figure>
           )}
@@ -89,7 +90,7 @@ export function CapsuleRecordLayout({ mate, children }: { mate: ReactNode; child
   )
 }
 
-function RecordHeader({ titleId, mateName, modeLabel, endedAt, levelUp, stats }: CapsuleRecordCardProps) {
+function RecordHeader({ titleId, mateName, modeLabel, endedAt, levelUp, stats, quote }: CapsuleRecordCardProps) {
   const summary = recordAmount(stats.togetherSeconds ?? stats.connectionSeconds)
   const ratio = stats.togetherSeconds !== null && stats.connectionSeconds > 0
     ? Math.min(100, (stats.togetherSeconds / stats.connectionSeconds) * 100)
@@ -111,7 +112,8 @@ function RecordHeader({ titleId, mateName, modeLabel, endedAt, levelUp, stats }:
         )}
       </div>
       <div className="capsule-record-meta">
-        <p className="capsule-record-meta-mate">{modeLabel ? `${mateName} · ${modeLabel}` : mateName}</p>
+        {/* The AI tag goes with the mate's line (CapsuleRecordCard); without a line, with the name here. */}
+        <p className="capsule-record-meta-mate">{modeLabel ? `${mateName} · ${modeLabel}` : mateName}{!quote && <> <AiCharacterBadge /></>}</p>
         <p className="capsule-record-meta-time">
           <Icon name="clock" size={14} />
           <time dateTime={new Date(endedAt).toISOString()}>{recordEndedLabel(endedAt)} {COPY.completed}</time>

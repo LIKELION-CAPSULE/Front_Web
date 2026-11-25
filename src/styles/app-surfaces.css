@@ -2,6 +2,8 @@
 .app-surface { min-height: 100dvh; background: var(--color-canvas); }
 .app-panel { min-width: 0; overflow: hidden; border: 0; border-radius: var(--radius-card); background: var(--color-panel); }
 .app-panel-heading { padding: 28px 28px 0; }
+/* Title with a control at its right (AppPanel `action`). */
+.app-panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 28px 28px 0; }
 .auth-panel-layout { display: flex; min-height: 100dvh; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding: 32px 24px; }
 .auth-panel-content { width: min(500px, 100%); padding: 32px; }
 /* Onboarding: the home app header (logo only) across the top instead of the centred logo; the content below it. */
@@ -64,7 +66,6 @@
 }
 .app-surface .desktop-window-controls > button::after { transform: rotate(-45deg); }
 .app-surface .desktop-window-controls > button:hover { background: var(--color-control); }
-.app-surface .desktop-window-body,
 .app-surface :is(.credits-window-body, .records-window-body, .my-mates-window-body, .mate-detail-window-body) {
   border: 0;
   background: var(--color-panel);
@@ -74,16 +75,13 @@
   border-radius: var(--radius-panel);
   box-shadow: none;
 }
-.app-surface :is(.mate-menu-panel, .mate-detail-control-bar, .mate-preview-status, .credits-tab-nav) { border: 0; }
+.app-surface :is(.mate-menu-panel, .mate-detail-control-bar, .mate-preview-status) { border: 0; }
 .app-surface .connection-mate,
 .app-surface .connection-self-titlebar { border: 0; }
-.connection-window-actions { display: flex; flex: none; align-items: center; gap: 4px; }
-.connection-window-actions > .ui-button { width: 36px; min-width: 36px; min-height: 36px; padding: 8px; }
-.app-surface .account-settings-content.avatar-background::before,
-.app-surface .account-settings-content.avatar-background::after { display: none; }
 
 @media (max-width: 767px) {
   .app-surface .desktop-window-titlebar { padding-inline: 20px; }
   .app-panel-heading { padding: 24px 20px 0; }
+  .app-panel-head { padding: 24px 20px 0; }
   .auth-panel-content { padding: 24px; }
 }

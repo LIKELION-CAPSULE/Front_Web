@@ -1,15 +1,15 @@
 /**
- * Ordering rules for state events (FOCUS/AWAY/RETURN/BREAK) shared by the session sync hook.
- * Motion events never pass through here, so they cannot reset an away escalation or cancel a pending reaction.
+ * Ordering rules for API 18 state events (PRESENT/AWAY/RETURN) shared by the connection sync hook.
+ * Other events (IDLE_TALK) never change it, so they cannot reset an away escalation or cancel a pending reaction.
  */
 export type AwayEscalation = { eventId: number; at: number; intensity: number }
 export type EventFlow = { revision: number; away: AwayEscalation | null }
 
-const STATE_EVENTS = new Set(['FOCUS', 'AWAY', 'RETURN', 'BREAK'])
+const STATE_EVENTS = new Set(['PRESENT', 'AWAY', 'RETURN'])
 
 /**
  * Every outgoing event passes here. A state change supersedes earlier reactions and anything but AWAY ends
- * the current absence; motion events (DROWSY, YAWN, WAVE, HEAD_TURN) leave the flow untouched.
+ * the current absence; other events (IDLE_TALK) leave the flow untouched.
  */
 export function eventQueued(flow: EventFlow, type: string): EventFlow {
   if (!STATE_EVENTS.has(type)) return flow

@@ -73,7 +73,11 @@ function MateHello({ text }: { text: string }) {
   return <div className="onboarding-hello" data-typing={!isFinished || undefined}>
     <img className="onboarding-hello-avatar" src={mateAvatar('chaerin')} alt="" width={56} height={56} decoding="async" />
     <div className="onboarding-hello-bubble">
-      <span className="onboarding-hello-name" aria-hidden="true">채린</span>
+      {/* AI disclosure next to her name, read by screen readers too (the name itself is in the sr-only line). */}
+      <span className="onboarding-hello-name">
+        <span aria-hidden="true">채린</span>
+        <span className="onboarding-hello-ai-badge">AI 캐릭터</span>
+      </span>
       <p className="onboarding-hello-text">
         <span className="sr-only">채린: {text}</span>
         <span className="onboarding-hello-measure" aria-hidden="true">{text}</span>
@@ -208,7 +212,22 @@ export default function OnboardingPage() {
   useLayoutEffect(() => {
     const node = panelInner.current
     if (!node || typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(([entry]) => setPanelHeight(Math.ceil(entry?.borderBoxSize?.[0]?.blockSize ?? node.offsetHeight)))
+    // The panel's top is anchored for the taller step (onboarding.css `--onboarding-panel-reserve`); a step that turns
+    // out taller than the reserve raises it once, so later step changes keep the top where it is.
+    let reserve = 0
+    const observer = new ResizeObserver(([entry]) => {
+      const height = Math.ceil(entry?.borderBoxSize?.[0]?.blockSize ?? node.offsetHeight)
+      setPanelHeight(height)
+      const panel = node.closest<HTMLElement>('.onboarding-panel')
+      if (!panel) return
+      const frame = panel.offsetHeight - (panel.querySelector<HTMLElement>('.onboarding-panel-clip')?.offsetHeight ?? 0)
+      const fallback = parseFloat(getComputedStyle(panel).getPropertyValue('--onboarding-panel-reserve')) || 620
+      const needed = height + frame
+      if (needed > Math.max(reserve, fallback)) {
+        reserve = needed
+        panel.parentElement?.style.setProperty('--onboarding-panel-reserve', `${needed}px`)
+      }
+    })
     observer.observe(node)
     return () => observer.disconnect()
   }, [])
@@ -432,7 +451,7 @@ export default function OnboardingPage() {
   }
 
   const nickname = name.trim()
-  const greeting = nickname && !nicknameError(nickname) ? `안녕, ${nickname}! 이 모습으로 함께할게요.` : '닉네임을 알려 주면 인사할게요.'
+  const greeting = nickname && !nicknameError(nickname) ? `반가워요, ${nickname}님! 이 모습으로 함께할게요.` : '닉네임을 알려 주면 인사할게요.'
   // 「○○, 반가워!」 on its own line (pre-line in onboarding.css), then the rest.
   const helloText = inviter
     ? `${nickname}, 반가워!\n${inviter}님이 초대해 줬구나. 코드만 확인하면 바로 시작이야.`
@@ -547,15 +566,16 @@ export default function OnboardingPage() {
               </Button>
               <StepMeter step={2} total={totalSteps} />
             </div>
-            <MateHello key={helloText} text={helloText} />
             <h1 ref={headingMounted} data-step="2" id={`${fieldId}-invite-title`} tabIndex={-1} className="onboarding-title type-page-title">
               초대 코드
             </h1>
+            {/* Under the title, so the meter and the title stay where step 1 has them. */}
+            <MateHello key={helloText} text={helloText} />
             <div className="onboarding-benefit">
               <Icon name="gift" size={22} className="onboarding-benefit-icon" />
               <div>
-                <p className="onboarding-benefit-title">친구를 초대하면 둘 다 크레딧 1,000</p>
-                <p className="onboarding-benefit-text">받은 초대 코드를 넣고 첫 연결을 마치면 나와 친구 모두 받아요.</p>
+                <p className="onboarding-benefit-title">초대 코드를 넣으면 나와 친구 모두 크레딧 1,000</p>
+                <p className="onboarding-benefit-text">코드를 넣은 뒤 첫 연결을 마치면 둘 다 받아요.</p>
               </div>
             </div>
             <ReferralCodeField

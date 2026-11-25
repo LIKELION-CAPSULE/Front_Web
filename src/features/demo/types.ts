@@ -1,4 +1,3 @@
-import type { CameraBackgroundId } from '../media/camera-backgrounds.ts'
 
 export type TierId = 'basic' | 'standard' | 'premium' | 'special'
 export type AvatarSettings = {
@@ -57,7 +56,10 @@ export type ActiveSession = {
   serverSession?: boolean
   serverOffsetMs?: number
   presenceKnown?: boolean
+  /** Legacy local studies only (dummy state). */
   initialAwaySeconds?: number
+  /** API 17 resume: the last heartbeat totals the measurement continues from (connected time is `studySeconds`). */
+  initialTotals?: { presentSeconds: number; cameraOnSeconds: number; pipSeconds: number }
   focus?: FocusTotals
   targetSeconds?: number
   id: string
@@ -112,8 +114,6 @@ export type DemoState = {
   pass: Pass | null
   cameraChecked: boolean
   cameraEnabled: boolean
-  /** Optional so saves from before virtual backgrounds still load; missing means 'none'. */
-  cameraBackground?: CameraBackgroundId
   examPromptedRooms: string[]
   records: StudyRecord[]
   activeSession: ActiveSession | null

@@ -200,7 +200,16 @@
     font-size: var(--text-body-compact);
     line-height: var(--text-body-compact--line-height);
     text-align: center;
+    word-break: keep-all;
   }
+  /* An empty list keeps the rail's height, with the note in its middle (no layout jump when avatars arrive). */
+  .avatar-picker-rail[data-empty] {
+    display: grid;
+    place-items: center;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .avatar-picker-rail[data-empty] .avatar-picker-empty { margin: 0; padding: 0 16px; }
   .avatar-picker-credit {
     max-width: 100%;
     margin: 6px 0 0;
@@ -280,6 +289,25 @@
   .avatar-arc-option:has(input:focus-visible) .avatar-arc-thumb { outline: 2px solid var(--color-focus-ring); outline-offset: 5px; }
   .avatar-arc-option:has(input:disabled) { cursor: default; }
   .avatar-arc-option[inert] { pointer-events: none; }
+  /* Empty list: one dashed slot on the arc where the choice would sit, the note centred under it. */
+  .avatar-arc-empty-slot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--arc-size);
+    height: var(--arc-size);
+    border: 1.5px dashed color-mix(in srgb, var(--color-primary) 55%, transparent);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-panel) 70%, transparent);
+    transform: translate(-50%, -50%);
+  }
+  .avatar-arc[data-empty] .avatar-picker-empty {
+    position: absolute;
+    top: calc(50% + var(--arc-size) / 2 + 14px);
+    right: 8px;
+    left: 8px;
+    margin: 0;
+  }
 
   /* The big stage: as tall as the area allows (the login's dozing mate is the reference), 4:5, centred. */
   .avatar-picker-main {
