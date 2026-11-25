@@ -449,32 +449,6 @@
   }
 }
 
-/* 세계관 (MateWorldStrip) under the mate: across the bottom of the figure (same width, right side), over the faded
-   waist (the stage's mask). Under 1024px it is its own row between the mate and the information. */
-.mate-hero-worlds {
-  position: absolute;
-  right: clamp(16px, 3vw, 40px);
-  bottom: clamp(16px, 3vh, 32px);
-  z-index: 2;
-  width: calc(min(58%, 1000px) - 2 * clamp(16px, 3vw, 40px));
-}
-@media (max-width: 1023px) {
-  .mate-hero-worlds {
-    position: relative;
-    right: auto;
-    bottom: auto;
-    width: auto;
-    margin: -32px 16px 8px;
-  }
-}
-.mate-hero-worlds .mate-world-tile--card .mate-world-thumb { aspect-ratio: 16 / 9; }
-.mate-hero-worlds .mate-world-tile--card {
-  background: color-mix(in srgb, var(--color-panel) 78%, transparent);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  backdrop-filter: blur(14px) saturate(140%);
-}
-.mate-hero-worlds button.mate-world-tile--card:hover { background: color-mix(in srgb, var(--color-panel) 92%, transparent); }
-
 /* Coming soon (31 `comingSoon`): the note over 「공개 알림 받기」 (MateAlertButton). */
 .mate-alert-action { display: grid; gap: 10px; }
 .mate-alert-note { margin: 0; color: var(--color-muted); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); }

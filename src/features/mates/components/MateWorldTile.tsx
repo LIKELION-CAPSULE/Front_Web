@@ -23,6 +23,8 @@ function WorldBackdrop({ world, className }: { world: MateWorld; className?: str
  * One world: the background thumbnail, 「EP.03 · 도서관」 and, open, the sample line (locked: a lock and 「Lv.4에서
  * 열려요」 — the place stays visible so there is something to look forward to). An open world is a button that opens
  * its detail (`onOpen`); a locked one is not interactive. `layout`: `row` (the affinity card) or `card` (the strip).
+ * Reuse: the worlds from `useMateWorlds` (use-mate-worlds.ts), each as `<MateWorldTile world={w} layout="card"
+ * onOpen={setDetail} />`, and `{detail && <MateWorldDialog world={detail} mateName={name} onClose={…} />}` (MateWorldStrip does both).
  */
 export function MateWorldTile({ world, layout, onOpen }: { world: MateWorld; layout: 'row' | 'card'; onOpen?: (world: MateWorld) => void }) {
   const body = (

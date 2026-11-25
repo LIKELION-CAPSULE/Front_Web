@@ -3,8 +3,10 @@ import { WORLD_COPY, worldCount, type MateWorld } from '@/features/mates/mate-wo
 import { MateWorldDialog, MateWorldTile } from './MateWorldTile'
 
 /**
- * The five worlds in one row (메이트 상세, under the mate): five cards, side-scrolling on narrow screens. A mate not
- * met yet shows all five locked with the level that opens each.
+ * The five worlds in one row: five cards, side-scrolling on narrow screens. A mate not met yet shows all five locked
+ * with the level that opens each. Not placed on any screen yet (taken off 메이트 상세 2026-11-26; its owner places it
+ * to the Figma frame). Use: `const worlds = useMateWorlds({ enabled, mateId, mateName, stage, met, unlocks })`
+ * (use-mate-worlds.ts; the stage and `met` from 37 내 메이트), then `{worlds && <MateWorldStrip worlds={worlds} mateName={name} />}`.
  */
 export function MateWorldStrip({ worlds, mateName, className }: { worlds: readonly MateWorld[]; mateName: string; className?: string }) {
   const [detail, setDetail] = useState<MateWorld | null>(null)

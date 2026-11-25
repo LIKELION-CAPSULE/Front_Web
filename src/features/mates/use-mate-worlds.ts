@@ -49,8 +49,8 @@ export function useMateWorldContent({
 }
 
 /**
- * A mate's five worlds for any screen (내 메이트, 메이트 상세): the lock state from the affinity stage, the content
- * from the server (none until its type is named: 「준비 중」) or, in development with the local mock or `samples`, the
+ * A mate's five worlds for a screen that lists them (MateWorldStrip; 메이트 상세 has none yet): the lock state from the
+ * affinity stage, the content from the server (none until its type is named: 「준비 중」) or, in development with the local mock or `samples`, the
  * planning examples. Null when `enabled` is off (feature flag) — the screens leave the worlds out.
  */
 export function useMateWorlds({

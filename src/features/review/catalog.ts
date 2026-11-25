@@ -149,7 +149,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'records-grid-year', group: '내 기록', title: '내 기록 · 2D 잔디 연', path: '/records?period=year', reports: [9001,9002,9003,9004,9005,9006,9007,9008,9009,9010,9011,9012], cameraFocus: {observedMs:1500000,focusedMs:1380000,returns:2}, note: '열 = 주, 행 = 요일(월·수·금 라벨), 위에 월 라벨·미래 날짜는 흐리게 비활성·칸을 누르면 그날 기록 카드' },
   { id: 'records-25d-year', group: '내 기록', title: '내 기록 · 2.5D 연(유리 기둥)', path: '/records?period=year', reports: [9001,9002,9003,9004,9005,9006,9007,9008,9009,9010,9011,9012], cameraFocus: {observedMs:1500000,focusedMs:1380000,returns:2}, steps: [click('2.5D')], note: '연 2.5D도 주·월과 같은 유리 기둥(기간의 가장 긴 날 기준 높이)·달을 누르면 그 달' },
   { id: 'records-loading', group: '내 기록', title: '내 기록 · 불러오는 중', path: '/records', loading: 'records', note: '로컬 미리보기용: 창 내부 스켈레톤 상태' },
-  { id: 'my-mates', group: '내 메이트', title: '내 메이트 · 기본(연결 1번)', path: '/mates/me', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '위에서 내려다본 캡슐 바닥 장면(캡슐이 쏟아진 뒤 카드가 떨어져 내려앉음)과 오른쪽 함께한 시간 열·서버 보고서 1개(연결 1번 = 캡슐 여러 개)·해금 정보 없음: 개발에서는 샘플 친밀도·세계관(기획 예시), 운영 모습은 ?features=off(친밀도·세계관 카드 없음)' },
+  { id: 'my-mates', group: '내 메이트', title: '내 메이트 · 기본(연결 1번)', path: '/mates/me', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '위에서 내려다본 캡슐 바닥 장면(캡슐이 쏟아진 뒤 카드가 떨어져 내려앉음)과 오른쪽 함께한 시간 열·서버 보고서 1개(연결 1번 = 캡슐 여러 개)·해금 정보 없음: 개발에서는 샘플 친밀도·세계관(기획 예시), 운영(api)은 서버 단계·세계관 「준비 중」, ?features=off는 개발에서 카드 없는 모습' },
   { id: 'my-mates-full', group: '내 메이트', title: '내 메이트 · 전체(연결 7번·세계관 3/5)', path: '/mates/me', mateContract: true, reports: [9001, 9002, 9003, 9004, 9005, 9006, 9007], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '서버 계약 전 디자인 확인용: 연결 7번(연결 시간만큼 캡슐 묶음)·누운 한 면 카드(이름·처음 만난 날)·친밀도와 세계관 한 카드(Lv.3·세계관 3/5)·오른쪽 열(함께한 시간·12시간 고리·최근 캡슐)·보이스 대사는 숨김' },
   // 세계관 (mate-worlds.ts): the stage opens the five places; development shows the planning examples, api mode 「준비 중」.
   { id: 'my-mates-world-0', group: '내 메이트', title: '내 메이트 · 세계관 0/5(연결 전)', path: '/mates/me', empty: true, note: '연결 0번: 아직 만나지 않아 다섯 세계관 모두 잠김·EP.01 학교 「Lv.1에서 열려요」' },
@@ -163,8 +163,6 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'mate-reset-conflict', group: '내 메이트', title: '내 메이트 · 연결 중이라 초기화 불가', path: '/mates/me', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-conflict', steps: [...resetMenu, click('초기화하기')], note: '47의 409 CONNECTION_IN_PROGRESS(다른 기기 연결 포함): 「연결을 먼저 마쳐 주세요」' },
   { id: 'my-mates-empty', group: '내 메이트', title: '내 메이트 · 연결 기록 없음', path: '/mates/me', note: '연결 0번: 빈 바닥 위 카드와 「첫 캡슐을 모아 볼까?」 안내·오른쪽 열의 만나러 가기 버튼(메이트 목록이 비면 홈 이동)' },
   { id: 'my-mates-loading', group: '내 메이트', title: '내 메이트 · 불러오는 중', path: '/mates/me', loading: 'my-mates', note: '로컬 미리보기용: 창 내부 장면 스켈레톤' },
-  { id: 'mate-detail-worlds', group: '메이트·연결', title: '메이트 상세 · 세계관(만난 메이트)', path: '/mates/chaerin', reports: [9001], note: '캐릭터 미리보기 아래 세계관 5장(EP.01~05): 내 메이트와 같은 단계로 잠김·열림, 열린 칸을 누르면 상세' },
-  { id: 'mate-detail-worlds-unmet', group: '메이트·연결', title: '메이트 상세 · 세계관(아직 안 만남)', path: '/mates/chaerin', empty: true, note: '연결 0번: 다섯 장 모두 잠김·「Lv.N에서 열려요」로 기대감' },
   { id: 'mate-preview', group: '메이트·연결', title: '메이트 상세 · 미리보기·목소리', path: '/mates/chaerin', mateContract: true, note: '신규 계약 모의 포트: 이미지 모델과 무음 WAV로 UI만 검토. 실제 제작물/서버 연동 아님' },
   { id: 'mate-load-error', group: '메이트·연결', title: '메이트 상세 · 조회 실패', path: '/mates/chaerin', mateContract: true, fault: 'mate-load', note: '조회 실패·다시 시도, 연결 자동 생성 없음' },
   { id: 'mate-model-error', group: '메이트·연결', title: '메이트 상세 · 모델 실패', path: '/mates/chaerin', mateContract: true, fault: 'mate-model', note: '미리보기 실패·재시도. 연결 모델과 별도 소유' },
@@ -228,6 +226,9 @@ const restoredReviewIds: Readonly<Record<string, string>> = {
   'login-alt-portrait': 'login',
   'mate-reset': 'mate-reset-confirm',
   'mate-reset-partial': 'mate-reset-error',
+  // 2026-11-26: the 세계관 strip left 메이트 상세 (its owner places it to the Figma frame).
+  'mate-detail-worlds': 'mate-detail',
+  'mate-detail-worlds-unmet': 'mate-detail',
 }
 
 const reviewGroupOrder = [

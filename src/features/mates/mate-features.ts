@@ -1,9 +1,12 @@
 /**
- * Feature flags for "my mates" features that have no backend API yet. The single place that decides what shows.
+ * Feature flags for the "my mates" features. The single place that decides what shows.
  *
- * - Production builds: all off. The mate card shows the name and the first meeting only (a smaller card).
- * - Development and the local mock: on, with sample data (mate-sample-data.ts) when the backend sends none.
- *   `?features=off` turns them off in development to check the production look.
+ * - Production builds (decided 2026-11-26): affinity and 세계관 on, voice lines off. The stage comes from the server
+ *   (37 `relation`, 21 `stageUp`, 22 · 23 `relation`); nothing is made up — a mate the server sends no relation for
+ *   shows no stage, and its five worlds are locked. World content stays 「준비 중」 until the server names its type
+ *   (mate-worlds.ts). The sample data (mate-sample-data.ts, mate-world-samples.ts) is never bundled in production.
+ * - Development and the local mock: the same flags, with sample data when the backend sends none.
+ *   `?features=off` turns them all off in development (the card with the name and the first meeting only).
  *
  * Dependency-free (no `import.meta`) so unit tests can call it; the page passes `import.meta.env.DEV`.
  */
@@ -15,15 +18,18 @@ export type MateFeatureFlags = {
    * (the stage decides what is open); with affinity off the whole card is left out.
    */
   world: boolean
-  /** Unlocked voice lines. Built, but kept hidden until the voice samples ship. */
+  /** Unlocked voice lines. Built, but kept hidden (production too) until the voice samples ship. */
   voices: boolean
 }
 
 export const MATE_FEATURES_OFF: MateFeatureFlags = { affinity: false, world: false, voices: false }
 
+export const MATE_FEATURES_ON: MateFeatureFlags = { affinity: true, world: true, voices: false }
+
+/** `override` is the `?features=` query; only development honours it (production ignores it). */
 export function resolveMateFeatures(isDevelopment: boolean, override: string | null): MateFeatureFlags {
-  if (!isDevelopment || override === 'off') return MATE_FEATURES_OFF
-  return { affinity: true, world: true, voices: false }
+  if (isDevelopment && override === 'off') return MATE_FEATURES_OFF
+  return MATE_FEATURES_ON
 }
 
 /** Affinity stages in the beta PRD (처음 만남 → 단짝): the stage table's length. */
