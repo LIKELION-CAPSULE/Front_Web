@@ -6,7 +6,8 @@
 //   - navigator.mediaDevices.getUserMedia, documentPictureInPicture.requestWindow, video requestPictureInPicture.
 // Scenarios: the full tour, a slow tour chunk (the app must be locked while it loads, and skippable), a wrong `?tour`
 // value, an empty mate list, a guest, the account modal (its three tabs in one step → outro, backdrop click), 「이 화면
-// 건너뛰기」 (next screen's first step; several marks in one step; the light and the arrow leave on the same frame), and
+// 건너뛰기」 (next screen's first step; several marks in one step; the light and the arrow leave on the same frame; the
+// line shows when the arrow reaches the first mark), and
 // 그만보기 / Esc / leaving by the address bar (inert, overflow and focus come back). It also checks that 채린's line never
 // covers a control next to the target.
 //
@@ -19,7 +20,7 @@
 //
 // Scenarios: full slow wrong-step empty guest account skip-screen leave (default: all). Prints one line per check and exits
 // with 1 when any fails.
-/* global window, document, history, location, innerWidth, innerHeight, requestAnimationFrame, PopStateEvent, HTMLVideoElement -- page.evaluate / init script bodies run in the browser */
+/* global window, document, history, location, innerWidth, innerHeight, requestAnimationFrame, PopStateEvent, HTMLVideoElement, getComputedStyle, MutationObserver -- page.evaluate / init script bodies run in the browser */
 
 import { startWatchdog, warmUpDevServer } from './lib/browser-check-guard.mjs'
 
@@ -274,42 +275,42 @@ async function account() {
   await context.close()
 }
 
-/** The light's and the arrow's moves on screen for `ms`: the start of each light move and of the arrow move landing in it. */
+/**
+ * The light's and the arrow's moves for `ms`: each start of a light move (`data-moves` on the dim, tour-spotlight.ts)
+ * against the nearest start of an arrow move (`data-tour-moves` on the pointer, ServiceTour.tsx), and how far each arrow
+ * move then went (sampled per frame, so a start that does not move the arrow does not count). Both start slowly
+ * (minimum jerk; the light's spring chases the arrow), so the starts are timed by their marks, not by the first pixel.
+ */
 async function moveStarts(page, ms) {
   return page.evaluate((ms) => new Promise((resolve) => {
-    const samples = []
-    const hole = () => {
-      const left = document.querySelector('.service-tour-shade[data-side="left"]')?.getBoundingClientRect()
-      const right = document.querySelector('.service-tour-shade[data-side="right"]')?.getBoundingClientRect()
-      const bottom = document.querySelector('.service-tour-shade[data-side="bottom"]')?.getBoundingClientRect()
-      return left && right && bottom ? { x: left.right, y: left.top, w: right.left - left.right, h: bottom.top - left.top } : null
+    const dim = document.querySelector('.service-tour-dim[data-shades]')
+    const pointer = document.querySelector('.service-tour-pointer')
+    if (!dim || !pointer) { resolve({ gaps: [], moves: [] }); return }
+    const arrowAt = () => {
+      const style = getComputedStyle(pointer.querySelector('.showcase-pointer-cursor'))
+      return { x: parseFloat(style.getPropertyValue('--cursor-x')), y: parseFloat(style.getPropertyValue('--cursor-y')) }
     }
-    const arrow = () => { const r = document.querySelector('.showcase-pointer-cursor')?.getBoundingClientRect(); return r && (Math.abs(r.left) > 1 || Math.abs(r.top) > 1) ? { x: r.left, y: r.top } : null }
+    const lights = [], arrows = []
+    const observer = new MutationObserver((records) => {
+      const t = performance.now()
+      for (const record of records) {
+        if (record.target === dim && record.attributeName === 'data-moves') lights.push(t)
+        if (record.target === pointer && record.attributeName === 'data-tour-moves') arrows.push({ t, from: arrowAt(), far: 0 })
+      }
+    })
+    observer.observe(dim, { attributes: true, attributeFilter: ['data-moves'] })
+    observer.observe(pointer, { attributes: true, attributeFilter: ['data-tour-moves'] })
     const started = performance.now()
     const tick = (now) => {
-      samples.push({ t: now, spot: hole(), pointer: arrow() })
-      if (now - started < ms) requestAnimationFrame(tick)
-      else {
-        const runs = (key, eps) => {
-          const list = []
-          let run = null
-          for (let i = 1; i < samples.length; i++) {
-            const a = samples[i - 1][key], b = samples[i][key]
-            if (!a || !b) continue
-            const step = Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs((a.w ?? 0) - (b.w ?? 0)), Math.abs((a.h ?? 0) - (b.h ?? 0)))
-            if (step > eps) {
-              if (run && samples[i].t - run.endT < 80) { run.endT = samples[i].t; run.end = b } else { run = { startT: samples[i - 1].t, endT: samples[i].t, start: a, end: b }; list.push(run) }
-            }
-          }
-          return list.filter((r) => Math.max(Math.abs(r.end.x - r.start.x), Math.abs(r.end.y - r.start.y), Math.abs((r.end.w ?? 0) - (r.start.w ?? 0))) > 30)
-        }
-        const spots = runs('spot', 0.4), arrows = runs('pointer', 1.5)
-        resolve(spots.map((spot) => {
-          const box = spot.end
-          const landing = arrows.find((p) => p.end.x >= box.x - 12 && p.end.x <= box.x + box.w + 12 && p.end.y >= box.y - 12 && p.end.y <= box.y + box.h + 12 && Math.abs(p.startT - spot.startT) < 1500)
-          return landing ? Math.round(landing.startT - spot.startT) : null
-        }).filter((gap) => gap !== null))
-      }
+      const at = arrowAt()
+      for (const move of arrows) if (now - move.t < 900) move.far = Math.max(move.far, Math.hypot(at.x - move.from.x, at.y - move.from.y))
+      if (now - started < ms) { requestAnimationFrame(tick); return }
+      observer.disconnect()
+      const gaps = lights.map((t) => {
+        const nearest = arrows.reduce((best, move) => (best === null || Math.abs(move.t - t) < Math.abs(best.t - t) ? move : best), null)
+        return nearest ? Math.round(nearest.t - t) : null
+      })
+      resolve({ gaps, moves: arrows.map((move) => Math.round(move.far)) })
     }
     requestAnimationFrame(tick)
   }), ms)
@@ -321,6 +322,12 @@ async function skipScreen() {
   const since = await mark(page)
   const first = await count(page)
   check('skip screen: the tour has 11 steps', first.total === 11, `${first.n}/${first.total}`)
+  // 채린's line rises in when the arrow reaches the step's first mark, not while it is on its way.
+  const lineShown = await page.waitForFunction(() => {
+    if (!document.querySelector('.service-tour-pointer')?.classList.contains('service-tour-pointer--line')) return false
+    return document.querySelector('[data-cursor-hover]') ? 'on the mark' : 'before the mark'
+  }, null, { timeout: 8000, polling: 'raf' }).then((handle) => handle.jsonValue()).catch(() => 'never')
+  check('skip screen: 채린’s line shows once the arrow reaches the first mark', lineShown === 'on the mark', lineShown)
   check('skip screen: 「이 화면 건너뛰기」 is offered while the screen has steps left', (await page.locator(`${panel} [data-tour-skip-screen]`).count()) === 1)
   // Several marks in one step: the card, then its connect arrow (a visual press with its preview), before the step ends.
   const pressed = await page.waitForFunction(() => /영상통화처럼 함께/.test(document.querySelector('.service-tour-preview')?.textContent ?? '') && new URLSearchParams(location.search).get('tour') === 'home-mates', null, { timeout: 8000 }).then(() => true).catch(() => false)
@@ -334,9 +341,10 @@ async function skipScreen() {
   await page.locator(`${panel} [data-tour-next]`).click()
   await page.waitForTimeout(800)
   check('skip screen: 다음 goes on to the practice call', new URL(page.url()).pathname.startsWith('/tour/call/'), page.url())
-  // The light and the arrow leave together inside the call (same frame; two frames of slack).
-  const gaps = await moveStarts(page, 6000)
-  check('skip screen: on the call the light and the arrow start each move together (≤ 34 ms apart)', gaps.length > 0 && gaps.every((gap) => Math.abs(gap) <= 34), JSON.stringify(gaps))
+  // The light and the arrow leave together inside the call (same frame; two frames of slack), and the arrow moves.
+  const { gaps, moves } = await moveStarts(page, 6000)
+  check('skip screen: on the call the light and the arrow start each move together (≤ 34 ms apart)', gaps.length > 0 && gaps.every((gap) => gap !== null && Math.abs(gap) <= 34), JSON.stringify(gaps))
+  check('skip screen: each of those arrow moves goes somewhere (> 20 px)', moves.length > 0 && moves.filter((far) => far > 20).length >= gaps.length, JSON.stringify(moves))
   await page.locator(`${panel} [data-tour-skip-screen]`).click()
   await page.waitForTimeout(1500)
   check('skip screen: from the call it goes to my mates’ first step', new URL(page.url()).pathname === '/mates/me' && new URL(page.url()).searchParams.get('tour') === 'mates-capsules', page.url())

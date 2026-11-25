@@ -23,6 +23,31 @@
   background: var(--service-tour-avatar) center / cover no-repeat, color-mix(in srgb, #fff 24%, transparent);
   content: '';
 }
+/*
+ * 채린's line: hidden while the cursor heads for the step's first mark, then it rises in as the arrow lands (opacity and
+ * 5px, on the compositor); on a new step the old line fades out quickly first. The pointer's own label animations are
+ * off (labelAnimation="none"); its text changes only while hidden.
+ */
+.service-tour-pointer .showcase-pointer-cursor-label {
+  opacity: 0;
+  translate: 0 5px;
+  animation: none;
+  transition: opacity 140ms ease-in, translate 140ms ease-in;
+}
+.service-tour-pointer--line .showcase-pointer-cursor-label {
+  opacity: 1;
+  translate: 0 0;
+  transition: opacity 220ms ease-out, translate 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The cursor carries on after a remount (new screen): a short fade in place of the pointer's bouncy entrance. */
+.service-tour-pointer .showcase-pointer-cursor[data-visible] .showcase-pointer-cursor-body {
+  animation: service-tour-cursor-in 180ms ease-out;
+}
+@keyframes service-tour-cursor-in {
+  from { opacity: 0; }
+}
+
 /* Targets at the right edge (credits, profile): the label opens to the left of the arrow. */
 .service-tour-pointer--label-left .showcase-pointer-cursor-label-anchor { right: 8px; left: auto; }
 
@@ -103,6 +128,7 @@ a.mate-card[data-cursor-hover] { transform: translateY(-4px); }
 
 @media (prefers-reduced-motion: reduce) {
   .service-tour-preview { animation: none; }
+  .service-tour-pointer .showcase-pointer-cursor-label { transition: none; }
   [data-cursor-press] { transition: none; }
 }
 

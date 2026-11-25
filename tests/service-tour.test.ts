@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { SCREEN_LABELS, TOUR_STEPS, nextScreenStep, readMs, stepPath, tourHref, tourSteps, type TourContext } from '../src/features/tour/tour-steps.ts'
-import { SPOT_RADIUS, STRIP_PX, closedSpot, easeOutCubic, spotBetween, spotlightTransforms } from '../src/features/tour/tour-spotlight.ts'
+import { SPOT_RADIUS, STRIP_PX, closedSpot, spotBetween, spotlightTransforms } from '../src/features/tour/tour-spotlight.ts'
 
 const ALL_ON: TourContext = { mateId: 'chaerin', features: { affinity: true, expressions: true } }
 const PRODUCTION: TourContext = { mateId: 'chaerin', features: { affinity: false, expressions: false } }
@@ -140,16 +140,12 @@ test('the light: four shades and four corner caps around the hole, moved by tran
   assert.equal(closed.left, 'translate3d(-720px, 450px, 0) scaleY(0)')
 })
 
-test('a move is on whole pixels with the cursor’s ease-out, from where it is to where it goes', () => {
+test('a hole between two holes is on whole pixels, from where it is to where it goes', () => {
   const from = { left: 0, top: 0, width: 100, height: 100 }
   const to = { left: 101, top: 51, width: 301, height: 11 }
   assert.deepEqual(spotBetween(from, to, 0), from)
   assert.deepEqual(spotBetween(from, to, 1), to)
-  const mid = spotBetween(from, to, easeOutCubic(0.5))
-  for (const value of Object.values(mid)) assert.ok(Number.isInteger(value))
-  assert.equal(easeOutCubic(0), 0)
-  assert.equal(easeOutCubic(1), 1)
-  assert.equal(easeOutCubic(0.5), 0.875)
+  for (const value of Object.values(spotBetween(from, to, 0.37))) assert.ok(Number.isInteger(value))
 })
 
 // Safety (no real click, connectMate, session / message / event / reaction call, getUserMedia or PIP during the tour)
