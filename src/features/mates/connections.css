@@ -225,7 +225,6 @@
 /* The 「?」 note (DevicePrivacyInfo): a small button in the bar, the note below it. */
 .connection-titlebar-help > button { width: 32px; height: 32px; }
 .connection-titlebar-left h1 { display: inline-flex; align-items: center; line-height: 20px; }
-.connection-titlebar-left .desktop-mate-ai-badge { display: inline-flex; align-items: center; }
 .connection-titlebar-help .device-privacy-tooltip { width: min(360px, calc(100vw - 32px)); }
 .connection-help-note { display: grid; gap: 8px; }
 .connection-help-note > p { margin: 0; color: var(--color-muted); font-size: 13px; line-height: 20px; word-break: keep-all; }

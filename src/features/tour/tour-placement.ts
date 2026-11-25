@@ -65,7 +65,7 @@ export function chooseLabelSide(tip: Point, size: Size, avoid: Avoid, preferred:
 
 /**
  * Reduced motion: the line beside the lit target (spot = the target with its padding): below, above (left-aligned, then
- * right-aligned), right, left — and,
+ * right-aligned), right, left, then centred and end-aligned variants — and,
  * for a target too large to leave room around it, just inside its top edge (last, so only when the rest cost more).
  */
 export function chooseLineBox(spot: Box, size: Size, avoid: Avoid, gap = 12): Box {
@@ -75,6 +75,9 @@ export function chooseLineBox(spot: Box, size: Size, avoid: Avoid, gap = 12): Bo
   const alignedRight = Math.max(16, Math.min(spot.right - size.width, viewportWidth - size.width - 16))
   const middle = Math.max(16, (spot.top + spot.bottom) / 2 - size.height / 2)
   const at = (left: number, top: number): Box => ({ left, top, right: left + size.width, bottom: top + size.height })
+  const centred = Math.max(16, Math.min((spot.left + spot.right) / 2 - size.width / 2, viewportWidth - size.width - 16))
+  const topAligned = Math.max(16, spot.top)
+  const bottomAligned = Math.max(16, spot.bottom - size.height)
   const candidates = [
     at(alignedLeft, spot.bottom + gap),
     at(alignedLeft, spot.top - gap - size.height),
@@ -82,6 +85,13 @@ export function chooseLineBox(spot: Box, size: Size, avoid: Avoid, gap = 12): Bo
     at(alignedRight, spot.top - gap - size.height),
     at(spot.right + gap, middle),
     at(spot.left - gap - size.width, middle),
+    // Larger lit areas (a step's marks together) leave fewer free sides: centred, and beside them at either end.
+    at(centred, spot.bottom + gap),
+    at(centred, spot.top - gap - size.height),
+    at(spot.right + gap, topAligned),
+    at(spot.right + gap, bottomAligned),
+    at(spot.left - gap - size.width, topAligned),
+    at(spot.left - gap - size.width, bottomAligned),
     at(alignedLeft + gap, spot.top + gap),
   ].map((box) => ({ box }))
   return cheapest(candidates, avoid).box

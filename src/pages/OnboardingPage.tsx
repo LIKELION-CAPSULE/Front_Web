@@ -73,10 +73,9 @@ function MateHello({ text }: { text: string }) {
   return <div className="onboarding-hello" data-typing={!isFinished || undefined}>
     <img className="onboarding-hello-avatar" src={mateAvatar('chaerin')} alt="" width={56} height={56} decoding="async" />
     <div className="onboarding-hello-bubble">
-      {/* AI disclosure next to her name, read by screen readers too (the name itself is in the sr-only line). */}
+      {/* Her name (screen readers get it from the sr-only line). */}
       <span className="onboarding-hello-name">
         <span aria-hidden="true">채린</span>
-        <span className="onboarding-hello-ai-badge">AI 캐릭터</span>
       </span>
       <p className="onboarding-hello-text">
         <span className="sr-only">채린: {text}</span>

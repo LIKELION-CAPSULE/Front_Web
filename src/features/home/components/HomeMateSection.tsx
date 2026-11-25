@@ -2,7 +2,6 @@ import { forwardRef, type Ref } from 'react'
 import { Link } from 'react-router'
 import { mateCallBackground, matePortrait } from '@/features/mates/artwork'
 import { ageRatingLabel, type AvailableMate } from '@/features/mates/catalog'
-import { AiCharacterBadge } from '@/shared/ui/AiCharacterBadge'
 import { useConnectMate } from '@/features/mates/use-connect-mate'
 import { AttendanceWidget } from '@/features/attendance/components/AttendanceWidget'
 import { ATTENDANCE_COPY } from '@/features/attendance/attendance-config'
@@ -58,11 +57,10 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
         <img className="home-mate-card-bg" src={mateCallBackground(mate.id).landscape} alt="" loading="lazy" decoding="async" draggable={false} />
         <img className="home-mate-card-figure" src={matePortrait(mate.id, mate.image)} alt="" loading="lazy" decoding="async" draggable={false} />
       </div>
-      {/* Age rating and the AI tag at the top left, the status at the top right: one row of chips over the art
-          (the name row keeps its layout). */}
+      {/* Age rating at the top left, the status at the top right: one row of chips over the art (the name row keeps its
+          layout). */}
       <div className="home-mate-chips">
         <span className="home-mate-badge home-mate-badge--rating" data-rating={mate.ageRating}>{ageRatingLabel(mate.ageRating)}</span>
-        <AiCharacterBadge tone="overlay" className="home-mate-ai" />
       </div>
       {comingSoon ? (
         <span className="home-mate-badge home-mate-badge--soon" data-tour={tour ? 'mate-card-status' : undefined}>{HOME_COPY.comingSoon}</span>

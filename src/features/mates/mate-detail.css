@@ -181,23 +181,6 @@
   text-shadow: 0 4px 28px color-mix(in srgb, var(--color-canvas) 70%, transparent);
 }
 
-.mate-hero-mark {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0;
-  color: var(--color-text-accent);
-  text-shadow: none;
-}
-
-/* Brand purple, not gold: gold is kept for the attendance rewards only (DESIGN_SYSTEM.md). */
-.mate-hero-mark svg {
-  color: var(--color-text-accent);
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 60%, transparent));
-}
-
 .mate-hero-tagline {
   margin: 12px 0 0;
   font-size: clamp(18px, 1.5vw, 22px);

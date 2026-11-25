@@ -150,7 +150,6 @@
   }
   .onboarding-hello-name { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; color: var(--color-text-accent); font-size: 12.5px; line-height: 18px; font-weight: 600; }
   /* Same pill as the other AI disclosures (login caption, call titlebar). */
-  .onboarding-hello-ai-badge { border-radius: 999px; background: color-mix(in srgb, var(--color-surface) 90%, transparent); padding: 1px 8px; color: var(--color-subtle); font-size: 11px; line-height: 16px; font-weight: 500; }
   .onboarding-hello-text { display: grid; margin: 0; font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 500; word-break: keep-all; overflow-wrap: anywhere; }
   .onboarding-hello-measure, .onboarding-hello-typed { grid-area: 1 / 1; white-space: pre-line; }
   .onboarding-hello-measure { visibility: hidden; }

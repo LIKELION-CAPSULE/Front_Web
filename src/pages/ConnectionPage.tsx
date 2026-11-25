@@ -495,7 +495,6 @@ export default function ConnectionPage() {
               </span>
             </div>
             <div className="desktop-window-title-right">
-              <span className="desktop-mate-ai-badge">AI 캐릭터</span>
               <div className="desktop-window-controls" aria-hidden="true">
                 <span className="desktop-window-dot" />
                 <span className="desktop-window-dot" />
@@ -645,7 +644,6 @@ export default function ConnectionPage() {
           <span className="connection-titlebar-divider" aria-hidden="true" />
           <span className="desktop-mate-dot" aria-hidden="true" title="연결 중" />
           <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
-          <span className="desktop-mate-ai-badge">AI 캐릭터</span>
         </div>
 
         <div className="connection-titlebar-center">

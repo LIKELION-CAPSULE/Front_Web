@@ -33,11 +33,9 @@ export function HomeHero({ mate, onExplore }: { mate: AvailableMate | null; onEx
       </div>
       {figure && (
         <figure className="home-hero-figure">
-          {/* The fade mask sits on the art only, so the AI disclosure below it stays fully readable. */}
           <div className="home-hero-figure-art">
             <img src={figure} width={1520} height={1800} alt="" decoding="async" draggable={false} />
           </div>
-          <figcaption className="home-hero-ai-label">{HOME_COPY.aiLabel}</figcaption>
         </figure>
       )}
 

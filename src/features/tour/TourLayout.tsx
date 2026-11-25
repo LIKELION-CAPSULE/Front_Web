@@ -30,7 +30,7 @@ export function TourLayout() {
   )
 }
 
-/** While the controller loads: the page is dimmed and locked; 「건너뛰기」 (or Esc) ends the tour already. */
+/** While the controller loads: the page is dimmed and locked; 「그만보기」 (or Esc) ends the tour already. */
 function TourLoading() {
   const navigate = useNavigate()
   useEffect(() => {
@@ -53,7 +53,7 @@ function TourLoading() {
       <div className="service-tour-panel" role="dialog" aria-modal="true" aria-label="캡슐 사용법" aria-busy="true">
         <p className="service-tour-loading-text" role="status">사용법 불러오는 중</p>
         <div className="service-tour-actions">
-          <Button variant="ghost" size="sm" autoFocus onClick={() => { navigate(takeTourOrigin(), { replace: true }); focusTourTrigger() }}>건너뛰기</Button>
+          <Button variant="ghost" size="sm" autoFocus onClick={() => { navigate(takeTourOrigin(), { replace: true }); focusTourTrigger() }}>그만보기</Button>
         </div>
       </div>
     </div>

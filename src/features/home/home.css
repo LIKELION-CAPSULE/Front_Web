@@ -44,20 +44,6 @@
     mask-composite: intersect;
     -webkit-mask-composite: source-in;
   }
-  .home-hero-ai-label {
-    position: absolute;
-    bottom: 22px;
-    left: 50%;
-    translate: -50% 0;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--color-canvas) 72%, transparent);
-    padding: 4px 10px;
-    color: var(--color-muted);
-    font-size: var(--text-caption);
-    line-height: var(--text-caption--line-height);
-    white-space: nowrap;
-    pointer-events: auto;
-  }
 
   .home-hero-inner {
     display: grid;
@@ -242,7 +228,6 @@
   .home-mate-chips { position: absolute; top: 14px; left: 14px; z-index: 3; display: flex; align-items: center; gap: 6px; }
   .home-mate-chips .home-mate-badge { position: static; }
   /* The AI tag's look, at the chips' height. */
-  .home-mate-chips .home-mate-ai { padding: 4px 10px; font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
   .home-mate-badge--online { color: var(--color-success); }
   .home-mate-badge--online::before { width: 7px; height: 7px; border-radius: 999px; background: currentColor; content: ''; }
   /* Coming soon (11 `comingSoon`): a quiet grey state; the arrow is closed (HomeMateSection). */
@@ -311,7 +296,6 @@
     .home-hero-sub { font-size: 15px; }
     .home-hero-cta { width: 100%; justify-content: center; }
     .home-hero-figure { right: -60px; height: 380px; top: 0; bottom: auto; opacity: 0.45; }
-    .home-hero-ai-label { top: 12px; right: 76px; bottom: auto; left: auto; translate: none; }
     .home-mate-grid { grid-template-columns: minmax(0, 1fr); }
   }
 

@@ -146,10 +146,6 @@ export default function MateDetailPage() {
           <div className="mate-hero-copy">
             <h1 id="mate-name" className="mate-hero-name" data-tour="mate-detail-name">
               {mate.name}
-              <span className="mate-hero-mark">
-                <Sparkle />
-                AI 캐릭터
-              </span>
             </h1>
             {introduction && <p className="mate-hero-tagline" data-tour="mate-detail-tagline">{introduction}</p>}
             {intro && <p className="mate-hero-situation" data-tour="mate-detail-intro">{intro}</p>}
@@ -207,13 +203,5 @@ export default function MateDetailPage() {
         </section>
       </main>
     </>
-  )
-}
-
-function Sparkle() {
-  return (
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-      <path fill="currentColor" d="M12 1.5c.5 5.6 4.9 10 10.5 10.5-5.6.5-10 4.9-10.5 10.5C11.5 16.9 7.1 12.5 1.5 12 7.1 11.5 11.5 7.1 12 1.5z" />
-    </svg>
   )
 }

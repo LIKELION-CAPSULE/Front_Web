@@ -139,16 +139,6 @@
   }
 }
 
-.desktop-mate-ai-badge {
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
-  padding: 2px 8px;
-  color: var(--color-subtle);
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 16px;
-}
-
 .desktop-mate-stage {
   position: relative;
   flex: 1 1 auto;

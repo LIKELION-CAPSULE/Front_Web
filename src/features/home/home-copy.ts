@@ -8,7 +8,6 @@ export const HOME_COPY = {
   ctaCheckIn: '출석하고 크레딧 받기',
   /** After today's check-in the hero CTA starts the connection right away (use-connect-mate). */
   ctaConnect: (name: string) => `${withParticle(name, '과', '와')} 연결하기`,
-  aiLabel: 'AI 캐릭터',
   matesTitle: '오늘은 누구와 함께할까요?',
   available: '연결 가능',
   /** A mate shown but not open yet (11 `comingSoon`): its page offers 「공개 알림 받기」 (46). */

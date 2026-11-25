@@ -74,7 +74,6 @@ export default function TourCallPage() {
             <span className="connection-titlebar-divider" aria-hidden="true" />
             <span className="desktop-mate-dot" aria-hidden="true" />
             <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
-            <span className="desktop-mate-ai-badge">AI 캐릭터</span>
           </div>
           <div className="connection-titlebar-center">
             <div className="connection-mode-segment" role="group" aria-label="대화 모드" data-tour="call-mode">
