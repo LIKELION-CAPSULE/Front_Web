@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
-import { CapsuleCalendar, CapsuleLegend } from '../CapsuleCalendar'
+import { ContributionGrid } from '../ContributionGrid'
 import { capsuleNeighbor, capsuleTooltip, type CapsuleDay } from '../capsule-calendar'
 import type { CommentHighlight } from '../mate-comment'
 import { boardMonthTooltip, isMonthSelectable, type CapsuleBoardModel } from './capsule-board-layout'
@@ -28,8 +28,9 @@ function usePrefersReducedMotion() {
 }
 
 /**
- * 「함께 쌓은 시간」 board: the WebGL scene (its own lazy chunk) plus everything that is not WebGL — the tooltip, the
- * keyboard and screen-reader list (days; the year's twelve months), and the 2D capsule calendar when WebGL is missing.
+ * 「함께 쌓은 시간」 board (2.5D): the WebGL scene (its own lazy chunk) plus everything that is not WebGL — the tooltip,
+ * the keyboard and screen-reader list (days; the year's twelve months). When WebGL fails here the page switches to the
+ * 2D contribution grid (`onFallback`); until then this shows the grid itself.
  */
 export function CapsuleBoard({
   model,
@@ -44,6 +45,7 @@ export function CapsuleBoard({
   reducedMotion: forceReducedMotion = false,
   replayToken = 0,
   onController,
+  onReady,
 }: {
   model: CapsuleBoardModel
   view: BoardView
@@ -62,6 +64,8 @@ export function CapsuleBoard({
   replayToken?: number
   /** Development hook (benchmark). */
   onController?: (controller: { benchmark: (durationMs: number) => Promise<BoardBenchmark> } | null) => void
+  /** The scene exists and draws (BoardViewSwitch starts its move then). */
+  onReady?: () => void
 }) {
   const systemReducedMotion = usePrefersReducedMotion()
   const reducedMotion = forceReducedMotion || systemReducedMotion
@@ -204,6 +208,7 @@ export function CapsuleBoard({
         sceneRef.current = controller
         onController?.({ benchmark: (ms) => controller!.benchmark(ms) })
         setReady(true)
+        onReady?.()
       })
       .catch(() => {
         if (cancelled) return
@@ -323,9 +328,8 @@ export function CapsuleBoard({
 
   if (fallback) {
     return (
-      <div className="capsule-board capsule-board--fallback" data-board-fallback data-tour="records-board">
-        <CapsuleLegend mode={model.calendar.mode} showKeepsake={model.hasKeepsake} />
-        <CapsuleCalendar data={model.calendar} selectedKey={selectedKey} onSelect={onSelectDay} />
+      <div className="capsule-board capsule-board--fallback" data-board-fallback>
+        <ContributionGrid model={model} selectedKey={selectedKey} onSelect={onSelectDay} showMates={false} />
       </div>
     )
   }

@@ -6,6 +6,7 @@ import terms from '../auth/data/legal/terms.md?raw'
 import privacy from '../auth/data/legal/privacy.md?raw'
 import { LOCAL_AFFINITY, LOCAL_MATES, type LocalBetaStore, type LocalMate } from './store'
 import { LOCAL_V2_MODELS } from './local-asset-urls'
+import { LOCAL_VOICE_TONE_MP3, localVoicePieces } from './voice-tone'
 import type {
   ChatMessage, ConnectionTotals, CreditTransaction, EndType, MateCard, MateDetailResponse, MyMate, RecordsResponse,
   UserSettings,
@@ -65,10 +66,14 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
   /** 40 · 41 for this tab: the ratings 32 reads back, the replies already reported. */
   const ratings = new Map<string, 'UP' | 'DOWN'>()
   const reported = new Set<string>()
+  /** Kakao sign-up tickets already spent in this tab (they are single use). */
+  const usedSignupTokens = new Set<string>()
   /**
    * QA (session storage, development only): `capsule-local-coming-soon` = a mate's catalogue id (e.g. `dohyun`) makes that
    * mate coming soon (11 · 31 `comingSoon`, 16 refuses it, 46 accepts the alert, 48 leaves it out);
-   * `capsule-local-beta-full` = `1` makes a new signup (4) and Kakao (6) answer 403 `BETA_FULL`;
+   * `capsule-local-beta-full` = `1` makes a new signup (4) and Kakao (6 and its sign-up step) answer 403 `BETA_FULL`;
+   * `capsule-local-kakao-signup` = `expired` | `invalid` | `terms` makes the Kakao sign-up step answer 401
+   * `SIGNUP_TOKEN_EXPIRED` (and its ticket last 1 s) | 401 `SIGNUP_TOKEN_INVALID` | 400 `TERMS_NOT_AGREED`;
    * `capsule-local-notifications` = `empty` | `error` empties 43 or makes it fail; `capsule-local-chat-delay` (ms) slows
    * 32 and `capsule-local-chat-fail` (N) fails its next N reads.
    */
@@ -94,7 +99,7 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
   const figures = () => {
     const mate = store.activeMate()
     return { connectionId: store.data.active!.id, mate: figure(mate),
-      me: { nickname: store.data.nickname, honorific: store.data.details.callName || null, profileImageUrl: image() },
+      me: { nickname: store.data.nickname, honorific: null, profileImageUrl: image() },
       serverTime: new Date().toISOString(), minorRemainingSeconds: minorRemaining(), backgrounds: [], background: null }
   }
   const detail = (mate: LocalMate): MateDetailResponse => ({
@@ -177,10 +182,28 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
     if (path === '/login-mates') return reply({ mates: LOCAL_MATES.filter(mate => !comingSoon(mate)).map(mate => ({ id: mate.characterId, name: mate.name, ageRating: 'ALL', cardImageUrl: mateArtwork(mate.mateId)?.card ?? null, model: { ...LOCAL_V2_MODELS[mate.mateId], format: 'ALIVING2D_V2' } })) })
     if (path === '/auth/refresh') return store.data.authenticated ? reply({ accessToken: 'local-beta-access' }) : error('UNAUTHORIZED', 401)
     if (path === '/auth/email/login') return reply(store.login())
-    if (path === '/auth/social/KAKAO') {
+    if (path === '/auth/social/KAKAO' && method === 'POST') {
       if (!deviceOk) return error('INVALID_REQUEST', 400)
       if (qa('capsule-local-beta-full') === '1') return error('BETA_FULL', 403)
+      // Contract a′ (kakao-signup-contract.ts): a first-time Kakao user (here: a code starting with `new-`) gets no
+      // account yet, only a short sign-up ticket. Any other code is a Kakao user who already has an account.
+      if (typeof body.code === 'string' && body.code.startsWith('new-')) {
+        const expiresInSeconds = qa('capsule-local-kakao-signup') === 'expired' ? 1 : 600
+        return error('KAKAO_SIGNUP_REQUIRED', 403, { signupToken: `local-signup.${Date.now() + expiresInSeconds * 1000}.${crypto.randomUUID()}`, expiresInSeconds })
+      }
       return reply({ ...store.login(), isNewUser: false })
+    }
+    if (path === '/auth/social/KAKAO/signup' && method === 'POST') {
+      if (!deviceOk || typeof body.signupToken !== 'string' || !Array.isArray(body.agreedTermVersionIds)) return error('INVALID_REQUEST', 400)
+      // The ticket carries its own expiry, so a refreshed consent screen can still use it; each one works once per tab.
+      const [kind, expiry] = body.signupToken.split('.')
+      const switched = qa('capsule-local-kakao-signup')
+      if (switched === 'invalid' || kind !== 'local-signup' || usedSignupTokens.has(body.signupToken)) return error('SIGNUP_TOKEN_INVALID', 401)
+      if (switched === 'expired' || !(Number(expiry) > Date.now())) return error('SIGNUP_TOKEN_EXPIRED', 401)
+      if (switched === 'terms' || ![990501, 990502].every(id => (body.agreedTermVersionIds as unknown[]).includes(id))) return error('TERMS_NOT_AGREED', 400)
+      if (qa('capsule-local-beta-full') === '1') return error('BETA_FULL', 403)
+      usedSignupTokens.add(body.signupToken)
+      return reply({ ...store.beginOnboarding(), isNewUser: true })
     }
     if (path === '/auth/email/signup' && method === 'POST' && qa('capsule-local-beta-full') === '1') return error('BETA_FULL', 403)
     if (path === '/auth/email/signup' && method === 'POST') {
@@ -402,7 +425,10 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       if (!type) return error('EVENT_NOT_FOUND', 404)
       if (typeof body.requestId !== 'string') return error('INVALID_REQUEST', 400)
       const face = reactions[type]
-      return reply({ requestId: body.requestId, characters: [{ characterId: activeMate.characterId, ...(face ? { content: face.line, expression: { name: face.expression, file: null } } : {}), fallback: false, audioBase64: null }], charged: 0, credits: null })
+      // `tts: true` with 「메이트 음성」 on: the line comes with the test tone for 20 credits (text only when short).
+      const voice = Boolean(face) && body.tts === true && settings.voiceEnabled && store.voiceLine()
+      return reply({ requestId: body.requestId, characters: [{ characterId: activeMate.characterId, ...(face ? { content: face.line, expression: { name: face.expression, file: null } } : {}), fallback: false, audioBase64: voice ? LOCAL_VOICE_TONE_MP3 : null }],
+        charged: voice ? 20 : 0, credits: body.tts === true ? store.credits() : null })
     }
     if (operation === 'messages/stream' || operation === 'messages') {
       if (body.characterId !== activeMate.characterId) return error('CHARACTER_NOT_IN_SESSION', 400)
@@ -411,20 +437,33 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       if (body.mode !== undefined && body.mode !== 'BASIC' && body.mode !== 'ADVANCED') return error('INVALID_REQUEST', 400)
       store.expireAttendance()
       const advanced = body.mode === 'ADVANCED' || body.mode === undefined && store.data.settings.advanced
-      const answer = store.reply(body.requestId, body.content, advanced)
+      // 28 with `tts: true` and 「메이트 음성」 on: a voice turn (20 more), the test tone in pieces (20 never asks: no voice).
+      const answer = store.reply(body.requestId, body.content, advanced, operation === 'messages/stream' && body.tts === true && settings.voiceEnabled)
       if (!answer) return error('CREDIT_INSUFFICIENT', 409, { credits: store.credits() })
       const result = { requestId: body.requestId, characterId: activeMate.characterId, content: answer.content, affinity: answer.affinity, emotion: '웃음',
         expression: LOCAL_REPLY_EXPRESSIONS[activeMate.mateId] ?? LOCAL_REPLY_EXPRESSIONS.chaerin, fallback: false, audioBase64: null, motion: null,
-        mode: advanced ? 'ADVANCED' : 'BASIC', charged: answer.charged, credits: store.credits(), safety: null, background: null, voice: false }
+        mode: advanced ? 'ADVANCED' : 'BASIC', charged: answer.charged, credits: store.credits(), safety: null, background: null, voice: answer.voice }
       if (operation === 'messages') return reply(result)
+      // As the server: voice pieces between the replies and after `done`, then `audio_end`.
+      const pieces = answer.voice ? localVoicePieces(3) : []
       const stream = new ReadableStream<Uint8Array>({ async start(controller) {
         const encoder = new TextEncoder()
+        const send = (event: string, data: unknown) => controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
+        let seq = 0
         for (const content of [result.content.slice(0, 3), result.content]) {
           if (signal?.aborted) { controller.close(); return }
-          controller.enqueue(encoder.encode(`event: reply\ndata: ${JSON.stringify({ content })}\n\n`))
+          send('reply', { content })
+          if (seq < pieces.length - 1) send('audio', { seq, format: 'mp3', data: pieces[seq++] })
           await new Promise(resolve => setTimeout(resolve, 100))
         }
-        controller.enqueue(encoder.encode(`event: done\ndata: ${JSON.stringify(result)}\n\n`)); controller.close()
+        send('done', result)
+        for (; seq < pieces.length; seq++) {
+          await new Promise(resolve => setTimeout(resolve, 120))
+          if (signal?.aborted) { controller.close(); return }
+          send('audio', { seq, format: 'mp3', data: pieces[seq] })
+        }
+        if (pieces.length) send('audio_end', { chunks: pieces.length, complete: true })
+        controller.close()
       } })
       return new Response(stream, { headers: { 'content-type': 'text/event-stream' } })
     }
@@ -436,7 +475,7 @@ type LocalNotification = { id: number; type: string; title: string; body: string
 function localNotifications(now: number): LocalNotification[] {
   const MINUTE = 60_000
   const fresh: Omit<LocalNotification, 'id'>[] = [
-    { type: 'STAGE_UP', title: '채린과 한 걸음 가까워졌어요', body: '이제 채린이 새로운 표정을 보여 줘요. 내 메이트에서 확인해 보세요.', link: '/mates/me', read: false, createdAt: now - 4 * MINUTE },
+    { type: 'STAGE_UP', title: '채린과 한 걸음 가까워졌어요', body: '새 세계관이 열렸어요 · EP.03 도서관', link: '/mates/me', read: false, createdAt: now - 4 * MINUTE },
     { type: 'ATTENDANCE', title: '출석 보상 100 크레딧을 받았어요', body: null, link: '/credits', read: false, createdAt: now - 3 * 60 * MINUTE },
     { type: 'REFERRAL_REWARD', title: '친구가 첫 연결을 마쳤어요', body: '초대 보상 1,000 크레딧이 들어왔어요.', link: '/credits/invite', read: true, createdAt: now - 26 * 60 * MINUTE },
     { type: 'NOTICE', title: '바깥 링크는 열리지 않아요', body: '앱 밖 주소가 담긴 알림은 눌러도 이동하지 않아요.', link: 'https://example.com', read: true, createdAt: now - 3 * 24 * 60 * MINUTE },

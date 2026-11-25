@@ -37,13 +37,16 @@
   max-height: min(480px, calc(100dvh - 120px));
   flex-direction: column;
   overflow: hidden;
-  border-radius: var(--radius-panel);
-  background: var(--color-panel);
-  box-shadow: var(--floating-shadow);
+  /* Pixel frame at dropdown size (design B2, 2026-11-26): two-step pixel corners and the roof line along the top. */
+  --notification-roof:
+    linear-gradient(var(--color-dialog-roof) 0 2px, transparent 2px) 0 0 / 100% 2px no-repeat,
+    conic-gradient(from 90deg at 2px 2px, var(--color-dialog-roof-dither) 0 25%, transparent 0 50%, var(--color-dialog-roof-dither) 0 75%, transparent 0) 0 2px / 4px 4px repeat-x;
+  clip-path: polygon(0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px, 100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%, 8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px));
+  background: var(--notification-roof), var(--color-dialog-surface);
 }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .notification-panel {
-    background: linear-gradient(135deg, color-mix(in srgb, var(--color-panel) 86%, transparent), color-mix(in srgb, var(--color-canvas) 80%, transparent));
+    background: var(--notification-roof), linear-gradient(135deg, color-mix(in srgb, var(--color-dialog-surface) 90%, transparent), color-mix(in srgb, var(--color-canvas) 84%, transparent));
     -webkit-backdrop-filter: blur(18px) saturate(140%);
     backdrop-filter: blur(18px) saturate(140%);
   }

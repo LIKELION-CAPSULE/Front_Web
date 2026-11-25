@@ -56,6 +56,8 @@ type Input = {
   idleTalk?: boolean
   /** Also stops (and resets) that timer: the event line still typing, the user's voice being heard, the call ending. */
   holdIdleTalk?: boolean
+  /** Reaction lines (19, `IDLE_TALK` too) ask for voice (`tts: true`; 20 credits when the server makes it). */
+  tts?: boolean
 }
 type Pending = { result: ReactionResponse; event: string; revision: number; turn?: number }
 type Runtime = {
@@ -99,7 +101,7 @@ export function useSessionSync(input: Input) {
     current.reactions++
     try {
       const result = await api.request<ReactionResponse>(`${connectionPath(current.sessionId)}/events/${eventId}/reaction`, {
-        method: 'POST', body: { requestId, ...(event === 'AWAY' ? { intensity: intensity ?? 1 } : {}), tts: false } satisfies ReactionRequest,
+        method: 'POST', body: { requestId, ...(event === 'AWAY' ? { intensity: intensity ?? 1 } : {}), tts: latest.current.tts === true } satisfies ReactionRequest,
       })
       const pending: Pending = { result, event, revision, turn }
       if (result.requestId !== requestId || !stillCurrent(current, pending)) return

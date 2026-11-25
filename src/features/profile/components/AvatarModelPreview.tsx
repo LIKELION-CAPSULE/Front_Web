@@ -3,14 +3,13 @@ import type { ModelInfo } from '@/shared/api/types'
 import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
 import { useAvatarModel } from '@/features/live2d/use-avatar-model'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
-import { QuarterRingSpinner } from '@/shared/ui/QuarterRingSpinner'
 
 /**
  * A selection that changes again within this time never creates the model's WebGL context (arrow keys held, quick
  * clicks through the rail). The model already on screen covers the wait.
  */
 export const AVATAR_PREVIEW_DELAY_MS = 160
-/** The new model fades in over its own still (the stand-in) for this long (avatar-dial.css). */
+/** The new model fades in (with a slight grow) for this long (avatar-dial.css). */
 export const AVATAR_PREVIEW_FADE_MS = 280
 
 /**
@@ -60,9 +59,7 @@ export function AvatarModelPreview({ model, name, avatarKey, leaving = false, st
         <p>움직이는 모습을 불러오지 못했어요.</p>
         <button type="button" className="avatar-picker-retry" aria-label={`${name} 다시 불러오기`} onClick={retry}>다시 시도</button>
       </div>
-      : !stage && <div className="avatar-picker-model-status" role="status">
-        <QuarterRingSpinner />
-        <span className="sr-only">아바타를 불러오고 있어요.</span>
-      </div>)}
+      // Loading shows nothing on the stage but its light (AvatarDial pulses it when slow); said to screen readers.
+      : !stage && <div className="sr-only" role="status">아바타를 불러오고 있어요.</div>)}
   </div>
 }

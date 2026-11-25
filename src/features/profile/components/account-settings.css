@@ -15,10 +15,11 @@
   max-height: 90dvh;
   overflow: hidden;
   border: 0;
-  border-radius: var(--radius-panel);
+  /* Pixel frame (design B2): stepped corners from the shared clip-path, roof strip from the shared Dialog. */
+  border-radius: 0;
   background: var(--color-panel);
   padding: 0;
-  box-shadow: var(--floating-shadow);
+  box-shadow: none;
 }
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -257,8 +258,10 @@
 
 /*
  * Profile tab: onboarding step 1 inside the dialog (ProfileEditor). The avatar arc at the content's left edge, the big
- * Live2D stage with the name and greeting over its faded foot (AvatarDial `arc`, avatar-dial.css), and the fields on the
- * login / onboarding panel at the right: a thin light edge, 20px corners (the design system's panel-outline exception).
+ * Live2D stage with the name and greeting on the avatar's legs (AvatarDial `arc`, avatar-dial.css — the onboarding rule),
+ * and the fields at the right with no outline or surface of their own (2026-11-26: the modal is a surface already, and
+ * a faint one on it read as a box in a box; the inputs carry their own fill. The outline exception stays with the
+ * sign-up and login panels).
  */
 .profile-editor {
   --profile-panel-width: clamp(320px, 33cqw, 388px);
@@ -300,16 +303,18 @@
 }
 .profile-editor .avatar-picker[data-layout='arc'] .avatar-picker-main { padding-top: 12px; }
 .profile-editor .avatar-picker[data-layout='arc'] .avatar-picker-name { font-size: 26px; line-height: 34px; }
-.profile-editor .avatar-picker[data-layout='arc'] .avatar-picker-caption { bottom: 28px; }
 
-/* The panel column: centred in the height, clear of the close button at the top right. */
+/*
+ * The panel column: clear of the close button at the top right, and a little above the middle so the panel's lower
+ * edge meets the name and greeting on the avatar's legs (the onboarding balance; the extra bottom room lifts it ~40px).
+ */
 .profile-editor-side {
   display: flex;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
   justify-content: center;
-  padding: 64px 32px 28px 0;
+  padding: 64px 32px 106px 0;
 }
 
 .profile-editor-panel {
@@ -322,9 +327,7 @@
   max-height: 100%;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(250, 250, 253, 0.2);
   border-radius: 20px;
-  background: color-mix(in srgb, var(--color-canvas) 30%, transparent);
 }
 .profile-editor-panel-scroll {
   display: flex;
@@ -498,15 +501,6 @@
   line-height: 20px;
   font-weight: 600;
 }
-.settings-row-badge {
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
-  padding: 1px 8px;
-  color: var(--color-muted);
-  font-size: 11px;
-  line-height: 18px;
-  font-weight: 600;
-}
 .settings-row-hint {
   margin: 2px 0 0;
   color: var(--color-muted);
@@ -516,35 +510,6 @@
 }
 .settings-row-control { display: flex; justify-content: flex-end; min-width: 0; }
 .settings-row-feedback { display: grid; gap: 8px; padding: 0 4px; }
-
-/* 「음성 · 준비 중」: one group whose controls are all disabled (a disabled fieldset). Disabled controls take the
-   disabled colours (disabled + text-disabled), never opacity, and keep their saved position. */
-.settings-group-fields { display: grid; gap: 8px; min-width: 0; margin: 0; border: 0; padding: 0; }
-.settings-group-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 6px 0 2px;
-  padding: 0 4px;
-  color: var(--color-muted);
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 600;
-}
-.settings-group-fields:disabled .settings-row-label { color: var(--color-text-disabled); }
-.settings-group-fields:disabled :is(.connection-settings-switch, .settings-segment-option, input[type='range']) { cursor: not-allowed; }
-.settings-group-fields:disabled .connection-settings-switch::before,
-.settings-group-fields:disabled .connection-settings-switch[aria-checked='true']::before { background: var(--color-disabled); }
-.settings-group-fields:disabled .connection-settings-switch > span { background: var(--color-text-disabled); }
-.settings-group-fields:disabled .settings-segment-option { color: var(--color-text-disabled); }
-.settings-group-fields:disabled .settings-segment-option:hover { color: var(--color-text-disabled); }
-.settings-group-fields:disabled .settings-segment-option[aria-checked='true'] { background: var(--color-disabled); color: var(--color-text-disabled); }
-.settings-group-fields:disabled .settings-slider input[type='range']::-webkit-slider-runnable-track { background: var(--color-disabled); }
-.settings-group-fields:disabled .settings-slider input[type='range']::-webkit-slider-thumb { background: var(--color-text-disabled); box-shadow: none; }
-.settings-group-fields:disabled .settings-slider input[type='range']::-moz-range-track,
-.settings-group-fields:disabled .settings-slider input[type='range']::-moz-range-progress { background: var(--color-disabled); }
-.settings-group-fields:disabled .settings-slider input[type='range']::-moz-range-thumb { background: var(--color-text-disabled); }
-.settings-group-fields:disabled .settings-slider-value { color: var(--color-text-disabled); }
 
 .settings-segment {
   display: inline-flex;

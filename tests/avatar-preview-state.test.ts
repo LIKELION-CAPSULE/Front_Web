@@ -72,3 +72,21 @@ test('a failed model: its own still and 「다시 시도」 take over (the stand
   assert.equal(previewFailed(view, 'A'), view)
   assert.equal(previewReleased(view, 'Z'), view)
 })
+
+test('waiting for a model: only the light first, a pulse after 0.6 s, the still only after 4 s (a fallback)', async () => {
+  const { waitingPhase, AVATAR_WAIT_PULSE_MS, AVATAR_STILL_FALLBACK_MS, awaitingModel, emptyPreview, choosePreview, previewShown, previewReleased } = await import('../src/features/profile/avatar-preview-state.ts')
+  assert.equal(AVATAR_WAIT_PULSE_MS, 600); assert.equal(AVATAR_STILL_FALLBACK_MS, 4000)
+  assert.equal(waitingPhase(0), 'quiet'); assert.equal(waitingPhase(599), 'quiet')
+  assert.equal(waitingPhase(600), 'pulse'); assert.equal(waitingPhase(3999), 'pulse')
+  assert.equal(waitingPhase(4000), 'still')
+  // The wait counts from the choice (while the previous model is still leaving) until the new one is drawn.
+  let view = previewShown(emptyPreview({ key: 'a' }), 'a')
+  assert.equal(awaitingModel(view), false)
+  view = choosePreview(view, { key: 'b' }, false)
+  assert.equal(awaitingModel(view), true, 'leaving a, waiting for b')
+  view = previewReleased(view, 'a')
+  assert.equal(awaitingModel(view), true)
+  view = previewShown(view, 'b')
+  assert.equal(awaitingModel(view), false)
+  assert.equal(awaitingModel(emptyPreview(null)), false, 'a static avatar waits for nothing')
+})

@@ -1,4 +1,3 @@
-import { AiCharacterBadge } from '@/shared/ui/AiCharacterBadge'
 import { AppPanel } from '@/shared/ui/AppPanel'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
@@ -6,24 +5,22 @@ import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
 import { availableMates, type AvailableMate } from '@/features/mates/catalog'
 import { chaerinArtwork, mateArtwork, matePortrait } from '@/features/mates/artwork'
-import { expressionCount, formatFirstMetDate, type MateExpressionUnlock } from '@/features/mates/my-mates-utils'
-import { capsulesFromConnections, estimatedCapsuleCount, expressionUnlocks, useMyMates } from '@/features/mates/use-my-mates'
+import { formatFirstMetDate } from '@/features/mates/my-mates-utils'
+import { capsulesFromConnections, estimatedCapsuleCount, useMyMates } from '@/features/mates/use-my-mates'
 import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate-features'
-import { expressionThumbnail } from '@/features/mates/expression-thumbnails'
-import { expressionBust } from '@/features/mates/expression-busts'
-import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { MatePreview } from '@/features/mates/components/MatePreview'
-import { MateExpressionCollection } from '@/features/mates/components/MateExpressionCollection'
 import { MateSwitcher, type MateSwitcherItem } from '@/features/mates/components/MateSwitcher'
 import { formatTogether, totalCapsuleSeconds } from '@/features/mates/capsule-jar/capsule-jar-data'
 import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
 import type { CapsuleJarHandle } from '@/features/mates/capsule-jar/CapsuleJar'
-import { MateTimeColumn, type StageReward } from '@/features/mates/components/MateTimeColumn'
+import { MateTimeColumn } from '@/features/mates/components/MateTimeColumn'
 import { PixelSnow } from '@/features/mates/pixel-snow/PixelSnow'
 import { waistFraming } from '@/features/mates/my-mates-framing'
 import { capsuleJarTheme } from '@/features/mates/capsule-jar/capsule-jar-theme'
-import { affinityProgressView, opensAtNextStage } from '@/features/mates/affinity-progress'
-import { affinityStageLabel, normalizeAffinityStage } from '@/features/mates/affinity-stages'
+import { affinityProgressView } from '@/features/mates/affinity-progress'
+import { normalizeAffinityStage, notMetAffinity } from '@/features/mates/affinity-stages'
+import { mateWorldsForStage, worldContentFromServer } from '@/features/mates/mate-worlds'
+import { useMateWorldContent, WORLD_SAMPLES_ON } from '@/features/mates/use-mate-worlds'
 import type { StudySettlement } from '@/shared/api/types'
 import { capsuleVisitKey } from '@/features/mates/capsule-jar/capsule-jar-visit'
 import { useCapsuleVisit } from '@/features/mates/capsule-jar/use-capsule-visit'
@@ -47,7 +44,7 @@ const CapsuleJarPreview = import.meta.env.DEV
 type DevSamples = typeof import('@/features/mates/dev-samples')
 
 /**
- * Sample affinity / expressions and preview mates: development only. `import.meta.env.DEV` is a build-time constant,
+ * Sample affinity / world stories and preview mates: development only. `import.meta.env.DEV` is a build-time constant,
  * so in production this hook returns null and the dynamic import (and the samples) are not bundled.
  */
 function useDevSamples(): DevSamples | null {
@@ -89,13 +86,12 @@ function cardArtFor(mate: AvailableMate) {
 export default function MyMatesPage() {
   const { home, activeSummary, status, mateDetails, loadMateDetail, resetMateConversation } = useBackend()
   const [resetDone, setResetDone] = useState<string | null>(null)
-  // 37 내 메이트: totals, affinity, the expression collection and the latest connections, by launch mate.
+  // 37 내 메이트: totals, affinity, the unlocks and the latest connections, by launch mate.
   const server = useMyMates()
   const { state } = useDemo()
   const [searchParams, setSearchParams] = useSearchParams()
   const [modelAttempt, setModelAttempt] = useState(0)
   const [listView, setListView] = useState(false)
-  const [expression, setExpression] = useState<MateExpressionUnlock | null>(null)
   /** The first scene pours in fully; after picking another mate the pour is short. */
   const [pourKind, setPourKind] = useState<'enter' | 'switch'>('enter')
   const devSamples = useDevSamples()
@@ -129,6 +125,14 @@ export default function MyMatesPage() {
   // 「○○ 만나러 가기」 starts the connection right away, the same path as the home card's arrow (credits and an
   // ongoing connection are handled there); 「프로필 보기」 below it opens the mate's page.
   const meet = useConnectMate(selectedMate)
+  // 세계관 examples (development with the local mock, and preview mates); production: none (mate-worlds.ts).
+  const worldSamples = useMateWorldContent({
+    enabled: features.world,
+    mateId: previewMate ? 'chaerin' : selectedMate?.id,
+    mateName: previewMate?.name ?? selectedMate?.name,
+    mateImage: selectedMate?.image,
+    samples: WORLD_SAMPLES_ON || Boolean(previewMate),
+  })
 
   // The big Live2D mate: the hero still shows first; the model is fetched only after the entry pour is over (the
   // scene reports it, so it is on screen too) and the browser is idle, then MatePreview crossfades to it.
@@ -146,28 +150,8 @@ export default function MyMatesPage() {
     void loadMateDetail(selectedMate.id, modelAttempt > 0).catch(() => {})
   }, [selectedMate, loadMateDetail, detail, modelAttempt, liveAllowed, capsulePreview])
 
-  // Reduced motion draws no live model: a picked expression swaps the still for that expression's still.
-  const reducedMotion = useReducedMotion()
-  const [bust, setBust] = useState<{ file: string; url: string | undefined } | null>(null)
-  const bustMateId = previewMate ? 'chaerin' : selectedMate?.id
-  const pickedFile = expression?.expressionFile ?? null
-  useEffect(() => {
-    if (!reducedMotion || !pickedFile || !bustMateId) return
-    let alive = true
-    void expressionBust(bustMateId, pickedFile)
-      .then((url) => {
-        if (alive) setBust({ file: pickedFile, url })
-      })
-      .catch(() => {})
-    return () => {
-      alive = false
-    }
-  }, [reducedMotion, pickedFile, bustMateId])
-  const stillImage = reducedMotion && bust && bust.file === pickedFile ? bust.url : undefined
-
   const selectMate = useCallback(
     (mateId: string) => {
-      setExpression(null)
       setPourKind('switch')
       const next = new URLSearchParams(searchParams)
       if (next.get('mate') !== mateId) {
@@ -245,11 +229,14 @@ export default function MyMatesPage() {
   const totalSeconds = previewMate ? totalCapsuleSeconds(capsules) : mine?.totalConnectedSeconds ?? 0
   const firstMetAt = previewMate ? capsules[0]?.startedAt ?? null : mine?.firstMetAt ?? null
 
-  // Affinity: the server's stage when it sends one, sample data in development (mate-features.ts decides).
+  // Affinity: the server's stage when it sends one, sample data in development (mate-features.ts decides). Production
+  // without a server stage: a mate never met starts at 「1단계 · 처음 만남」 with every world locked; a mate met but
+  // sent no stage shows no card (nothing is guessed).
   // The stage is put on the one stage table (affinity-stages.ts) by its name.
   // Development only: `?affinity=1…5` puts the page at that stage with sample progress (the local mock tool sets it).
   const serverStage = normalizeAffinityStage(mine?.relation?.stage, mine?.relation?.stageName)
   const devStage = import.meta.env.DEV ? Number(searchParams.get('affinity')) : Number.NaN
+  const neverMet = !previewMate && (mine?.connectionCount ?? 0) === 0
   const relation: (Partial<StudySettlement> & { stage: number; stageName: string }) | null = features.affinity
     ? import.meta.env.DEV && devSamples && Number.isInteger(devStage) && devStage >= 1 && devStage <= 5
       ? devSamples.sampleRelation(devSamples.sampleSecondsForStage(devStage))
@@ -257,29 +244,21 @@ export default function MyMatesPage() {
       ? { ...mine?.relation, ...serverStage }
       : import.meta.env.DEV
         ? (devSamples?.sampleRelation(totalSeconds) ?? null)
-        : null
+        : neverMet
+          ? notMetAffinity()
+          : null
     : null
-  const expressions = features.expressions
-    ? ((!previewMate ? expressionUnlocks(mine) : undefined) ??
-      (import.meta.env.DEV ? devSamples?.sampleUnlocks(relation?.stage ?? 1, firstMetAt ?? undefined, previewMate ? 'chaerin' : selectedMate.id).expressions : null) ??
-      null)
+  // 세계관 (mate-worlds.ts): five places, opened by the stage above. What they are: the server's (none until its type
+  // is named: 「준비 중」) in api mode, the planning examples in development with the local mock and on preview mates.
+  // Never met: all locked.
+  const worlds = features.world && relation
+    ? mateWorldsForStage(relation.stage, {
+        met: previewMate ? capsules.length > 0 : (mine?.connectionCount ?? 0) > 0 || (import.meta.env.DEV && devStage >= 1),
+        content: worldSamples ?? worldContentFromServer(mine?.unlocks),
+      })
     : null
   // The one progress on the page: the affinity stage (the panel caption shows the stage, the column the rest).
-  const affinity = relation ? affinityProgressView(relation, expressions ?? [], AFFINITY_STAGE_COUNT, formatTogether) : null
-  // The next stage's rewards: its locked expressions, shown as locked slots beside the progress.
-  const nextRewards: StageReward[] =
-    relation && expressions
-      ? expressions
-          .filter((item) => opensAtNextStage(item, relation.stage, affinity?.nextStageName ?? null))
-          .map((item) => ({
-            id: item.id,
-            label: item.label,
-            thumbnail: expressionThumbnail(previewMate ? 'chaerin' : selectedMate.id, item.expressionFile),
-            tint: previewMate?.tint,
-          }))
-      : []
-  // Preview mates reuse 채린's art, so they reuse her face thumbnails too.
-  const thumbnailMateId = previewMate ? 'chaerin' : selectedMate.id
+  const affinity = relation ? affinityProgressView(relation, AFFINITY_STAGE_COUNT, formatTogether) : null
 
   const switcherMates: MateSwitcherItem[] = [
     ...mates.map((mate) => ({ id: mate.id, name: mate.name, image: cardArtFor(mate) })),
@@ -287,7 +266,7 @@ export default function MyMatesPage() {
   ]
 
   // The panel's mate: the big Live2D bust (gaze follows the pointer; the v2 hero still under reduced motion, while
-  // loading and on failure). A picked expression plays here.
+  // loading and on failure).
   // Development preview mates reuse 채린's art in their own colours (a CSS filter on the whole layer).
   const mateLayer = (
     <div className="my-mates-live-tint" style={previewMate?.tint ? { filter: previewMate.tint } : undefined}>
@@ -295,14 +274,12 @@ export default function MyMatesPage() {
       mode="detail"
       mateId={selectedMate.id}
       model={previewMate || !liveAllowed ? undefined : detail?.model}
-      stillImage={stillImage}
       scope={`my-mates-panel:${state.profile.userId ?? 'guest'}:${selectedMate.id}:${modelAttempt}`}
       image={matePortrait(selectedMate.id, selectedMate.image)}
       name={mateName}
       paused={listView}
       suppressSpeech
       showAgeBadge={false}
-      overrideExpression={expression?.expressionFile ?? null}
       stageClassName="my-mates-live"
       framing={waistFraming}
       onRetry={() => setModelAttempt((value) => value + 1)}
@@ -311,29 +288,10 @@ export default function MyMatesPage() {
   )
   const caption = (
     <>
-      <p className="my-mates-caption-name">{mateName}<AiCharacterBadge className="my-mates-ai-badge" /></p>
-      {relation && <p className="my-mates-caption-stage">{affinityStageLabel(relation.stage, relation.stageName)}</p>}
+      <p className="my-mates-caption-name">{mateName}</p>
       {firstMetAt && <p className="my-mates-caption-date">처음 만난 날 {formatFirstMetDate(firstMetAt)}</p>}
     </>
   )
-  // Expression collection (feature on): picking one makes the big mate wear it.
-  const expressionBlock =
-    expressions && expressions.length > 0
-      ? {
-          ...expressionCount(expressions),
-          tiles: (
-            <MateExpressionCollection
-              expressions={expressions}
-              selected={expression?.expressionFile ?? null}
-              onSelect={setExpression}
-              thumbnailFor={(file) => expressionThumbnail(thumbnailMateId, file)}
-              tint={previewMate?.tint}
-              labelledBy="my-mates-expressions-label"
-            />
-          ),
-        }
-      : null
-
   // The jar holds the newest five connections; the count covers all of them (37 totals, estimated past the five).
   const capsuleCount = previewMate || !mine
     ? capsules.reduce((sum, capsule) => sum + capsulesForConnection(capsule.durationSeconds), 0)
@@ -353,7 +311,7 @@ export default function MyMatesPage() {
         <div className="my-mates-meet-group" data-tour="my-mates-meet">
           {meet.error && <FeedbackMessage tone="error">{meet.error}</FeedbackMessage>}
           {resetDone === selectedMate.id && <FeedbackMessage tone="success">대화를 초기화했어요.</FeedbackMessage>}
-          <Button className="my-mates-meet" loading={meet.busy} onClick={() => void meet.connect()}>
+          <Button className="my-mates-meet" loading={meet.busy} onClick={() => void meet.connect({ pickup: true })}>
             {`${mateName} 만나러 가기`}
             <Icon name="chevron" size={16} />
           </Button>
@@ -407,8 +365,9 @@ export default function MyMatesPage() {
           capsuleCount={capsuleCount}
           newIds={visit.dropIds}
           affinity={affinity}
-          nextRewards={nextRewards}
-          expressions={expressionBlock}
+          worlds={worlds}
+          worldKey={`${selectedId}:${relation?.stage ?? 0}`}
+          mateName={mateName}
           theme={capsuleJarTheme(selectedId)}
           onOpen={(id) => jarRef.current?.openCapsule(id)}
           onPoint={(id) => jarRef.current?.highlight(id)}

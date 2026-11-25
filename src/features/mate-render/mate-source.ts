@@ -8,9 +8,51 @@ export type ResolvedMateSource =
   | { kind: 'aliving'; modelUrl: string; engineUrl: string; playerUrl: string; reactionsUrl?: string }
   | { kind: 'static' }
 
+/** An exact origin and a path prefix (ending in `/`) under which engine scripts may be loaded. */
+export type EngineSource = { origin: string; pathPrefix: string }
+
+/**
+ * The mates' v2 engine scripts on the asset storage (backend 2026-11-26: 채린 id 4, 서진 id 2 · 3). Exactly this
+ * project's origin and only its public `live2d-model` bucket — never another Supabase project or bucket.
+ * `VITE_ENGINE_ALLOWLIST` replaces it (engine-allowlist.ts).
+ */
+export const ENGINE_SOURCES: readonly EngineSource[] = [
+  { origin: 'https://belbmclzeenlntgpekww.supabase.co', pathPrefix: '/storage/v1/object/public/live2d-model/' },
+]
+
+/**
+ * `VITE_ENGINE_ALLOWLIST`: comma-separated `https://origin/path/prefix/` entries. A malformed entry (not https, a query,
+ * a wildcard, no trailing slash, dot segments) is dropped; nothing valid left falls back to `ENGINE_SOURCES`.
+ */
+export function parseEngineSources(raw: string | null | undefined): readonly EngineSource[] {
+  if (!raw || typeof raw !== 'string' || !raw.trim()) return ENGINE_SOURCES
+  const sources: EngineSource[] = []
+  for (const entry of raw.split(',').map(value => value.trim()).filter(Boolean)) {
+    if (entry.includes('*') || entry.includes('\\') || /%(2e|2f|5c|25)/i.test(entry)) continue
+    try {
+      const url = new URL(entry)
+      if (url.protocol !== 'https:' || url.search || url.hash || url.username || url.password) continue
+      if (!url.pathname.endsWith('/') || url.pathname.includes('//') || /\/\.\.?(\/|$)/.test(url.pathname)) continue
+      sources.push({ origin: url.origin, pathPrefix: url.pathname })
+    } catch { /* Dropped. */ }
+  }
+  return sources.length ? sources : ENGINE_SOURCES
+}
+
+/** Is `url` (already parsed) under one of `sources`: https, the exact origin, a clean path inside the prefix? */
+function inEngineSource(url: URL, sources: readonly EngineSource[]): boolean {
+  if (url.protocol !== 'https:' || url.username || url.password) return false
+  // The parser has already resolved `..` and `%2e%2e`; anything still encoded (also double-encoded, `%25…`) or a doubled
+  // slash is refused outright.
+  if (/%(2e|2f|5c|25)/i.test(url.pathname) || url.pathname.includes('//')) return false
+  return sources.some(source => url.origin === source.origin && url.pathname.startsWith(source.pathPrefix) && url.pathname.length > source.pathPrefix.length)
+}
+
 export interface AllowlistOptions {
   pageOrigin?: string
   apiBaseUrl?: string
+  /** External engine storage (exact origin + path prefix). Default: none — `engineAllowlist()` passes `ENGINE_SOURCES`. */
+  sources?: readonly EngineSource[]
 }
 
 function tryParseOrigin(raw: string | null | undefined): string | null {
@@ -27,8 +69,9 @@ function tryParseOrigin(raw: string | null | undefined): string | null {
 }
 
 /**
- * Allows an external runtime engine script URL only if `new URL(url, pageOrigin)` resolves
- * to `http:` or `https:` whose origin matches `pageOrigin` or `VITE_API_BASE_URL`.
+ * Allows an external runtime engine script URL only if `new URL(url, pageOrigin)` resolves to `http:` or `https:`
+ * whose origin matches `pageOrigin` or `VITE_API_BASE_URL`, or to `https:` under one of `options.sources` (exact
+ * origin and path prefix, compared after the parser normalised the path).
  * Rejects backslashes (`\` / `%5C`), protocol-relative URLs, and foreign origins.
  */
 export function isAllowedEngineUrl(
@@ -58,7 +101,7 @@ export function isAllowedEngineUrl(
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
   if (pageOrigin && parsed.origin === pageOrigin) return true
   if (apiOrigin && parsed.origin === apiOrigin) return true
-  return false
+  return Boolean(options.sources?.length) && inEngineSource(parsed, options.sources!)
 }
 
 function deriveSiblingUrl(engineUrl: string, siblingFile: string): string {

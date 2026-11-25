@@ -1,4 +1,3 @@
-import { AiCharacterBadge } from '@/shared/ui/AiCharacterBadge'
 import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router'
 import { capsuleLogo } from '@/shared/design/brand-logo'
@@ -29,7 +28,7 @@ export function CapsuleRecordCard(props: CapsuleRecordCardProps) {
           <MateDecor levelUp={levelUp} />
           {quote && (
             <figure className="capsule-record-quote" {...reveal(5)}>
-              <figcaption><Icon name="chat" size={16} />{mateName}<AiCharacterBadge /></figcaption>
+              <figcaption><Icon name="chat" size={16} />{mateName}</figcaption>
               <blockquote><p>{quote}</p></blockquote>
             </figure>
           )}
@@ -90,7 +89,7 @@ export function CapsuleRecordLayout({ mate, children }: { mate: ReactNode; child
   )
 }
 
-function RecordHeader({ titleId, mateName, modeLabel, endedAt, levelUp, stats, quote }: CapsuleRecordCardProps) {
+function RecordHeader({ titleId, mateName, modeLabel, endedAt, levelUp, stats }: CapsuleRecordCardProps) {
   const summary = recordAmount(stats.togetherSeconds ?? stats.connectionSeconds)
   const ratio = stats.togetherSeconds !== null && stats.connectionSeconds > 0
     ? Math.min(100, (stats.togetherSeconds / stats.connectionSeconds) * 100)
@@ -113,7 +112,7 @@ function RecordHeader({ titleId, mateName, modeLabel, endedAt, levelUp, stats, q
       </div>
       <div className="capsule-record-meta">
         {/* The AI tag goes with the mate's line (CapsuleRecordCard); without a line, with the name here. */}
-        <p className="capsule-record-meta-mate">{modeLabel ? `${mateName} · ${modeLabel}` : mateName}{!quote && <> <AiCharacterBadge /></>}</p>
+        <p className="capsule-record-meta-mate">{modeLabel ? `${mateName} · ${modeLabel}` : mateName}</p>
         <p className="capsule-record-meta-time">
           <Icon name="clock" size={14} />
           <time dateTime={new Date(endedAt).toISOString()}>{recordEndedLabel(endedAt)} {COPY.completed}</time>
@@ -202,14 +201,14 @@ function LevelUpBlock({ mateName, stage, nextStageCaption, stageProgress, unlock
         <div className="capsule-record-unlock">
           <span className="capsule-record-unlock-icon"><Icon name="sparkle" size={22} /></span>
           <span className="capsule-record-unlock-copy">
-            <strong>{COPY.unlockTitle}</strong>
-            <span>{unlock.kind} 「{unlock.label}」 · {COPY.unlockSub}</span>
+            <strong>{unlock.line}</strong>
+            <span>{COPY.unlockSub}</span>
           </span>
-          {unlock.onView && (
-            <button type="button" className="capsule-record-unlock-view" aria-pressed={unlock.viewing} onClick={unlock.onView}>
-              <Icon name="play" size={14} />
-              {unlock.viewing ? COPY.viewing : COPY.view}
-            </button>
+          {unlock.to && (
+            <Link to={unlock.to} className="capsule-record-unlock-view">
+              <Icon name="book" size={14} />
+              {COPY.view}
+            </Link>
           )}
         </div>
       )}

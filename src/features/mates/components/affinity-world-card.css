@@ -1,0 +1,83 @@
+/*
+ * 친밀도 + 세계관 card (AffinityWorldCard). Base rules (docs/DESIGN_SYSTEM.md): no outlines, no gold; violet only for
+ * the progress (the current stage) — the arrows and dots are neutral. The surface comes from the caller (내 메이트
+ * gives it the column's glass block).
+ */
+
+/* ── 친밀도: the stage, one progress bar, what is left ── */
+.mate-game-level-name { margin: 0; color: var(--color-ink); font-size: 16px; line-height: 22px; font-weight: 700; }
+.mate-game-progress {
+  position: relative;
+  height: 6px;
+  margin: 10px 0 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+}
+.mate-game-progress::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-primary, #7c5cff);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: 0 50%;
+}
+.mate-game-level-caption { margin: 0; color: var(--color-muted); font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums lining-nums; }
+
+/* ── 세계관: one world at a time under the affinity (the tile itself: mate-world.css) ── */
+.affinity-world { margin-top: 14px; }
+.affinity-world-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.affinity-world-head > .mate-game-label { margin: 0; }
+.affinity-world-nav { display: inline-flex; flex: none; align-items: center; gap: 4px; }
+.affinity-world-arrow {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.affinity-world-arrow--prev svg { transform: scaleX(-1); }
+.affinity-world-arrow:hover { background: rgb(255 255 255 / 0.08); color: var(--color-ink); }
+.affinity-world-arrow:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+.affinity-world-arrow[aria-disabled='true'] { color: var(--color-subtle); opacity: 0.45; cursor: default; }
+.affinity-world-arrow[aria-disabled='true']:hover { background: transparent; color: var(--color-subtle); }
+
+/* Five dots: open ones filled, locked ones faint, the shown one bright, the current stage's one longer. */
+.affinity-world-dots { display: inline-flex; align-items: center; gap: 5px; }
+.affinity-world-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+  transition: background-color 180ms ease, width 180ms ease;
+}
+.affinity-world-dot[data-open] { background: rgb(255 255 255 / 0.4); }
+.affinity-world-dot[data-stage] { width: 14px; }
+.affinity-world-dot[data-shown] { background: var(--color-ink); }
+
+.affinity-world-slide { position: relative; }
+.affinity-world-slide[data-moved] { animation: affinity-world-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes affinity-world-in {
+  from { opacity: 0; transform: translateX(var(--world-from, 10px)); }
+}
+
+/* Short windows (1280×720 and the like): a tighter card so the recent list keeps its rows. */
+@media (min-width: 960px) and (max-height: 800px) {
+  .mate-game-progress { margin: 8px 0 6px; }
+  .affinity-world { margin-top: 8px; }
+  .affinity-world-head { margin-bottom: 2px; }
+  .affinity-world-arrow { width: 26px; height: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .affinity-world-slide[data-moved] { animation: none; }
+  .affinity-world-dot,
+  .affinity-world-arrow { transition: none; }
+}

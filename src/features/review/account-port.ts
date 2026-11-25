@@ -9,9 +9,9 @@ import { REVIEW_USER_ID } from './fixtures'
 export function createReviewAccountPort(scenario: ReviewScenario): BetaAccountPort {
   const accounts = new Map<number, BetaAccountDetails>()
   if (scenario.id === 'email-onboarding') {
-    accounts.set(REVIEW_USER_ID, { birthDate: '2000-01-01', callName: '', aboutMe: '' })
+    accounts.set(REVIEW_USER_ID, { birthDate: '2000-01-01', aboutMe: '' })
   }
-  const read = (userId: number) => ({ ...(accounts.get(userId) ?? { callName: '', aboutMe: '' }) })
+  const read = (userId: number): BetaAccountDetails => ({ ...(accounts.get(userId) ?? { aboutMe: '' }) })
   function trace(operation: string, input: unknown) {
     window.dispatchEvent(new CustomEvent('capsule-review:account-operation', { detail: { operation, input } }))
   }
@@ -44,7 +44,6 @@ export function createReviewAccountPort(scenario: ReviewScenario): BetaAccountPo
       )
       accounts.set(result.userId ?? REVIEW_USER_ID, {
         birthDate,
-        callName: '',
         aboutMe: '',
         ...(referralRegistered ? { referralRegistered: true } : {}),
       })
@@ -68,7 +67,7 @@ export function createReviewAccountPort(scenario: ReviewScenario): BetaAccountPo
     saveProfile: async (userId, input) => {
       trace('saveProfile', input)
       const me = await update(userId, input.nickname, input.avatarId)
-      const details = { ...read(userId), callName: input.callName, aboutMe: input.aboutMe }
+      const details = { ...read(userId), aboutMe: input.aboutMe }
       accounts.set(userId, details)
       return { me, details }
     },

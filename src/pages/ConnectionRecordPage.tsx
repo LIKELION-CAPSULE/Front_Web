@@ -14,16 +14,16 @@ import { CapsuleRecordCard, CapsuleRecordLayout } from '@/features/reports/compo
 import { recordAmountText, recordModeLabel } from '@/features/reports/capsule-record'
 import { reportSettlement } from '@/features/backend/adapters'
 import { formatNextStageCaption, resolveStageProgress } from '@/features/mates/affinity-progress'
+import { normalizeAffinityStage } from '@/features/mates/affinity-stages'
+import { resolveMateFeatures } from '@/features/mates/mate-features'
+import { worldOpenedAt, worldStageUpLine } from '@/features/mates/mate-worlds'
+import { useMateWorldContent } from '@/features/mates/use-mate-worlds'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
 import '@/features/mates/connections.css'
 
-/** How long after the connection ends a server-stamped expression unlock still counts as this session's. */
-const UNLOCK_GRACE_MS = 5 * 60_000
-/** Dev preview only: what a stage-up with a newly opened expression looks like when the record has none. */
-const DEV_SAMPLE_UNLOCK = { label: '수줍은 웃음', expressionFile: 'files/005.exp3.json' } as const
 
 export default function ConnectionRecordPage() {
   const { connectionId } = useParams()
@@ -36,8 +36,6 @@ export default function ConnectionRecordPage() {
   const [modelAttempt, setModelAttempt] = useState(0)
   // Dev server only: force the level-up card (true) or the regular card (false) instead of what the record says.
   const [devLevelUp, setDevLevelUp] = useState<boolean | null>(null)
-  // "▶ 보기" on a newly opened expression shows it on the mate.
-  const [viewingExpression, setViewingExpression] = useState(false)
 
   const mates = availableMates(backend.home)
   const matchedMate = record
@@ -51,6 +49,9 @@ export default function ConnectionRecordPage() {
 
   const mateId = matchedMate?.id
   const detail = mateId ? backend.mateDetails[mateId] : undefined
+  // 세계관 examples for the stage-up line (development with the local mock; production: none).
+  const worldsOn = resolveMateFeatures(import.meta.env.DEV, null).world
+  const worldSamples = useMateWorldContent({ enabled: worldsOn, mateId, mateName: profile?.name, mateImage: matchedMate?.image })
   const loadMateDetail = backend.loadMateDetail
 
   useEffect(() => {
@@ -147,17 +148,12 @@ export default function ConnectionRecordPage() {
   const creditExhausted = Boolean(
     backend.wallet && backend.wallet.attendance + backend.wallet.invitation <= 0,
   )
-  // An expression counts as new when it opened during this connection (the server may stamp it shortly after the end).
-  const sessionUnlock = mateId
-    ? backend.mateUnlocks?.[mateId]?.expressions.find(
-        (item) =>
-          item.unlocked &&
-          item.unlockedAt !== undefined &&
-          item.unlockedAt >= record.startedAt &&
-          item.unlockedAt <= record.endedAt + UNLOCK_GRACE_MS,
-      )
-    : undefined
-  const unlock = levelUp ? sessionUnlock ?? (devPreview ? DEV_SAMPLE_UNLOCK : undefined) : undefined
+  // A stage-up opens that stage's world (mate-worlds.ts): the new stage from the record, put on the stage table by its
+  // name; its place when 22 · 23 `relation.unlocked[]` names one (the type is not fixed yet) or from the examples.
+  const newStage = levelUp ? normalizeAffinityStage(relation?.stage, stage.current)?.stage : undefined
+  const openedWorld = worldsOn && newStage
+    ? worldOpenedAt(newStage, devPreview ? undefined : report?.relation?.unlocked, worldSamples ?? [])
+    : null
   const stageProgress = resolveStageProgress(relation)
 
   const previewScope = `record:${state.profile.userId ?? 'guest'}:${profile.id}:${record.id}:${modelAttempt}`
@@ -183,7 +179,6 @@ export default function ConnectionRecordPage() {
               showAgeBadge={false}
               stageClassName="connection-record-stage"
               initialExpression={levelUp ? 'celebrate' : 'smile'}
-              overrideExpression={viewingExpression ? unlock?.expressionFile : null}
               onRetry={() => setModelAttempt((value) => value + 1)}
             />
           }
@@ -200,12 +195,7 @@ export default function ConnectionRecordPage() {
           nextStageCaption={formatNextStageCaption(relation, recordAmountText) ?? undefined}
           stageProgress={stageProgress ?? undefined}
           unlock={
-            unlock && {
-              kind: '표정',
-              label: unlock.label,
-              viewing: viewingExpression,
-              onView: unlock.expressionFile ? () => setViewingExpression((value) => !value) : undefined,
-            }
+            openedWorld ? { line: worldStageUpLine(openedWorld), ...(mateId ? { to: `/mates/me?mate=${mateId}` } : {}) } : undefined
           }
           homeTo="/"
           reconnect={mate ? <ConnectMateButton mate={mate} label="다시 연결하기" errorPlacement="above" /> : undefined}
@@ -223,7 +213,7 @@ export default function ConnectionRecordPage() {
             type="button"
             className="capsule-record-dev-toggle"
             aria-pressed={levelUp}
-            onClick={() => { setDevLevelUp(!levelUp); setViewingExpression(false) }}
+            onClick={() => setDevLevelUp(!levelUp)}
           >
             <span>DEV</span>
             {levelUp ? '일반 기록 보기' : '친밀도 상승 카드 보기'}

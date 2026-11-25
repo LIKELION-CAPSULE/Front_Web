@@ -5,6 +5,7 @@ import { availableMates } from '@/features/mates/catalog'
 import { resolvePreviewSource } from '@/features/mate-render/mate-source'
 import { canPrewarm } from '@/features/mate-render/warm-renderer'
 import { mateWarmPool } from '@/features/mate-render/warm-pool'
+import { engineAllowlist } from '@/features/mate-render/engine-allowlist'
 
 /** Lets the page's own work (entry motion, first data) finish before anything is warmed. */
 const PREWARM_DELAY_MS = 1500
@@ -33,10 +34,7 @@ export function useMatePrewarm() {
       if (cancelled || !canPrewarm()) return
       void loadMateDetail(mateId).then(detail => {
         if (cancelled || !detail.model || !canPrewarm()) return
-        const source = resolvePreviewSource(detail.model, {
-          pageOrigin: window.location.origin,
-          apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
-        })
+        const source = resolvePreviewSource(detail.model, engineAllowlist())
         if (source.kind === 'aliving') mateWarmPool.prewarm(source)
       }).catch(() => { /* The mate screens load it themselves. */ })
     }

@@ -1,0 +1,454 @@
+/*
+ * Modal / popup design drafts (review catalog only, 2026-11-26). See DialogDesignPreview.tsx.
+ * Rules kept from the design system: no outline on the panel, purple only on the main action / selection, status colours
+ * only with an icon, no gold/orange decoration. Everything that moves animates transform or opacity only; no
+ * backdrop-filter on the panel itself (the shared ::backdrop keeps its 8px blur).
+ */
+@layer components {
+  /* ── Review controls ─────────────────────────────────────────────────────────────────────────────────────── */
+  .dd-bar {
+    position: fixed;
+    z-index: 95;
+    bottom: 20px;
+    left: 50%;
+    display: flex;
+    max-width: calc(100% - 32px);
+    align-items: center;
+    gap: 10px;
+    padding: 6px 6px 6px 16px;
+    border-radius: 999px;
+    background: var(--color-floating);
+    box-shadow: var(--popover-shadow);
+    font-size: var(--text-label);
+    line-height: var(--text-label--line-height);
+    transform: translateX(-50%);
+  }
+  .dd-bar-name { flex: none; color: var(--color-muted); font-weight: 600; white-space: nowrap; }
+  .dd-bar-tabs { display: flex; min-width: 0; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  .dd-bar button { flex: none; min-height: 36px; padding: 0 12px; border-radius: 999px; color: var(--color-muted); white-space: nowrap; transition: background-color 160ms, color 160ms; }
+  .dd-bar button:hover { background: var(--color-floating-hover); color: var(--color-ink); }
+  .dd-bar button[aria-pressed='true'] { background: var(--color-selected); color: var(--color-selected-text); }
+  .dd-bar .dd-bar-replay { background: var(--color-primary); color: var(--color-on-solid); font-weight: 600; }
+  .dd-bar .dd-bar-replay:hover { background: var(--color-primary-hover); color: var(--color-on-solid); }
+
+  .dd-gallery {
+    position: fixed;
+    z-index: 70;
+    inset: 0;
+    display: grid;
+    overflow: auto;
+    align-content: start;
+    justify-content: center;
+    grid-template-columns: repeat(3, minmax(0, 400px));
+    gap: 20px 28px;
+    padding: 36px 32px 96px;
+    background: var(--color-overlay);
+    backdrop-filter: blur(8px);
+  }
+  .dd-gallery-cell { display: flex; min-width: 0; flex-direction: column; gap: 10px; }
+  .dd-gallery-cell--large { grid-column: span 2; }
+  .dd-gallery-caption { display: flex; align-items: center; justify-content: space-between; color: var(--color-subtle); font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
+  .dd-gallery-caption button { padding: 4px 8px; border-radius: 8px; color: var(--color-text-accent); }
+  .dd-gallery-caption button:hover { background: var(--color-control); color: var(--color-text-accent-hover); }
+  .dd-gallery .dd-surface { margin-top: 14px; }
+  .dd-gallery[data-variant='c'] .dd-surface { margin-top: 46px; }
+  .dd-gallery-crop { height: 236px; overflow: hidden; margin-top: -8px; padding-top: 8px; -webkit-mask-image: linear-gradient(180deg, #000 68%, transparent); mask-image: linear-gradient(180deg, #000 68%, transparent); }
+  .dd-gallery[data-variant='c'] .dd-gallery-crop { height: 270px; }
+  .dd-gallery-toasts { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+  @media (max-width: 1279px) {
+    .dd-gallery { grid-template-columns: minmax(0, 440px); }
+    .dd-gallery-cell--large { grid-column: auto; }
+  }
+
+  .dd-toast-stack {
+    position: fixed;
+    z-index: 80;
+    top: calc(var(--site-header-height, 0px) + 24px);
+    right: 24px;
+    display: flex;
+    width: min(392px, calc(100% - 32px));
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+  }
+
+  /* ── Shared surface ──────────────────────────────────────────────────────────────────────────────────────── */
+  .dd-surface { position: relative; isolation: isolate; border-radius: var(--radius-panel); color: var(--color-ink); }
+  .dd-bg { position: absolute; z-index: -1; inset: 0; border-radius: inherit; background: var(--color-surface-raised); box-shadow: var(--floating-shadow); pointer-events: none; }
+  .dd-surface :is(.dd-a-spill, .dd-a-sheen, .dd-a-capsule, .dd-b-glow, .dd-b-sky, .dd-b-edge, .dd-c-peek, .dd-c-tail) { pointer-events: none; }
+  .dd-scroll { position: relative; z-index: 1; max-height: calc(90dvh - 16px); overflow-y: auto; padding: 28px; border-radius: inherit; scroll-padding: 8px; }
+  .dd-v-a .dd-scroll, .dd-v-c .dd-scroll { padding-top: 34px; }
+
+  .app-dialog.dd-dialog {
+    /* The drafts keep their own shapes: no shared pixel frame (clip, roof strip) from the product Dialog. */
+    clip-path: none;
+    background: transparent;
+    box-shadow: none;
+    transition: opacity 180ms ease-in, transform 180ms ease-in, overlay 180ms allow-discrete, display 180ms allow-discrete;
+  }
+  .app-dialog.dd-dialog[open] { animation: none; }
+  .app-dialog.dd-dialog > .px-roof-strip { display: none; }
+  .app-dialog.dd-dialog:not([open]) { opacity: 0; transform: translateY(6px) scale(0.97); }
+  .app-dialog.dd-dialog::backdrop { transition: opacity 200ms ease-in, overlay 200ms allow-discrete, display 200ms allow-discrete; }
+  .app-dialog.dd-dialog[open]::backdrop { animation: dd-fade 240ms ease-out; }
+  .app-dialog.dd-dialog:not([open])::backdrop { opacity: 0; }
+
+  .dd-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+  .dd-badge { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 14px; }
+  .dd-badge[data-tone='danger'] { background: var(--color-danger-bg); color: var(--color-danger); }
+  .dd-badge[data-tone='warning'] { background: var(--color-warning-bg); color: var(--color-warning); }
+  .dd-badge[data-tone='accent'] { background: var(--color-primary-soft); color: var(--color-text-accent); }
+  .dd-eyebrow { margin-bottom: -8px; color: var(--color-text-accent); font-size: var(--text-caption); font-weight: 600; line-height: var(--text-caption--line-height); }
+  .dd-title { font-size: var(--text-dialog-title); font-weight: 700; line-height: var(--text-dialog-title--line-height); }
+  .dd-text { margin-top: 10px; color: var(--color-muted); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); }
+  .dd-scope { display: grid; margin-top: 16px; gap: 10px; padding: 14px 16px; border-radius: 16px; background: #0F0E1773; }
+  .dd-scope div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; }
+  .dd-scope dt { color: var(--color-subtle); font-size: 13px; line-height: 22px; }
+  .dd-scope dd { font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); }
+  .dd-warn-line { margin-top: 12px; color: var(--color-danger); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); }
+  .dd-chip { display: inline-flex; margin-top: 14px; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: var(--color-warning-bg); color: var(--color-warning); font-size: 13px; font-weight: 600; line-height: 20px; }
+  .dd-actions { display: flex; margin-top: 24px; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+
+  /* Large window: only the edge and the head decoration follow the draft. */
+  .dd-k-large { width: calc(100% - 32px); }
+  .dd-static.dd-k-large { width: 100%; }
+  .dd-large-head { position: relative; display: flex; min-height: 72px; align-items: center; gap: 12px; padding: 18px 16px 16px 28px; border-radius: var(--radius-panel) var(--radius-panel) 0 0; border-bottom: 1px solid color-mix(in srgb, var(--color-divider) 40%, transparent); }
+  .dd-large-title { position: relative; z-index: 1; font-size: var(--text-dialog-title); font-weight: 700; line-height: var(--text-dialog-title--line-height); }
+  .dd-close { position: relative; z-index: 1; display: grid; width: 44px; height: 44px; margin-left: auto; place-items: center; border-radius: 999px; color: var(--color-subtle); transition: background-color 160ms, color 160ms; }
+  .dd-close:hover { background: var(--color-control-hover); color: var(--color-ink); }
+  .dd-large-body { position: relative; z-index: 1; display: grid; max-height: calc(90dvh - 80px); overflow-y: auto; grid-template-columns: 184px minmax(0, 1fr); gap: 28px; padding: 24px 28px 28px; }
+  .dd-large-nav { display: flex; flex-direction: column; gap: 4px; }
+  .dd-large-tab { padding: 10px 14px; border-radius: var(--radius-control); color: var(--color-muted); font-size: var(--text-label); font-weight: 600; line-height: var(--text-label--line-height); }
+  .dd-large-tab[data-selected] { background: var(--color-selected); color: var(--color-selected-text); }
+  .dd-large-content { display: flex; min-width: 0; flex-direction: column; gap: 8px; }
+  .dd-large-label { margin-top: 8px; color: var(--color-muted); font-size: var(--text-label); line-height: var(--text-label--line-height); }
+  .dd-large-label:first-child { margin-top: 0; }
+  .dd-large-field { min-height: 48px; padding: 12px 14px; border-radius: var(--radius-control); background: var(--color-panel); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); }
+  .dd-large-field--tall { min-height: 96px; color: var(--color-placeholder); }
+  .dd-large-note { margin-top: 8px; color: var(--color-subtle); font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
+  @media (max-width: 639px) {
+    .dd-large-body { grid-template-columns: minmax(0, 1fr); }
+    .dd-large-nav { flex-direction: row; }
+  }
+
+  /* ── Toast (shared) ──────────────────────────────────────────────────────────────────────────────────────── */
+  .dd-toast {
+    --tone: var(--color-success);
+    --tone-bg: var(--color-success-bg);
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) 28px;
+    align-items: start;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 20px;
+    color: var(--color-ink);
+    pointer-events: auto;
+    animation: dd-toast-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .dd-toast[data-tone='warning'] { --tone: var(--color-warning); --tone-bg: var(--color-warning-bg); }
+  .dd-toast[data-leaving][data-tone] { animation: dd-toast-out 200ms ease-in forwards; }
+  .dd-toast-icon { position: relative; z-index: 1; display: grid; width: 36px; height: 36px; place-items: center; border-radius: 12px; background: var(--tone-bg); color: var(--tone); }
+  .dd-toast-content { position: relative; z-index: 1; min-width: 0; }
+  .dd-toast-title { font-size: var(--text-label); font-weight: 600; line-height: var(--text-label--line-height); }
+  .dd-toast-text { margin-top: 2px; color: var(--color-muted); font-size: 13px; line-height: 20px; }
+  .dd-toast-close { position: relative; z-index: 1; display: grid; width: 36px; height: 36px; margin: -4px; place-items: center; border-radius: 999px; color: var(--color-subtle); transition: background-color 160ms, color 160ms; }
+  .dd-toast-close:hover { background: #FAFAFD12; color: var(--color-ink); }
+
+  /* ── A. 캡슐 유리 ─────────────────────────────────────────────────────────────────────────────────────────── */
+  .dd-v-a .dd-bg {
+    background:
+      radial-gradient(120% 90% at 100% 100%, #392766 0%, transparent 46%),
+      linear-gradient(180deg, #332B52 0%, #2B2840 34%, #292733 68%);
+  }
+  .dd-a-sheen { position: absolute; z-index: 0; inset: 0; border-radius: inherit; background: linear-gradient(124deg, #FFFFFF14 0%, #FFFFFF05 28%, transparent 44%); }
+  .dd-a-spill { position: absolute; z-index: 0; top: 0; left: 50%; width: 320px; height: 180px; margin-left: -160px; background: radial-gradient(50% 62% at 50% 0%, #C4B9F35C 0%, #7E54F622 46%, transparent 78%); transform-origin: 50% 0; }
+  .dd-a-capsule { position: absolute; z-index: 2; top: -14px; left: 50%; width: 68px; height: 28px; margin-left: -34px; }
+  .dd-a-capsule::before { position: absolute; inset: -18px -26px; border-radius: 999px; background: radial-gradient(50% 50% at 50% 50%, #AC95F873 0%, #7E54F62E 46%, transparent 72%); content: ''; animation: dd-a-pulse 3.6s ease-in-out 600ms infinite; }
+  .dd-a-half { position: absolute; top: 0; bottom: 0; width: 50%; }
+  .dd-a-half--l { left: 0; border-radius: 999px 0 0 999px; background: linear-gradient(160deg, #FFFFFF 0%, #D4C3FA 100%); transform: translateX(-3px); }
+  .dd-a-half--r { right: 0; border-radius: 0 999px 999px 0; background: linear-gradient(160deg, #FFFFFF 0%, #CAB2F9 100%); transform: translateX(3px); }
+  .dd-a-seam { position: absolute; top: 3px; bottom: 3px; left: 50%; width: 10px; margin-left: -5px; border-radius: 50%; background: linear-gradient(180deg, #B397FC 0%, #8053F2 100%); }
+  .dd-a-mini { position: relative; z-index: 1; width: 34px; height: 14px; flex: none; }
+  .dd-a-mini .dd-a-half--l { transform: translateX(-1.5px); }
+  .dd-a-mini .dd-a-half--r { transform: translateX(1.5px); }
+  .dd-a-mini .dd-a-seam { top: 2px; bottom: 2px; width: 6px; margin-left: -3px; }
+  .dd-k-large.dd-v-a .dd-a-spill { left: 46px; width: 260px; height: 120px; margin-left: -130px; }
+
+  .dd-surface.dd-v-a:is([open], .dd-static) { animation: dd-a-panel 460ms cubic-bezier(0.2, 0.9, 0.25, 1) both; transform-origin: 50% 0; }
+  .dd-surface.dd-v-a:is([open], .dd-static) .dd-a-capsule { animation: dd-a-capsule 260ms cubic-bezier(0.34, 1.4, 0.64, 1) both; }
+  .dd-surface.dd-v-a:is([open], .dd-static) .dd-a-capsule .dd-a-half--l { animation: dd-a-open-l 300ms cubic-bezier(0.34, 1.6, 0.64, 1) 160ms both; }
+  .dd-surface.dd-v-a:is([open], .dd-static) .dd-a-capsule .dd-a-half--r { animation: dd-a-open-r 300ms cubic-bezier(0.34, 1.6, 0.64, 1) 160ms both; }
+  .dd-surface.dd-v-a:is([open], .dd-static) .dd-a-spill { animation: dd-a-spill 420ms ease-out 200ms both; }
+  .dd-surface.dd-v-a:is([open], .dd-static) :is(.dd-scroll, .dd-large-body) { animation: dd-rise 320ms ease-out 140ms both; }
+  .dd-v-a.dd-toast { grid-template-columns: 40px minmax(0, 1fr) 28px; padding: 12px 18px 12px 12px; border-radius: 999px; animation-name: dd-a-toast-in; transform-origin: 100% 50%; }
+  .dd-v-a.dd-toast .dd-bg { background: linear-gradient(100deg, color-mix(in srgb, var(--tone-bg) 82%, #292733) 0%, #292733 62%); }
+  .dd-v-a.dd-toast .dd-toast-icon { width: 40px; height: 40px; border-radius: 999px; background: color-mix(in srgb, var(--tone) 16%, #292733); }
+
+  /* ── B. 밤하늘 ───────────────────────────────────────────────────────────────────────────────────────────── */
+  .dd-v-b .dd-bg {
+    background:
+      radial-gradient(110% 60% at 50% -12%, #45317F 0%, transparent 62%),
+      linear-gradient(180deg, #241C3E 0%, #1E1A31 52%, #191823 100%);
+  }
+  .dd-b-glow { position: absolute; z-index: 0; top: 0; left: 15%; width: 70%; height: 90px; border-radius: 50%; background: radial-gradient(50% 50% at 50% 0%, #AC95F833 0%, transparent 70%); }
+  .dd-b-sky { position: absolute; z-index: 0; inset: 0 0 auto; height: 76px; overflow: hidden; border-radius: inherit; }
+  .dd-toast .dd-b-sky { height: 100%; }
+  .dd-pixel { display: block; background-size: 100% 100%; image-rendering: pixelated; }
+  .dd-b-star { position: absolute; opacity: 0.5; }
+  .dd-b-star--twinkle { animation: dd-b-twinkle 3.2s ease-in-out calc(var(--dd-d, 0) * 380ms) infinite; }
+  .dd-b-edge { position: absolute; z-index: 1; top: 0; right: 28px; left: 28px; height: 1px; overflow: hidden; }
+  .dd-b-flow { position: absolute; top: 0; left: 0; width: 36%; height: 1px; background: linear-gradient(90deg, transparent, #D9D5F1E6, transparent); box-shadow: 0 0 10px 2px #AC95F866; opacity: 0; animation: dd-b-flow 7.2s cubic-bezier(0.45, 0, 0.3, 1) 260ms infinite; }
+  .dd-k-large .dd-b-sky { height: 100%; }
+
+  .dd-surface.dd-v-b:is([open], .dd-static) { animation: dd-b-panel 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .dd-surface.dd-v-b:is([open], .dd-static) .dd-b-glow { animation: dd-fade 600ms ease-out 120ms both; }
+  .dd-surface.dd-v-b:is([open], .dd-static) .dd-b-star:not(.dd-b-star--twinkle) { animation: dd-b-star-in 420ms ease-out calc(140ms + var(--dd-d, 0) * 45ms) both; }
+  .dd-surface.dd-v-b:is([open], .dd-static) :is(.dd-scroll, .dd-large-body) { animation: dd-rise 300ms ease-out 80ms both; }
+  .dd-v-b.dd-toast .dd-bg { background: radial-gradient(90px 70px at 0% 50%, color-mix(in srgb, var(--tone) 18%, transparent) 0%, transparent 100%), linear-gradient(135deg, #241C3E 0%, #191823 100%); }
+  .dd-v-b.dd-toast { animation-name: dd-b-toast-in; }
+
+  /* ── C. 메이트와 함께 ─────────────────────────────────────────────────────────────────────────────────────── */
+  .dd-c-peek { position: absolute; z-index: -2; top: -46px; left: 28px; width: 64px; height: 64px; overflow: hidden; border-radius: 50%; background: #392766; }
+  .dd-c-peek img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 160ms ease-out; }
+  .dd-c-peek img[data-on] { opacity: 1; }
+  .dd-c-tail { position: absolute; z-index: -1; top: -15px; left: 94px; width: 28px; height: 16px; background: var(--color-surface-raised); clip-path: polygon(0 0, 100% 100%, 22% 100%); transform-origin: 30% 100%; }
+  .dd-k-large .dd-c-tail { display: none; }
+  .dd-k-large.dd-v-c .dd-c-peek { top: -34px; }
+
+  .dd-surface.dd-v-c:is([open], .dd-static) { animation: dd-c-panel 340ms cubic-bezier(0.34, 1.3, 0.64, 1) both; transform-origin: 60px 0; }
+  .dd-surface.dd-v-c:is([open], .dd-static) .dd-c-peek { animation: dd-c-peek 520ms cubic-bezier(0.3, 1.25, 0.5, 1) 120ms both; }
+  .dd-surface.dd-v-c:is([open], .dd-static) .dd-c-tail { animation: dd-c-tail 220ms cubic-bezier(0.34, 1.5, 0.64, 1) 220ms both; }
+  .dd-surface.dd-v-c:is([open], .dd-static) :is(.dd-scroll, .dd-large-body) { animation: dd-rise 280ms ease-out 50ms both; }
+  .dd-v-c.dd-toast { grid-template-columns: 40px minmax(0, 1fr) 28px; column-gap: 22px; padding: 12px 12px 12px 0; animation-name: dd-fade; animation-duration: 120ms; }
+  .dd-v-c.dd-toast .dd-bg { left: 50px; border-radius: 18px; animation: dd-c-bubble 300ms cubic-bezier(0.34, 1.3, 0.64, 1) 80ms both; transform-origin: 0 24px; }
+  .dd-v-c.dd-toast .dd-bg::before { position: absolute; top: 16px; left: -9px; width: 10px; height: 14px; background: inherit; clip-path: polygon(100% 0, 0 45%, 100% 100%); content: ''; }
+  .dd-v-c.dd-toast .dd-toast-content { animation: dd-rise 260ms ease-out 160ms both; }
+  .dd-toast-face { position: relative; z-index: 1; width: 40px; height: 40px; margin-top: 2px; animation: dd-c-pop 360ms cubic-bezier(0.34, 1.6, 0.64, 1) both; }
+  .dd-toast-face img { width: 40px; height: 40px; border-radius: 50%; background: #392766; object-fit: cover; }
+  .dd-toast-face-badge { position: absolute; right: -4px; bottom: -4px; display: grid; width: 20px; height: 20px; place-items: center; border-radius: 50%; background: var(--tone-bg); color: var(--tone); box-shadow: 0 0 0 2px var(--color-canvas); }
+
+  /* ── Keyframes ───────────────────────────────────────────────────────────────────────────────────────────── */
+  @keyframes dd-fade { from { opacity: 0; } }
+  @keyframes dd-rise { from { opacity: 0; transform: translateY(6px); } }
+  @keyframes dd-toast-in { from { opacity: 0; transform: translateX(40px) scale(0.97); } }
+  @keyframes dd-toast-out { to { opacity: 0; transform: translateX(28px) scale(0.98); } }
+
+  @keyframes dd-a-panel {
+    0% { opacity: 0; transform: translateY(-8px) scale(0.94, 0.82); }
+    45% { opacity: 1; }
+    100% { opacity: 1; transform: none; }
+  }
+  @keyframes dd-a-capsule { from { opacity: 0; transform: translateY(12px) scale(0.6); } }
+  @keyframes dd-a-open-l { from { transform: translateX(0); } }
+  @keyframes dd-a-open-r { from { transform: translateX(0); } }
+  @keyframes dd-a-spill { from { opacity: 0; transform: scaleY(0.25); } }
+  @keyframes dd-a-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+  @keyframes dd-a-toast-in { from { opacity: 0; transform: translateX(24px) scaleX(0.78); } 60% { opacity: 1; } }
+
+  @keyframes dd-b-panel { from { opacity: 0; transform: translateY(16px) scale(0.985); } }
+  @keyframes dd-b-star-in { from { opacity: 0; transform: translateY(-6px); } }
+  @keyframes dd-b-twinkle { 0%, 100% { opacity: 0.22; } 50% { opacity: 0.72; } }
+  @keyframes dd-b-flow {
+    0% { opacity: 0; transform: translateX(-100%); }
+    6% { opacity: 1; }
+    30% { opacity: 1; }
+    36%, 100% { opacity: 0; transform: translateX(290%); }
+  }
+  @keyframes dd-b-toast-in { from { opacity: 0; transform: translateY(-12px); } }
+
+  @keyframes dd-c-panel { from { opacity: 0; transform: scale(0.92); } 50% { opacity: 1; } }
+  @keyframes dd-c-peek {
+    0% { transform: translateY(40px) rotate(-14deg); }
+    70% { transform: translateY(-4px) rotate(5deg); }
+    100% { transform: none; }
+  }
+  @keyframes dd-c-tail { from { transform: scale(0); } }
+  @keyframes dd-c-bubble { from { opacity: 0; transform: scale(0.6); } }
+  @keyframes dd-c-pop { from { opacity: 0; transform: scale(0.4); } }
+
+  /* Reduced motion: shown at once, no loops, no leave transition. */
+  @media (prefers-reduced-motion: reduce) {
+    .dd-surface,
+    .dd-surface *,
+    .dd-surface::before,
+    .dd-surface *::before,
+    .app-dialog.dd-dialog::backdrop,
+    .dd-toast,
+    .dd-toast *,
+    .dd-toast *::before {
+      animation: none !important;
+      transition: none !important;
+    }
+    .dd-b-flow { opacity: 0; }
+  }
+}
+
+/*
+ * B2 「픽셀 프레임」 and B3 「픽셀 액센트」 (2026-11-26, B 발전안). Pixel pictures are single SVG data URLs drawn at
+ * 2 CSS px per art pixel. Stepped motion uses steps(); clip-path changes only a handful of times per entrance.
+ */
+@layer components {
+  .dd-v-b2 {
+    /* Stepped corner, 4px unit: rows 16 / 8 / 4 px in from the edge. No outline: the shape is the clip itself. */
+    --px-shape: polygon(
+      0 16px, 4px 16px, 4px 8px, 8px 8px, 8px 4px, 16px 4px, 16px 0,
+      calc(100% - 16px) 0, calc(100% - 16px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 16px, 100% 16px,
+      100% calc(100% - 16px), calc(100% - 4px) calc(100% - 16px), calc(100% - 4px) calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) calc(100% - 4px), calc(100% - 16px) calc(100% - 4px), calc(100% - 16px) 100%,
+      16px 100%, 16px calc(100% - 4px), 8px calc(100% - 4px), 8px calc(100% - 8px), 4px calc(100% - 8px), 4px calc(100% - 16px), 0 calc(100% - 16px)
+    );
+    --px-top: polygon(
+      0 16px, 4px 16px, 4px 8px, 8px 8px, 8px 4px, 16px 4px, 16px 0,
+      calc(100% - 16px) 0, calc(100% - 16px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 16px, 100% 16px,
+      100% 100%, 0 100%
+    );
+    --px-small: polygon(
+      0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px,
+      100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%,
+      8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px)
+    );
+    --px-night: #30246B;
+  }
+  .dd-pixel { flex: none; }
+
+  /* ── B2 surface ────────────────────────────────────────────────────────────────────────────────────────── */
+  .dd-v-b2 .dd-bg { border-radius: 0; background: linear-gradient(180deg, #1E1A31 0%, #191823 100%); box-shadow: none; clip-path: var(--px-shape); }
+  .dd-px-shade { position: absolute; z-index: -2; inset: 6px; border-radius: 16px; box-shadow: var(--floating-shadow); pointer-events: none; }
+  .dd-px-roof { position: absolute; z-index: -1; top: 0; right: 0; left: 0; height: 64px; overflow: hidden; background: linear-gradient(180deg, #3B2C82 0 14px, var(--px-night) 14px 28px, transparent 28px); clip-path: var(--px-top); pointer-events: none; }
+  .dd-px-dither { position: absolute; right: 0; left: 0; height: 12px; }
+  .dd-px-dither--50 { top: 28px; background: conic-gradient(from 90deg at 2px 2px, var(--px-night) 0 25%, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 0 0 / 4px 4px; }
+  .dd-px-dither--25 { top: 40px; background: conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 0 0 / 4px 4px; }
+  .dd-px-dither--12 {
+    top: 52px;
+    background:
+      conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 0 0 / 8px 8px,
+      conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 4px 4px / 8px 8px;
+  }
+  .dd-px-snow { position: absolute; opacity: 0.75; animation: dd-px-fall var(--dd-fall, 12s) steps(36) var(--dd-at, 0s) infinite; }
+  .dd-px-capsule { position: absolute; z-index: 0; top: 18px; left: 50%; margin-left: -20px; pointer-events: none; }
+  .dd-v-b2 .dd-scroll { padding-top: 80px; }
+  .dd-v-b2 :is(.dd-badge, .dd-chip, .dd-toast-icon) { border-radius: 0; clip-path: var(--px-small); }
+  .dd-k-large.dd-v-b2 .dd-large-head { border-bottom: 0; }
+  .dd-k-large .dd-px-roof { height: 100%; background: linear-gradient(180deg, #3B2C82 0 16px, var(--px-night) 16px 48px, transparent 48px); }
+  .dd-k-large .dd-px-dither { height: 8px; }
+  .dd-k-large .dd-px-dither--50 { top: 48px; }
+  .dd-k-large .dd-px-dither--25 { top: 56px; }
+  .dd-k-large .dd-px-dither--12 { top: 64px; }
+  .dd-k-large .dd-px-capsule { top: 26px; }
+
+  .app-dialog.dd-dialog.dd-v-b2 { transition-timing-function: steps(4, jump-end); }
+  .app-dialog.dd-dialog.dd-v-b2:not([open]) { transform: translateY(8px); }
+  .app-dialog.dd-dialog.dd-v-b2::backdrop { transition-timing-function: steps(4, jump-end); }
+  .dd-surface.dd-v-b2:is([open], .dd-static) { animation: dd-px-fill 300ms steps(5, jump-start) backwards; }
+  .dd-surface.dd-v-b2:is([open], .dd-static) :is(.dd-scroll, .dd-large-body, .dd-large-title, .dd-close) { animation: dd-fade 240ms steps(4, jump-end) 160ms backwards; }
+  .dd-surface.dd-v-b2:is([open], .dd-static) .dd-px-capsule { animation: dd-px-drop 240ms steps(3, jump-end) 180ms backwards; }
+
+  .dd-v-b2.dd-toast { border-radius: 0; animation: dd-px-toast-in 280ms steps(4, jump-start) both; }
+  .dd-v-b2.dd-toast .dd-bg {
+    border-radius: 0;
+    box-shadow: none;
+    clip-path: var(--px-small);
+    background:
+      linear-gradient(var(--px-night), var(--px-night)) 0 0 / 100% 6px no-repeat,
+      conic-gradient(from 90deg at 2px 2px, var(--px-night) 0 25%, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 0 6px / 4px 4px repeat-x,
+      conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 0 10px / 4px 4px repeat-x,
+      #1E1A31;
+  }
+  .dd-v-b2.dd-toast .dd-px-shade { inset: 4px; border-radius: 12px; box-shadow: 0 14px 40px #0004; }
+  .dd-v-b2.dd-toast[data-leaving][data-tone] { animation: dd-px-toast-out 200ms steps(4, jump-end) forwards; }
+
+  /* ── B3 surface: round, calm; pixels in three places only ─────────────────────────────────────────────── */
+  .dd-v-b3 .dd-bg { background: linear-gradient(180deg, #241C3E 0px, #1E1A31 132px, #191823 100%); }
+  .dd-b3-head { position: absolute; z-index: 0; top: 0; left: 12%; width: 76%; height: 72px; background: radial-gradient(50% 60% at 50% 0%, #AC95F81F 0%, transparent 100%); pointer-events: none; }
+  .dd-v-b3 .dd-heading { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .dd-v-b3 .dd-heading .dd-badge { width: auto; height: auto; background: none; }
+  .dd-v-b3 .dd-title { flex: 1 1 0; min-width: 0; }
+  .dd-b3-stars { display: block; flex: 0 0 100%; height: 6px; margin-top: 4px; background-repeat: repeat-x; background-size: 160px 6px; }
+  .dd-b3-stars--head { position: absolute; right: 28px; bottom: -3px; left: 28px; margin: 0; }
+  .dd-k-large.dd-v-b3 .dd-large-head { border-bottom: 0; }
+  .dd-b3-mini { position: relative; z-index: 1; }
+  .dd-v-b3 .dd-text { margin-top: 14px; }
+  .dd-v-b3 .button-primary { position: relative; }
+  .dd-b3-spark { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+  .dd-b3-spark > * { position: absolute; }
+  .dd-b3-spark-a { top: -7px; right: -5px; }
+  .dd-b3-spark-b { bottom: -6px; left: -4px; }
+  .dd-b3-spark-c { top: -3px; left: 22%; }
+  .button-primary:is(:hover, :focus-visible) .dd-b3-spark { opacity: 1; }
+  .button-primary:is(:hover, :focus-visible) .dd-b3-spark > * { animation: dd-px-blink 560ms steps(2, jump-none) infinite alternate; }
+  .button-primary:is(:hover, :focus-visible) .dd-b3-spark-b { animation-delay: 280ms; }
+  .button-primary:is(:hover, :focus-visible) .dd-b3-spark-c { animation-delay: 140ms; }
+  .dd-v-b3.dd-toast .dd-bg { background: linear-gradient(135deg, #241C3E 0%, #191823 100%); }
+  .dd-v-b3.dd-toast .dd-toast-icon { background: none; }
+  .dd-v-b3.dd-toast { animation-name: dd-b-toast-in; }
+
+  .dd-surface.dd-v-b3:is([open], .dd-static) { animation: dd-b-panel 340ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .dd-surface.dd-v-b3:is([open], .dd-static) :is(.dd-scroll, .dd-large-body) { animation: dd-rise 280ms ease-out 60ms both; }
+  .dd-surface.dd-v-b3:is([open], .dd-static) .dd-badge > .dd-pixel { animation: dd-px-drop 210ms steps(3, jump-end) 140ms backwards; }
+  .dd-surface.dd-v-b3:is([open], .dd-static) .dd-b3-stars { animation: dd-px-reveal 400ms steps(8, jump-start) 180ms backwards; }
+
+  @keyframes dd-px-fill { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+  @keyframes dd-px-drop { from { opacity: 0; transform: translateY(-6px); } }
+  @keyframes dd-px-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+  @keyframes dd-px-blink { from { opacity: 0.25; } to { opacity: 1; } }
+  @keyframes dd-px-fall {
+    0% { opacity: 0; transform: translateY(-12px); }
+    12% { opacity: 0.8; }
+    78% { opacity: 0.6; }
+    100% { opacity: 0; transform: translateY(60px); }
+  }
+  @keyframes dd-px-toast-in { from { opacity: 0; transform: translateX(32px); } }
+  @keyframes dd-px-toast-out { to { opacity: 0; transform: translateX(24px); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dd-px-snow,
+    .button-primary .dd-b3-spark > * {
+      animation: none !important;
+    }
+  }
+}
+
+/* Toast candidates (dialog-design-toast, 2026-11-26). T1 = product style; T2/T3 override it here only. */
+@layer components {
+  .dd-toast-compare {
+    position: fixed;
+    z-index: 70;
+    inset: 0;
+    display: grid;
+    overflow: auto;
+    grid-template-columns: repeat(3, minmax(0, 420px));
+    justify-content: center;
+    align-content: start;
+    gap: 28px;
+    padding: 48px 32px;
+    background: var(--color-overlay);
+    backdrop-filter: blur(8px);
+  }
+  .dd-toast-candidate h2 { font-size: var(--text-card-title); font-weight: 700; line-height: var(--text-card-title--line-height); }
+  .dd-toast-candidate p { margin-top: 4px; color: var(--color-muted); font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
+  .dd-toast-candidate-stack { position: relative; min-height: 420px; margin-top: 12px; }
+  .dd-toast-candidate-stack .notification-stack { width: 100%; padding: 0; }
+
+  /* T2: no top line; a 6px tone strip on the left that dithers out to the right. */
+  [data-toast-candidate='t2'] .notification-card {
+    padding: 16px 16px 16px 22px;
+    background:
+      linear-gradient(var(--notification-accent), var(--notification-accent)) 0 0 / 4px 100% repeat-y,
+      conic-gradient(from 90deg at 2px 2px, var(--notification-accent) 0 25%, transparent 0 50%, var(--notification-accent) 0 75%, transparent 0) 4px 0 / 4px 4px repeat-y,
+      conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--notification-accent) 0 75%, transparent 0) 8px 0 / 4px 4px repeat-y,
+      linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
+  }
+  /* T3: plain card, the icon cell is a tiny night roof tile. */
+  [data-toast-candidate='t3'] .notification-card {
+    padding: 16px;
+    background: linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
+  }
+  [data-toast-candidate='t3'] .notification-icon {
+    background:
+      linear-gradient(var(--color-dialog-roof) 0 14px, var(--color-dialog-roof-dither) 14px 24px, transparent 24px) 0 0 / 100% 24px no-repeat,
+      conic-gradient(from 90deg at 2px 2px, var(--color-dialog-roof-dither) 0 25%, transparent 0 50%, var(--color-dialog-roof-dither) 0 75%, transparent 0) 0 24px / 4px 4px repeat-x,
+      conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--color-dialog-roof-dither) 0 75%, transparent 0) 0 28px / 4px 4px repeat-x,
+      var(--color-panel);
+  }
+}

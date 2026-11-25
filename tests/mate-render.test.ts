@@ -132,3 +132,37 @@ test('computePointerGaze maps pointer positions around the face and clamps edges
   })
   assert.deepEqual(bottomRight, { x: 1, y: -1 })
 })
+
+test('engine storage allowlist: the exact Supabase project and its live2d-model bucket only', async () => {
+  const { isAllowedEngineUrl, resolveMateSource, ENGINE_SOURCES, parseEngineSources } = await import('../src/features/mate-render/mate-source.ts')
+  const base = 'https://belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model/aliving2d/v2'
+  const options = { pageOrigin: 'https://capsule.example', apiBaseUrl: 'https://api.capsule.example', sources: ENGINE_SOURCES }
+  for (const url of [`${base}/engine.js`, `${base}/player.js`, `${base}/engine.js?v=3`]) assert.equal(isAllowedEngineUrl(url, options), true, url)
+  for (const url of [
+    'https://otherproject.supabase.co/storage/v1/object/public/live2d-model/aliving2d/v2/engine.js', // another project
+    'https://belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/avatars/engine.js', // another bucket
+    'https://belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model/../avatars/engine.js', // dot segments
+    'https://belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model/%2e%2e/avatars/engine.js', // encoded
+    'https://belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model/%252e%252e/avatars/engine.js',
+    'https://belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model/a%2Fb.js',
+    'https://belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model\\..\\avatars/engine.js', // backslash
+    'https://belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model//engine.js',
+    'https://belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model/', // the prefix itself
+    'http://belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model/aliving2d/v2/engine.js', // http
+    'https://user:pass@belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model/engine.js',
+    'https://belbmclzeenlntgpekww.supabase.co.evil.example/storage/v1/object/public/live2d-model/engine.js',
+    '//belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model/engine.js'.replace('//', 'http://'),
+  ]) assert.equal(isAllowedEngineUrl(url, options), false, url)
+  // Without the sources (the old options) the storage is not allowed; same-origin still is.
+  assert.equal(isAllowedEngineUrl(`${base}/engine.js`, { pageOrigin: 'https://capsule.example' }), false)
+  assert.equal(isAllowedEngineUrl('/engine/engine.js', { pageOrigin: 'https://capsule.example', sources: ENGINE_SOURCES }), true)
+  // The real 채린 entry resolves to the live v2 renderer.
+  const live = resolveMateSource({ modelUrl: 'https://belbmclzeenlntgpekww.supabase.co/storage/v1/object/public/live2d-model/aliving2d/chaerin/model.json', engineUrl: `${base}/engine.js`, playerUrl: `${base}/player.js`, format: 'ALIVING2D_V2' }, options)
+  assert.equal(live.kind, 'aliving')
+  // VITE_ENGINE_ALLOWLIST: exact https prefixes only; wildcards and malformed entries are dropped (default kept).
+  assert.deepEqual(parseEngineSources(undefined), ENGINE_SOURCES)
+  assert.deepEqual(parseEngineSources('https://cdn.example/engines/'), [{ origin: 'https://cdn.example', pathPrefix: '/engines/' }])
+  for (const raw of ['https://*.supabase.co/', 'http://cdn.example/engines/', 'https://cdn.example/engines', 'https://cdn.example/a/%2e%2e/', 'https://cdn.example/e/?x=1', 'nonsense']) {
+    assert.deepEqual(parseEngineSources(raw), ENGINE_SOURCES, raw)
+  }
+})

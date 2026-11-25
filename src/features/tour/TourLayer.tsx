@@ -35,16 +35,17 @@ export function TourLayer({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Follows the account dialog opening and closing (the address opens it; its lazy chunk may land later).
+  // Follows the account dialog opening and closing (the address opens it; its lazy chunk may land later): on the page's
+  // own signals — a dialog added or removed, or its `open` changing — not by looking every frame.
   useEffect(() => {
-    let frame = 0
     const follow = () => {
       const next = openDialog() ?? document.body
       setHost((old) => (old === next ? old : next))
-      frame = requestAnimationFrame(follow)
     }
-    frame = requestAnimationFrame(follow)
-    return () => cancelAnimationFrame(frame)
+    const observer = new MutationObserver(follow)
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['open'] })
+    follow()
+    return () => observer.disconnect()
   }, [])
 
   const layer = useMemo(() => {

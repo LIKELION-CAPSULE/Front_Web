@@ -8,7 +8,7 @@ import {
   nextRating, REPORT_DETAIL_MAX, REPORT_REASONS, reportRequest, setReplyRating,
 } from '../src/features/mates/chat-room.ts'
 import { appendNotifications, inAppLink, markRead, notificationPage, relativeTime, unreadIds, UNREAD_REFRESH_MS } from '../src/features/notifications/notifications.ts'
-import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback, VOICE_REPLIES_REQUESTED } from '../src/features/mates/credit-notice.ts'
+import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback } from '../src/features/mates/credit-notice.ts'
 
 // Examples built from docs/BACKEND_API.md (11-25) 32 · 40 · 41 · 43 · 44 tables.
 
@@ -227,7 +227,7 @@ test('41: four reasons; OTHER needs a detail of 1–300 characters; the body onl
 
 const notificationExample: NotificationList = {
   items: [
-    { id: 30, type: 'STAGE_UP', title: '채린과 한 걸음 가까워졌어요', body: '새 표정이 열렸어요.', link: '/mates/me', read: false, createdAt: at(30) },
+    { id: 30, type: 'STAGE_UP', title: '채린과 한 걸음 가까워졌어요', body: '새 세계관이 열렸어요 · EP.03 도서관', link: '/mates/me', read: false, createdAt: at(30) },
     { id: 29, type: 'ATTENDANCE', title: '출석 보상', body: null, link: '/credits', read: true, createdAt: at(20) },
     { id: 28, type: 'REFERRAL_REWARD', title: '초대 보상', body: '  ', link: 'https://evil.example/x', read: false, createdAt: at(10) },
   ],
@@ -294,9 +294,8 @@ test('409 CREDIT_INSUFFICIENT: the notice with the remaining credits (number or 
   assert.equal(CREDIT_NOTICE_COPY.invite, '친구 초대로 받기')
 })
 
-test('done.voice false: a short note once, and only when a voice reply was asked for (not yet: tts is off)', () => {
-  assert.equal(VOICE_REPLIES_REQUESTED, false)
-  assert.equal(shouldNoteVoiceFallback({ requestedVoice: VOICE_REPLIES_REQUESTED, voice: false, noted: false }), false)
+test('done.voice false: a short note once, and only when a voice reply was asked for', () => {
+  assert.equal(shouldNoteVoiceFallback({ requestedVoice: false, voice: false, noted: false }), false)
   assert.equal(shouldNoteVoiceFallback({ requestedVoice: true, voice: false, noted: false }), true)
   assert.equal(shouldNoteVoiceFallback({ requestedVoice: true, voice: false, noted: true }), false)
   assert.equal(shouldNoteVoiceFallback({ requestedVoice: true, voice: true, noted: false }), false)

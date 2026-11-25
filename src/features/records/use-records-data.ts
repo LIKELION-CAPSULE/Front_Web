@@ -38,7 +38,6 @@ export function useRecordsData(range: RecordRange, mates: readonly RecordsMate[]
     return {
       totals,
       records: boardRecords(parts, recent),
-      recent,
       matesInRange: parts.filter(part => part.view.totalConnectedSeconds > 0).length,
       views: Object.fromEntries(parts.map(part => [part.mate.id, part.view])),
     }

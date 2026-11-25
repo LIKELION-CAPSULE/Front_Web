@@ -8,7 +8,7 @@ import { settlement } from './adapters.ts'
 /**
  * 37 내 메이트 · 38 내 기록 → the screens' views (docs/BACKEND_API.md 11-25). Like `adapters.ts`: a missing or malformed
  * required field fails the whole response (502, the screen shows its error state); optional fields take defaults.
- * Unknown values of open enums (an unlock `type`) are skipped, not fatal.
+ * 37 `unlocks[]` keeps every typed item (the screens pick theirs); a malformed item is skipped, not fatal.
  */
 
 const invalid = (what: string) => new ApiError(`${what} 응답을 확인하지 못했어요.`, 502)
@@ -25,16 +25,20 @@ const MONTH_KEY = /^\d{4}-\d{2}$/
 
 // ── 37 ────────────────────────────────────────────────────────────────────────────────────────
 
+/**
+ * One 37 `unlocks[]` item, whatever its type: the screens decide what they show (mate-worlds.ts ignores the old
+ * EXPRESSION / VOICE_LINE items, user decision 2026-11-26). An item without an id or a type is skipped, never fatal.
+ */
 export type MyMateUnlockView = {
   id: string
-  type: 'EXPRESSION' | 'VOICE_LINE'
-  title: string
+  type: string
+  title: string | null
   unlockStage: number | null
   unlockStageName: string | null
-  /** The model's expression name (`shy`, …); null for voice lines. */
-  expressionName: string | null
   assetUrl: string | null
-  unlocked: boolean
+  /** Null when the server did not say (the stage decides then). */
+  unlocked: boolean | null
+  unlockedAt: number | null
 }
 export type MyMateConnection = { connectionId: string; endedAt: number; presentSeconds: number; connectedSeconds: number }
 export type MyMateView = {
@@ -64,16 +68,15 @@ function recentConnection(value: MyMateRecent, what: string): MyMateConnection {
 }
 
 function unlock(value: MateUnlock): MyMateUnlockView | null {
-  const type = value?.type === 'EXPRESSION' || value?.type === 'VOICE_LINE' ? value.type as MyMateUnlockView['type'] : null
-  if (!type) return null
-  if (!isId(value.id) || !text(value.title) || typeof value.unlocked !== 'boolean') throw invalid('내 메이트')
+  const type = text(value?.type)
+  if (!type || !isId(value.id)) return null
   return {
-    id: String(value.id), type, title: text(value.title)!,
+    id: String(value.id), type, title: text(value.title) ?? null,
     unlockStage: isCount(value.unlockStage) ? value.unlockStage : null,
     unlockStageName: text(value.unlockStageName) ?? null,
-    expressionName: text(value.expressionName) ?? null,
     assetUrl: text(value.assetUrl) ?? null,
-    unlocked: value.unlocked,
+    unlocked: typeof value.unlocked === 'boolean' ? value.unlocked : null,
+    unlockedAt: time(value.unlockedAt),
   }
 }
 

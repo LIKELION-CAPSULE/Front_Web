@@ -180,16 +180,17 @@ test('period offsets around the same day', () => {
   assert.equal(offsetContaining('year', '2025-06-01', today), -1)
 })
 
-test('2D / 2.5D: week and month share the choice (default by width), the year keeps its own (default 2D)', () => {
-  assert.equal(defaultBoardView(1440, null, 'week'), '25d')
-  assert.equal(defaultBoardView(959, {}, 'month'), '2d')
-  assert.equal(defaultBoardView(960, undefined, 'week'), '25d')
-  assert.equal(defaultBoardView(1440, {}, 'year'), '2d')
-  // A 2.5D choice for week/month does not turn the year into 2.5D; a year choice is kept for the year only.
-  assert.equal(defaultBoardView(1440, { detail: '25d' }, 'year'), '2d')
-  assert.equal(defaultBoardView(1440, { detail: '2d' }, 'month'), '2d')
-  assert.equal(defaultBoardView(390, { detail: '25d', year: '25d' }, 'year'), '25d')
-  assert.equal(defaultBoardView(1440, { year: '25d' }, 'week'), '25d')
+test('2D / 2.5D: 2D by default everywhere (2026-11-26); week and month share the choice, the year keeps its own', () => {
+  assert.equal(defaultBoardView(null, 'week'), '2d')
+  assert.equal(defaultBoardView({}, 'month'), '2d')
+  assert.equal(defaultBoardView(undefined, 'week'), '2d')
+  assert.equal(defaultBoardView({}, 'year'), '2d')
+  // A stored choice is kept (a viewer who picked 2.5D keeps it); a week/month choice does not change the year.
+  assert.equal(defaultBoardView({ detail: '25d' }, 'week'), '25d')
+  assert.equal(defaultBoardView({ detail: '25d' }, 'year'), '2d')
+  assert.equal(defaultBoardView({ detail: '2d' }, 'month'), '2d')
+  assert.equal(defaultBoardView({ detail: '25d', year: '25d' }, 'year'), '25d')
+  assert.equal(defaultBoardView({ year: '25d' }, 'week'), '2d')
   assert.equal(boardViewSlot('week'), 'detail')
   assert.equal(boardViewSlot('year'), 'year')
   // Stored values: v2 JSON, the v1 single value as the week/month choice, junk ignored.

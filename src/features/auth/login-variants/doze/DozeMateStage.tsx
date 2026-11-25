@@ -36,6 +36,7 @@ import {
 import { computeDozeCamera, computeDozeScene, isPointerNearFace } from './doze-view'
 import { DozeDesk } from './DozeDesk'
 import { listenAll, startFrameLoop } from './doze-runtime'
+import { engineAllowlist } from '@/features/mate-render/engine-allowlist'
 import './doze.css'
 
 /**
@@ -118,7 +119,7 @@ export default function DozeMateStage({
         reactionsUrl: mate.v2Model.reactionsUrl,
         format: mate.v2Model.format,
       },
-      { pageOrigin: window.location.origin, apiBaseUrl: import.meta.env.VITE_API_BASE_URL },
+      engineAllowlist(),
     )
   }, [allowLive2D, forceStatic, mate.v2Model])
 

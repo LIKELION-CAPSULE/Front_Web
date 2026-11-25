@@ -12,7 +12,8 @@ import { AccountRedirect } from '@/app/components/AccountRedirect'
 import { BetaLegacyRedirect } from '@/app/components/BetaLegacyRedirect'
 import { PageNavigation } from '@/app/PageNavigation'
 import { saveStoredReferralCode } from '@/features/auth/referral-code'
-import { TourCallRoute, TourLayout } from '@/features/tour/TourLayout'
+import { isLoginLayoutPath } from '@/features/auth/kakao-signup'
+import { TourCallRoute, TourLayout, TourOverlay } from '@/features/tour/TourLayout'
 
 const RecordsPage = lazy(() => import('@/pages/RecordsPage'))
 const CreditsPage = lazy(() => import('@/pages/CreditsPage'))
@@ -26,11 +27,12 @@ const LoginLayout = lazy(() => import('@/features/auth/login-variants/LoginVaria
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
 const KakaoCallbackPage = lazy(() => import('@/pages/KakaoCallbackPage'))
+const KakaoTermsPage = lazy(() => import('@/pages/KakaoTermsPage'))
 const PasswordResetPage = lazy(() => import('@/pages/PasswordResetPage'))
 
 function isAuthPath(pathname: string): boolean {
   return (
-    pathname === '/login' ||
+    isLoginLayoutPath(pathname) ||
     pathname === '/onboarding' ||
     pathname === '/password/reset' ||
     pathname === '/reset-password'
@@ -75,13 +77,15 @@ export function App() {
       : location.pathname
 
   const content = (
-    <div className={location.pathname === '/login' ? undefined : 'app-surface'}>
+    <div className={isLoginLayoutPath(location.pathname) ? undefined : 'app-surface'}>
       <Suspense key={suspenseKey} fallback={<RouteLoading />}>
         <ReferralLinkCapture />
         <PageNavigation />
         <Routes>
           <Route element={<LoginLayout />}>
             <Route path="login" element={<LoginPage />} />
+            {/* A first-time Kakao user agrees to the terms here before the account is made (kakao-signup-contract.ts). */}
+            <Route path="login/kakao-terms" element={<KakaoTermsPage />} />
           </Route>
           <Route element={<AuthPanelLayout />}>
             <Route path="password/reset" element={<PasswordResetPage />} />
@@ -122,6 +126,8 @@ export function App() {
           </Route>
         </Routes>
       </Suspense>
+      {/* Outside the keyed Suspense: the tour stays mounted while the address changes (src/features/tour). */}
+      <TourOverlay />
     </div>
   )
   return <MobileAccessGate>{content}</MobileAccessGate>

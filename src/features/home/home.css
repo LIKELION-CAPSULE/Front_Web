@@ -219,8 +219,6 @@
   }
   .home-mate-chips { position: absolute; top: 14px; left: 14px; z-index: 3; display: flex; align-items: center; gap: 6px; }
   .home-mate-chips .home-mate-badge { position: static; }
-  /* The AI tag's look, at the chips' height. */
-  .home-mate-chips .home-mate-ai { padding: 4px 10px; font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
   .home-mate-badge--online { color: var(--color-success); }
   .home-mate-badge--online::before { width: 7px; height: 7px; border-radius: 999px; background: currentColor; content: ''; }
   /* Coming soon (11 `comingSoon`): a quiet grey state; the arrow is closed (HomeMateSection). */

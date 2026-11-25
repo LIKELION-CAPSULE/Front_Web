@@ -62,7 +62,6 @@ export function ProfileEditor({
       : avatars
 
   const [name, setName] = useState(state.profile.name)
-  const [callName, setCallName] = useState(accountDetails?.callName ?? '')
   const [aboutMe, setAboutMe] = useState(accountDetails?.aboutMe ?? '')
   const [nameError, setNameError] = useState<string>()
   const [picked, setPicked] = useState<{ id: number | undefined }>()
@@ -76,8 +75,7 @@ export function ProfileEditor({
     name.trim() !== state.profile.name ||
     avatarId !== currentAvatar ||
     (!!saveBetaProfile &&
-      (callName.trim() !== (accountDetails?.callName ?? '') ||
-        aboutMe.trim() !== (accountDetails?.aboutMe ?? '')))
+      aboutMe.trim() !== (accountDetails?.aboutMe ?? ''))
 
   // Under the avatar's name, as onboarding greets the nickname being typed.
   const nickname = name.trim()
@@ -106,10 +104,9 @@ export function ProfileEditor({
             setError('')
             setSaved(false)
             try {
-              if (saveBetaProfile) await saveBetaProfile({ nickname: name, avatarId, callName, aboutMe })
+              if (saveBetaProfile) await saveBetaProfile({ nickname: name, avatarId, aboutMe })
               else await saveProfile(name, avatarId)
               setName(name.trim())
-              setCallName(callName.trim())
               setAboutMe(aboutMe.trim())
               setSaved(true)
             } catch (reason) {
@@ -165,21 +162,6 @@ export function ProfileEditor({
 
                 {saveBetaProfile && (
                   <>
-                    <div className="profile-editor-extra">
-                      <FormField label="호칭">
-                        <input
-                          className="form-input"
-                          name="callName"
-                          value={callName}
-                          onChange={(event) => setCallName(event.target.value)}
-                          readOnly={busy}
-                          aria-describedby={`${headingId}-callName-hint`}
-                        />
-                      </FormField>
-                      <p id={`${headingId}-callName-hint`} className="profile-editor-hint">
-                        메이트가 나를 부르는 이름
-                      </p>
-                    </div>
                     <div className="profile-editor-extra">
                       <FormField label="나에 대해">
                         <input

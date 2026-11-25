@@ -621,17 +621,12 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--color-ink);
+  text-decoration: none;
   cursor: pointer;
   transition: background 160ms ease;
 }
 
-/* Expressions play on the Live2D model; with only the still portrait there is nothing to show, so no button. */
-.capsule-record:has(.mate-detail-portrait:not([data-mate-mode='live2d'])) .capsule-record-unlock-view {
-  display: none;
-}
-
-.capsule-record-unlock-view:hover,
-.capsule-record-unlock-view[aria-pressed='true'] {
+.capsule-record-unlock-view:hover {
   background: color-mix(in srgb, var(--color-primary) 48%, transparent);
 }
 

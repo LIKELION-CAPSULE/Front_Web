@@ -1,0 +1,20 @@
+/* Block title of 내 메이트 (BlockLabel): one style everywhere — a small icon and the title. */
+.mate-game-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+}
+.mate-game-label-icon { display: inline-grid; place-items: center; color: var(--color-muted); }
+.mate-game-label-note { flex: none; margin-left: auto; color: var(--color-subtle); font-size: 12px; font-weight: 500; }
+/* The count beside the title (e.g. 「최근 캡슐 76」): a small muted figure, not a part of the action on the right. */
+.mate-game-label-count { flex: none; color: var(--color-subtle); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Short windows (1280×720 and the like): a tighter title. */
+@media (min-width: 960px) and (max-height: 800px) {
+  .mate-game-label { margin-bottom: 2px; }
+}

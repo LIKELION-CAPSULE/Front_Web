@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router'
+import { isLoginLayoutPath } from '@/features/auth/kakao-signup'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { QuarterRingSpinner } from './QuarterRingSpinner'
 import './app-loading.css'
@@ -10,7 +11,7 @@ import './app-loading.css'
 export function AppLoading({ label = '화면을 불러오고 있어요.' }: { label?: string }) {
   const { pathname } = useLocation()
   const reduced = useReducedMotion()
-  if (pathname !== '/login') {
+  if (!isLoginLayoutPath(pathname)) {
     return <main id="main-content" className="app-loading-stage" data-loading-screen="auth" role="status" aria-busy="true">
       <div className="app-panel app-loading-body"><QuarterRingSpinner /><p className="app-loading-label">{label}</p></div>
     </main>

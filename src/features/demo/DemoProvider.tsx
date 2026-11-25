@@ -5,12 +5,12 @@ import { DemoContext } from './demo-context'
 import { betaReducer, type ConnectionAction } from '@/features/backend/beta-reducer'
 import { readConnectionCache, serverMessages, serverRecords, writeConnectionCache } from '@/features/backend/connection-cache'
 import type { DemoState, FocusTotals, Message, TierId } from './types'
-import type { ConnectionModeChoice } from '@/features/backend/backend-context'
+import type { ConnectionModeChoice, MessageVoice } from '@/features/backend/backend-context'
 import { normalizeFocusTotals } from '@/features/session/focus'
 import { api, ApiError } from '@/shared/api/client'
 import { QueryCache } from '@/shared/api/query-cache'
 import { removeAccountSnapshots } from '@/features/auth/account-storage'
-import type { ActiveConnectionSummary, AffinityChange, AvatarsResponse, EndType, HomeResponse, MeResponse, LoginResponse, StartRequest, StartResponse, ResumeResponse, EndRequest, ReportResponse, TermsResponse } from '@/shared/api/types'
+import type { ActiveConnectionSummary, AffinityChange, AvatarsResponse, EndType, HomeResponse, MeResponse, LoginResponse, StartRequest, StartResponse, ResumeResponse, EndRequest, MessageStreamAudio, MessageStreamAudioEnd, ReportResponse, TermsResponse } from '@/shared/api/types'
 import { BackendContext } from '@/features/backend/backend-context'
 import { streamMessage } from '@/features/backend/message-stream'
 import { accountScope } from '@/features/backend/account-scope'
@@ -34,10 +34,11 @@ import { birthDateError } from '@/features/auth/birth-date'
 import { nicknameError } from '@/features/profile/profile-input'
 import type { MateContentPort } from '@/features/mates/mate-contract'
 import { checkedMateDetail } from '@/features/mates/mate-contract'
+import { engineAllowlist } from '@/features/mate-render/engine-allowlist'
 import { forgetAllChatRooms, forgetChatRoom } from '@/features/mates/chat-room'
 import type { BetaFeaturePort, BetaFeatureSnapshot } from '@/features/backend/beta-feature-port'
 
-type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'signedOutNotice' | 'me' | 'accountDetails' | 'home' | 'homeContentVersion' | 'mateDetails' | 'mateContentVersion' | 'wallet' | 'invitation' | 'mateUnlocks' | 'redeemInvitation' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
+type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'signedOutNotice' | 'me' | 'accountDetails' | 'home' | 'homeContentVersion' | 'mateDetails' | 'mateContentVersion' | 'wallet' | 'invitation' | 'redeemInvitation' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
 /**
  * Local mutations invalidate the affected server queries immediately. These limits bound
  * how long data changed on another device can remain cached here.
@@ -45,12 +46,11 @@ type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'sig
 const HOME_MAX_AGE = 60_000
 const MATE_MAX_AGE = 300_000
 const AVATARS_MAX_AGE = 300_000
-const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null, signedOutNotice: null, me: null, accountDetails: null, home: null, homeContentVersion: 0, mateDetails: {}, mateContentVersion: 0, wallet: null, invitation: null, mateUnlocks: undefined, redeemInvitation: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
+const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null, signedOutNotice: null, me: null, accountDetails: null, home: null, homeContentVersion: 0, mateDetails: {}, mateContentVersion: 0, wallet: null, invitation: null, redeemInvitation: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : '요청을 처리하지 못했어요.'
 const createLive2DStage: SessionModelFactory = (url, layout) => new Live2DStage(url, layout, new URL(import.meta.env.BASE_URL, location.href).href)
 /** v2 (Aliving2D) session models; engine scripts run only from this page's origin or the API origin. */
 const createAlivingStage: AlivingStageFactory = (source, options) => new AlivingSessionStage(source, { stillImage: options.stillImage })
-const engineAllowlist = () => ({ pageOrigin: location.origin, apiBaseUrl: import.meta.env.VITE_API_BASE_URL })
 
 /** Cached reports may belong to mates no longer returned by /home. */
 function registerCachedReportRooms(records: DemoState['records']) {
@@ -130,7 +130,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     const sync = () => {
       if (!current) return
       const snapshot = featurePort.read(userId)
-      setMeta(previous => ({ ...previous, wallet: snapshot.wallet, invitation: snapshot.invitation, mateUnlocks: snapshot.mateUnlocks, affinities: snapshot.affinities, redeemInvitation: featurePort.redeemInvitation }))
+      setMeta(previous => ({ ...previous, wallet: snapshot.wallet, invitation: snapshot.invitation, affinities: snapshot.affinities, redeemInvitation: featurePort.redeemInvitation }))
       setBetaSettings(snapshot.settings)
     }
     const unsubscribe = featurePort.subscribe(sync)
@@ -519,7 +519,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     if (!accountPort) throw new ApiError('요청을 처리하지 못했어요.', 501)
     const userId = stateRef.current.profile.userId
     if (!userId) throw new ApiError('로그인이 필요해요.', 401)
-    const result = await accountScope(() => epoch.current).wait(accountPort.saveProfile(userId, { ...input, nickname: input.nickname.trim(), callName: input.callName.trim(), aboutMe: input.aboutMe.trim() }))
+    const result = await accountScope(() => epoch.current).wait(accountPort.saveProfile(userId, { ...input, nickname: input.nickname.trim(), aboutMe: input.aboutMe.trim() }))
     applyAccountResult(result, input.avatarId)
   }, [accountPort, applyAccountResult])
   // Retired source previews still type-check, but cannot call the schedule API.
@@ -725,7 +725,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
       return record
     } finally { operations.delete('end') }
   }, [patch, invalidateSessionQueries, releaseModel])
-  const sendMessage = useCallback(async (characterId: string, content: string, inputType: 'TEXT' | 'QUICK' = 'TEXT') => {
+  const sendMessage = useCallback(async (characterId: string, content: string, inputType: 'TEXT' | 'QUICK' = 'TEXT', voice?: MessageVoice) => {
     const current = stateRef.current.activeSession
     if (!current) throw new ApiError('진행 중인 연결이 없어요.', 400)
     if (!content.trim() || content.length > 300) throw new ApiError('메시지는 1~300자로 입력해 주세요.', 400)
@@ -756,8 +756,14 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     upsert({ id: `${requestId}:user`, requestId, sessionId: current.id, characterId, sender: 'user', text: content.trim(), voice: false, createdAt: Date.now(), delivery: 'pending' })
     const mode = connectionModeRef.current.id === current.id && connectionModeRef.current.mode === 'advanced' ? 'ADVANCED' : 'BASIC'
     try {
-      const result = await accountScope(() => epoch.current).wait(streamMessage(api, adapt.numericId(current.id), { requestId, characterId: adapt.numericId(characterId), content: content.trim(), inputType, mode, tts: false }, {
+      const result = await accountScope(() => epoch.current).wait(streamMessage(api, adapt.numericId(current.id), { requestId, characterId: adapt.numericId(characterId), content: content.trim(), inputType, mode, tts: voice?.tts === true }, {
         onReply: text => { if (live()) upsert(reply(text)) },
+        // Voice pieces keep coming after `done` (this resolves there); the player drops those of a stopped voice.
+        ...(voice?.tts ? {
+          onAudio: (audio: MessageStreamAudio) => { if (live()) voice.onAudio?.(audio) },
+          onAudioEnd: (end: MessageStreamAudioEnd) => { if (live()) voice.onAudioEnd?.(end) },
+          onAudioClose: () => voice.onClose?.(),
+        } : {}),
         alive: live,
       }))
       if (result.requestId !== requestId || adapt.id(result.characterId) !== characterId || !result.content) throw new ApiError('답장 응답을 확인하지 못했어요.', 502)

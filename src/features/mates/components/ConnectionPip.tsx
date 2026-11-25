@@ -51,7 +51,7 @@ export function ConnectionPip({ target, mate, stage, speech, talk, onTapMate, on
     }
     : {}
   return createPortal(<main className="connection-pip" aria-label={`${mate.name} 연결 중`}>
-    <header><h1>{mate.name}</h1><span>AI 캐릭터</span><Button variant="ghost" size="sm" onClick={onReturn} aria-label="전체화면으로 돌아가기"><Icon name="expand" size={18} /></Button></header>
+    <header><h1>{mate.name}</h1><Button variant="ghost" size="sm" onClick={onReturn} aria-label="전체화면으로 돌아가기"><Icon name="expand" size={18} /></Button></header>
     <div className="connection-pip-mate" onClick={onTapMate} data-tappable={onTapMate ? true : undefined}>
       {stage ? <Live2DFigure stage={stage} /> : <img src={matePortrait(mate.id, mate.image)} width={800} height={600} alt="" />}
       {/* The keyboard's way to tap the mate, like the call screen's (shows on focus only). */}

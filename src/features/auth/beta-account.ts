@@ -4,9 +4,12 @@ import { birthDateError } from './birth-date.ts'
 import type { ReferralValidationResult } from './referral-code.ts'
 
 /** UI-facing account operations. These are not a proposed server wire schema or endpoint. */
+/**
+ * The profile tab edits the nickname and 「나에 대해」. The server's `honorific` (호칭) is no longer shown or sent (user
+ * decision 2026-11-26): a value already saved stays on the server untouched.
+ */
 export type BetaAccountDetails = {
   birthDate?: string
-  callName: string
   aboutMe: string
   referralRegistered?: boolean
 }
@@ -24,18 +27,17 @@ export type BetaOnboardingInput = {
   birthDate?: string
   referralCode?: string
 }
-export type BetaProfileInput = { nickname: string; avatarId?: number; callName: string; aboutMe: string }
+export type BetaProfileInput = { nickname: string; avatarId?: number; aboutMe: string }
 export type BetaAccountResult = { me: MeResponse; details: BetaAccountDetails }
 
 export function checkedAccountDetails(value: BetaAccountDetails): BetaAccountDetails {
-  if (!value || typeof value.callName !== 'string' || typeof value.aboutMe !== 'string' ||
+  if (!value || typeof value.aboutMe !== 'string' ||
     (value.birthDate !== undefined && (typeof value.birthDate !== 'string' || birthDateError(value.birthDate))) ||
     (value.referralRegistered !== undefined && typeof value.referralRegistered !== 'boolean')) {
     throw new ApiError('프로필 응답을 확인하지 못했어요.', 502)
   }
   return {
     ...(value.birthDate === undefined ? {} : { birthDate: value.birthDate }),
-    callName: value.callName,
     aboutMe: value.aboutMe,
     ...(value.referralRegistered === undefined ? {} : { referralRegistered: value.referralRegistered }),
   }
