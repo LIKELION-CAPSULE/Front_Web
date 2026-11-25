@@ -1,5 +1,5 @@
 import type { ActiveSession, DemoState, StudyRecord } from '../demo/types.ts'
-import type { StudyRoom } from '../rooms/types.ts'
+import type { MateRoom } from '../mates/mate-rooms.ts'
 import type { IntimacyView, MateCard, MateRelation, MeResponse, ReportResponse, ResumeResponse, StartResponse, StudySettlement } from '../../shared/api/types.ts'
 import { ApiError } from '../../shared/api/client.ts'
 import { mateProfileByName } from '../mates/catalog.ts'
@@ -51,7 +51,7 @@ export function mateName(name: string | undefined) {
  * 11 `mates[]` card as the app's one-mate room. The app keys rooms and characters by id; since 11-25 both are the
  * mate id (mate id = character id), so `room.id === characters[0].id === String(mate.id)`.
  */
-export function mateRoom(card: MateCard): StudyRoom {
+export function mateRoom(card: MateCard): MateRoom {
   const mateId = id(card.id)
   if (!card.name) throw new ApiError('메이트 정보를 확인하지 못했어요.', 502)
   const name = mateName(card.name)

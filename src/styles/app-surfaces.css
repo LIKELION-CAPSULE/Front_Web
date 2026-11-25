@@ -66,7 +66,6 @@
 }
 .app-surface .desktop-window-controls > button::after { transform: rotate(-45deg); }
 .app-surface .desktop-window-controls > button:hover { background: var(--color-control); }
-.app-surface .desktop-window-body,
 .app-surface :is(.credits-window-body, .records-window-body, .my-mates-window-body, .mate-detail-window-body) {
   border: 0;
   background: var(--color-panel);
@@ -79,10 +78,6 @@
 .app-surface :is(.mate-menu-panel, .mate-detail-control-bar, .mate-preview-status) { border: 0; }
 .app-surface .connection-mate,
 .app-surface .connection-self-titlebar { border: 0; }
-.connection-window-actions { display: flex; flex: none; align-items: center; gap: 4px; }
-.connection-window-actions > .ui-button { width: 36px; min-width: 36px; min-height: 36px; padding: 8px; }
-.app-surface .account-settings-content.avatar-background::before,
-.app-surface .account-settings-content.avatar-background::after { display: none; }
 
 @media (max-width: 767px) {
   .app-surface .desktop-window-titlebar { padding-inline: 20px; }

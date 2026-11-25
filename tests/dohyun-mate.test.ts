@@ -60,7 +60,7 @@ test('서도현 takes the blue-violet kept for the 남학생 placeholder', () =>
   assert.notDeepEqual(capsuleJarTheme('dohyun'), capsuleJarTheme('chaerin'))
 })
 
-test('the seojin bundle is served like chaerin-v2: runtime files only', () => {
+test('the seojin bundle is served like chaerin-v3: runtime files only', () => {
   for (const path of ['/model/model.json', '/model/parts/045_front_hair@body.png', '/engine/engine.js', '/engine/player.js', '/engine/reactions.default.json']) {
     assert.ok(V2_MATE_ALLOW.test(path), path)
   }

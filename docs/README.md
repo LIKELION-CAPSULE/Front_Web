@@ -15,7 +15,7 @@
 | [CAPSULE_WEB_BETA_SCREEN_CHANGES_2026-11-22.md](CAPSULE_WEB_BETA_SCREEN_CHANGES_2026-11-22.md) | 기존 와이어프레임의 화면별 수정·삭제·신규 요구사항 원문. 디자인·FE·BE 담당, 모바일 제외 명시. 로컬 전용 |
 | [BACKEND_OPENAPI_2026-11-22.json](BACKEND_OPENAPI_2026-11-22.json) | (기록) `api.capsule.ai.kr`의 11/22 비교 기준 명세. 24개 경로·27개 작업, 공통 성공 응답 `success/data`와 스트리밍 대화. 로컬 전용 |
 | [BACKEND_OPENAPI_RECHECK_2026-11-22.json](BACKEND_OPENAPI_RECHECK_2026-11-22.json) · [비교 결과](BACKEND_OPENAPI_DIFF_2026-11-22.json) | 13:37 KST 재조회 원본·요청/응답/스키마 전체 비교. 기존 명세와 동일, 24개 경로·27개 작업·69개 스키마. 로컬 전용 |
-| [MVP 제한 해제·더미 데이터 교체 안내](../src/features/dummy/README.md) | 2026-11-09 전체 기능 활성화, 더미 값·파일·검색 표식·계정별 저장·실제 API 교체 순서. Git 추적 대상 |
+| MVP 제한 해제·더미 데이터 교체 안내 (2026-11-25 정리에서 삭제) | 2026-11-09 전체 기능 활성화, 더미 값·파일·검색 표식·계정별 저장·실제 API 교체 순서. Git 추적 대상 |
 | [BUG_AUDIT_2026-11-06.md](BUG_AUDIT_2026-11-06.md) | 기능 버그 9건 수정, Node 테스트 321개·추가 Playwright 시나리오 16개 통과, PNG·모바일 화면 자료와 실서버/실제 모델 검증 한계. 로컬 전용 |
 | [API_CALL_OPTIMIZATION_2026-11-05.md](API_CALL_OPTIMIZATION_2026-11-05.md) · [JSON](API_CALL_OPTIMIZATION_2026-11-05.json) | API 중복·과도한 묶음 조회 최적화, 전후 요청 수, 메모리 재사용/무효화·heartbeat 정책·추가 개선 후보. 로컬 전용 |
 | [API_AUDIT_2026-11-05.md](API_AUDIT_2026-11-05.md) · [JSON](API_AUDIT_2026-11-05.json) | 최신 Swagger 변경·25개 API별 호출 위치/실응답·20개 정상/5개 오류만 검증·메일 수신·브라우저 결과. 로컬 전용 |

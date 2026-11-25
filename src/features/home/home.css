@@ -277,7 +277,6 @@
   }
   button.home-round-button:not(:disabled):hover { border-color: rgb(185 166 255 / 0.8); background: rgb(124 92 255 / 0.35); }
   .home-round-button[data-disabled], .home-round-button:disabled { opacity: 0.45; }
-  .home-round-button--small { width: 28px; height: 28px; }
   .home-mate-card-enter { position: absolute; right: 16px; bottom: 18px; z-index: 3; }
 
   .home-mate-card--failed { align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; }

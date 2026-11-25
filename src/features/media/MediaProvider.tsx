@@ -2,11 +2,10 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
-import { getStudyRoom } from '@/features/rooms/services/room-service'
+import { getMateRoom } from '@/features/mates/mate-rooms'
 import { DeviceController } from './device-controller'
 import { readDevicePreferences, saveDevicePreferences } from './device-preferences'
 import { MediaContext } from './media-context'
-import { SegmentationClient } from './segmentation-client'
 import { BehaviorMonitor } from './behavior-monitor'
 import { FACE_INTERVAL_MS, GESTURE_INTERVAL_MS, OBSERVATION_PUBLISH_MS, PHONE_INTERVAL_MS, PREPARE_FACE_INTERVAL_MS } from './behavior-constants'
 import type { Observation, VisionMessage, VisionStatus, VisionTask } from './types'
@@ -34,13 +33,8 @@ export function MediaProvider({ children }: { children: ReactNode }) {
   const studyDetection = useRef(false)
   const { pathname } = useLocation()
   const { state, dispatch } = useDemo()
-  const [backgroundNotice, setBackgroundNotice] = useState<string | null>(null)
-  const [segmentation] = useState(() => new SegmentationClient(new URL(import.meta.env.BASE_URL, location.href).href, () => {
-    dispatch({ type: 'CAMERA_BACKGROUND', background: 'none' })
-    setBackgroundNotice('배경을 불러오지 못해 기본 화면으로 돌렸어요.')
-  }))
   const allowed = state.profile.loggedIn && !!state.activeSession &&
-    !!getStudyRoom(state.activeSession.roomId) && isSessionSurface(pathname, state.activeSession)
+    !!getMateRoom(state.activeSession.roomId) && isSessionSurface(pathname, state.activeSession)
   const stream = allowed ? devices.camera.stream : null
   const monitoring = allowed && state.activeSession?.phase === 'study' && state.activeSession.runningSince !== null
   const availableVision = stream && monitoring ? vision : null
@@ -62,12 +56,6 @@ export function MediaProvider({ children }: { children: ReactNode }) {
     if (!allowed) controller.stop()
   }, [allowed, controller])
   useEffect(() => () => controller.stop(), [controller])
-  useEffect(() => () => segmentation.close(), [segmentation])
-  useEffect(() => {
-    if (!backgroundNotice) return
-    const timeout = window.setTimeout(() => setBackgroundNotice(null), 4000)
-    return () => clearTimeout(timeout)
-  }, [backgroundNotice])
   useEffect(() => {
     const video = videoRef.current
     if (!stream || !video || !monitoring) return
@@ -151,7 +139,7 @@ export function MediaProvider({ children }: { children: ReactNode }) {
   }, [stream, monitoring, attempt, behavior])
   return (
     <MediaContext value={{ devices, selectedDevices, controller, vision: availableVision,
-      observation: availableObservation, flushFocus, segmentation, backgroundNotice, behavior,
+      observation: availableObservation, flushFocus, behavior,
       retryVision: () => setAttempt((value) => value + 1) }}>
       <video ref={videoRef} muted playsInline aria-hidden="true" className="hidden" />
       {children}

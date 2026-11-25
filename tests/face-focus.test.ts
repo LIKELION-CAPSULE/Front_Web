@@ -2,19 +2,11 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { FaceFocusTracker } from '../src/features/media/face-focus-tracker.ts'
 import { focusDetectedSeconds, focusMeasuredSeconds, focusPercent, normalizeFocusTotals, recordFocusPercent } from '../src/features/session/focus.ts'
-import { createDemoState } from '../src/features/demo/seed.ts'
-import { demoReducer, sessionStudySeconds } from '../src/features/demo/reducer.ts'
-import { recordSummary, getRecordRange } from '../src/features/reports/record-period.ts'
-import { companionTimeSeries } from '../src/features/reports/companion-time.ts'
-import { capsuleFocusCopy } from '../src/features/reports/card-copy.ts'
-import { measuredDuration } from '../src/shared/lib/format.ts'
+import { recordSummary } from '../src/features/reports/record-period.ts'
 import type { StudyRecord } from '../src/features/demo/types.ts'
 import { report as serverReport } from '../src/features/backend/adapters.ts'
 
 const now = Date.parse('2026-10-28T12:00:00+09:00')
-const begin = (camera = true) => demoReducer(createDemoState(now), {
-  type: 'START', now, roomId: 'dawn-library', characterIds: ['chaerin'], tier: 'basic', camera,
-})
 const record = (overrides: Partial<StudyRecord>): StudyRecord => ({
   id: 'focus-test', roomId: 'dawn-library', characterIds: ['chaerin'], tier: 'basic',
   startedAt: now, endedAt: now + 60000, studySeconds: 60, focusSeconds: 30, awaySeconds: 30,
@@ -89,82 +81,6 @@ test('synthetic timer jumps and invalid samples do not fabricate measurements', 
   assert.equal(focusPercent(0, 0), null)
   assert.deepEqual(normalizeFocusTotals({ observedMs: 100, focusedMs: 300, returns: -2 }), { observedMs: 100, focusedMs: 100, returns: 0 })
 })
-test('session focus persists and actual measurements replace generated report scores', () => {
-  let state = begin()
-  const id = state.activeSession!.id
-  state = demoReducer(state, { type: 'FACE_FOCUS', sessionId: id, now: now + 20000, totals: { observedMs: 10000, focusedMs: 7500, returns: 2 } })
-  state = JSON.parse(JSON.stringify(state))
-  state = demoReducer(state, { type: 'FINISH', now: now + 20000 })
-  const result = state.records[0]!
-  assert.equal(result.studySeconds, 20)
-  assert.equal(result.observedSeconds, 10)
-  assert.equal(result.focusSeconds, 7.5)
-  assert.equal(result.awaySeconds, 2.5)
-  assert.equal(result.returns, 2)
-  assert.equal(recordFocusPercent(result), 75)
-})
-test('focus actions are idempotent, monotonic, bounded and tied to the active session', () => {
-  let state = begin()
-  const id = state.activeSession!.id
-  const action = { type: 'FACE_FOCUS' as const, sessionId: id, now: now + 1000, totals: { observedMs: 800, focusedMs: 400, returns: 0 } }
-  state = demoReducer(state, action)
-  assert.equal(demoReducer(state, action), state)
-  assert.equal(demoReducer(state, { ...action, sessionId: 'old' }), state)
-  assert.equal(demoReducer(state, { ...action, now: NaN }), state)
-  assert.equal(demoReducer(state, { ...action, totals: { observedMs: 600, focusedMs: 300, returns: 0 } }), state)
-  const clamped = demoReducer(state, { ...action, totals: { observedMs: 5000, focusedMs: 5000, returns: 0 } })
-  assert.equal(clamped.activeSession!.focus!.observedMs, 1000)
-  assert.equal(clamped.activeSession!.focus!.focusedMs, 1000)
-  const finished = demoReducer(state, { type: 'FINISH', now: now + 1000 })
-  assert.equal(demoReducer(finished, action), finished)
-})
-
-test('face measurements continue beyond a completed goal without bridging the rest', () => {
-  let state = demoReducer(createDemoState(now), {
-    type: 'START', now, roomId: 'dawn-library', characterIds: ['chaerin'], tier: 'basic', camera: true, targetMinutes: 5,
-  })
-  const tracker = new FaceFocusTracker(state.activeSession!.id, Number.POSITIVE_INFINITY)
-  const sample = (at: number, present: boolean) => {
-    tracker.observe(at, sessionStudySeconds(state.activeSession, now + at) * 1000, present)
-  }
-  for (let at = 0; at <= 302000; at += 1000) sample(at, true)
-  state = demoReducer(state, { type: 'TICK', now: now + 300000 })
-  assert.equal(state.activeSession!.phase, 'study')
-  state = demoReducer(state, { type: 'FACE_FOCUS', sessionId: tracker.sessionId, totals: tracker.getTotals(), now: now + 302000 })
-  assert.equal(state.activeSession!.focus!.observedMs, 302000)
-  tracker.close(302000, sessionStudySeconds(state.activeSession, now + 302000) * 1000)
-  state = demoReducer(state, { type: 'TAKE_BREAK', now: now + 302000 })
-  state = demoReducer(state, { type: 'CONTINUE_STUDY', now: now + 900000 })
-  sample(900000, false)
-  sample(901000, true)
-  sample(902000, true)
-  const totals = tracker.getTotals()
-  assert.deepEqual(totals, { observedMs: 304000, focusedMs: 303000, returns: 1 })
-  state = demoReducer(state, { type: 'FACE_FOCUS', sessionId: tracker.sessionId, totals, now: now + 902000 })
-  state = demoReducer(state, { type: 'FINISH', now: now + 902000 })
-  assert.equal(state.records[0]!.studySeconds, 304)
-  assert.equal(state.records[0]!.observedSeconds, 304)
-  assert.equal(state.records[0]!.focusSeconds, 303)
-})
-test('camera-free and unmeasured sessions have an unknown focus rate rather than dummy scores', () => {
-  const state = demoReducer(begin(false), { type: 'FINISH', now: now + 60000 })
-  const result = state.records[0]!
-  assert.equal(result.observedSeconds, 0)
-  assert.equal(result.focusSeconds, 0)
-  assert.equal(result.awaySeconds, 0)
-  assert.equal(recordFocusPercent(result), null)
-  assert.equal(recordSummary([result]).focusRate, null)
-  assert.equal(capsuleFocusCopy(result), '집중 측정 대기 · 복귀 0회')
-})
-test('fractional-second focus remains proportional in a short finished session', () => {
-  let state = begin()
-  state = demoReducer(state, { type: 'FACE_FOCUS', sessionId: state.activeSession!.id, now: now + 1800, totals: { observedMs: 1600, focusedMs: 1200, returns: 0 } })
-  state = demoReducer(state, { type: 'FINISH', now: now + 1800 })
-  assert.equal(state.records[0]!.studySeconds, 1.8)
-  assert.equal(recordFocusPercent(state.records[0]!), 75)
-  assert.equal(measuredDuration(state.records[0]!.focusSeconds), '1.2초')
-  assert.equal(capsuleFocusCopy(state.records[0]!), '집중 1.2초 · 복귀 0회')
-})
 test('history and companion summaries weight valid measurement time and preserve legacy samples', () => {
   const legacy = record({ id: 'legacy' })
   const measured = record({ id: 'measured', studySeconds: 120, observedSeconds: 60, focusSeconds: 45, awaySeconds: 15 })
@@ -174,8 +90,6 @@ test('history and companion summaries weight valid measurement time and preserve
   const records = [legacy, measured, unknown]
   assert.equal(recordSummary(records).seconds, 480)
   assert.equal(recordSummary(records).focusRate, 62.5)
-  const { series } = companionTimeSeries(records, [{ id: 'chaerin', name: '채린' }], getRecordRange('week', now))
-  assert.equal(series[0]!.focusRate, 62.5)
 })
 
 test('a server presence settlement never substitutes for missing camera measurement', () => {
@@ -185,7 +99,6 @@ test('a server presence settlement never substitutes for missing camera measurem
   assert.equal(focusDetectedSeconds(result), 0)
   assert.equal(recordFocusPercent(result), null)
   assert.equal(recordSummary([result]).focusRate, null)
-  assert.equal(capsuleFocusCopy(result), '집중 측정 대기 · 복귀 0회')
 })
 
 test('live camera totals remain the report and history basis even when server presence differs', () => {
@@ -194,11 +107,8 @@ test('live camera totals remain the report and history basis even when server pr
   assert.equal(recordFocusPercent(result), 75)
   assert.equal(focusMeasuredSeconds(result), 40)
   assert.equal(focusDetectedSeconds(result), 30)
-  assert.equal(capsuleFocusCopy(result), '집중 30초 · 복귀 1회')
   const unmeasured = { ...result, id: 'unmeasured', cameraFocus: undefined }
   assert.equal(recordSummary([result, unmeasured]).focusRate, 75)
-  const { series } = companionTimeSeries([result, unmeasured], [{ id: '201', name: '친구' }], getRecordRange('week', now))
-  assert.equal(series[0]!.focusRate, 75)
   const restored = JSON.parse(JSON.stringify(result)) as StudyRecord
   assert.equal(recordFocusPercent(restored), 75)
   // Backend whole-second settlement must not change the camera measurement ratio.

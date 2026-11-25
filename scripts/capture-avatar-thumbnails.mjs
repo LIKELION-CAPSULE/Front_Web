@@ -8,15 +8,19 @@
 //   npx vite --port 5231 --strictPort &
 //   PLAYWRIGHT_MODULE=/path/to/node_modules/playwright/index.mjs \
 //   PLAYWRIGHT_CHROMIUM=<installed Chromium, optional> \
-//     node scripts/capture-avatar-thumbnails.mjs http://127.0.0.1:5231
+//     node scripts/capture-avatar-thumbnails.mjs http://127.0.0.1:5231 [out-dir]
+//
+// Onboarding picks avatars on a vertical arc (AvatarArcRail): the script moves along it with the arrow keys, as a
+// keyboard user would. `out-dir` (optional) writes somewhere else, e.g. to look at the result without replacing files.
 /* global document, Image -- page.evaluate bodies run in the browser */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const KEYS = ['hiyori', 'haru', 'natori', 'chitose', 'epsilon', 'wanko'] // Same order as src/features/local-demo/local-avatars.ts
+/** Key → the avatar's name (aria-label on the arc). Same order as src/features/local-demo/local-avatars.ts. */
+const AVATARS = [['hiyori', '히요리'], ['haru', '하루'], ['natori', '나토리'], ['chitose', '치토세'], ['epsilon', '엡실론'], ['wanko', '완코']]
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
-const [origin = 'http://127.0.0.1:5231'] = process.argv.slice(2)
-const outDir = fileURLToPath(new URL('../local-assets/avatars/thumbnails/', import.meta.url))
+const [origin = 'http://127.0.0.1:5231', out] = process.argv.slice(2)
+const outDir = out ? `${out.replace(/\/$/, '')}/` : fileURLToPath(new URL('../local-assets/avatars/thumbnails/', import.meta.url))
 mkdirSync(outDir, { recursive: true })
 
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined, args: ['--headless=new'] })
@@ -58,12 +62,22 @@ function eyeScore(png) {
   }, png.toString('base64'))
 }
 
-const options = page.locator('.avatar-picker-option')
-await options.first().waitFor({ timeout: 15000 })
-const count = await options.count()
-if (count !== KEYS.length) throw new Error(`Expected ${KEYS.length} avatars, found ${count}.`)
-for (const [index, key] of KEYS.entries()) {
-  await options.nth(index).click()
+const checked = page.locator('.avatar-arc-option input[type="radio"]:checked')
+await checked.waitFor({ state: 'attached', timeout: 15000 })
+const count = await page.locator('.avatar-arc-option').count()
+if (count !== AVATARS.length) throw new Error(`Expected ${AVATARS.length} avatars on the arc, found ${count}.`)
+/** Moves down the arc (one step per ↓, as AvatarArcRail does) until `name` is the choice. */
+async function choose(name) {
+  for (let step = 0; step <= AVATARS.length; step++) {
+    if (await checked.getAttribute('aria-label') === name) return
+    await checked.focus()
+    await page.keyboard.press('ArrowDown')
+    await page.waitForTimeout(600) // the arc's slide (0.46 s)
+  }
+  throw new Error(`Could not reach ${name} on the arc.`)
+}
+for (const [key, name] of AVATARS) {
+  await choose(name)
   await page.waitForSelector('.avatar-picker-model:not([data-leaving]) .live2d-host[data-status="ready"]', { timeout: 30000 })
   await page.mouse.move(0, 0) // Face forward: the preview follows the pointer.
   await page.waitForTimeout(2600)
@@ -80,6 +94,6 @@ for (const [index, key] of KEYS.entries()) {
     await page.waitForTimeout(450)
   }
   writeFileSync(`${outDir}${key}.png`, best.shot)
-  console.log(`wrote local-assets/avatars/thumbnails/${key}.png`)
+  console.log(`wrote ${outDir}${key}.png`)
 }
 await browser.close()

@@ -107,33 +107,6 @@
   outline-offset: 2px;
 }
 
-.desktop-window-body {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-@media (max-height: 820px) {
-  .onboarding-compact-form {
-    margin-top: 6px;
-  }
-  .onboarding-compact-form > :not(:last-child) {
-    margin-bottom: 8px;
-  }
-}
-
-.onboarding-compact-form .field-label {
-  margin-bottom: 4px;
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.onboarding-compact-form .form-input {
-  min-height: 38px;
-  padding: 7px 12px;
-  font-size: 14px;
-}
-
 .desktop-login-form-host {
   width: 100%;
 }

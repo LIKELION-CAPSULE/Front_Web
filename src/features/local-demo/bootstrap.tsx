@@ -34,5 +34,5 @@ export async function mountLocalDemo(root: HTMLElement) {
     const destroy = stage.destroy.bind(stage)
     stage.destroy = () => { stages.delete(stage); destroy() }
     return stage
-  }, undefined, undefined, undefined, featurePort)
+  }, undefined, undefined, featurePort)
 }

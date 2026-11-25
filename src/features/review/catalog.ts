@@ -17,7 +17,7 @@ export type ReviewScenario = {
   onboarding?: boolean
   empty?: boolean
   returning?: boolean
-  session?: 'recover' | 'study' | 'break' | 'unknown'
+  session?: 'recover' | 'study' | 'unknown'
   reports?: number[]
   cameraFocus?: FocusTotals
   /** Explicit mock of the missing beta account contract. Never enabled by the production entry point. */
@@ -29,7 +29,6 @@ export type ReviewScenario = {
   /** Optional dedicated farewell line for connection leave dialog review. */
   farewellLine?: string
   fault?: string
-  draft?: boolean
   loading?: SkeletonScreen | 'auth' | 'credits' | 'invite' | 'my-mates' | 'records'
   loginNext?: string
   steps?: ReviewStep[]
@@ -55,8 +54,6 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'login-doze', group: '로그인·가입', title: '로그인 · 졸고 있는 채린', path: '/login', guest: true, note: '노트북 앞에서 꾸벅꾸벅 조는 채린(큰 Z, 「채린이를 톡 눌러서 깨워 봐」 안내). 다가가거나 누르거나 키를 누르면, 또는 10초 뒤 스스로 깸' },
   { id: 'login-doze-awake', group: '로그인·가입', title: '로그인 · 깬 채린', path: '/login?doze=awake', guest: true, note: '깨어나 웃으며 「앗, 왔어? 기다리고 있었어.」라고 인사한 상태(다시 보기 버튼 포함). Live2D가 있으면 커서를 따라봄' },
   { id: 'login-doze-static', group: '로그인·가입', title: '로그인 · 정지 이미지 경로', path: '/login?static=1', guest: true, note: 'Live2D 없이 조는 모습 → 하품 → 웃음 정지 이미지 크로스페이드. 운영(로그인 메이트 API 전)과 움직임 줄이기에서 보이는 화면' },
-  { id: 'login-alt-illustration', group: '로그인·가입', title: '로그인 시안 · 일러스트', path: '/login?login=illustration', guest: true, note: 'PM 비교용 시안. 일러스트 파일이 없으면 방 배경 + 메이트 렌더로 대체. 오른쪽 아래에서 시안 전환' },
-  { id: 'login-alt-portrait', group: '로그인·가입', title: '로그인 시안 · 얼굴 크게', path: '/login?login=portrait', guest: true, note: 'PM 비교용 시안. Live2D 얼굴 클로즈업, 비밀번호 입력 시 눈 감기 등 같은 반응' },
   { id: 'login-error', group: '로그인·가입', title: '로그인 실패', path: '/login?mode=login', guest: true, fault: 'login', steps: login, note: '잘못된 인증정보 안내' },
   { id: 'login-locked', group: '로그인·가입', title: '로그인 잠금', path: '/login?mode=login', guest: true, fault: 'locked', steps: login, note: '반복 실패·5분 뒤 재시도' },
   { id: 'signup', group: '로그인·가입', title: '회원가입', path: '/login?mode=signup', guest: true, note: '입력 항목·필수 약관 동의' },
@@ -134,7 +131,6 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'mate-load-error', group: '메이트·연결', title: '메이트 상세 · 조회 실패', path: '/mates/chaerin', mateContract: true, fault: 'mate-load', note: '조회 실패·다시 시도, 연결 자동 생성 없음' },
   { id: 'mate-model-error', group: '메이트·연결', title: '메이트 상세 · 모델 실패', path: '/mates/chaerin', mateContract: true, fault: 'mate-model', note: '미리보기 실패·재시도. 연결 모델과 별도 소유' },
   { id: 'mate-audio-error', group: '메이트·연결', title: '메이트 상세 · 샘플 재생 실패', path: '/mates/chaerin', mateContract: true, fault: 'mate-audio', note: '재생 오류·재시도·화면 이탈 시 정리' },
-  { id: 'mate-reset', group: '메이트·연결', title: '메이트 상세 · 초기화 확인', path: '/mates/chaerin', mateContract: true, mateHistory: true, reports: [9001], steps: [click('메이트 메뉴'),click('대화 초기화')], note: '모의 포트와 두 메이트의 메시지/보고서 샘플로 취소·선택 메이트 캐시 갱신만 검토. 서버 삭제 검증 아님' },
   { id: 'mate-reset-error', group: '메이트·연결', title: '메이트 상세 · 초기화 실패', path: '/mates/chaerin', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-reset', note: '실패 시 모의 메시지/보고서 캐시 보존·명시적으로 재시도' },
   { id: 'mate-reset-conflict', group: '메이트·연결', title: '메이트 상세 · 초기화 충돌', path: '/mates/chaerin', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-conflict', note: '다른 버전의 대화에 자동 초기화하지 않음·새 버전 조회 후 재확인' },
   { id: 'mate-reset-partial', group: '메이트·연결', title: '메이트 상세 · 불완전한 초기화 응답', path: '/mates/chaerin', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-partial', note: '일부 범위만 지운 응답을 성공으로 취급하지 않음' },
@@ -172,18 +168,19 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'records-empty', group: '내 기록', title: '내 기록 · 기록 없음', path: '/records', empty: true, note: '아직 함께한 기록이 없는 빈 상태·홈 이동 버튼' },
   { id: 'not-found', group: '계정·공통', title: '없는 주소 · 홈 안내', path: '/review-not-found', note: '홈으로 이동·우측 상단 알림·한 번만 안내' },
   { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/?ref=CAP-7K2Q', note: '휴대폰 접속 시 PC 안내 창·초대 코드 유지·약관 열기' },
-  { id: 'draft-charge', group: '보관 화면 · 현재 미노출', title: '충전 원본', path: '/credits/charge', draft: true, note: '상품·결제 수단·동의·결제 완료' },
-  { id: 'draft-charge-receipt', group: '보관 화면 · 현재 미노출', title: '영수증 · 3D 출력', path: '/credits/charge', draft: true,
-    steps: [click('시험 기간 응원 패스 결제하기'), { click: '', selector: '.charge-checkout input[type="checkbox"]' }, click('6,900원 체험 결제하기')],
-    note: 'CAPSULE 프린터 · 가로 출력·모바일 세로 출력·영수증 떼기·재출력' },
 ]
 
-// Saved review links open the current beta screen without installing legacy sample state.
+// Saved review links of retired scenarios open the current screen instead.
 const restoredReviewIds: Readonly<Record<string, string>> = {
   'draft-records': 'records',
   'draft-records-empty': 'records-empty',
   'draft-characters': 'my-mates',
   'draft-credits': 'credits',
+  'draft-charge': 'credits',
+  'draft-charge-receipt': 'credits',
+  'login-alt-illustration': 'login',
+  'login-alt-portrait': 'login',
+  'mate-reset': 'mate-reset-error',
 }
 
 const reviewGroupOrder = [
@@ -195,7 +192,6 @@ const reviewGroupOrder = [
   '내 기록',
   '크레딧·초대',
   '계정·공통',
-  '보관 화면 · 현재 미노출',
 ] as const
 
 export const reviewGroups = [...new Set(reviewScenarios.map(scenario => scenario.group))].sort((a, b) => {

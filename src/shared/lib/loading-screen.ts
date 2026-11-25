@@ -1,5 +1,5 @@
 export type LoadingStage = 'auth' | 'onboarding' | 'page'
-export type SkeletonScreen = 'home' | 'onboarding' | 'mate' | 'connection' | 'connection-record' | 'room' | 'prepare' | 'study' | 'report' | 'capsule'
+export type SkeletonScreen = 'home' | 'onboarding' | 'mate' | 'connection' | 'connection-record'
 
 /** A screen preview is shown only after the server has resolved the account's destination. */
 export function resolveLoadingScreen(destination: string | null, state: {

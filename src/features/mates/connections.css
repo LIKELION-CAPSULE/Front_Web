@@ -230,50 +230,6 @@
 .connection-help-note { display: grid; gap: 8px; }
 .connection-help-note > p { margin: 0; color: var(--color-muted); font-size: 13px; line-height: 20px; word-break: keep-all; }
 
-.connection-window-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin-left: 4px;
-}
-
-.connection-dot {
-  width: 12px;
-  height: 12px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: transform 120ms ease, filter 120ms ease;
-}
-
-.connection-dot:hover:not(:disabled) {
-  transform: scale(1.12);
-  filter: brightness(1.12);
-}
-
-.connection-dot:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-.connection-dot:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.connection-dot--red {
-  background: #ff5f57;
-}
-
-.connection-dot--yellow {
-  background: #febc2e;
-}
-
-.connection-dot--green {
-  background: #28c840;
-}
-
 /* Main Split Workspace: Stage + Right Chat Window */
 .connection-content {
   display: grid;
@@ -650,10 +606,6 @@
 }
 
 /* Connection record (the capsule card itself lives in features/reports/capsule-record-card.css) */
-.desktop-mate-dot--offline {
-  background: var(--color-subtle);
-  box-shadow: none;
-}
 
 @media (prefers-reduced-motion: no-preference) {
   .connection-record-stage {

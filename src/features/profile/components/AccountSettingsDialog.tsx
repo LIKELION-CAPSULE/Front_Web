@@ -10,7 +10,6 @@ import { ProfileEditor } from './ProfileEditor'
 import { AccountSecurityPanel } from './AccountSecurityPanel'
 import { ConnectionSettingsPanel } from './ConnectionSettingsPanel'
 import '@/features/mates/mates.css'
-import '../account-content.css'
 import './account-settings.css'
 
 const menus = [
