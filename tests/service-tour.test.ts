@@ -153,3 +153,10 @@ test('a hole between two holes is on whole pixels, from where it is to where it 
 
 // Safety (no real click, connectMate, session / message / event / reaction call, getUserMedia or PIP during the tour)
 // is checked on the running app, not in the source: scripts/check-service-tour.mjs.
+
+test('UX 9-1: the practice chat lights the whole composer (send button included) while the arrow types into its field', () => {
+  const talk = TOUR_STEPS.find((step) => step.id === 'call-talk')!
+  const typing = talk.marks.find((mark) => mark.action === 'type')!
+  assert.match(typing.targets[0]!, /textarea/)
+  assert.equal(typing.lit, '[data-tour="call-composer"]')
+})

@@ -28,6 +28,11 @@ export type TourFeature = 'affinity' | 'world'
 export type TourMark = {
   /** CSS selectors tried in order; the first present element is the target. */
   targets: readonly string[]
+  /**
+   * Light this box around the target instead of the target (`closest`): the whole chat composer while the arrow types
+   * into its field, so the light covers the send button too (UX review 9-1).
+   */
+  lit?: string
   at?: TourPoint
   action: 'hover' | 'click' | 'type'
   /** `type`: what the cursor types into the target (the practice chat). */
@@ -108,7 +113,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'call-talk', screen: 'call',
     marks: [
-      { targets: ['[data-tour="call-composer"] textarea', '[data-tour="call-composer"] input'], at: CORNER, action: 'type', text: '오늘 수학 같이 하자' },
+      { targets: ['[data-tour="call-composer"] textarea', '[data-tour="call-composer"] input'], lit: '[data-tour="call-composer"]', at: CORNER, action: 'type', text: '오늘 수학 같이 하자' },
       { targets: ['[data-tour="call-dock"] [data-action="camera"]', '[data-tour="call-dock"]'], at: CORNER, action: 'hover' },
       { targets: ['[data-tour="call-mode"]'], at: CORNER, action: 'hover' },
     ],

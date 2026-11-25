@@ -36,11 +36,13 @@ export const HomeMateSection = forwardRef(function HomeMateSection(
 
 function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }) {
   const { connect, busy, error } = useConnectMate(mate)
-  // A coming-soon mate (11 `comingSoon`): its card still opens its page (「공개 알림 받기」 there), the arrow is closed.
+  // A coming-soon mate (11 `comingSoon`): its card still opens its page (「공개 알림 받기」 there) and has no connect
+  // control (a closed one read as if the whole card were closed).
   const comingSoon = Boolean(mate.comingSoon)
   return (
     <article className="home-mate-card home-mate-card--active" data-coming-soon={comingSoon || undefined} data-tour={tour ? 'mate-card' : undefined}>
-      {/* The whole card opens the mate's page; the arrow starts the connection (with the pickup sequence). */}
+      {/* The whole card opens the mate's page; 「바로 연결」 starts the connection (with the pickup sequence, which 취소 or
+          Esc stops). A labelled call control, not a `>`: an arrow on a card reads as "open the page" (UX review 2-1). */}
       <Link to={`/mates/${mate.id}`} className="home-mate-card-link" aria-label={`${mate.name} 메이트 보기`} />
       <div className="home-mate-card-art">
         <img className="home-mate-card-bg" src={mateCallBackground(mate.id).landscape} alt="" loading="lazy" decoding="async" draggable={false} />
@@ -65,11 +67,7 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
         <p>{mate.tagline ?? mate.introduction}</p>
         {error && <FeedbackMessage tone="error" className="mt-2">{error}</FeedbackMessage>}
       </div>
-      {comingSoon ? (
-        <span className="home-round-button home-mate-card-enter" aria-hidden="true" data-disabled>
-          <Icon name="chevron" size={18} />
-        </span>
-      ) : (
+      {!comingSoon && (
         <button
           type="button"
           className="home-round-button home-mate-card-enter"
@@ -79,7 +77,8 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
           onClick={() => void connect({ pickup: true })}
           disabled={busy}
         >
-          <Icon name="chevron" size={18} />
+          <Icon name="video" size={16} />
+          <span>{HOME_COPY.connectNow}</span>
         </button>
       )}
     </article>
@@ -102,9 +101,6 @@ function UpcomingMateCard() {
         <div className="home-mate-card-name"><h3>{HOME_COPY.upcomingName}</h3></div>
         <p>{HOME_COPY.upcomingLine}</p>
       </div>
-      <span className="home-round-button home-mate-card-enter" aria-hidden="true" data-disabled>
-        <Icon name="chevron" size={18} />
-      </span>
     </article>
   )
 }

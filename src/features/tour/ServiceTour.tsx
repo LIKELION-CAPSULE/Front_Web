@@ -9,8 +9,8 @@ import { Button } from '@/shared/ui/Button'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { SCREEN_LABELS, nextScreenStep, readMs, tourHref, tourSteps, type TourMark, type TourStep } from './tour-steps'
 import { focusTourTrigger, takeTourOrigin } from './tour-start'
-import { chooseLabelSide, chooseLineBox, type Avoid, type Box, type LabelSide } from './tour-placement'
-import { Spotlight, type SpotMotion, type SpotRect } from './tour-spotlight'
+import { chooseLabelSide, chooseLineBox, chooseRestingPlace, labelShift, type Avoid, type Box, type LabelSide } from './tour-placement'
+import { Spotlight, insideScreen, type SpotMotion, type SpotRect } from './tour-spotlight'
 import { planPath, type Point } from './tour-motion'
 import './service-tour.css'
 
@@ -109,7 +109,7 @@ function spotOf(elements: readonly Element[]): SpotRect | null {
     left = Math.min(left, rect.left); top = Math.min(top, rect.top); right = Math.max(right, rect.right); bottom = Math.max(bottom, rect.bottom)
   }
   if (!Number.isFinite(left)) return null
-  return { left: Math.round(left - PAD), top: Math.round(top - PAD), width: Math.round(right - left + PAD * 2), height: Math.round(bottom - top + PAD * 2) }
+  return insideScreen({ left: Math.round(left - PAD), top: Math.round(top - PAD), width: Math.round(right - left + PAD * 2), height: Math.round(bottom - top + PAD * 2) }, window.innerWidth)
 }
 
 /** Light the marks as one area when that area is small enough; otherwise the light moves with the cursor. */
@@ -119,9 +119,15 @@ function litTogether(elements: readonly Element[]): boolean {
   return Boolean(spot && spot.width * spot.height <= JOINT_AREA_MAX * innerWidth * innerHeight)
 }
 
+/** Subjects larger than this share of the screen (a whole scene, a page block) are not kept clear: they cannot be. */
+const SUBJECT_AREA_MAX = 0.4
+
 /**
  * What 채린's line must not cover: the visible controls around the target (not the target itself, its insides or the
- * box it sits in), only those in the open modal when one is open, and the tour panel.
+ * box it sits in), only those in the open modal when one is open, and the tour panel. And, as a tie-break among places
+ * that cover none of those, the subjects it should leave readable (UX review 9-1): the target itself, the screen's other
+ * tour targets (`data-tour`, e.g. the affinity title next to 함께한 시간) and headings — not the boxes around the target,
+ * nor ones too large to keep clear of.
  */
 function avoidAround(target: Element | null): Avoid {
   const layer = document.querySelector('.service-tour-layer')
@@ -140,7 +146,16 @@ function avoidAround(target: Element | null): Avoid {
     if (rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight) controls.push(rect)
   }
   const panel = document.querySelector('.service-tour-panel')?.getBoundingClientRect() ?? null
-  return { controls, panel, viewport: { width: window.innerWidth, height: window.innerHeight } }
+  const subjects: Box[] = []
+  const screenArea = window.innerWidth * window.innerHeight
+  for (const element of scope.querySelectorAll('[data-tour], h1, h2, h3')) {
+    if (layer?.contains(element) || (target && element !== target && element.contains(target))) continue
+    if (element.checkVisibility && !element.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue
+    const rect = element.getBoundingClientRect()
+    if (rect.width * rect.height > SUBJECT_AREA_MAX * screenArea) continue
+    if (rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight) subjects.push(rect)
+  }
+  return { controls, panel, subjects, viewport: { width: window.innerWidth, height: window.innerHeight } }
 }
 
 /** Where the arrow tip lands on the target (the mark's `at`, its centre otherwise). */
@@ -237,7 +252,7 @@ export default function ServiceTour() {
   /** 채린's line (the cursor label) when a press shows its preview: the preview sits next to it. */
   const [label, setLabel] = useState<{ left: number; top: number; bottom: number } | null>(null)
   /** The label's side around the arrow, chosen when the cursor is about to land (per mark). */
-  const [placed, setPlaced] = useState<{ id: string; side: LabelSide; lift: number } | null>(null)
+  const [placed, setPlaced] = useState<{ id: string; side: LabelSide; lift: number; shift: number } | null>(null)
   /** Reduced motion: the line's measured size, and the lit box it sits beside. */
   const [lineSize, setLineSize] = useState<{ width: number; height: number } | null>(null)
   const [litBox, setLitBox] = useState<SpotRect | null>(null)
@@ -359,14 +374,15 @@ export default function ServiceTour() {
     if (!ready || !element) return []
     return step.marks.flatMap((mark, at) => {
       const found = at === 0 ? element : findTarget(mark.targets)
-      return found ? [{ mark, element: found }] : []
+      // `lit`: the box around the target that is lit (the whole composer around the field typed into).
+      return found ? [{ mark, element: found, lit: (mark.lit && found.closest(mark.lit)) || found }] : []
     })
   }, [ready, element, step])
 
   // Reduced motion: the step's area (or its first mark when the marks are far apart) is lit at once and in view.
   useEffect(() => {
     if (!reduced || !marks.length) return
-    const elements = marks.map((entry) => entry.element)
+    const elements = marks.map((entry) => entry.lit)
     const area = litTogether(elements) ? elements : elements.slice(0, 1)
     area[0]?.scrollIntoView({ block: 'center', behavior: 'instant' })
     light.lightUp(area, null)
@@ -453,9 +469,10 @@ export default function ServiceTour() {
   const live = `${index + 1}/${steps.length}, ${SCREEN_LABELS[step.screen]}. 채린: ${step.say}${step.screen === 'outro' ? ' 메이트 만나러 가기 또는 다시 보기를 고를 수 있어요.' : ''}`
   const side: LabelSide = placed?.id === step.id ? placed.side : preferredSide(step)
   const lift = placed?.id === step.id ? placed.lift : 0
+  const shift = placed?.id === step.id ? placed.shift : 0
   // Reduced motion: 채린's line beside the lit area — below, above, right or left, wherever it covers no control.
   const lineBox = reduced && litBox
-    ? chooseLineBox({ left: litBox.left, top: litBox.top, right: litBox.left + litBox.width, bottom: litBox.top + litBox.height }, lineSize ?? { width: 320, height: 64 }, avoidAround(marks[0]?.element ?? null))
+    ? chooseLineBox({ left: litBox.left, top: litBox.top, right: litBox.left + litBox.width, bottom: litBox.top + litBox.height }, lineSize ?? { width: 320, height: 64 }, avoidAround(marks[0]?.lit ?? null))
     : null
   // Until the new screen's area is lit the line has no place: hidden (still measured), not at the centre over the page.
   // With nothing to light (the outro, a missing target) it keeps the centre.
@@ -511,7 +528,7 @@ export default function ServiceTour() {
           idleDrift={IDLE_DRIFT_PX}
           motion={POINTER_MOTION}
           className={`service-tour-pointer${side.startsWith('left') ? ' service-tour-pointer--label-left' : ''}${side.endsWith('up') ? ' service-tour-pointer--label-up' : ''}${lineFor === step.id ? ' service-tour-pointer--line' : ''}`}
-          style={{ position: 'fixed', inset: 0, zIndex: 2, pointerEvents: 'none', '--service-tour-avatar': `url("${mateAvatar('chaerin')}")`, '--service-tour-label-lift': `${Math.round(lift)}px` } as CSSProperties}
+          style={{ position: 'fixed', inset: 0, zIndex: 2, pointerEvents: 'none', '--service-tour-avatar': `url("${mateAvatar('chaerin')}")`, '--service-tour-label-lift': `${Math.round(lift)}px`, '--service-tour-label-shift': `${Math.round(shift)}px` } as CSSProperties}
           onCycle={() => setPreview(null)}
           onCursorPress={onPress}
         />
@@ -603,17 +620,17 @@ const nextPaint = () => new Promise<void>((resolve) => requestAnimationFrame(() 
  */
 function buildScript({ step, marks, next, go, light, start, stepAt, place, visit, showLine }: {
   step: TourStep
-  marks: readonly { mark: TourMark; element: Element }[]
+  marks: readonly { mark: TourMark; element: Element; lit: Element }[]
   next: TourStep | undefined
   go: (to: TourStep, way: 1 | -1) => void
   light: TourLight
   start: CursorTarget
   stepAt: StepClock
-  place: (placed: { id: string; side: LabelSide; lift: number }) => void
+  place: (placed: { id: string; side: LabelSide; lift: number; shift: number }) => void
   visit: (visiting: { id: string; at: number }) => void
   showLine: (id: string) => void
 }): CursorConfig {
-  const elements = marks.map((entry) => entry.element)
+  const elements = marks.map((entry) => entry.lit)
   const together = litTogether(elements)
   /** The pointer's own px (see pointerOrigin): a screen point there, and the middle of the screen the paths bow to. */
   const local = (point: Point, origin: Point) => ({ x: point.x - origin.x, y: point.y - origin.y })
@@ -638,7 +655,7 @@ function buildScript({ step, marks, next, go, light, start, stepAt, place, visit
   ]
   const sayIt: CursorStep = { action: 'call', run: () => { run.lineAt = performance.now(); showLine(step.id) } }
 
-  marks.forEach(({ mark, element: markElement }, at) => {
+  marks.forEach(({ mark, element: markElement, lit: litElement }, at) => {
     script.push({
       action: 'call',
       run: () => {
@@ -648,8 +665,13 @@ function buildScript({ step, marks, next, go, light, start, stepAt, place, visit
           const tip = tipOf(markElement, aimOf(at))
           const box = document.querySelector('.service-tour-pointer .showcase-pointer-cursor-label')?.getBoundingClientRect()
           const size = box && box.width ? { width: box.width, height: box.height } : { width: 300, height: 30 }
-          const lift = Math.max(0, tip.y - markElement.getBoundingClientRect().top)
-          place({ id: step.id, side: chooseLabelSide(tip, size, avoidAround(markElement), preferredSide(step), lift), lift })
+          // Above, the line clears the target's row. A mark lighting a box around its target (the composer around the
+          // field typed into) clears the whole box from anywhere inside it — the field can shift in the composer before
+          // the arrow lands — so the typed words stay in view (UX review 9-1).
+          const litRect = litElement.getBoundingClientRect()
+          const lift = litElement === markElement ? Math.max(0, tip.y - litRect.top) : Math.max(0, tip.y - litRect.top, litRect.height) + 12
+          const side = chooseLabelSide(tip, size, avoidAround(litElement), preferredSide(step), lift)
+          place({ id: step.id, side, lift, shift: labelShift(side, tip, size, window.innerWidth) })
           return { tip, spot: lights(at) ? spotOf(litAt(at)) : null }
         })
         visit({ id: step.id, at })
@@ -683,7 +705,25 @@ function buildScript({ step, marks, next, go, light, start, stepAt, place, visit
       stampMove()
       return plan
     }
-    script.push({ action: 'move', to: { x: '50%', y: '42%' }, path }, sayIt)
+    // Where the arrow rests with the line (the outro): the middle of the screen when the line covers nothing there,
+    // else the nearest open place — not over the home hero's 채린 and her bubble, its title or the cards (UX review 9-1).
+    // Chosen once the line is drawn (its size), just before the move reads `rest`.
+    const rest = { x: window.innerWidth / 2, y: window.innerHeight * 0.42, client: true }
+    script.push({
+      action: 'call',
+      run: () => {
+        const box = document.querySelector('.service-tour-pointer .showcase-pointer-cursor-label')?.getBoundingClientRect()
+        const size = box && box.width ? { width: box.width, height: box.height } : { width: 200, height: 36 }
+        const width = window.innerWidth, height = window.innerHeight
+        const points = [[0.5, 0.42], [0.5, 0.6], [0.3, 0.75], [0.5, 0.75], [0.7, 0.75], [0.3, 0.62], [0.7, 0.62], [0.5, 0.25], [0.25, 0.3], [0.75, 0.3]]
+          .map(([x, y]) => ({ x: Math.round(width * x!), y: Math.round(height * y!) }))
+        const { tip, side } = chooseRestingPlace(points, size, avoidAround(null), preferredSide(step))
+        rest.x = tip.x
+        rest.y = tip.y
+        place({ id: step.id, side, lift: 0, shift: labelShift(side, tip, size, width) })
+      },
+    })
+    script.push({ action: 'move', to: rest, path }, sayIt)
   }
   // Long enough to read the line from when it showed.
   script.push({ action: 'call', run: () => sleep(Math.max(MIN_REST_MS, readMs(step.say) - (performance.now() - run.lineAt))) })

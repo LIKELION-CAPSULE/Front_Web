@@ -91,6 +91,9 @@ function ReportDialog({ userId, characterId, requestId, onClose }: { userId: num
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const pending = useRef(false)
+  // 「신고하기」 stays disabled until the report can be sent: a reason picked, and for 「기타」 the details written
+  // (UX review 4-2: no live red button that only answers with an error).
+  const ready = reportRequest(reason, detail).ok
 
   async function submit() {
     const request = reportRequest(reason, detail)
@@ -144,7 +147,7 @@ function ReportDialog({ userId, characterId, requestId, onClose }: { userId: num
         {error && <FeedbackMessage tone="error" className="mt-3">{error}</FeedbackMessage>}
         <div className="mt-5 flex justify-end gap-3">
           <Button variant="secondary" disabled={busy} onClick={onClose} data-dialog-initial-focus>{REPLY_ACTIONS_COPY.cancel}</Button>
-          <Button type="submit" variant="danger-solid" loading={busy}>{REPLY_ACTIONS_COPY.submit}</Button>
+          <Button type="submit" variant="danger-solid" loading={busy} disabled={!ready}>{REPLY_ACTIONS_COPY.submit}</Button>
         </div>
       </form>
     </Dialog>
