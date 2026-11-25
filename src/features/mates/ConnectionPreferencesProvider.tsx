@@ -28,6 +28,8 @@ export function ConnectionPreferencesProvider({ children }: { children: ReactNod
   const showPipSpeech = useSyncExternalStore(preference.subscribe, preference.getSnapshot)
   const settings = useSyncExternalStore(store.subscribe, store.getSnapshot)
   const [saveStatus, setSaveStatus] = useState<{ queue: SettingsSaveQueue | null; status: SettingsSaveStatus }>({ queue: null, status: 'idle' })
+  // Bumped when the queue's `confirmed` may have changed (server copy read, a key changed by the user).
+  const [, setConfirmedVersion] = useState(0)
   const queue = useMemo(() => synced ? new SettingsSaveQueue({
     save: body => saveServerSettings(api, body),
     load: () => getSettings(api),
@@ -37,6 +39,7 @@ export function ConnectionPreferencesProvider({ children }: { children: ReactNod
       if (server.pipBubble !== undefined) preference.setVisible(server.pipBubble)
     },
     onStatus: status => setSaveStatus({ queue, status }),
+    onConfirmed: () => setConfirmedVersion(version => version + 1),
   }) : null, [synced, store, preference])
   useEffect(() => {
     if (!queue) return
@@ -62,8 +65,10 @@ export function ConnectionPreferencesProvider({ children }: { children: ReactNod
   }, [preference, queue])
   const retrySave = useCallback(() => { void queue?.retry() }, [queue])
   const status = saveStatus.queue === queue ? saveStatus.status : 'idle'
+  // Without a server copy (no signed-in account) the browser copy is all there is.
+  const modeConfirmed = queue ? queue.confirmed('defaultMode') : !synced
   return (
-    <ConnectionPreferencesContext value={{ showPipSpeech, setShowPipSpeech, settings, updateSettings, saveStatus: status, retrySave }}>
+    <ConnectionPreferencesContext value={{ showPipSpeech, setShowPipSpeech, settings, updateSettings, saveStatus: status, retrySave, modeConfirmed }}>
       {children}
     </ConnectionPreferencesContext>
   )

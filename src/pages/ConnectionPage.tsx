@@ -38,6 +38,8 @@ import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
 import '@/features/mates/connections.css'
 import { useConnectionPreferences } from '@/features/mates/connection-preferences-context'
+import { startModeToApply } from '@/features/mates/connection-start-mode'
+import { withConnectionCharacter } from '@/features/mates/connected-mate'
 import { PIP_WINDOW_SIZE, TALK_OPTIONS } from '@/features/mates/connection-preferences'
 import { usePushToTalk } from '@/features/mates/use-push-to-talk'
 import { PUSH_TO_TALK_TEXT } from '@/features/mates/push-to-talk'
@@ -93,7 +95,7 @@ export default function ConnectionPage() {
   const { mateId } = useParams()
   const navigate = useNavigate()
   const backend = useBackend()
-  const { showPipSpeech, settings, updateSettings } = useConnectionPreferences()
+  const { showPipSpeech, settings, updateSettings, modeConfirmed = true } = useConnectionPreferences()
   // 「말 걸기 빈도」 on the stage: a short note of what the choice means, for a moment after choosing.
   const [talkNote, setTalkNote] = useState('')
   useEffect(() => {
@@ -107,12 +109,14 @@ export default function ConnectionPage() {
   }
   const { state } = useDemo()
   const { devices, controller, observation, flushFocus } = useMedia()
-  const mate = availableMates(backend.home).find(value => value.id === mateId)
+  // The connection belongs here when it was matched to this launch mate (DemoProvider: by id, else by server name).
   const active = state.activeSession?.mateId === mateId ? state.activeSession : null
   // While the hang-up plays, the ended session keeps the call on screen: /end clears `activeSession` on success.
   const [ending, setEnding] = useState<{ session: NonNullable<typeof active>; at: number } | null>(null)
   const [endingWait, setEndingWait] = useState(false)
   const shown = active ?? ending?.session ?? null
+  // With the connection's own server mate id (the other entry of a persona listed twice): messages go to that mate.
+  const mate = withConnectionCharacter(availableMates(backend.home).find(value => value.id === mateId), shown)
   const pageRef = useRef<HTMLElement>(null)
   // Arriving from "공부 시작하기": the pickup overlay is still on screen; open the call screen from its line of light
   // before the first paint (the TV switching on), then let the overlay go.
@@ -219,12 +223,20 @@ export default function ConnectionPage() {
     stage?.setTracking(settings.gaze && !prefersReducedMotion())
     return () => stage?.setTracking(false)
   }, [backend.live2dStage, settings.gaze])
-  // T-7: a connection starts in the mode chosen in settings (the toggle on top still changes it during the call).
+  // T-7: a connection starts in its start / resume response's mode; the settings' mode replaces it once confirmed (the
+  // server copy was read, or the user changed it), never from an unconfirmed browser cache, and never after the toggle
+  // on top was used (connection-start-mode.ts).
   useEffect(() => {
-    if (!active || modeAppliedFor.has(active.id)) return
+    const mode = startModeToApply({ connectionId: active?.id, applied: modeAppliedFor, confirmed: modeConfirmed, mode: settings.mode })
+    if (!active || !mode) return
     modeAppliedFor.add(active.id)
-    backend.setConnectionMode(settings.mode)
-  }, [active, backend, settings.mode])
+    backend.setConnectionMode(mode)
+  }, [active, backend, settings.mode, modeConfirmed])
+  /** The toggle on top: the user's choice for this connection, kept over a settings read that arrives later. */
+  const chooseMode = (mode: 'basic' | 'advanced') => {
+    if (active) modeAppliedFor.add(active.id)
+    backend.setConnectionMode(mode)
+  }
   // 「누르고 말하기」: browser speech recognition while the mic button or Space (T-8) is held; the sentence goes out
   // as a chat message (same API and credit rule). Same rule as the chat box: not while a reply is on its way.
   const pushToTalk = usePushToTalk({
@@ -602,7 +614,7 @@ export default function ConnectionPage() {
               data-active={!isAdvanced || undefined}
               aria-pressed={!isAdvanced}
               disabled={!canSwitchMode}
-              onClick={() => backend.setConnectionMode('basic')}
+              onClick={() => chooseMode('basic')}
             >
               기본 · 크레딧 없음
             </button>
@@ -612,7 +624,7 @@ export default function ConnectionPage() {
               data-active={isAdvanced || undefined}
               aria-pressed={isAdvanced}
               disabled={!canSwitchMode}
-              onClick={() => backend.setConnectionMode('advanced')}
+              onClick={() => chooseMode('advanced')}
             >
               고급 · 1턴 {CREDIT_PRICING.advanced}
             </button>

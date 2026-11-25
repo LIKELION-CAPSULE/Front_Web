@@ -24,7 +24,7 @@ import { SessionModel, type AlivingStageFactory, type SessionModelFactory, type 
 import { AlivingSessionStage } from '@/features/mate-render/AlivingSessionStage'
 import { availableMates } from '@/features/mates/catalog'
 import { showConnectionNotice } from '@/features/mates/connection-notice'
-import { connectedMate } from '@/features/mates/connected-mate'
+import { connectedMate, frontMateOf } from '@/features/mates/connected-mate'
 import { withParticle } from '@/shared/lib/korean'
 import { isSessionSurface } from '@/features/mates/session-surface'
 import { matePortrait } from '@/features/mates/artwork'
@@ -543,7 +543,8 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     modelEntry.current = entry
     try {
       const active = adapt.session(dto)
-      const mate = availableMates(meta.home).find(value => value.characterId === active.characterIds[0])
+      // By id, else by the server name (one persona listed twice: 서진 id 2 · 3), so the call opens as that mate.
+      const mate = frontMateOf(active.characterIds[0], dto.mate?.name, availableMates(meta.home))
       if (mate) active.mateId = mate.id
       if ('connectedSeconds' in dto) {
         // Camera measurement shown on this device's records continues from the snapshot of this connection, if any.
@@ -661,19 +662,24 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     const busyWith = (name: string | undefined) => new ApiError(
       name ? `${withParticle(name, '과', '와')} 연결 중이에요. 그 연결을 먼저 마쳐 주세요.` : '진행 중인 연결을 먼저 마쳐 주세요.', 409)
     const current = stateRef.current.activeSession
-    const mateNamed = (characterId: string | number | undefined) => availableMates(meta.home).find(value => value.characterId === String(characterId))?.name
-    if (current && (current.characterIds.length !== 1 || current.characterIds[0] !== mate.characterId || !current.serverSession)) {
-      throw busyWith(mateNamed(current.characterIds[0]))
+    const mates = availableMates(meta.home)
+    // The same launch mate counts as the same, whichever of its server entries the connection is with.
+    const frontOf = (characterId: string | number | undefined, name?: string) => frontMateOf(characterId === undefined ? undefined : String(characterId), name, mates)
+    const currentMate = current && (current.mateId ? mates.find(value => value.id === current.mateId) : frontOf(current.characterIds[0]))
+    if (current && (current.characterIds.length !== 1 || currentMate?.id !== mate.id || !current.serverSession)) {
+      throw busyWith(currentMate?.name)
     }
     const summary = meta.activeSummary
-    if (summary && String(summary.mateId) !== mate.characterId) throw busyWith(mateNamed(summary.mateId) ?? summary.mateName)
+    const summaryMate = summary && frontOf(summary.mateId, summary.mateName)
+    if (summary && summaryMate?.id !== mate.id) throw busyWith(summaryMate?.name ?? summary.mateName)
     const active = current ?? (summary?.connectionId
       ? await resumeSession(String(summary.connectionId))
       : await startSession(mate.roomId, mate.characterId))
     // The 409 hand-off may continue another mate's connection: it stays that mate's (connected-mate.ts).
-    const actual = connectedMate(mate, active.characterIds[0], availableMates(meta.home))
+    const actual = connectedMate(mate, active.characterIds[0], mates, active.mateId)
     if (actual.notice) showConnectionNotice(actual.notice)
-    const connection = { ...active, mateId: actual.mate?.id ?? active.mateId }
+    // No launch mate for it: `mateId` stays empty (use-connect-mate.ts does not open the mate asked for).
+    const connection = { ...active, mateId: actual.mate?.id }
     patch({ activeSession: connection })
     return connection
   }, [meta.home, meta.activeSummary, startSession, resumeSession, patch])

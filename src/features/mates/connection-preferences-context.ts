@@ -11,6 +11,11 @@ export type ConnectionPreferencesValue = {
   /** Saving the server copy (API 30): `error` keeps the unsaved changes for 「다시 저장」 (`retrySave`). */
   saveStatus?: SettingsSaveStatus
   retrySave?: () => void
+  /**
+   * T-7 can be trusted over a connection's start response: the server copy was read (29), or the user changed the mode
+   * in this session. False while only an unconfirmed browser cache is known.
+   */
+  modeConfirmed?: boolean
 }
 
 export const ConnectionPreferencesContext = createContext<ConnectionPreferencesValue | null>(null)

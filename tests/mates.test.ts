@@ -94,3 +94,27 @@ test('a connection handed over to another mate keeps that mate and explains it',
   assert.equal(unknown.mate, undefined)
   assert.match(unknown.notice ?? '', /다른 메이트와 연결 중/)
 })
+
+test('a 409 resume with the other entry of a persona listed twice opens as that mate, never the mate asked for', async () => {
+  const { connectedMate, frontMateOf, withConnectionCharacter } = await import('../src/features/mates/connected-mate.ts')
+  // /home: 채린 id 1, 서진 id 2 and 3 (production has the duplicate); 서도현 stands for id 2.
+  const mates = availableMates({ mates: [{ id: 1, name: '채린' }, { id: 2, name: '서진' }, { id: 3, name: '서진' }] })
+  const [chaerin, dohyun] = mates
+  assert.equal(dohyun?.characterId, '2')
+  // 채린's start answered 409; the resumed connection is with mate 3 (서진).
+  const front = frontMateOf('3', '서진', mates)
+  assert.equal(front?.id, 'dohyun', 'matched by the server name, not by the /home card id')
+  const actual = connectedMate(chaerin!, '3', mates, front?.id)
+  assert.equal(actual.mate?.id, 'dohyun', 'routes to /connect/dohyun, not /connect/chaerin')
+  assert.match(actual.notice ?? '', /서도현과 연결 중이었어요/)
+  // The call screen keeps the connection's own mate id for messages.
+  const shown = withConnectionCharacter(actual.mate, { characterIds: ['3'], roomId: '3' })
+  assert.equal(shown?.id, 'dohyun')
+  assert.equal(shown?.characterId, '3')
+  assert.equal(withConnectionCharacter(dohyun, { characterIds: ['2'] }), dohyun, 'the listed entry is left as it is')
+  // Asked for 서도현 and continued with id 3: the same mate, no notice.
+  assert.deepEqual(connectedMate(dohyun!, '3', mates, 'dohyun'), { mate: dohyun, notice: null })
+  // A mate none of the launch mates maps to: no mate (the caller must not open the one asked for).
+  assert.equal(frontMateOf('9', '수아', mates), undefined)
+  assert.equal(connectedMate(chaerin!, '9', mates, undefined).mate, undefined)
+})

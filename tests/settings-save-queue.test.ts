@@ -104,3 +104,60 @@ test('before signing out the debounced change is saved at once; another account 
   await loading
   assert.deepEqual(applied, [], 'a GET answering after the switch shows nothing')
 })
+
+test('flushNow waits for changes made while a save was on its way (A saving, B changed, A done → B too)', async () => {
+  const sent: UserSettingsPatch[] = []
+  const pending: ReturnType<typeof deferred<null>>[] = []
+  const clock = timers()
+  const queue = new SettingsSaveQueue({ load: async () => ({}), applyServer: () => {}, timers: clock.timers,
+    save: body => { sent.push(body); const call = deferred<null>(); pending.push(call); return call.promise } })
+  queue.change({ voiceVolume: 10 })
+  clock.run()
+  await tick()
+  queue.change({ pipSize: 'S' })
+  let done = false
+  const flushing = queue.flushNow().then(() => { done = true })
+  const second = queue.flushNow()
+  assert.equal(second, queue.flushNow(), 'every caller shares one drain')
+  pending[0]!.resolve(null)
+  await tick(); await tick()
+  assert.equal(done, false, 'A alone does not end the drain')
+  assert.deepEqual(sent.at(-1), { pipSize: 'S' }, 'B goes out right after A')
+  pending[1]!.resolve(null)
+  await flushing
+  assert.equal(done, true)
+  assert.equal(queue.pending, false)
+})
+
+test('flushNow ends (never hangs) when the save fails', async () => {
+  const clock = timers()
+  let calls = 0
+  const pending: ReturnType<typeof deferred<null>>[] = []
+  const queue = new SettingsSaveQueue({ load: async () => ({}), applyServer: () => {}, timers: clock.timers,
+    save: () => { calls++; const call = deferred<null>(); pending.push(call); return call.promise } })
+  queue.change({ voiceVolume: 10 })
+  clock.run()
+  await tick()
+  queue.change({ pipSize: 'S' })
+  const flushing = queue.flushNow()
+  pending[0]!.reject(new Error('offline'))
+  await flushing
+  assert.equal(queue.status, 'error')
+  assert.equal(calls, 1, 'stops at the failure; the unsaved keys stay for 「다시 저장」')
+  assert.equal(queue.pending, true)
+})
+
+test('confirmed: false for a browser cache until the server copy is read or the user changes the key', async () => {
+  const get = deferred<UserSettings>()
+  const queue = new SettingsSaveQueue({ load: () => get.promise, save: async () => null, applyServer: () => {}, timers: timers().timers })
+  const loading = queue.load()
+  assert.equal(queue.confirmed('defaultMode'), false)
+  get.resolve({ defaultMode: 'BASIC' })
+  await loading
+  assert.equal(queue.confirmed('defaultMode'), true)
+  const other = new SettingsSaveQueue({ load: () => new Promise(() => {}), save: async () => null, applyServer: () => {}, timers: timers().timers })
+  void other.load()
+  other.change({ defaultMode: 'ADVANCED' })
+  assert.equal(other.confirmed('defaultMode'), true, 'changed by the user in this session')
+  assert.equal(other.confirmed('talkFrequency'), false)
+})

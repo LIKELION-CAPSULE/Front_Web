@@ -29,7 +29,14 @@ export function useConnectMate(mate: AvailableMate | null | undefined) {
       // The connection that continued may be another mate's (409 hand-off): the pickup names that mate, and the
       // call that opens once it has played is that mate's, which says why.
       const connection = await connectMate(mate.id)
-      const target = connection.mateId ?? mate.id
+      // Never the mate asked for in its place: a continued connection with a mate the app cannot show stays where it
+      // is, with a message (the call screen of the mate asked for would not be that connection's).
+      const target = connection.mateId
+      if (!target) {
+        pickup?.cancel()
+        if (mounted.current) setError('다른 곳에서 진행 중인 연결이 있어요. 그 연결을 먼저 마쳐 주세요.')
+        return
+      }
       if (pickup && target !== mate.id) {
         const actual = availableMates(home).find(value => value.id === target)
         if (actual) pickup.rename(actual.name)
