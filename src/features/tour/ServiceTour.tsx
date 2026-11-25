@@ -457,7 +457,11 @@ export default function ServiceTour() {
   const lineBox = reduced && litBox
     ? chooseLineBox({ left: litBox.left, top: litBox.top, right: litBox.left + litBox.width, bottom: litBox.top + litBox.height }, lineSize ?? { width: 320, height: 64 }, avoidAround(marks[0]?.element ?? null))
     : null
-  const lineStyle = lineBox ? ({ left: lineBox.left, top: lineBox.top } as CSSProperties) : undefined
+  // Until the new screen's area is lit the line has no place: hidden (still measured), not at the centre over the page.
+  // With nothing to light (the outro, a missing target) it keeps the centre.
+  const lineStyle = lineBox
+    ? ({ left: lineBox.left, top: lineBox.top } as CSSProperties)
+    : marks.length ? ({ visibility: 'hidden' } as CSSProperties) : undefined
   // The press preview sits next to 채린's line, on the side away from the arrow.
   const shownPreview = preview?.id === step.id ? preview.chips : null
   const previewStyle = label

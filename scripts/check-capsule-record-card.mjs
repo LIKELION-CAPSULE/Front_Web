@@ -13,7 +13,7 @@
 //     node scripts/check-capsule-record-card.mjs http://127.0.0.1:5231
 //
 // Prints one line per check and exits with 1 when any fails.
-/* global document -- page.evaluate bodies run in the browser */
+/* global document, HTMLElement -- page.evaluate bodies run in the browser */
 
 import { startWatchdog, warmUpDevServer } from './lib/browser-check-guard.mjs'
 
