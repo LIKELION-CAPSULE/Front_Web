@@ -37,8 +37,13 @@ export type ConnectionMode = 'basic' | 'advanced'
 export type ConnectionSettings = {
   /** T-1 말 걸기 빈도. */
   talk: TalkFrequency
-  /** T-2 메이트 음성 (voice replies; off costs no credits). */
+  /** T-2 메이트 음성 (voice replies; off costs no credits): the server's `voiceEnabled` (default true there). */
   voice: boolean
+  /**
+   * The user turned 메이트 음성 on themselves (this browser, this account). The server's `voiceEnabled` starts true, so
+   * voice is on only with both (`mateVoiceOn`): nothing asks for voice (20 credits a reply) before the user chose it.
+   */
+  voiceOptIn: boolean
   /** T-3 음성 볼륨, 0–100. */
   volume: number
   /** T-4 음성 속도. */
@@ -56,6 +61,7 @@ export type ConnectionSettings = {
 export const DEFAULT_CONNECTION_SETTINGS: Readonly<ConnectionSettings> = {
   talk: 'sometimes',
   voice: true,
+  voiceOptIn: false,
   volume: 70,
   speed: 'normal',
   mode: 'basic',
@@ -77,6 +83,7 @@ export function parseConnectionSettings(raw: unknown): ConnectionSettings {
   return {
     talk: oneOf(value.talk, ['quiet', 'sometimes', 'often'], base.talk),
     voice: typeof value.voice === 'boolean' ? value.voice : base.voice,
+    voiceOptIn: typeof value.voiceOptIn === 'boolean' ? value.voiceOptIn : base.voiceOptIn,
     volume,
     speed: oneOf(value.speed, ['slow', 'normal', 'fast'], base.speed),
     mode: oneOf(value.mode, ['basic', 'advanced'], base.mode),
@@ -110,6 +117,25 @@ export class ConnectionSettingsStore {
     this.listeners.forEach((listener) => listener())
   }
 }
+
+/**
+ * T-2 as the user sees and uses it (settings switch, the call dock's button, `tts`): on only when the user turned it on
+ * (2026-11-26 decision (a): the server default `voiceEnabled: true` alone never spends credits) and the server copy
+ * says on. Why a browser mark and not a server write: the server keeps no "the user chose this" record (30 refuses
+ * unknown keys), so resetting its default to false would also turn off a voice the user chose on another device; the
+ * mark never spends a credit the user did not choose, at the cost of choosing once per browser.
+ */
+export function mateVoiceOn(settings: Pick<ConnectionSettings, 'voice' | 'voiceOptIn'>) {
+  return settings.voice && settings.voiceOptIn
+}
+
+/** Turning 메이트 음성 on or off: the mark and the server's `voiceEnabled` together (only `voice` is saved to 30). */
+export function mateVoicePatch(on: boolean): Pick<ConnectionSettings, 'voice' | 'voiceOptIn'> {
+  return { voice: on, voiceOptIn: on }
+}
+
+/** The one-time 「메이트 목소리로 답해요」 note when 메이트 음성 is first turned on from the call screen. */
+export const voiceIntroKey = (userId: number) => `capsule-voice-intro:v1:${userId}`
 
 /** T-4: playback rate per speed step (pitch is preserved by the browser's default `preservesPitch`). */
 export const VOICE_RATE: Readonly<Record<VoiceSpeed, number>> = { slow: 0.85, normal: 1, fast: 1.2 }

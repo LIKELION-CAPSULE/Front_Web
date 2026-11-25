@@ -9,6 +9,8 @@ import type { MessageRequest, MessageStreamAudio } from '../src/shared/api/types
 import { decodeVoiceData, startsMp3File, voiceRequested, voiceStopsForListening, voiceStopsWhenHidden, VoiceChunkQueue } from '../src/features/mates/voice-reply.ts'
 import { VoicePlayer, type VoiceBuffer, type VoiceContext, type VoiceSource } from '../src/features/mates/voice-player.ts'
 import { LOCAL_VOICE_TONE_MP3, localVoicePieces } from '../src/features/local-demo/voice-tone.ts'
+import { ConnectionSettingsStore, DEFAULT_CONNECTION_SETTINGS, mateVoiceOn, mateVoicePatch, parseConnectionSettings } from '../src/features/mates/connection-preferences.ts'
+import { fromServerSettings, toServerSettings } from '../src/features/mates/connection-settings-sync.ts'
 
 const bytes = (...values: number[]) => new Uint8Array(values)
 const text = (pieces: Uint8Array[]) => pieces.map(piece => [...piece].join(',')).join(' | ')
@@ -70,6 +72,31 @@ test('tts is asked for with 「메이트 음성」 on, in either mode; never fro
     assert.equal(voiceRequested({ voiceEnabled: true, practice: true, playable: true, mode }), false)
     assert.equal(voiceRequested({ voiceEnabled: true, practice: false, playable: false, mode }), false)
   }
+})
+
+test('메이트 음성 is off until the user turns it on: the server default (voiceEnabled true) alone asks for nothing', () => {
+  assert.equal(mateVoiceOn(DEFAULT_CONNECTION_SETTINGS), false, 'default: off')
+  // A server copy saying true (its default, or chosen on another device) does not turn it on in this browser.
+  const fromServer = { ...DEFAULT_CONNECTION_SETTINGS, ...fromServerSettings({ voiceEnabled: true }).settings }
+  assert.equal(mateVoiceOn(fromServer), false)
+  assert.equal(voiceRequested({ voiceEnabled: mateVoiceOn(fromServer), practice: false, playable: true }), false)
+  // Turning it on (settings switch or the dock's button): the mark and the server value together; only voiceEnabled is saved.
+  const on = parseConnectionSettings({ ...fromServer, ...mateVoicePatch(true) })
+  assert.equal(mateVoiceOn(on), true)
+  assert.deepEqual(toServerSettings(mateVoicePatch(true)), { voiceEnabled: true })
+  assert.deepEqual(toServerSettings({ voiceOptIn: true }), {}, 'the mark alone never goes to the server')
+  // Off on another device (server false): off here too; on again there: on here (the mark stays).
+  assert.equal(mateVoiceOn({ ...on, ...fromServerSettings({ voiceEnabled: false }).settings }), false)
+  assert.equal(mateVoiceOn({ ...on, ...fromServerSettings({ voiceEnabled: true }).settings }), true)
+  const off = parseConnectionSettings({ ...on, ...mateVoicePatch(false) })
+  assert.deepEqual([off.voice, off.voiceOptIn, mateVoiceOn(off)], [false, false, false])
+  assert.deepEqual(toServerSettings(mateVoicePatch(false)), { voiceEnabled: false })
+  // Kept per account in this browser.
+  const data = new Map<string, string>()
+  const storage = { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => { data.set(key, value) } }
+  new ConnectionSettingsStore(storage, 7).update(mateVoicePatch(true))
+  assert.equal(mateVoiceOn(new ConnectionSettingsStore(storage, 7).getSnapshot()), true)
+  assert.equal(mateVoiceOn(new ConnectionSettingsStore(storage, 8).getSnapshot()), false)
 })
 
 test('stop conditions: talking, and a hidden tab unless PiP is open', () => {

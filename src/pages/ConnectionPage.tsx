@@ -41,7 +41,7 @@ import '@/features/mates/connections.css'
 import { useConnectionPreferences } from '@/features/mates/connection-preferences-context'
 import { startModeToApply } from '@/features/mates/connection-start-mode'
 import { withConnectionCharacter } from '@/features/mates/connected-mate'
-import { PIP_WINDOW_SIZE, TALK_OPTIONS } from '@/features/mates/connection-preferences'
+import { mateVoiceOn, mateVoicePatch, PIP_WINDOW_SIZE, TALK_OPTIONS, voiceIntroKey } from '@/features/mates/connection-preferences'
 import { usePushToTalk } from '@/features/mates/use-push-to-talk'
 import { PUSH_TO_TALK_TEXT } from '@/features/mates/push-to-talk'
 import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate-features'
@@ -164,11 +164,33 @@ export default function ConnectionPage() {
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
   )
   const pip = useDocumentPip()
-  // The mate's voice (T-2…T-4): replies and reaction lines ask for it while 「메이트 음성」 is on; never from the
-  // service tour (no credits there). The volume is this browser's; the speed is the server's TTS.
+  // The mate's voice (T-2…T-4): replies and reaction lines ask for it while 「메이트 음성」 is on — only once the user
+  // turned it on (settings or the dock's button, one value: `mateVoiceOn`); never from the service tour (no credits
+  // there). The volume is this browser's; the speed is the server's TTS.
   const voice = useVoiceReply({ volume: settings.volume, windows: [typeof window === 'undefined' ? null : window, pip.window] })
   const voicePlaying = voice.status === 'playing'
-  const ttsWanted = voiceRequested({ voiceEnabled: settings.voice, practice: new URLSearchParams(location.search).has('tour'), playable: voice.player.supported })
+  const voiceOn = mateVoiceOn(settings)
+  const ttsWanted = voiceRequested({ voiceEnabled: voiceOn, practice: new URLSearchParams(location.search).has('tour'), playable: voice.player.supported })
+  // Turned off (here, in the settings, or on another device's copy): the voice stops at once.
+  useEffect(() => { if (!voiceOn) voice.player.stop() }, [voiceOn, voice.player])
+  /** The first time 메이트 음성 is turned on here: a short note of what it does and costs (once per account and browser). */
+  const [voiceIntro, setVoiceIntro] = useState(false)
+  useEffect(() => {
+    if (!voiceIntro) return
+    const timer = setTimeout(() => setVoiceIntro(false), 4000)
+    return () => clearTimeout(timer)
+  }, [voiceIntro])
+  const toggleVoice = () => {
+    const on = !voiceOn
+    updateSettings(mateVoicePatch(on))
+    if (!on) { setVoiceIntro(false); return }
+    const userId = state.profile.userId
+    let seen = false
+    try { seen = Boolean(userId && localStorage.getItem(voiceIntroKey(userId)) === '1') } catch { /* Show it this time. */ }
+    if (seen) return
+    try { if (userId) localStorage.setItem(voiceIntroKey(userId), '1') } catch { /* Shown once in this page then. */ }
+    setVoiceIntro(true)
+  }
   const camera = devices.camera.stream
   const video = useRef<HTMLVideoElement>(null)
   const busy = useRef(false)
@@ -632,6 +654,16 @@ export default function ConnectionPage() {
       onAction: () => setChatOpen(value => !value),
     },
     {
+      // 「메이트 음성」 (T-2, the same value as the settings switch): her voice on replies, 20 credits a reply.
+      key: 'voice',
+      label: voiceOn ? '메이트 음성 끄기' : '메이트 음성 켜기',
+      tooltip: !voice.player.supported ? '이 브라우저는 음성 재생을 지원하지 않아요' : voiceOn ? `메이트 음성 끄기 · 답장마다 ${CREDIT_PRICING.voice} 크레딧` : '메이트 음성 켜기',
+      icon: 'headphones',
+      pressed: voiceOn,
+      disabled: !voice.player.supported || finishing,
+      onAction: toggleVoice,
+    },
+    {
       key: 'pip',
       label: 'PIP로 띄우기',
       tooltip: 'PIP로 띄우기',
@@ -703,6 +735,8 @@ export default function ConnectionPage() {
               aria-pressed={!isAdvanced}
               disabled={!canSwitchMode}
               onClick={() => chooseMode('basic')}
+              // The mode itself is free; her voice (the dock's button) is counted apart, so say so while it is on.
+              title={voiceOn ? `기본 모드는 크레딧 없이 대화해요. 메이트 음성은 답장마다 ${CREDIT_PRICING.voice} 크레딧이 따로 들어요` : undefined}
             >
               기본 · 크레딧 없음
             </button>
@@ -876,8 +910,14 @@ export default function ConnectionPage() {
             </section>
           </div>
 
-          {(creditInsufficient || floatingErrors.length > 0 || (showAffinity && sync.stageUp) || voice.status === 'blocked') && (
+          {(creditInsufficient || floatingErrors.length > 0 || (showAffinity && sync.stageUp) || voice.status === 'blocked' || voiceIntro) && (
             <div className="connection-floating-notices" aria-live="polite">
+              {voiceIntro && (
+                <div className="connection-notice-card connection-voice-intro" role="status">
+                  <Icon name="headphones" size={16} />
+                  메이트 목소리로 답해요 · 답장마다 {CREDIT_PRICING.voice} 크레딧
+                </div>
+              )}
               {/* The browser held her voice until a click or key press (autoplay rule); any press allows it, this too. */}
               {voice.status === 'blocked' && (
                 <button type="button" className="connection-notice-card connection-voice-unlock" onClick={voice.player.unlock}>

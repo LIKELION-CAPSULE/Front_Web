@@ -4,7 +4,7 @@ import { deviceErrorMessage } from '@/features/media/device-controller'
 import { Button } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { useConnectionPreferences } from '@/features/mates/connection-preferences-context'
-import { TALK_OPTIONS } from '@/features/mates/connection-preferences'
+import { mateVoiceOn, mateVoicePatch, TALK_OPTIONS } from '@/features/mates/connection-preferences'
 import { speechRecognitionFactory } from '@/features/mates/push-to-talk'
 import { CREDIT_PRICING } from '@/features/credits/credit-utils'
 
@@ -175,13 +175,15 @@ export function ConnectionSettingsPanel() {
           </Row>
         </ul>
       ))}
-      {/* T-2…T-4: the mate's voice. On: replies and reaction lines come with her voice (20 credits a turn; text only
-          when credits are short). The volume is played here; the speed is the server's TTS speed. */}
+      {/* T-2…T-4: the mate's voice. Off until the user turns it on (here or the call dock's button: the same value,
+          connection-preferences.ts `mateVoiceOn`). On: replies and reaction lines come with her voice (20 credits a
+          reply; text only when credits are short). The volume is played here; the speed is the server's TTS speed. */}
       {section('voice', '메이트 음성', (
         <ul className="settings-rows">
           {/* T-2 */}
-          <Row id={`${id}-voice`} label="메이트 음성" hint={`메이트 음성을 끄면 음성 크레딧(${CREDIT_PRICING.voice})이 들지 않아요`}>
-            <Switch labelledBy={`${id}-voice`} describedBy={`${id}-voice-hint`} checked={settings.voice} onChange={(voice) => updateSettings({ voice })} />
+          <Row id={`${id}-voice`} label="메이트 음성"
+            hint={mateVoiceOn(settings) ? `답장마다 음성 ${CREDIT_PRICING.voice} 크레딧이 들어요. 크레딧이 모자라면 글로만 답해요` : '켜면 메이트가 목소리로 답해요'}>
+            <Switch labelledBy={`${id}-voice`} describedBy={`${id}-voice-hint`} checked={mateVoiceOn(settings)} onChange={(on) => updateSettings(mateVoicePatch(on))} />
           </Row>
           {/* T-3 */}
           <Row id={`${id}-volume`} label="음성 볼륨">
@@ -205,9 +207,6 @@ export function ConnectionSettingsPanel() {
             <Segment label="음성 속도" value={settings.speed} onChange={(speed) => updateSettings({ speed })}
               options={[{ value: 'slow', label: '느리게' }, { value: 'normal', label: '보통' }, { value: 'fast', label: '빠르게' }]} />
           </Row>
-          <li className="settings-row-feedback">
-            <p className="settings-row-hint">음성으로 답하면 1턴에 {CREDIT_PRICING.voice} 크레딧이 들어요. 크레딧이 모자라면 글로만 답해요.</p>
-          </li>
         </ul>
       ))}
       {section('devices', '마이크 · 카메라', (
