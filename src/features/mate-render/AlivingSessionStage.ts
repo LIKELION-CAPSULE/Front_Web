@@ -36,7 +36,8 @@ export interface AlivingSessionStageOptions {
  *   host's window — the call tab, or the PiP window once the canvas moves there — eased (no snapping), kept within a
  *   modest turn, and easing back to the front when the pointer rests for a while or leaves the window. Only the gaze
  *   (head/eye look target) moves; expressions, talking and reactions keep their own channels.
- * - Reduced motion: no talking mouth and no cursor tracking; expressions still change (eased by the engine).
+ * - Reduced motion: no talking mouth (typing or voice) and no cursor tracking; expressions still change (eased by
+ *   the engine).
  * - Failure: an error before the model is ready reports `error` (SessionModel then continues with the still image);
  *   a render error after that keeps the stage `ready` and swaps the canvas for `stillImage` in whichever host shows
  *   it (the call tile or the PiP window), so the screen never goes blank.
@@ -75,6 +76,7 @@ export class AlivingSessionStage implements SessionModelStage {
   private still: HTMLImageElement | null = null
   private readonly stillImage?: string
   private talkingRequested = false
+  private mouthSource: (() => number | null) | null = null
 
   constructor(source: AlivingSessionSource, options: AlivingSessionStageOptions = {}) {
     this.stillImage = options.stillImage
@@ -310,6 +312,13 @@ export class AlivingSessionStage implements SessionModelStage {
 
   private syncTalking() {
     this.renderer.setTalking(this.talkingRequested && !this.reduced && !this.degraded && !this.destroyed)
+    this.renderer.setMouthSource(this.mouthSource && !this.reduced && !this.degraded && !this.destroyed ? this.mouthSource : null)
+  }
+
+  /** The mouth follows a voice while it plays (voice-player.ts `level`); off under reduced motion, like talking. */
+  setMouthSource(source: (() => number | null) | null) {
+    this.mouthSource = source
+    this.syncTalking()
   }
 
   react(trigger: string, intensity = 1) {

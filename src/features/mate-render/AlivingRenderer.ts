@@ -95,6 +95,7 @@ export class AlivingRenderer implements MateRenderer {
   private loopWindow: Window | null = null
   private pixelRatioQuery: MediaQueryList | null = null
   private talking = false
+  private mouthSource: (() => number | null) | null = null
   private talkStartedAt = 0
   private talkTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -212,6 +213,9 @@ export class AlivingRenderer implements MateRenderer {
     const tick = (now: number) => {
       if (!player.running || this.destroyed || this.loopWindow !== win) return
       try {
+        // A voice playing drives the mouth: `track` holds a value for a moment only, so it is sent every frame.
+        const level = this.mouthSource?.()
+        if (typeof level === 'number') player.track?.({ ParamMouthOpenY: level })
         player.frame(now)
       } catch (error) {
         this.failRendering(error)
@@ -358,6 +362,7 @@ export class AlivingRenderer implements MateRenderer {
     this.destroyed = true
     this.bootAbort.abort()
     this.setTalking(false)
+    this.mouthSource = null
     // Stop the loop while the player (and the window its frame was requested on) is still known.
     this.stopLoop()
     this.detach()
@@ -410,7 +415,7 @@ export class AlivingRenderer implements MateRenderer {
    * ParamAngleY: -20 }`). The player keeps them only briefly, so send a pose every frame while driving the face and
    * simply stop sending to hand it back (blinks, gaze, expressions return on their own). Nothing is remembered for a
    * later attach. Returns false (and does nothing) before the model is ready, after destroy, or when the player has
-   * no `track`. Used by the login stage; the call screen and the previews never call it.
+   * no `track`. Used by the login stage; the call screen drives only the mouth, through `setMouthSource`.
    */
   track(params: TrackPose): boolean {
     if (this.destroyed || !this.canTrack()) return false
@@ -451,6 +456,11 @@ export class AlivingRenderer implements MateRenderer {
     } else {
       try { this.player?.stopMotion?.() } catch { /* The motion ends on its own. */ }
     }
+  }
+
+  /** The mouth follows a voice (`level` 0–1, null while none plays), read every frame the player draws. */
+  setMouthSource(source: (() => number | null) | null): void {
+    this.mouthSource = this.destroyed ? null : source
   }
 
   isTalking(): boolean {
