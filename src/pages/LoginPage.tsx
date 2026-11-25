@@ -6,6 +6,7 @@ import type { EmailRequest, ExpiresResponse, LoginRequest, LoginResponse } from 
 import { authNotice } from '@/features/auth/auth-notices'
 import { rememberLoginProvider } from '@/features/auth/auth-storage'
 import { startKakaoLogin } from '@/features/auth/kakao-start'
+import { kakaoConsentScreen } from '@/features/auth/kakao-consent-mode'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
 import { enqueueNotification, type NotificationContent, type NotificationItem } from '@/shared/ui/notification-queue'
 import { postAuthDestination } from '@/features/auth/post-auth'
@@ -46,6 +47,8 @@ export default function LoginPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const [legal, setLegal] = useState<LegalDocumentId | null>(null)
+  /** KAKAO_SIGNUP_CONSENT_SCREEN (the local mock and UI review show the consent path). Fixed for the page's life. */
+  const [consentScreen] = useState(kakaoConsentScreen)
   const [signupDraft, setSignupDraft] = useState<{
     email: string
     password: string
@@ -143,8 +146,15 @@ export default function LoginPage() {
     )
   }
   function kakao() {
+    const showError = (text: string) => showNotification({ tone: 'error', title: '카카오 로그인 오류', text })
+    // Without the consent screen the notice below is the new user's only view of the terms (the server signs them up on
+    // the callback), so Kakao start still needs readable terms, as before. With it, the consent screen checks instead.
+    if (!consentScreen && !legalTermsReady(backend.terms)) {
+      showError('약관 정보를 불러오지 못했어요. 페이지를 새로고침해 다시 시도해 주세요.')
+      return
+    }
     const error = startKakaoLogin(next)
-    if (error) showNotification({ tone: 'error', title: '카카오 로그인 오류', text: error })
+    if (error) showError(error)
   }
   if (params.has('token')) return <Navigate to={`/password/reset?${params}`} replace />
 
@@ -218,6 +228,31 @@ export default function LoginPage() {
                 <Icon name="chat" size={18} fill="currentColor" /> 카카오로 시작
               </Button>
             </div>
+            {/* Until the backend runs contract a′ (KAKAO_SIGNUP_CONSENT_SCREEN), Kakao signs a new user up on the callback:
+                this notice is where they see the terms. With the consent screen it goes away. */}
+            {!consentScreen && (
+              <p className="mt-3 text-center text-caption leading-6 text-subtle">
+                시작하면{' '}
+                <button
+                  type="button"
+                  aria-label="이용약관"
+                  onClick={() => setLegal('terms')}
+                  className="rounded-sm text-muted transition-colors hover:text-ink"
+                >
+                  [이용약관]
+                </button>
+                과{' '}
+                <button
+                  type="button"
+                  aria-label="개인정보 처리방침"
+                  onClick={() => setLegal('privacy')}
+                  className="rounded-sm text-muted transition-colors hover:text-ink"
+                >
+                  [개인정보 처리방침]
+                </button>
+                에 동의해요.
+              </p>
+            )}
             <div className="mt-9 flex items-center gap-3 text-caption text-subtle">
               <span className="h-px flex-1 bg-divider" />
               또는

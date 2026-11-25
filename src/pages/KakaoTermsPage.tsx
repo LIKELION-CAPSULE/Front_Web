@@ -217,9 +217,11 @@ export default function KakaoTermsPage() {
             <Button variant="secondary" size="md" onClick={loadTerms} className="w-full">약관 다시 불러오기</Button>
           </div>
         ) : (
-          <fieldset className="min-w-0 rounded-control border border-divider" disabled={busy}>
+          // No outlines inside the panel (design system): 전체 동의 sits on the same soft fill as the inputs, the two
+          // required terms follow with spacing.
+          <fieldset className="min-w-0" disabled={busy}>
             <legend className="sr-only">약관 동의</legend>
-            <label className="flex min-h-14 cursor-pointer items-center gap-3 px-4 py-2">
+            <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-control bg-surface px-4 py-2">
               <AnimatedCheckbox
                 ref={allRef}
                 checked={all === true}
@@ -231,8 +233,7 @@ export default function KakaoTermsPage() {
                 <span id={allHint} className="block type-caption text-subtle">필수 약관에 모두 동의해요.</span>
               </span>
             </label>
-            <div aria-hidden="true" className="mx-4 h-px bg-divider" />
-            <ul className="px-4 py-2">
+            <ul className="mt-2 px-4">
               {list.map(term => (
                 <li key={term.document} className="flex items-center justify-between gap-3">
                   <label className="flex min-h-11 min-w-0 cursor-pointer items-center gap-2.5 type-body-compact text-muted">

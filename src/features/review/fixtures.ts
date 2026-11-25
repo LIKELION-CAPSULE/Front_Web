@@ -58,6 +58,7 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     if (scenario.fault === 'notifications-error') sessionStorage.setItem('capsule-local-notifications', 'error')
     if (scenario.fault === 'kakao-signup-invalid') sessionStorage.setItem('capsule-local-kakao-signup', 'invalid')
     if (scenario.fault === 'kakao-signup-terms') sessionStorage.setItem('capsule-local-kakao-signup', 'terms')
+    if (scenario.fault === 'kakao-consent-off') sessionStorage.setItem('capsule-local-kakao-consent', 'off')
     // A slow 32 for checking the chat while older pages load (`?chatDelay=ms` on the preview address).
     const chatDelay = new URLSearchParams(location.search).get('chatDelay')
     if (chatDelay && /^\d+$/.test(chatDelay)) sessionStorage.setItem('capsule-local-chat-delay', chatDelay)

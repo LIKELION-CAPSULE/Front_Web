@@ -15,6 +15,17 @@
  *    - 403 `BETA_FULL` → the launch notice sign-up
  */
 
+/**
+ * Whether the backend runs contract a′ yet (switch to `true` when it ships).
+ * - `false` (now): the server still makes a new Kakao account on step 1 (200, `isNewUser`), so the welcome screen keeps the
+ *   notice under the Kakao button (「시작하면 [이용약관]과 [개인정보 처리방침]에 동의해요.」) and Kakao start still needs
+ *   readable terms, as before.
+ * - `true`: no notice; a new user reads and agrees on the consent screen (/login/kakao-terms).
+ * Either way the callback always handles 403 `KAKAO_SIGNUP_REQUIRED`, so the backend may ship first.
+ * Local mock and UI review show the `true` path (kakao-consent-mode.ts).
+ */
+export const KAKAO_SIGNUP_CONSENT_SCREEN = false
+
 export const KAKAO_LOGIN_PATH = '/auth/social/KAKAO'
 export const KAKAO_SIGNUP_PATH = '/auth/social/KAKAO/signup'
 

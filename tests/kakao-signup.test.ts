@@ -197,3 +197,29 @@ test('local mock: a first-time Kakao user gets a ticket, signs up once, and the 
     await server.close()
   }
 })
+
+test('the consent-screen flag: mock and UI review show the consent path unless QA turns it off; elsewhere the flag decides', async () => {
+  const { KAKAO_SIGNUP_CONSENT_SCREEN } = await import('../src/features/auth/kakao-signup-contract.ts')
+  assert.equal(typeof KAKAO_SIGNUP_CONSENT_SCREEN, 'boolean')
+  const { devKakaoConsentScreen } = await import('../src/features/auth/dev-kakao-consent.ts')
+  const session = new Map<string, string>()
+  const saved = { document: Object.getOwnPropertyDescriptor(globalThis, 'document'), sessionStorage: Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage') }
+  const setDocument = (localDemo?: string, reviewScenario?: string) => Object.defineProperty(globalThis, 'document', { configurable: true,
+    value: { body: { dataset: localDemo ? { localDemo } : {} }, documentElement: { dataset: reviewScenario ? { reviewScenario } : {} } } })
+  Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: (key: string) => session.get(key) ?? null } })
+  try {
+    setDocument()
+    assert.equal(devKakaoConsentScreen(), undefined)
+    setDocument('true')
+    assert.equal(devKakaoConsentScreen(), true)
+    setDocument(undefined, 'welcome')
+    assert.equal(devKakaoConsentScreen(), true)
+    session.set('capsule-local-kakao-consent', 'off')
+    assert.equal(devKakaoConsentScreen(), false)
+  } finally {
+    for (const [key, descriptor] of Object.entries(saved)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor)
+      else delete (globalThis as Record<string, unknown>)[key]
+    }
+  }
+})

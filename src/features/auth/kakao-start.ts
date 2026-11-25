@@ -4,8 +4,9 @@ import { saveKakaoLogin } from './auth-storage'
  * Sends the browser to Kakao's authorize page (the welcome screen's 「카카오로 시작」 and the consent screen's
  * 「카카오로 다시 시작」). Returns an error message when it cannot start; on success the page is leaving.
  *
- * Terms are not checked here any more: an existing account just signs in, and a new one reads and agrees to them on the
- * consent screen (/login/kakao-terms), which refuses to continue without readable terms.
+ * Terms are not checked here: with the consent screen (KAKAO_SIGNUP_CONSENT_SCREEN) a new user reads and agrees on
+ * /login/kakao-terms, which refuses to continue without readable terms; without it, the welcome screen checks them
+ * before calling this (its notice is then the only place the terms are shown).
  */
 export function startKakaoLogin(next: string): string | null {
   const key = import.meta.env.VITE_KAKAO_REST_API_KEY as string | undefined
