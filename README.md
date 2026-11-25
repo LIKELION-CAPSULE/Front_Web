@@ -46,6 +46,7 @@
 
 ## 현재 API 연동
 
+- **2026-11-25 주의:** 백엔드가 세션 API를 연결 API(`/api/connections/*`)로 바꾸고 룸 · 일정 API를 지웠습니다. 아래 항목은 프런트 코드의 현재 동작(11-22 계약)이며, 실제 서버에 붙이면 홈 조회부터 실패합니다. 바뀐 점과 연결 순서는 [프런트 연결 갭 분석](docs/API_FRONT_GAP_2026-11-25.md)을 따릅니다.
 - 2026-11-22 기준 기본 백엔드는 `https://api.capsule.ai.kr`입니다. 브라우저의 `/api/backend/*`는 서버 게이트웨이를 통해 같은 경로의 `/api/*`로 전달합니다. `BACKEND_API_ORIGIN`으로 다른 서버를 지정할 수 있습니다.
 - 최신 성공 응답 `{ success: true, data: ... }`는 공통 `ApiClient`에서 한 번 해제해 화면에 전달합니다. 로그인·토큰 갱신·홈·프로필·일정·공부 세션·리포트에 공통 적용하며, 본문 없는 완료 응답도 처리합니다. `{ success: false, code, message, detail }` 오류 정보는 유지합니다.
 - 스트리밍 대화는 `reply`의 누적 글을 표시하고 `done`의 원본 또는 감싼 응답을 처리합니다. JSON 응답으로 돌아오는 경우에도 같은 `data` 해제를 적용합니다. 최신 명세는 [공개 OpenAPI](https://api.capsule.ai.kr/v3/api-docs)에서 확인합니다.
@@ -195,7 +196,7 @@ React + TypeScript(strict) + Vite + Tailwind CSS v4를 사용합니다. 공통 U
 로컬의 [문서 목록](docs/README.md)에서 기획 근거와 구조를 확인할 수 있습니다. API 연동 문서·검토 기록·OpenAPI 원본과 관련 프로젝트 개요는 사용자 요청에 따라 Git에서 제외하고 로컬에 보관합니다. 아래 링크 중 로컬 문서는 새로 복제한 저장소에 포함되지 않습니다.
 
 - [프로젝트 개요](docs/PROJECT_OVERVIEW.md) — 현재 코드 기준 두 앱의 역할, MVP 동작, 상태·미디어·배포 경계.
-- [백엔드 API 정리](docs/BACKEND_API.md) — 이전 연동 기록. 현재 경로·응답 형식은 [최신 Swagger](https://api.capsule.ai.kr/swagger-ui/index.html#/)와 위의 현재 API 연동 항목을 기준으로 합니다.
+- [백엔드 API 정리](docs/BACKEND_API.md) — 2026-11-25 OpenAPI 기준 44개 API. 프런트가 아직 옛 계약(`/api/sessions/*`)으로 부르는 부분과 연결 순서는 [프런트 연결 갭 분석](docs/API_FRONT_GAP_2026-11-25.md)을 따릅니다. 최신 명세는 [Swagger](https://api.capsule.ai.kr/swagger-ui/index.html#/)에서 확인합니다.
 - [OpenAPI 원본 스냅샷](docs/BACKEND_OPENAPI_2026-11-05.json) — 2026-11-05 조회 기준.
 - [원본 서비스 기획 정리](docs/CAPSULE_서비스_기획_정리.md) — 내용 수정 없이 `docs`로 이동.
 - [서비스·와이어프레임 분석](docs/SERVICE_ANALYSIS.md) — 핵심 경험, 우선순위, 문서 간 차이.

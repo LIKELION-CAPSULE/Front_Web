@@ -2,6 +2,8 @@
 
 작성일: 2026-11-24 · 상태: **초안(백엔드 미확정)** · 적용 범위: 미리보기(1단계: 내 메이트·메이트 상세·연결 기록), 연결 화면·PIP(2단계)
 
+> **해소됨(2026-11-25, API 9 · 16 · 17 · 31 · 48):** 백엔드가 `ModelInfo` · `Figure`에 `format` · `engineUrl` · `playerUrl` · `reactionsUrl`을 넣었다. 값 이름이 다르다: `format`은 `CUBISM` · `ALIVING2D_V2`(이 문서의 `cubism` · `aliving2d`와 다름), 연결 응답의 필드 이름은 `character`가 아니라 `mate`다. 2026-11-25 운영값은 모든 메이트의 엔진 3필드가 null이고, 엔진이 들어갈 Supabase Storage 출처는 아래 '엔진 스크립트 출처 제한'의 허용 목록 밖이다. 자세한 대조는 [갭 분석 2026-11-25](API_FRONT_GAP_2026-11-25.md) 3장 · 9장.
+
 ## 프런트가 읽는 위치
 
 메이트 상세 응답(`MateContentPort.load` → `checkedMateDetail`)의 `model` 객체예요.
@@ -29,6 +31,8 @@
 | `scale`, `offsetX`, `offsetY` | 아니요 | Cubism 전용 배치값. v2는 무시(구도는 프런트가 계산) |
 
 ## 연결 화면·PIP (2단계): 세션 시작·재개 응답의 `character`
+
+> **해소됨(2026-11-25, API 16 · 17):** 경로는 `POST /api/connections` · `POST /api/connections/{connectionId}/resume`, 필드는 `character`가 아니라 **`mate`**(`Figure`)이고 아래와 같은 필드를 갖는다.
 
 `POST /sessions`, `POST /sessions/{id}/resume` 응답의 `character`(`Figure`)에 **같은 필드**를 넣어 주세요. 프런트는 원본 응답에서 바로 읽어요(`SessionFigure`, `src/features/live2d/session-model.ts`).
 
@@ -85,6 +89,8 @@
 
 ## 서도현 (두 번째 메이트, 2026-11-25)
 
+> **부분 해소(2026-11-25, API 48):** 서버에는 **「서진」**이라는 이름으로 공개돼 있다(id 2 `seojin/v5/model.json`, id 3 `seojin/v4/model.json`, 둘 다 `ALIVING2D_V2` · 전연령 · 엔진 null). 프런트의 서버 이름 매핑(`서도현` · `도현`)과 맞지 않는다. 연령 등급도 서버는 `ALL`이다. [갭 분석 2026-11-25](API_FRONT_GAP_2026-11-25.md) 3장 · 17장.
+
 모델 묶음 이름은 `seojin`, 화면 이름은 서도현, 프런트 카탈로그 id는 `dohyun`이에요. 서버 캐릭터 이름 「서도현」(또는 「도현」)으로 연결돼요(`catalog.ts`의 `sourceNames`).
 
 | 필드 | 값(서버가 보낼 것) |
@@ -103,6 +109,8 @@
 - 시스템 프롬프트·세계관·키워드북은 서버 페르소나예요. 프런트에는 표시 문구(소개·역할·시작 상황·첫 대사)와 로컬 mock 대사만 있어요.
 
 ## 채린 모델 v3 (2026-11-25)
+
+> **부분 해소(2026-11-25, API 48):** 운영 채린(id 4)의 모델은 `chaerin/v5/model.json`(`ALIVING2D_V2`)이다. 서버 저장 경로 번호(v5)가 이 문서의 v3 묶음과 같은 파일인지는 확인하지 않았다. 옛 Cubism `chaerin/v3/chaerin.model3.json`은 id 1 「말포이」에 붙어 공개 목록에 남아 있다. [갭 분석 2026-11-25](API_FRONT_GAP_2026-11-25.md) 3장.
 
 - 채린 모델 v3(상의 변경) — 백엔드에 v3 묶음 전달 필요. 같은 형식·파츠·표정·의상·엔진이고 상의·목 그림과 `model.json`만 바뀌었어요. 앱의 채린 정지 이미지(`src/assets/characters/chaerin-v2/`, 폴더 이름 유지)는 v3로 다시 렌더했으니, 운영 `modelJsonUrl`도 v3를 가리켜야 Live2D와 정지 이미지의 옷이 같아요.
 
