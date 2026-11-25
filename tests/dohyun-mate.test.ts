@@ -2,9 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { ageRatingLabel, availableMates, launchMates, mateProfile } from '../src/features/mates/catalog.ts'
 import { MATE_LINES, mateLine, mateLineForState } from '../src/features/mates/mate-lines.ts'
-import { sampleUnlocks } from '../src/features/mates/mate-sample-data.ts'
 import { capsuleJarTheme, mateThemeFromHue } from '../src/features/mates/capsule-jar/capsule-jar-theme.ts'
-import { toV2ExpressionName } from '../src/features/mate-render/expression-map.ts'
 import { V2_MATE_ALLOW } from '../server/local-assets.ts'
 import { LOCAL_MATES, LocalBetaStore, localMate } from '../src/features/local-demo/store.ts'
 
@@ -42,19 +40,6 @@ test('each mate keeps its own lines: 서도현 never says 채린\'s, 채린 has 
   assert.equal(mateLineForState('someone-new', 'greet', shared), '채린:greet')
 })
 
-test('서도현\'s four unlock expressions map to his model expressions', () => {
-  const stage4 = sampleUnlocks(4, undefined, 'dohyun').expressions
-  assert.deepEqual(stage4.map((item) => [item.label, toV2ExpressionName(item.expressionFile), item.unlockStage, item.unlocked]), [
-    ['기본', null, 1, true],
-    ['옅은 미소', 'laugh', 2, true],
-    ['어이없음', 'contempt', 3, true],
-    ['멋쩍음', 'shy', 4, true],
-  ])
-  assert.equal(sampleUnlocks(2, undefined, 'dohyun').expressions.filter((item) => item.unlocked).length, 2)
-  // 채린 keeps her sample list.
-  assert.equal(sampleUnlocks(5).expressions.length, 6)
-})
-
 test('서도현 takes the blue-violet kept for the 남학생 placeholder', () => {
   assert.deepEqual(capsuleJarTheme('dohyun'), mateThemeFromHue(230))
   assert.notDeepEqual(capsuleJarTheme('dohyun'), capsuleJarTheme('chaerin'))
@@ -79,7 +64,7 @@ test('the local mock has both mates and gives every third generated connection t
   assert.equal(Object.keys(store.snapshot().affinities).length, 2)
 })
 
-test('채린 follows the same template: 전연령, study-partner copy, her own lines and four unlock expressions', () => {
+test('채린 follows the same template: 전연령, study-partner copy and her own lines', () => {
   const profile = mateProfile('chaerin')
   assert.equal(profile?.ageRating, 'all')
   assert.equal(profile?.relationTag, '짝꿍형')
@@ -89,8 +74,4 @@ test('채린 follows the same template: 전연령, study-partner copy, her own l
   assert.equal(profile?.intro, '모든 수업이 끝나고 교실에 남아서 자습을 하는 상황')
   assert.equal(profile?.farewellLine, mateLine('chaerin', 'farewell'))
   for (const key of Object.keys(MATE_LINES.dohyun!)) assert.ok(mateLine('chaerin', key as never), key)
-  const unlocks = sampleUnlocks(4, undefined, 'chaerin').expressions
-  assert.deepEqual(unlocks.map((item) => [item.label, toV2ExpressionName(item.expressionFile), item.unlockStage]), [
-    ['기본', null, 1], ['웃음', 'laugh', 2], ['짜증(장난)', 'sulky', 3], ['부끄러움', 'shy', 4],
-  ])
 })

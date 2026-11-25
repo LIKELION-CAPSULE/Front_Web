@@ -1,0 +1,84 @@
+/*
+ * 세계관 tile, strip and detail (MateWorldTile, MateWorldStrip). Base rules (docs/DESIGN_SYSTEM.md): no outlines, no
+ * gold, neutral hover; violet stays for selection and main actions. A world without a picture gets a quiet gradient.
+ */
+.mate-world-backdrop {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background:
+    radial-gradient(80% 90% at 30% 20%, hsl(var(--world-hue, 260) 45% 34% / 0.55), transparent 70%),
+    linear-gradient(160deg, hsl(var(--world-hue, 260) 28% 20%), hsl(var(--world-hue, 260) 24% 12%));
+}
+.mate-world-backdrop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mate-world-tile--locked .mate-world-backdrop img { filter: blur(3px) saturate(0.4) brightness(0.55); transform: scale(1.08); }
+.mate-world-lock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(10 9 18 / 0.35);
+  color: rgb(255 255 255 / 0.82);
+}
+
+.mate-world-tile {
+  position: relative;
+  display: flex;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgb(255 255 255 / 0.04);
+  color: var(--color-ink);
+  font: inherit;
+  text-align: left;
+}
+button.mate-world-tile { cursor: pointer; transition: background-color 160ms ease; }
+button.mate-world-tile:hover { background: rgb(255 255 255 / 0.08); }
+button.mate-world-tile:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+.mate-world-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mate-world-label { overflow: hidden; font-size: 14px; line-height: 20px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.mate-world-label[data-placeholder] { color: var(--color-muted); }
+.mate-world-line { overflow: hidden; color: var(--color-muted); font-size: 12px; line-height: 17px; text-overflow: ellipsis; white-space: nowrap; }
+.mate-world-tile--locked .mate-world-label { color: var(--color-muted); }
+.mate-world-line--locked { color: var(--color-subtle); font-weight: 600; }
+
+/* Row (the affinity card): a small picture beside the text. */
+.mate-world-tile--row { align-items: center; gap: 12px; padding: 6px; border-radius: 12px; }
+.mate-world-tile--row .mate-world-thumb { flex: none; width: 76px; height: 50px; border-radius: 8px; }
+
+/* Card (the strip): the picture on top. */
+.mate-world-tile--card { flex-direction: column; height: 100%; border-radius: 16px; overflow: hidden; }
+.mate-world-tile--card .mate-world-thumb { width: 100%; aspect-ratio: 16 / 10; }
+.mate-world-tile--card .mate-world-text { padding: 10px 12px 12px; }
+
+/* ── Strip (메이트 상세) ── */
+.mate-world-strip-head { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; color: var(--color-ink); font-size: 15px; line-height: 22px; font-weight: 700; }
+.mate-world-strip-count { color: var(--color-subtle); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mate-world-strip-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+@media (max-width: 959px) {
+  .mate-world-strip-list {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(148px, 42%);
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scroll-snap-type: x proximity;
+  }
+  .mate-world-strip-list > li { scroll-snap-align: start; }
+}
+
+/* ── Detail ── */
+.mate-world-scene { position: relative; overflow: hidden; margin: 0 0 16px; border-radius: 18px; aspect-ratio: 16 / 10; }
+.mate-world-scene-backdrop { position: absolute; inset: 0; }
+.mate-world-outfit { position: absolute; right: 6%; bottom: 0; height: 96%; width: auto; object-fit: contain; object-position: bottom; }
+.mate-world-facts { display: grid; gap: 12px; margin: 0; }
+.mate-world-facts > div { display: grid; gap: 2px; }
+.mate-world-facts dt { color: var(--color-subtle); font-size: 13px; line-height: 18px; font-weight: 600; }
+.mate-world-facts dd { margin: 0; color: var(--color-ink); font-size: 16px; line-height: 24px; font-weight: 600; }
+.mate-world-quote { font-weight: 500; }
+.mate-world-dialog-note { margin: 0; color: var(--color-muted); font-size: 15px; line-height: 1.6; }
+
+@media (prefers-reduced-motion: reduce) {
+  button.mate-world-tile { transition: none; }
+}

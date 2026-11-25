@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { SCREEN_LABELS, TOUR_STEPS, nextScreenStep, readMs, stepPath, tourHref, tourSteps, type TourContext } from '../src/features/tour/tour-steps.ts'
 import { SPOT_RADIUS, STRIP_PX, closedSpot, easeOutCubic, spotBetween, spotlightTransforms } from '../src/features/tour/tour-spotlight.ts'
 
-const ALL_ON: TourContext = { mateId: 'chaerin', features: { affinity: true, expressions: true } }
-const PRODUCTION: TourContext = { mateId: 'chaerin', features: { affinity: false, expressions: false } }
+const ALL_ON: TourContext = { mateId: 'chaerin', features: { affinity: true, world: true } }
+const PRODUCTION: TourContext = { mateId: 'chaerin', features: { affinity: false, world: false } }
 
 test('one pass over the whole service in 11 steps, screen by screen, ending with the outro', () => {
   const steps = tourSteps(ALL_ON)
@@ -42,15 +42,18 @@ test('feature-flagged marks go when the flag is off (production); the step keeps
   const capsules = production.find((step) => step.id === 'mates-capsules')!
   const recent = production.find((step) => step.id === 'mates-recent')!
   assert.ok(capsules.marks.every((mark) => mark.feature !== 'affinity'))
-  assert.ok(recent.marks.every((mark) => mark.feature !== 'expressions'))
-  assert.doesNotMatch(capsules.say, /친밀도|표정/)
-  assert.doesNotMatch(recent.say, /표정/)
+  assert.ok(recent.marks.every((mark) => mark.feature !== 'world'))
+  assert.doesNotMatch(capsules.say, /친밀도|표정|세계관/)
+  assert.doesNotMatch(recent.say, /표정|세계관|친밀도/)
   const development = tourSteps(ALL_ON)
   assert.match(development.find((step) => step.id === 'mates-capsules')!.say, /친밀도/)
-  assert.match(development.find((step) => step.id === 'mates-recent')!.say, /표정/)
-  const onlyAffinity = tourSteps({ ...PRODUCTION, features: { affinity: true, expressions: false } })
+  assert.match(development.find((step) => step.id === 'mates-recent')!.say, /세계관/)
+  assert.ok(development.find((step) => step.id === 'mates-recent')!.marks.some((mark) => mark.targets.includes('[data-tour="my-mates-world"]')))
+  // The expression unlocks are gone (2026-11-26): no line names them.
+  for (const step of TOUR_STEPS) assert.doesNotMatch(`${step.say} ${step.sayWithout ?? ''}`, /표정/, step.id)
+  const onlyAffinity = tourSteps({ ...PRODUCTION, features: { affinity: true, world: false } })
   assert.ok(onlyAffinity.find((step) => step.id === 'mates-capsules')!.marks.some((mark) => mark.feature === 'affinity'))
-  assert.ok(onlyAffinity.find((step) => step.id === 'mates-recent')!.marks.every((mark) => mark.feature !== 'expressions'))
+  assert.ok(onlyAffinity.find((step) => step.id === 'mates-recent')!.marks.every((mark) => mark.feature !== 'world'))
 })
 
 test('the cursor presses only where a press is harmless and types only into the practice chat', () => {
@@ -107,7 +110,7 @@ test('every line is one or two sentences in 채린’s 반말, read long enough,
     'call-talk': ['채팅', '음성', '카메라', '기본 모드', '고급 모드', '크레딧'],
     'call-end': ['PIP', '끝낼', '연결 기록'],
     'mates-capsules': ['캡슐', '함께한 시간', '친밀도'],
-    'mates-recent': ['최근 캡슐', '기록 카드', '표정'],
+    'mates-recent': ['최근 캡슐', '기록 카드', '친밀도', '세계관', '화살표'],
     records: ['기간', '보드', '날짜'],
     account: ['프로필', '설정', '보안'],
   }

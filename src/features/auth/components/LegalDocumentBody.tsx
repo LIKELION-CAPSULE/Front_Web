@@ -13,8 +13,9 @@ import { QuarterRingSpinner } from '@/shared/ui/QuarterRingSpinner'
  * The server terms for this body. The backend loads them on the login screen only; opened anywhere else (the site
  * footer, the mobile notice) the body asks `GET /terms` itself, once, the same public call (no sign-in needed).
  */
-function useServerTerms(): { terms: readonly TermVersion[]; loading: boolean } {
-  const { terms: loaded } = useBackend()
+function useServerTerms(given?: readonly TermVersion[]): { terms: readonly TermVersion[]; loading: boolean } {
+  const { terms: backendTerms } = useBackend()
+  const loaded = given ?? backendTerms
   const [fetched, setFetched] = useState<{ terms: readonly TermVersion[] } | null>(null)
   const needed = loaded.length === 0
   useEffect(() => {
@@ -33,10 +34,11 @@ function useServerTerms(): { terms: readonly TermVersion[]; loading: boolean } {
 /**
  * Shared legal document body shown inside the login screen's legal Dialog (LoginVariantLayout), the mobile notice's
  * legal Dialog (MobileAccessGate) and the site footer's (SiteFooter).
- * Always resolves content strictly from server terms and never falls back to landing-page copy.
+ * Always resolves content strictly from server terms and never falls back to landing-page copy. `terms`: the exact list a
+ * consent screen shows (so the body read is the version agreed to); otherwise the login screen's, else `GET /terms`.
  */
-export function LegalDocumentBody({ document }: { document: LegalDocumentId }) {
-  const { terms, loading } = useServerTerms()
+export function LegalDocumentBody({ document, terms: given }: { document: LegalDocumentId; terms?: readonly TermVersion[] }) {
+  const { terms, loading } = useServerTerms(given)
   const serverDocument = terms.find(
     (term) => term.code === (document === 'terms' ? 'SERVICE' : 'PRIVACY'),
   )

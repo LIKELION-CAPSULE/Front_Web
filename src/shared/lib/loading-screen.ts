@@ -13,7 +13,7 @@ export function resolveLoadingScreen(destination: string | null, state: {
   try { url = new URL(destination, 'https://capsule.invalid') } catch { return null }
   if (url.origin !== 'https://capsule.invalid') return null
   const path = url.pathname.replace(/\/$/, '') || '/'
-  if (['/login', '/oauth/kakao', '/password/reset', '/reset-password'].includes(path)) return null
+  if (['/login', '/login/kakao-terms', '/oauth/kakao', '/password/reset', '/reset-password'].includes(path)) return null
   if (state.status === 'loading') {
     if (state.loadingStage === 'auth') return null
     if (state.loadingStage === 'onboarding') return 'onboarding'

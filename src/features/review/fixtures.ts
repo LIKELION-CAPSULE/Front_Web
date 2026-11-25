@@ -17,6 +17,7 @@ export const REVIEW_SESSION_ID = 9001
 const PENDING: Partial<Record<NonNullable<ReviewScenario['fault']>, (method: string, path: string) => boolean>> = {
   'bootstrap-pending': (_, path) => path === '/auth/refresh',
   'kakao-pending': (_, path) => path === '/auth/social/KAKAO',
+  'kakao-signup-pending': (_, path) => path === '/auth/social/KAKAO/signup',
   'home-pending': (_, path) => path === '/home',
   'avatars-pending': (_, path) => path === '/avatars',
   'report-pending': (method, path) => method === 'GET' && /^\/connections\/\d+$/.test(path),
@@ -48,12 +49,16 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     store.data.nextSessionId = REVIEW_SESSION_ID
     store.start(LOCAL_CHARACTER_ID)
   }
-  // The local mock's QA switches (local-demo/transport.ts): a full beta (4 · 6 → 403 BETA_FULL), a coming-soon 서도현.
+  // The local mock's QA switches (local-demo/transport.ts): a full beta (4 · 6 → 403 BETA_FULL), a coming-soon 서도현,
+  // the Kakao sign-up step's failures.
   try {
     if (scenario.fault === 'beta-full') sessionStorage.setItem('capsule-local-beta-full', '1')
     if (scenario.fault === 'coming-soon') sessionStorage.setItem('capsule-local-coming-soon', 'dohyun')
     if (scenario.fault === 'notifications-empty') sessionStorage.setItem('capsule-local-notifications', 'empty')
     if (scenario.fault === 'notifications-error') sessionStorage.setItem('capsule-local-notifications', 'error')
+    if (scenario.fault === 'kakao-signup-invalid') sessionStorage.setItem('capsule-local-kakao-signup', 'invalid')
+    if (scenario.fault === 'kakao-signup-terms') sessionStorage.setItem('capsule-local-kakao-signup', 'terms')
+    if (scenario.fault === 'kakao-consent-off') sessionStorage.setItem('capsule-local-kakao-consent', 'off')
     // A slow 32 for checking the chat while older pages load (`?chatDelay=ms` on the preview address).
     const chatDelay = new URLSearchParams(location.search).get('chatDelay')
     if (chatDelay && /^\d+$/.test(chatDelay)) sessionStorage.setItem('capsule-local-chat-delay', chatDelay)
@@ -136,6 +141,14 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
       return new Response(`event: error\ndata: ${JSON.stringify({ code: 'CONNECTION_ENDED', message: 'CONNECTION_ENDED' })}\n\n`, { headers: { 'content-type': 'text/event-stream' } })
     }
     if (operation === 'heartbeat' && (fault === 'server-ended-heartbeat' || fault === 'server-ended-report')) return ended()
+    if (operation === 'heartbeat' && fault === 'stage-up') {
+      // 21 with a stage-up (아는 사이 → 친구) on the local heartbeat's answer.
+      const response = await local(input, options)
+      log(response.status)
+      const body = await response.json() as { data?: Record<string, unknown> }
+      if (body.data) body.data.stageUp = { stage: 3, stageName: '친구', unlocked: [] }
+      return new Response(JSON.stringify(body), { status: response.status, headers: { 'content-type': 'application/json' } })
+    }
     if (operation === 'end' && fault === 'server-ended-finish') return ended()
     if (operation === 'end' && fault === 'end') return fail(500)
     if (operation === '' && method === 'GET' && reportFailures > 0) { reportFailures--; return fail(503) }

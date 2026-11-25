@@ -10,8 +10,8 @@
 | `seojin-card.webp` | 800×600 | 머리 → 가슴 | 홈 카드, 통화 화면 대체 이미지 |
 | `seojin-avatar.webp` | 512×512 | 머리 → 어깨 | 내 기록 코멘트·범례, 작은 썸네일 |
 | `seojin-full.webp` | 900×1200 | 머리 → 무릎 위 | (예비, 채린과 같은 세트) |
-| `expressions/*.webp` | 96×96 | 이마 → 턱 | 내 메이트 표정 컬렉션 썸네일(`neutral` 포함 9개) |
-| `expressions-bust/*.webp` | 760×900 | 히어로와 같은 뷰 | 움직임 줄이기에서 고른 표정의 정지 그림 |
+| `expressions/*.webp` | 96×96 | 이마 → 턱 | (지금은 안 씀) 예전 내 메이트 표정 컬렉션 썸네일(`neutral` 포함 9개) |
+| `expressions-bust/*.webp` | 760×900 | 히어로와 같은 뷰 | (지금은 안 씀) 움직임 줄이기에서 고른 표정의 정지 그림 |
 
 다시 만들기(로컬 mock dev 서버가 `/__local-assets/seojin/`을 제공해야 해요):
 

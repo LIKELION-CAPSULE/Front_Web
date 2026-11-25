@@ -2,6 +2,7 @@ import { startTransition, useCallback, useEffect, useLayoutEffect, useRef, useSt
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useSessionSync } from '@/features/backend/use-session-sync'
+import { StageUpNotice } from '@/features/mates/components/StageUpNotice'
 import type { EndType } from '@/shared/api/types'
 import { useMinorLimit } from '@/features/mates/minor-limit'
 import { ConnectionNotice } from '@/features/mates/components/ConnectionNotice'
@@ -582,7 +583,8 @@ export default function ConnectionPage() {
 
   const relation = backend.affinities[Number(mate.characterId)]
   // The affinity chip follows the affinity feature (off in production until the server sends stages).
-  const showAffinity = resolveMateFeatures(import.meta.env.DEV, null).affinity
+  const mateFeatures = resolveMateFeatures(import.meta.env.DEV, null)
+  const showAffinity = mateFeatures.affinity
   const isAdvanced = backend.connectionMode === 'advanced'
   const canSwitchMode = !finishing
   const creditInsufficient = Boolean(
@@ -874,7 +876,7 @@ export default function ConnectionPage() {
             </section>
           </div>
 
-          {(creditInsufficient || floatingErrors.length > 0 || voice.status === 'blocked') && (
+          {(creditInsufficient || floatingErrors.length > 0 || (showAffinity && sync.stageUp) || voice.status === 'blocked') && (
             <div className="connection-floating-notices" aria-live="polite">
               {/* The browser held her voice until a click or key press (autoplay rule); any press allows it, this too. */}
               {voice.status === 'blocked' && (
@@ -883,6 +885,7 @@ export default function ConnectionPage() {
                   소리 켜기
                 </button>
               )}
+              {showAffinity && <StageUpNotice stageUp={sync.stageUp} world={mateFeatures.world} mateId={mate.id} mateName={mate.name} />}
               {creditInsufficient && (
                 <div className="connection-notice-card">
                   <FeedbackMessage tone="warning">크레딧이 부족해요. 기본 대화로 계속할 수 있어요.</FeedbackMessage>

@@ -227,7 +227,7 @@ test('41: four reasons; OTHER needs a detail of 1–300 characters; the body onl
 
 const notificationExample: NotificationList = {
   items: [
-    { id: 30, type: 'STAGE_UP', title: '채린과 한 걸음 가까워졌어요', body: '새 표정이 열렸어요.', link: '/mates/me', read: false, createdAt: at(30) },
+    { id: 30, type: 'STAGE_UP', title: '채린과 한 걸음 가까워졌어요', body: '새 세계관이 열렸어요 · EP.03 도서관', link: '/mates/me', read: false, createdAt: at(30) },
     { id: 29, type: 'ATTENDANCE', title: '출석 보상', body: null, link: '/credits', read: true, createdAt: at(20) },
     { id: 28, type: 'REFERRAL_REWARD', title: '초대 보상', body: '  ', link: 'https://evil.example/x', read: false, createdAt: at(10) },
   ],

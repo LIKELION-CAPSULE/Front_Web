@@ -22,7 +22,7 @@ export const SCREEN_LABELS: Readonly<Record<TourScreen, string>> = {
 /** Where the arrow tip lands on the target (fractions of its box): an edge or a lower corner, never on its words. */
 export type TourPoint = { x: number; y: number }
 
-export type TourFeature = 'affinity' | 'expressions'
+export type TourFeature = 'affinity' | 'world'
 
 /** One place the cursor visits inside a step. */
 export type TourMark = {
@@ -57,7 +57,7 @@ export type TourStep = {
 export type TourContext = {
   /** The first mate (detail and practice call). */
   mateId: string
-  features: { affinity: boolean; expressions: boolean }
+  features: { affinity: boolean; world: boolean }
 }
 
 /** Lower-right corner just inside the box: buttons, chips, menu items, tabs. */
@@ -126,7 +126,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       { targets: ['[data-tour="my-mates-total"]'], at: CORNER, action: 'hover' },
       { targets: ['[data-tour="my-mates-affinity"]'], at: CORNER, action: 'hover', feature: 'affinity' },
     ],
-    say: '같이 보낸 시간은 캡슐로 쌓이고, 함께한 시간도 여기서 봐. 같이 있을수록 친밀도가 오르고 새 표정이 열려.',
+    say: '같이 보낸 시간은 캡슐로 쌓이고, 함께한 시간도 여기서 봐. 같이 있을수록 친밀도가 올라가.',
     sayWithout: '같이 보낸 시간은 캡슐로 쌓여. 함께한 시간이랑 연결 횟수는 여기서 봐.',
   },
   {
@@ -134,9 +134,10 @@ export const TOUR_STEPS: readonly TourStep[] = [
     marks: [
       // The recent list sits at the bottom of the side column, controls all round: the arrow takes its left edge.
       { targets: ['[data-tour="my-mates-recent"]'], at: { x: 0.03, y: 0.5 }, action: 'hover' },
-      { targets: ['[data-tour="my-mates-expressions"]'], at: CORNER, action: 'hover', feature: 'expressions' },
+      // The world area of the affinity card: its 「다음 세계관」 arrow.
+      { targets: ['[data-tour="my-mates-world"]'], at: CORNER, action: 'hover', feature: 'world' },
     ],
-    say: '최근 캡슐을 누르면 그날의 기록 카드가 열려. 열린 표정은 여기 모이고, 누르면 그 표정을 지어 줄게.',
+    say: '최근 캡슐을 누르면 그날의 기록 카드가 열려. 친밀도가 오를 때마다 새 세계관이 하나씩 열리니까, 화살표로 넘겨 봐.',
     sayWithout: '최근 캡슐을 누르면 그날의 기록 카드가 열려. 보고 싶으면 언제든 만나러 와.',
   },
   // 내 기록

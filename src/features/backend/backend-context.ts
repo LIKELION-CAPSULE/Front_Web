@@ -7,7 +7,6 @@ import type { BetaInvitation, BetaWallet } from '@/features/credits/beta-types'
 import type { BetaAccountDetails, BetaAccountPort, BetaOnboardingInput, BetaProfileInput } from '@/features/auth/beta-account'
 import type { ReferralValidationResult } from '@/features/auth/referral-code'
 import type { MateDetailContent } from '@/features/mates/mate-contract'
-import type { MateUnlocks } from '@/features/mates/my-mates-utils'
 import type { SessionModelFactory } from '@/features/live2d/session-model'
 import type { BetaFeaturePort, BetaFeatureSnapshot } from './beta-feature-port'
 
@@ -43,7 +42,6 @@ export type BackendContextValue = {
   /** Null without a connected feature port; local previews inject an isolated wallet explicitly. */
   wallet: BetaWallet | null
   invitation: BetaInvitation | null
-  mateUnlocks?: Record<string, MateUnlocks>
   redeemInvitation: ((code: string) => Promise<void>) | null
   /** 8 · 11 `activeConnection`: a connection to continue (17), when not running on this screen. */
   activeSummary: ActiveConnectionSummary | null
