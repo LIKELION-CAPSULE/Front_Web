@@ -11,14 +11,21 @@ import { CHAERIN_JAR_THEME } from '../../mates/capsule-jar/capsule-jar-theme.ts'
 import { BOARD, boardRiseTiming, isMonthSelectable, type BoardCapsule, type BoardLabel, type BoardTile, type CapsuleBoardModel } from './capsule-board-layout.ts'
 import {
   guideHours,
+  guideLevel,
   guidesApply,
+  instanceCapacity,
   longestDayKey,
   mixPillar,
   pillarDims,
+  pillarFormAt,
+  pillarInstances,
   pillarLayout,
   pillarScaleHours,
   pillarsApply,
+  planGuides,
+  type GuideFade,
   type PillarCapsule,
+  type PillarForm,
   type PillarLayout,
 } from './capsule-board-pillars.ts'
 import {
@@ -420,17 +427,24 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
    * Per entry during a period morph: the pillar it had before (old period's scale and size), so the pillar and its
    * capsules turn into the new form with the morph (mixPillar). Null when there is nothing to blend from.
    */
-  let entryPillarFrom: ({ layout: PillarLayout; radius: number } | null)[] = []
-  /** Set by setBoard for the rebuild of a morph: each old day's pillar, and the old board (for its guide lines). */
-  let morphSource: { pillars: Map<string, { layout: PillarLayout; radius: number }>; model: CapsuleBoardModel } | null = null
+  let entryPillarFrom: (PillarForm | null)[] = []
+  /**
+   * Set by setBoard for the rebuild of a morph: each day's pillar as it was on screen when the morph started (part-way
+   * through, when it cut another morph short), and the guide lines on screen then (their board and strength).
+   */
+  let morphSource: {
+    pillars: Map<string, PillarForm>
+    guides: { source: CapsuleBoardModel | null; level: number }
+  } | null = null
   /** Pillar instances: the entry of each tube / cap, and of each fill layer with its run. */
   let pillarEntries: number[] = []
   let fillRuns: { entry: number; y0: number; y1: number; color: Color }[] = []
   /** The week's guide lines (height above the tile top) and the back wall they stand on. */
   let guides: { hour: number; y: number }[] = []
   let guideWall = { a0: 0, a1: 0, at: 0 }
-  /** The guide lines fade in / out with a morph into / out of the week. */
-  let guideFade: 'in' | 'out' | null = null
+  /** The board whose guide lines are drawn (the week, or the week being left during a morph), and their fade. */
+  let guideSource: CapsuleBoardModel | null = null
+  let guideFade: GuideFade = { from: 1, to: 1 }
   let guideLabelAspect: number[] = []
 
   // ── State ──
@@ -515,6 +529,12 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   function pillarLayoutOf(tile: BoardTile) {
     const { maxHeight, radius } = dims()
     return pillarLayout(tile.capsules, tile.day.connectionSeconds, { scaleHours: scaleHours(), maxHeight, radius })
+  }
+
+  /** Strength the guide lines are drawn at now (before the 2D share), 0 without lines. */
+  function guideLevelAt(at: number) {
+    if (!guideSource || guides.length === 0) return 0
+    return morph ? guideLevel(guideFade, easeInOut(progressOf(morph, at))) : guideFade.to
   }
 
   function entryPose(entry: Entry, at: number): Pose {
@@ -663,21 +683,17 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
 
   /** Glass pillars (week, month): tubes, top rings and the fill's layers; the week's guide lines too. */
   function buildPillars() {
-    pillarEntries = []
-    fillRuns = []
+    const instances = pillarInstances(entryPillars)
+    pillarEntries = instances.entries
+    fillRuns = instances.runs.map((run) => ({ entry: run.entry, y0: run.y0, y1: run.y1, color: new Color(run.colors.glow) }))
     guides = []
-    guideFade = null
-    entries.forEach((_, index) => {
-      const pillar = entryPillars[index]
-      if (!pillar || pillar.height <= 0) return
-      pillarEntries.push(index)
-      for (const segment of pillar.segments) fillRuns.push({ entry: index, y0: segment.y0, y1: segment.y1, color: new Color(segment.colors.glow) })
-    })
+    guideSource = null
+    guideFade = { from: 1, to: 1 }
     const instanced = (geometry: BufferGeometry, material: ShaderMaterial, count: number, order: number) => {
-      const light = new InstancedBufferAttribute(new Float32Array(Math.max(1, count) * 4), 4)
+      const light = new InstancedBufferAttribute(new Float32Array(instanceCapacity(count) * 4), 4)
       light.setUsage(DynamicDrawUsage)
       geometry.setAttribute('instanceLight', light)
-      const mesh = new InstancedMesh(geometry, material, Math.max(1, count))
+      const mesh = new InstancedMesh(geometry, material, instanceCapacity(count))
       mesh.count = count
       mesh.instanceMatrix.setUsage(DynamicDrawUsage)
       mesh.frustumCulled = false
@@ -691,12 +707,16 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       ;({ mesh: capMesh, light: capLight } = instanced(capGeometry, capShader, pillarEntries.length, 10))
     }
     // The week's guide lines at whole hours (pillar-scale heights). Morphing out of a week they fade out on the old
-    // board's wall; into a week they fade in.
-    const previous = morphSource?.model ?? null
-    const fromWeek = previous !== null && pillarsApply(previous.mode) && guidesApply(previous.mode)
-    const source = guidesOn() ? model : fromWeek ? previous : null
+    // board's wall from where they are; into a week they fade in from the strength shown (0 unless a morph out of
+    // the week was cut short).
+    let source: CapsuleBoardModel | null = guidesOn() ? model : null
+    if (morphSource && model) {
+      const plan = planGuides(morphSource.guides, { model, guides: guidesOn() })
+      source = plan.source
+      guideFade = plan.fade
+    }
     if (!source) return
-    if (previous) guideFade = guidesOn() ? (fromWeek ? null : 'in') : 'out'
+    guideSource = source
     const hoursScale = pillarScaleHours(source.tiles)
     const { maxHeight } = pillarDims(source.mode)
     buildGuideLines(guideHours(hoursScale).map((hour) => ({ hour, y: (hour / hoursScale) * maxHeight })), source)
@@ -706,7 +726,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   function buildGuideLines(levels: { hour: number; y: number }[], next: CapsuleBoardModel) {
     guides = levels
     guideWall = guideWallOf(next)
-    guideMesh = new InstancedMesh(guideGeometry, guideShader, Math.max(1, guides.length))
+    guideMesh = new InstancedMesh(guideGeometry, guideShader, instanceCapacity(guides.length))
     guideMesh.count = guides.length
     guideMesh.frustumCulled = false
     guideMesh.renderOrder = 4
@@ -720,7 +740,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     context.fillStyle = '#ffffff'
     context.textBaseline = 'middle'
     context.font = `600 ${Math.round(cell.height * 0.62)}px ${getComputedStyle(host).fontFamily || 'system-ui, sans-serif'}`
-    const uv = new Float32Array(Math.max(1, guides.length) * 4)
+    const uv = new Float32Array(instanceCapacity(guides.length) * 4)
     guideLabelAspect = []
     guides.forEach((guide, index) => {
       const text = `${guide.hour}시간`
@@ -732,10 +752,10 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     guideLabelTexture = new CanvasTexture(atlas)
     guideLabelShader = labelMaterial(guideLabelTexture)
     guideLabelGeometry.setAttribute('instanceUv', new InstancedBufferAttribute(uv, 4))
-    guideLabelTint = new InstancedBufferAttribute(new Float32Array(Math.max(1, guides.length) * 4), 4)
+    guideLabelTint = new InstancedBufferAttribute(new Float32Array(instanceCapacity(guides.length) * 4), 4)
     guideLabelTint.setUsage(DynamicDrawUsage)
     guideLabelGeometry.setAttribute('instanceTint', guideLabelTint)
-    guideLabelMesh = new InstancedMesh(guideLabelGeometry, guideLabelShader, Math.max(1, guides.length))
+    guideLabelMesh = new InstancedMesh(guideLabelGeometry, guideLabelShader, instanceCapacity(guides.length))
     guideLabelMesh.count = guides.length
     guideLabelMesh.frustumCulled = false
     guideLabelMesh.renderOrder = 4
@@ -818,12 +838,13 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     morph = null
     morphSource = null
     // Guide lines that were fading out with the old week are gone now.
-    if (guideFade === 'out') {
+    if (guideFade.to <= 0) {
       guides = []
+      guideSource = null
       if (guideMesh) guideMesh.count = 0
       if (guideLabelMesh) guideLabelMesh.count = 0
     }
-    guideFade = null
+    guideFade = { from: guideFade.to, to: guideFade.to }
     const kept = entries.filter((entry) => entry.to.s > 0)
     for (const entry of kept) entry.from = { ...entry.to }
     if (kept.length !== entries.length) {
@@ -870,13 +891,15 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
         if (nextKeys.has(entry.key) || pose.s <= 0.001) continue
         merged.push({ ...entry, from: pose, to: { ...pose, s: 0 } })
       }
-      // The pillars each day had, to turn into the new period's (mixPillar), and the old board for its guide lines.
-      const pillars = new Map<string, { layout: PillarLayout; radius: number }>()
+      // Each day's pillar and the guide lines as they are on screen now, to turn into the new period's. A morph cut
+      // short hands over its in-between forms (like the days' positions above), not its targets.
+      const pillars = new Map<string, PillarForm>()
+      const shownT = morph ? easeInOut(progressOf(morph, at)) : 1
       entries.forEach((entry, index) => {
         const layout = entryPillars[index]
-        if (layout) pillars.set(entry.key, { layout, radius: entryRadius[index] ?? 0 })
+        if (layout) pillars.set(entry.key, pillarFormAt(entryPillarFrom[index] ?? null, { layout, radius: entryRadius[index] ?? 0 }, shownT))
       })
-      morphSource = previous ? { pillars, model: previous } : null
+      morphSource = { pillars, guides: { source: guideSource, level: guideLevelAt(at) } }
       entries = merged
       morph = { start: at, duration: MORPH_MS }
       riseStartedAt = -Infinity
@@ -1282,7 +1305,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
 
     // The week's guide lines on the back wall (2.5D only); they fade in / out with a morph into / out of the week.
     if (guideMesh && guideLabelMesh && guideLabelTint) {
-      const fade = guideFade === 'in' ? morphT : guideFade === 'out' ? 1 - morphT : 1
+      const fade = morph ? guideLevel(guideFade, morphT) : guideFade.to
       const strength = Math.max(0, standingShare * 1.4 - 0.4) * fade
       guideShader.uniforms.uStrength!.value = 0.62 * strength
       const { a0, a1, at: wallAt } = guideWall

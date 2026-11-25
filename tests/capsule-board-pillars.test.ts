@@ -1,20 +1,27 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { BufferGeometry, InstancedBufferAttribute, InstancedMesh, Matrix4, MeshBasicMaterial } from 'three'
 import { CAPSULE_ASPECT } from '../src/features/mates/capsule-jar/capsule-jar-layout.ts'
 import {
   guideHours,
+  guideLevel,
   guidesApply,
+  instanceCapacity,
   longestDayKey,
   mixPillar,
   PILLAR_MIN_CAPSULE,
   PILLAR_TOP_CAPSULES,
   pillarDims,
+  pillarFormAt,
   pillarHeight,
+  pillarInstances,
   pillarLayout,
   pillarScaleHours,
   pillarsApply,
+  planGuides,
 } from '../src/features/records/capsule-board/capsule-board-pillars.ts'
 import type { CapsuleColors } from '../src/features/records/capsule-board/capsule-board-layout.ts'
+import { requestView, settleViewRequest, type ViewRequestState } from '../src/features/records/capsule-board/capsule-board-view.ts'
 
 const day = (key: string, hours: number) => ({ day: { key, connectionSeconds: hours * 3600 } }) as never
 const violet: CapsuleColors = { light: '#ffffff', tint: '#8053f2', glow: '#a080ff' }
@@ -136,4 +143,156 @@ test('period morph: a pillar and its capsules turn from the old period form into
   // Different counts (should not happen for one day): the new form as is.
   const other = { layout: pillarLayout(capsules(3), 1.5 * 3600, { scaleHours: 2, ...week }), radius: week.radius }
   assert.equal(mixPillar(other, to, 0.3).capsules, to.layout.capsules)
+})
+
+// ── A period change during a running morph (week → month → week in quick succession) ──
+
+const sameCapsules = (a: readonly { y: number; length: number; tilt: number; yaw: number }[], b: typeof a, label: string) => {
+  assert.equal(a.length, b.length, label)
+  a.forEach((capsule, index) => {
+    const other = b[index]!
+    for (const key of ['y', 'length', 'tilt'] as const) assert.ok(Math.abs(capsule[key] - other[key]) < 1e-9, `${label} #${index} ${key}`)
+    assert.ok(Math.abs(Math.atan2(Math.sin(capsule.yaw - other.yaw), Math.cos(capsule.yaw - other.yaw))) < 1e-9, `${label} #${index} yaw`)
+  })
+}
+
+test('cut short: the next morph starts from the pillar on screen, not from the target of the morph it cut', () => {
+  const week = pillarDims('week')
+  const month = pillarDims('month')
+  const list = capsules(5, violet, 2)
+  const formOf = (period: 'week' | 'month', scaleHours: number) => {
+    const dims = period === 'week' ? week : month
+    return { layout: pillarLayout(list, 2.5 * 3600, { scaleHours, ...dims }), radius: dims.radius }
+  }
+  const W = formOf('week', 3)
+  const M = formOf('month', 7)
+  // week → month, cut at 40 % (eased) by → week: the frame before the cut and the first frame after it agree.
+  const shownBefore = mixPillar(W, M, 0.4)
+  const snapshot = pillarFormAt(W, M, 0.4)
+  const firstAfter = mixPillar(snapshot, W, 0)
+  assert.ok(Math.abs(firstAfter.height - shownBefore.height) < 1e-12)
+  assert.ok(Math.abs(firstAfter.radius - shownBefore.radius) < 1e-12)
+  sameCapsules(firstAfter.capsules, shownBefore.capsules, 'first frame after the cut')
+  // …and it still lands exactly on the week's form.
+  const landed = mixPillar(snapshot, W, 1)
+  assert.equal(landed.height, W.layout.height)
+  assert.equal(landed.radius, W.radius)
+  sameCapsules(landed.capsules, W.layout.capsules, 'landed')
+  // The old code started from the target (the month's form): a visible jump of the height.
+  assert.ok(Math.abs(M.layout.height - shownBefore.height) > 0.1)
+
+  // Rapid succession week → month → week → month → week, each cut part-way (the last plays out): the first frame
+  // of every morph is the last frame of the one it cut.
+  type Form = typeof W
+  let running: { from: Form | null; to: Form; t: number } = { from: null, to: W, t: 1 } // settled on the week
+  const steps: [Form, number][] = [[M, 0.3], [W, 0.65], [M, 0.1], [W, 1]]
+  for (const [step, [next, cutAt]] of steps.entries()) {
+    const shown = running.from
+      ? mixPillar(running.from, running.to, running.t)
+      : { height: running.to.layout.height, radius: running.to.radius, capsules: running.to.layout.capsules }
+    const start = pillarFormAt(running.from, running.to, running.t)
+    const first = mixPillar(start, next, 0)
+    assert.ok(Math.abs(first.height - shown.height) < 1e-12, `step ${step} height`)
+    assert.ok(Math.abs(first.radius - shown.radius) < 1e-12, `step ${step} radius`)
+    sameCapsules(first.capsules, shown.capsules, `step ${step}`)
+    // The fill's layers stay the target's (the scene scales them by the shown height).
+    assert.equal(start.layout.segments, running.to.layout.segments)
+    running = { from: start, to: next, t: cutAt }
+  }
+  sameCapsules(mixPillar(running.from!, running.to, 1).capsules, W.layout.capsules, 'played out')
+  // Nothing to blend from, or a morph that played out: the target itself.
+  assert.equal(pillarFormAt(null, W, 0.5), W)
+  assert.equal(pillarFormAt(M, W, 1), W)
+})
+
+test('cut short: the week guide lines go on from the strength shown, on the board they belong to', () => {
+  const weekA = { name: 'week A' }
+  const monthB = { name: 'month B' }
+  const monthC = { name: 'month C' }
+  // Settled on the week: full lines. week → month: they fade out on the week's wall.
+  const out = planGuides({ source: weekA, level: 1 }, { model: monthB, guides: false })
+  assert.deepEqual(out, { source: weekA, fade: { from: 1, to: 0 } })
+  const midOut = guideLevel(out.fade, 0.4)
+  assert.ok(Math.abs(midOut - 0.6) < 1e-12)
+  // Cut by → week: they come back from 0.6, not from 0 (the old code dropped them and faded in from nothing).
+  const back = planGuides({ source: weekA, level: midOut }, { model: weekA, guides: true })
+  assert.equal(back.source, weekA)
+  assert.equal(guideLevel(back.fade, 0), midOut)
+  assert.equal(guideLevel(back.fade, 1), 1)
+  // Cut by → another month instead: the week's lines keep fading out from where they are.
+  const away = planGuides({ source: weekA, level: midOut }, { model: monthC, guides: false })
+  assert.equal(away.source, weekA)
+  assert.equal(guideLevel(away.fade, 0), midOut)
+  assert.equal(guideLevel(away.fade, 1), 0)
+  // month → week cut part-way by → month: the half-shown lines fade out again.
+  const into = planGuides({ source: null, level: 0 }, { model: weekA, guides: true })
+  assert.deepEqual(into.fade, { from: 0, to: 1 })
+  const half = guideLevel(into.fade, 0.5)
+  const undo = planGuides({ source: weekA, level: half }, { model: monthB, guides: false })
+  assert.equal(undo.source, weekA)
+  assert.equal(guideLevel(undo.fade, 0), half)
+  // No lines on screen and none ahead: nothing to draw.
+  assert.deepEqual(planGuides({ source: null, level: 0 }, { model: monthB, guides: false }), { source: null, fade: { from: 0, to: 0 } })
+  assert.deepEqual(planGuides({ source: weekA, level: 0 }, { model: monthB, guides: false }).source, null)
+})
+
+test('a 2D request during a morph waits through a second, cutting morph and is then played out', () => {
+  let state: ViewRequestState = { applied: '2.5d', requested: '2.5d' }
+  // week → month morph running; the viewer asks for 2D: it waits.
+  let result = requestView(state, '2d', { morphing: true, animate: true })
+  assert.equal(result.apply, null)
+  state = result.state
+  // → week again before it ends: the morph is replaced, not finished, so the request keeps waiting (the scene only
+  // settles the view when a morph ends). When the second morph ends it is applied, animated.
+  result = settleViewRequest(state, { interrupted: false })
+  assert.deepEqual(result.apply, { view: '2d', animate: true })
+  assert.equal(result.state.applied, '2d')
+  // Asked back to 2.5D during the second morph instead: nothing left to apply.
+  const undone = requestView(state, '2.5d', { morphing: true, animate: true }).state
+  assert.equal(settleViewRequest(undone, { interrupted: false }).apply, null)
+})
+
+test('pillar instances grow and shrink with the days, and the buffers always fit them', () => {
+  const week = pillarDims('week')
+  const layoutOf = (count: number, colors = violet) =>
+    count ? pillarLayout(capsules(count, colors), count * 1800, { scaleHours: 4, ...week }) : null
+  const twoMates = (count: number) => {
+    const list = [...capsules(count), ...capsules(count, blue)]
+    return pillarLayout(list, list.length * 1800, { scaleHours: 8, ...week })
+  }
+  // week (7 days) → month (30 days, mates mixed) → week → nothing (a week without records) → month again.
+  const boards: (ReturnType<typeof layoutOf>)[][] = [
+    [layoutOf(2), null, layoutOf(4), layoutOf(1), null, null, layoutOf(3)],
+    Array.from({ length: 30 }, (_, index) => (index % 3 === 0 ? null : index % 4 === 0 ? twoMates(2) : layoutOf(1 + (index % 5)))),
+    [layoutOf(2), null, layoutOf(4), layoutOf(1), null, null, layoutOf(3)],
+    Array.from({ length: 7 }, () => null),
+    Array.from({ length: 31 }, (_, index) => twoMates(1 + (index % 3))),
+  ]
+  for (const board of boards) {
+    const { entries, runs } = pillarInstances(board)
+    assert.equal(entries.length, board.filter((pillar) => pillar && pillar.height > 0).length)
+    for (const entry of entries) assert.ok(board[entry], 'an instance is a day with a pillar')
+    assert.equal(runs.length, entries.reduce((sum, entry) => sum + board[entry]!.segments.length, 0))
+    for (const run of runs) assert.ok(entries.includes(run.entry))
+    for (const count of [entries.length, runs.length]) {
+      const capacity = instanceCapacity(count)
+      assert.ok(capacity >= count && capacity >= 1)
+      // The meshes and their per-instance light (4 floats) are made for this capacity on every rebuild.
+      const mesh = new InstancedMesh(new BufferGeometry(), new MeshBasicMaterial(), capacity)
+      mesh.count = count
+      const light = new InstancedBufferAttribute(new Float32Array(capacity * 4), 4)
+      for (let index = 0; index < count; index++) {
+        mesh.setMatrixAt(index, new Matrix4().makeTranslation(index, 0, 0))
+        light.setXYZW(index, 1, 1, 1, 1)
+      }
+      assert.equal(mesh.instanceMatrix.array.length, capacity * 16)
+      assert.equal(light.count, capacity)
+      if (count) assert.equal(mesh.instanceMatrix.array[(count - 1) * 16 + 12], count - 1, 'the last instance is written')
+      mesh.dispose()
+    }
+  }
+  // Two mates in one day: two fill layers for one tube.
+  const mixed = pillarInstances([twoMates(2)])
+  assert.equal(mixed.entries.length, 1)
+  assert.equal(mixed.runs.length, 2)
 })

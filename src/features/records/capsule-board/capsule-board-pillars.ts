@@ -180,4 +180,61 @@ export function mixPillar(
   return { height, radius, capsules }
 }
 
+/** A day's pillar form: its layout and radius. */
+export type PillarForm = { layout: PillarLayout; radius: number }
+
+/**
+ * The form a day's pillar shows at `t` (eased) of a morph from `from` (null: nothing to blend from) to `to`, as a form
+ * the next morph can start from. A period change during a morph starts from what is on screen, not from the target
+ * of the morph it cuts short, so the pillar does not jump. The fill's layers keep `to`'s segments (the scene scales
+ * them by the height shown).
+ */
+export function pillarFormAt(from: PillarForm | null, to: PillarForm, t: number): PillarForm {
+  if (!from || t >= 1) return to
+  const shown = mixPillar(from, to, t)
+  return { layout: { ...to.layout, height: shown.height, capsules: shown.capsules }, radius: shown.radius }
+}
+
+/** How strongly the week's guide lines show over a morph: `from` → `to` as the eased morph goes 0 → 1. */
+export type GuideFade = { from: number; to: number }
+
+export const guideLevel = (fade: GuideFade, t: number) => fade.from + (fade.to - fade.from) * Math.max(0, Math.min(1, t))
+
+/**
+ * The guide lines of a morph that starts with `shown` on screen (whose board's lines at which strength) towards a
+ * board that has guide lines (`next.guides`, the week) or not. Into a week its lines fade in from the strength shown
+ * (a morph cut short on its way out of the week turns back without a jump); out of it the lines shown fade out from
+ * where they are, on their own board's wall.
+ */
+export function planGuides<T>(
+  shown: { source: T | null; level: number },
+  next: { model: T; guides: boolean },
+): { source: T | null; fade: GuideFade } {
+  const level = shown.source === null ? 0 : Math.max(0, Math.min(1, shown.level))
+  if (next.guides) return { source: next.model, fade: { from: level, to: 1 } }
+  if (shown.source === null || level <= 0) return { source: null, fade: { from: 0, to: 0 } }
+  return { source: shown.source, fade: { from: level, to: 0 } }
+}
+
+/** Instanced meshes and their per-instance attributes are made for at least one instance (three needs a buffer). */
+export const instanceCapacity = (count: number) => Math.max(1, count)
+
+/**
+ * The pillar instances of a board: each tube / top ring is one day with a pillar, each fill layer one run of the
+ * same colours in it. Rebuilt whenever the days change (also on every period morph), so the meshes always fit.
+ */
+export function pillarInstances(pillars: readonly (PillarLayout | null)[]): {
+  entries: number[]
+  runs: { entry: number; y0: number; y1: number; colors: CapsuleColors }[]
+} {
+  const entries: number[] = []
+  const runs: { entry: number; y0: number; y1: number; colors: CapsuleColors }[] = []
+  pillars.forEach((pillar, index) => {
+    if (!pillar || pillar.height <= 0) return
+    entries.push(index)
+    for (const segment of pillar.segments) runs.push({ entry: index, y0: segment.y0, y1: segment.y1, colors: segment.colors })
+  })
+  return { entries, runs }
+}
+
 export { BOARD }
