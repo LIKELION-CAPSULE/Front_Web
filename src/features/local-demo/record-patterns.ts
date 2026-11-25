@@ -64,9 +64,13 @@ function slots(pattern: RecordPattern, weekday: number, dayOfYear: number): Slot
       // Nothing this week; three times last week and some before.
       return [w + 2, w + 3, w + 5, w + 9, w + 11].map((d) => [d, evening[d % 7]!, minutes[d % 7]!] as const)
     case 'night': {
-      // Every other day of this week, late at night and at dawn; last week twice in the evening.
+      // Every other day of this week, late at night and again at dawn (00:40 of the next calendar day, which is still
+      // the same day from 05:00 — the server's day rule); last week twice in the evening.
       const list: Slot[] = []
-      for (let d = w; d >= 0; d -= 2) list.push([d, '00:40', 50], [d, '22:00', 70])
+      for (let d = w; d >= 0; d -= 2) {
+        list.push([d, '22:00', 70])
+        if (d >= 1) list.push([d - 1, '00:40', 50])
+      }
       list.push([w + 2, '19:30', 60], [w + 4, '20:00', 45])
       return list
     }

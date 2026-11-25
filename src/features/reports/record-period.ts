@@ -2,7 +2,7 @@ import type { StudyRecord } from '../demo/types.ts'
 import { dayKey } from '../../shared/lib/format.ts'
 import { MIN_CALENDAR_DATE, MIN_CALENDAR_YEAR } from '../../shared/lib/date-limits.ts'
 import { focusDetectedSeconds, focusMeasuredSeconds, focusPercent } from '../session/focus.ts'
-import { byConnectionStartDesc, connectionStartedAt } from '../records/connection-day.ts'
+import { byConnectionStartDesc, connectionDayKey } from '../records/connection-day.ts'
 
 export const recordPeriods = [
   { id: 'week', label: '주' },
@@ -58,12 +58,15 @@ export function periodDays(range: RecordRange) {
   )
 }
 
-/** Connections that started inside the range, newest first (date rule: records/connection-day.ts). */
+/**
+ * Connections whose day (from 05:00 Seoul time, records/connection-day.ts) lies inside the range, newest first. Compared
+ * by day key, like 38: a connection started at 02:00 on the first day of the next week belongs to this week's last day.
+ */
 export function recordsInRange(records: readonly StudyRecord[], range: RecordRange) {
   return records
     .filter((record) => {
-      const at = connectionStartedAt(record)
-      return at >= range.start && at < range.end
+      const key = connectionDayKey(record)
+      return key >= range.startDay && key <= range.endDay
     })
     .sort(byConnectionStartDesc)
 }

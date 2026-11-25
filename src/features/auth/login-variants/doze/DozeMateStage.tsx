@@ -116,6 +116,7 @@ export default function DozeMateStage({
         engineUrl: mate.v2Model.engineUrl,
         playerUrl: mate.v2Model.playerUrl,
         reactionsUrl: mate.v2Model.reactionsUrl,
+        format: mate.v2Model.format,
       },
       { pageOrigin: window.location.origin, apiBaseUrl: import.meta.env.VITE_API_BASE_URL },
     )

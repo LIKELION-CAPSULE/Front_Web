@@ -4,7 +4,8 @@ import type { LoginResponse, MateDetailResponse, MeResponse, SignupRequest, Upda
 import type { BetaAccountDetails, BetaAccountPort } from '../auth/beta-account.ts'
 import { normalizeReferralCode, type ReferralValidationResult } from '../auth/referral-code.ts'
 import type { MateContentPort, MateDetailContent } from '../mates/mate-contract.ts'
-import { checkReferral, enterReferral, getMateDetail, getMe, getMyReferral, updateMe } from './server-api.ts'
+import { serverAgeRating } from '../mates/catalog.ts'
+import { checkReferral, enterReferral, getMateDetail, getMe, getMyReferral, resetConversation, updateMe } from './server-api.ts'
 
 type Client = Pick<ApiClient, 'request'>
 
@@ -108,13 +109,16 @@ export function mateDetailContent(dto: MateDetailResponse, characterId: number):
     ...Object.fromEntries(Object.entries(optional).filter(([, value]) => value !== undefined && value.trim() !== '')),
     ...(Array.isArray(dto.hashtags) ? { tags: dto.hashtags.filter(tag => typeof tag === 'string') } : {}),
     ...(model ? { model } : {}),
+    ...(serverAgeRating(dto.ageRating) ? { ageRating: serverAgeRating(dto.ageRating) } : {}),
+    ...(typeof dto.comingSoon === 'boolean' ? { comingSoon: dto.comingSoon } : {}),
+    ...(typeof dto.hasConversation === 'boolean' ? { hasConversation: dto.hasConversation } : {}),
   }
 }
 
-/**
- * 31 mate detail. The conversation reset (47) keeps the old revision contract out: the server has no revision and a
- * different reset scope (docs/API_FRONT_GAP_2026-11-25.md §13), so `resetConversation` stays unset here.
- */
+/** 31 mate detail and 47 대화 초기화 (204, no body; 409 `CONNECTION_IN_PROGRESS`). */
 export function createServerMatePort(client: Client): MateContentPort {
-  return { load: async (_userId, characterId) => mateDetailContent(await getMateDetail(client, characterId), characterId) }
+  return {
+    load: async (_userId, characterId) => mateDetailContent(await getMateDetail(client, characterId), characterId),
+    resetConversation: async ({ characterId }) => { await resetConversation(client, characterId) },
+  }
 }

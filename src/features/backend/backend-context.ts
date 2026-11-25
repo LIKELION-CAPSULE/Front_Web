@@ -7,7 +7,7 @@ import type { BetaInvitation, BetaWallet } from '@/features/credits/beta-types'
 import type { BetaAccountDetails, BetaAccountPort, BetaOnboardingInput, BetaProfileInput } from '@/features/auth/beta-account'
 import type { ReferralValidationResult } from '@/features/auth/referral-code'
 import type { MateDetailContent } from '@/features/mates/mate-contract'
-import type { MateServerRelationStats, MateUnlocks } from '@/features/mates/my-mates-utils'
+import type { MateUnlocks } from '@/features/mates/my-mates-utils'
 import type { SessionModelFactory } from '@/features/live2d/session-model'
 import type { BetaFeaturePort, BetaFeatureSnapshot } from './beta-feature-port'
 
@@ -32,7 +32,8 @@ export type BackendContextValue = {
   mateDetails: Record<string, MateDetailContent>
   mateContentVersion: number
   loadMateDetail: ((mateId: string, force?: boolean) => Promise<MateDetailContent>) | null
-  resetMateConversation: ((mateId: string, revision: string) => Promise<void>) | null
+  /** 47 대화 초기화 (204). 409 `CONNECTION_IN_PROGRESS` while this mate is connected. */
+  resetMateConversation: ((mateId: string) => Promise<void>) | null
   previewModelFactory: SessionModelFactory
   featurePort?: BetaFeaturePort
   betaSettings?: BetaFeatureSnapshot['settings']
@@ -40,7 +41,6 @@ export type BackendContextValue = {
   wallet: BetaWallet | null
   invitation: BetaInvitation | null
   mateUnlocks?: Record<string, MateUnlocks>
-  mateRelationStats?: Record<string, MateServerRelationStats>
   redeemInvitation: ((code: string) => Promise<void>) | null
   /** 8 · 11 `activeConnection`: a connection to continue (17), when not running on this screen. */
   activeSummary: ActiveConnectionSummary | null

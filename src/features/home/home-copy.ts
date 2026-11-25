@@ -9,6 +9,9 @@ export const HOME_COPY = {
   ctaInvite: '친구 초대하고 크레딧 받기',
   matesTitle: '오늘은 누구와 함께할까요?',
   available: '연결 가능',
+  /** A mate shown but not open yet (11 `comingSoon`): its page offers 「공개 알림 받기」 (46). */
+  comingSoon: '곧 만나요',
+  comingSoonLabel: (name: string) => `${name} · 곧 만나요`,
   upcoming: '추가 예정',
   upcomingName: '새로운 메이트',
   upcomingLine: '곧 새로운 인연이 찾아와요!',

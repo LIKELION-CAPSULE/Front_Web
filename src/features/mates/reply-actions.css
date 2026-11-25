@@ -1,0 +1,100 @@
+/*
+ * Reply controls in the call screen's chat (ReplyActions): out of the way until the reply is hovered or focused, no
+ * outlines; violet only for a chosen rating (docs/DESIGN_SYSTEM.md).
+ */
+.reply-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+.connection-messages article:hover .reply-actions,
+.connection-messages article:focus-within .reply-actions,
+.reply-actions:has([aria-pressed='true']) {
+  opacity: 1;
+}
+.reply-action {
+  display: inline-grid;
+  min-width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: var(--radius-control);
+  padding: 0 6px;
+  color: var(--color-subtle);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  transition: color 120ms ease, background-color 120ms ease;
+}
+.reply-action:hover { background: var(--color-control); color: var(--color-ink); }
+.reply-action:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+.reply-action[aria-pressed='true'] { background: var(--color-selected); color: var(--color-selected-text); }
+.reply-action-error { margin-left: 6px; color: var(--color-danger); font-size: var(--text-caption); }
+
+.reply-reported { display: grid; gap: 4px; }
+.reply-reported-note { color: var(--color-subtle); font-style: normal; }
+.reply-reported-toggle {
+  justify-self: start;
+  border-radius: var(--radius-control);
+  padding: 2px 6px;
+  color: var(--color-muted);
+  font-size: var(--text-caption);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.reply-reported-toggle:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+.reply-reported-text { color: var(--color-muted); }
+
+.reply-report-reasons { display: grid; gap: 6px; margin: 16px 0 0; border: 0; padding: 0; }
+.reply-report-reason {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  border-radius: var(--radius-control);
+  background: var(--color-control);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.reply-report-reason[data-checked] { background: var(--color-selected); color: var(--color-selected-text); }
+.reply-report-reason input { accent-color: var(--color-primary); }
+.reply-report-detail { display: grid; gap: 6px; margin-top: 14px; }
+.reply-report-detail textarea { resize: vertical; }
+.reply-report-count { justify-self: end; color: var(--color-subtle); font-size: var(--text-caption); font-variant-numeric: tabular-nums; }
+
+@media (hover: none) {
+  /* Touch: no hover, so the controls stay visible. */
+  .reply-actions { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reply-actions { transition: none; }
+}
+
+/* 고급 모드 short of credits (CreditShortNotice): a quiet card over the composer; violet only on the main action. */
+.credit-short-notice {
+  display: grid;
+  gap: 8px;
+  margin: 0 12px 10px;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-canvas) 70%, transparent);
+  padding: 12px 14px;
+}
+.credit-short-notice-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.credit-short-notice-title { margin: 0; color: var(--color-ink); font-weight: 700; font-size: var(--text-body-compact); }
+.credit-short-notice-close { display: inline-grid; width: 28px; height: 28px; place-items: center; border-radius: var(--radius-control); color: var(--color-subtle); }
+.credit-short-notice-close:hover { background: var(--color-control); color: var(--color-ink); }
+.credit-short-notice-body { margin: 0; color: var(--color-muted); font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
+.credit-short-notice-remaining { color: var(--color-subtle); font-variant-numeric: tabular-nums; }
+.credit-short-notice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.credit-short-notice-invite { color: var(--color-muted); font-size: var(--text-caption); text-decoration: underline; text-underline-offset: 3px; }
+.credit-short-notice-invite:hover { color: var(--color-ink); }
+.voice-fallback-note { margin: 0 12px 8px; color: var(--color-subtle); font-size: var(--text-caption); }
+.voice-fallback-note { animation: voice-fallback-note 6s ease forwards; }
+@keyframes voice-fallback-note { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
+.connection-history-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; margin: 0 0 8px; color: var(--color-subtle); font-size: var(--text-caption); line-height: 26px; text-align: center; }
+/* An older page on its way: over the top of the list (no height of its own), so the lines in view do not move. */
+.connection-history-status--over { position: sticky; z-index: 1; top: 0; width: fit-content; height: 26px; margin: 0 auto -26px; border-radius: 999px; background: color-mix(in srgb, var(--color-panel) 92%, transparent); padding: 0 12px; pointer-events: none; }
+.connection-history-retry { border-radius: var(--radius-control); padding: 0 8px; color: var(--color-muted); text-decoration: underline; text-underline-offset: 3px; }
+.connection-history-retry:hover { background: var(--color-control); color: var(--color-ink); }
+.connection-history-retry:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }

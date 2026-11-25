@@ -1,5 +1,6 @@
 import type { ModelInfo } from '../../shared/api/types.ts'
 import { ApiError } from '../../shared/api/client.ts'
+import type { MateAgeRating } from './catalog.ts'
 
 /**
  * Mate preview model. `ModelInfo` (Cubism: `modelJsonUrl` + layout) plus the v2 (Aliving2D) runtime URLs.
@@ -28,18 +29,23 @@ export type MateDetailContent = {
   tags?: readonly string[]
   model?: MateModelInfo
   voiceSampleUrl?: string
-  conversationRevision?: string
+  /** 31 `ageRating` (`ALL` · `ADULT`). */
+  ageRating?: MateAgeRating
+  /** 31 `comingSoon`: shown, but the connection is closed (16 answers 409 `MATE_COMING_SOON`); 46 '알림 받기' instead. */
+  comingSoon?: boolean
+  /** 31 `hasConversation`: earlier messages in the chat room (32). */
+  hasConversation?: boolean
 }
-export const resetScopes = ['messages', 'memory', 'intimacy', 'unlocks'] as const
-export type MateResetReceipt = {
-  characterId: number
-  previousRevision: string
-  revision: string
-  cleared: readonly (typeof resetScopes[number])[]
-}
+/**
+ * 47 대화 초기화 (`POST /mates/{mateId}/conversation/reset`, 204, no body): hides the chat room (32), the past-connection
+ * cards and the facts the mate remembered. Intimacy, unlocks, records and credits stay. The only conflict is 409
+ * `CONNECTION_IN_PROGRESS` (connected with this mate now). docs/API_FRONT_GAP_2026-11-25.md §13.
+ */
+export const MATE_RESET_CLEARS = ['대화 기록', '대화 맥락(메이트가 기억한 내용)'] as const
+export const MATE_RESET_KEEPS = ['친밀도와 열린 표정', '연결 기록', '크레딧'] as const
 export type MateContentPort = {
   load: (userId: number, characterId: number) => Promise<MateDetailContent>
-  resetConversation?: (input: { userId: number; characterId: number; expectedRevision: string }) => Promise<MateResetReceipt>
+  resetConversation?: (input: { userId: number; characterId: number }) => Promise<void>
 }
 
 const invalid = () => new ApiError('요청을 처리하지 못했어요.', 502)
@@ -52,12 +58,12 @@ function assetUrl(value: unknown, audio = false): value is string {
 export function checkedMateDetail(value: MateDetailContent, characterId: number): MateDetailContent {
   if (!Number.isSafeInteger(characterId) || characterId <= 0 || !value || value.characterId !== characterId) throw invalid()
   const result: MateDetailContent = { characterId }
-  for (const key of ['introduction', 'description', 'role', 'intro', 'farewellLine', 'conversationRevision'] as const) {
+  for (const key of ['introduction', 'description', 'role', 'intro', 'farewellLine'] as const) {
     if (value[key] === undefined) continue
-    if (typeof value[key] !== 'string' || key === 'conversationRevision' && !value[key].trim()) throw invalid()
+    if (typeof value[key] !== 'string') throw invalid()
     result[key] = value[key]
   }
-  if (value.tags !== undefined) {
+  if (value.tags != null) { // An optional list: null is none.
     if (!Array.isArray(value.tags) || !value.tags.every(tag => typeof tag === 'string')) throw invalid()
     result.tags = [...new Set(value.tags.map(tag => tag.trim()).filter(Boolean))]
   }
@@ -82,26 +88,24 @@ export function checkedMateDetail(value: MateDetailContent, characterId: number)
     if (!assetUrl(value.voiceSampleUrl, true)) throw invalid()
     result.voiceSampleUrl = value.voiceSampleUrl
   }
+  if (value.ageRating === 'all' || value.ageRating === 'adult') result.ageRating = value.ageRating
+  for (const key of ['comingSoon', 'hasConversation'] as const) {
+    if (value[key] === undefined) continue
+    if (typeof value[key] !== 'boolean') throw invalid()
+    result[key] = value[key]
+  }
   return result
 }
-export const MATE_RESET_CONFLICT_MESSAGE =
-  '다른 곳에서 대화가 바뀌었어요. 최신 상태로 다시 불러왔으니 한 번 더 확인해 주세요.'
+export const MATE_RESET_IN_CONNECTION_MESSAGE = '지금 이 메이트와 연결 중이에요. 연결을 먼저 마쳐 주세요.'
 
-const RESET_CONFLICT_CODES = new Set([
-  'CONVERSATION_REVISION_CONFLICT',
-  'MATE_REVISION_CONFLICT',
-  'REVISION_CONFLICT',
-])
-
-export function isMateResetConflict(reason: unknown): boolean {
-  if (!(reason instanceof ApiError)) return false
-  if (reason.code) return RESET_CONFLICT_CODES.has(reason.code) || reason.status === 409
-  return reason.status === 409
+/** 47's only conflict: 409 `CONNECTION_IN_PROGRESS` (this mate is connected now, here or on another device). */
+export function isMateResetBlocked(reason: unknown): boolean {
+  return reason instanceof ApiError && (reason.code === 'CONNECTION_IN_PROGRESS' || reason.status === 409)
 }
 
 export function mateResetErrorMessage(reason: unknown): string {
-  if (isMateResetConflict(reason)) return MATE_RESET_CONFLICT_MESSAGE
-  return reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.'
+  if (isMateResetBlocked(reason)) return MATE_RESET_IN_CONNECTION_MESSAGE
+  return reason instanceof Error && reason.message ? reason.message : '대화를 초기화하지 못했어요. 다시 시도해 주세요.'
 }
 
 export function selectLeaveQuote(
@@ -112,11 +116,4 @@ export function selectLeaveQuote(
   if (fromDetail) return fromDetail
   const fromMate = mate?.farewellLine?.trim()
   return fromMate || ''
-}
-
-export function checkMateReset(value: MateResetReceipt, characterId: number, revision: string) {
-  if (!Number.isSafeInteger(characterId) || characterId <= 0 || typeof revision !== 'string' || !revision.trim() ||
-    !value || value.characterId !== characterId || value.previousRevision !== revision || typeof value.revision !== 'string' ||
-    !value.revision.trim() || value.revision === revision || !Array.isArray(value.cleared) ||
-    resetScopes.some(scope => !value.cleared.includes(scope)) || value.cleared.some(scope => !resetScopes.includes(scope))) throw invalid()
 }

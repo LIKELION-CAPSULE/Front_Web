@@ -1,5 +1,5 @@
 import type { StudyRecord } from '../demo/types.ts'
-import { dayKey, duration } from '../../shared/lib/format.ts'
+import { businessDay, dayKey, duration } from '../../shared/lib/format.ts'
 import { withParticle } from '../../shared/lib/korean.ts'
 import { getRecordRange, periodDays, recordsInRange, type RecordRange } from '../reports/record-period.ts'
 import { completedRecords, connectionDayKey, connectionStartedAt } from './connection-day.ts'
@@ -78,7 +78,8 @@ export type PeriodFacts = {
   lateBandSessions: number
   /** Late sessions fell both at night and at dawn: speak of "늦은 시간", not of one band. */
   lateMixed: boolean
-  previousSessions: number
+  /** Connections of the period before; null when it is not known (38 reads only the shown range). */
+  previousSessions: number | null
   /** Consecutive days with a record, ending today/yesterday (current) or on the last active day (past). */
   streakDays: number
   /** Records exist in this period and none before it. */
@@ -193,11 +194,11 @@ export function collectPeriodFacts(input: Omit<MateCommentInput, 'seedKey' | 'vo
   const lateBandSessions = lateBand === 'night' ? nightCount : lateBand === 'dawn' ? dawnCount : 0
   const lateMixed = nightCount > 0 && dawnCount > 0
 
-  const before = records.filter((record) => connectionStartedAt(record) < range.start)
+  const before = records.filter((record) => connectionDayKey(record) < range.startDay)
   const hasRecordsBefore = before.length > 0
 
   const activeKeys = new Set(
-    records.filter((record) => connectionStartedAt(record) < Math.min(range.end, now + 1)).map(connectionDayKey),
+    records.filter((record) => connectionDayKey(record) <= range.endDay && connectionStartedAt(record) <= now).map(connectionDayKey),
   )
   let streakDays = 0
   if (isCurrent) {
@@ -282,9 +283,10 @@ export function classifyPeriod(facts: PeriodFacts): MateCommentKind | null {
   if (facts.longSessions > 0) return 'long'
   if (isSteady(facts)) return 'steady'
   if (facts.sessions >= 2 && facts.lateSessions / facts.sessions >= 0.6) return 'late'
-  if (facts.previousSessions > 0 && facts.sessions > facts.previousSessions) return 'more'
+  const previous = facts.previousSessions
+  if (previous !== null && previous > 0 && facts.sessions > previous) return 'more'
   if (facts.period === 'week' && facts.sessions <= 2) return 'light'
-  if (facts.previousSessions > facts.sessions) return 'less'
+  if (previous !== null && previous > facts.sessions) return 'less'
   return 'regular'
 }
 
@@ -331,7 +333,7 @@ export const chaerinVoice: MateVoice = {
       () => '여기 아직 아무것도 없네. 첫 만남 기다리고 있을게!',
     ],
     missed: [
-      (c) => (c.previousSessions > 0 ? `${c.periodWord}엔 아직 못 만났네. ${c.previousWord}엔 ${times(c.previousSessions)} 왔었잖아, 보고 싶었어!` : null),
+      (c) => (c.previousSessions !== null && c.previousSessions > 0 ? `${c.periodWord}엔 아직 못 만났네. ${c.previousWord}엔 ${times(c.previousSessions)} 왔었잖아, 보고 싶었어!` : null),
       (c) => (c.lastSeenDaysAgo !== null && c.lastSeenDaysAgo >= 2 ? `마지막으로 본 게 ${days(c.lastSeenDaysAgo)} 전이야. 오늘은 잠깐이라도 올 거지?` : null),
       (c) => (c.lastSeenDaysAgo !== null && c.lastSeenDaysAgo >= 3 ? `${c.periodTopic} 좀 조용하네… 오랜만에 같이 있을래?` : null),
       (c) => `${c.periodWord}엔 아직 못 만났네. 오늘 잠깐 만날래?`,
@@ -364,17 +366,17 @@ export const chaerinVoice: MateVoice = {
       (c) => (c.isCurrent ? about('late', `늦은 시간에도 ${times(c.lateSessions)}이나 와 줘서 고마워. 오늘은 일찍 자자!`) : null),
     ],
     more: [
-      (c) => about('active', `${c.periodWord}엔 ${times(c.sessions)}이나 ${c.tense('왔네', '왔었지')}! ${c.previousWord}보다 ${times(c.sessions - c.previousSessions)} 더 왔어.`),
-      (c) => about('active', `${c.previousWord}엔 ${times(c.previousSessions)}이었는데 ${c.periodWord}엔 ${times(c.sessions)}! ${c.tense('점점 늘고 있어.', '그때 확 늘었지.')}`),
+      (c) => (c.previousSessions !== null ? about('active', `${c.periodWord}엔 ${times(c.sessions)}이나 ${c.tense('왔네', '왔었지')}! ${c.previousWord}보다 ${times(c.sessions - c.previousSessions)} 더 왔어.`) : null),
+      (c) => (c.previousSessions !== null ? about('active', `${c.previousWord}엔 ${times(c.previousSessions)}이었는데 ${c.periodWord}엔 ${times(c.sessions)}! ${c.tense('점점 늘고 있어.', '그때 확 늘었지.')}`) : null),
       (c) =>
         c.longest && c.longest.seconds >= 3600
           ? about('longest', `${c.periodWord}엔 ${times(c.sessions)}이나 ${c.tense('왔네', '왔었지')}! ${c.longest.dayLabel} ${timeBandLabels[c.longest.band]}엔 꽤 오래 있었지?`)
           : null,
     ],
     light: [
-      (c) => (c.sessions === 1 ? about('longest', `${c.periodWord}엔 한 번 왔네. ${c.longest!.dayLabel}에 ${c.longestDuration} 같이 있었지!`) : null),
+      (c) => (c.sessions === 1 && c.longest ? about('longest', `${c.periodWord}엔 한 번 왔네. ${c.longest.dayLabel}에 ${c.longestDuration} 같이 있었지!`) : null),
       (c) => about('active', `${c.periodWord} ${times(c.sessions)}, ${c.total} 같이 있었어. 다음엔 조금 더 자주 보자!`),
-      (c) => (c.previousSessions > c.sessions ? about('active', `${c.previousWord}보단 적었지만 괜찮아. ${times(c.sessions)}이라도 와 줘서 고마워.`) : null),
+      (c) => (c.previousSessions !== null && c.previousSessions > c.sessions ? about('active', `${c.previousWord}보단 적었지만 괜찮아. ${times(c.sessions)}이라도 와 줘서 고마워.`) : null),
     ],
     less: [
       (c) => about('active', `${c.periodTopic} ${c.previousWord}보다 조금 뜸했네. 바빴어? 와 줘서 고마워.`),
@@ -403,7 +405,7 @@ export const dohyunVoice: MateVoice = {
       () => '여긴 아직 비었어. …첫 캡슐은 같이 채우자.',
     ],
     missed: [
-      (c) => (c.previousSessions > 0 ? `${c.periodWord}엔 한 번도 안 왔네. ${c.previousWord}엔 ${times(c.previousSessions)} 왔으면서.` : null),
+      (c) => (c.previousSessions !== null && c.previousSessions > 0 ? `${c.periodWord}엔 한 번도 안 왔네. ${c.previousWord}엔 ${times(c.previousSessions)} 왔으면서.` : null),
       (c) => (c.lastSeenDaysAgo !== null && c.lastSeenDaysAgo >= 2 ? `너 ${days(c.lastSeenDaysAgo)}째 안 보이더라. …뭐, 바빴냐?` : null),
       (c) => `${c.periodWord}엔 아직이네. 자리 비워 둘게.`,
     ],
@@ -425,11 +427,11 @@ export const dohyunVoice: MateVoice = {
       (c) => (c.isCurrent ? about('late', `늦게 온 게 ${times(c.lateSessions)}이야. 오늘은 일찍 자라.`) : null),
     ],
     more: [
-      (c) => about('active', `${c.previousWord}보다 ${times(c.sessions - c.previousSessions)} 더 왔네. 좀 열심히 했다?`),
-      (c) => about('active', `${c.previousWord} ${times(c.previousSessions)}, ${c.periodWord} ${times(c.sessions)}. ${c.tense('늘었네.', '그때 늘었지.')}`),
+      (c) => (c.previousSessions !== null ? about('active', `${c.previousWord}보다 ${times(c.sessions - c.previousSessions)} 더 왔네. 좀 열심히 했다?`) : null),
+      (c) => (c.previousSessions !== null ? about('active', `${c.previousWord} ${times(c.previousSessions)}, ${c.periodWord} ${times(c.sessions)}. ${c.tense('늘었네.', '그때 늘었지.')}`) : null),
     ],
     light: [
-      (c) => (c.sessions === 1 ? about('longest', `${c.periodWord}엔 한 번. ${c.longest!.dayLabel}에 ${c.longestDuration} 했지.`) : null),
+      (c) => (c.sessions === 1 && c.longest ? about('longest', `${c.periodWord}엔 한 번. ${c.longest.dayLabel}에 ${c.longestDuration} 했지.`) : null),
       (c) => about('active', `${c.periodWord} ${times(c.sessions)}, ${c.total}. 다음엔 좀 더 와.`),
     ],
     less: [
@@ -498,17 +500,80 @@ export function commentHighlight(focus: CommentFocus, facts: PeriodFacts): Comme
 }
 
 export function buildMateComment(input: MateCommentInput): MateComment | null {
-  const facts = collectPeriodFacts(input)
+  return mateCommentFromFacts(collectPeriodFacts(input), input)
+}
+
+/** The line for facts already collected (from connections, or from 38's sums: `collectRecordsFacts`). */
+export function mateCommentFromFacts(facts: PeriodFacts, { range, seedKey, voice = chaerinVoice }: Pick<MateCommentInput, 'range' | 'seedKey' | 'voice'>): MateComment | null {
   const kind = classifyPeriod(facts)
   if (!kind) return null
-  const voice = input.voice ?? chaerinVoice
   const context = commentContext(facts)
   const candidates = voice.templates[kind]
     .map((template) => template(context))
     .filter((line): line is CommentLine => Boolean(line))
     .map((line) => (typeof line === 'string' ? { text: line, focus: 'none' as const } : line))
   if (candidates.length === 0) return null
-  const seed = seedHash(`${input.seedKey}|${input.range.period}|${input.range.startDay}|${kind}`)
+  const seed = seedHash(`${seedKey}|${range.period}|${range.startDay}|${kind}`)
   const { text, focus } = candidates[seed % candidates.length]!
   return { kind, text, focus, highlight: commentHighlight(focus, facts) }
+}
+
+/**
+ * Facts for the records page, from what is certain only: 38's answer for the speaking mate in the shown range (sums,
+ * connected days, day buckets — never a day bucket taken for one connection) and 37's `firstMetAt`. Unknown here and so
+ * left empty (the lines that need them drop out): the period before (38 reads one range), the longest connection and
+ * the time of day (day buckets join connections; only the newest five are single), the last time seen. A streak counts
+ * only when its start is known (the day before is in the range without time, or it is the first meeting).
+ */
+export function collectRecordsFacts(input: {
+  range: RecordRange
+  offset: number
+  /** The speaking mate's 38 answer for `range`, or null when none was read (no time in the range). */
+  view: { connectionCount: number; connectedDays: number; totalConnectedSeconds: number; buckets: readonly { key: string; connectedSeconds: number }[] } | null
+  /** The speaking mate has a 37 entry (they have met). */
+  met: boolean
+  /** 37 `firstMetAt` (ms), null when not given. */
+  firstMetAt: number | null
+}): PeriodFacts {
+  const { range, offset, view, met } = input
+  const isCurrent = offset === 0
+  const { periodWord, previousWord } = periodWords(range.period, offset)
+  const inPeriod = (key: string) => key >= range.startDay && key <= range.endDay && (!isCurrent || key <= range.today)
+  const active = [...new Set((view?.buckets ?? []).filter((item) => item.key.length === 10 && item.connectedSeconds > 0 && inPeriod(item.key)).map((item) => item.key))].sort()
+  const sessions = view?.connectionCount ?? 0
+  const days = periodDays(range)
+  const elapsedDays = isCurrent ? days.filter((key) => key <= range.today).length : days.length
+  const firstDay = input.firstMetAt !== null && Number.isFinite(input.firstMetAt) ? businessDay(input.firstMetAt) : null
+  const hasRecordsBefore = firstDay !== null ? firstDay < range.startDay : met && sessions === 0
+  const activeSet = new Set(active)
+  const anchor = isCurrent ? (activeSet.has(range.today) ? range.today : dayKey(dayStart(range.today) - DAY)) : active.at(-1)
+  const streak: string[] = []
+  if (anchor && activeSet.has(anchor)) {
+    for (let cursor = dayStart(anchor); activeSet.has(dayKey(cursor)); cursor -= DAY) streak.unshift(dayKey(cursor))
+  }
+  const dayBefore = streak.length ? dayKey(dayStart(streak[0]!) - DAY) : null
+  const streakKnown = streak.length > 0 && ((dayBefore !== null && dayBefore >= range.startDay) || (firstDay !== null && firstDay >= streak[0]!))
+  return {
+    period: range.period,
+    isCurrent,
+    periodWord,
+    previousWord,
+    sessions,
+    activeDays: Math.max(active.length, view?.connectedDays ?? 0),
+    totalSeconds: view?.totalConnectedSeconds ?? 0,
+    elapsedDays,
+    longest: null,
+    longSessions: 0,
+    dominantBand: null,
+    lateSessions: 0,
+    lateBand: null,
+    lateBandSessions: 0,
+    lateMixed: false,
+    previousSessions: null,
+    streakDays: streakKnown ? streak.length : 0,
+    isFirstPeriod: sessions > 0 && firstDay !== null && firstDay >= range.startDay,
+    hasRecordsBefore,
+    lastSeenDaysAgo: null,
+    keys: { active, streak: streakKnown ? streak : [], late: [], lateBand: [], dominantBand: [], long: [], first: active.slice(0, 1) },
+  }
 }

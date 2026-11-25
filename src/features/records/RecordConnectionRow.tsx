@@ -51,6 +51,37 @@ export function RecordConnectionRow({
 }
 
 /**
+ * The part of a day that 38 does not list as connections (older ones of that day): its time, no time of day and no
+ * link (there is no single connection record behind it).
+ */
+export function DayRemainderRow({ record, mateName }: { record: StudyRecord; mateName?: string }) {
+  const cameraSeconds = record.cameraFocus ? focusDetectedSeconds(record) : 0
+  return (
+    <div className="records-row records-row--remainder">
+      <span className="records-row-meta">
+        <span className="records-row-when">그 밖의 연결</span>
+        {mateName && (
+          <span className="records-row-part">
+            <span className="records-row-sep" aria-hidden="true">·</span>
+            <span>{mateName}</span>
+          </span>
+        )}
+        <span className="records-row-part">
+          <span className="records-row-sep" aria-hidden="true">·</span>
+          <span className="records-row-together">함께한 시간 {duration(record.studySeconds)}</span>
+        </span>
+        {cameraSeconds > 0 && (
+          <span className="records-row-part">
+            <span className="records-row-sep" aria-hidden="true">·</span>
+            <span className="records-row-camera">카메라로 함께한 시간 {duration(cameraSeconds)}</span>
+          </span>
+        )}
+      </span>
+    </div>
+  )
+}
+
+/**
  * Selected day: summary line + that day's records. The record renderer is replaceable so the my-mates
  * "캡슐 기록 카드" can be plugged in later without touching the calendar.
  */

@@ -75,22 +75,39 @@ test('month navigation handles short months and crosses year boundaries without 
   assert.equal(getRecordRange('month', now, 13).startDay, '2029-02-01')
 })
 
-test('record filtering uses the start time: includes the range start, excludes its end, newest first', () => {
+test('record filtering uses the day a connection started (05:00 Seoul boundary), newest first', () => {
   const range = getRecordRange('month', Date.parse('2026-10-27T10:00:00+09:00'))
   const startingAt = (startedAt: number) => record(startedAt + 60000)
+  const HOUR = 3_600_000
   const source = [
-    startingAt(range.start - 1),
-    startingAt(range.start),
-    startingAt(range.end),
-    startingAt(range.end - 1),
+    startingAt(range.start - 1), // 09-30 23:59 → 09-30
+    startingAt(range.start), // 10-01 00:00 → still 09-30's night
+    startingAt(range.start + 5 * HOUR), // 10-01 05:00 → 10-01
+    startingAt(range.end - 1), // 10-31 23:59 → 10-31
+    startingAt(range.end + 4 * HOUR), // 11-01 04:00 → 10-31's night
+    startingAt(range.end + 5 * HOUR), // 11-01 05:00 → 11-01
   ]
-  const found = recordsInRange(source, range)
   assert.deepEqual(
-    found.map((item) => item.startedAt),
-    [range.end - 1, range.start],
+    recordsInRange(source, range).map((item) => item.startedAt),
+    [range.end + 4 * HOUR, range.end - 1, range.start + 5 * HOUR],
   )
-  // A connection that started just before the range and ended inside it belongs to the previous period.
-  assert.equal(source[0]!.startedAt, range.start - 1)
+})
+
+test('week, month and year ends follow the 05:00 boundary', () => {
+  const at = (text: string) => record(Date.parse(text) + 60000)
+  const cases = [
+    // Week 11-23 (Mon) – 11-29 (Sun).
+    { range: getRecordRange('week', Date.parse('2026-11-25T12:00:00+09:00')), inside: ['2026-11-23T05:00:00+09:00', '2026-11-30T04:59:00+09:00'], outside: ['2026-11-23T04:59:00+09:00', '2026-11-30T05:00:00+09:00'] },
+    // November.
+    { range: getRecordRange('month', Date.parse('2026-11-25T12:00:00+09:00')), inside: ['2026-11-01T05:00:00+09:00', '2026-12-01T02:00:00+09:00'], outside: ['2026-11-01T03:00:00+09:00', '2026-12-01T05:00:00+09:00'] },
+    // 2026.
+    { range: getRecordRange('year', Date.parse('2026-11-25T12:00:00+09:00')), inside: ['2026-01-01T05:00:00+09:00', '2027-01-01T04:30:00+09:00'], outside: ['2027-01-01T05:00:00+09:00'] },
+  ]
+  for (const { range, inside, outside } of cases) {
+    const found = new Set(recordsInRange([...inside, ...outside].map(at), range).map((item) => item.startedAt))
+    for (const text of inside) assert.ok(found.has(Date.parse(text)), `${range.period} includes ${text}`)
+    for (const text of outside) assert.ok(!found.has(Date.parse(text)), `${range.period} leaves out ${text}`)
+  }
 })
 
 test('period summaries weight focus by time and count companions once', () => {

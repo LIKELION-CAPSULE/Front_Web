@@ -33,7 +33,9 @@ export default function KakaoCallbackPage() {
       navigate(me.onboardingRequired ? `/onboarding?next=${encodeURIComponent(next)}` : next, { replace: true })
     })().catch(reason => {
       clearKakaoLogin()
-      navigate(`/login?notice=${kakaoErrorNotice(reason)}`, { replace: true })
+      // The beta is full (6 → 403 BETA_FULL for a new account): the launch notice sign-up.
+      if (reason && typeof reason === 'object' && 'code' in reason && reason.code === 'BETA_FULL') navigate('/login?mode=waitlist', { replace: true })
+      else navigate(`/login?notice=${kakaoErrorNotice(reason)}`, { replace: true })
     })
   }, [authenticate, navigate, params])
   return <RouteLoading destination={destination} label="카카오 로그인을 처리하고 있어요." />
