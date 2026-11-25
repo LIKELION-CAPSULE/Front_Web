@@ -1107,6 +1107,8 @@ export default function ConnectionPage() {
         open={leaveOpen}
         onClose={() => { if (!finishing) setLeaveOpen(false) }}
         dismissible={!finishing}
+        // 「계속하기」 is the way back (Esc and the backdrop do the same), so no X in the header (2026-11-26).
+        showCloseButton={false}
         title={`${withParticle(mate.name, '과', '와')}의 연결을 끊을까요?`}
         className="connection-leave-dialog"
       >

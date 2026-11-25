@@ -105,6 +105,9 @@
   }
   .app-dialog-head > h2 { flex: 1 1 auto; min-width: 0; }
   .app-dialog-head > .app-dialog-close { margin: -6px -10px -6px 0; }
+  /* Keyboard focus ring drawn inside the 44px button, so it stays clear of the roof above (no ring on mouse use:
+     :focus-visible). */
+  .app-dialog-close:focus-visible { outline-width: 2px; outline-offset: -3px; }
   .app-dialog-body {
     position: relative;
     min-height: 0;
