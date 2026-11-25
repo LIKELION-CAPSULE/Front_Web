@@ -15,7 +15,7 @@ import { EmailVerificationForm } from '@/features/auth/components/EmailVerificat
 import { PasswordRecoveryForm } from '@/features/auth/components/PasswordRecoveryForm'
 import { BetaWaitlistForm } from '@/features/auth/components/BetaWaitlistForm'
 import type { LegalDocumentId } from '@/features/auth/data/legal-documents'
-import { hasRequiredLegalTerms } from '@/features/auth/legal-content'
+import { legalTermsReady } from '@/features/auth/legal-terms-ready'
 import { birthDateError } from '@/features/auth/birth-date'
 import { clearStoredReferralCode } from '@/features/auth/referral-code'
 import DesktopBrand from '@/features/auth/login-backgrounds/desktop/DesktopBrand'
@@ -148,7 +148,7 @@ export default function LoginPage() {
       showError('카카오 로그인을 준비하고 있어요. 이메일로 로그인해 주세요.')
       return
     }
-    if (!hasRequiredLegalTerms(backend.terms)) {
+    if (!legalTermsReady(backend.terms)) {
       showError('약관 정보를 불러오지 못했어요. 페이지를 새로고침해 다시 시도해 주세요.')
       return
     }
@@ -191,7 +191,7 @@ export default function LoginPage() {
           onVerified={async (verificationToken) => {
             const error = birthDateError(signupDraft.birthDate)
             if (error) throw new Error(error)
-            if (!hasRequiredLegalTerms(backend.terms))
+            if (!legalTermsReady(backend.terms))
               throw new Error('약관 정보를 불러오지 못했어요. 페이지를 새로고침해 다시 시도해 주세요.')
             if (!backend.betaSignup) throw new Error('요청을 처리하지 못했어요.')
             let result: LoginResponse

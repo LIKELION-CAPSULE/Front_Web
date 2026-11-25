@@ -15,7 +15,7 @@ import {
   shouldApplyIncomingReferral,
   subscribeStoredReferralCode,
 } from '../referral-code'
-import { hasRequiredLegalTerms } from '../legal-content'
+import { legalTermsReady } from '../legal-terms-ready'
 import { NICKNAME_MAX_INPUT_UNITS } from '@/shared/api/constraints'
 
 export type EmailAuthMode = 'login' | 'signup'
@@ -39,7 +39,7 @@ export function EmailAuthForm({
 }) {
   const signup = mode === 'signup'
   const { terms, validateReferralCode } = useBackend()
-  const termsReady = hasRequiredLegalTerms(terms)
+  const termsReady = legalTermsReady(terms)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const id = useId()
