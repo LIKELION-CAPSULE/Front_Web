@@ -129,6 +129,12 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     if (operation === 'messages/stream' && fault === 'credit-short' && typeof options?.body === 'string' && options.body.includes('"mode":"ADVANCED"')) {
       return fail(409, 'CREDIT_INSUFFICIENT', { credits: { todayRemaining: 10 } })
     }
+    // A voice turn short of credits: the server answers in text only (`done.voice` false), never an error.
+    if (operation === 'messages/stream' && fault === 'voice-short' && typeof options?.body === 'string') {
+      const response = await local(input, { ...options, body: options.body.replace('"tts":true', '"tts":false') })
+      log(response.status)
+      return response
+    }
     if (operation === 'messages/stream' && fault === 'server-ended-stream') {
       store.data.active = null
       log(200)

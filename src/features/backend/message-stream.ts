@@ -49,6 +49,11 @@ type Handlers = {
   /** 28 `audio` pieces (voice turns, `tts: true`), in order; `audio_end` closes them. Ignored when absent. */
   onAudio?: (audio: MessageStreamAudio) => void
   onAudioEnd?: (end: MessageStreamAudioEnd) => void
+  /**
+   * The stream is over (after `audio_end`, or cut, or never opened): no more pieces come. With `onAudio` the reply
+   * resolves at `done` while the voice keeps streaming, so this is how the player learns the voice is complete.
+   */
+  onAudioClose?: () => void
   /** Returning false stops resending (logout, another session). */
   alive?: () => boolean
 }
@@ -57,10 +62,15 @@ type StreamOptions = { attempts?: number; signal?: AbortSignal }
 /** API 28 `POST /connections/{id}/messages/stream`: streams one chat reply and resolves with the `done` payload (the API 20 response). */
 export async function streamMessage(client: Pick<ApiClient, 'stream'>, connectionId: number, body: MessageRequest, handlers: Handlers, options: StreamOptions = {}): Promise<MessageResponse> {
   const { attempts = MESSAGE_STREAM_ATTEMPTS, signal } = options
+  let closed = false
+  const close = () => { if (!closed) { closed = true; handlers.onAudioClose?.() } }
   for (let attempt = 1; ; attempt++) {
     try {
       const received: { done?: MessageResponse } = {}
-      const outcome = await client.stream<MessageResponse>(`/connections/${connectionId}/messages/stream`, { method: 'POST', body, signal }, event => {
+      // A voice turn (`onAudio`): the reply is final at `done`, and the voice pieces that follow it keep streaming.
+      let doneArrived: ((value: MessageResponse) => void) | null = null
+      const early = handlers.onAudio ? new Promise<MessageResponse>(resolve => { doneArrived = resolve }) : null
+      const streaming = client.stream<MessageResponse>(`/connections/${connectionId}/messages/stream`, { method: 'POST', body, signal }, event => {
         // Voice pieces also follow `done`; nothing else does.
         if (event.event === 'audio') { const audio = parseJson(event.data); if (audio && typeof audio === 'object') handlers.onAudio?.(audio as MessageStreamAudio); return }
         if (event.event === 'audio_end') { const end = parseJson(event.data); if (end && typeof end === 'object') handlers.onAudioEnd?.(end as MessageStreamAudioEnd); return }
@@ -70,14 +80,26 @@ export async function streamMessage(client: Pick<ApiClient, 'stream'>, connectio
           if (typeof reply?.content === 'string' && reply.content) handlers.onReply(reply.content)
         } else if (event.event === 'done') {
           received.done = messagePayload(unwrapApiResponse<MessageResponse>(parseJson(event.data)))
+          ;(doneArrived as ((value: MessageResponse) => void) | null)?.(received.done)
         } else if (event.event === 'error') throw streamEventError(event.data)
       })
+      let firstOutcome: Awaited<typeof streaming> | null = null
+      if (early) {
+        const first = await Promise.race([early.then(done => ({ done })), streaming.then(outcome => ({ outcome }))])
+        if ('done' in first) {
+          // Whatever happens to the rest of the stream, the reply stands; only the voice ends there.
+          void streaming.then(close, close)
+          return first.done
+        }
+        firstOutcome = first.outcome
+      }
+      const outcome = firstOutcome ?? await streaming
       // A JSON fallback was already unwrapped by ApiClient; SSE done accepts both the payload and its envelope.
-      if (outcome.type === 'json') return messagePayload(outcome.data)
-      if (received.done) return received.done
+      if (outcome.type === 'json') { const payload = messagePayload(outcome.data); close(); return payload }
+      if (received.done) { close(); return received.done }
       throw new ApiError('답장이 중간에 끊겼어요. 다시 시도해 주세요.', 0, 'STREAM_INTERRUPTED')
     } catch (error) {
-      if (attempt >= attempts || signal?.aborted || !isRetryableMessageError(error) || handlers.alive?.() === false) throw error
+      if (attempt >= attempts || signal?.aborted || !isRetryableMessageError(error) || handlers.alive?.() === false) { close(); throw error }
     }
   }
 }

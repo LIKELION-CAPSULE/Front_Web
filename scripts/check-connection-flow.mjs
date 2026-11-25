@@ -130,6 +130,7 @@ async function advancedMode() {
   await box.press('Enter')
   await page.waitForTimeout(2500)
   const items = await page.evaluate(async () => (await (await fetch('/api/backend/credits/transactions?filter=USE')).json()).data.items)
+  // 「메이트 음성」 stays off until the user turns it on, so the turn is 고급 only (30; 50 with voice).
   check('mode: the message went as ADVANCED (a 30-credit 고급 use)', items.length === before + 1 && items[0]?.change === -30, JSON.stringify(items[0]))
   await context.close()
 }

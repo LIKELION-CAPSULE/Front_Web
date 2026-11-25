@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { ActiveSession, Memory, StudyRecord, TierId } from '../demo/types'
-import type { ActiveConnectionSummary, AffinityChange, EndType, AvatarItem, HomeResponse, LoginResponse, MeResponse, MessageResponse, StartResponse, ResumeResponse, TermVersion } from '@/shared/api/types'
+import type { ActiveConnectionSummary, AffinityChange, EndType, AvatarItem, HomeResponse, LoginResponse, MeResponse, MessageResponse, MessageStreamAudio, MessageStreamAudioEnd, StartResponse, ResumeResponse, TermVersion } from '@/shared/api/types'
 import type { LoadingStage } from '@/shared/lib/loading-screen'
 import type { SessionModelStage } from '@/features/live2d/session-model'
 import type { BetaInvitation, BetaWallet } from '@/features/credits/beta-types'
@@ -11,6 +11,9 @@ import type { SessionModelFactory } from '@/features/live2d/session-model'
 import type { BetaFeaturePort, BetaFeatureSnapshot } from './beta-feature-port'
 
 /** The conversation mode of a connection (T-7): BASIC 0 · ADVANCED 30 credits a turn. */
+/** The voice side of a message (28 `tts`, `audio`, `audio_end`). */
+export type MessageVoice = { tts: boolean; onAudio?: (audio: MessageStreamAudio) => void; onAudioEnd?: (end: MessageStreamAudioEnd) => void; onClose?: () => void }
+
 export type ConnectionModeChoice = 'basic' | 'advanced'
 
 export type BackendContextValue = {
@@ -65,7 +68,11 @@ export type BackendContextValue = {
   finishSession: (options?: { acceptUnknownPresence?: boolean; endType?: EndType }) => Promise<StudyRecord>
   /** Clear only a connection the server has authoritatively reported as ended. Does not send /end again. */
   acknowledgeEndedSession: (sessionId: string, expectedUserId: number) => boolean
-  sendMessage: (characterId: string, content: string, inputType?: 'TEXT' | 'QUICK') => Promise<MessageResponse>
+  /**
+   * API 28. With `voice.tts` the reply asks for voice; its mp3 pieces go to `voice` (also after this resolves at
+   * `done`), and `onClose` says the stream is over.
+   */
+  sendMessage: (characterId: string, content: string, inputType?: 'TEXT' | 'QUICK', voice?: MessageVoice) => Promise<MessageResponse>
   loadReport: (sessionId: string) => Promise<void>
   /** The running connection's conversation mode, sent with every message (20 · 28 `mode`). */
   connectionMode: ConnectionModeChoice
