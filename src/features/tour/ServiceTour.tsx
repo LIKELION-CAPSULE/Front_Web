@@ -29,8 +29,9 @@ import './service-tour.css'
  *   be, then bends onto where it is, and the cursor stays on it until the scroll ends.
  * - 채린's line fades out when the step changes and rises in (opacity, 5px) when the cursor reaches the first mark.
  * - One cursor walks the whole tour: it stays mounted from step to step and carries on from where it is (the pointer's
- *   `resume`); the app remounts the tour on a new address (and the account modal moves it), and the new cursor starts
- *   where the old one was, fading in rather than popping.
+ *   `resume`). The tour also stays mounted from screen to screen (TourOverlay sits outside App's route Suspense): on a
+ *   new screen the cursor and the lit area hold still until its first mark shows up, then carry on. Only the account
+ *   modal moves the tour layer (a remount): the new cursor starts where the old one was, fading in rather than popping.
  * - The address keeps the step, so a reload resumes it. 「그만보기」 (or Esc) returns to the screen the tour started from.
  * - After arriving, the controller waits for the step's first mark (a MutationObserver, up to `waitMs`); one that does
  *   not show up in time is skipped in the direction of travel.
@@ -228,7 +229,7 @@ export default function ServiceTour() {
   const found = steps.findIndex((value) => value.id === stepId)
   const index = Math.max(0, found)
   const step = steps[index]!
-  // The direction of travel rides along in the history state: screens remount the tour, and a missing target is
+  // The direction of travel rides along in the history state (kept across a remount), and a missing target is
   // skipped the same way the user was going.
   const way: 1 | -1 = (location.state as { tourWay?: 1 | -1 } | null)?.tourWay === -1 ? -1 : 1
   const [target, setTarget] = useState<{ id: string; element: Element } | null>(null)
@@ -343,13 +344,15 @@ export default function ServiceTour() {
     })
   }, [light, reduced, mateId])
 
-  // A new screen starts dark (the light from the last screen lit something that is gone).
+  // A new screen: the lit area stays where it was (what it lit is gone; it no longer follows) until the screen's first
+  // mark shows up, then moves there with the cursor. Reduced motion has no move to make: the new screen starts dark, as
+  // does the outro (nothing to light).
   const [litScreen, setLitScreen] = useState<string | null>(null)
   if (litScreen !== step.screen) {
     setLitScreen(step.screen)
     setLitBox(null)
   }
-  useEffect(() => { light.clear() }, [light, step.screen])
+  useEffect(() => { if (reduced || !step.marks.length) light.clear() }, [light, step.screen, step.marks.length, reduced])
 
   /** The step's marks that are on screen now, in order (the first is `element`). */
   const marks = useMemo(() => {
@@ -394,7 +397,7 @@ export default function ServiceTour() {
   }, [step.screen])
 
   useLayoutEffect(() => { stepAt.mark(step.id) }, [stepAt, step.id])
-  // The app remounts the tour on every new address (App's Suspense is keyed by the path): the next mount's cursor
+  // The account modal moves the tour layer (a remount; so did every new address before TourOverlay): the next mount's cursor
   // starts where this one is now (its last drawn place, so a follow or the sway after the last move counts too).
   // The cursor element is held from mount: by the time this unmounts, TourLayer may have taken the layer out of the page.
   useLayoutEffect(() => {
@@ -704,6 +707,8 @@ class TourLight {
       if (frame) return
       frame = requestAnimationFrame(() => {
         frame = 0
+        // Lit elements taken out of the page (the screen changed): the hole stays where it is until the next lightUp.
+        if (this.lit.length && !this.lit.some((node) => node.isConnected)) return
         const box = this.lit.length ? spotOf(this.lit) : null
         // At rest the hole moves there at once; mid-move the move bends onto it (tour-spotlight.ts).
         if (this.lit.length) spotlight.follow(box)
