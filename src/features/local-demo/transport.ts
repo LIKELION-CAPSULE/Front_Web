@@ -19,6 +19,8 @@ const CHAERIN_REACTIONS: Record<string, { expression: string; line: string }> = 
   YAWN: { expression: '하품', line: '하암… 나도 졸려.' },
   WAVE: { expression: '웃음', line: '응, 나 여기 있어!' },
   HEAD_TURN: { expression: '경멸', line: '어디 봐? 여기야.' },
+  // 「먼저 말 걸기」 (idle-talk.ts): not in the backend seed yet (docs/BACKEND_API.md, IDLE_TALK request).
+  IDLE_TALK: { expression: '웃음', line: '조용하네, 뭐 해?' },
 }
 /** 서도현: his persona's lines (mate-lines.ts) on the closest model expressions; never 채린's lines. */
 const dohyun = (key: Parameters<typeof mateLine>[1], expression: string) => ({ expression, line: mateLine('dohyun', key)! })
@@ -31,6 +33,7 @@ const DOHYUN_REACTIONS: Record<string, { expression: string; line: string }> = {
   YAWN: dohyun('quiet', '하품'),
   WAVE: dohyun('greet', '웃음'),
   HEAD_TURN: dohyun('givingUp', '삐짐'),
+  IDLE_TALK: dohyun('quiet', '집중'),
 }
 const LOCAL_REACTIONS: Record<string, Record<string, { expression: string; line: string }>> = { chaerin: CHAERIN_REACTIONS, dohyun: DOHYUN_REACTIONS }
 const LOCAL_REPLY_EXPRESSIONS: Record<string, { name: string }> = { chaerin: { name: '웃음' }, dohyun: { name: '집중' } }

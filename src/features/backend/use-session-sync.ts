@@ -12,6 +12,7 @@ import type { BehaviorMonitor } from '../media/behavior-monitor'
 import type { ExpressionCue } from '../live2d/expression-scheduler'
 import { pickMotionEvents, type MotionCooldowns, type MotionEventType, type TalkFrequency } from './motion-events'
 import { escalateAway, eventQueued, takeHeldReaction, type EventFlow, type HeldReaction } from './session-event-flow'
+import { IDLE_TALK_EVENT, IdleTalkTimer } from './idle-talk'
 import { flushSessionOutbox } from './session-outbox'
 
 export type SessionTotals = { studySeconds: number; presentSeconds: number }
@@ -44,8 +45,15 @@ type Input = {
   onDummyReaction?: (event: string) => void
   /** A chat reply is on its way or still typing. Reaction lines wait until it finishes so they never cut in ahead of it. */
   busy?: boolean
-  /** 「말 걸기 빈도」: how often motion events may let the mate speak up first (motion-events.ts). */
+  /**
+   * 「말 걸기 빈도」: how often the mate speaks up first — after a quiet spell when `idleTalk` is on (idle-talk.ts), and
+   * the spacing of motion events where gestures are detected (motion-events.ts).
+   */
   talk?: TalkFrequency
+  /** 「먼저 말 걸기」 (idle-talk.ts): the connection screen's quiet-spell timer (API 18 IDLE_TALK → 19). */
+  idleTalk?: boolean
+  /** Also stops (and resets) that timer: the event line still typing, the user's voice being heard, the call ending. */
+  holdIdleTalk?: boolean
 }
 type Pending = { result: ReactionResponse; event: string; revision: number; turn?: number }
 type Runtime = {
@@ -58,6 +66,11 @@ type Runtime = {
   motionTurn: number
   /** Reaction lines waiting for the chat reply to finish, oldest first. */
   held: HeldReaction<Pending>[]
+  /** API 19 requests on their way. */
+  reactions: number
+  idle: IdleTalkTimer
+  /** An IDLE_TALK (18 → 19) is on its way. */
+  idleInFlight: boolean
 }
 
 export function useSessionSync(input: Input) {
@@ -76,18 +89,22 @@ export function useSessionSync(input: Input) {
   const stillCurrent = useCallback((current: Runtime, pending: Pending) =>
     current.alive && runtime.current === current && current.flow.revision === pending.revision
       && (pending.turn === undefined || current.motionTurn === pending.turn), [])
-  const react = useCallback(async (current: Runtime, eventId: number, event: string, intensity = 1, turn?: number) => {
+  /** `idle`: the mate's own 「먼저 말 걸기」 line — dropped (not held) when a talk started meanwhile, and best effort. */
+  const react = useCallback(async (current: Runtime, eventId: number, event: string, intensity = 1, turn?: number, idle = false) => {
     const revision = current.flow.revision
     const requestId = crypto.randomUUID()
+    current.reactions++
     try {
       const result = await api.request<ReactionResponse>(`/sessions/${current.sessionId}/events/${eventId}/reaction`, {
         method: 'POST', body: { requestId, intensity, tts: false } satisfies ReactionRequest,
       })
       const pending: Pending = { result, event, revision, turn }
       if (result.requestId !== requestId || !stillCurrent(current, pending)) return
-      if (latest.current.busy || current.held.length) current.held.push({ value: pending, heldAt: Date.now() })
+      if (latest.current.busy || current.held.length) { if (!idle) current.held.push({ value: pending, heldAt: Date.now() }) }
       else latest.current.onReaction(result, event)
-    } catch (reason) { fail(reason, current) }
+    } catch (reason) {
+      if (!idle || (reason instanceof ApiError && reason.code === 'SESSION_ENDED')) fail(reason, current)
+    } finally { current.reactions-- }
   }, [fail, stillCurrent])
   /** Shows the next held line once the chat reply has finished; the 250 ms tick lets each line start typing first. */
   const release = useCallback((current: Runtime) => {
@@ -148,6 +165,42 @@ export function useSessionSync(input: Input) {
       if (reason instanceof ApiError && reason.code === 'SESSION_ENDED') fail(reason, current)
     }
   }, [fail, notice, react, updateAffinity])
+  /** 「먼저 말 걸기」: API 18 IDLE_TALK, then its line (19) on the usual reaction path. Credits follow the server's rules. */
+  const sendIdleTalk = useCallback(async (current: Runtime) => {
+    const active = latest.current.active
+    if (!active?.serverSession) return
+    current.idleInFlight = true
+    try {
+      const occurredAt = new Date(Date.now() + (active.serverOffsetMs ?? 0)).toISOString()
+      const result = await api.request<EventResponse>(`/sessions/${current.sessionId}/events`, { method: 'POST', body: { type: IDLE_TALK_EVENT, occurredAt } satisfies EventRequest })
+      if (!current.alive || runtime.current !== current) return
+      for (const character of result.characters ?? []) {
+        if (character.characterId) updateAffinity(character.characterId, character.affinity)
+      }
+      // The user spoke or something happened meanwhile: the quiet is over, so is this line.
+      if (latest.current.busy || current.held.length) return
+      notice(result, IDLE_TALK_EVENT)
+      if (result.eventId) await react(current, result.eventId, IDLE_TALK_EVENT, 1, undefined, true)
+    } catch (reason) {
+      // Best effort (a server without IDLE_TALK refuses it): only a finished session needs handling.
+      if (reason instanceof ApiError && reason.code === 'SESSION_ENDED') fail(reason, current)
+    } finally { current.idleInFlight = false }
+  }, [fail, notice, react, updateAffinity])
+  /** The quiet-spell timer (idle-talk.ts), stepped with the 250 ms tick. */
+  const idleStep = useCallback((current: Runtime) => {
+    const { active, idleTalk, talk, busy, holdIdleTalk, camera } = latest.current
+    if (!idleTalk || !talk) { current.idle.clear(); return }
+    const due = current.idle.step(Date.now(), {
+      talk,
+      live: current.alive && Boolean(active?.serverSession) && active?.id === current.sessionId && active.runningSince !== null,
+      busy: Boolean(busy || holdIdleTalk) || current.held.length > 0 || current.reactions > 0 || current.idleInFlight
+        || current.outbox.length > 0 || current.draining !== null,
+      camera,
+      away: current.flow.away !== null,
+      visible: isConnectionVisible(),
+    })
+    if (due) void sendIdleTalk(current)
+  }, [sendIdleTalk])
   const totals = useCallback((current: Runtime) => {
     const active = latest.current.active
     if (!active || active.id !== current.sessionId) throw new Error('진행 세션이 변경됐어요.')
@@ -215,6 +268,7 @@ export function useSessionSync(input: Input) {
       current = {
         sessionId: active.id, signature, clock: new PresenceClock(baseAway), outbox: [], draining: null, heartbeat: false, lastHeartbeatAt: Date.now(), alive: true,
         flow: { revision: 0, away: null }, motionSentAt: {}, motionTurn: 0, held: [],
+        reactions: 0, idle: new IdleTalkTimer(), idleInFlight: false,
       }
       runtime.current = current
     }
@@ -237,17 +291,18 @@ export function useSessionSync(input: Input) {
       const occurredAt = new Date(change.at + (now.serverOffsetMs ?? 0)).toISOString()
       for (const type of picked.types) void sendMotion(sync, type, occurredAt)
     })
-    const stopTimer = connectionInterval(() => { tick(sync); release(sync) }, 250)
+    const stopTimer = connectionInterval(() => { tick(sync); release(sync); idleStep(sync) }, 250)
     const stopPulse = connectionInterval(() => { void heartbeat(sync) }, 60_000)
     const visible = () => { tick(sync); if (isConnectionVisible() && Date.now() - sync.lastHeartbeatAt >= 60_000) void heartbeat(sync) }
     document.addEventListener('visibilitychange', visible)
     return () => {
       sync.alive = false
+      sync.idle.clear()
       stopBehavior?.()
       stopTimer(); stopPulse(); document.removeEventListener('visibilitychange', visible)
       totalsBySession.delete(active.id); queues.delete(active.id)
     }
-  }, [sessionId, signature, userId, resumed, startedAt, behavior, drain, enqueue, heartbeat, release, sendMotion, tick, totals])
+  }, [sessionId, signature, userId, resumed, startedAt, behavior, drain, enqueue, heartbeat, idleStep, release, sendMotion, tick, totals])
   const retry = useCallback(async () => {
     if (runtime.current) await heartbeat(runtime.current)
   }, [heartbeat])

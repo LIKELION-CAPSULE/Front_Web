@@ -62,10 +62,19 @@ function ConnectionHelpNote() {
     <div className="connection-help-note">
       <p>카메라를 켜면 이 기기 안에서 얼굴을 감지해 자리에 있는지 알아봐요. 영상은 서버로 보내거나 저장하지 않고, 자리 비움·돌아옴 같은 상태만 보내요.</p>
       <p>마이크는 「누르고 말하기」를 누르는 동안에만 써요. 그 음성은 브라우저의 음성 인식 서비스로 보내져 글자로 바뀌고, 바뀐 글자가 채팅으로 보내져요.</p>
-      <p>「카메라로 함께한 시간」은 카메라가 켜져 있고 얼굴이 보인 시간이에요. 10초 넘게 자리를 비우면 그동안은 빠져요.</p>
+      <p>「카메라로 함께한 시간」은 카메라에 얼굴이 보인 시간만 세요. 10초 넘게 보이지 않으면 메이트가 자리 비움으로 알아채요.</p>
       <p>크레딧은 기본 대화 0, 고급 대화 한 턴에 {CREDIT_PRICING.advanced}이에요. 음성 대화는 준비 중이에요.</p>
     </div>
   )
+}
+
+/** The label before the heard sentence above the dock. */
+const STT_LABEL: Record<string, string> = { listening: '듣는 중', finishing: '듣는 중', confirm: '보낼게요', sending: '보내는 중', unsent: '못 보냈어요', idle: '' }
+
+/** The first-use notice of 누르고 말하기; it counts as seen once it has been on screen. */
+function SttPrivacy({ onShown }: { onShown: () => void }) {
+  useEffect(() => { onShown() }, [onShown])
+  return <p className="connection-stt-privacy">{PUSH_TO_TALK_TEXT.privacy}</p>
 }
 
 /** Connections whose starting mode (T-7) was applied in this page load (a reload or remount keeps the call's mode). */
@@ -215,6 +224,9 @@ export default function ConnectionPage() {
     send: (text) => send(text),
     canListen: () => !sending && !speaking && !finishing && Boolean(active),
   })
+  // The connection ending stops a press and drops what was being heard.
+  const cancelTalk = pushToTalk.cancel
+  useEffect(() => { if (finishing) cancelTalk() }, [finishing, cancelTalk])
   // The mouth moves exactly while a line is typing on screen: a chat reply (also while it streams in) or the event
   // bubble. v2 stages only; Cubism stages have no `setTalking`.
   const talking = speaking || bubbleTyping
@@ -260,7 +272,8 @@ export default function ConnectionPage() {
   }, [navigate])
   const tapMate = () => {
     if (!mate || finishing) return
-    const reaction = tapper.tap(mate.id, sending || speaking)
+    // Not while a reply is on its way, typing in the chat, or a line is typing in her bubble (it would be cut off).
+    const reaction = tapper.tap(mate.id, sending || talking)
     if (!reaction) return
     const reduced = prefersReducedMotion()
     const stage = backend.live2dStage
@@ -296,6 +309,10 @@ export default function ConnectionPage() {
   }, [active, state.profile.userId, flushFocus, backend, controller, pip, navigateToRecord])
   const sync = useSessionSync({
     active, userId: state.profile.userId, observation, camera: !!camera, busy: sending || speaking, talk: settings.talk,
+    // 「먼저 말 걸기」 (idle-talk.ts): quiet counts from the end of the last talk; the event line typing, the user's voice
+    // and the hang-up also hold it.
+    idleTalk: true,
+    holdIdleTalk: bubbleTyping || finishing || (pushToTalk.snapshot.status !== 'idle' && pushToTalk.snapshot.status !== 'unsent'),
     onExpression: cue,
     onReaction: (result, event) => {
       const reply = result.characters?.find(value => String(value.characterId) === mate?.characterId)
@@ -477,8 +494,8 @@ export default function ConnectionPage() {
       disabled: !pushToTalk.supported || finishing,
       listening: pushToTalk.snapshot.status === 'listening',
       onAction: () => {},
-      onPressStart: pushToTalk.start,
-      onPressEnd: pushToTalk.end,
+      onPressStart: () => pushToTalk.press('dock', window),
+      onPressEnd: () => pushToTalk.release('dock'),
     },
     {
       key: 'camera',
@@ -763,13 +780,20 @@ export default function ConnectionPage() {
           )}
 
           {/* 「누르고 말하기」: what is being heard, the sentence before it goes out, notices; above the dock. */}
-          {(pushToTalk.snapshot.status !== 'idle' || pushToTalk.snapshot.notice || pushToTalk.privacy) && (
+          {(pushToTalk.snapshot.status !== 'idle' || pushToTalk.snapshot.notice || (pushToTalk.privacy && !pip.window)) && (
             <div className="connection-stt" data-status={pushToTalk.snapshot.status} role="status" aria-live="polite">
-              {pushToTalk.privacy && <p className="connection-stt-privacy">{PUSH_TO_TALK_TEXT.privacy}</p>}
+              {/* The first-use notice shows where the user is talking: here, or in the PIP window while it is open. */}
+              {pushToTalk.privacy && !pip.window && <SttPrivacy onShown={pushToTalk.privacyShown} />}
               {pushToTalk.snapshot.status !== 'idle' && (
                 <p className="connection-stt-text">
-                  <span className="connection-stt-label">{pushToTalk.snapshot.status === 'confirm' ? '보낼게요' : '듣는 중'}</span>
+                  <span className="connection-stt-label">{STT_LABEL[pushToTalk.snapshot.status]}</span>
                   {pushToTalk.snapshot.text || (pushToTalk.snapshot.status === 'listening' ? '말해 보세요…' : '')}
+                </p>
+              )}
+              {pushToTalk.snapshot.status === 'unsent' && (
+                <p className="connection-stt-actions">
+                  <button type="button" className="connection-stt-retry" onClick={pushToTalk.retry}>다시 보내기</button>
+                  <button type="button" className="connection-stt-dismiss" onClick={pushToTalk.dismiss}>지우기</button>
                 </p>
               )}
               {pushToTalk.snapshot.notice && (
@@ -874,8 +898,12 @@ export default function ConnectionPage() {
             text: pushToTalk.snapshot.status === 'idle' ? '' : pushToTalk.snapshot.text,
             notice: pushToTalk.snapshot.notice,
             disabled: finishing,
-            start: pushToTalk.start,
-            end: pushToTalk.end,
+            start: () => pushToTalk.press('pip', pip.window),
+            end: () => pushToTalk.release('pip'),
+            privacy: pushToTalk.privacy,
+            onPrivacyShown: pushToTalk.privacyShown,
+            unsent: pushToTalk.snapshot.status === 'unsent',
+            retry: pushToTalk.retry,
           }}
           speech={showPipSpeech ? (latestReply && (latestReply.createdAt ?? 0) >= speech.at ? latestReply.text : speech.text) : undefined}
           onReturn={() => { window.focus(); pip.close() }}

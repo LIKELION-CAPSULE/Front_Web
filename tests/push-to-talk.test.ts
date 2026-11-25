@@ -151,3 +151,80 @@ test('the voice sample plays at the settings volume and speed (also when changed
   player.setPlayback({ volume: 0.7, playbackRate: 0.85 })
   assert.deepEqual([audios[0]!.volume, audios[0]!.playbackRate], [0.7, 0.85])
 })
+
+function setupWith({ send, canListen }: { send: (text: string) => Promise<boolean> | boolean; canListen: () => boolean }) {
+  const made: FakeRecognition[] = []
+  const timers = new Map<number, () => void>()
+  let next = 0
+  const talk = new PushToTalk(() => { const value = new FakeRecognition(); made.push(value); return value }, {
+    send, canListen,
+    setTimer: (callback) => { timers.set(++next, callback); return next },
+    clearTimer: (handle) => { timers.delete(handle as number) },
+  })
+  /** Runs the timers due now (one round: a notice set meanwhile stays). */
+  const flush = async () => {
+    const due = [...timers.entries()]
+    for (const [id, callback] of due) { timers.delete(id); callback() }
+    for (let i = 0; i < 4; i++) await Promise.resolve()
+  }
+  const say = (text: string) => { talk.start(); made.at(-1)!.results([text, true]); talk.end(); made.at(-1)!.end() }
+  return { talk, made, flush, say }
+}
+
+test('a send that fails keeps the sentence for 다시 보내기; it clears only once it went out', async () => {
+  let ok = false
+  const sent: string[] = []
+  const { talk, flush, say } = setupWith({ send: (text) => { sent.push(text); return ok }, canListen: () => true })
+  say('다시 보내 줘')
+  await flush()
+  assert.equal(talk.getSnapshot().status, 'unsent')
+  assert.equal(talk.getSnapshot().text, '다시 보내 줘')
+  assert.equal(talk.getSnapshot().notice, PUSH_TO_TALK_TEXT.notSent)
+  ok = true
+  talk.retry()
+  for (let i = 0; i < 4; i++) await Promise.resolve()
+  assert.deepEqual(sent, ['다시 보내 줘', '다시 보내 줘'])
+  assert.equal(talk.getSnapshot().status, 'idle')
+  assert.equal(talk.getSnapshot().text, '')
+})
+
+test('a send that throws also keeps the sentence', async () => {
+  const { talk, flush, say } = setupWith({ send: () => { throw new Error('network') }, canListen: () => true })
+  say('실패')
+  await flush()
+  assert.equal(talk.getSnapshot().status, 'unsent')
+  talk.dismiss()
+  assert.equal(talk.getSnapshot().status, 'idle')
+})
+
+test('the gate is checked again when the 0.5 s confirm ends: busy then → not sent, kept', async () => {
+  let busy = false
+  const sent: string[] = []
+  const { talk, flush, say } = setupWith({ send: (text) => { sent.push(text); return true }, canListen: () => !busy })
+  say('잠깐만')
+  busy = true // a reply started during the confirm
+  await flush()
+  assert.deepEqual(sent, [])
+  assert.equal(talk.getSnapshot().status, 'unsent')
+  assert.equal(talk.getSnapshot().notice, PUSH_TO_TALK_TEXT.busyHeld)
+})
+
+test('cancel during the confirm sends nothing', async () => {
+  const sent: string[] = []
+  const { talk, flush, say } = setupWith({ send: (text) => { sent.push(text); return true }, canListen: () => true })
+  say('취소할 거야')
+  assert.equal(talk.getSnapshot().status, 'confirm')
+  talk.cancel()
+  await flush()
+  assert.deepEqual(sent, [])
+  assert.equal(talk.getSnapshot().status, 'idle')
+})
+
+test('a new press replaces a sentence left unsent', async () => {
+  const { talk, made, flush, say } = setupWith({ send: () => false, canListen: () => true })
+  say('첫 문장')
+  await flush()
+  talk.start()
+  assert.equal(talk.getSnapshot().status, 'listening')
+  assert.equal(made.length, 2)
+})

@@ -1200,3 +1200,19 @@
   .connection-talk-note { animation: none; }
   .connection-mate-fallback-img[data-bounce] { animation: none; }
 }
+
+/* 누르고 말하기: a sentence that could not go out keeps 다시 보내기 / 지우기 (the bubble itself lets the pointer through). */
+.connection-stt-actions { display: flex; gap: 6px; padding: 4px !important; background: transparent !important; box-shadow: none !important; pointer-events: auto; }
+.connection-stt-retry,
+.connection-stt-dismiss {
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.connection-stt-retry { background: var(--color-selected); color: var(--color-selected-text); }
+.connection-stt-dismiss { background: color-mix(in srgb, var(--color-canvas) 82%, transparent); color: var(--color-muted); }
+.connection-stt-retry:focus-visible,
+.connection-stt-dismiss:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }

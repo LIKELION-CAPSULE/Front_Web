@@ -233,6 +233,9 @@ export function GlassDock({
               } : undefined}
               onPointerUp={item.onPressEnd ? () => item.onPressEnd?.() : undefined}
               onPointerCancel={item.onPressEnd ? () => item.onPressEnd?.() : undefined}
+              // A press never outlives the focus or the pointer (Tab or an arrow key while holding, a lost capture).
+              onLostPointerCapture={item.onPressEnd ? () => item.onPressEnd?.() : undefined}
+              onBlur={item.onPressEnd ? () => item.onPressEnd?.() : undefined}
               onKeyDown={item.onPressStart ? (event) => {
                 if (event.key !== ' ' && event.key !== 'Enter') return
                 event.preventDefault()

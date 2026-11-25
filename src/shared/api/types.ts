@@ -111,7 +111,8 @@ export type HeartbeatRequest = {
 }
 
 export type EventRequest = {
-  type: 'FOCUS' | 'AWAY' | 'RETURN' | 'BREAK' | 'DROWSY' | 'YAWN' | 'WAVE' | 'HEAD_TURN'
+  /** `IDLE_TALK`: the mate speaks up after a quiet spell (idle-talk.ts) — requested from the backend, docs/BACKEND_API.md. */
+  type: 'FOCUS' | 'AWAY' | 'RETURN' | 'BREAK' | 'DROWSY' | 'YAWN' | 'WAVE' | 'HEAD_TURN' | 'IDLE_TALK'
   occurredAt: string
 }
 

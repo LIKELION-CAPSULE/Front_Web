@@ -40,6 +40,8 @@ export const PUSH_TO_TALK_TEXT = {
   unsupported: '이 브라우저는 음성 입력을 지원하지 않아요. Chrome이나 Edge를 써 주세요',
   notHeard: '잘 못 들었어요. 다시 눌러 말해 주세요.',
   busy: '메이트가 답하는 중이에요. 끝나면 다시 눌러 주세요.',
+  notSent: '아직 보내지 못했어요. 다시 보내 주세요.',
+  busyHeld: '메이트가 답하는 중이라 아직 못 보냈어요. 끝나면 다시 보내 주세요.',
   privacy: '음성은 브라우저의 음성 인식 서비스로 보내져 글자로 바뀌어요. CAPSULE은 녹음을 저장하지 않아요.',
 } as const
 
@@ -66,8 +68,11 @@ export function recognitionErrorText(code: string): string | null {
 }
 
 export type PushToTalkSnapshot = {
-  /** idle → listening (held) → finishing (released, waiting for the last result) → confirm (the sentence shows) → idle. */
-  status: 'idle' | 'listening' | 'finishing' | 'confirm'
+  /**
+   * idle → listening (held) → finishing (released, waiting for the last result) → confirm (the sentence shows) →
+   * idle once it is sent; `unsent`: it could not go out (busy, or the send failed) — the sentence stays for 다시 보내기.
+   */
+  status: 'idle' | 'listening' | 'finishing' | 'confirm' | 'sending' | 'unsent'
   /** What has been heard so far (final + the latest interim). */
   text: string
   /** A short notice (not heard, an error, busy); cleared after a moment. */
@@ -131,9 +136,9 @@ export class PushToTalk {
     this.noticeTimer = this.options.setTimer(() => { this.noticeTimer = null; this.set({ notice: '' }) }, this.options.noticeMs)
   }
 
-  /** The button / Space went down. */
+  /** The button / Space went down (a sentence left unsent is replaced by the new one). */
   start() {
-    if (this.snapshot.status !== 'idle') return
+    if (this.snapshot.status !== 'idle' && this.snapshot.status !== 'unsent') return
     if (!this.factory) { this.notify(PUSH_TO_TALK_TEXT.unsupported, 'error'); return }
     if (!this.options.canListen()) { this.notify(PUSH_TO_TALK_TEXT.busy); return }
     let recognition: RecognitionLike
@@ -197,6 +202,22 @@ export class PushToTalk {
     }
   }
 
+  /** Whether a press is being listened to (the button or Space is held). */
+  get listening() {
+    return this.snapshot.status === 'listening'
+  }
+
+  /** 다시 보내기: the sentence left unsent goes out again (when the chat lets it). */
+  retry() {
+    if (this.snapshot.status !== 'unsent' || !this.snapshot.text) return
+    void this.deliver(this.snapshot.text)
+  }
+
+  /** Drops a sentence left unsent. */
+  dismiss() {
+    if (this.snapshot.status === 'unsent') this.set({ status: 'idle', text: '' })
+  }
+
   /** Leaving the screen, the connection ending: drop what was heard, send nothing. */
   cancel() {
     const recognition = this.recognition
@@ -215,8 +236,30 @@ export class PushToTalk {
     this.set({ status: 'confirm', text })
     this.confirmTimer = this.options.setTimer(() => {
       this.confirmTimer = null
-      void Promise.resolve(this.options.send(text)).finally(() => this.set({ status: 'idle', text: '' }))
+      // A cancel (or a new press) during the confirm already took the sentence back.
+      if (this.snapshot.status !== 'confirm' || this.snapshot.text !== text) return
+      void this.deliver(text)
     }, this.options.confirmMs)
+  }
+
+  /** Sends when the chat lets it right now; the sentence is cleared only once it went out, else kept for 다시 보내기. */
+  private async deliver(text: string) {
+    if (!this.options.canListen()) {
+      this.set({ status: 'unsent', text })
+      this.notify(PUSH_TO_TALK_TEXT.busyHeld)
+      return
+    }
+    this.set({ status: 'sending', text })
+    let sent: boolean
+    try {
+      sent = (await this.options.send(text)) === true
+    } catch {
+      sent = false
+    }
+    if (this.snapshot.status !== 'sending' || this.snapshot.text !== text) return
+    if (sent) { this.set({ status: 'idle', text: '' }); return }
+    this.set({ status: 'unsent', text })
+    this.notify(PUSH_TO_TALK_TEXT.notSent, 'error')
   }
 }
 
