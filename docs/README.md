@@ -5,13 +5,15 @@
 | 문서 | 용도 |
 |---|---|
 | [DESIGN_CHANGE_NOTICE_PM.md](DESIGN_CHANGE_NOTICE_PM.md) · [백엔드](DESIGN_CHANGE_NOTICE_BACKEND.md) | 기획 대비 바뀐 화면을 화면별로 PM·백엔드에 통보하는 문서. 01 로그인(바탕화면·통화 창 메이트·숨은 CAPSULE)부터 화면이 끝날 때마다 추가 |
+| [API_FRONT_GAP_2026-11-25.md](API_FRONT_GAP_2026-11-25.md) | **현재 API 연결 기준.** 프런트가 부르는 엔드포인트 중 없어지거나 바뀐 것, 바로 깨지는 지점(우선순위), 기능별 새 API 대응(로그인 메이트·설정·크레딧·초대·기록·내 메이트·상세·대화방·알림·평가·초기화), 해소된/남은 백엔드 요청, 연결 작업 순서 |
+| [BACKEND_OPENAPI_2026-11-25.json](BACKEND_OPENAPI_2026-11-25.json) · [변경표](BACKEND_OPENAPI_DIFF_2026-11-25.md) | 11/25 OpenAPI 원본(41개 경로·44개 작업·114개 스키마, SHA-256 기록)과 11/22 대비 추가·삭제·세션→연결 이름 변경·스키마 필드 변화·OpenAPI 표기 오류 |
 | [REQUEST.md](REQUEST.md) | 기능 14개 묶음별 백엔드·PM·디자인 요청. 현재 API 호환 수정과 최종 베타 서버 변경 대기를 구분. 로컬 전용 |
 | [API_AUDIT_2026-11-22.md](API_AUDIT_2026-11-22.md) · [JSON](API_AUDIT_2026-11-22.json) | 현재 27개 API·서비스 검증·50개 타입/195개 필드 대조, 연결 시작·heartbeat·재전송·닉네임·오류 수정. 로컬 전용 |
 | [CAPSULE_WEB_BETA_API_GAPS_2026-11-22.md](CAPSULE_WEB_BETA_API_GAPS_2026-11-22.md) | 공개/개발 계약 대조·사용자 확인의 음성/이전 대화/크레딧 API 준비 전 상태·미등록 남학생·실제 연동 경계. 로컬 전용 |
 | [CAPSULE_WEB_BETA_P0_PLAN_2026-11-22.md](CAPSULE_WEB_BETA_P0_PLAN_2026-11-22.md) | 최종 문서 기반 목표·P0 30개/P1 11개 상태·사용법/PIP 설정/기록·보관 화면 복귀·11차 사용자 승인 임시 채린 제작물/이름 매핑·외부 의존 사항. 로컬 전용 |
 | [CAPSULE_WEB_BETA_PRD_2026-11-22.md](CAPSULE_WEB_BETA_PRD_2026-11-22.md) | 12/1 웹 베타 최종 PRD 원문. 메이트 2명·1:1 연결, 음성·PIP, 친밀도, 출석·초대 크레딧, 유료 결제 제외. 로컬 전용 |
 | [CAPSULE_WEB_BETA_SCREEN_CHANGES_2026-11-22.md](CAPSULE_WEB_BETA_SCREEN_CHANGES_2026-11-22.md) | 기존 와이어프레임의 화면별 수정·삭제·신규 요구사항 원문. 디자인·FE·BE 담당, 모바일 제외 명시. 로컬 전용 |
-| [BACKEND_OPENAPI_2026-11-22.json](BACKEND_OPENAPI_2026-11-22.json) | `api.capsule.ai.kr`의 11/22 비교 기준 명세. 24개 경로·27개 작업, 공통 성공 응답 `success/data`와 스트리밍 대화. 로컬 전용 |
+| [BACKEND_OPENAPI_2026-11-22.json](BACKEND_OPENAPI_2026-11-22.json) | (기록) `api.capsule.ai.kr`의 11/22 비교 기준 명세. 24개 경로·27개 작업, 공통 성공 응답 `success/data`와 스트리밍 대화. 로컬 전용 |
 | [BACKEND_OPENAPI_RECHECK_2026-11-22.json](BACKEND_OPENAPI_RECHECK_2026-11-22.json) · [비교 결과](BACKEND_OPENAPI_DIFF_2026-11-22.json) | 13:37 KST 재조회 원본·요청/응답/스키마 전체 비교. 기존 명세와 동일, 24개 경로·27개 작업·69개 스키마. 로컬 전용 |
 | [MVP 제한 해제·더미 데이터 교체 안내](../src/features/dummy/README.md) | 2026-11-09 전체 기능 활성화, 더미 값·파일·검색 표식·계정별 저장·실제 API 교체 순서. Git 추적 대상 |
 | [BUG_AUDIT_2026-11-06.md](BUG_AUDIT_2026-11-06.md) | 기능 버그 9건 수정, Node 테스트 321개·추가 Playwright 시나리오 16개 통과, PNG·모바일 화면 자료와 실서버/실제 모델 검증 한계. 로컬 전용 |
@@ -22,7 +24,7 @@
 | [STATE_AND_INSTANT_ACTION_REVIEW_2026-11-05.md](STATE_AND_INSTANT_ACTION_REVIEW_2026-11-05.md) | 추가 제공 문서의 네 순간 동작 코드·사전 대사·새 호감도 정책과 현재 코드/API 차이. 백엔드 반영 예정 |
 | [API_INTEGRATION_2026-11-05.md](API_INTEGRATION_2026-11-05.md) | 이전 API 연결 결과, 환경 설정, 상태·자리 지킴 정책. 현재 도메인·응답 처리 기준은 루트 README의 현재 API 연동 항목 참고 |
 | [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) | 2026-11-05 코드 기준 프로젝트 구성, 현재 MVP, 두 프런트 앱의 데이터 흐름과 백엔드 연동 지점 |
-| [BACKEND_API.md](BACKEND_API.md) | 최신 Railway Swagger 기반 API 25개·스키마 50개, 새 bannerUrl·실제 상태 코드 차이·현재 연동 상태 |
+| [BACKEND_API.md](BACKEND_API.md) | 2026-11-25 OpenAPI·백엔드 코드 기준 44개 API, 공통 계약·흐름(연결·이벤트·말 걸기·크레딧·초대·친밀도·설정·모델)·작업별 오류 코드·84개 스키마 사전 |
 | [BACKEND_OPENAPI_2026-11-05.json](BACKEND_OPENAPI_2026-11-05.json) | 같은 날 내려받은 OpenAPI 3.1.0 원본 스냅샷. API 문서 검증·갱신 근거 |
 | [CAPSULE_서비스_기획_정리.md](CAPSULE_서비스_기획_정리.md) | 사업계획서를 재구성한 원본 참고 문서. 기존 파일을 내용 수정 없이 이동 |
 | [SERVICE_ANALYSIS.md](SERVICE_ANALYSIS.md) | 제품·사업·기술 분석, MVP 우선순위, 기획서와 와이어프레임의 차이 |
@@ -42,7 +44,7 @@
 | [archive/DESIGN_SYSTEM_2026-10-26.md](archive/DESIGN_SYSTEM_2026-10-26.md) | 이전 디자인 문서 원문 보관. 현재 통일 기준과 구분 |
 | [FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md) | 프로젝트 구조, 재사용 규칙, 데이터와 상태의 경계, 다음 구현 순서 |
 
-목록 갱신일: **2026-11-22 (Asia/Seoul)**. 각 문서의 작성일·상태를 따릅니다. 10월 분석과 기존 디자인 이력은 현재 구현 완료나 새 기준 적용 완료를 뜻하지 않습니다. 원본 기획의 2026-10-12 진행률·수치·사업 가정도 현재 실측으로 간주하지 않습니다.
+목록 갱신일: **2026-11-25 (Asia/Seoul)**. 각 문서의 작성일·상태를 따릅니다. 10월 분석과 기존 디자인 이력은 현재 구현 완료나 새 기준 적용 완료를 뜻하지 않습니다. 원본 기획의 2026-10-12 진행률·수치·사업 가정도 현재 실측으로 간주하지 않습니다.
 
 최종 문서 해석 기준:
 
