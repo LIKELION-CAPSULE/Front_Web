@@ -264,3 +264,20 @@
     }
   }
 }
+
+/* 「누르고 말하기」 while held: the violet of selection with a soft pulse (a still ring under reduced motion). */
+.glass-dock-item > button[data-listening] {
+  background: var(--color-primary);
+  color: var(--color-on-solid, #fff);
+  animation: glass-dock-listening 1.2s ease-out infinite;
+}
+@keyframes glass-dock-listening {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 60%, transparent); }
+  to { box-shadow: 0 0 0 14px color-mix(in srgb, var(--color-primary) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-dock-item > button[data-listening] {
+    animation: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 50%, transparent);
+  }
+}

@@ -21,6 +21,14 @@ export interface GlassDockItem {
   controls?: string
   hasPopup?: 'menu' | 'dialog' | 'true'
   onAction: () => void
+  /**
+   * Press-and-hold (「누르고 말하기」): called when the button is pressed (pointer, Space/Enter) and released
+   * (pointer up/cancel, key up). With these the click does nothing more.
+   */
+  onPressStart?: () => void
+  onPressEnd?: () => void
+  /** Shown as listening (a soft violet pulse; still under reduced motion). */
+  listening?: boolean
 }
 
 export interface GlassDockProps {
@@ -210,11 +218,31 @@ export function GlassDock({
               aria-keyshortcuts={item.shortcut}
               disabled={item.disabled}
               aria-busy={item.busy || undefined}
+              data-listening={item.listening || undefined}
               tabIndex={tabStop === index ? 0 : -1}
               onClick={() => {
+                if (item.onPressStart) return
                 if (item.key === 'more') reset()
                 item.onAction()
               }}
+              onPointerDown={item.onPressStart ? (event) => {
+                if (event.button !== 0) return
+                event.preventDefault()
+                event.currentTarget.setPointerCapture?.(event.pointerId)
+                item.onPressStart?.()
+              } : undefined}
+              onPointerUp={item.onPressEnd ? () => item.onPressEnd?.() : undefined}
+              onPointerCancel={item.onPressEnd ? () => item.onPressEnd?.() : undefined}
+              onKeyDown={item.onPressStart ? (event) => {
+                if (event.key !== ' ' && event.key !== 'Enter') return
+                event.preventDefault()
+                if (!event.repeat) item.onPressStart?.()
+              } : undefined}
+              onKeyUp={item.onPressEnd ? (event) => {
+                if (event.key !== ' ' && event.key !== 'Enter') return
+                event.preventDefault()
+                item.onPressEnd?.()
+              } : undefined}
               onFocus={(event) => {
                 setFocusIndex(index)
                 setTooltipDismissed(false)

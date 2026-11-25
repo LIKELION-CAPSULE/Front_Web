@@ -15,6 +15,13 @@ export function AccountSecurityPanel({
   const passwordId = useId()
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const withdrawCardRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const wasOpen = useRef(false)
+  // Folding the panel back (취소, Esc) returns the focus to 「회원탈퇴」.
+  useEffect(() => {
+    if (wasOpen.current && !withdrawOpen) triggerRef.current?.focus({ preventScroll: true })
+    wasOpen.current = withdrawOpen
+  }, [withdrawOpen])
 
   useEffect(() => {
     if (!withdrawOpen) return
@@ -52,7 +59,17 @@ export function AccountSecurityPanel({
           </h3>
           <div className="account-security-content">
             {withdrawOpen ? (
-              <div ref={withdrawCardRef} className="account-settings-action-card">
+              <div
+                ref={withdrawCardRef}
+                className="account-settings-action-card"
+                // Esc folds the panel (not the whole dialog); nothing closes while the withdrawal runs.
+                onKeyDown={(event) => {
+                  if (event.key !== 'Escape') return
+                  event.preventDefault()
+                  event.stopPropagation()
+                  if (!busy) setWithdrawOpen(false)
+                }}
+              >
                 <AccountWithdrawalContent
                   onCancel={() => setWithdrawOpen(false)}
                   onBusyChange={onBusyChange}
@@ -64,6 +81,7 @@ export function AccountSecurityPanel({
                   탈퇴하면 대화 기록과 친밀도가 삭제되고 되돌릴 수 없어요.
                 </p>
                 <Button
+                  ref={triggerRef}
                   variant="danger"
                   size="md"
                   className="mt-4 account-withdraw-trigger"

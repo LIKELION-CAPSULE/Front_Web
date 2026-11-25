@@ -18,7 +18,8 @@ export class DocumentPipController {
   getSnapshot = () => this.snapshot
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   private update(value: PipSnapshot) { this.snapshot = value; this.listeners.forEach(listener => listener()) }
-  open = (): Promise<boolean> => {
+  /** `size`: the window size asked for (T-9 PIP 창 크기; the browser may adjust it). */
+  open = (size: { width: number; height: number } = { width: 360, height: 520 }): Promise<boolean> => {
     if (this.snapshot.window && !this.snapshot.window.closed) { this.snapshot.window.focus(); return Promise.resolve(true) }
     if (this.pending) return this.pending
     if (!this.api) {
@@ -28,14 +29,14 @@ export class DocumentPipController {
     const generation = ++this.generation
     this.update({ status: 'opening', window: null, error: '' })
     // Call before the first await so the browser receives the button's user activation.
-    const task = this.request(this.api, generation).finally(() => { if (this.pending === task) this.pending = null })
+    const task = this.request(this.api, generation, size).finally(() => { if (this.pending === task) this.pending = null })
     this.pending = task
     return task
   }
-  private async request(api: DocumentPipApi, generation: number) {
+  private async request(api: DocumentPipApi, generation: number, size: { width: number; height: number }) {
     let opened: Window | null = null
     try {
-      opened = await api.requestWindow({ width: 360, height: 520 })
+      opened = await api.requestWindow({ width: size.width, height: size.height })
       if (generation !== this.generation || opened.closed) { if (!opened.closed) opened.close(); return false }
       const current = opened
       const closed = () => {

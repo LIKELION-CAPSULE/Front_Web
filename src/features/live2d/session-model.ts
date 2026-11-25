@@ -14,6 +14,8 @@ export type SessionModelStage = Pick<Live2DStage, 'subscribe' | 'getStatus' | 'a
    * off when it finishes, is skipped or is cancelled (until voice exists, the visible typing is the speech).
    */
   setTalking?(active: boolean): void
+  /** A small nod (a tap on the mate); v2 stages only. */
+  nudge?(): void
   /** v2 only: plays a backend trigger from the model's reaction table (`reactionsUrl`). False when it has none. */
   react?(trigger: string, intensity?: number): boolean
 }

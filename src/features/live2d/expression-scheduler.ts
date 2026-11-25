@@ -17,6 +17,8 @@ export type ExpressionSchedule = { shown: Shown | null; pending: ExpressionReque
 export type ExpressionCommand = { file: string | null }
 
 const STATE_EVENTS = new Set(['FOCUS', 'AWAY', 'RETURN', 'BREAK'])
+/** How long the face of a tap on the mate stays (mate-tap.ts TAP_FACE_MS). */
+const TAP_HOLD_MS = 1800
 
 /** Where a server expression came from: an event's immediate response (18), its line (19), or a chat reply (20). */
 export type ExpressionCue = {
@@ -51,6 +53,8 @@ export function expressionRequest(cue: ExpressionCue): ExpressionRequest | null 
     return file ? { file, priority: 'state', hold: { ms: speechHold(cue.text) } } : null
   }
   if (!file) return null
+  // A tap on the mate (mate-tap.ts): a gesture-rank face for a moment.
+  if (cue.event === 'TAP') return { file, priority: 'motion', hold: { ms: TAP_HOLD_MS } }
   return cue.stage === 'notice'
     ? { file, priority: 'motion', hold: { ms: NOTICE_HOLD_MS } }
     : { file, priority: 'speech', hold: { ms: speechHold(cue.text) } }

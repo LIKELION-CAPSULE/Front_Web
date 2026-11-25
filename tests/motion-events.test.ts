@@ -30,3 +30,12 @@ test('nothing is sent with the camera off, on a break or pause, or from a hidden
   const blocked = pickMotionEvents({}, ['wave'], 0, { ...open, hidden: true })
   assert.deepEqual(pickMotionEvents(blocked.sentAt, ['wave'], 1000, open).types, ['WAVE'])
 })
+
+test('말 걸기 빈도: quiet sends no motion events, sometimes waits 3 minutes per type, often the 1-minute API floor', () => {
+  const gate = (talk: 'quiet' | 'sometimes' | 'often') => ({ camera: true, phase: 'study' as const, running: true, hidden: false, talk })
+  assert.deepEqual(pickMotionEvents({}, ['yawn'], 0, gate('quiet')).types, [])
+  const sentAt = pickMotionEvents({}, ['yawn'], 0, gate('sometimes')).sentAt
+  assert.deepEqual(pickMotionEvents(sentAt, ['yawn'], 120_000, gate('sometimes')).types, [])
+  assert.deepEqual(pickMotionEvents(sentAt, ['yawn'], 180_000, gate('sometimes')).types, ['YAWN'])
+  assert.deepEqual(pickMotionEvents(sentAt, ['yawn'], MOTION_EVENT_COOLDOWN_MS, gate('often')).types, ['YAWN'])
+})

@@ -11,8 +11,9 @@ import { CharacterSpeechBubble } from '@/features/session/components/CharacterSp
 import { ChatComposer } from '@/features/session/components/ChatComposer'
 import { GlassDock, type GlassDockItem } from '@/shared/ui/dock/GlassDock'
 import { AnimatedClock } from '@/shared/ui/AnimatedClock'
-import { Button } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
+import { Brand } from '@/shared/ui/Brand'
+import { TALK_OPTIONS } from '@/features/mates/connection-preferences'
 import { clock } from '@/shared/lib/format'
 import { withParticle } from '@/shared/lib/korean'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
@@ -55,6 +56,7 @@ export default function TourCallPage() {
     { key: 'camera', label: '카메라 켜기', tooltip: '카메라 켜기', icon: 'videoOff', device: true, onAction: NOOP },
     { key: 'chat', label: '채팅 닫기', tooltip: '채팅 닫기', icon: 'chat', pressed: true, expanded: true, controls: 'tour-call-chat', onAction: NOOP },
     { key: 'pip', label: 'PIP로 띄우기', tooltip: 'PIP로 띄우기', icon: 'shrink', dividerBefore: true, secondary: true, onAction: NOOP },
+    { key: 'fullscreen', label: '전체화면 전환', tooltip: '전체화면', icon: 'expand', secondary: true, onAction: NOOP },
     { key: 'settings', label: '설정', tooltip: '설정', icon: 'sliders', secondary: true, onAction: NOOP },
     { key: 'leave', label: '연결 끊기', tooltip: '연결 끊기', icon: 'phoneOff', tone: 'danger', dividerBefore: true, onAction: NOOP },
   ]
@@ -68,11 +70,11 @@ export default function TourCallPage() {
       <div className="connection-screen">
         <header className="desktop-window-titlebar mate-window-titlebar-static connection-titlebar">
           <div className="connection-titlebar-left">
+            <span className="connection-titlebar-brand"><Brand /></span>
+            <span className="connection-titlebar-divider" aria-hidden="true" />
             <span className="desktop-mate-dot" aria-hidden="true" />
-            <h1>{mate.name} · 연결 중</h1>
-            <time className="connection-timer" aria-label="연결 시간">
-              <AnimatedClock value={clock(PRACTICE_SECONDS)} />
-            </time>
+            <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
+            <span className="desktop-mate-ai-badge">AI 캐릭터</span>
           </div>
           <div className="connection-titlebar-center">
             <div className="connection-mode-segment" role="group" aria-label="대화 모드" data-tour="call-mode">
@@ -81,25 +83,29 @@ export default function TourCallPage() {
             </div>
           </div>
           <div className="connection-titlebar-right">
-            {credits !== null && <span className="connection-titlebar-chip">오늘 남은 크레딧 {credits.toLocaleString('ko-KR')}</span>}
-            <span className="desktop-mate-ai-badge">AI 캐릭터</span>
-            <div className="connection-window-actions">
-              <Button variant="ghost" size="sm" aria-label="연결 끊기 창 열기" title="연결 끊기" data-tour="call-leave" onClick={NOOP}><Icon name="phoneOff" size={18} /></Button>
-              <Button variant="ghost" size="sm" aria-label="PIP 창으로 띄우기" title="PIP로 띄우기" data-tour="call-pip" onClick={NOOP}><Icon name="shrink" size={18} /></Button>
-            </div>
+            {credits !== null && (
+              <span className="connection-titlebar-chip connection-credit-chip">
+                <Icon name="coin" size={14} />
+                <span className="connection-chip-caption">오늘 남은</span>
+                <span className="connection-chip-value">{credits.toLocaleString('ko-KR')}</span>
+              </span>
+            )}
+            <time className="connection-timer" aria-label="연결 시간">
+              <AnimatedClock value={clock(PRACTICE_SECONDS)} />
+            </time>
           </div>
         </header>
 
         <div className="connection-content" data-chat>
           <div ref={stageWrapRef} className="connection-stage-wrap">
             <div className="connection-stage" data-layout="mate">
-              <button type="button" className="connection-layout-toggle" aria-label={`화면 배치 바꾸기, 지금은 ${mate.name} 크게`} data-tour="call-layout" onClick={NOOP}>
-                <span className="connection-layout-toggle-icon" aria-hidden="true">
-                  <span data-tile="mate" />
-                  <span data-tile="self" />
-                </span>
-                {mate.name} 크게
-              </button>
+              <div className="connection-talk" role="radiogroup" aria-label="말 걸기 빈도" data-tour="call-talk">
+                {TALK_OPTIONS.map((option) => (
+                  <button key={option.value} type="button" role="radio" aria-checked={option.value === 'sometimes'} title={option.description} className="connection-talk-option" onClick={NOOP}>
+                    {option.label}
+                  </button>
+                ))}
+              </div>
               <section className="connection-mate" aria-label={mate.name} style={{ background: CALL_STAGE_GRADIENT }} data-tour="call-mate">
                 {!bgFailed && (
                   <img src={mateCallBackground(mate.id).landscape} alt="" aria-hidden="true" className="connection-mate-bg-img" draggable={false} onError={() => setBgFailed(true)} />

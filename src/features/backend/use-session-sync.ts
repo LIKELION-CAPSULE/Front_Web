@@ -10,7 +10,7 @@ import type { StateEvent } from './presence-clock'
 import { useBackend } from './backend-context'
 import type { BehaviorMonitor } from '../media/behavior-monitor'
 import type { ExpressionCue } from '../live2d/expression-scheduler'
-import { pickMotionEvents, type MotionCooldowns, type MotionEventType } from './motion-events'
+import { pickMotionEvents, type MotionCooldowns, type MotionEventType, type TalkFrequency } from './motion-events'
 import { escalateAway, eventQueued, takeHeldReaction, type EventFlow, type HeldReaction } from './session-event-flow'
 import { flushSessionOutbox } from './session-outbox'
 
@@ -44,6 +44,8 @@ type Input = {
   onDummyReaction?: (event: string) => void
   /** A chat reply is on its way or still typing. Reaction lines wait until it finishes so they never cut in ahead of it. */
   busy?: boolean
+  /** 「말 걸기 빈도」: how often motion events may let the mate speak up first (motion-events.ts). */
+  talk?: TalkFrequency
 }
 type Pending = { result: ReactionResponse; event: string; revision: number; turn?: number }
 type Runtime = {
@@ -229,7 +231,7 @@ export function useSessionSync(input: Input) {
       const { active: now, camera } = latest.current
       if (!sync.alive || !now || now.id !== sync.sessionId) return
       const picked = pickMotionEvents(sync.motionSentAt, change.started, change.at, {
-        camera, phase: now.phase, running: now.runningSince !== null, hidden: document.hidden,
+        camera, phase: now.phase, running: now.runningSince !== null, hidden: document.hidden, talk: latest.current.talk,
       })
       sync.motionSentAt = picked.sentAt
       const occurredAt = new Date(change.at + (now.serverOffsetMs ?? 0)).toISOString()

@@ -60,13 +60,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
   { id: 'detail-voice', screen: 'mate-detail', targets: ['[data-tour="mate-detail-voice"] button', '[data-tour="mate-detail-voice"]'], at: CORNER, action: 'click', say: '목소리는 여기서 미리 들어 볼 수 있어.' },
   { id: 'detail-connect', screen: 'mate-detail', targets: ['[data-tour="mate-detail-connect"] button', '[data-tour="mate-detail-connect"] a'], at: CORNER, action: 'click', say: '연결하기를 누르면 바로 통화가 시작돼.' },
   // 연습 통화
-  { id: 'call-mate', screen: 'call', targets: ['[data-tour="call-mate"]'], at: EDGE, action: 'hover', waitMs: 6000, say: '통화 중엔 내가 여기서 반응하고 먼저 말도 걸어.' },
+  { id: 'call-mate', screen: 'call', targets: ['[data-tour="call-mate"]'], at: EDGE, action: 'hover', waitMs: 6000, say: '통화 중엔 내가 여기서 반응하고 먼저 말도 걸어. 나를 눌러 봐도 돼.' },
   { id: 'call-mode', screen: 'call', targets: ['[data-tour="call-mode"]'], at: CORNER, action: 'hover', say: '기본은 크레딧 없이, 고급은 한 턴에 크레딧을 써서 더 깊게 얘기해.' },
   { id: 'call-chat', screen: 'call', targets: ['[data-tour="call-composer"] textarea', '[data-tour="call-composer"] input'], at: CORNER, action: 'type', text: '오늘 수학 같이 하자', say: '하고 싶은 말은 여기에 써서 보내면 돼.' },
   { id: 'call-media', screen: 'call', targets: ['[data-tour="call-dock"] [data-action="camera"]', '[data-tour="call-dock"]'], at: CORNER, action: 'hover', say: '누르고 말하면 목소리로 대화하고, 카메라를 켜면 같이 있던 시간도 재 줘.' },
-  { id: 'call-layout', screen: 'call', targets: ['[data-tour="call-layout"]'], at: CORNER, action: 'hover', say: '화면 배치는 여기서 바꿔. 나를 크게, 나눠서, 너를 크게.' },
-  { id: 'call-pip', screen: 'call', targets: ['[data-tour="call-dock"] [data-action="pip"]', '[data-tour="call-pip"]'], at: CORNER, action: 'hover', labelSide: 'left', say: 'PIP로 작게 띄워 두면 다른 일 하면서도 같이 있을 수 있어.' },
-  { id: 'call-leave', screen: 'call', targets: ['[data-tour="call-dock"] [data-action="leave"]', '[data-tour="call-leave"]'], at: CORNER, action: 'click', labelSide: 'left', say: '끝낼 땐 여기. 끊으면 연결 기록이 남아.' },
+  { id: 'call-talk', screen: 'call', targets: ['[data-tour="call-talk"]'], at: CORNER, action: 'hover', say: '내가 먼저 말 거는 정도는 여기서 정해. 조용히면 네가 말할 때만 답할게.' },
+  { id: 'call-pip', screen: 'call', targets: ['[data-tour="call-dock"] [data-action="pip"]', '[data-tour="call-dock"] [data-action="more"]'], at: CORNER, action: 'hover', labelSide: 'left', say: 'PIP로 작게 띄워 두면 다른 일 하면서도 같이 있을 수 있어.' },
+  { id: 'call-leave', screen: 'call', targets: ['[data-tour="call-dock"] [data-action="leave"]'], at: CORNER, action: 'click', labelSide: 'left', say: '끝낼 땐 여기. 끊으면 연결 기록이 남아.' },
   // 내 메이트
   { id: 'mates-capsules', screen: 'my-mates', targets: ['[data-tour="my-mates-scene"]'], at: EDGE, action: 'hover', labelSide: 'left', waitMs: 9000, say: '같이 보낸 시간은 이렇게 캡슐로 쌓여.' },
   { id: 'mates-total', screen: 'my-mates', targets: ['[data-tour="my-mates-total"]'], at: CORNER, action: 'hover', labelSide: 'left', say: '함께한 시간이랑 연결 횟수는 여기.' },
@@ -84,7 +84,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   { id: 'records-summary', screen: 'records', targets: ['[data-tour="records-summary"]'], at: CORNER, action: 'hover', labelSide: 'left', say: '함께한 시간, 만난 날, 연결 횟수는 여기서 한눈에 봐.' },
   // 계정 설정
   { id: 'account-profile', screen: 'account', targets: ['[data-tour="account-avatar"]'], at: EDGE, action: 'hover', waitMs: 6000, say: '아바타랑 닉네임, 나를 부를 호칭은 여기서 정해.' },
-  { id: 'account-settings', screen: 'account', targets: ['[data-tour="account-settings"]'], at: CORNER, action: 'hover', waitMs: 6000, say: '카메라, 마이크, PIP 말풍선은 설정에서 바꿔.' },
+  { id: 'account-settings', screen: 'account', targets: ['[data-tour="account-settings"]'], at: CORNER, action: 'hover', waitMs: 6000, say: '말 거는 정도, 목소리, 기기, PIP는 설정에서 바꿔.' },
   { id: 'account-security', screen: 'account', targets: ['[data-account-view="security"]'], at: CORNER, action: 'hover', say: '비밀번호랑 탈퇴는 보안 탭에 있어.' },
   // 마무리
   { id: 'outro', screen: 'outro', targets: [], action: 'say', say: '이제 만나러 가 볼까?' },
