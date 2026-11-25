@@ -57,7 +57,7 @@ import { CreditShortNotice } from '@/features/mates/components/CreditShortNotice
 import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback } from '@/features/mates/credit-notice'
 import { useVoiceReply } from '@/features/mates/use-voice-reply'
 import type { VoiceTurn } from '@/features/mates/voice-player'
-import { voiceRequested, voiceStopsForListening, voiceStopsWhenHidden } from '@/features/mates/voice-reply'
+import { voiceMayPlayNow, voiceRequested, voiceStopsForListening, voiceStopsWhenHidden } from '@/features/mates/voice-reply'
 import hangupHandset from '@/assets/connection/hangup-handset-3d.webp'
 import hangupHandsetRed from '@/assets/connection/hangup-handset-3d-red.webp'
 
@@ -93,6 +93,8 @@ function SttPrivacy({ onShown }: { onShown: () => void }) {
 }
 
 /** Connections whose starting mode (T-7) was applied in this page load (a reload or remount keeps the call's mode). */
+/** 메이트 음성 when this browser could not prepare the audio (the dock's tooltip and the call's notice). */
+const VOICE_UNAVAILABLE = '이 브라우저에서는 메이트 음성을 재생할 수 없어요'
 const modeAppliedFor = new Set<string>()
 
 const prefersReducedMotion = () =>
@@ -170,9 +172,13 @@ export default function ConnectionPage() {
   const voice = useVoiceReply({ volume: settings.volume, windows: [typeof window === 'undefined' ? null : window, pip.window] })
   const voicePlaying = voice.status === 'playing'
   const voiceOn = mateVoiceOn(settings)
-  const ttsWanted = voiceRequested({ voiceEnabled: voiceOn, practice: new URLSearchParams(location.search).has('tour'), playable: voice.player.supported })
-  // Turned off (here, in the settings, or on another device's copy): the voice stops at once.
-  useEffect(() => { if (!voiceOn) voice.player.stop() }, [voiceOn, voice.player])
+  // Asked for (and paid) only once this browser really prepared the audio (context and graph made: use-voice-reply.ts).
+  const voiceReady = voice.availability === 'ready'
+  const voiceUnavailable = voice.availability === 'unavailable'
+  const ttsWanted = voiceRequested({ voiceEnabled: voiceOn, practice: new URLSearchParams(location.search).has('tour'), playable: voiceReady })
+  // Turned off (here, in the settings, or on another device's copy): the voice stops at once, and a voice asked for
+  // before (a reaction line on its way) never plays.
+  useEffect(() => { if (!voiceOn) voice.player.cut() }, [voiceOn, voice.player])
   /** The first time 메이트 음성 is turned on here: a short note of what it does and costs (once per account and browser). */
   const [voiceIntro, setVoiceIntro] = useState(false)
   useEffect(() => {
@@ -304,15 +310,18 @@ export default function ConnectionPage() {
   // The voice stops when the user starts talking (누르고 말하기), when the call ends or is being hung up, and when the
   // tab goes out of sight with no PiP window (with PiP the call goes on there, and so does the voice).
   const listening = voiceStopsForListening(pushToTalk.snapshot.status)
-  useEffect(() => { if (listening) voice.player.stop() }, [listening, voice.player])
+  useEffect(() => { if (listening) voice.player.cut() }, [listening, voice.player])
   const callLive = Boolean(active) && !finishing && !ending
   const callLiveRef = useRef(callLive)
   useLayoutEffect(() => { callLiveRef.current = callLive }, [callLive])
-  useEffect(() => { if (!callLive) voice.player.stop() }, [callLive, voice.player])
+  useEffect(() => { if (!callLive) voice.player.cut() }, [callLive, voice.player])
   const pipWindow = pip.window
+  /** What a voice that arrives later (a reaction line) checks right before it plays (voice-reply.ts `voiceMayPlayNow`). */
+  const voiceGate = useRef({ voiceOn, listening, pipWindow })
+  useLayoutEffect(() => { voiceGate.current = { voiceOn, listening, pipWindow } }, [voiceOn, listening, pipWindow])
   useEffect(() => {
     const onVisibility = () => {
-      if (voiceStopsWhenHidden({ hidden: document.hidden, pipOpen: Boolean(pipWindow && !pipWindow.closed) })) voice.player.stop()
+      if (voiceStopsWhenHidden({ hidden: document.hidden, pipOpen: Boolean(pipWindow && !pipWindow.closed) })) voice.player.cut()
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
@@ -392,17 +401,24 @@ export default function ConnectionPage() {
   const sync = useSessionSync({
     // Her voice still playing counts as talking: a reaction line waits for it instead of cutting it off.
     active, userId: state.profile.userId, observation, camera: !!camera, busy: sending || speaking || voicePlaying, talk: settings.talk, tts: ttsWanted,
+    voiceTicket: () => voice.player.ticket(),
     // 「먼저 말 걸기」 (idle-talk.ts): quiet counts from the end of the last talk; the event line typing, the user's voice
     // and the hang-up also hold it.
     idleTalk: true,
     holdIdleTalk: bubbleTyping || finishing || (pushToTalk.snapshot.status !== 'idle' && pushToTalk.snapshot.status !== 'unsent'),
     onExpression: cue,
-    onReaction: (result, event) => {
+    onReaction: (result, event, voiceTicket) => {
       const reply = result.characters?.find(value => String(value.characterId) === mate?.characterId)
       const content = reply?.content
       if (content) setSpeech(previous => ({ id: previous.id + 1, at: Date.now(), text: content }))
-      // 19 `audioBase64`: the line's voice (asked with `tts`, made when the setting is on and credits cover it).
-      if (content && reply?.audioBase64 && callLiveRef.current) voice.player.play(reply.audioBase64)
+      // 19 `audioBase64`: the line's voice (asked with `tts`, made when the setting is on and credits cover it). It came
+      // seconds after it was asked for: it plays only if the call still wants a voice now, and is dropped when the voice
+      // was stopped since (its ticket is from before that).
+      const gate = voiceGate.current
+      if (content && reply?.audioBase64 && voiceMayPlayNow({
+        voiceOn: gate.voiceOn, listening: gate.listening, callLive: callLiveRef.current,
+        hidden: document.hidden, pipOpen: Boolean(gate.pipWindow && !gate.pipWindow.closed),
+      })) voice.player.play(reply.audioBase64, voiceTicket)
       if (reply?.characterId) cue({ characterId: reply.characterId, expression: reply.expression, event, stage: 'speech', text: reply.content })
     },
     // A server-side end during the hang-up is the same ending; the sequence already navigates.
@@ -657,10 +673,10 @@ export default function ConnectionPage() {
       // 「메이트 음성」 (T-2, the same value as the settings switch): her voice on replies, 20 credits a reply.
       key: 'voice',
       label: voiceOn ? '메이트 음성 끄기' : '메이트 음성 켜기',
-      tooltip: !voice.player.supported ? '이 브라우저는 음성 재생을 지원하지 않아요' : voiceOn ? `메이트 음성 끄기 · 답장마다 ${CREDIT_PRICING.voice} 크레딧` : '메이트 음성 켜기',
+      tooltip: voiceUnavailable ? VOICE_UNAVAILABLE : voiceOn ? `메이트 음성 끄기 · 답장마다 ${CREDIT_PRICING.voice} 크레딧` : '메이트 음성 켜기',
       icon: 'headphones',
       pressed: voiceOn,
-      disabled: !voice.player.supported || finishing,
+      disabled: voiceUnavailable || finishing,
       onAction: toggleVoice,
     },
     {
@@ -910,8 +926,15 @@ export default function ConnectionPage() {
             </section>
           </div>
 
-          {(creditInsufficient || floatingErrors.length > 0 || (showAffinity && sync.stageUp) || voice.status === 'blocked' || voiceIntro) && (
+          {(creditInsufficient || floatingErrors.length > 0 || (showAffinity && sync.stageUp) || voice.status === 'blocked' || voiceIntro || (voiceOn && voiceUnavailable)) && (
             <div className="connection-floating-notices" aria-live="polite">
+              {/* 메이트 음성 is on but this browser could not prepare the audio: no voice is asked for (or paid). */}
+              {voiceOn && voiceUnavailable && (
+                <div className="connection-notice-card connection-voice-unavailable" role="status">
+                  <Icon name="headphones" size={16} />
+                  {VOICE_UNAVAILABLE}
+                </div>
+              )}
               {voiceIntro && (
                 <div className="connection-notice-card connection-voice-intro" role="status">
                   <Icon name="headphones" size={16} />

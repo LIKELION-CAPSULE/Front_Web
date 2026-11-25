@@ -157,6 +157,15 @@ export default function RecordsPage() {
     status === 'loading' || (myMates.status === 'loading' && !myMates.data) || (data.status === 'loading' && !data.data) ||
     isReviewRecordsLoading()
   const failed = myMates.status === 'error' && !myMates.data ? myMates : data.status === 'error' && !data.data ? data : null
+  // The data on screen is another range or filter's (the next one is loading, or failed): its screen stays, dimmed and
+  // inert, without its sums, under 「불러오는 중」 or 「불러오지 못했어요 · 다시 시도」 (use-records-data.ts `current`).
+  const stale = Boolean(data.data) && !data.current
+  const staleFailed = stale && data.status === 'error'
+  // The board keeps the range and mate of the data it draws.
+  const shownRange = data.data?.range ?? range
+  const shownMate = data.data
+    ? data.data.mateId === null ? null : (connectedMates?.find((m) => m.id === data.data?.mateId) ?? null)
+    : activeMate
 
   const updateParams = useCallback(
     (patch: { period?: RecordPeriod; offset?: number; mate?: string | null }) => {
@@ -190,21 +199,23 @@ export default function RecordsPage() {
 
   const isCurrentPeriod = offset === 0
   const summary = data.data ? recordsSummary(data.data.totals, range, isCurrentPeriod, data.data.matesInRange) : null
+  /** A number of the summary — only for the data of this range and filter. */
+  const stat = (text: string) => (stale ? '—' : text)
 
   // The board: mate colours with 「전체」 (mate by mate in a column), the chosen mate's time-band tints otherwise.
   const yearColumns = yearColumnsFor(stageWidth || 1200)
   const mateIdByCharId = useMemo(() => new Map((connectedMates ?? []).map((mate) => [mate.characterId, mate.id])), [connectedMates])
   const board = useMemo(
     () =>
-      buildCapsuleBoard(periodRecords, range, {
+      buildCapsuleBoard(periodRecords, shownRange, {
         keepsakes,
         mateOf: (record: StudyRecord) => mateIdByCharId.get(record.characterIds[0] ?? '') ?? 'chaerin',
         mateOrder: (connectedMates ?? []).map((mate) => mate.id),
         mateNames: new Map((connectedMates ?? []).map((mate) => [mate.id, mate.name])),
-        colorMode: activeMate ? 'band' : 'mate',
+        colorMode: shownMate ? 'band' : 'mate',
         yearColumns,
       }),
-    [activeMate, connectedMates, keepsakes, mateIdByCharId, periodRecords, range, yearColumns],
+    [shownMate, connectedMates, keepsakes, mateIdByCharId, periodRecords, shownRange, yearColumns],
   )
   const capsuleCalendar = board.calendar
 
@@ -279,7 +290,7 @@ export default function RecordsPage() {
     })()
   const speakerCatalog = speaker ? catalogMates.find((m) => m.characterId === speaker.characterId) : undefined
   const speakerMet = speaker ? myMates.byMate.get(speaker.id) : undefined
-  const mateComment = speaker && data.data
+  const mateComment = speaker && data.data && !stale
     ? mateCommentFromFacts(
         collectRecordsFacts({ range, offset, view: views?.[speaker.id] ?? null, met: Boolean(speakerMet), firstMetAt: speakerMet?.firstMetAt ?? null }),
         { range, seedKey: `${state.profile.userId ?? 'guest'}|${speaker.characterId}`, voice: voiceFor(speakerCatalog?.id) },
@@ -351,7 +362,7 @@ export default function RecordsPage() {
 
   // 「함께한 메이트 n명」: only for 「전체」 with two or more mates.
   const showMateCard = connectedMates.length >= 2 && !activeMate
-  const showMateLegend = !activeMate && board.mates.length >= 2 && !showGrid
+  const showMateLegend = !shownMate && board.mates.length >= 2 && !showGrid
   // The year's 2.5D picks months (each opens its month); its days list stays folded.
   const yearMonths = board.mode === 'year' && !showGrid
   const selectDay = (day: (typeof capsuleCalendar.days)[number]) => {
@@ -439,10 +450,25 @@ export default function RecordsPage() {
         </nav>
       )}
 
+      {stale && (
+        <div
+          className="records-block records-stale-status"
+          role={staleFailed ? 'alert' : 'status'}
+          data-records-stale-status={staleFailed ? 'error' : 'loading'}
+        >
+          <p>{staleFailed ? '이 기록을 불러오지 못했어요.' : '기록을 불러오고 있어요.'}</p>
+          {staleFailed && (
+            <Button variant="secondary" size="sm" onClick={data.retry}>
+              다시 시도
+            </Button>
+          )}
+        </div>
+      )}
+
       {summary.sessions === 0 ? (
         <>
           {mateCommentView}
-          <div className="records-block records-empty-box">
+          <div className="records-block records-empty-box" data-records-stale={stale || undefined} inert={stale}>
             <p className="records-empty-title">이 기간에는 함께한 기록이 없어요.</p>
             <ButtonLink to="/">메이트 만나러 가기</ButtonLink>
           </div>
@@ -450,32 +476,38 @@ export default function RecordsPage() {
       ) : (
         <>
           {/* The comment and the numbers share one row so the board starts on the first screen (1280×720). */}
-          <div className="records-overview" data-has-comment={Boolean(mateCommentView) || undefined}>
+          <div className="records-overview" data-has-comment={Boolean(mateCommentView) || undefined} data-records-stale={stale || undefined} inert={stale}>
           {mateCommentView}
           <div className="records-summary-grid" data-tour="records-summary" data-cols={showMateCard ? '4' : '3'}>
             <section className="records-stat-card records-stat-card--primary">
               <BlockTitle icon="clock">{summary.primaryLabel}</BlockTitle>
-              <p className="records-stat-value">{duration(summary.primarySeconds)}</p>
-              {summary.cameraSeconds > 0 && <p className="records-stat-sub">카메라로 함께한 시간 {duration(summary.cameraSeconds)}</p>}
+              <p className="records-stat-value">{stat(duration(summary.primarySeconds))}</p>
+              {!stale && summary.cameraSeconds > 0 && <p className="records-stat-sub">카메라로 함께한 시간 {duration(summary.cameraSeconds)}</p>}
             </section>
             <section className="records-stat-card">
               <BlockTitle icon="check">함께한 날</BlockTitle>
-              <p className="records-stat-value">{summary.activeDays}일</p>
+              <p className="records-stat-value">{stat(`${summary.activeDays}일`)}</p>
             </section>
             <section className="records-stat-card">
               <BlockTitle icon="video">연결 횟수</BlockTitle>
-              <p className="records-stat-value">{summary.sessions}회</p>
+              <p className="records-stat-value">{stat(`${summary.sessions}회`)}</p>
             </section>
             {showMateCard && (
               <section className="records-stat-card">
                 <BlockTitle icon="user">함께한 메이트</BlockTitle>
-                <p className="records-stat-value">{summary.mates}명</p>
+                <p className="records-stat-value">{stat(`${summary.mates}명`)}</p>
               </section>
             )}
           </div>
           </div>
 
-          <section className="records-block records-board-block" aria-labelledby="records-board-title" data-records-board>
+          <section
+            className="records-block records-board-block"
+            aria-labelledby="records-board-title"
+            data-records-board
+            data-records-stale={stale || undefined}
+            inert={stale}
+          >
             <div className="records-card-head">
               <BlockTitle id="records-board-title" icon="sparkle">
                 함께 쌓은 시간
@@ -526,7 +558,7 @@ export default function RecordsPage() {
                 <ContributionGrid
                   model={board}
                   selectedKey={activeDay?.key}
-                  showMates={!activeMate && board.mates.length >= 2}
+                  showMates={!shownMate && board.mates.length >= 2}
                   onSelect={selectDay}
                 />
               }
