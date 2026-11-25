@@ -1,4 +1,7 @@
 // The mate's voice on the call screen, against the local mock (28 `tts` → the mock's test tone in three mp3 cuts):
+// - off until the user turns it on (the server default `voiceEnabled: true` alone sends `tts: false`); the dock's
+//   「메이트 음성 켜기」 turns it on (aria-pressed, a one-time note, the settings switch shows the same value) and
+//   「끄기」 stops a voice that is playing;
 // - a reply's pieces play back to back on one clock (each part starts where the one before ends, 1.6 s in all), the
 //   turn is charged as a voice turn (20) and `done.voice` is true;
 // - the v2 mouth follows the voice (`ParamMouthOpenY` sent every frame while it plays) — when the dev model is there;
@@ -6,7 +9,6 @@
 // - a hidden tab stops it, unless the PiP window is open: then it plays on and the mouth moves in that window (when
 //   the browser offers Document PiP);
 // - the browser's autoplay rule: the voice waits, 「소리 켜기」 shows, and a press lets it play;
-// - 「메이트 음성」 off (30): messages go with `tts: false`.
 //
 // Needs the dev server in local mock mode and Playwright (not a project dependency):
 //
@@ -100,6 +102,11 @@ async function call({ block = false } = {}) {
   await page.waitForTimeout(3000)
   return { context, page }
 }
+/** The dock's 「메이트 음성」 button: on (a one-time note the first time). */
+async function turnVoiceOn(page) {
+  await page.getByRole('button', { name: '메이트 음성 켜기' }).click()
+  await page.waitForTimeout(300)
+}
 const voice = (page) => page.evaluate(() => ({ starts: window.__voice.starts, stops: window.__voice.stops, open: window.__voice.open, state: window.__voiceContext?.state, bodies: window.__voice.bodies }))
 async function say(page, text) {
   const box = page.locator('textarea')
@@ -115,6 +122,7 @@ const settle = (page, ms = 2500) => page.waitForTimeout(ms)
 
 async function reply() {
   const { context, page } = await call()
+  await turnVoiceOn(page)
   const before = await page.evaluate(async () => (await (await fetch('/api/backend/credits/transactions?filter=USE')).json()).data.items.length)
   await say(page, '안녕')
   await settle(page)
@@ -135,6 +143,7 @@ async function reply() {
 
 async function stops() {
   const { context, page } = await call()
+  await turnVoiceOn(page)
   await page.evaluate(() => { window.__voice.slow = true })
   await say(page, '첫 번째')
   await page.waitForTimeout(800)
@@ -184,6 +193,7 @@ async function pip() {
   await page.waitForTimeout(1500)
   const opened = await page.evaluate(() => Boolean(window.documentPictureInPicture?.window))
   if (!opened) { note('the PiP window did not open here (headless): PiP playback is left to a manual check'); await context.close(); return }
+  await turnVoiceOn(page)
   await page.evaluate(() => { window.__voice.slow = true })
   await say(page, 'PIP에서도 들려?')
   await page.waitForTimeout(800)
@@ -207,6 +217,7 @@ async function pip() {
 
 async function blocked() {
   const { context, page } = await call({ block: true })
+  await turnVoiceOn(page)
   await say(page, '들려?')
   await page.waitForTimeout(1500)
   const unlock = page.getByRole('button', { name: '소리 켜기' })
@@ -222,24 +233,47 @@ async function blocked() {
   await context.close()
 }
 
-async function off() {
+async function toggle() {
   const { context, page } = await call()
-  await page.evaluate(async () => { await fetch('/api/backend/me/settings', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ voiceEnabled: false }) }) })
-  // The call screen reads 「메이트 음성」 from the account settings it keeps; turn it off there.
-  await page.getByRole('button', { name: '설정' }).first().click()
-  const toggle = page.getByRole('switch', { name: '메이트 음성' })
-  if ((await toggle.getAttribute('aria-checked')) === 'true') await toggle.click()
-  await page.keyboard.press('Escape')
-  await page.waitForTimeout(500)
+  const dir = process.env.CHECK_SCREENSHOT_DIR
+  const dock = page.locator('.connection-controls')
+  // Off by default (server voiceEnabled true): nothing is asked for.
+  const offButton = page.getByRole('button', { name: '메이트 음성 켜기' })
+  check('default: 메이트 음성 is off (aria-pressed false)', (await offButton.getAttribute('aria-pressed')) === 'false')
+  if (dir) await dock.screenshot({ path: `${dir}/dock-voice-off.png` })
   await say(page, '조용히')
   await settle(page, 1500)
-  const { bodies, starts } = await voice(page)
-  check('voice off: the message goes with tts: false and nothing plays', bodies.at(-1)?.tts === false && starts.length === 0, JSON.stringify(bodies.at(-1)))
+  let state = await voice(page)
+  check('default: the message goes with tts: false and nothing plays', state.bodies.at(-1)?.tts === false && state.starts.length === 0, JSON.stringify(state.bodies.at(-1)))
+  // On from the dock: pressed, a one-time note, the same value in the settings.
+  await offButton.click()
+  const onButton = page.getByRole('button', { name: '메이트 음성 끄기' })
+  const note = page.locator('.connection-voice-intro')
+  check('dock: on (aria-pressed true) with a short note', (await onButton.getAttribute('aria-pressed')) === 'true' && await note.isVisible(), await note.textContent().catch(() => ''))
+  if (dir) { await page.mouse.move(10, 10); await page.waitForTimeout(300); await dock.screenshot({ path: `${dir}/dock-voice-on.png` }); await page.screenshot({ path: `${dir}/call-voice-on.png` }) }
+  await page.getByRole('button', { name: '설정' }).first().click()
+  const toggle = page.getByRole('switch', { name: '메이트 음성' })
+  await toggle.waitFor()
+  check('settings: the switch shows the same value (on) and the credit line', (await toggle.getAttribute('aria-checked')) === 'true' && /답장마다 음성 20 크레딧/.test(await page.locator('.connection-settings-sections').textContent()))
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(400)
+  // Off while her voice plays: it stops at once; on again: no second note.
+  await page.evaluate(() => { window.__voice.slow = true })
+  await say(page, '들려?')
+  await page.waitForTimeout(900)
+  const playing = await voice(page)
+  await onButton.click()
+  await page.waitForTimeout(200)
+  state = await voice(page)
+  check('dock: off stops the voice that is playing', state.stops > playing.stops && playing.starts.length > 0, `stops ${playing.stops} → ${state.stops}`)
+  await page.getByRole('button', { name: '메이트 음성 켜기' }).click()
+  await page.waitForTimeout(300)
+  check('dock: the note shows only the first time', !(await note.isVisible().catch(() => false)))
   await context.close()
 }
 
 await warmUpDevServer(browser, origin, ['/'])
-for (const [name, run] of [['reply', reply], ['stops', stops], ['pip', pip], ['autoplay', blocked], ['voice off', off]]) {
+for (const [name, run] of [['reply', reply], ['stops', stops], ['pip', pip], ['autoplay', blocked], ['on and off', toggle]]) {
   watchdog.step(name)
   console.log(`— ${name}`)
   try { await run() } catch (error) { check(`${name}: ran to the end`, false, error.message.split('\n')[0]) }
