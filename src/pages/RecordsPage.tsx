@@ -560,7 +560,14 @@ export default function RecordsPage() {
                 updateParams({ period: 'month', offset: Math.min(0, offsetContaining('month', key, range.today)) })
               }}
             />
-            {selectedDay && board.mode !== 'year' && <CapsuleDayDetail selection={selectedDay} mateNameOf={mateNameOf} />}
+            {selectedDay && (
+              // Folded away (not removed) in the year, with the board's morph, so the block does not jump.
+              <div className="records-day-detail-slot" data-collapsed={board.mode === 'year' || undefined} inert={board.mode === 'year'}>
+                <div className="records-day-detail-slot-inner">
+                  <CapsuleDayDetail selection={selectedDay} mateNameOf={mateNameOf} />
+                </div>
+              </div>
+            )}
             {dayCardView}
           </section>
 

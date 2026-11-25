@@ -29,6 +29,7 @@ import {
   type PillarLayout,
 } from './capsule-board-pillars.ts'
 import {
+  BOARD_MORPH_MS,
   chipSlots,
   requestView,
   settleViewRequest,
@@ -120,7 +121,7 @@ const TILE_COLOR = {
 /** Pointer tilt (radians), hover lift (tile units) and timings (ms). Small on purpose. */
 const TILT = { x: 0.022, y: 0.035 } as const
 const LIFT = 0.09
-const MORPH_MS = 850
+const MORPH_MS = BOARD_MORPH_MS
 const FLAT_MS = 800
 /** The comment's emphasis stays this long after the line is typed, then fades. */
 const EMPHASIS_HOLD_MS = 1600

@@ -6,7 +6,7 @@ import { boardMonthTooltip, isMonthSelectable, type CapsuleBoardModel } from './
 import type { BoardBenchmark, BoardSceneController, BoardTarget } from './capsule-board-scene'
 import {
   BOARD_NARROW_STAGE,
-  boardStageAspect,
+  boardStageRatio,
   boardTransition,
   supportsWebGL,
   yearMonthNeighbor,
@@ -72,6 +72,8 @@ export function CapsuleBoard({
   const [fallback, setFallback] = useState(() => !supportsWebGL())
   const [ready, setReady] = useState(false)
   const [stageWidth, setStageWidth] = useState(0)
+  // The viewport height caps the stage (boardStageCap); kept so the stage's ratio already holds the cap.
+  const [viewportHeight, setViewportHeight] = useState(() => (typeof window === 'undefined' ? 0 : window.innerHeight))
   const [pointed, setPointed] = useState<BoardTarget | null>(null)
   const [focused, setFocused] = useState<BoardTarget | null>(null)
   // A focus left over from the other kind of list (a month after entering it, a day of another period) is void.
@@ -162,6 +164,12 @@ export function CapsuleBoard({
     observer.observe(wrap)
     return () => observer.disconnect()
   }, [onStageWidth, fallback])
+
+  useEffect(() => {
+    const update = () => setViewportHeight(window.innerHeight)
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   // ── Scene lifecycle (lazy chunk; disposed on unmount) ──
   useEffect(() => {
@@ -331,7 +339,8 @@ export function CapsuleBoard({
       data-view={view}
       data-focus={activeFocus !== null || undefined}
       data-narrow={narrow || undefined}
-      style={{ '--board-aspect': boardStageAspect(model.mode, view, narrow) } as CSSProperties}
+      data-reduced-motion={reducedMotion || undefined}
+      style={{ '--board-ratio': boardStageRatio(model.mode, view, narrow, { width: stageWidth, viewportHeight }) } as CSSProperties}
       onMouseLeave={() => setPointed(null)}
     >
       <div ref={hostRef} className="capsule-board-stage" />

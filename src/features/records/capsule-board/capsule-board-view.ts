@@ -79,6 +79,40 @@ export function yearColumnsFor(stageWidth: number) {
   return stageWidth < BOARD_NARROW_STAGE ? 2 : 4
 }
 
+/**
+ * Period morph length (ms). The stage's height follows it: `--board-ratio` (capsule-board.css) transitions over the
+ * same time with the morph's ease-in-out, so the block grows or shrinks with the board instead of jumping.
+ */
+export const BOARD_MORPH_MS = 850
+
+/** Stage height limits (px), the same as capsule-board.css (`min-height`, `max-height`). */
+export const BOARD_STAGE_LIMITS = { min: 200, max: 600, floor: 320, chrome: 380, narrowYearMax: 1100 } as const
+
+/** Tallest the stage may be: under the page header and the block title, so the whole board shows at once. */
+export function boardStageCap(viewportHeight: number, mode: BoardMode, narrow: boolean) {
+  const { max, floor, chrome, narrowYearMax } = BOARD_STAGE_LIMITS
+  if (narrow && mode === 'year') return narrowYearMax
+  return Math.min(max, Math.max(floor, viewportHeight - chrome))
+}
+
+/**
+ * Height / width of the stage as drawn (`--board-ratio`): the board's shape (`boardStageAspect`) within the height
+ * limits. The stage's height is linear in it and it already holds the limits, so the transition eases the height the
+ * viewer sees from the old one to the new one over the whole morph (not only until a limit is reached).
+ */
+export function boardStageRatio(
+  mode: BoardMode,
+  view: BoardView,
+  narrow: boolean,
+  size?: { width: number; viewportHeight: number },
+) {
+  const ratio = 1 / boardStageAspect(mode, view, narrow)
+  if (!size || size.width <= 0 || size.viewportHeight <= 0) return ratio
+  const cap = boardStageCap(size.viewportHeight, mode, narrow)
+  const height = Math.max(BOARD_STAGE_LIMITS.min, Math.min(size.width * ratio, cap))
+  return height / size.width
+}
+
 /** Width / height of the stage for a period and view (the board's own shape, so it fills the stage). */
 export function boardStageAspect(mode: BoardMode, view: BoardView, narrow: boolean) {
   if (narrow) {
