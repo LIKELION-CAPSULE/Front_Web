@@ -46,6 +46,7 @@ const account = [click('계정 설정 열기')] satisfies ReviewStep[]
 const security = [...account, click('보안')] satisfies ReviewStep[]
 // The withdrawal confirmation is open from the start on the security tab (no button to unfold it).
 const withdraw = [...security, fill('input[name="withdrawalConfirmation"]', WITHDRAWAL_CONFIRMATION)] satisfies ReviewStep[]
+const resetMenu = [click('채린 메뉴'), click('대화 초기화')] satisfies ReviewStep[]
 const passwordRequest = [...security, fill('input[name="email"]', 'review@example.invalid'), click('재설정 링크 받기')] satisfies ReviewStep[]
 
 export const reviewScenarios: ReviewScenario[] = [
@@ -111,6 +112,9 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'connection-model-missing', group: '메이트·연결', title: '연결 · 모델 없음', path: '/connect/chaerin', fault: 'model-missing', steps: [click('연결하기')], note: '다른 모델이나 사진으로 연결 성공을 대신하지 않음' },
   { id: 'connection-model-ended-retry', group: '메이트·연결', title: '연결 · 모델 실패 뒤 서버 종료', path: '/connect/chaerin', fault: 'model-ended-retry', steps: [click('연결하기')], note: '모델 실패 뒤 재개하면 SESSION_ENDED. 종료된 임시 연결 제거·기록 조회·새 ID로 연결' },
   { id: 'connection-camera-error', group: '메이트·연결', title: '연결 · 카메라 거절', path: '/connect/chaerin', steps: [click('연결하기'), click('카메라 켜기')], note: '카메라 권한 거절 후 연결 유지' },
+  { id: 'connection-chat-history', group: '메이트·연결', title: '연결 · 지난 대화 불러오기', path: '/connect/chaerin', fault: 'chat-history', steps: [click('연결하기')], note: '32: 채팅을 열면 지난 대화 첫 페이지(20줄), 맨 위로 올리면 이전 페이지. 답장에 마우스를 올리면 👍·👎·신고' },
+  { id: 'connection-reply-report', group: '메이트·연결', title: '연결 · 답장 신고', path: '/connect/chaerin', fault: 'chat-history', steps: [click('연결하기'), { click: '신고', selector: '.reply-action' }], note: '41: 사유 4개(기타는 300자 이하 직접 입력)·이미 신고한 답장은 409 뒤 접힘 처리' },
+  { id: 'connection-credit-short', group: '메이트·연결', title: '연결 · 고급 모드 크레딧 부족', path: '/connect/chaerin', fault: 'credit-short', steps: [click('연결하기'), { click: '고급 ·', includes: true }, fill('textarea', '검토 메시지'), click('메시지 보내기')], note: '409 CREDIT_INSUFFICIENT: 「크레딧이 부족해요」·기본 모드로 계속(입력 그대로 다시 보냄)·친구 초대로 받기' },
   { id: 'connection-message-error', group: '메이트·연결', title: '연결 · 답장 실패', path: '/connect/chaerin', fault: 'message', steps: [click('연결하기'),fill('textarea','검토 메시지'),click('메시지 보내기')], note: '입력 유지·재시도' },
   { id: 'connection-finish', group: '메이트·연결', title: '연결 · 끊기 확인', path: '/connect/chaerin', steps: [click('연결하기'),click('연결 끊기')], note: '끊기·계속하기 (전용 끊기 멘트 없음)' },
   { id: 'connection-finish-with-line', group: '메이트·연결', title: '연결 · 끊기 확인(전용 멘트)', path: '/connect/chaerin', farewellLine: '잠깐 쉬고 와도 괜찮아. 여기서 기다리고 있을게.', steps: [click('연결하기'),click('연결 끊기')], note: '전용 끊기 멘트 필드가 있을 때만 말풍선 표시' },
@@ -129,6 +133,9 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'records-loading', group: '내 기록', title: '내 기록 · 불러오는 중', path: '/records', loading: 'records', note: '로컬 미리보기용: 창 내부 스켈레톤 상태' },
   { id: 'my-mates', group: '내 메이트', title: '내 메이트 · 기본(연결 1번)', path: '/mates/me', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '위에서 내려다본 캡슐 바닥 장면(캡슐이 쏟아진 뒤 카드가 떨어져 내려앉음)과 오른쪽 함께한 시간 열·서버 보고서 1개(연결 1번 = 캡슐 여러 개)·해금 정보 없음: 개발에서는 샘플 친밀도·표정, 운영 모습은 ?features=off(표정 영역 없는 작은 카드)' },
   { id: 'my-mates-full', group: '내 메이트', title: '내 메이트 · 전체(연결 7번·표정 2/4)', path: '/mates/me', mateContract: true, reports: [9001, 9002, 9003, 9004, 9005, 9006, 9007], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '서버 계약 전 디자인 확인용: 연결 7번(연결 시간만큼 캡슐 묶음)·누운 한 면 카드(이름·단계 친구·처음 만난 날·표정 컬렉션 2/4)·오른쪽 열(함께한 시간·12시간 고리·최근 캡슐)·보이스 대사는 숨김' },
+  { id: 'mate-reset-confirm', group: '내 메이트', title: '내 메이트 · 대화 초기화 확인', path: '/mates/me', mateContract: true, mateHistory: true, reports: [9001], steps: resetMenu, note: '⋯ 메뉴 → 대화 초기화(47): 지워지는 것(대화 기록·대화 맥락)·남는 것(친밀도·표정·연결 기록·크레딧)·되돌릴 수 없음 안내' },
+  { id: 'mate-reset-error', group: '내 메이트', title: '내 메이트 · 대화 초기화 실패', path: '/mates/me', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-reset', steps: [...resetMenu, click('초기화하기')], note: '503: 창 안 오류 안내·메시지 캐시 보존·다시 누르면 성공' },
+  { id: 'mate-reset-conflict', group: '내 메이트', title: '내 메이트 · 연결 중이라 초기화 불가', path: '/mates/me', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-conflict', steps: [...resetMenu, click('초기화하기')], note: '47의 409 CONNECTION_IN_PROGRESS(다른 기기 연결 포함): 「연결을 먼저 마쳐 주세요」' },
   { id: 'my-mates-empty', group: '내 메이트', title: '내 메이트 · 연결 기록 없음', path: '/mates/me', note: '연결 0번: 빈 바닥 위 카드와 「첫 캡슐을 모아 볼까?」 안내·오른쪽 열의 만나러 가기 버튼(메이트 목록이 비면 홈 이동)' },
   { id: 'my-mates-loading', group: '내 메이트', title: '내 메이트 · 불러오는 중', path: '/mates/me', loading: 'my-mates', note: '로컬 미리보기용: 창 내부 장면 스켈레톤' },
   { id: 'mate-preview', group: '메이트·연결', title: '메이트 상세 · 미리보기·목소리', path: '/mates/chaerin', mateContract: true, note: '신규 계약 모의 포트: 이미지 모델과 무음 WAV로 UI만 검토. 실제 제작물/서버 연동 아님' },
@@ -138,9 +145,6 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'mate-coming-soon', group: '메이트·연결', title: '메이트 상세 · 공개 예정', path: '/mates/dohyun', fault: 'coming-soon', note: '31 comingSoon: 연결 대신 「공개 알림 받기」(46)' },
   { id: 'mate-coming-soon-requested', group: '메이트·연결', title: '메이트 상세 · 공개 알림 신청함', path: '/mates/dohyun', fault: 'coming-soon', steps: [click('공개 알림 받기')], note: '46 204 뒤 「공개되면 알려 드릴게요」(비활성)' },
   { id: 'home-coming-soon', group: '온보딩·홈', title: '홈 · 공개 예정 메이트 카드', path: '/', fault: 'coming-soon', note: '11 comingSoon: 「곧 만나요」, 연결 화살표 닫힘(상세로는 이동)' },
-  { id: 'mate-reset-error', group: '메이트·연결', title: '메이트 상세 · 초기화 실패', path: '/mates/chaerin', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-reset', note: '실패 시 모의 메시지/보고서 캐시 보존·명시적으로 재시도' },
-  { id: 'mate-reset-conflict', group: '메이트·연결', title: '메이트 상세 · 초기화 충돌', path: '/mates/chaerin', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-conflict', note: '다른 버전의 대화에 자동 초기화하지 않음·새 버전 조회 후 재확인' },
-  { id: 'mate-reset-partial', group: '메이트·연결', title: '메이트 상세 · 불완전한 초기화 응답', path: '/mates/chaerin', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-partial', note: '일부 범위만 지운 응답을 성공으로 취급하지 않음' },
   { id: 'credits', group: '크레딧·초대', title: '내 크레딧 · 값 없음', path: '/credits', note: '서버 계약 대기(값 없음) 오류·재시도 상태' },
   { id: 'credits-filled', group: '크레딧·초대', title: '내 크레딧 · 내역 있음', path: '/credits', note: '로컬 미리보기용 지갑 주입(실제 서버 연동 아님): 잔액 1,180·출석 980·초대 200·오늘 사용 320·이틀치 내역 6건' },
   { id: 'credits-empty', group: '크레딧·초대', title: '내 크레딧 · 내역 없음', path: '/credits', note: '로컬 미리보기용 지갑 주입(실제 서버 연동 아님): 잔액 있음·내역 0건' },
@@ -173,6 +177,9 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'withdraw-pending', group: '계정·공통', title: '탈퇴 처리 중', path: '/', fault: 'withdraw-pending', steps: [...withdraw, click('회원탈퇴')], note: '로딩·중복 클릭·닫기 방지' },
   { id: 'withdraw-done', group: '계정·공통', title: '탈퇴 완료', path: '/login?notice=account-withdrawn', guest: true, note: '로그인 화면의 완료 안내' },
   { id: 'records-empty', group: '내 기록', title: '내 기록 · 기록 없음', path: '/records', empty: true, note: '아직 함께한 기록이 없는 빈 상태·홈 이동 버튼' },
+  { id: 'notifications', group: '계정·공통', title: '알림 · 목록', path: '/', steps: [{ click: '알림 · 안 읽은 알림', includes: true }], note: '43 · 44: 헤더 종 아이콘 점·목록(제목·본문·상대 시각·안 읽음 표시), 열면 보이는 항목 읽음 처리, 아래로 스크롤하면 이어서 불러옴' },
+  { id: 'notifications-empty', group: '계정·공통', title: '알림 · 없음', path: '/', fault: 'notifications-empty', steps: [click('알림')], note: '알림 0개: 점 없음·빈 상태 문구' },
+  { id: 'notifications-error', group: '계정·공통', title: '알림 · 불러오기 실패', path: '/', fault: 'notifications-error', steps: [click('알림')], note: '43 실패: 오류 안내·다시 시도' },
   { id: 'not-found', group: '계정·공통', title: '없는 주소 · 홈 안내', path: '/review-not-found', note: '홈으로 이동·우측 상단 알림·한 번만 안내' },
   { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/?ref=CAP-7K2Q', note: '휴대폰 접속 시 PC 안내 창·초대 코드 유지·약관 열기' },
 ]
@@ -187,7 +194,8 @@ const restoredReviewIds: Readonly<Record<string, string>> = {
   'draft-charge-receipt': 'credits',
   'login-alt-illustration': 'login',
   'login-alt-portrait': 'login',
-  'mate-reset': 'mate-reset-error',
+  'mate-reset': 'mate-reset-confirm',
+  'mate-reset-partial': 'mate-reset-error',
 }
 
 const reviewGroupOrder = [

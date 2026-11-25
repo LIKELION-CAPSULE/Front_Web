@@ -32,7 +32,8 @@ export type BackendContextValue = {
   mateDetails: Record<string, MateDetailContent>
   mateContentVersion: number
   loadMateDetail: ((mateId: string, force?: boolean) => Promise<MateDetailContent>) | null
-  resetMateConversation: ((mateId: string, revision: string) => Promise<void>) | null
+  /** 47 대화 초기화 (204). 409 `CONNECTION_IN_PROGRESS` while this mate is connected. */
+  resetMateConversation: ((mateId: string) => Promise<void>) | null
   previewModelFactory: SessionModelFactory
   featurePort?: BetaFeaturePort
   betaSettings?: BetaFeatureSnapshot['settings']

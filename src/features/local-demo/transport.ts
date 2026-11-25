@@ -60,10 +60,16 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
   const settings: Required<UserSettings> = { ...DEFAULT_SETTINGS }
   let nextEventId = Date.now()
   const image = () => localAvatarImage(store.data.avatarId)
+  /** 43's list for this tab (newest first, higher ids newer): a few fresh ones, then enough older ones for a second page. */
+  const notifications = localNotifications(Date.now())
+  /** 40 · 41 for this tab: the ratings 32 reads back, the replies already reported. */
+  const ratings = new Map<string, 'UP' | 'DOWN'>()
+  const reported = new Set<string>()
   /**
    * QA (session storage, development only): `capsule-local-coming-soon` = a mate's catalogue id (e.g. `dohyun`) makes that
    * mate coming soon (11 · 31 `comingSoon`, 16 refuses it, 46 accepts the alert, 48 leaves it out);
-   * `capsule-local-beta-full` = `1` makes a new signup (4) and Kakao (6) answer 403 `BETA_FULL`.
+   * `capsule-local-beta-full` = `1` makes a new signup (4) and Kakao (6) answer 403 `BETA_FULL`;
+   * `capsule-local-notifications` = `empty` | `error` empties 43 or makes it fail.
    */
   const qa = (key: string) => { try { return globalThis.sessionStorage?.getItem(key) ?? null } catch { return null } }
   const comingSoon = (mate: LocalMate) => qa('capsule-local-coming-soon') === mate.mateId
@@ -267,13 +273,41 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       const mateId = url.searchParams.get('mateId')
       return reply(records(range, url.searchParams.get('date'), mateId ? Number(mateId) : null))
     }
-    if (path === '/notifications') return reply({ items: [], unreadCount: 0, nextBefore: null })
-    if (path === '/notifications/read') return reply({ unreadCount: 0 })
+    // 43 · 44. QA: `sessionStorage['capsule-local-notifications']` = `empty` (none) or `error` (43 answers 503).
+    if (path === '/notifications' || path === '/notifications/read') {
+      const mode = qa('capsule-local-notifications')
+      if (mode === 'error' && path === '/notifications') return error('LOCAL_TEST_FAILURE', 503)
+      const list = mode === 'empty' ? [] : notifications
+      const unreadCount = () => list.filter(item => !item.read).length
+      if (path === '/notifications/read') {
+        if (method !== 'POST') return error('METHOD_NOT_ALLOWED', 405)
+        const ids = Array.isArray(body.ids) ? new Set(body.ids as unknown[]) : null
+        for (const item of list) if (!ids || ids.has(item.id)) item.read = true
+        return reply({ unreadCount: unreadCount() })
+      }
+      const size = Number(url.searchParams.get('size') ?? 20)
+      const before = url.searchParams.get('before')
+      if (!Number.isInteger(size) || size < 1 || size > 50 || (before !== null && !/^\d+$/.test(before))) return error('INVALID_REQUEST', 400)
+      const older = list.filter(item => before === null || item.id < Number(before))
+      const page = older.slice(0, size)
+      return reply({ items: page.map(item => ({ ...item, createdAt: new Date(item.createdAt).toISOString() })), unreadCount: unreadCount(),
+        nextBefore: older.length > size ? page[page.length - 1]!.id : null })
+    }
     if (path === '/feedback' && method === 'POST') return reply({ feedbackId: Date.now() }, 201)
     const messageMatch = path.match(/^\/messages\/([^/]+)\/(rating|report)$/)
     if (messageMatch) {
-      if (!store.data.messages.some(message => message.requestId === decodeURIComponent(messageMatch[1]!) && message.sender === 'character')) return error('MESSAGE_NOT_FOUND', 404)
-      return messageMatch[2] === 'rating' ? reply(null, 204) : reply({ reportId: Date.now() }, 201)
+      const requestId = decodeURIComponent(messageMatch[1]!)
+      if (!store.data.messages.some(message => (message.requestId ?? message.id) === requestId && message.sender === 'character')) return error('MESSAGE_NOT_FOUND', 404)
+      if (messageMatch[2] === 'rating') {
+        if (method !== 'PUT' || !(body.rating === 'UP' || body.rating === 'DOWN' || body.rating === null)) return error('INVALID_REQUEST', 400)
+        if (body.rating === null) ratings.delete(requestId); else ratings.set(requestId, body.rating)
+        return reply(null, 204)
+      }
+      const reason = body.reason, detail = typeof body.detail === 'string' ? body.detail.trim() : ''
+      if (method !== 'POST' || !['INAPPROPRIATE', 'VIOLENT', 'OUT_OF_CHARACTER', 'OTHER'].includes(String(reason)) || detail.length > 300 || (reason === 'OTHER' && !detail)) return error('INVALID_REQUEST', 400)
+      if (reported.has(requestId)) return error('ALREADY_REPORTED', 409)
+      reported.add(requestId)
+      return reply({ reportId: Date.now() }, 201)
     }
 
     // ── Mates ──
@@ -299,7 +333,7 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
         const cursor = Number(url.searchParams.get('cursor') ?? 0)
         const page = list.slice(cursor, cursor + size)
         const messages: ChatMessage[] = page.map(message => ({ requestId: message.requestId ?? message.id, sender: message.sender === 'user' ? 'USER' : 'MATE', content: message.text,
-          inputType: message.sender === 'user' ? 'TEXT' : null, rating: null, createdAt: new Date(message.createdAt ?? 0).toISOString(), connectionId: Number(message.sessionId) }))
+          inputType: message.sender === 'user' ? 'TEXT' : null, rating: message.sender === 'user' ? null : ratings.get(message.requestId ?? message.id) ?? null, createdAt: new Date(message.createdAt ?? 0).toISOString(), connectionId: Number(message.sessionId) }))
         return reply({ messages, nextCursor: cursor + size < list.length ? String(cursor + size) : null })
       }
       return error('NOT_FOUND', 404)
@@ -387,4 +421,21 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
     }
     return error('NOT_FOUND', 404)
   }
+}
+
+type LocalNotification = { id: number; type: string; title: string; body: string | null; link: string | null; read: boolean; createdAt: number }
+function localNotifications(now: number): LocalNotification[] {
+  const MINUTE = 60_000
+  const fresh: Omit<LocalNotification, 'id'>[] = [
+    { type: 'STAGE_UP', title: '채린과 한 걸음 가까워졌어요', body: '이제 채린이 새로운 표정을 보여 줘요. 내 메이트에서 확인해 보세요.', link: '/mates/me', read: false, createdAt: now - 4 * MINUTE },
+    { type: 'ATTENDANCE', title: '출석 보상 100 크레딧을 받았어요', body: null, link: '/credits', read: false, createdAt: now - 3 * 60 * MINUTE },
+    { type: 'REFERRAL_REWARD', title: '친구가 첫 연결을 마쳤어요', body: '초대 보상 1,000 크레딧이 들어왔어요.', link: '/credits/invite', read: true, createdAt: now - 26 * 60 * MINUTE },
+    { type: 'NOTICE', title: '바깥 링크는 열리지 않아요', body: '앱 밖 주소가 담긴 알림은 눌러도 이동하지 않아요.', link: 'https://example.com', read: true, createdAt: now - 3 * 24 * 60 * MINUTE },
+  ]
+  const older = Array.from({ length: 22 }, (_, index): Omit<LocalNotification, 'id'> => ({
+    type: 'ATTENDANCE', title: '출석 보상 100 크레딧을 받았어요', body: null, link: '/credits', read: index > 1,
+    createdAt: now - (4 + index) * 24 * 60 * MINUTE,
+  }))
+  const all = [...fresh, ...older]
+  return all.map((item, index) => ({ ...item, id: all.length - index }))
 }

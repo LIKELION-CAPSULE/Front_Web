@@ -9,6 +9,7 @@ import { QuarterRingSpinner } from '@/shared/ui/QuarterRingSpinner'
 import { useBackend } from '@/features/backend/backend-context'
 import { number } from '@/shared/lib/format'
 import { useCreditDisplay } from '@/features/attendance/use-credit-display'
+import { NotificationBell } from './NotificationBell'
 import '@/features/profile/components/account-settings.css'
 
 const AccountSettingsDialog = lazy(() => import('@/features/profile/components/AccountSettingsDialog'))
@@ -63,6 +64,7 @@ export function HeaderAccount() {
   return <>
     <div className="header-account ml-auto flex shrink-0 items-center gap-2 sm:gap-3.5">
       {wallet && <CreditChip />}
+      <NotificationBell />
       <button ref={trigger} type="button" data-tour="profile" aria-label="계정 설정 열기" aria-haspopup="dialog" aria-expanded={open} className="header-avatar-btn flex items-center justify-center rounded-full" onClick={() => setOpen(true)}><Avatar size="sm" /></button>
     </div>
     {open && <Suspense fallback={<AccountSettingsLoading onClose={close} />}><AccountSettingsDialog key={requested?.view ?? 'local'} initialView={requested?.view} locked={tourOwned} onClose={close} /></Suspense>}

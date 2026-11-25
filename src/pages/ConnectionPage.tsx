@@ -49,6 +49,10 @@ import { Brand } from '@/shared/ui/Brand'
 import { MateTap, onMate } from '@/features/mates/mate-tap'
 import { playHangup, whenRendered, type HangupPlayback } from '@/features/mates/hangup-sequence'
 import { takePickup } from '@/features/mates/pickup-sequence'
+import { useChatHistory } from '@/features/mates/use-chat-history'
+import { ReplyActions, ReportedReply } from '@/features/mates/components/ReplyActions'
+import { CreditShortNotice } from '@/features/mates/components/CreditShortNotice'
+import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback, VOICE_REPLIES_REQUESTED } from '@/features/mates/credit-notice'
 import hangupHandset from '@/assets/connection/hangup-handset-3d.webp'
 import hangupHandsetRed from '@/assets/connection/hangup-handset-3d-red.webp'
 
@@ -345,7 +349,23 @@ export default function ConnectionPage() {
     // A server-side end during the hang-up is the same ending; the sequence already navigates.
     onEnded: () => { if (!hangup.current) serverEnded() },
   })
-  const messages = state.messages.filter(message => message.characterId === mate?.characterId && /^\d+$/.test(message.sessionId))
+  const localMessages = state.messages.filter(message => message.characterId === mate?.characterId && /^\d+$/.test(message.sessionId))
+  // 32: the server's history in the chat; the running connection's lines stay this browser's (use-chat-history.ts).
+  const chat = useChatHistory({
+    userId: state.profile.userId, characterId: mate?.characterId, open: chatOpen && Boolean(shown), local: localMessages, activeConnectionId: active?.id ?? null,
+    hasConversation: mate ? backend.mateDetails[mate.id]?.hasConversation : undefined,
+  })
+  const messages = chat.messages
+  /** Reached the top of the chat: the older page, keeping the lines in view where they were. */
+  const loadOlderMessages = async () => {
+    const node = messageList.current
+    if (!node) return
+    const fromBottom = node.scrollHeight - node.scrollTop
+    if (await chat.loadOlder()) requestAnimationFrame(() => { if (messageList.current) messageList.current.scrollTop = messageList.current.scrollHeight - fromBottom })
+  }
+  // 고급 모드 short of credits (409 CREDIT_INSUFFICIENT): the line that did not go, to send again in 기본 모드.
+  const [creditShort, setCreditShort] = useState<{ text: string; inputType: 'TEXT' | 'QUICK'; credits: number | null } | null>(null)
+  const [voiceNote, setVoiceNote] = useState<'none' | 'shown' | 'done'>('none')
   const lastText = messages.at(-1)?.text
   const latestReply = messages.findLast(message => message.sender === 'character')
   useEffect(scrollLatest, [messages.length, lastText, chatOpen, scrollLatest])
@@ -414,12 +434,16 @@ export default function ConnectionPage() {
     try {
       const result = await backend.sendMessage(mate.characterId, text, inputType)
       if (!mounted.current) return false
+      setCreditShort(null)
+      if (shouldNoteVoiceFallback({ requestedVoice: VOICE_REPLIES_REQUESTED, voice: result.voice, noted: voiceNote !== 'none' })) setVoiceNote('shown')
       if (result.characterId) cue({ characterId: result.characterId, expression: result.expression, event: 'MESSAGE', stage: 'speech', text: result.content })
       setDraft('')
       return true
     } catch (reason) {
       if (mounted.current) {
+        const short = creditShortage(reason)
         if (reason instanceof ApiError && reason.code === 'CONNECTION_ENDED') serverEnded()
+        else if (short) setCreditShort({ text, inputType, credits: short.credits })
         else setError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.')
       }
       return false
@@ -858,13 +882,17 @@ export default function ConnectionPage() {
               onScroll={() => {
                 const node = messageList.current
                 if (node) followMessages.current = node.scrollHeight - node.scrollTop - node.clientHeight < 64
+                if (node && node.scrollTop < 48 && chat.room.nextCursor) void loadOlderMessages()
               }}
             >
+              {chat.room.status === 'loading' && <p className="connection-history-status" role="status">이전 대화를 불러오고 있어요.</p>}
               {messages.map(message => (
                 <article key={message.id} data-sender={message.sender}>
                   <small>{message.sender === 'user' ? state.profile.name : mate.name}</small>
                   <p>
-                    {message.sender === 'character' ? (
+                    {message.sender === 'character' && message.requestId && chat.room.reported.has(message.requestId) ? (
+                      <ReportedReply text={message.text} />
+                    ) : message.sender === 'character' && chat.localIds.has(message.id) ? (
                       <TypingMessage
                         id={message.id}
                         text={message.text}
@@ -876,10 +904,30 @@ export default function ConnectionPage() {
                       message.text
                     )}
                   </p>
+                  {/* 40 · 41 on a confirmed reply (not in the PIP window). */}
+                  {message.sender === 'character' && message.requestId && message.delivery !== 'pending' && state.profile.userId !== undefined &&
+                    !chat.room.reported.has(message.requestId) && (
+                      <ReplyActions userId={state.profile.userId} characterId={mate.characterId} requestId={message.requestId} rating={chat.room.ratings[message.requestId] ?? null} />
+                    )}
                 </article>
               ))}
               {sending && messages.at(-1)?.sender !== 'character' && <TypingIndicator name={mate.name} />}
             </div>
+            {creditShort && (
+              <CreditShortNotice
+                credits={creditShort.credits}
+                busy={sending}
+                onClose={() => setCreditShort(null)}
+                onBasic={() => {
+                  const retry = creditShort
+                  chooseMode('basic')
+                  void send(retry.text, retry.inputType)
+                }}
+              />
+            )}
+            {voiceNote === 'shown' && (
+              <p className="voice-fallback-note" role="status" onAnimationEnd={() => setVoiceNote('done')}>{CREDIT_NOTICE_COPY.voiceFallback}</p>
+            )}
             {error && (
               <div className="connection-chat-error">
                 <FeedbackMessage tone="error">{error}</FeedbackMessage>

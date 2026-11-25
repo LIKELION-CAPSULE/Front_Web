@@ -52,7 +52,22 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
   try {
     if (scenario.fault === 'beta-full') sessionStorage.setItem('capsule-local-beta-full', '1')
     if (scenario.fault === 'coming-soon') sessionStorage.setItem('capsule-local-coming-soon', 'dohyun')
+    if (scenario.fault === 'notifications-empty') sessionStorage.setItem('capsule-local-notifications', 'empty')
+    if (scenario.fault === 'notifications-error') sessionStorage.setItem('capsule-local-notifications', 'error')
   } catch { /* The review storage is in memory; nothing to do without it. */ }
+  // 32's history (`chat-history`): earlier turns with 채린 on a finished connection, more than one page. The lines are the
+  // mock's existing ones; no new character dialogue is authored.
+  if (scenario.fault === 'chat-history') {
+    const mate = LOCAL_MATES.find(value => value.characterId === LOCAL_CHARACTER_ID)!
+    const start = Date.now() - 2 * 86_400_000
+    for (let turn = 0; turn < 14; turn++) {
+      const requestId = `review-history-${turn + 1}`, createdAt = start + turn * 90_000
+      store.data.messages.push(
+        { id: `local-user-${requestId}`, requestId, sessionId: '9001', characterId: String(LOCAL_CHARACTER_ID), sender: 'user', text: `검토 메시지 ${turn + 1}`, voice: false, delivery: 'confirmed', createdAt },
+        { id: `local-reply-${requestId}`, requestId, sessionId: '9001', characterId: String(LOCAL_CHARACTER_ID), sender: 'character', text: mate.reply, voice: false, delivery: 'confirmed', createdAt },
+      )
+    }
+  }
   const local = createLocalTransport(store, original, location.origin)
   let syncFailures = scenario.fault === 'sync' ? 1 : 0
   let reportFailures = scenario.fault === 'server-ended-report' ? 1 : 0
@@ -102,6 +117,10 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     if (operation === 'events' && syncFailures > 0) { syncFailures--; return fail(500) }
     if ((operation === 'messages' || operation === 'messages/stream') && fault === 'server-ended-message') return ended()
     if ((operation === 'messages' || operation === 'messages/stream') && fault === 'message') return fail(500)
+    // 고급 모드 short of credits: 409 CREDIT_INSUFFICIENT for an ADVANCED turn; BASIC goes through.
+    if (operation === 'messages/stream' && fault === 'credit-short' && typeof options?.body === 'string' && options.body.includes('"mode":"ADVANCED"')) {
+      return fail(409, 'CREDIT_INSUFFICIENT', { credits: { todayRemaining: 10 } })
+    }
     if (operation === 'messages/stream' && fault === 'server-ended-stream') {
       store.data.active = null
       log(200)

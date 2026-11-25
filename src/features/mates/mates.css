@@ -403,3 +403,9 @@ a.mate-card:hover { transform: translateY(-4px); }
   .mate-voice-wave > span { animation: none; }
 }
 
+
+/* 47 reset confirmation: what goes and what stays. */
+.mate-reset-scope { display: grid; gap: 10px; margin: 14px 0 0; }
+.mate-reset-scope > div { display: grid; gap: 2px; border-radius: var(--radius-control); background: color-mix(in srgb, var(--color-canvas) 60%, transparent); padding: 10px 12px; }
+.mate-reset-scope dt { color: var(--color-subtle); font-size: var(--text-caption); line-height: var(--text-caption--line-height); }
+.mate-reset-scope dd { margin: 0; color: var(--color-ink); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); }

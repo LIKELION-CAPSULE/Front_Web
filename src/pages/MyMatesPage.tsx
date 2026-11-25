@@ -30,6 +30,7 @@ import { useCapsuleVisit } from '@/features/mates/capsule-jar/use-capsule-visit'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { useConnectMate } from '@/features/mates/use-connect-mate'
+import { MateMenu } from '@/features/mates/components/MateMenu'
 import { Icon } from '@/shared/ui/Icon'
 import '@/features/mates/mates.css'
 import '@/features/mates/my-mates.css'
@@ -86,7 +87,8 @@ function cardArtFor(mate: AvailableMate) {
 }
 
 export default function MyMatesPage() {
-  const { home, activeSummary, status, mateDetails, loadMateDetail } = useBackend()
+  const { home, activeSummary, status, mateDetails, loadMateDetail, resetMateConversation } = useBackend()
+  const [resetDone, setResetDone] = useState<string | null>(null)
   // 37 내 메이트: totals, affinity, the expression collection and the latest connections, by launch mate.
   const server = useMyMates()
   const { state } = useDemo()
@@ -350,11 +352,18 @@ export default function MyMatesPage() {
         // The tour's 「만나러 와」 step points at both actions together, so its line never covers 「프로필 보기」.
         <div className="my-mates-meet-group" data-tour="my-mates-meet">
           {meet.error && <FeedbackMessage tone="error">{meet.error}</FeedbackMessage>}
+          {resetDone === selectedMate.id && <FeedbackMessage tone="success">대화를 초기화했어요.</FeedbackMessage>}
           <Button className="my-mates-meet" loading={meet.busy} onClick={() => void meet.connect()}>
             {`${mateName} 만나러 가기`}
             <Icon name="chevron" size={16} />
           </Button>
-          <Link to={`/mates/${selectedMate.id}`} className="my-mates-profile-link">프로필 보기</Link>
+          <div className="my-mates-profile-row">
+            <Link to={`/mates/${selectedMate.id}`} className="my-mates-profile-link">프로필 보기</Link>
+            {/* ⋯: 「대화 초기화」 (47, MateMenu). */}
+            {resetMateConversation && (
+              <MateMenu key={selectedMate.id} mateId={selectedMate.id} mateName={mateName} onReset={() => setResetDone(selectedMate.id)} />
+            )}
+          </div>
         </div>
       )}
     </>

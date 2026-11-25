@@ -435,7 +435,7 @@ test('a start handed over (409) to a connection with another mate resumes that m
   assert.equal(backend.acknowledgeEndedSession('77', 7), true)
 })
 
-test('production (no feature port) sends the connection mode it holds; not enough credits falls back to BASIC', async () => {
+test('production (no feature port) sends the connection mode it holds; not enough credits keeps it until the user picks BASIC', async () => {
   const backend = mount(() => ({ getStatus: () => 'ready', subscribe: () => () => {}, attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() {} }))
   const character = { id: 42, name: '채린', modelJsonUrl: '/mate.model3.json' }
   api.request = async <T>(path: string) => {
@@ -462,8 +462,10 @@ test('production (no feature port) sends the connection mode it holds; not enoug
     await backend.sendMessage('42', '고급으로')
     refuse = true
     await assert.rejects(backend.sendMessage('42', '또 고급'), { code: 'CREDIT_INSUFFICIENT' })
+    // The mode stays ADVANCED until the user picks 「기본 모드로 계속」 (CreditShortNotice), then the same line goes again.
     refuse = false
-    await backend.sendMessage('42', '이번엔')
+    backend.setConnectionMode('basic')
+    await backend.sendMessage('42', '또 고급')
     assert.deepEqual(modes, ['BASIC', 'ADVANCED', 'ADVANCED', 'BASIC'])
   } finally { api.stream = originalStream }
   assert.equal(backend.acknowledgeEndedSession('31', 7), true)

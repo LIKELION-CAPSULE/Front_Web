@@ -294,3 +294,8 @@
   .my-mates-window-body { padding: 16px 16px 24px; }
   .my-mates-actions { grid-template-columns: 1fr; }
 }
+
+/* 「프로필 보기」 and the mate's ⋯ menu (대화 초기화) on one row; the menu opens upwards (the column's foot). */
+.my-mates-profile-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.my-mates-profile-row .mate-menu-trigger { width: 36px; height: 36px; }
+.my-mates-profile-row .mate-menu-panel { top: auto; bottom: calc(100% + 8px); }
