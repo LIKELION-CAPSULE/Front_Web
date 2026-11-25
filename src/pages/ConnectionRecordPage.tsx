@@ -212,7 +212,7 @@ export default function ConnectionRecordPage() {
             creditExhausted ? (
               <>
                 친구를 초대하면 둘 다 크레딧 1,000을 받아요
-                <Link to="/invite" className="connection-record-invite-link">친구 초대</Link>
+                <Link to="/credits/invite" className="connection-record-invite-link">친구 초대</Link>
               </>
             ) : undefined
           }
