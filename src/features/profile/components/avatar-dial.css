@@ -63,7 +63,9 @@
   }
   .avatar-picker-model { position: absolute; inset: 0; }
   .avatar-picker-model .live2d-host { background: transparent; }
-  .avatar-picker-model .live2d-host[data-status='ready'] { animation: avatar-model-in 280ms ease-out both; }
+  .avatar-picker-model .live2d-host[data-status='ready'] { transform-origin: 50% 45%; animation: avatar-model-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  /* A slow model: the light behind the stage breathes a little faster (the only loading sign; AvatarDial). */
+  .avatar-picker-stage[data-waiting] .avatar-picker-halo { animation: avatar-halo-wait 1.2s ease-in-out infinite alternate; }
   /* The previous model leaves quickly before the next one mounts (AVATAR_LEAVE_MS): never two avatars at once. */
   .avatar-picker-model[data-leaving] { opacity: 0; pointer-events: none; transition: opacity 150ms ease-in; }
   /* The chosen avatar's still while its model loads: soft, under the model, gone as the model fades in. */
@@ -324,16 +326,33 @@
     width: min(100cqw, 100cqh * 0.8);
   }
   .avatar-picker[data-layout='arc'] .avatar-picker-halo { top: 2%; width: 118%; }
-  /* Name and greeting over the stage's faded foot, then the Live2D credit. */
+  /*
+   * Name and greeting on the avatar's legs (user decision 2026-11-26; onboarding and the account settings profile tab
+   * alike): 22% of the stage height below its centre, i.e. at 72% of the stage — the knees of a full-body avatar, the
+   * faded lower body of a waist-up one. The stage is `min(100cqh, 125cqw)` tall, so the place follows its size; the
+   * Live2D credit stays at the very bottom, well apart. The stage's fade reaches the name earlier here, and a soft dark
+   * glow of the page colour behind the lines keeps them readable on the model.
+   */
   .avatar-picker[data-layout='arc'] .avatar-picker-caption {
     position: absolute;
     z-index: 2;
+    top: calc(50% + 0.22 * min(100cqh, 125cqw));
     right: 0;
-    bottom: 34px;
     left: 0;
     margin: 0;
     padding: 0 16px;
     pointer-events: none;
+  }
+  .avatar-picker[data-layout='arc'] .avatar-picker-caption::before {
+    position: absolute;
+    z-index: -1;
+    inset: -84px 0 -64px;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--color-canvas) 70%, transparent), color-mix(in srgb, var(--color-canvas) 44%, transparent) 42%, color-mix(in srgb, var(--color-canvas) 14%, transparent) 74%, transparent);
+    content: '';
+  }
+  .avatar-picker[data-layout='arc'] .avatar-picker-figure {
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 64%, rgb(0 0 0 / 0.62) 80%, transparent 96%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 64%, rgb(0 0 0 / 0.62) 80%, transparent 96%);
   }
   .avatar-picker[data-layout='arc'] .avatar-picker-name { font-size: 34px; line-height: 44px; }
   .avatar-picker[data-layout='arc'] .avatar-picker-credit { position: absolute; right: 0; bottom: 4px; left: 0; margin: 0; }
@@ -344,7 +363,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .avatar-picker-halo { animation: none; }
+    .avatar-picker-halo, .avatar-picker-stage[data-waiting] .avatar-picker-halo { animation: none; }
     .avatar-picker-model .live2d-host[data-status='ready'] { animation: none; }
     .avatar-picker-track, .avatar-picker-thumb, .avatar-arc-thumb { transition: none; }
   }
@@ -359,8 +378,12 @@
   to { opacity: 0.78; }
 }
 @keyframes avatar-model-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes avatar-halo-wait {
+  from { opacity: 1; }
+  to { opacity: 0.6; }
 }
 
 @keyframes avatar-stand-in-in {

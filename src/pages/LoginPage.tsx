@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
-import { api } from '@/shared/api/client'
+import { api, ApiError } from '@/shared/api/client'
 import type { EmailRequest, ExpiresResponse, LoginRequest, LoginResponse } from '@/shared/api/types'
 import { authNotice } from '@/features/auth/auth-notices'
-import { rememberLoginProvider, saveKakaoLogin } from '@/features/auth/auth-storage'
+import { rememberLoginProvider } from '@/features/auth/auth-storage'
+import { startKakaoLogin } from '@/features/auth/kakao-start'
+import { kakaoConsentScreen } from '@/features/auth/kakao-consent-mode'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
 import { enqueueNotification, type NotificationContent, type NotificationItem } from '@/shared/ui/notification-queue'
-import { safeReturnPath } from '@/shared/lib/format'
+import { postAuthDestination } from '@/features/auth/post-auth'
 import { Button } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
 import { EmailAuthForm, type EmailAuthMode } from '@/features/auth/components/EmailAuthForm'
 import { EmailVerificationForm } from '@/features/auth/components/EmailVerificationForm'
 import { PasswordRecoveryForm } from '@/features/auth/components/PasswordRecoveryForm'
+import { BetaWaitlistForm } from '@/features/auth/components/BetaWaitlistForm'
 import type { LegalDocumentId } from '@/features/auth/data/legal-documents'
-import { hasRequiredLegalTerms } from '@/features/auth/legal-content'
+import { legalTermsReady } from '@/features/auth/legal-terms-ready'
 import { birthDateError } from '@/features/auth/birth-date'
 import { clearStoredReferralCode } from '@/features/auth/referral-code'
 import DesktopBrand from '@/features/auth/login-backgrounds/desktop/DesktopBrand'
@@ -25,10 +28,11 @@ const neutralLinkClass = 'inline-flex min-h-11 items-center text-muted underline
 const signupLinkClass = 'inline-flex min-h-11 items-center text-text-accent underline underline-offset-4'
 
 function loginWindowTitle(
-  view: 'welcome' | 'login' | 'signup' | 'forgot-password',
+  view: 'welcome' | 'login' | 'signup' | 'forgot-password' | 'waitlist',
   verifying: boolean,
 ): string {
   if (verifying) return 'CAPSULE — 이메일 인증'
+  if (view === 'waitlist') return 'CAPSULE — 출시 알림'
   if (view === 'login') return 'CAPSULE — 로그인'
   if (view === 'signup') return 'CAPSULE — 회원가입'
   if (view === 'forgot-password') return 'CAPSULE — 비밀번호 찾기'
@@ -43,6 +47,8 @@ export default function LoginPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const [legal, setLegal] = useState<LegalDocumentId | null>(null)
+  /** KAKAO_SIGNUP_CONSENT_SCREEN (the local mock and UI review show the consent path). Fixed for the page's life. */
+  const [consentScreen] = useState(kakaoConsentScreen)
   const [signupDraft, setSignupDraft] = useState<{
     email: string
     password: string
@@ -55,11 +61,12 @@ export default function LoginPage() {
   const mode = params.get('mode')
   const view = params.has('token')
     ? 'forgot-password'
-    : mode === 'login' || mode === 'signup' || mode === 'forgot-password'
+    : mode === 'login' || mode === 'signup' || mode === 'forgot-password' || mode === 'waitlist'
       ? mode
       : 'welcome'
   const verifying = view === 'signup' && signupDraft !== null
-  const next = safeReturnPath(params.get('next'), '/')
+  // Signing in again: back to `next`; a new account goes through onboarding, which applies the new-account rule.
+  const next = postAuthDestination({ next: params.get('next'), newAccount: false })
   const noticeCode = params.get('notice')
   const hasErrorNotification = notifications.some((item) => item.tone === 'error')
 
@@ -92,7 +99,7 @@ export default function LoginPage() {
     [],
   )
   useEffect(() => {
-    document.title = `CAPSULE · ${verifying ? '이메일 인증' : view === 'login' ? '로그인' : view === 'signup' ? '회원가입' : view === 'forgot-password' ? '비밀번호 찾기' : '나만의 메이트가 기다리고 있어요'}`
+    document.title = `CAPSULE · ${verifying ? '이메일 인증' : view === 'login' ? '로그인' : view === 'signup' ? '회원가입' : view === 'forgot-password' ? '비밀번호 찾기' : view === 'waitlist' ? '출시 알림' : '나만의 메이트가 기다리고 있어요'}`
     panel.current
       ?.querySelector<HTMLElement>(verifying ? 'input[autocomplete="one-time-code"]' : 'h1')
       ?.focus({ preventScroll: true })
@@ -112,7 +119,7 @@ export default function LoginPage() {
     })
     return () => cancelAnimationFrame(frame)
   }, [noticeCode, params, location.pathname, location.hash, location.state, navigate, showNotification])
-  function authPath(target?: EmailAuthMode | 'forgot-password') {
+  function authPath(target?: EmailAuthMode | 'forgot-password' | 'waitlist') {
     const search = new URLSearchParams(params)
     if (target !== 'forgot-password') search.delete('token')
     if (target) search.set('mode', target)
@@ -140,37 +147,14 @@ export default function LoginPage() {
   }
   function kakao() {
     const showError = (text: string) => showNotification({ tone: 'error', title: '카카오 로그인 오류', text })
-    const key = import.meta.env.VITE_KAKAO_REST_API_KEY as string | undefined
-    const redirect = import.meta.env.VITE_KAKAO_REDIRECT_URI as string | undefined
-    if (!key || !redirect) {
-      showError('카카오 로그인을 준비하고 있어요. 이메일로 로그인해 주세요.')
-      return
-    }
-    if (!hasRequiredLegalTerms(backend.terms)) {
+    // Without the consent screen the notice below is the new user's only view of the terms (the server signs them up on
+    // the callback), so Kakao start still needs readable terms, as before. With it, the consent screen checks instead.
+    if (!consentScreen && !legalTermsReady(backend.terms)) {
       showError('약관 정보를 불러오지 못했어요. 페이지를 새로고침해 다시 시도해 주세요.')
       return
     }
-    try {
-      if (new URL(redirect).origin !== window.location.origin) {
-        showError('현재 접속 주소에서 카카오 로그인을 사용할 수 없어요. 로그인 페이지 주소를 확인해 주세요.')
-        return
-      }
-    } catch {
-      showError('카카오 로그인 주소를 확인하지 못했어요. 이메일로 로그인해 주세요.')
-      return
-    }
-    const state = crypto.randomUUID()
-    if (!saveKakaoLogin({ state, next, redirect })) {
-      showError('브라우저 저장소를 사용할 수 없어 카카오 로그인을 시작하지 못했어요. 저장소를 허용하거나 이메일로 로그인해 주세요.')
-      return
-    }
-    const query = new URLSearchParams({
-      client_id: key,
-      redirect_uri: redirect,
-      response_type: 'code',
-      state,
-    })
-    window.location.assign(`https://kauth.kakao.com/oauth/authorize?${query}`)
+    const error = startKakaoLogin(next)
+    if (error) showError(error)
   }
   if (params.has('token')) return <Navigate to={`/password/reset?${params}`} replace />
 
@@ -189,10 +173,12 @@ export default function LoginPage() {
           onVerified={async (verificationToken) => {
             const error = birthDateError(signupDraft.birthDate)
             if (error) throw new Error(error)
-            if (!hasRequiredLegalTerms(backend.terms))
+            if (!legalTermsReady(backend.terms))
               throw new Error('약관 정보를 불러오지 못했어요. 페이지를 새로고침해 다시 시도해 주세요.')
             if (!backend.betaSignup) throw new Error('요청을 처리하지 못했어요.')
-            const result = await backend.betaSignup({
+            let result: LoginResponse
+            try {
+              result = await backend.betaSignup({
               verificationToken,
               password: signupDraft.password,
               nickname: signupDraft.nickname,
@@ -201,13 +187,28 @@ export default function LoginPage() {
                 .filter((term) => term.required)
                 .map((term) => term.termVersionId!),
               ...(signupDraft.referralCode ? { referralCode: signupDraft.referralCode } : {}),
-            })
+              })
+            } catch (reason) {
+              // The beta is full (4 → 403 BETA_FULL): the launch notice sign-up instead, with this email filled in.
+              if (reason instanceof ApiError && reason.code === 'BETA_FULL') {
+                const email = signupDraft.email
+                setSignupDraft(null)
+                navigate(authPath('waitlist'), { state: { waitlistEmail: email } })
+                return
+              }
+              throw reason
+            }
             await complete(result, Boolean(signupDraft.referralCode))
           }}
         />
       )}
       <div hidden={verifying}>
-        {view === 'welcome' ? (
+        {view === 'waitlist' ? (
+          <BetaWaitlistForm
+            defaultEmail={typeof (location.state as { waitlistEmail?: unknown } | null)?.waitlistEmail === 'string' ? (location.state as { waitlistEmail: string }).waitlistEmail : ''}
+            onBack={() => navigate(authPath('login'), { replace: true })}
+          />
+        ) : view === 'welcome' ? (
           <>
             <h1 tabIndex={-1} className="mt-6 focus:outline-none type-page-title">
               나만의 메이트가
@@ -227,27 +228,31 @@ export default function LoginPage() {
                 <Icon name="chat" size={18} fill="currentColor" /> 카카오로 시작
               </Button>
             </div>
-            <p className="mt-3 text-center text-caption leading-6 text-subtle">
-              시작하면{' '}
-              <button
-                type="button"
-                aria-label="이용약관"
-                onClick={() => setLegal('terms')}
-                className="rounded-sm text-muted transition-colors hover:text-ink"
-              >
-                [이용약관]
-              </button>
-              과{' '}
-              <button
-                type="button"
-                aria-label="개인정보 처리방침"
-                onClick={() => setLegal('privacy')}
-                className="rounded-sm text-muted transition-colors hover:text-ink"
-              >
-                [개인정보 처리방침]
-              </button>
-              에 동의해요.
-            </p>
+            {/* Until the backend runs contract a′ (KAKAO_SIGNUP_CONSENT_SCREEN), Kakao signs a new user up on the callback:
+                this notice is where they see the terms. With the consent screen it goes away. */}
+            {!consentScreen && (
+              <p className="mt-3 text-center text-caption leading-6 text-subtle">
+                시작하면{' '}
+                <button
+                  type="button"
+                  aria-label="이용약관"
+                  onClick={() => setLegal('terms')}
+                  className="rounded-sm text-muted transition-colors hover:text-ink"
+                >
+                  [이용약관]
+                </button>
+                과{' '}
+                <button
+                  type="button"
+                  aria-label="개인정보 처리방침"
+                  onClick={() => setLegal('privacy')}
+                  className="rounded-sm text-muted transition-colors hover:text-ink"
+                >
+                  [개인정보 처리방침]
+                </button>
+                에 동의해요.
+              </p>
+            )}
             <div className="mt-9 flex items-center gap-3 text-caption text-subtle">
               <span className="h-px flex-1 bg-divider" />
               또는

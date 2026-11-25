@@ -27,6 +27,8 @@ export interface LoginMateV2ModelConfig {
   engineUrl: string
   playerUrl?: string
   reactionsUrl?: string
+  /** 48's `model.format` (e.g. `ALIVING2D_V2`): the model URL need not end in `/model.json` when this says what it is. */
+  format?: string
 }
 
 export interface LoginMateBubblePosition {
@@ -123,16 +125,38 @@ export function loginV2ModelsFromServer(response: LoginMatesResponse | null | un
       modelJsonUrl: model.modelJsonUrl, engineUrl: model.engineUrl,
       ...(model.playerUrl ? { playerUrl: model.playerUrl } : {}),
       ...(model.reactionsUrl ? { reactionsUrl: model.reactionsUrl } : {}),
+      ...(typeof model.format === 'string' && model.format.trim() ? { format: model.format.trim() } : {}),
     }
   }
   return result
 }
 
 /**
+ * The login mate (채린 only: user decision) completed with API 48. The entry whose server name is the mate's own name
+ * wins over another name mapped to her (the old 「말포이」 entry, id 1). Its v2 model replaces the default only when 48
+ * has a usable one (Aliving2D with an engine URL; 2026-11-25 production sends none, so the dozing stills stay); its
+ * card image becomes the portrait. No entry, or a malformed answer: the mate as she was.
+ */
+export function loginMateWithServer(base: LoginMateProfile, response: LoginMatesResponse | null | undefined): LoginMateProfile {
+  if (!response || !Array.isArray(response.mates)) return base
+  const mine = response.mates.filter(mate => typeof mate?.name === 'string' && mateProfileByName(mate.name)?.id === base.id)
+  if (!mine.length) return base
+  const preferred = mine.find(mate => mate.name!.trim() === base.name) ?? mine[0]!
+  const v2Model = loginV2ModelsFromServer({ mates: [preferred, ...mine.filter(mate => mate !== preferred)] })[base.id]
+  const portrait = typeof preferred.cardImageUrl === 'string' && preferred.cardImageUrl.trim() ? preferred.cardImageUrl.trim() : null
+  return {
+    ...base,
+    ...(portrait ? { portraitImage: portrait } : {}),
+    ...(v2Model ? { v2Model } : {}),
+  }
+}
+
+/**
  * Port for login-screen mate metadata & Live2D model availability.
  * - mock mode (development builds with VITE_DATA_SOURCE !== 'api'): serves the local Chaerin Live2D model + portrait.
  * - api mode, and every production build whatever its data source: static portrait only (model: null), or the v2 model
- *   of API 48 when the caller passes `serverModels` (loginV2ModelsFromServer). The login layout does not fetch 48 yet.
+ *   of API 48 when the caller passes `serverModels` (loginV2ModelsFromServer). The login layout reads 48 after it opens
+ *   and applies it with `loginMateWithServer` (both modes; the local mock's 48 sends the same local URLs).
  */
 export function createLoginMateSource(
   mode: 'mock' | 'api' = import.meta.env.DEV && import.meta.env.VITE_DATA_SOURCE !== 'api' ? 'mock' : 'api',

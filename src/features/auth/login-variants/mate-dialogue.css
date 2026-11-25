@@ -1,0 +1,86 @@
+@layer components {
+  /*
+   * MateDialogue: the visual-novel style box a mate speaks in (the /login stage, the home attendance path). Only the
+   * box is styled here; where it sits belongs to the screen that shows it (login-variants.css, attendance-path.css).
+   */
+  .login-dialogue {
+    position: relative;
+    /* Same language as the login form panel: a thin line, a near-transparent dark fill, no blur or shadow. */
+    border: 1px solid rgba(250, 250, 253, 0.2);
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(15, 14, 23, 0.52) 0%, rgba(15, 14, 23, 0.74) 100%);
+    padding: 24px 30px 20px;
+    color: var(--color-ink);
+    animation: login-dialogue-in 220ms ease-out both;
+  }
+  .login-dialogue[data-leaving] {
+    animation: login-dialogue-out 180ms ease-in both;
+  }
+  .login-dialogue-name {
+    position: absolute;
+    top: 0;
+    left: 24px;
+    transform: translateY(-50%);
+    border-radius: 999px;
+    background: var(--color-primary);
+    padding: 3px 14px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 20px;
+    letter-spacing: 0.02em;
+  }
+  /* The measure and the typed line share one grid cell: the box is sized by the whole line from the first letter. */
+  .login-dialogue-text {
+    display: grid;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 30px;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .login-dialogue-text > span {
+    grid-area: 1 / 1;
+  }
+  .login-dialogue-measure {
+    visibility: hidden;
+  }
+  /* Small "next" mark once the line has finished typing (no click action). */
+  .login-dialogue-next {
+    position: absolute;
+    right: 18px;
+    bottom: 14px;
+    width: 0;
+    height: 0;
+    border-top: 7px solid #c7b5ed;
+    border-right: 6px solid transparent;
+    border-left: 6px solid transparent;
+    animation: login-dialogue-next 1s ease-in-out infinite;
+  }
+  @keyframes login-dialogue-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @keyframes login-dialogue-out {
+    to {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+  @keyframes login-dialogue-next {
+    50% {
+      transform: translateY(3px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .login-dialogue,
+    .login-dialogue[data-leaving],
+    .login-dialogue-next {
+      animation: none;
+    }
+  }
+}

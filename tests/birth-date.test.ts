@@ -96,9 +96,9 @@ test('signup checks the required birth date and login keeps accepting existing c
 })
 
 test('account details reject invalid server shapes and expose only the approved UI fields', () => {
-  const details = { birthDate: '2000-01-01', callName: '호칭', aboutMe: '소개' }
+  const details = { birthDate: '2000-01-01', aboutMe: '소개' }
   assert.deepEqual(checkedAccountDetails({ ...details, token: 'must-not-propagate' } as typeof details), details)
-  assert.deepEqual(checkedAccountDetails({ callName: '', aboutMe: '' }), { callName: '', aboutMe: '' })
+  assert.deepEqual(checkedAccountDetails({ aboutMe: '' }), { aboutMe: '' })
   for (const value of [null, {}, { ...details, birthDate: '2020-01-01' }, { ...details, birthDate: '2000-02-30' }, { ...details, aboutMe: null }]) {
     assert.throws(() => checkedAccountDetails(value as typeof details), { status: 502 })
   }

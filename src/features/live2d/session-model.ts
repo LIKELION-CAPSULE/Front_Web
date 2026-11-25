@@ -11,9 +11,14 @@ export type SessionModelStage = Pick<Live2DStage, 'subscribe' | 'getStatus' | 'a
   expressionKey?(expression: ExpressionRef | null | undefined): string | null
   /**
    * v2 only: mouth movement while a line is typing on screen. The screen turns it on when text starts appearing and
-   * off when it finishes, is skipped or is cancelled (until voice exists, the visible typing is the speech).
+   * off when it finishes, is skipped or is cancelled (while a voice plays, the voice moves the mouth instead).
    */
   setTalking?(active: boolean): void
+  /**
+   * The mouth follows a voice (voice-player.ts `level`): read every frame the model draws, 0–1, `null` while no voice
+   * plays (the mouth is then the model's own). Cubism and v2 stages both have it.
+   */
+  setMouthSource?(source: (() => number | null) | null): void
   /** A small nod (a tap on the mate); v2 stages only. */
   nudge?(): void
   /** v2 only: plays a backend trigger from the model's reaction table (`reactionsUrl`). False when it has none. */

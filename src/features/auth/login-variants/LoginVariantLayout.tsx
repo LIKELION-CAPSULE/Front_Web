@@ -8,7 +8,9 @@ import {
   type DesktopShellContextValue,
   type DesktopShellWindowConfig,
 } from '@/features/auth/login-backgrounds/desktop/desktop-shell-context'
-import { createLoginMateSource } from '@/features/auth/login-backgrounds/desktop/login-mate-source'
+import { createLoginMateSource, loginMateWithServer } from '@/features/auth/login-backgrounds/desktop/login-mate-source'
+import { getLoginMates } from '@/features/backend/server-api'
+import { api } from '@/shared/api/client'
 import { REACTION_PRIORITY, getDefaultLineForState } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
 import { Dialog } from '@/shared/ui/Dialog'
 import { chaerinArtwork } from '@/features/mates/artwork'
@@ -135,7 +137,24 @@ export default function LoginVariantLayout() {
   const localReducedMotion = usePrefersReducedMotion()
   const reducedMotion = localReducedMotion
   const canRenderMate = !reducedMotion
-  const [mate] = useState(() => createLoginMateSource().selectMate())
+  const [mate, setMate] = useState(() => createLoginMateSource().selectMate())
+  // API 48 (public): 채린's server model and card image. Applied only when it changes something, so the stage keeps its
+  // renderer (and the warm hand-off key) when 48 sends the model it already has; a failure keeps the default.
+  useEffect(() => {
+    let alive = true
+    void getLoginMates(api).then(
+      (response) => {
+        if (!alive) return
+        setMate((current) => {
+          const next = loginMateWithServer(current, response)
+          const same = next.portraitImage === current.portraitImage && JSON.stringify(next.v2Model ?? null) === JSON.stringify(current.v2Model ?? null)
+          return same ? current : next
+        })
+      },
+      () => { /* The default (bundled stills, the local model in development) stays. */ },
+    )
+    return () => { alive = false }
+  }, [])
   const [config, setConfig] = useState<DesktopShellWindowConfig | null>(null)
   const reactions = useMateReactions()
   const { apply, setAwake } = reactions
@@ -253,7 +272,7 @@ export default function LoginVariantLayout() {
           // Wider than the 512px Dialog default for long legal text; small screens still fill the width.
           className="login-variant-legal-dialog max-w-3xl"
         >
-          {legal && <LegalDocumentBody document={legal} />}
+          {legal && <LegalDocumentBody document={legal} terms={config?.legalTerms} />}
         </Dialog>
       </div>
     </DesktopShellContext>

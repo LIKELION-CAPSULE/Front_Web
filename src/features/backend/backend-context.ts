@@ -1,17 +1,19 @@
 import { createContext, useContext } from 'react'
 import type { ActiveSession, Memory, StudyRecord, TierId } from '../demo/types'
-import type { ActiveConnectionSummary, AffinityChange, EndType, AvatarItem, HomeResponse, LoginResponse, MeResponse, MessageResponse, StartResponse, ResumeResponse, TermVersion } from '@/shared/api/types'
+import type { ActiveConnectionSummary, AffinityChange, EndType, AvatarItem, HomeResponse, LoginResponse, MeResponse, MessageResponse, MessageStreamAudio, MessageStreamAudioEnd, StartResponse, ResumeResponse, TermVersion } from '@/shared/api/types'
 import type { LoadingStage } from '@/shared/lib/loading-screen'
 import type { SessionModelStage } from '@/features/live2d/session-model'
 import type { BetaInvitation, BetaWallet } from '@/features/credits/beta-types'
 import type { BetaAccountDetails, BetaAccountPort, BetaOnboardingInput, BetaProfileInput } from '@/features/auth/beta-account'
 import type { ReferralValidationResult } from '@/features/auth/referral-code'
 import type { MateDetailContent } from '@/features/mates/mate-contract'
-import type { MateServerRelationStats, MateUnlocks } from '@/features/mates/my-mates-utils'
 import type { SessionModelFactory } from '@/features/live2d/session-model'
 import type { BetaFeaturePort, BetaFeatureSnapshot } from './beta-feature-port'
 
 /** The conversation mode of a connection (T-7): BASIC 0 · ADVANCED 30 credits a turn. */
+/** The voice side of a message (28 `tts`, `audio`, `audio_end`). */
+export type MessageVoice = { tts: boolean; onAudio?: (audio: MessageStreamAudio) => void; onAudioEnd?: (end: MessageStreamAudioEnd) => void; onClose?: () => void }
+
 export type ConnectionModeChoice = 'basic' | 'advanced'
 
 export type BackendContextValue = {
@@ -32,15 +34,14 @@ export type BackendContextValue = {
   mateDetails: Record<string, MateDetailContent>
   mateContentVersion: number
   loadMateDetail: ((mateId: string, force?: boolean) => Promise<MateDetailContent>) | null
-  resetMateConversation: ((mateId: string, revision: string) => Promise<void>) | null
+  /** 47 대화 초기화 (204). 409 `CONNECTION_IN_PROGRESS` while this mate is connected. */
+  resetMateConversation: ((mateId: string) => Promise<void>) | null
   previewModelFactory: SessionModelFactory
   featurePort?: BetaFeaturePort
   betaSettings?: BetaFeatureSnapshot['settings']
   /** Null without a connected feature port; local previews inject an isolated wallet explicitly. */
   wallet: BetaWallet | null
   invitation: BetaInvitation | null
-  mateUnlocks?: Record<string, MateUnlocks>
-  mateRelationStats?: Record<string, MateServerRelationStats>
   redeemInvitation: ((code: string) => Promise<void>) | null
   /** 8 · 11 `activeConnection`: a connection to continue (17), when not running on this screen. */
   activeSummary: ActiveConnectionSummary | null
@@ -67,7 +68,11 @@ export type BackendContextValue = {
   finishSession: (options?: { acceptUnknownPresence?: boolean; endType?: EndType }) => Promise<StudyRecord>
   /** Clear only a connection the server has authoritatively reported as ended. Does not send /end again. */
   acknowledgeEndedSession: (sessionId: string, expectedUserId: number) => boolean
-  sendMessage: (characterId: string, content: string, inputType?: 'TEXT' | 'QUICK') => Promise<MessageResponse>
+  /**
+   * API 28. With `voice.tts` the reply asks for voice; its mp3 pieces go to `voice` (also after this resolves at
+   * `done`), and `onClose` says the stream is over.
+   */
+  sendMessage: (characterId: string, content: string, inputType?: 'TEXT' | 'QUICK', voice?: MessageVoice) => Promise<MessageResponse>
   loadReport: (sessionId: string) => Promise<void>
   /** The running connection's conversation mode, sent with every message (20 · 28 `mode`). */
   connectionMode: ConnectionModeChoice

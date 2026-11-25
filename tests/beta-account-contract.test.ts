@@ -52,7 +52,7 @@ test('beta account operations preserve birth dates, validate responses, and reje
     wrongProfileUser = false
 
     let signups = 0, completions = 0, wrongBirth = true, failRead = false, release: ((result: BetaAccountResult) => void) | undefined
-    const details: BetaAccountDetails = { callName: '', aboutMe: '' }
+    const details: BetaAccountDetails = { aboutMe: '' }
     const readUsers: number[] = []
     const port: BetaAccountPort = {
       read: async id => { readUsers.push(id); if (failRead) throw new Error('isolated read failure'); return details },
@@ -78,7 +78,7 @@ test('beta account operations preserve birth dates, validate responses, and reje
     await beta.completeOnboarding!({ nickname, birthDate: signup.birthDate })
     assert.equal(completions, 2)
 
-    const stale = beta.saveBetaProfile!({ nickname: '이전 계정', callName: '호칭', aboutMe: '소개' })
+    const stale = beta.saveBetaProfile!({ nickname: '이전 계정', aboutMe: '소개' })
     assert.ok(release)
     userId = 8; nickname = '두 번째 계정'; onboardingRequired = false
     failRead = true

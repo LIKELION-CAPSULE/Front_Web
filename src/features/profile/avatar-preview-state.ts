@@ -3,9 +3,11 @@
  *
  * 1. A new choice sends the model on screen out: it fades out quickly (`AVATAR_LEAVE_MS`) and is then released
  *    (`previewReleased`). A model passed over before it was drawn is simply dropped.
- * 2. Only when nothing is leaving is the chosen model mounted. Until it is drawn and has faded in, the chosen avatar's
- *    still (thumbnail) stands in, softly, so the stage never flashes empty.
- * 3. Drawn (`previewShown`) or failed (`previewFailed`, its own still and 「다시 시도」 take over): the stand-in goes.
+ * 2. Only when nothing is leaving is the chosen model mounted. Until it is drawn, the stage keeps only its light — no
+ *    still flashes in (user decision 2026-11-26: a still then the model looked busy). A wait past
+ *    `AVATAR_WAIT_PULSE_MS` lets the light pulse softly; past `AVATAR_STILL_FALLBACK_MS` the chosen avatar's still
+ *    (thumbnail) stands in after all (`waitingPhase`), and the model fades in over it when it comes.
+ * 3. Drawn (`previewShown`) or failed (`previewFailed`, its own still and 「다시 시도」 take over): the waiting ends.
  *
  * At most two models exist at once (one fading out, one loading), and never two visible.
  */
@@ -20,6 +22,15 @@ export type PreviewView<E extends PreviewEntry> = {
 
 /** How long the previous model takes to fade out before it is released (avatar-dial.css). */
 export const AVATAR_LEAVE_MS = 150
+/** A model still loading after this long: the stage's light pulses softly (the only loading sign). */
+export const AVATAR_WAIT_PULSE_MS = 600
+/** A model still loading after this long: the avatar's still stands in until the model comes (a fallback only). */
+export const AVATAR_STILL_FALLBACK_MS = 4000
+
+/** What a wait of `elapsedMs` for the chosen model shows: nothing but the light, a pulse, or the still as well. */
+export function waitingPhase(elapsedMs: number): 'quiet' | 'pulse' | 'still' {
+  return elapsedMs >= AVATAR_STILL_FALLBACK_MS ? 'still' : elapsedMs >= AVATAR_WAIT_PULSE_MS ? 'pulse' : 'quiet'
+}
 
 export const emptyPreview = <E extends PreviewEntry>(current: E | null = null): PreviewView<E> => ({ current, leaving: [], settled: null })
 
@@ -60,7 +71,13 @@ export function mountedPreviews<E extends PreviewEntry>(view: PreviewView<E>): {
   ]
 }
 
-/** The chosen avatar's still stands in: while its model is not mounted yet or not drawn yet (and nothing is leaving). */
+/** The chosen model is not drawn yet (mounted or not): the wait `waitingPhase` measures. */
+export const awaitingModel = <E extends PreviewEntry>(view: PreviewView<E>) => view.current !== null && view.settled !== view.current.key
+
+/**
+ * The stand-in may be on screen: the chosen model is mounted but not drawn yet (and nothing is leaving). AvatarDial shows
+ * it only once the wait reached `AVATAR_STILL_FALLBACK_MS`; it fades out as soon as this turns false.
+ */
 export function standInVisible<E extends PreviewEntry>(view: PreviewView<E>): boolean {
   return view.current !== null && view.leaving.length === 0 && view.settled !== view.current.key
 }

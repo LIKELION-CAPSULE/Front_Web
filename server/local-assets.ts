@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
@@ -66,10 +66,16 @@ export function localAssetsPlugin(): Plugin {
           if (!path.startsWith('/')) return next()
           if (!mount.allow.test(path)) { res.statusCode = 404; res.end(); return }
           if (req.method !== 'GET' && req.method !== 'HEAD') return next()
-          void readFile(fileURLToPath(new URL(path.slice(1), root))).then(bytes => {
+          const file = fileURLToPath(new URL(path.slice(1), root))
+          // `no-cache` with a validator, like a CDN: a changed file is seen at once, an unchanged one answers 304 (the
+          // avatar picker's idle prefetch then saves the download; live2d/model-prefetch.ts).
+          void stat(file).then(async info => {
+            const etag = `W/"${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}"`
             res.setHeader('Content-Type', contentType(path))
             res.setHeader('Cache-Control', 'no-cache')
-            res.end(req.method === 'HEAD' ? undefined : bytes)
+            res.setHeader('ETag', etag)
+            if (req.headers['if-none-match'] === etag) { res.statusCode = 304; res.end(); return }
+            res.end(req.method === 'HEAD' ? undefined : await readFile(file))
           }).catch(() => { res.statusCode = 404; res.end() })
         })
       }

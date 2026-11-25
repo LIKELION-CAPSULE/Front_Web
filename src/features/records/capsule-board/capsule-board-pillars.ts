@@ -3,10 +3,11 @@ import { KEEPSAKE_SCALE } from '../../mates/capsule-jar/capsule-floor-layout.ts'
 import { BOARD, type BoardCapsule, type BoardMode, type BoardTile, type CapsuleColors } from './capsule-board-layout.ts'
 
 /**
- * 「유리 기둥」 — the 2.5D board of the week and the month (decided 2026-11-25): every day a thin glass pillar whose
- * height is the day's time, the day's capsules lying inside it, stacked from the bottom. Pure and renderer-free
- * (unit-tested); drawn by capsule-board-scene.ts. The year keeps its upright columns in 2.5D, and the 2D board its
- * lying chips.
+ * 「유리 기둥」 — the 2.5D board of every period (week and month decided 2026-11-25; the year joined 2026-11-26, it had
+ * kept the older upright capsule columns — one capsule per 30 minutes stacked up to 4 hours — and read as another
+ * board): every day a thin glass pillar whose height is the day's time, the day's capsules lying inside it, stacked
+ * from the bottom. Pure and renderer-free (unit-tested); drawn by capsule-board-scene.ts. (2D is the records page's
+ * contribution grid, not this scene.)
  *
  * Height rule: the period's longest day, rounded **up to whole hours (at least 2 h)**, is the full pillar height
  * (`pillarDims().maxHeight`); every day stands in proportion to its exact time, so heights compare like a bar chart and
@@ -21,11 +22,12 @@ import { BOARD, type BoardCapsule, type BoardMode, type BoardTile, type CapsuleC
  *
  * Aids: the week has whole-hour guide lines on the board's back wall; week and month mark the period's longest day
  * (「가장 긴 날」 chip, CapsuleBoard). The month has no ticks (they read as clutter) but thinner, lower pillars and a
- * steeper camera, so the front rows hide less of the rows behind.
+ * steeper camera, so the front rows hide less of the rows behind. The year's twelve month boards take the thinnest,
+ * lowest pillars (most days show as a short fill of light, the top capsules drawn), so 365 days stay one landscape.
  */
 
-/** Pillars are drawn for the week and the month (the year keeps its columns: 365 pillars read as a carpet of dots). */
-export const pillarsApply = (period: BoardMode) => period !== 'year'
+/** Pillars are drawn for every period: one height rule for week, month and year. */
+export const pillarsApply = (period: BoardMode) => period === 'week' || period === 'month' || period === 'year'
 
 /** The week's whole-hour guide lines on the back wall (the month has none). */
 export const guidesApply = (period: BoardMode) => period === 'week'
@@ -36,7 +38,9 @@ export const guidesApply = (period: BoardMode) => period === 'week'
  */
 export function pillarDims(period: BoardMode) {
   if (period === 'week') return { maxHeight: 2.1, radius: 0.22, elevation: 0 }
-  return { maxHeight: 1.25, radius: 0.19, elevation: 4 }
+  if (period === 'month') return { maxHeight: 1.25, radius: 0.19, elevation: 4 }
+  // The year: the same camera as before (already steep), lower and thinner pillars for its small tiles.
+  return { maxHeight: 1.1, radius: 0.17, elevation: 0 }
 }
 
 /** Hours that the full pillar height stands for: the longest day rounded up to whole hours, at least 2. */

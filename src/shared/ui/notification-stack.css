@@ -16,28 +16,34 @@
     scrollbar-width: none;
     pointer-events: none;
   }
+  /*
+   * Pixel toast (design B2 at toast size, 2026-11-26): one-step pixel corners (clip-path, no outline), a 2px night line
+   * and one dithered pixel row along the top edge (the modal roof in miniature), the tone as a pixel icon on the left.
+   */
   .notification-card {
     --notification-accent: var(--color-info);
     --notification-icon-bg: var(--color-info-bg);
+    --px-night: var(--color-dialog-roof-dither);
     position: relative;
     display: grid;
     min-width: 0;
     grid-template-columns: 36px minmax(0, 1fr) 28px;
     align-items: start;
     gap: 12px;
-    border: 1px solid color-mix(in srgb, var(--color-ink) 13%, transparent);
-    border-radius: 20px;
-    background: var(--notification-icon-bg);
-    padding: 16px;
+    padding: 18px 16px 16px;
     color: var(--color-ink);
-    box-shadow: 0 14px 40px #0004, inset 0 1px 0 #ffffff08;
+    background:
+      linear-gradient(var(--color-dialog-roof) 0 2px, transparent 2px) 0 0 / 100% 2px no-repeat,
+      conic-gradient(from 90deg at 2px 2px, var(--px-night) 0 25%, transparent 0 50%, var(--px-night) 0 75%, transparent 0) 0 2px / 4px 4px repeat-x,
+      linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
+    clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
     pointer-events: auto;
   }
   .notification-stack[data-placement='container'] { position: absolute; top: 0; max-height: 100%; padding-top: 12px; }
   .notification-card[data-feedback='error'] { --notification-accent: var(--color-danger); --notification-icon-bg: var(--color-danger-bg); }
   .notification-card[data-feedback='warning'] { --notification-accent: var(--color-warning); --notification-icon-bg: var(--color-warning-bg); }
   .notification-card[data-feedback='success'] { --notification-accent: var(--color-success); --notification-icon-bg: var(--color-success-bg); }
-  .notification-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 12px; background: var(--notification-icon-bg); color: var(--notification-accent); }
+  .notification-icon { display: grid; width: 36px; height: 36px; place-items: center; background: var(--notification-icon-bg); clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)); }
   .notification-content { min-width: 0; }
   .notification-title { font-size: var(--text-label); line-height: var(--text-label--line-height); font-weight: 600; }
   .notification-description { margin-top: 4px; color: var(--color-muted); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); }
@@ -47,8 +53,8 @@
   .notification-close:hover { background: color-mix(in srgb, var(--color-ink) 7%, transparent); color: var(--color-ink); }
   @media (max-width: 479px) {
     .notification-stack { padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 16px 16px; }
-    .notification-card { grid-template-columns: 32px minmax(0, 1fr) 28px; gap: 10px; padding: 14px; border-radius: 18px; }
-    .notification-icon { width: 32px; height: 32px; border-radius: 10px; }
+    .notification-card { grid-template-columns: 32px minmax(0, 1fr) 28px; gap: 10px; padding: 16px 14px 14px; }
+    .notification-icon { width: 32px; height: 32px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .notification-close { transition: none; }

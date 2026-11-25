@@ -36,3 +36,13 @@ export function normalizeAffinityStage(stage: number | undefined, stageName: str
   if (stage && name) return { stage, stageName: name }
   return null
 }
+
+/**
+ * A mate never met, when the server sends no relation (production): the first stage at its very start, so the card
+ * shows 「1단계 · 처음 만남」 with an empty bar and the next stage's name — no times (those are the server's), and the
+ * five worlds stay locked (mate-worlds.ts, `met: false`). Table data, not a sample.
+ */
+export function notMetAffinity() {
+  const [first, second] = AFFINITY_STAGES
+  return { stage: first.stage, stageName: first.name as string, nextStageName: second.name as string, stageProgress: 0 }
+}

@@ -32,6 +32,7 @@
 - `ReviewWorkbench.tsx`: 화면 목록·크기·문구·요청·검토 진행 도구.
 - `ReviewMessagesPanel.tsx`, `messages.ts`, `capture-messages.ts`: 상태 문구 필터·상황 연결·현재 피드백 수집. 미리보기를 가린 탭에서도 문구를 유지하며, 모달이 열리면 모달 내부를 우선한다.
 - `server/review-copy.ts`: Vite 개발 서버 전용 문구 수집. `GET /__review/copy`; 환경파일은 읽지 않는다.
+- `dialog-design/`: 모달·팝업 디자인 시안(2026-11-26) A 캡슐 유리·B 밤하늘·C 메이트와 함께, B 발전안 B2 픽셀 프레임·B3 픽셀 액센트(`pixel-art.ts`의 픽셀 그림). `dialog-design-a|b|c|b2|b3` 시나리오가 홈 위에 그리며, 아래 막대나 `?dd=all|confirm|credit|unlock|toast|large`로 종류를 고른다. 공용 `Dialog`를 그대로 쓰고 클래스·장식만 덧붙이므로 실제 화면의 모달은 바뀌지 않는다. 검토 진입점에서만 불러와 운영 번들에 들어가지 않는다.
 
 새 상태는 catalog에 추가하고 fixtures의 필요한 분기를 연결한다. 새로운 페이지 파일을 만들면 catalog에도 경로를 추가한다. 문구 검색은 소스를 매번 읽으므로 별도 문구 파일을 동기화할 필요가 없다.
 
@@ -50,3 +51,5 @@
 2026-11-05 기준 74개 시나리오 전부 준비 완료, 브라우저 JavaScript 예외 0건, 실제 백엔드 요청 0건. 132개 파일의 문구 1,250개 가운데 상태 문구 189개를 분류했다. 오류·완료·주의·로딩·빈 상태·안내의 실제 표시 문구 수집, 검색·빈 검색·종류 필터·상황 바로가기를 확인했다. 탭 변경으로 프레임을 가려도 현재 피드백이 유지되며, 되돌릴 수 없는 작업 안내는 빈 상태와 구분해 주의로 분류한다. 390px에서 가로 넘침이 없고 검토 완료 저장·상태 초기화·문구 복사도 동작했다. 운영 빌드에는 검토 코드가 없으며 기존 로그인·라우팅도 확인했다. 전체 테스트 226개·빌드·린트가 통과했다. 문구·시나리오 수는 이후 소스 변경에 따라 달라진다.
 
 2026-11-25 정리: ‘보관 화면 · 현재 미노출’(유료 충전·영수증 원본, `ReviewDraftRoutes.tsx`)과 로그인 시안 `login-alt-*`, 렌더되지 않는 메뉴를 전제로 한 `mate-reset`을 지웠다. 예전 링크는 `restoredReviewIds`로 현재 화면에 연결한다.
+
+2026-11-25 API 연동 2단계: 대화 초기화는 내 메이트 ⋯ 메뉴로 옮겨 `mate-reset-confirm`·`mate-reset-error`·`mate-reset-conflict`(47의 409 `CONNECTION_IN_PROGRESS`)로 검토한다. revision이 없어진 47에 맞지 않는 `mate-reset-partial`은 지우고 `mate-reset-error`로 연결했다. 헤더 알림은 `notifications`·`notifications-empty`·`notifications-error`(로컬 QA 키 `capsule-local-notifications`), 연결 화면은 `connection-chat-history`(32 지난 대화·평가)·`connection-reply-report`(41)·`connection-credit-short`(고급 모드 409 `CREDIT_INSUFFICIENT`)로 검토한다.

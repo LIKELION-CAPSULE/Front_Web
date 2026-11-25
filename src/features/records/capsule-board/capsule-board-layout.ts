@@ -119,6 +119,8 @@ export type BoardMonth = {
 }
 
 export type BoardMateLegend = { mateId: string; name: string; color: string }
+/** One mate's time on a day (the 2D grid's tooltip with 「전체」). */
+export type BoardDayMate = { mateId: string; name: string; seconds: number }
 
 export type CapsuleBoardModel = {
   mode: BoardMode
@@ -137,6 +139,8 @@ export type CapsuleBoardModel = {
   hasKeepsake: boolean
   /** Mates with capsules in this view, in stacking order (for the 「전체」 legend). */
   mates: readonly BoardMateLegend[]
+  /** Each day's time by mate, in the mates' order (days with time only). */
+  dayMates: ReadonlyMap<string, readonly BoardDayMate[]>
   yearColumns: number
 }
 
@@ -404,13 +408,28 @@ export function buildCapsuleBoard(
     })
   }
 
+  const byMateOrder = (a: string, b: string) => {
+    const ra = mateOrder.indexOf(a)
+    const rb = mateOrder.indexOf(b)
+    return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb)
+  }
   const mates = [...seenMates]
-    .sort((a, b) => {
-      const ra = mateOrder.indexOf(a)
-      const rb = mateOrder.indexOf(b)
-      return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb)
-    })
+    .sort(byMateOrder)
     .map((mateId) => ({ mateId, name: options.mateNames?.get(mateId) ?? mateId, color: capsuleJarTheme(mateId).tintHalfShade }))
+  const dayMates = new Map<string, BoardDayMate[]>()
+  for (const tile of tiles) {
+    if (tile.day.isFuture) continue
+    const seconds = new Map<string, number>()
+    for (const record of byDay.get(tile.day.key) ?? []) {
+      const mateId = mateOf(record)
+      seconds.set(mateId, (seconds.get(mateId) ?? 0) + Math.max(0, Number.isFinite(record.studySeconds) ? record.studySeconds : 0))
+    }
+    if (!seconds.size) continue
+    dayMates.set(
+      tile.day.key,
+      [...seconds.keys()].sort(byMateOrder).map((mateId) => ({ mateId, name: options.mateNames?.get(mateId) ?? mateId, seconds: seconds.get(mateId)! })),
+    )
+  }
 
   return {
     mode,
@@ -424,6 +443,7 @@ export function buildCapsuleBoard(
     capsuleCount,
     hasKeepsake,
     mates,
+    dayMates,
     yearColumns,
   }
 }

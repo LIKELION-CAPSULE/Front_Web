@@ -12,6 +12,9 @@
 .auth-panel-layout[data-app-header]:has(.onboarding) { gap: 0; padding: 0; }
 .auth-panel-layout[data-app-header] > .auth-panel-content.app-panel:has(> .onboarding) { width: 100%; max-width: none; }
 .auth-panel-content.app-panel:has(> .onboarding) { width: min(1000px, 100%); overflow: visible; padding: 0; background: none; }
+/* Onboarding only (user decision 2026-11-26): no divider under the logo header; its 1px stays (transparent) so the
+   header height the page is laid out with does not change. The app header elsewhere keeps its line. */
+.auth-panel-layout[data-app-header]:has(.onboarding) > .site-header { border-bottom-color: transparent; }
 
 /* The invite chip of the shared field draws an outline (utility classes); onboarding keeps surfaces outline-free. */
 .onboarding .referral-field-chip { border-width: 0; }
@@ -125,7 +128,6 @@
   }
   .onboarding-hello-name { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; color: var(--color-text-accent); font-size: 12.5px; line-height: 18px; font-weight: 600; }
   /* Same pill as the other AI disclosures (login caption, call titlebar). */
-  .onboarding-hello-ai-badge { border-radius: 999px; background: color-mix(in srgb, var(--color-surface) 90%, transparent); padding: 1px 8px; color: var(--color-subtle); font-size: 11px; line-height: 16px; font-weight: 500; }
   .onboarding-hello-text { display: grid; margin: 0; font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 500; word-break: keep-all; overflow-wrap: anywhere; }
   .onboarding-hello-measure, .onboarding-hello-typed { grid-area: 1 / 1; white-space: pre-line; }
   .onboarding-hello-measure { visibility: hidden; }

@@ -1,7 +1,8 @@
 import { startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useSessionSync } from '@/features/backend/use-session-sync'
+import { StageUpNotice } from '@/features/mates/components/StageUpNotice'
 import type { EndType } from '@/shared/api/types'
 import { useMinorLimit } from '@/features/mates/minor-limit'
 import { ConnectionNotice } from '@/features/mates/components/ConnectionNotice'
@@ -40,7 +41,7 @@ import '@/features/mates/connections.css'
 import { useConnectionPreferences } from '@/features/mates/connection-preferences-context'
 import { startModeToApply } from '@/features/mates/connection-start-mode'
 import { withConnectionCharacter } from '@/features/mates/connected-mate'
-import { PIP_WINDOW_SIZE, TALK_OPTIONS } from '@/features/mates/connection-preferences'
+import { mateVoiceOn, mateVoicePatch, PIP_WINDOW_SIZE, TALK_OPTIONS, voiceIntroKey } from '@/features/mates/connection-preferences'
 import { usePushToTalk } from '@/features/mates/use-push-to-talk'
 import { PUSH_TO_TALK_TEXT } from '@/features/mates/push-to-talk'
 import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate-features'
@@ -49,6 +50,14 @@ import { Brand } from '@/shared/ui/Brand'
 import { MateTap, onMate } from '@/features/mates/mate-tap'
 import { playHangup, whenRendered, type HangupPlayback } from '@/features/mates/hangup-sequence'
 import { takePickup } from '@/features/mates/pickup-sequence'
+import { useChatHistory } from '@/features/mates/use-chat-history'
+import { ChatHistoryStatus } from '@/features/mates/components/ChatHistoryStatus'
+import { ReplyActions, ReportedReply } from '@/features/mates/components/ReplyActions'
+import { CreditShortNotice } from '@/features/mates/components/CreditShortNotice'
+import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback } from '@/features/mates/credit-notice'
+import { useVoiceReply } from '@/features/mates/use-voice-reply'
+import type { VoiceTurn } from '@/features/mates/voice-player'
+import { voiceRequested, voiceStopsForListening, voiceStopsWhenHidden } from '@/features/mates/voice-reply'
 import hangupHandset from '@/assets/connection/hangup-handset-3d.webp'
 import hangupHandsetRed from '@/assets/connection/hangup-handset-3d-red.webp'
 
@@ -69,7 +78,7 @@ function ConnectionHelpNote() {
       <p>카메라를 켜면 이 기기 안에서 얼굴을 감지해 자리에 있는지 알아봐요. 영상은 서버로 보내거나 저장하지 않고, 자리 비움·돌아옴 같은 상태만 보내요.</p>
       <p>마이크는 「누르고 말하기」를 누르는 동안에만 써요. 그 음성은 브라우저의 음성 인식 서비스로 보내져 글자로 바뀌고, 바뀐 글자가 채팅으로 보내져요.</p>
       <p>「카메라로 함께한 시간」은 카메라에 얼굴이 보인 시간만 세요. 10초 넘게 보이지 않으면 메이트가 자리 비움으로 알아채요.</p>
-      <p>크레딧은 기본 대화 0, 고급 대화 한 턴에 {CREDIT_PRICING.advanced}이에요. 음성 대화는 준비 중이에요.</p>
+      <p>크레딧은 기본 대화 0, 고급 대화 한 턴에 {CREDIT_PRICING.advanced}이에요. 메이트 음성을 켜 두면 음성으로 답한 턴마다 {CREDIT_PRICING.voice}이 더 들어요. 크레딧이 모자라면 글로만 답해요.</p>
     </div>
   )
 }
@@ -94,6 +103,7 @@ const prefersReducedMotion = () =>
 export default function ConnectionPage() {
   const { mateId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const backend = useBackend()
   const { showPipSpeech, settings, updateSettings, modeConfirmed = true } = useConnectionPreferences()
   // 「말 걸기 빈도」 on the stage: a short note of what the choice means, for a moment after choosing.
@@ -154,6 +164,33 @@ export default function ConnectionPage() {
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
   )
   const pip = useDocumentPip()
+  // The mate's voice (T-2…T-4): replies and reaction lines ask for it while 「메이트 음성」 is on — only once the user
+  // turned it on (settings or the dock's button, one value: `mateVoiceOn`); never from the service tour (no credits
+  // there). The volume is this browser's; the speed is the server's TTS.
+  const voice = useVoiceReply({ volume: settings.volume, windows: [typeof window === 'undefined' ? null : window, pip.window] })
+  const voicePlaying = voice.status === 'playing'
+  const voiceOn = mateVoiceOn(settings)
+  const ttsWanted = voiceRequested({ voiceEnabled: voiceOn, practice: new URLSearchParams(location.search).has('tour'), playable: voice.player.supported })
+  // Turned off (here, in the settings, or on another device's copy): the voice stops at once.
+  useEffect(() => { if (!voiceOn) voice.player.stop() }, [voiceOn, voice.player])
+  /** The first time 메이트 음성 is turned on here: a short note of what it does and costs (once per account and browser). */
+  const [voiceIntro, setVoiceIntro] = useState(false)
+  useEffect(() => {
+    if (!voiceIntro) return
+    const timer = setTimeout(() => setVoiceIntro(false), 4000)
+    return () => clearTimeout(timer)
+  }, [voiceIntro])
+  const toggleVoice = () => {
+    const on = !voiceOn
+    updateSettings(mateVoicePatch(on))
+    if (!on) { setVoiceIntro(false); return }
+    const userId = state.profile.userId
+    let seen = false
+    try { seen = Boolean(userId && localStorage.getItem(voiceIntroKey(userId)) === '1') } catch { /* Show it this time. */ }
+    if (seen) return
+    try { if (userId) localStorage.setItem(voiceIntroKey(userId), '1') } catch { /* Shown once in this page then. */ }
+    setVoiceIntro(true)
+  }
   const camera = devices.camera.stream
   const video = useRef<HTMLVideoElement>(null)
   const busy = useRef(false)
@@ -250,13 +287,36 @@ export default function ConnectionPage() {
   const cancelTalk = pushToTalk.cancel
   useEffect(() => { if (finishing) cancelTalk() }, [finishing, cancelTalk])
   // The mouth moves exactly while a line is typing on screen: a chat reply (also while it streams in) or the event
-  // bubble. v2 stages only; Cubism stages have no `setTalking`.
+  // bubble. v2 stages only; Cubism stages have no `setTalking`. While her voice plays, the voice moves the mouth
+  // instead (its level, every frame; Cubism and v2), so the typing motion steps aside.
   const talking = speaking || bubbleTyping
   useEffect(() => {
     const stage = backend.live2dStage
-    stage?.setTalking?.(talking)
+    stage?.setTalking?.(talking && !voicePlaying)
     return () => stage?.setTalking?.(false)
-  }, [backend.live2dStage, talking])
+  }, [backend.live2dStage, talking, voicePlaying])
+  useEffect(() => {
+    const stage = backend.live2dStage
+    // Reduced motion: no talking mouth (as with typing).
+    stage?.setMouthSource?.(prefersReducedMotion() ? null : () => voice.player.level())
+    return () => stage?.setMouthSource?.(null)
+  }, [backend.live2dStage, voice.player])
+  // The voice stops when the user starts talking (누르고 말하기), when the call ends or is being hung up, and when the
+  // tab goes out of sight with no PiP window (with PiP the call goes on there, and so does the voice).
+  const listening = voiceStopsForListening(pushToTalk.snapshot.status)
+  useEffect(() => { if (listening) voice.player.stop() }, [listening, voice.player])
+  const callLive = Boolean(active) && !finishing && !ending
+  const callLiveRef = useRef(callLive)
+  useLayoutEffect(() => { callLiveRef.current = callLive }, [callLive])
+  useEffect(() => { if (!callLive) voice.player.stop() }, [callLive, voice.player])
+  const pipWindow = pip.window
+  useEffect(() => {
+    const onVisibility = () => {
+      if (voiceStopsWhenHidden({ hidden: document.hidden, pipOpen: Boolean(pipWindow && !pipWindow.closed) })) voice.player.stop()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [pipWindow, voice.player])
   const cue = useCallback((input: Parameters<typeof expressions.cue>[0]) => expressions.cue(input), [expressions])
   const navigateToRecord = useCallback((recordId: string, afterHangup = false) => {
     const target = `/connections/${recordId}`
@@ -330,7 +390,8 @@ export default function ConnectionPage() {
     navigateToRecord(active.id)
   }, [active, state.profile.userId, flushFocus, backend, controller, pip, navigateToRecord])
   const sync = useSessionSync({
-    active, userId: state.profile.userId, observation, camera: !!camera, busy: sending || speaking, talk: settings.talk,
+    // Her voice still playing counts as talking: a reaction line waits for it instead of cutting it off.
+    active, userId: state.profile.userId, observation, camera: !!camera, busy: sending || speaking || voicePlaying, talk: settings.talk, tts: ttsWanted,
     // 「먼저 말 걸기」 (idle-talk.ts): quiet counts from the end of the last talk; the event line typing, the user's voice
     // and the hang-up also hold it.
     idleTalk: true,
@@ -340,12 +401,47 @@ export default function ConnectionPage() {
       const reply = result.characters?.find(value => String(value.characterId) === mate?.characterId)
       const content = reply?.content
       if (content) setSpeech(previous => ({ id: previous.id + 1, at: Date.now(), text: content }))
+      // 19 `audioBase64`: the line's voice (asked with `tts`, made when the setting is on and credits cover it).
+      if (content && reply?.audioBase64 && callLiveRef.current) voice.player.play(reply.audioBase64)
       if (reply?.characterId) cue({ characterId: reply.characterId, expression: reply.expression, event, stage: 'speech', text: reply.content })
     },
     // A server-side end during the hang-up is the same ending; the sequence already navigates.
     onEnded: () => { if (!hangup.current) serverEnded() },
   })
-  const messages = state.messages.filter(message => message.characterId === mate?.characterId && /^\d+$/.test(message.sessionId))
+  const localMessages = state.messages.filter(message => message.characterId === mate?.characterId && /^\d+$/.test(message.sessionId))
+  // 32: the server's history in the chat; the running connection's lines stay this browser's (use-chat-history.ts).
+  const chat = useChatHistory({
+    userId: state.profile.userId, characterId: mate?.characterId, open: chatOpen && Boolean(shown), local: localMessages, activeConnectionId: active?.id ?? null,
+    hasConversation: mate ? backend.mateDetails[mate.id]?.hasConversation : undefined,
+  })
+  const messages = chat.messages
+  /**
+   * Reached the top of the chat: the older page. The first line in view stays where it was when the page lands (lines
+   * can land above it and, out of order, below it). Articles follow `messages` one to one.
+   */
+  const olderAnchor = useRef<{ id: string; offset: number } | null>(null)
+  const loadOlderMessages = async () => {
+    const node = messageList.current
+    if (!node || olderAnchor.current) return
+    const articles = [...node.querySelectorAll<HTMLElement>(':scope > article')]
+    const index = articles.findIndex(article => article.offsetTop + article.offsetHeight > node.scrollTop)
+    const id = index >= 0 ? messages[index]?.id : undefined
+    if (id) olderAnchor.current = { id, offset: articles[index]!.offsetTop - node.scrollTop }
+    await chat.loadOlder()
+    // The page lands in a render after this; the layout effect below uses the anchor, this frame drops a leftover.
+    requestAnimationFrame(() => { olderAnchor.current = null })
+  }
+  const firstMessageId = messages[0]?.id
+  useLayoutEffect(() => {
+    const node = messageList.current, anchor = olderAnchor.current
+    if (!node || !anchor) return
+    olderAnchor.current = null
+    const article = node.querySelectorAll<HTMLElement>(':scope > article')[messages.findIndex(message => message.id === anchor.id)]
+    if (article) node.scrollTop = article.offsetTop - anchor.offset
+  }, [firstMessageId]) // eslint-disable-line react-hooks/exhaustive-deps -- only when lines land above
+  // 고급 모드 short of credits (409 CREDIT_INSUFFICIENT): the line that did not go, to send again in 기본 모드.
+  const [creditShort, setCreditShort] = useState<{ text: string; inputType: 'TEXT' | 'QUICK'; credits: number | null } | null>(null)
+  const [voiceNote, setVoiceNote] = useState<'none' | 'shown' | 'done'>('none')
   const lastText = messages.at(-1)?.text
   const latestReply = messages.findLast(message => message.sender === 'character')
   useEffect(scrollLatest, [messages.length, lastText, chatOpen, scrollLatest])
@@ -411,15 +507,30 @@ export default function ConnectionPage() {
     followMessages.current = true
     setSending(true)
     setError('')
+    // A new reply is on its way: the voice before it stops, and this reply's voice (if asked) starts as it arrives.
+    const tts = ttsWanted
+    let turn: VoiceTurn | null = null
+    if (tts) turn = voice.player.begin()
+    else voice.player.stop()
     try {
-      const result = await backend.sendMessage(mate.characterId, text, inputType)
+      const result = await backend.sendMessage(mate.characterId, text, inputType, {
+        tts,
+        onAudio: audio => turn?.push(audio),
+        onAudioEnd: end => turn?.end(end),
+        onClose: () => turn?.end(null),
+      })
       if (!mounted.current) return false
+      setCreditShort(null)
+      // Asked for voice but it came as text (credits short): said once.
+      if (shouldNoteVoiceFallback({ requestedVoice: tts, voice: result.voice, noted: voiceNote !== 'none' })) setVoiceNote('shown')
       if (result.characterId) cue({ characterId: result.characterId, expression: result.expression, event: 'MESSAGE', stage: 'speech', text: result.content })
       setDraft('')
       return true
     } catch (reason) {
       if (mounted.current) {
+        const short = creditShortage(reason)
         if (reason instanceof ApiError && reason.code === 'CONNECTION_ENDED') serverEnded()
+        else if (short) setCreditShort({ text, inputType, credits: short.credits })
         else setError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.')
       }
       return false
@@ -453,7 +564,6 @@ export default function ConnectionPage() {
               </span>
             </div>
             <div className="desktop-window-title-right">
-              <span className="desktop-mate-ai-badge">AI 캐릭터</span>
               <div className="desktop-window-controls" aria-hidden="true">
                 <span className="desktop-window-dot" />
                 <span className="desktop-window-dot" />
@@ -494,8 +604,9 @@ export default function ConnectionPage() {
   }
 
   const relation = backend.affinities[Number(mate.characterId)]
-  // The affinity chip follows the affinity feature (off in production until the server sends stages).
-  const showAffinity = resolveMateFeatures(import.meta.env.DEV, null).affinity
+  // The affinity chip follows the affinity feature; with no server stage it shows 「—」 and no lit steps.
+  const mateFeatures = resolveMateFeatures(import.meta.env.DEV, null)
+  const showAffinity = mateFeatures.affinity
   const isAdvanced = backend.connectionMode === 'advanced'
   const canSwitchMode = !finishing
   const creditInsufficient = Boolean(
@@ -541,6 +652,16 @@ export default function ConnectionPage() {
       shortcut: 'C',
       controls: 'connection-chat',
       onAction: () => setChatOpen(value => !value),
+    },
+    {
+      // 「메이트 음성」 (T-2, the same value as the settings switch): her voice on replies, 20 credits a reply.
+      key: 'voice',
+      label: voiceOn ? '메이트 음성 끄기' : '메이트 음성 켜기',
+      tooltip: !voice.player.supported ? '이 브라우저는 음성 재생을 지원하지 않아요' : voiceOn ? `메이트 음성 끄기 · 답장마다 ${CREDIT_PRICING.voice} 크레딧` : '메이트 음성 켜기',
+      icon: 'headphones',
+      pressed: voiceOn,
+      disabled: !voice.player.supported || finishing,
+      onAction: toggleVoice,
     },
     {
       key: 'pip',
@@ -603,7 +724,6 @@ export default function ConnectionPage() {
           <span className="connection-titlebar-divider" aria-hidden="true" />
           <span className="desktop-mate-dot" aria-hidden="true" title="연결 중" />
           <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
-          <span className="desktop-mate-ai-badge">AI 캐릭터</span>
         </div>
 
         <div className="connection-titlebar-center">
@@ -615,6 +735,8 @@ export default function ConnectionPage() {
               aria-pressed={!isAdvanced}
               disabled={!canSwitchMode}
               onClick={() => chooseMode('basic')}
+              // The mode itself is free; her voice (the dock's button) is counted apart, so say so while it is on.
+              title={voiceOn ? `기본 모드는 크레딧 없이 대화해요. 메이트 음성은 답장마다 ${CREDIT_PRICING.voice} 크레딧이 따로 들어요` : undefined}
             >
               기본 · 크레딧 없음
             </button>
@@ -788,8 +910,22 @@ export default function ConnectionPage() {
             </section>
           </div>
 
-          {(creditInsufficient || floatingErrors.length > 0) && (
+          {(creditInsufficient || floatingErrors.length > 0 || (showAffinity && sync.stageUp) || voice.status === 'blocked' || voiceIntro) && (
             <div className="connection-floating-notices" aria-live="polite">
+              {voiceIntro && (
+                <div className="connection-notice-card connection-voice-intro" role="status">
+                  <Icon name="headphones" size={16} />
+                  메이트 목소리로 답해요 · 답장마다 {CREDIT_PRICING.voice} 크레딧
+                </div>
+              )}
+              {/* The browser held her voice until a click or key press (autoplay rule); any press allows it, this too. */}
+              {voice.status === 'blocked' && (
+                <button type="button" className="connection-notice-card connection-voice-unlock" onClick={voice.player.unlock}>
+                  <Icon name="headphones" size={16} />
+                  소리 켜기
+                </button>
+              )}
+              {showAffinity && <StageUpNotice stageUp={sync.stageUp} world={mateFeatures.world} mateId={mate.id} mateName={mate.name} />}
               {creditInsufficient && (
                 <div className="connection-notice-card">
                   <FeedbackMessage tone="warning">크레딧이 부족해요. 기본 대화로 계속할 수 있어요.</FeedbackMessage>
@@ -858,13 +994,17 @@ export default function ConnectionPage() {
               onScroll={() => {
                 const node = messageList.current
                 if (node) followMessages.current = node.scrollHeight - node.scrollTop - node.clientHeight < 64
+                if (node && node.scrollTop < 48 && chat.room.nextCursor && !chat.room.failed) void loadOlderMessages()
               }}
             >
+              <ChatHistoryStatus room={chat.room} onRetry={chat.retry} />
               {messages.map(message => (
                 <article key={message.id} data-sender={message.sender}>
                   <small>{message.sender === 'user' ? state.profile.name : mate.name}</small>
                   <p>
-                    {message.sender === 'character' ? (
+                    {message.sender === 'character' && message.requestId && chat.room.reported.has(message.requestId) ? (
+                      <ReportedReply text={message.text} />
+                    ) : message.sender === 'character' && chat.localIds.has(message.id) ? (
                       <TypingMessage
                         id={message.id}
                         text={message.text}
@@ -876,10 +1016,30 @@ export default function ConnectionPage() {
                       message.text
                     )}
                   </p>
+                  {/* 40 · 41 on a confirmed reply (not in the PIP window). */}
+                  {message.sender === 'character' && message.requestId && message.delivery !== 'pending' && state.profile.userId !== undefined &&
+                    !chat.room.reported.has(message.requestId) && (
+                      <ReplyActions userId={state.profile.userId} characterId={mate.characterId} requestId={message.requestId} rating={chat.room.ratings[message.requestId] ?? null} />
+                    )}
                 </article>
               ))}
               {sending && messages.at(-1)?.sender !== 'character' && <TypingIndicator name={mate.name} />}
             </div>
+            {creditShort && (
+              <CreditShortNotice
+                credits={creditShort.credits}
+                busy={sending}
+                onClose={() => setCreditShort(null)}
+                onBasic={() => {
+                  const retry = creditShort
+                  chooseMode('basic')
+                  void send(retry.text, retry.inputType)
+                }}
+              />
+            )}
+            {voiceNote === 'shown' && (
+              <p className="voice-fallback-note" role="status" onAnimationEnd={() => setVoiceNote('done')}>{CREDIT_NOTICE_COPY.voiceFallback}</p>
+            )}
             {error && (
               <div className="connection-chat-error">
                 <FeedbackMessage tone="error">{error}</FeedbackMessage>
@@ -935,11 +1095,12 @@ export default function ConnectionPage() {
       )}
       {settingsOpen && <AccountSettingsDialog initialView="settings" onClose={() => setSettingsOpen(false)} />}
 
-      <Dialog open={privacyOpen} onClose={() => setPrivacyOpen(false)} title="카메라 사용 안내">
+      {/* 「카메라 없이 하기」 is the way back (Esc and the backdrop do the same), so no X in the header (2026-11-26). */}
+      <Dialog open={privacyOpen} onClose={() => setPrivacyOpen(false)} title="카메라 사용 안내" tone="info" showCloseButton={false}>
         <p className="text-muted">카메라를 켜면 자리 비움·복귀에 메이트가 반응해요. 영상은 이 기기 안에서만 확인하고 저장하거나 보내지 않아요.</p>
         <div className="mt-6 flex gap-3">
           <Button onClick={() => { setPrivacySeen(true); setPrivacyOpen(false); void controller.request('camera') }}>카메라 켜기</Button>
-          <Button variant="secondary" onClick={() => setPrivacyOpen(false)}>카메라 없이 하기</Button>
+          <Button variant="secondary" onClick={() => setPrivacyOpen(false)} data-dialog-initial-focus>카메라 없이 하기</Button>
         </div>
       </Dialog>
 
@@ -947,59 +1108,39 @@ export default function ConnectionPage() {
         open={leaveOpen}
         onClose={() => { if (!finishing) setLeaveOpen(false) }}
         dismissible={!finishing}
-        showHeader={false}
+        // 「계속하기」 is the way back (Esc and the backdrop do the same), so no X in the header (2026-11-26).
+        showCloseButton={false}
         title={`${withParticle(mate.name, '과', '와')}의 연결을 끊을까요?`}
-        className="mate-reset-dialog mate-reset-dialog--desktop connection-leave-dialog"
+        className="connection-leave-dialog"
       >
-        <header className="desktop-window-titlebar mate-window-titlebar-static">
-          <div className="desktop-window-title-left">연결 끊기</div>
-          <div className="desktop-window-title-right">
-            <div className="desktop-window-controls">
-              <button
-                type="button"
-                className="desktop-window-dot desktop-window-dot--close"
-                aria-label="닫기"
-                disabled={finishing}
-                onClick={() => setLeaveOpen(false)}
-              >
-                <span aria-hidden="true">×</span>
-              </button>
-              <span className="desktop-window-dot" aria-hidden="true" />
-              <span className="desktop-window-dot" aria-hidden="true" />
-            </div>
+        {leaveQuote && (
+          <div className="connection-leave-quote">
+            <span className="connection-leave-quote-name">{mate.name}</span>
+            <p>{leaveQuote}</p>
           </div>
-        </header>
-        <div className="mate-reset-dialog-body">
-          <h2 className="mate-reset-dialog-heading">{withParticle(mate.name, '과', '와')}의 연결을 끊을까요?</h2>
-          {leaveQuote && (
-            <div className="connection-leave-quote">
-              <span className="connection-leave-quote-name">{mate.name}</span>
-              <p>{leaveQuote}</p>
-            </div>
-          )}
-          {finishError && <FeedbackMessage tone="error" className="mt-4">{finishError}</FeedbackMessage>}
-          {shown.presenceKnown === false && (
-            <p className="mt-3 text-muted">
-              이전 자리 지킴 시간을 불러오지 못했어요. 지금 끝내면 이어서 연결한 동안의 자리 지킴만 기록돼요.
-            </p>
-          )}
-          <div className="mt-6 flex justify-end gap-3">
-            <Button
-              variant="secondary"
-              disabled={finishing}
-              onClick={() => setLeaveOpen(false)}
-              data-dialog-initial-focus
-            >
-              계속하기
-            </Button>
-            <Button
-              variant="danger-solid"
-              loading={finishing}
-              onClick={() => { void finish(true) }}
-            >
-              연결 끊기
-            </Button>
-          </div>
+        )}
+        {finishError && <FeedbackMessage tone="error" className="mt-4">{finishError}</FeedbackMessage>}
+        {shown.presenceKnown === false && (
+          <p className="mt-3 text-muted">
+            이전 자리 지킴 시간을 불러오지 못했어요. 지금 끝내면 이어서 연결한 동안의 자리 지킴만 기록돼요.
+          </p>
+        )}
+        <div className="mt-6 flex justify-end gap-3">
+          <Button
+            variant="secondary"
+            disabled={finishing}
+            onClick={() => setLeaveOpen(false)}
+            data-dialog-initial-focus
+          >
+            계속하기
+          </Button>
+          <Button
+            variant="danger-solid"
+            loading={finishing}
+            onClick={() => { void finish(true) }}
+          >
+            연결 끊기
+          </Button>
         </div>
       </Dialog>
     </main>

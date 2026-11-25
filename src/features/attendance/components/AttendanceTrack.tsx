@@ -14,7 +14,7 @@ export type TrackView = {
 }
 
 /**
- * The six days in a row on a thin floor plate, three visible at a time. The track and the character are moved by
+ * The seven days in a row on a thin floor plate, three visible at a time. The track and the character are moved by
  * the widget (transforms only), so this stays a plain picture of `view`.
  */
 export const AttendanceTrack = forwardRef(function AttendanceTrack(

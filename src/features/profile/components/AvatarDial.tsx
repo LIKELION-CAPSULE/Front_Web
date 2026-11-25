@@ -4,8 +4,12 @@ import type { AvatarItem, ModelInfo } from '@/shared/api/types'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { AvatarModelPreview } from './AvatarModelPreview'
 import { AvatarArcRail } from './AvatarArcRail'
+import { canPrefetchModels, cancelModelPrefetch, prefetchModels, prefetchTargets, whenIdle } from '@/features/live2d/model-prefetch'
 import {
   AVATAR_LEAVE_MS,
+  AVATAR_STILL_FALLBACK_MS,
+  AVATAR_WAIT_PULSE_MS,
+  awaitingModel,
   choosePreview,
   emptyPreview,
   mountedPreviews,
@@ -41,8 +45,9 @@ function AvatarPortrait({ avatar, fallback, className = 'avatar-picker-image' }:
  * Shared by onboarding step 1 and the account settings profile tab.
  *
  * - Only the chosen avatar loads Live2D; the row is still images. Two avatars are never on the stage together: the
- *   previous model fades out quickly and is released, the chosen avatar's still stands in while its model loads, and
- *   the model fades in over it (avatar-preview-state.ts).
+ *   previous model fades out quickly and is released, the stage keeps only its light while the chosen model loads
+ *   (a soft pulse after 0.6 s, the avatar's still only after 4 s or on failure), and the model fades in with a slight
+ *   grow (avatar-preview-state.ts). The neighbours' model files are prefetched while idle (live2d/model-prefetch.ts).
  * - Arrow keys / Home / End on the row, a click on any still, or a horizontal swipe on the preview or the row.
  * - Reduced motion: the row and the preview switch instantly, and the preview is the still image (no live model)
  *   whenever one exists.
@@ -83,6 +88,18 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   if (nextView !== view) setView(nextView)
   const previews = mountedPreviews(nextView).map(({ entry, leaving }) => ({ entry: !leaving && current && entry.key === current.key ? current : entry, leaving }))
   const standIn = Boolean(current) && standInVisible(nextView)
+  // Waiting for the chosen model: only the light at first, a soft pulse after AVATAR_WAIT_PULSE_MS, and the avatar's
+  // still after AVATAR_STILL_FALLBACK_MS (a fallback; it fades out under the model when the model comes).
+  const waitingKey = current && awaitingModel(nextView) ? current.key : null
+  const [wait, setWait] = useState<{ key: string; pulse: boolean; still: boolean } | null>(null)
+  useEffect(() => {
+    if (!waitingKey) return
+    const pulse = setTimeout(() => setWait(previous => ({ key: waitingKey, pulse: true, still: previous?.key === waitingKey && previous.still })), AVATAR_WAIT_PULSE_MS)
+    const still = setTimeout(() => setWait({ key: waitingKey, pulse: true, still: true }), AVATAR_STILL_FALLBACK_MS)
+    return () => { clearTimeout(pulse); clearTimeout(still) }
+  }, [waitingKey])
+  const pulsing = Boolean(waitingKey) && wait?.key === waitingKey && wait.pulse
+  const stillFallback = Boolean(current) && wait?.key === current?.key && Boolean(wait?.still)
   const leavingKeys = nextView.leaving.map(entry => entry.key).join('|')
   useEffect(() => {
     if (!leavingKeys) return
@@ -90,6 +107,17 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
     const timer = setTimeout(() => setView(previous => keys.reduce((next, key) => previewReleased(next, key), previous)), AVATAR_LEAVE_MS)
     return () => clearTimeout(timer)
   }, [leavingKeys])
+  // Once the chosen model is on screen, the neighbours' model files are fetched while the browser is idle (only into
+  // the HTTP cache: no model, context or texture is created; live2d/model-prefetch.ts). Not under reduced motion (the
+  // stills are shown), on low-end devices or when saving data.
+  const shownKey = current && nextView.settled === current.key ? current.key : null
+  const modelUrls = choices.map(avatar => avatar.model?.modelJsonUrl ?? null)
+  const neighbourUrls = prefetchTargets(modelUrls, selectedIndex).join('|')
+  useEffect(() => {
+    if (!shownKey || !neighbourUrls || reduced || !previewActive || !canPrefetchModels()) return
+    return whenIdle(() => prefetchModels(neighbourUrls.split('|')))
+  }, [shownKey, neighbourUrls, reduced, previewActive])
+  useEffect(() => () => cancelModelPrefetch(), [])
   const hasLive2D = choices.some(avatar => avatar.model?.modelJsonUrl)
   const root = useRef<HTMLFieldSetElement>(null)
   const rail = useRef<HTMLDivElement>(null)
@@ -163,14 +191,14 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   }
   const fade = reduced ? { duration: 0 } : { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }
 
-  const stage = <div className="avatar-picker-stage" data-no-native-drag data-draggable={!disabled && choices.length > 1 || undefined} {...swipe}>
+  const stage = <div className="avatar-picker-stage" data-no-native-drag data-draggable={!disabled && choices.length > 1 || undefined} data-waiting={pulsing || undefined} {...swipe}>
       {/* Keyed so the light swells once on every change (CSS; none under reduced motion). */}
       <div key={selected?.id ?? 'none'} className="avatar-picker-halo" aria-hidden="true" />
       <figure className="avatar-picker-figure" aria-labelledby={nameId}>
         {current
           ? <>
-            {/* The chosen avatar's still while its model loads (after the previous one has gone), under the model. */}
-            {nextView.leaving.length === 0 && <div key={current.key} className="avatar-picker-still avatar-picker-stand-in" data-out={!standIn || undefined} data-avatar={current.key} aria-hidden="true">
+            {/* The chosen avatar's still only when its model is slow (AVATAR_STILL_FALLBACK_MS), under the model. */}
+            {nextView.leaving.length === 0 && stillFallback && <div key={current.key} className="avatar-picker-still avatar-picker-stand-in" data-out={!standIn || undefined} data-avatar={current.key} aria-hidden="true">
               <AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} />
             </div>}
             {previews.map(({ entry, leaving }) => <AvatarModelPreview key={entry.key} avatarKey={entry.key} model={entry.model} name={entry.name} leaving={leaving}

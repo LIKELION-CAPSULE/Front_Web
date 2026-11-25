@@ -25,9 +25,9 @@ test('missing days never resets progress, and a finished cycle starts again at d
 })
 
 test('total days keep counting across cycles', () => {
-  const sixth = applyCheckIn({ cycleDay: 5, lastCheckedOn: '2026-11-23', totalDays: 11 }, '2026-11-24')
-  assert.equal(sixth.state.totalDays, 12)
-  const nextCycle = applyCheckIn(sixth.stored, '2026-11-25')
+  const seventh = applyCheckIn({ cycleDay: 6, lastCheckedOn: '2026-11-23', totalDays: 11 }, '2026-11-24')
+  assert.equal(seventh.state.totalDays, 12)
+  const nextCycle = applyCheckIn(seventh.stored, '2026-11-25')
   assert.deepEqual([nextCycle.state.cycleDay, nextCycle.state.totalDays], [1, 13])
   // Older stores without the field never show fewer days than the current cycle.
   assert.equal(resolveAttendance({ cycleDay: 4, lastCheckedOn: null }, '2026-11-24').totalDays, 4)
@@ -36,22 +36,23 @@ test('total days keep counting across cycles', () => {
 test('slots are done, today or upcoming', () => {
   const statuses = (cycleDay: number, checkedToday: boolean) =>
     Array.from({ length: CYCLE_DAYS }, (_, i) => slotStatus(i, { cycleDay, checkedToday }))
-  assert.deepEqual(statuses(2, false), ['done', 'done', 'today', 'upcoming', 'upcoming', 'upcoming'])
-  assert.deepEqual(statuses(2, true), ['done', 'done', 'upcoming', 'upcoming', 'upcoming', 'upcoming'])
+  assert.deepEqual(statuses(2, false), ['done', 'done', 'today', 'upcoming', 'upcoming', 'upcoming', 'upcoming'])
+  assert.deepEqual(statuses(2, true), ['done', 'done', 'upcoming', 'upcoming', 'upcoming', 'upcoming', 'upcoming'])
 })
 
 test('the page follows the character, so day 4 slides to page 2 as it is checked in', () => {
-  assert.deepEqual([0, 1, 2, 3, 4, 5, 6].map((day) => pageFor(day)), [0, 0, 0, 0, 1, 1, 1])
+  // The last page is pulled back to days 5–7, so day 7 slides once more.
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 7].map((day) => pageFor(day)), [0, 0, 0, 0, 1, 1, 1, 2])
   const layout = ATTENDANCE_LAYOUTS.regular
   // After the slide, day 4 sits exactly where day 1 was.
   assert.equal(characterSpot(3, layout).x + pageOffset(1, layout), characterSpot(0, layout).x)
 })
 
-test('with four days visible the pages are days 1–4 and 3–6, sliding when day 5 is checked in', () => {
-  assert.deepEqual([0, 1, 2, 3, 4, 5, 6].map((day) => pageFor(day, 4)), [0, 0, 0, 0, 0, 1, 1])
+test('with four days visible the pages are days 1–4 and 4–7, sliding when day 5 is checked in', () => {
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 7].map((day) => pageFor(day, 4)), [0, 0, 0, 0, 0, 1, 1, 1])
   const layout = ATTENDANCE_LAYOUTS.compact
-  // The second page is pulled back two days so it is never half empty: day 5 lands where day 3 was.
-  assert.equal(characterSpot(4, layout).x + pageOffset(1, layout, 4), characterSpot(2, layout).x)
+  // The second page is pulled back one day so it is never half empty: day 5 lands where day 2 was.
+  assert.equal(characterSpot(4, layout).x + pageOffset(1, layout, 4), characterSpot(1, layout).x)
   assert.equal(viewportWidth(layout, 4), layout.insetLeft + layout.pitch * 4 + layout.insetRight)
 })
 

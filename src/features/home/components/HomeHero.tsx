@@ -1,29 +1,34 @@
-import { mateCallBackground, mateHeroPortrait } from '@/features/mates/artwork'
+import { useState } from 'react'
+import { mateCallBackground } from '@/features/mates/artwork'
 import { launchMates, type AvailableMate } from '@/features/mates/catalog'
-import { useConnectMate } from '@/features/mates/use-connect-mate'
 import { useAttendanceController } from '@/features/attendance/attendance-controller'
+import { AttendanceDevPanel } from '@/features/attendance/components/AttendanceDevPanel'
+import { AttendancePath } from '@/features/attendance/components/AttendancePath'
+import { Button, ButtonLink } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Icon } from '@/shared/ui/Icon'
 import { HOME_COPY } from '../home-copy'
 
-/**
- * The home hero: copy and the attendance CTA on the left, the companion illustration fading into the room behind.
- * Before today's check-in the CTA plays the attendance widget's sequence (in the mates section below); afterwards
- * it starts the connection with the mate (「○○와 연결하기」), the way "다시 연결하기" used to.
- */
-export function HomeHero({ mate, onExplore }: { mate: AvailableMate | null; onExplore: () => void }) {
-  const { state, busy, isLoading, start } = useAttendanceController()
-  const { connect, busy: connecting, error } = useConnectMate(mate)
-  const name = mate?.name ?? launchMates[0]!.name
-  const title = HOME_COPY.heroTitle(name)
-  const done = state.checkedToday && !busy
-  const figure = mateHeroPortrait(mate?.id ?? launchMates[0]!.id, mate?.image)
+/** 친구 초대 (SCR-31). */
+const INVITE_PATH = '/credits/invite'
 
-  function onCta() {
-    if (!done) return void start()
-    // Starting to study picks up the phone (the hang-up in reverse) on the way into the call.
-    if (mate) void connect({ pickup: true })
-    else onExplore()
+/**
+ * The home hero: copy and the attendance CTA on the left, the attendance path (채린 walking this week's pads) on the
+ * right, over the room. Once today's check-in is done the CTA turns into 친구 초대.
+ */
+export function HomeHero({ mate }: { mate: AvailableMate | null }) {
+  const { state, busy, isLoading, start, devSet } = useAttendanceController()
+  const [error, setError] = useState<string | null>(null)
+  const title = HOME_COPY.heroTitle
+  const done = state.checkedToday && !busy
+
+  async function checkIn() {
+    setError(null)
+    try {
+      await start()
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '출석을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.')
+    }
   }
 
   return (
@@ -31,17 +36,13 @@ export function HomeHero({ mate, onExplore }: { mate: AvailableMate | null; onEx
       <div className="home-hero-backdrop" aria-hidden="true">
         <img className="home-hero-room" src={mateCallBackground(mate?.id ?? launchMates[0]!.id).landscape} alt="" decoding="async" draggable={false} />
       </div>
-      {figure && (
-        <figure className="home-hero-figure">
-          {/* The fade mask sits on the art only, so the AI disclosure below it stays fully readable. */}
-          <div className="home-hero-figure-art">
-            <img src={figure} width={1520} height={1800} alt="" decoding="async" draggable={false} />
-          </div>
-          <figcaption className="home-hero-ai-label">{HOME_COPY.aiLabel}</figcaption>
-        </figure>
-      )}
+      <div className="home-hero-figure" data-tour="home-attendance">
+        {/* Placed once attendance has loaded, so the first load is not mistaken for a check-in and walked. */}
+        {!isLoading && <AttendancePath streak={state.cycleDay} checkedInToday={state.checkedToday} />}
+        {import.meta.env.DEV && <AttendanceDevPanel disabled={busy} cycleDay={state.cycleDay} checkedToday={state.checkedToday} onSet={devSet} />}
+      </div>
 
-      <div className="home-hero-inner page-container">
+      <div className="home-hero-inner">
         <div className="home-hero-copy">
           <h1 id="home-hero-title" className="home-hero-title">
             {title.before}
@@ -54,20 +55,17 @@ export function HomeHero({ mate, onExplore }: { mate: AvailableMate | null; onEx
             <span data-active={!done || undefined} aria-hidden={done}>{HOME_COPY.heroSub}</span>
             <span data-active={done || undefined} aria-hidden={!done}>{HOME_COPY.heroSubDone}</span>
           </p>
-          <button
-            type="button"
-            className="home-hero-cta"
-            data-tour="connect"
-            onClick={onCta}
-            disabled={busy || isLoading || connecting}
-            aria-busy={busy || connecting || undefined}
-          >
-            <span className="home-hero-cta-labels">
-              <span data-active={!done || undefined} aria-hidden={done}>{HOME_COPY.ctaCheckIn}</span>
-              <span data-active={done || undefined} aria-hidden={!done}>{HOME_COPY.ctaConnect(name)}</span>
-            </span>
-            <Icon name="chevron" size={18} />
-          </button>
+          {done ? (
+            <ButtonLink to={INVITE_PATH} className="home-hero-cta min-h-14 px-8">
+              {HOME_COPY.ctaInvite}
+              <Icon name="chevron" size={18} />
+            </ButtonLink>
+          ) : (
+            <Button className="home-hero-cta min-h-14 px-8" onClick={() => void checkIn()} loading={busy} disabled={isLoading}>
+              {HOME_COPY.ctaCheckIn}
+              <Icon name="chevron" size={18} />
+            </Button>
+          )}
           {error && <FeedbackMessage tone="error" className="mt-3">{error}</FeedbackMessage>}
         </div>
       </div>

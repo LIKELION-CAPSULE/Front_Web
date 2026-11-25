@@ -7,7 +7,7 @@
 | 위치 | 내용 | 사용처 |
 | --- | --- | --- |
 | `brand/` | Pretendard(공통 서체)·Hahmlet(캡슐 카드 대표 문장)과 라이선스 · [서체 기록](brand/README.md) | `styles/design-tokens.css`, `styles/index.css` |
-| `characters/chaerin-v2/` | 채린 카드·히어로·전신·졸음·아바타 정지 이미지와 상반신 표정(일부) · [생성 기록](characters/chaerin-v2/README.md) | `features/mates/artwork.ts`, `expression-busts.ts`, 로그인 졸음 화면 |
+| `characters/chaerin-v2/` | 채린 카드·히어로·전신·졸음·아바타 정지 이미지와 상반신 표정(일부) · [생성 기록](characters/chaerin-v2/README.md) | `features/mates/artwork.ts`, 로그인 졸음 화면(상반신 표정은 지금 안 씀) |
 | `characters/seojin/` | 서도현(서버 이름 서진) 같은 구성 · [생성 기록](characters/seojin/README.md) | 같은 곳 |
 | `characters/chaerin-call-bg/` | 채린 통화 배경(가로·세로) | 연결 화면, 홈 히어로 |
 | `connection/` | 통화 종료·전화 받기 연출의 수화기 3D 이미지 · [제작 기록](connection/README.md) | `features/mates/hangup-sequence.ts`, `pickup-sequence.ts` |

@@ -55,6 +55,8 @@ export default function TourCallPage() {
     { key: 'microphone', label: '누르고 말하기', tooltip: '누르고 말하기', icon: 'microphone', onAction: NOOP },
     { key: 'camera', label: '카메라 켜기', tooltip: '카메라 켜기', icon: 'videoOff', device: true, onAction: NOOP },
     { key: 'chat', label: '채팅 닫기', tooltip: '채팅 닫기', icon: 'chat', pressed: true, expanded: true, controls: 'tour-call-chat', onAction: NOOP },
+    // 「메이트 음성」 shown as on the call screen (off, its default); nothing is asked for here.
+    { key: 'voice', label: '메이트 음성 켜기', tooltip: '메이트 음성 켜기', icon: 'headphones', pressed: false, onAction: NOOP },
     { key: 'pip', label: 'PIP로 띄우기', tooltip: 'PIP로 띄우기', icon: 'shrink', dividerBefore: true, secondary: true, onAction: NOOP },
     { key: 'fullscreen', label: '전체화면 전환', tooltip: '전체화면', icon: 'expand', secondary: true, onAction: NOOP },
     { key: 'settings', label: '설정', tooltip: '설정', icon: 'sliders', secondary: true, onAction: NOOP },
@@ -74,7 +76,6 @@ export default function TourCallPage() {
             <span className="connection-titlebar-divider" aria-hidden="true" />
             <span className="desktop-mate-dot" aria-hidden="true" />
             <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
-            <span className="desktop-mate-ai-badge">AI 캐릭터</span>
           </div>
           <div className="connection-titlebar-center">
             <div className="connection-mode-segment" role="group" aria-label="대화 모드" data-tour="call-mode">

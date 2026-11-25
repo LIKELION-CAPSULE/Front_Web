@@ -17,6 +17,7 @@ export const REVIEW_SESSION_ID = 9001
 const PENDING: Partial<Record<NonNullable<ReviewScenario['fault']>, (method: string, path: string) => boolean>> = {
   'bootstrap-pending': (_, path) => path === '/auth/refresh',
   'kakao-pending': (_, path) => path === '/auth/social/KAKAO',
+  'kakao-signup-pending': (_, path) => path === '/auth/social/KAKAO/signup',
   'home-pending': (_, path) => path === '/home',
   'avatars-pending': (_, path) => path === '/avatars',
   'report-pending': (method, path) => method === 'GET' && /^\/connections\/\d+$/.test(path),
@@ -47,6 +48,33 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
   if (scenario.session) {
     store.data.nextSessionId = REVIEW_SESSION_ID
     store.start(LOCAL_CHARACTER_ID)
+  }
+  // The local mock's QA switches (local-demo/transport.ts): a full beta (4 · 6 → 403 BETA_FULL), a coming-soon 서도현,
+  // the Kakao sign-up step's failures.
+  try {
+    if (scenario.fault === 'beta-full') sessionStorage.setItem('capsule-local-beta-full', '1')
+    if (scenario.fault === 'coming-soon') sessionStorage.setItem('capsule-local-coming-soon', 'dohyun')
+    if (scenario.fault === 'notifications-empty') sessionStorage.setItem('capsule-local-notifications', 'empty')
+    if (scenario.fault === 'notifications-error') sessionStorage.setItem('capsule-local-notifications', 'error')
+    if (scenario.fault === 'kakao-signup-invalid') sessionStorage.setItem('capsule-local-kakao-signup', 'invalid')
+    if (scenario.fault === 'kakao-signup-terms') sessionStorage.setItem('capsule-local-kakao-signup', 'terms')
+    if (scenario.fault === 'kakao-consent-off') sessionStorage.setItem('capsule-local-kakao-consent', 'off')
+    // A slow 32 for checking the chat while older pages load (`?chatDelay=ms` on the preview address).
+    const chatDelay = new URLSearchParams(location.search).get('chatDelay')
+    if (chatDelay && /^\d+$/.test(chatDelay)) sessionStorage.setItem('capsule-local-chat-delay', chatDelay)
+  } catch { /* The review storage is in memory; nothing to do without it. */ }
+  // 32's history (`chat-history`): earlier turns with 채린 on a finished connection, more than one page. The lines are the
+  // mock's existing ones; no new character dialogue is authored.
+  if (scenario.fault === 'chat-history') {
+    const mate = LOCAL_MATES.find(value => value.characterId === LOCAL_CHARACTER_ID)!
+    const start = Date.now() - 2 * 86_400_000
+    for (let turn = 0; turn < 14; turn++) {
+      const requestId = `review-history-${turn + 1}`, createdAt = start + turn * 90_000
+      store.data.messages.push(
+        { id: `local-user-${requestId}`, requestId, sessionId: '9001', characterId: String(LOCAL_CHARACTER_ID), sender: 'user', text: `검토 메시지 ${turn + 1}`, voice: false, delivery: 'confirmed', createdAt },
+        { id: `local-reply-${requestId}`, requestId, sessionId: '9001', characterId: String(LOCAL_CHARACTER_ID), sender: 'character', text: mate.reply, voice: false, delivery: 'confirmed', createdAt },
+      )
+    }
   }
   const local = createLocalTransport(store, original, location.origin)
   let syncFailures = scenario.fault === 'sync' ? 1 : 0
@@ -97,12 +125,30 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     if (operation === 'events' && syncFailures > 0) { syncFailures--; return fail(500) }
     if ((operation === 'messages' || operation === 'messages/stream') && fault === 'server-ended-message') return ended()
     if ((operation === 'messages' || operation === 'messages/stream') && fault === 'message') return fail(500)
+    // 고급 모드 short of credits: 409 CREDIT_INSUFFICIENT for an ADVANCED turn; BASIC goes through.
+    if (operation === 'messages/stream' && fault === 'credit-short' && typeof options?.body === 'string' && options.body.includes('"mode":"ADVANCED"')) {
+      return fail(409, 'CREDIT_INSUFFICIENT', { credits: { todayRemaining: 10 } })
+    }
+    // A voice turn short of credits: the server answers in text only (`done.voice` false), never an error.
+    if (operation === 'messages/stream' && fault === 'voice-short' && typeof options?.body === 'string') {
+      const response = await local(input, { ...options, body: options.body.replace('"tts":true', '"tts":false') })
+      log(response.status)
+      return response
+    }
     if (operation === 'messages/stream' && fault === 'server-ended-stream') {
       store.data.active = null
       log(200)
       return new Response(`event: error\ndata: ${JSON.stringify({ code: 'CONNECTION_ENDED', message: 'CONNECTION_ENDED' })}\n\n`, { headers: { 'content-type': 'text/event-stream' } })
     }
     if (operation === 'heartbeat' && (fault === 'server-ended-heartbeat' || fault === 'server-ended-report')) return ended()
+    if (operation === 'heartbeat' && fault === 'stage-up') {
+      // 21 with a stage-up (아는 사이 → 친구) on the local heartbeat's answer.
+      const response = await local(input, options)
+      log(response.status)
+      const body = await response.json() as { data?: Record<string, unknown> }
+      if (body.data) body.data.stageUp = { stage: 3, stageName: '친구', unlocked: [] }
+      return new Response(JSON.stringify(body), { status: response.status, headers: { 'content-type': 'application/json' } })
+    }
     if (operation === 'end' && fault === 'server-ended-finish') return ended()
     if (operation === 'end' && fault === 'end') return fail(500)
     if (operation === '' && method === 'GET' && reportFailures > 0) { reportFailures--; return fail(503) }

@@ -5,12 +5,12 @@ import { DemoContext } from './demo-context'
 import { betaReducer, type ConnectionAction } from '@/features/backend/beta-reducer'
 import { readConnectionCache, serverMessages, serverRecords, writeConnectionCache } from '@/features/backend/connection-cache'
 import type { DemoState, FocusTotals, Message, TierId } from './types'
-import type { ConnectionModeChoice } from '@/features/backend/backend-context'
+import type { ConnectionModeChoice, MessageVoice } from '@/features/backend/backend-context'
 import { normalizeFocusTotals } from '@/features/session/focus'
 import { api, ApiError } from '@/shared/api/client'
 import { QueryCache } from '@/shared/api/query-cache'
 import { removeAccountSnapshots } from '@/features/auth/account-storage'
-import type { ActiveConnectionSummary, AffinityChange, AvatarsResponse, EndType, HomeResponse, MeResponse, LoginResponse, StartRequest, StartResponse, ResumeResponse, EndRequest, ReportResponse, TermsResponse } from '@/shared/api/types'
+import type { ActiveConnectionSummary, AffinityChange, AvatarsResponse, EndType, HomeResponse, MeResponse, LoginResponse, StartRequest, StartResponse, ResumeResponse, EndRequest, MessageStreamAudio, MessageStreamAudioEnd, ReportResponse, TermsResponse } from '@/shared/api/types'
 import { BackendContext } from '@/features/backend/backend-context'
 import { streamMessage } from '@/features/backend/message-stream'
 import { accountScope } from '@/features/backend/account-scope'
@@ -33,10 +33,12 @@ import { checkedAccountDetails } from '@/features/auth/beta-account'
 import { birthDateError } from '@/features/auth/birth-date'
 import { nicknameError } from '@/features/profile/profile-input'
 import type { MateContentPort } from '@/features/mates/mate-contract'
-import { checkedMateDetail, checkMateReset, isMateResetConflict } from '@/features/mates/mate-contract'
+import { checkedMateDetail } from '@/features/mates/mate-contract'
+import { engineAllowlist } from '@/features/mate-render/engine-allowlist'
+import { forgetAllChatRooms, forgetChatRoom } from '@/features/mates/chat-room'
 import type { BetaFeaturePort, BetaFeatureSnapshot } from '@/features/backend/beta-feature-port'
 
-type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'signedOutNotice' | 'me' | 'accountDetails' | 'home' | 'homeContentVersion' | 'mateDetails' | 'mateContentVersion' | 'wallet' | 'invitation' | 'mateUnlocks' | 'mateRelationStats' | 'redeemInvitation' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
+type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'signedOutNotice' | 'me' | 'accountDetails' | 'home' | 'homeContentVersion' | 'mateDetails' | 'mateContentVersion' | 'wallet' | 'invitation' | 'redeemInvitation' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
 /**
  * Local mutations invalidate the affected server queries immediately. These limits bound
  * how long data changed on another device can remain cached here.
@@ -44,12 +46,11 @@ type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'sig
 const HOME_MAX_AGE = 60_000
 const MATE_MAX_AGE = 300_000
 const AVATARS_MAX_AGE = 300_000
-const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null, signedOutNotice: null, me: null, accountDetails: null, home: null, homeContentVersion: 0, mateDetails: {}, mateContentVersion: 0, wallet: null, invitation: null, mateUnlocks: undefined, mateRelationStats: undefined, redeemInvitation: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
+const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null, signedOutNotice: null, me: null, accountDetails: null, home: null, homeContentVersion: 0, mateDetails: {}, mateContentVersion: 0, wallet: null, invitation: null, redeemInvitation: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : '요청을 처리하지 못했어요.'
 const createLive2DStage: SessionModelFactory = (url, layout) => new Live2DStage(url, layout, new URL(import.meta.env.BASE_URL, location.href).href)
 /** v2 (Aliving2D) session models; engine scripts run only from this page's origin or the API origin. */
 const createAlivingStage: AlivingStageFactory = (source, options) => new AlivingSessionStage(source, { stillImage: options.stillImage })
-const engineAllowlist = () => ({ pageOrigin: location.origin, apiBaseUrl: import.meta.env.VITE_API_BASE_URL })
 
 /** Cached reports may belong to mates no longer returned by /home. */
 function registerCachedReportRooms(records: DemoState['records']) {
@@ -129,7 +130,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     const sync = () => {
       if (!current) return
       const snapshot = featurePort.read(userId)
-      setMeta(previous => ({ ...previous, wallet: snapshot.wallet, invitation: snapshot.invitation, mateUnlocks: snapshot.mateUnlocks, mateRelationStats: snapshot.mateRelationStats, affinities: snapshot.affinities, redeemInvitation: featurePort.redeemInvitation }))
+      setMeta(previous => ({ ...previous, wallet: snapshot.wallet, invitation: snapshot.invitation, affinities: snapshot.affinities, redeemInvitation: featurePort.redeemInvitation }))
       setBetaSettings(snapshot.settings)
     }
     const unsubscribe = featurePort.subscribe(sync)
@@ -180,6 +181,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     resettingMates.current = new Set()
     api.setToken(null)
     setMateRooms([])
+    forgetAllChatRooms()
     patch(adapt.emptyState())
     setMeta(previous => ({ ...initialMeta, terms: previous.terms, status: 'ready', signedOutNotice }))
   }, [patch, releaseModel])
@@ -438,40 +440,34 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     setMeta(previous => previous.mateDetails[mateId] === value ? previous : { ...previous, mateDetails: { ...previous.mateDetails, [mateId]: value } })
     return value
   }, [matePort, meta.home])
-  const resetMateConversation = useCallback(async (mateId: string, revision: string) => {
+  /**
+   * 47: hides this mate's chat room and remembered facts on the server (204). This browser then drops the mate's message
+   * cache, its chat-room history (32) and the detail (`hasConversation` changes); intimacy, unlocks and records stay, as
+   * on the server. Refused here, before the request, while this mate is connected (the server answers the same 409).
+   */
+  const resetMateConversation = useCallback(async (mateId: string) => {
     const mate = availableMates(meta.home).find(value => value.id === mateId)
     const userId = stateRef.current.profile.userId
     if (!mate || !userId || !matePort?.resetConversation) throw new ApiError('요청을 처리하지 못했어요.', 404)
-    if (!revision || meta.mateDetails[mateId]?.conversationRevision !== revision || resettingMates.current.has(mate.characterId)) throw new ApiError('요청을 처리하지 못했어요.', 409)
+    const active = stateRef.current.activeSession
+    if (active && (active.mateId === mate.id || active.characterIds.includes(mate.characterId))) throw new ApiError('지금 이 메이트와 연결 중이에요.', 409, 'CONNECTION_IN_PROGRESS')
+    if (resettingMates.current.has(mate.characterId)) throw new ApiError('요청을 처리하지 못했어요.', 409)
     const pending = resettingMates.current
     pending.add(mate.characterId)
     try {
-      const receipt = await accountScope(() => epoch.current).wait(matePort.resetConversation({ userId, characterId: adapt.numericId(mate.characterId), expectedRevision: revision }))
-      checkMateReset(receipt, adapt.numericId(mate.characterId), revision)
+      await accountScope(() => epoch.current).wait(matePort.resetConversation({ userId, characterId: adapt.numericId(mate.characterId) }))
       mateVersions.current.set(mate.characterId, (mateVersions.current.get(mate.characterId) ?? 0) + 1)
       queries.current.invalidate(`mate:${mate.characterId}`)
-      invalidateSessionQueries()
       patch({ messages: stateRef.current.messages.filter(message => message.characterId !== mate.characterId) })
       for (const key of failedMessages.current.keys()) if (key.endsWith(`:${mate.characterId}`)) failedMessages.current.delete(key)
-      setMateRooms(getMateRooms().map(room => ({ ...room, characters: room.characters.map(character => character.id === mate.characterId ? { ...character, relation: undefined } : character) })))
+      forgetChatRoom(userId, mate.characterId)
       setMeta(previous => {
-        const mateDetails = { ...previous.mateDetails }, affinities = { ...previous.affinities }
-        delete mateDetails[mateId]; delete affinities[mate.characterId]
-        return { ...previous, mateDetails, affinities, mateContentVersion: previous.mateContentVersion + 1 }
+        const mateDetails = { ...previous.mateDetails }
+        delete mateDetails[mateId]
+        return { ...previous, mateDetails, mateContentVersion: previous.mateContentVersion + 1 }
       })
-    } catch (error) {
-      if (isMateResetConflict(error)) {
-        queries.current.invalidate(`mate:${mate.characterId}`)
-        mateVersions.current.set(mate.characterId, (mateVersions.current.get(mate.characterId) ?? 0) + 1)
-        setMeta(previous => {
-          const mateDetails = { ...previous.mateDetails }
-          delete mateDetails[mateId]
-          return { ...previous, mateDetails, mateContentVersion: previous.mateContentVersion + 1 }
-        })
-      }
-      throw error
     } finally { pending.delete(mate.characterId) }
-  }, [matePort, meta.home, meta.mateDetails, patch, invalidateSessionQueries])
+  }, [matePort, meta.home, patch])
   const applyAccountResult = useCallback((result: BetaAccountResult, avatarId?: number) => {
     if (result.me.userId !== stateRef.current.profile.userId) throw new ApiError('프로필 응답을 확인하지 못했어요.', 502)
     const details = checkedAccountDetails(result.details)
@@ -523,7 +519,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     if (!accountPort) throw new ApiError('요청을 처리하지 못했어요.', 501)
     const userId = stateRef.current.profile.userId
     if (!userId) throw new ApiError('로그인이 필요해요.', 401)
-    const result = await accountScope(() => epoch.current).wait(accountPort.saveProfile(userId, { ...input, nickname: input.nickname.trim(), callName: input.callName.trim(), aboutMe: input.aboutMe.trim() }))
+    const result = await accountScope(() => epoch.current).wait(accountPort.saveProfile(userId, { ...input, nickname: input.nickname.trim(), aboutMe: input.aboutMe.trim() }))
     applyAccountResult(result, input.avatarId)
   }, [accountPort, applyAccountResult])
   // Retired source previews still type-check, but cannot call the schedule API.
@@ -729,7 +725,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
       return record
     } finally { operations.delete('end') }
   }, [patch, invalidateSessionQueries, releaseModel])
-  const sendMessage = useCallback(async (characterId: string, content: string, inputType: 'TEXT' | 'QUICK' = 'TEXT') => {
+  const sendMessage = useCallback(async (characterId: string, content: string, inputType: 'TEXT' | 'QUICK' = 'TEXT', voice?: MessageVoice) => {
     const current = stateRef.current.activeSession
     if (!current) throw new ApiError('진행 중인 연결이 없어요.', 400)
     if (!content.trim() || content.length > 300) throw new ApiError('메시지는 1~300자로 입력해 주세요.', 400)
@@ -760,8 +756,14 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     upsert({ id: `${requestId}:user`, requestId, sessionId: current.id, characterId, sender: 'user', text: content.trim(), voice: false, createdAt: Date.now(), delivery: 'pending' })
     const mode = connectionModeRef.current.id === current.id && connectionModeRef.current.mode === 'advanced' ? 'ADVANCED' : 'BASIC'
     try {
-      const result = await accountScope(() => epoch.current).wait(streamMessage(api, adapt.numericId(current.id), { requestId, characterId: adapt.numericId(characterId), content: content.trim(), inputType, mode, tts: false }, {
+      const result = await accountScope(() => epoch.current).wait(streamMessage(api, adapt.numericId(current.id), { requestId, characterId: adapt.numericId(characterId), content: content.trim(), inputType, mode, tts: voice?.tts === true }, {
         onReply: text => { if (live()) upsert(reply(text)) },
+        // Voice pieces keep coming after `done` (this resolves there); the player drops those of a stopped voice.
+        ...(voice?.tts ? {
+          onAudio: (audio: MessageStreamAudio) => { if (live()) voice.onAudio?.(audio) },
+          onAudioEnd: (end: MessageStreamAudioEnd) => { if (live()) voice.onAudioEnd?.(end) },
+          onAudioClose: () => voice.onClose?.(),
+        } : {}),
         alive: live,
       }))
       if (result.requestId !== requestId || adapt.id(result.characterId) !== characterId || !result.content) throw new ApiError('답장 응답을 확인하지 못했어요.', 502)
@@ -776,11 +778,11 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     } catch (error) {
       // As with API 20, a failed send leaves no messages; sending the same text again reuses the requestId.
       if (live()) patch({ messages: stateRef.current.messages.filter(value => value.requestId !== requestId) })
-      // Not enough credits for ADVANCED (409, nothing saved): back to BASIC, as the server suggests; the message says so.
-      if (error instanceof ApiError && error.code === 'CREDIT_INSUFFICIENT' && connectionModeRef.current.id === current.id) setConnectionMode('basic')
+      // Not enough credits for ADVANCED (409, nothing saved): the mode stays; the call screen asks (CreditShortNotice:
+      // 「기본 모드로 계속」 switches and sends the same line again).
       throw error
     } finally { operations.delete(key) }
-  }, [patch, updateAffinity, setConnectionMode])
+  }, [patch, updateAffinity])
   /** API 23 `GET /connections/{id}`: the record of an ended connection (409 `CONNECTION_IN_PROGRESS` while it runs). */
   const loadReport = useCallback(async (sessionId: string) => {
     if (stateRef.current.records.some(value => value.id === sessionId)) return

@@ -241,6 +241,7 @@ test('a line points at the days it speaks about, from the same facts (records bo
 test('late lines light the late days (night or dawn), a single band its own days', () => {
   const records = [record(at('2026-11-23T23:00:00'), 50), record(at('2026-11-24T01:00:00'), 50), record(at('2026-11-24T10:00:00'), 20)]
   const facts = collectPeriodFacts({ range: getRecordRange('week', TUESDAY), offset: 0, now: TUESDAY, records })
-  assert.deepEqual(commentHighlight('late', facts).days, ['2026-11-23', '2026-11-24'])
+  // 01:00 is still the evening of the 23rd (a day runs from 05:00, the server's rule).
+  assert.deepEqual(commentHighlight('late', facts).days, ['2026-11-23'])
   assert.deepEqual(commentHighlight('lateBand', facts).days, ['2026-11-23'])
 })

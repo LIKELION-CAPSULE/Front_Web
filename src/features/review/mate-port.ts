@@ -1,5 +1,4 @@
 import type { MateContentPort } from '@/features/mates/mate-contract'
-import { resetScopes } from '@/features/mates/mate-contract'
 import { ApiError } from '@/shared/api/client'
 import { matePortrait } from '@/features/mates/artwork'
 import type { ReviewScenario } from './catalog'
@@ -17,7 +16,7 @@ function silentSample() {
 
 /** Explicit review-only port; production receives neither this implementation nor these values. */
 export function createReviewMatePort(scenario: ReviewScenario): MateContentPort {
-  let revision = 1, loads = 0, resets = 0
+  let loads = 0, resets = 0
   function trace(operation: string, input: unknown) { window.dispatchEvent(new CustomEvent('capsule-review:mate-operation', { detail: { operation, input } })) }
   return {
     load: async (userId, characterId) => {
@@ -29,18 +28,14 @@ export function createReviewMatePort(scenario: ReviewScenario): MateContentPort 
         // The existing image-stage factory stands in for a real model in the UI workbench.
         model: { modelJsonUrl: scenario.fault === 'mate-model' && loads === 1 ? '/__review/missing-mate-preview.webp' : matePortrait('chaerin') },
         voiceSampleUrl: scenario.fault === 'mate-audio' ? '/__review/missing-sample.wav' : silentSample(),
-        conversationRevision: `review-${revision}`,
       }
     },
     resetConversation: async input => {
       trace('reset', input); resets++
       await new Promise(resolve => setTimeout(resolve, 120))
-      if (scenario.fault === 'mate-reset' && resets === 1) throw new ApiError('요청을 처리하지 못했어요.', 503)
-      if (scenario.fault === 'mate-conflict' && resets === 1) { revision++; throw new ApiError('요청을 처리하지 못했어요.', 409) }
-      if (input.expectedRevision !== `review-${revision}`) throw new ApiError('요청을 처리하지 못했어요.', 409)
-      const previousRevision = `review-${revision}`
-      revision++
-      return { characterId: input.characterId, previousRevision, revision: `review-${revision}`, cleared: scenario.fault === 'mate-partial' ? ['messages'] : [...resetScopes] }
+      if (scenario.fault === 'mate-reset' && resets === 1) throw new ApiError('대화를 초기화하지 못했어요. 다시 시도해 주세요.', 503)
+      // 47's only conflict: this mate is connected (here or on another device).
+      if (scenario.fault === 'mate-conflict') throw new ApiError('지금 이 메이트와 연결 중이에요.', 409, 'CONNECTION_IN_PROGRESS')
     },
   }
 }

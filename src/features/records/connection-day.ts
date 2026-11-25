@@ -1,10 +1,11 @@
 import type { StudyRecord } from '../demo/types.ts'
-import { dayKey } from '../../shared/lib/format.ts'
+import { businessDay } from '../../shared/lib/format.ts'
 
 /**
  * One date rule for a connection everywhere records are shown (records page summary, comment, calendar and list;
- * my-mates capsules): a connection belongs to the Seoul day it **started**. A connection from 23:30 to 00:40 is
- * the evening's connection; its date, weekday and time of day all come from the start.
+ * my-mates capsules): a connection belongs to the day it **started**, a day running from 05:00 to 05:00 Seoul time —
+ * the server's rule for 38 내 기록 (docs/BACKEND_API.md `RecordsResponse`). A connection from 23:30 to 00:40, or one
+ * that starts at 02:00, is the evening's connection.
  *
  * Only completed connections count: `endedAt <= now`. A record whose end lies in the future (clock skew, a session
  * still running) is left out of every view until it has ended.
@@ -19,9 +20,9 @@ export function connectionStartedAt(record: Timed): number {
   return valid(record.startedAt) ? record.startedAt : record.endedAt
 }
 
-/** Seoul calendar day (`YYYY-MM-DD`) of a connection. */
+/** The day (`YYYY-MM-DD`, from 05:00 Seoul time) of a connection. */
 export function connectionDayKey(record: Timed): string {
-  return dayKey(connectionStartedAt(record))
+  return businessDay(connectionStartedAt(record))
 }
 
 export function isCompletedRecord(record: Timed, now: number): boolean {

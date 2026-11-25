@@ -259,22 +259,6 @@
   }
   .att-widget:not([data-paused]) :is(.att-slot-capsule-float, .att-slot-glow) { will-change: transform, opacity; }
 
-  .att-dev {
-    position: absolute;
-    bottom: 6px;
-    left: 6px;
-    z-index: 10;
-    border-radius: 10px;
-    background: rgb(15 13 23 / 0.85);
-    padding: 4px 8px;
-    color: var(--color-muted);
-    font-size: 11px;
-  }
-  .att-dev summary { cursor: pointer; }
-  .att-dev div { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-  .att-dev button { border-radius: 6px; background: var(--color-control); padding: 2px 7px; color: var(--color-ink); }
-  .att-dev button[aria-pressed='true'] { background: var(--color-primary); }
-
   @media (prefers-reduced-motion: reduce) {
     .att-stars span, .att-sparkle, .att-slot-glow, .att-slot-capsule-float, .att-character-breath { animation: none; }
     .att-stars span { opacity: 0.5; }

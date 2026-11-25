@@ -3,7 +3,6 @@ import test from 'node:test'
 import { emptyState, report, session } from '../src/features/backend/adapters.ts'
 import { connectionCacheKey, readConnectionCache, serverRecords, writeConnectionCache } from '../src/features/backend/connection-cache.ts'
 import { betaReducer } from '../src/features/backend/beta-reducer.ts'
-import { cameraRecords, connectionSummary } from '../src/features/reports/connection-records.ts'
 import { legacyBetaDestination } from '../src/features/mates/legacy-destination.ts'
 import { removeAccountSnapshots } from '../src/features/auth/account-storage.ts'
 import { launchMates, type AvailableMate } from '../src/features/mates/catalog.ts'
@@ -68,17 +67,6 @@ test('production camera totals remain monotonic, bounded by connected time and s
  assert.equal(next.activeSession?.focus?.focusedMs,1000)
  assert.equal(betaReducer(next,{type:'FACE_FOCUS',sessionId:'9002',totals:{observedMs:6000,focusedMs:5000,returns:1},now:2000}),next)
  assert.equal(betaReducer(next,{type:'FACE_FOCUS',sessionId:'9001',totals:{observedMs:500,focusedMs:400,returns:0},now:2000}),next)
-})
-test('camera graphs never substitute connected time for unknown camera time or mutate the source records',()=>{
- const known=actual(),unknown={...known,id:'9002',cameraFocus:undefined}
- const projected=cameraRecords([known,unknown])
- assert.equal(projected.length,1)
- assert.equal(projected[0]!.studySeconds,1380)
- assert.equal(known.studySeconds,1500)
- assert.equal(connectionSummary([known,unknown]).cameraSeconds,null)
- assert.equal(connectionSummary([known,unknown]).connectionSeconds,3000)
- assert.equal(connectionSummary([{...known,cameraFocus:{observedMs:0,focusedMs:0,returns:0}}]).cameraSeconds,0)
- assert.equal(connectionSummary([]).cameraSeconds,null)
 })
 test('legacy URLs resolve to approved mate/detail/connection records without starting a new session',()=>{
  const destination=(path:string)=>legacyBetaDestination(path,[mate],null,null,[])

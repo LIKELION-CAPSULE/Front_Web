@@ -52,30 +52,16 @@ export type AffinityProgressView = {
   /** E.g. "친구까지 3시간 25분", or null when the server sends no remaining time. */
   nextCaption: string | null
   nextStageName: string | null
-  /** Locked expressions that the next stage opens (0 when none or unknown). */
-  nextUnlocks: number
   /** The highest stage is reached. */
   isLast: boolean
 }
 
-/** A locked expression that the stage after `stage` opens (by its unlock stage, else by the stage name in its condition). */
-export function opensAtNextStage(
-  item: { unlocked: boolean; unlockStage?: number; condition?: string },
-  stage: number,
-  nextStageName: string | null,
-) {
-  if (item.unlocked) return false
-  return item.unlockStage !== undefined ? item.unlockStage === stage + 1 : Boolean(nextStageName && item.condition?.includes(nextStageName))
-}
-
 /**
- * Builds the affinity progress from the relation (server fields, or the development sample) and the expression
- * collection: an expression counts for the next stage by its `unlockStage`, or else when its condition names the
- * next stage.
+ * Builds the affinity progress from the relation (server fields, or the development sample). What the next stage opens
+ * is not repeated here: the expression collection's locked slots already say at which stage they open (2026-11-26).
  */
 export function affinityProgressView(
   relation: Partial<StudySettlement> & { stage: number; stageName: string },
-  expressions: readonly { unlocked: boolean; unlockStage?: number; condition?: string }[],
   stageCount: number,
   formatDuration: (seconds: number) => string,
 ): AffinityProgressView {
@@ -87,6 +73,5 @@ export function affinityProgressView(
     nextCaption: formatNextStageCaption(relation, formatDuration),
     nextStageName,
     isLast: relation.stage >= stageCount,
-    nextUnlocks: expressions.filter((item) => opensAtNextStage(item, relation.stage, nextStageName)).length,
   }
 }

@@ -8,8 +8,7 @@ import { capsuleRecordsFromStudyRecords, sortCapsules } from './capsule-jar-data
 import { generateDummyCapsules, generateFreshCapsules } from './capsule-jar-dummy.ts'
 import { capsuleVisitKey } from './capsule-jar-visit.ts'
 import { capsulesForConnection } from './capsule-floor-layout.ts'
-import { formatCapsuleDate, totalCapsuleSeconds } from './capsule-jar-data.ts'
-import { sampleRelation } from '../mate-sample-data.ts'
+import { formatCapsuleDate } from './capsule-jar-data.ts'
 import type { CapsuleRecord } from './capsule-jar-types.ts'
 import type { CapsuleJarHandle } from './CapsuleJar.tsx'
 import type { JarBenchmark } from './capsule-jar-scene.ts'
@@ -78,7 +77,6 @@ export default function CapsuleJarPreview({
   )
   const capsules = useMemo(() => sortCapsules([...base, ...fresh]), [base, fresh])
   const firstMetAt = capsules[0]?.startedAt
-  const relation = useMemo(() => sampleRelation(totalCapsuleSeconds(capsules)), [capsules])
   const visit = useCapsuleVisit(capsuleVisitKey(userId ?? 'preview', `${mateId}-preview`), base)
   const dropIds = useMemo(
     () => [...(visitApplies ? visit.dropIds : []), ...fresh.map((capsule) => capsule.id)],
@@ -195,7 +193,6 @@ export default function CapsuleJarPreview({
           caption={
             <>
               <p className="my-mates-caption-name">{mateName}</p>
-              <p className="my-mates-caption-stage">{`${relation.stage}단계 · ${relation.stageName}`}</p>
               {firstMetAt && <p className="my-mates-caption-date">처음 만난 날 {formatCapsuleDate(firstMetAt).slice(0, 10)}</p>}
             </>
           }

@@ -1,5 +1,5 @@
 /*
- * 서비스 투어의 바탕 (TourLayer.tsx, main bundle): the top-layer sheet, the dim with its spotlight hole and the glass
+ * 서비스 투어의 바탕 (TourLayer.tsx, main bundle): the top-layer sheet, the dim with its lit hole and the glass
  * panel — also the 「사용법 불러오는 중」 panel shown while the controller's chunk loads. No outlines; violet only for the
  * main action and the cursor (docs/DESIGN_SYSTEM.md). Every layer except the panel lets pointers through.
  */
@@ -22,26 +22,54 @@
 .service-tour-layer:not(:popover-open) { display: block; }
 .service-tour { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
 
-/* Dim with a hole around the target: one box with a huge shadow, so the hole needs no clip path. */
+/*
+ * The dim. Alone (loading, no mate): one flat sheet. With a lit hole (ServiceTour, tour-spotlight.ts): four flat shades
+ * around the hole and four corner caps, moved by `transform` only, so a move is composited and never repaints the
+ * screen; the violet edge and glow are a separate ring painted once per size and shown with opacity.
+ */
+.service-tour {
+  --tour-dim: color-mix(in srgb, var(--color-canvas) 62%, transparent);
+}
 .service-tour-dim {
   position: fixed;
   z-index: 1;
   inset: 0;
-  background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
+  background: var(--tour-dim);
   pointer-events: none;
   transition: background 240ms ease;
 }
-.service-tour-dim[data-spot] {
-  inset: auto;
-  top: var(--spot-top);
-  left: var(--spot-left);
-  width: var(--spot-width);
-  height: var(--spot-height);
-  border-radius: 18px;
-  background: transparent;
-  box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--color-canvas) 62%, transparent), 0 0 0 2px color-mix(in srgb, #8053F2 55%, transparent), 0 0 32px 4px color-mix(in srgb, #8053F2 35%, transparent);
-  transition: top 420ms cubic-bezier(0.22, 1, 0.36, 1), left 420ms cubic-bezier(0.22, 1, 0.36, 1), width 420ms cubic-bezier(0.22, 1, 0.36, 1), height 420ms cubic-bezier(0.22, 1, 0.36, 1);
+.service-tour-dim[data-shades] { overflow: hidden; background: transparent; contain: strict; transition: none; }
+.service-tour-shade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--tour-dim);
+  transform-origin: 0 0;
+  will-change: transform;
 }
+/* Left and right of the hole: strips as tall as STRIP_PX, stretched to the hole by scaleY. */
+.service-tour-shade[data-side='left'], .service-tour-shade[data-side='right'] { height: 100px; }
+.service-tour-corner { position: absolute; top: 0; left: 0; width: 18px; height: 18px; opacity: 0; will-change: transform; }
+.service-tour-dim[data-corners] .service-tour-corner { opacity: 1; }
+.service-tour-corner[data-corner='tl'] { background: radial-gradient(circle at 100% 100%, transparent 17.5px, var(--tour-dim) 18px); }
+.service-tour-corner[data-corner='tr'] { background: radial-gradient(circle at 0 100%, transparent 17.5px, var(--tour-dim) 18px); }
+.service-tour-corner[data-corner='bl'] { background: radial-gradient(circle at 100% 0, transparent 17.5px, var(--tour-dim) 18px); }
+.service-tour-corner[data-corner='br'] { background: radial-gradient(circle at 0 0, transparent 17.5px, var(--tour-dim) 18px); }
+.service-tour-spot {
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  border-radius: 18px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #8053F2 55%, transparent), 0 0 32px 4px color-mix(in srgb, #8053F2 35%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 90ms ease-out;
+  will-change: transform, opacity;
+}
+.service-tour-spot[data-spot] { opacity: 1; transition-duration: 220ms; }
 
 /* Panel: the home speech bubble's glass, bottom centre. */
 .service-tour-panel {
@@ -90,5 +118,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .service-tour-dim, .service-tour-dim[data-spot] { transition: none; }
+  .service-tour-dim, .service-tour-spot { transition: none; }
 }

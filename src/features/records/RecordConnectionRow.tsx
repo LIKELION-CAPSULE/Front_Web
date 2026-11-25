@@ -3,25 +3,16 @@ import { Link } from 'react-router'
 import type { StudyRecord } from '@/features/demo/types'
 import { focusDetectedSeconds } from '@/features/session/focus'
 import { Icon } from '@/shared/ui/Icon'
-import { dateLabel, duration } from '@/shared/lib/format'
+import { duration } from '@/shared/lib/format'
 import { capsuleDaySummary, type SelectedCapsuleDay } from './capsule-calendar'
-import { connectionStartedAt } from './connection-day'
 
 const timeFormat = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false })
 
 /**
- * One connection on /records. "함께한 시간" is the connection time; camera time is shown only when measured.
- * `when: 'time'` shows the start–end time instead of the date (inside a selected day).
+ * One connection of the selected day on /records: its start–end time, the mate, "함께한 시간" (the connection time) and
+ * the camera time only when measured. (The 「최근 연결」 list that showed dates was removed 2026-11-26.)
  */
-export function RecordConnectionRow({
-  record,
-  mateName,
-  when = 'date',
-}: {
-  record: StudyRecord
-  mateName?: string
-  when?: 'date' | 'time'
-}) {
+export function RecordConnectionRow({ record, mateName }: { record: StudyRecord; mateName?: string }) {
   const cameraSeconds = record.cameraFocus ? focusDetectedSeconds(record) : 0
   const leveledUp = Boolean(record.serverReport?.relation?.stageUp)
   const parts: ReactNode[] = []
@@ -33,7 +24,7 @@ export function RecordConnectionRow({
     <Link to={`/connections/${record.id}`} className="records-row">
       <span className="records-row-meta">
         <span className="records-row-when">
-          {when === 'time' ? `${timeFormat.format(record.startedAt)} – ${timeFormat.format(record.endedAt)}` : dateLabel(connectionStartedAt(record))}
+          {`${timeFormat.format(record.startedAt)} – ${timeFormat.format(record.endedAt)}`}
         </span>
         {parts.map((part, index) => (
           <span key={index} className="records-row-part">
@@ -47,6 +38,37 @@ export function RecordConnectionRow({
       </span>
       <Icon name="chevron" size={16} className="records-row-chevron" />
     </Link>
+  )
+}
+
+/**
+ * The part of a day that 38 does not list as connections (older ones of that day): its time, no time of day and no
+ * link (there is no single connection record behind it).
+ */
+export function DayRemainderRow({ record, mateName }: { record: StudyRecord; mateName?: string }) {
+  const cameraSeconds = record.cameraFocus ? focusDetectedSeconds(record) : 0
+  return (
+    <div className="records-row records-row--remainder">
+      <span className="records-row-meta">
+        <span className="records-row-when">그 밖의 연결</span>
+        {mateName && (
+          <span className="records-row-part">
+            <span className="records-row-sep" aria-hidden="true">·</span>
+            <span>{mateName}</span>
+          </span>
+        )}
+        <span className="records-row-part">
+          <span className="records-row-sep" aria-hidden="true">·</span>
+          <span className="records-row-together">함께한 시간 {duration(record.studySeconds)}</span>
+        </span>
+        {cameraSeconds > 0 && (
+          <span className="records-row-part">
+            <span className="records-row-sep" aria-hidden="true">·</span>
+            <span className="records-row-camera">카메라로 함께한 시간 {duration(cameraSeconds)}</span>
+          </span>
+        )}
+      </span>
+    </div>
   )
 }
 
@@ -73,7 +95,7 @@ export function CapsuleDayDetail({
         <ul className="records-row-list records-day-list">
           {records.map((record) => (
             <li key={record.id}>
-              {renderRecord ? renderRecord(record) : <RecordConnectionRow record={record} mateName={mateNameOf(record)} when="time" />}
+              {renderRecord ? renderRecord(record) : <RecordConnectionRow record={record} mateName={mateNameOf(record)} />}
             </li>
           ))}
         </ul>

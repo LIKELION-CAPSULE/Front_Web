@@ -203,8 +203,6 @@
   pointer-events: auto;
 }
 .my-mates-caption-name { margin: 0; color: var(--color-ink); font-size: 26px; line-height: 32px; font-weight: 800; }
-.my-mates-ai-badge { margin-left: 8px; transform: translateY(-3px); }
-.my-mates-caption-stage { margin: 4px 0 0; color: var(--color-ink); font-size: 15px; line-height: 22px; font-weight: 600; }
 /* ink, not muted: through the bubble glass her hair and shirt show behind the box (muted measured 4.1:1 there). */
 .my-mates-caption-date { margin: 2px 0 0; color: var(--color-ink); font-size: 13px; line-height: 18px; font-weight: 400; font-variant-numeric: tabular-nums lining-nums; }
 @media (min-width: 960px) and (max-height: 800px) {
@@ -294,3 +292,8 @@
   .my-mates-window-body { padding: 16px 16px 24px; }
   .my-mates-actions { grid-template-columns: 1fr; }
 }
+
+/* 「프로필 보기」 and the mate's ⋯ menu (대화 초기화) on one row; the menu opens upwards (the column's foot). */
+.my-mates-profile-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.my-mates-profile-row .mate-menu-trigger { width: 36px; height: 36px; }
+.my-mates-profile-row .mate-menu-panel { top: auto; bottom: calc(100% + 8px); }

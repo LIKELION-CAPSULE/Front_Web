@@ -5,10 +5,10 @@ import type { BoardTransition } from './capsule-board-scene.ts'
 /**
  * 2D / 2.5D view of the board (user decision 2026-11-25): pure rules, unit-tested.
  *
- * - 2.5D: the columns of capsules seen at an angle. 2D: seen from straight above, the same capsules lie in the tile as
- *   chips — **one chip = 30 minutes**, so the amount reads as a count (like tally marks), each chip keeping its
- *   connection's colour; the date sits at the tile's top-left like a wall calendar.
- * - Default: 2.5D on desktop, 2D under 960 px; the viewer's last choice wins (browser storage).
+ * - 2.5D: the days' glass pillars seen at an angle (this scene). 2D: the records page's contribution grid
+ *   (ContributionGrid, user decision 2026-11-26), not this scene.
+ * - Default: 2D everywhere (user decision 2026-11-26); the viewer's last choice wins (browser storage), so a viewer
+ *   who picked 2.5D keeps it.
  */
 
 export type BoardView = '2d' | '25d'
@@ -20,7 +20,6 @@ export type BoardView = '2d' | '25d'
  */
 export const BOARD_VIEW_STORAGE_KEY = 'capsule-records-board-view:v2'
 export const BOARD_VIEW_LEGACY_KEY = 'capsule-records-board-view:v1'
-export const BOARD_VIEW_NARROW_WIDTH = 960
 
 export type StoredBoardViews = { detail?: BoardView; year?: BoardView }
 
@@ -31,12 +30,10 @@ export function isBoardView(value: unknown): value is BoardView {
 /** Which stored choice a period uses. */
 export const boardViewSlot = (mode: BoardMode): keyof StoredBoardViews => (mode === 'year' ? 'year' : 'detail')
 
-/** The stored choice for the period, else: year → 2D; week/month → 2D under 960 px and 2.5D above. */
-export function defaultBoardView(viewportWidth: number, stored: StoredBoardViews | null | undefined, mode: BoardMode = 'week'): BoardView {
+/** The stored choice for the period, else 2D (the contribution grid). */
+export function defaultBoardView(stored: StoredBoardViews | null | undefined, mode: BoardMode = 'week'): BoardView {
   const choice = stored?.[boardViewSlot(mode)]
-  if (isBoardView(choice)) return choice
-  if (mode === 'year') return '2d'
-  return viewportWidth < BOARD_VIEW_NARROW_WIDTH ? '2d' : '25d'
+  return isBoardView(choice) ? choice : '2d'
 }
 
 /** Parses stored choices (v2 JSON, or the v1 single value as the week/month choice). */

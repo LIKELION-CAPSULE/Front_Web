@@ -13,6 +13,9 @@ import { Dialog } from '@/shared/ui/Dialog'
  */
 const LEGAL_LINKS: readonly LegalDocumentId[] = ['terms', 'privacy']
 
+/** Draft (PM decision 2026-11-26, wording to be confirmed by the user). */
+export const AI_NOTICE = 'CAPSULE의 메이트는 실제 사람이 아닌 AI 캐릭터이며, 메이트의 대화는 AI가 생성해요.'
+
 export function SiteFooter() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -27,7 +30,7 @@ export function SiteFooter() {
         <div className="app-footer-start">
           <span className="app-footer-brand">CAPSULE</span>
           <nav aria-label="서비스 정보" className="app-footer-links">
-            {/* 「사용법 보기」 starts the service tour (src/features/tour) from any screen; 「건너뛰기」 comes back here. */}
+            {/* 「사용법 보기」 starts the service tour (src/features/tour) from any screen; 「그만보기」 comes back here. */}
             <button type="button" className="mate-tutorial-trigger" data-tutorial-trigger disabled={!tourReady}
               onClick={() => navigate(beginTour(location.pathname + location.search))}>사용법 보기</button>
             {/* The same server terms as the login screen and the mobile notice, in the same dialog. */}
@@ -41,6 +44,8 @@ export function SiteFooter() {
         <div className="app-footer-end">
           <span>오늘도, CAPSULE과 함께하세요 ♡</span>
         </div>
+        {/* The AI disclosure (PM decision 2026-11-26): here once for the app screens, instead of a tag on every mate. */}
+        <p className="app-footer-notice">{AI_NOTICE}</p>
       </footer>
       {/* Outside the footer so the dialog does not inherit its small, dimmed text. */}
       {backend && (

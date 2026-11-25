@@ -1,10 +1,12 @@
 import { mateArtwork } from '../mates/artwork'
+import { businessDay } from '../../shared/lib/format'
 import { mateLine } from '../mates/mate-lines'
 import { localAvatarImage, localAvatarItems, resolveLocalAvatarThumbnails } from './local-avatars'
 import terms from '../auth/data/legal/terms.md?raw'
 import privacy from '../auth/data/legal/privacy.md?raw'
 import { LOCAL_AFFINITY, LOCAL_MATES, type LocalBetaStore, type LocalMate } from './store'
 import { LOCAL_V2_MODELS } from './local-asset-urls'
+import { LOCAL_VOICE_TONE_MP3, localVoicePieces } from './voice-tone'
 import type {
   ChatMessage, ConnectionTotals, CreditTransaction, EndType, MateCard, MateDetailResponse, MyMate, RecordsResponse,
   UserSettings,
@@ -59,8 +61,26 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
   const settings: Required<UserSettings> = { ...DEFAULT_SETTINGS }
   let nextEventId = Date.now()
   const image = () => localAvatarImage(store.data.avatarId)
+  /** 43's list for this tab (newest first, higher ids newer): a few fresh ones, then enough older ones for a second page. */
+  const notifications = localNotifications(Date.now())
+  /** 40 · 41 for this tab: the ratings 32 reads back, the replies already reported. */
+  const ratings = new Map<string, 'UP' | 'DOWN'>()
+  const reported = new Set<string>()
+  /** Kakao sign-up tickets already spent in this tab (they are single use). */
+  const usedSignupTokens = new Set<string>()
+  /**
+   * QA (session storage, development only): `capsule-local-coming-soon` = a mate's catalogue id (e.g. `dohyun`) makes that
+   * mate coming soon (11 · 31 `comingSoon`, 16 refuses it, 46 accepts the alert, 48 leaves it out);
+   * `capsule-local-beta-full` = `1` makes a new signup (4) and Kakao (6 and its sign-up step) answer 403 `BETA_FULL`;
+   * `capsule-local-kakao-signup` = `expired` | `invalid` | `terms` makes the Kakao sign-up step answer 401
+   * `SIGNUP_TOKEN_EXPIRED` (and its ticket last 1 s) | 401 `SIGNUP_TOKEN_INVALID` | 400 `TERMS_NOT_AGREED`;
+   * `capsule-local-notifications` = `empty` | `error` empties 43 or makes it fail; `capsule-local-chat-delay` (ms) slows
+   * 32 and `capsule-local-chat-fail` (N) fails its next N reads.
+   */
+  const qa = (key: string) => { try { return globalThis.sessionStorage?.getItem(key) ?? null } catch { return null } }
+  const comingSoon = (mate: LocalMate) => qa('capsule-local-coming-soon') === mate.mateId
   const card = (mate: LocalMate): MateCard => ({ id: mate.characterId, name: mate.name, oneLiner: null, ageRating: 'ALL', hashtags: [],
-    cardImageUrl: mateArtwork(mate.mateId)?.card ?? null, comingSoon: false })
+    cardImageUrl: mateArtwork(mate.mateId)?.card ?? null, comingSoon: comingSoon(mate) })
   const figure = (mate: LocalMate) => ({ id: mate.characterId, name: mate.name, profileImageUrl: mateArtwork(mate.mateId)?.card,
     // v2 (Aliving2D) model; the server sends `format: ALIVING2D_V2`.
     ...LOCAL_V2_MODELS[mate.mateId], format: 'ALIVING2D_V2' })
@@ -79,13 +99,13 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
   const figures = () => {
     const mate = store.activeMate()
     return { connectionId: store.data.active!.id, mate: figure(mate),
-      me: { nickname: store.data.nickname, honorific: store.data.details.callName || null, profileImageUrl: image() },
+      me: { nickname: store.data.nickname, honorific: null, profileImageUrl: image() },
       serverTime: new Date().toISOString(), minorRemainingSeconds: minorRemaining(), backgrounds: [], background: null }
   }
   const detail = (mate: LocalMate): MateDetailResponse => ({
     id: mate.characterId, name: mate.name, oneLiner: null, ageRating: 'ALL', hashtags: [], illustrationUrl: mateArtwork(mate.mateId)?.hero ?? null,
     voiceSampleUrl: null, world: null, myRole: null, intro: null, model: { ...LOCAL_V2_MODELS[mate.mateId], format: 'ALIVING2D_V2' },
-    comingSoon: false, hasConversation: store.data.messages.some(message => message.characterId === String(mate.characterId)),
+    comingSoon: comingSoon(mate), hasConversation: store.data.messages.some(message => message.characterId === String(mate.characterId)),
   })
   const myMates = (): MyMate[] => LOCAL_MATES.flatMap(mate => {
     const records = store.data.records.filter(record => record.characterIds[0] === String(mate.characterId)).sort((a, b) => b.endedAt - a.endedAt)
@@ -101,24 +121,30 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       recent: records.slice(0, 5).map(record => ({ connectionId: Number(record.id), endedAt: new Date(record.endedAt).toISOString(), presentSeconds: record.focusSeconds, connectedSeconds: record.studySeconds })),
     }]
   })
-  /** 38 with the local day (the server uses 05:00 KST). */
+  /**
+   * 38 by the server's rules: a connection counts on the day it started, a day running from 05:00 Seoul time; WEEK is
+   * Monday–Sunday, YEAR has month buckets (`YYYY-MM`); every bucket of the range, empty ones at 0; the newest five.
+   */
   const records = (range: string, dateText: string | null, mateId: number | null): RecordsResponse => {
-    const day = (time: number) => { const date = new Date(time); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` }
-    const base = dateText ? new Date(`${dateText}T12:00:00`) : new Date()
-    const from = new Date(base), to = new Date(base)
-    if (range === 'WEEK') { from.setDate(base.getDate() - ((base.getDay() + 6) % 7)); to.setTime(from.getTime()); to.setDate(from.getDate() + 6) }
-    else if (range === 'MONTH') { from.setDate(1); to.setMonth(base.getMonth() + 1, 0) }
-    else { from.setMonth(0, 1); to.setMonth(11, 31) }
-    const inRange = store.data.records.filter(record => day(record.startedAt) >= day(from.getTime()) && day(record.startedAt) <= day(to.getTime()) &&
+    const DAY = 86_400_000
+    const day = (time: number) => businessDay(time)
+    const base = dateText && /^\d{4}-\d{2}-\d{2}$/.test(dateText) ? dateText : day(Date.now())
+    const [y, m, d] = base.split('-').map(Number) as [number, number, number]
+    const utc = (year: number, month: number, date: number) => new Date(Date.UTC(year, month - 1, date)).toISOString().slice(0, 10)
+    const weekday = (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7
+    const from = range === 'WEEK' ? utc(y, m, d - weekday) : range === 'MONTH' ? utc(y, m, 1) : utc(y, 1, 1)
+    const to = range === 'WEEK' ? utc(y, m, d - weekday + 6) : range === 'MONTH' ? utc(y, m + 1, 0) : utc(y, 12, 31)
+    const inRange = store.data.records.filter(record => day(record.startedAt) >= from && day(record.startedAt) <= to &&
       (mateId === null || record.characterIds[0] === String(mateId))).sort((a, b) => b.endedAt - a.endedAt)
     const keyOf = (time: number) => range === 'YEAR' ? day(time).slice(0, 7) : day(time)
     const keys: string[] = []
-    for (const cursor = new Date(from); cursor <= to; range === 'YEAR' ? cursor.setMonth(cursor.getMonth() + 1) : cursor.setDate(cursor.getDate() + 1)) keys.push(keyOf(cursor.getTime()))
+    if (range === 'YEAR') for (let month = 1; month <= 12; month++) keys.push(`${y}-${String(month).padStart(2, '0')}`)
+    else for (let time = Date.parse(`${from}T00:00:00Z`); time <= Date.parse(`${to}T00:00:00Z`); time += DAY) keys.push(new Date(time).toISOString().slice(0, 10))
     const sum = (list: typeof inRange, key: 'focusSeconds' | 'studySeconds') => list.reduce((total, record) => total + record[key], 0)
     return {
-      from: day(from.getTime()), to: day(to.getTime()), totalPresentSeconds: sum(inRange, 'focusSeconds'), totalConnectedSeconds: sum(inRange, 'studySeconds'),
+      from, to, totalPresentSeconds: sum(inRange, 'focusSeconds'), totalConnectedSeconds: sum(inRange, 'studySeconds'),
       connectedDays: new Set(inRange.map(record => day(record.startedAt))).size, connectionCount: inRange.length,
-      buckets: [...new Set(keys)].map(key => { const list = inRange.filter(record => keyOf(record.startedAt) === key); return { key, presentSeconds: sum(list, 'focusSeconds'), connectedSeconds: sum(list, 'studySeconds') } }),
+      buckets: keys.map(key => { const list = inRange.filter(record => keyOf(record.startedAt) === key); return { key, presentSeconds: sum(list, 'focusSeconds'), connectedSeconds: sum(list, 'studySeconds') } }),
       mates: LOCAL_MATES.flatMap(mate => { const list = inRange.filter(record => record.characterIds[0] === String(mate.characterId)); return list.length ? [{ mateId: mate.characterId, name: mate.name, presentSeconds: sum(list, 'focusSeconds'), connectedSeconds: sum(list, 'studySeconds'), connectionCount: list.length, stage: LOCAL_AFFINITY.stage }] : [] }),
       recent: inRange.slice(0, 5).map(record => ({ connectionId: Number(record.id), mateId: Number(record.characterIds[0]), mateName: record.characterName, endedAt: new Date(record.endedAt).toISOString(), presentSeconds: record.focusSeconds, connectedSeconds: record.studySeconds })),
     }
@@ -153,10 +179,33 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       { termVersionId: 990501, code: 'SERVICE', name: '이용약관', required: true, content: terms },
       { termVersionId: 990502, code: 'PRIVACY', name: '개인정보 처리방침', required: true, content: privacy },
     ] })
-    if (path === '/login-mates') return reply({ mates: LOCAL_MATES.map(mate => ({ id: mate.characterId, name: mate.name, ageRating: 'ALL', cardImageUrl: mateArtwork(mate.mateId)?.card ?? null, model: { ...LOCAL_V2_MODELS[mate.mateId], format: 'ALIVING2D_V2' } })) })
+    if (path === '/login-mates') return reply({ mates: LOCAL_MATES.filter(mate => !comingSoon(mate)).map(mate => ({ id: mate.characterId, name: mate.name, ageRating: 'ALL', cardImageUrl: mateArtwork(mate.mateId)?.card ?? null, model: { ...LOCAL_V2_MODELS[mate.mateId], format: 'ALIVING2D_V2' } })) })
     if (path === '/auth/refresh') return store.data.authenticated ? reply({ accessToken: 'local-beta-access' }) : error('UNAUTHORIZED', 401)
     if (path === '/auth/email/login') return reply(store.login())
-    if (path === '/auth/social/KAKAO') return deviceOk ? reply({ ...store.login(), isNewUser: false }) : error('INVALID_REQUEST', 400)
+    if (path === '/auth/social/KAKAO' && method === 'POST') {
+      if (!deviceOk) return error('INVALID_REQUEST', 400)
+      if (qa('capsule-local-beta-full') === '1') return error('BETA_FULL', 403)
+      // Contract a′ (kakao-signup-contract.ts): a first-time Kakao user (here: a code starting with `new-`) gets no
+      // account yet, only a short sign-up ticket. Any other code is a Kakao user who already has an account.
+      if (typeof body.code === 'string' && body.code.startsWith('new-')) {
+        const expiresInSeconds = qa('capsule-local-kakao-signup') === 'expired' ? 1 : 600
+        return error('KAKAO_SIGNUP_REQUIRED', 403, { signupToken: `local-signup.${Date.now() + expiresInSeconds * 1000}.${crypto.randomUUID()}`, expiresInSeconds })
+      }
+      return reply({ ...store.login(), isNewUser: false })
+    }
+    if (path === '/auth/social/KAKAO/signup' && method === 'POST') {
+      if (!deviceOk || typeof body.signupToken !== 'string' || !Array.isArray(body.agreedTermVersionIds)) return error('INVALID_REQUEST', 400)
+      // The ticket carries its own expiry, so a refreshed consent screen can still use it; each one works once per tab.
+      const [kind, expiry] = body.signupToken.split('.')
+      const switched = qa('capsule-local-kakao-signup')
+      if (switched === 'invalid' || kind !== 'local-signup' || usedSignupTokens.has(body.signupToken)) return error('SIGNUP_TOKEN_INVALID', 401)
+      if (switched === 'expired' || !(Number(expiry) > Date.now())) return error('SIGNUP_TOKEN_EXPIRED', 401)
+      if (switched === 'terms' || ![990501, 990502].every(id => (body.agreedTermVersionIds as unknown[]).includes(id))) return error('TERMS_NOT_AGREED', 400)
+      if (qa('capsule-local-beta-full') === '1') return error('BETA_FULL', 403)
+      usedSignupTokens.add(body.signupToken)
+      return reply({ ...store.beginOnboarding(), isNewUser: true })
+    }
+    if (path === '/auth/email/signup' && method === 'POST' && qa('capsule-local-beta-full') === '1') return error('BETA_FULL', 403)
     if (path === '/auth/email/signup' && method === 'POST') {
       if (!deviceOk || typeof body.birthDate !== 'string' || typeof body.nickname !== 'string') return error('INVALID_REQUEST', 400)
       store.reset('empty')
@@ -170,7 +219,8 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
     if (path === '/auth/logout') { store.logout(); return reply(null, 204) }
     if (path === '/auth/password/reset-request') return reply(null, 202)
     if (path === '/auth/password/reset') return reply(null, 204)
-    if (path === '/beta/waitlist') return reply(null, 204)
+    // 45: an email already on the list gets 204 again.
+    if (path === '/beta/waitlist') return typeof body.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()) ? reply(null, 204) : error('INVALID_EMAIL', 400)
     const referralCheck = path.match(/^\/referrals\/([^/]+)$/)
     if (referralCheck && referralCheck[1] !== 'me' && method === 'GET') {
       const code = decodeURIComponent(referralCheck[1]!).trim().toUpperCase()
@@ -247,13 +297,41 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       const mateId = url.searchParams.get('mateId')
       return reply(records(range, url.searchParams.get('date'), mateId ? Number(mateId) : null))
     }
-    if (path === '/notifications') return reply({ items: [], unreadCount: 0, nextBefore: null })
-    if (path === '/notifications/read') return reply({ unreadCount: 0 })
+    // 43 · 44. QA: `sessionStorage['capsule-local-notifications']` = `empty` (none) or `error` (43 answers 503).
+    if (path === '/notifications' || path === '/notifications/read') {
+      const mode = qa('capsule-local-notifications')
+      if (mode === 'error' && path === '/notifications') return error('LOCAL_TEST_FAILURE', 503)
+      const list = mode === 'empty' ? [] : notifications
+      const unreadCount = () => list.filter(item => !item.read).length
+      if (path === '/notifications/read') {
+        if (method !== 'POST') return error('METHOD_NOT_ALLOWED', 405)
+        const ids = Array.isArray(body.ids) ? new Set(body.ids as unknown[]) : null
+        for (const item of list) if (!ids || ids.has(item.id)) item.read = true
+        return reply({ unreadCount: unreadCount() })
+      }
+      const size = Number(url.searchParams.get('size') ?? 20)
+      const before = url.searchParams.get('before')
+      if (!Number.isInteger(size) || size < 1 || size > 50 || (before !== null && !/^\d+$/.test(before))) return error('INVALID_REQUEST', 400)
+      const older = list.filter(item => before === null || item.id < Number(before))
+      const page = older.slice(0, size)
+      return reply({ items: page.map(item => ({ ...item, createdAt: new Date(item.createdAt).toISOString() })), unreadCount: unreadCount(),
+        nextBefore: older.length > size ? page[page.length - 1]!.id : null })
+    }
     if (path === '/feedback' && method === 'POST') return reply({ feedbackId: Date.now() }, 201)
     const messageMatch = path.match(/^\/messages\/([^/]+)\/(rating|report)$/)
     if (messageMatch) {
-      if (!store.data.messages.some(message => message.requestId === decodeURIComponent(messageMatch[1]!) && message.sender === 'character')) return error('MESSAGE_NOT_FOUND', 404)
-      return messageMatch[2] === 'rating' ? reply(null, 204) : reply({ reportId: Date.now() }, 201)
+      const requestId = decodeURIComponent(messageMatch[1]!)
+      if (!store.data.messages.some(message => (message.requestId ?? message.id) === requestId && message.sender === 'character')) return error('MESSAGE_NOT_FOUND', 404)
+      if (messageMatch[2] === 'rating') {
+        if (method !== 'PUT' || !(body.rating === 'UP' || body.rating === 'DOWN' || body.rating === null)) return error('INVALID_REQUEST', 400)
+        if (body.rating === null) ratings.delete(requestId); else ratings.set(requestId, body.rating)
+        return reply(null, 204)
+      }
+      const reason = body.reason, detail = typeof body.detail === 'string' ? body.detail.trim() : ''
+      if (method !== 'POST' || !['INAPPROPRIATE', 'VIOLENT', 'OUT_OF_CHARACTER', 'OTHER'].includes(String(reason)) || detail.length > 300 || (reason === 'OTHER' && !detail)) return error('INVALID_REQUEST', 400)
+      if (reported.has(requestId)) return error('ALREADY_REPORTED', 409)
+      reported.add(requestId)
+      return reply({ reportId: Date.now() }, 201)
     }
 
     // ── Mates ──
@@ -264,13 +342,22 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       if (!mate) return error('MATE_NOT_FOUND', 404)
       const rest = mateMatch[2] ?? ''
       if (!rest) return reply(detail(mate))
-      if (rest === '/alert') return error('MATE_ALREADY_OPEN', 409)
+      // 46: 204 while the mate is coming soon (again on a second request), 409 once it is open.
+      if (rest === '/alert') return comingSoon(mate) ? reply(null, 204) : error('MATE_ALREADY_OPEN', 409)
       if (rest === '/conversation/reset') {
         if (store.data.active?.characterId === mate.characterId) return error('CONNECTION_IN_PROGRESS', 409)
         store.data.messages = store.data.messages.filter(message => message.characterId !== String(mate.characterId)); store.changed()
         return reply(null, 204)
       }
       if (rest === '/messages') {
+        // QA: `capsule-local-chat-delay` = ms (a slow 32), `capsule-local-chat-fail` = N (the next N reads answer 503).
+        const slow = Number(qa('capsule-local-chat-delay'))
+        if (slow > 0) await new Promise(resolve => setTimeout(resolve, Math.min(slow, 30_000)))
+        const failing = Number(qa('capsule-local-chat-fail'))
+        if (failing > 0) {
+          try { globalThis.sessionStorage?.setItem('capsule-local-chat-fail', String(failing - 1)) } catch { /* Storage blocked. */ }
+          return error('LOCAL_TEST_FAILURE', 503)
+        }
         const size = Number(url.searchParams.get('size') ?? 20)
         if (!Number.isInteger(size) || size < 1 || size > 50) return error('INVALID_REQUEST', 400)
         const list = store.data.messages.filter(message => message.characterId === String(mate.characterId) && /^\d+$/.test(message.sessionId))
@@ -278,7 +365,7 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
         const cursor = Number(url.searchParams.get('cursor') ?? 0)
         const page = list.slice(cursor, cursor + size)
         const messages: ChatMessage[] = page.map(message => ({ requestId: message.requestId ?? message.id, sender: message.sender === 'user' ? 'USER' : 'MATE', content: message.text,
-          inputType: message.sender === 'user' ? 'TEXT' : null, rating: null, createdAt: new Date(message.createdAt ?? 0).toISOString(), connectionId: Number(message.sessionId) }))
+          inputType: message.sender === 'user' ? 'TEXT' : null, rating: message.sender === 'user' ? null : ratings.get(message.requestId ?? message.id) ?? null, createdAt: new Date(message.createdAt ?? 0).toISOString(), connectionId: Number(message.sessionId) }))
         return reply({ messages, nextCursor: cursor + size < list.length ? String(cursor + size) : null })
       }
       return error('NOT_FOUND', 404)
@@ -289,6 +376,7 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       const mate = LOCAL_MATES.find(value => value.characterId === body.mateId)
       if (!mate) return error('MATE_NOT_FOUND', 404)
       if (store.data.onboardingRequired) return error('ONBOARDING_REQUIRED', 403)
+      if (comingSoon(mate)) return error('MATE_COMING_SOON', 409)
       if (store.data.active) return error('CONNECTION_ALREADY_IN_PROGRESS', 409, { connectionId: store.data.active.id })
       store.start(mate.characterId)
       const firstMeet = !store.data.records.some(record => record.characterIds[0] === String(mate.characterId))
@@ -337,7 +425,10 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       if (!type) return error('EVENT_NOT_FOUND', 404)
       if (typeof body.requestId !== 'string') return error('INVALID_REQUEST', 400)
       const face = reactions[type]
-      return reply({ requestId: body.requestId, characters: [{ characterId: activeMate.characterId, ...(face ? { content: face.line, expression: { name: face.expression, file: null } } : {}), fallback: false, audioBase64: null }], charged: 0, credits: null })
+      // `tts: true` with 「메이트 음성」 on: the line comes with the test tone for 20 credits (text only when short).
+      const voice = Boolean(face) && body.tts === true && settings.voiceEnabled && store.voiceLine()
+      return reply({ requestId: body.requestId, characters: [{ characterId: activeMate.characterId, ...(face ? { content: face.line, expression: { name: face.expression, file: null } } : {}), fallback: false, audioBase64: voice ? LOCAL_VOICE_TONE_MP3 : null }],
+        charged: voice ? 20 : 0, credits: body.tts === true ? store.credits() : null })
     }
     if (operation === 'messages/stream' || operation === 'messages') {
       if (body.characterId !== activeMate.characterId) return error('CHARACTER_NOT_IN_SESSION', 400)
@@ -346,23 +437,53 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       if (body.mode !== undefined && body.mode !== 'BASIC' && body.mode !== 'ADVANCED') return error('INVALID_REQUEST', 400)
       store.expireAttendance()
       const advanced = body.mode === 'ADVANCED' || body.mode === undefined && store.data.settings.advanced
-      const answer = store.reply(body.requestId, body.content, advanced)
+      // 28 with `tts: true` and 「메이트 음성」 on: a voice turn (20 more), the test tone in pieces (20 never asks: no voice).
+      const answer = store.reply(body.requestId, body.content, advanced, operation === 'messages/stream' && body.tts === true && settings.voiceEnabled)
       if (!answer) return error('CREDIT_INSUFFICIENT', 409, { credits: store.credits() })
       const result = { requestId: body.requestId, characterId: activeMate.characterId, content: answer.content, affinity: answer.affinity, emotion: '웃음',
         expression: LOCAL_REPLY_EXPRESSIONS[activeMate.mateId] ?? LOCAL_REPLY_EXPRESSIONS.chaerin, fallback: false, audioBase64: null, motion: null,
-        mode: advanced ? 'ADVANCED' : 'BASIC', charged: answer.charged, credits: store.credits(), safety: null, background: null, voice: false }
+        mode: advanced ? 'ADVANCED' : 'BASIC', charged: answer.charged, credits: store.credits(), safety: null, background: null, voice: answer.voice }
       if (operation === 'messages') return reply(result)
+      // As the server: voice pieces between the replies and after `done`, then `audio_end`.
+      const pieces = answer.voice ? localVoicePieces(3) : []
       const stream = new ReadableStream<Uint8Array>({ async start(controller) {
         const encoder = new TextEncoder()
+        const send = (event: string, data: unknown) => controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
+        let seq = 0
         for (const content of [result.content.slice(0, 3), result.content]) {
           if (signal?.aborted) { controller.close(); return }
-          controller.enqueue(encoder.encode(`event: reply\ndata: ${JSON.stringify({ content })}\n\n`))
+          send('reply', { content })
+          if (seq < pieces.length - 1) send('audio', { seq, format: 'mp3', data: pieces[seq++] })
           await new Promise(resolve => setTimeout(resolve, 100))
         }
-        controller.enqueue(encoder.encode(`event: done\ndata: ${JSON.stringify(result)}\n\n`)); controller.close()
+        send('done', result)
+        for (; seq < pieces.length; seq++) {
+          await new Promise(resolve => setTimeout(resolve, 120))
+          if (signal?.aborted) { controller.close(); return }
+          send('audio', { seq, format: 'mp3', data: pieces[seq] })
+        }
+        if (pieces.length) send('audio_end', { chunks: pieces.length, complete: true })
+        controller.close()
       } })
       return new Response(stream, { headers: { 'content-type': 'text/event-stream' } })
     }
     return error('NOT_FOUND', 404)
   }
+}
+
+type LocalNotification = { id: number; type: string; title: string; body: string | null; link: string | null; read: boolean; createdAt: number }
+function localNotifications(now: number): LocalNotification[] {
+  const MINUTE = 60_000
+  const fresh: Omit<LocalNotification, 'id'>[] = [
+    { type: 'STAGE_UP', title: '채린과 한 걸음 가까워졌어요', body: '새 세계관이 열렸어요 · EP.03 도서관', link: '/mates/me', read: false, createdAt: now - 4 * MINUTE },
+    { type: 'ATTENDANCE', title: '출석 보상 100 크레딧을 받았어요', body: null, link: '/credits', read: false, createdAt: now - 3 * 60 * MINUTE },
+    { type: 'REFERRAL_REWARD', title: '친구가 첫 연결을 마쳤어요', body: '초대 보상 1,000 크레딧이 들어왔어요.', link: '/credits/invite', read: true, createdAt: now - 26 * 60 * MINUTE },
+    { type: 'NOTICE', title: '바깥 링크는 열리지 않아요', body: '앱 밖 주소가 담긴 알림은 눌러도 이동하지 않아요.', link: 'https://example.com', read: true, createdAt: now - 3 * 24 * 60 * MINUTE },
+  ]
+  const older = Array.from({ length: 22 }, (_, index): Omit<LocalNotification, 'id'> => ({
+    type: 'ATTENDANCE', title: '출석 보상 100 크레딧을 받았어요', body: null, link: '/credits', read: index > 1,
+    createdAt: now - (4 + index) * 24 * 60 * MINUTE,
+  }))
+  const all = [...fresh, ...older]
+  return all.map((item, index) => ({ ...item, id: all.length - index }))
 }

@@ -7,6 +7,7 @@ import {
 import { characterSpot, fitLayout, pageCount, pageFor, pageOffset, pageStart, type CharacterPose } from '../attendance-model'
 import { useAttendanceController } from '../attendance-controller'
 import { creditTarget, landCreditReward } from '../credit-reward'
+import { AttendanceDevPanel } from './AttendanceDevPanel'
 import { AttendanceEffects, type AttendanceEffectsHandle } from './AttendanceEffects'
 import { AttendanceTrack, type TrackView } from './AttendanceTrack'
 import { CHARACTER_IMAGES } from './AttendanceCharacter'
@@ -50,7 +51,7 @@ function slideTrack(element: HTMLElement | null, x: number, seconds: number) {
 }
 
 /**
- * The attendance rewards widget for the home hero: six days on platforms, the character standing on the last day
+ * The attendance rewards widget for the home hero: seven days on platforms, the character standing on the last day
  * attended, and one continuous check-in sequence (jump, land, collect, coin, reward flight). It has no button of its
  * own: it hands the sequence to the attendance controller, and the hero CTA starts it.
  */
@@ -268,7 +269,7 @@ export function AttendanceWidget({ size = 'fit', visibleSlots = SLOTS_PER_PAGE, 
       setTimeout(() => void run(award?.querySelector('.att-slot-shine'), { x: ['-120%', '120%'] }, { duration: MOTION.shine / 1000, ease: [0.4, 0, 0.2, 1] }), 220)
     }
 
-    // 9. Six days done: confetti falls over the widget.
+    // 9. The whole week done: confetti falls over the widget.
     if (toDay === CYCLE_DAYS) setTimeout(() => effects.current?.confetti(MOTION.confetti), MOTION.confettiDelay)
 
     // 6. The reward flies to the header, which counts up when it lands.
@@ -367,31 +368,5 @@ export function AttendanceWidget({ size = 'fit', visibleSlots = SLOTS_PER_PAGE, 
       <p className="sr-only" role="status">{done ? `${view.cycleDay}일차 출석을 완료했어요.` : ''}</p>
       {import.meta.env.DEV && <AttendanceDevPanel disabled={busy} cycleDay={state.cycleDay} checkedToday={state.checkedToday} onSet={devSet} />}
     </section>
-  )
-}
-
-/** Development only: jump to any day and replay a check-in. Not rendered in production builds. */
-function AttendanceDevPanel({ disabled, cycleDay, checkedToday, onSet }: {
-  disabled: boolean
-  cycleDay: number
-  checkedToday: boolean
-  onSet: (cycleDay: number, checkedToday: boolean) => Promise<void>
-}) {
-  return (
-    <details className="att-dev">
-      <summary>DEV</summary>
-      <p>완료 {cycleDay}일 · 오늘 {checkedToday ? '출석함' : '미출석'}</p>
-      <div>
-        {Array.from({ length: CYCLE_DAYS + 1 }, (_, day) => (
-          <button key={day} type="button" disabled={disabled} aria-pressed={day === cycleDay} onClick={() => void onSet(day, false)}>{day}</button>
-        ))}
-      </div>
-      <div>
-        <button type="button" disabled={disabled} onClick={() => void onSet(1, false)}>1→2</button>
-        <button type="button" disabled={disabled} onClick={() => void onSet(3, false)}>3→4</button>
-        <button type="button" disabled={disabled} onClick={() => void onSet(5, false)}>5→6</button>
-        <button type="button" disabled={disabled} onClick={() => void onSet(cycleDay, !checkedToday)}>오늘 출석 토글</button>
-      </div>
-    </details>
   )
 }
