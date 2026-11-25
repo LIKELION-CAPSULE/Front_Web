@@ -1,0 +1,190 @@
+@layer components {
+  /* ---- The hero's attendance path (AttendancePath): art 1600×1000, pads and character placed in % of it ---- */
+  .attendance-path {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1600 / 1000;
+    container-type: inline-size;
+    user-select: none;
+  }
+  .attendance-path-art {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* Pad overlays: an ellipse over each pad's top face. */
+  .attendance-path-pads { position: absolute; inset: 0; pointer-events: none; }
+  .attendance-path-pad {
+    position: absolute;
+    width: 9.2%;
+    aspect-ratio: 1.75;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .attendance-path-pad[data-reward] { width: 12%; }
+  .attendance-path-pad[data-state='done'] {
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--color-primary) 34%, transparent), transparent);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--color-primary) 55%, transparent),
+      0 0 22px color-mix(in srgb, var(--color-primary) 55%, transparent);
+  }
+  .attendance-path-pad[data-state='today']::before {
+    position: absolute;
+    inset: 0;
+    border: 2px solid color-mix(in srgb, var(--color-primary) 80%, transparent);
+    border-radius: inherit;
+    box-shadow: 0 0 18px color-mix(in srgb, var(--color-primary) 60%, transparent);
+    content: '';
+    animation: attendance-path-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes attendance-path-pulse {
+    0%, 100% { opacity: 0.45; transform: scale(0.94); }
+    50% { opacity: 1; transform: scale(1.08); }
+  }
+  /* "n일차" under each pad, past its front side. */
+  .attendance-path-day {
+    position: absolute;
+    top: 116%;
+    left: 50%;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-canvas) 72%, transparent);
+    padding: 0.2em 0.65em;
+    color: var(--color-muted);
+    font-size: max(10px, 1.3cqw);
+    font-weight: 700;
+    line-height: 1.3;
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+  .attendance-path-pad[data-reward] .attendance-path-day { top: 108%; }
+  .attendance-path-pad[data-state='done'] .attendance-path-day { color: var(--color-text-accent); }
+  .attendance-path-pad[data-state='today'] .attendance-path-day { background: var(--color-primary); color: var(--color-on-solid); }
+
+  /* The check sits on the pad's front-right rim so it stays visible beside her feet. */
+  .attendance-path-check {
+    position: absolute;
+    right: -6%;
+    bottom: -14%;
+    display: grid;
+    place-items: center;
+    width: 30%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: var(--color-on-solid);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 60%, transparent);
+  }
+  .attendance-path-check svg { width: 64%; height: 64%; }
+
+  /*
+   * The reward capsule, its own layer over day 7, floating gently. On day 7 it floats out left of her and opens
+   * (data-opening while that plays), then stays hidden for the rest of the week. Its `color` is the glow the opening
+   * uses, read by the script.
+   */
+  .attendance-path-capsule {
+    position: absolute;
+    color: color-mix(in srgb, var(--color-primary) 65%, var(--color-on-solid));
+    pointer-events: none;
+    animation: attendance-path-float 3.2s ease-in-out infinite;
+  }
+  .attendance-path-capsule img { display: block; width: 100%; height: auto; }
+  .attendance-path-capsule[data-opening] { z-index: 3; animation: none; }
+  .attendance-path[data-complete] .attendance-path-capsule:not([data-opening]) { display: none; }
+  @keyframes attendance-path-float {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -3%; }
+  }
+
+  /* Where the capsule opens (its spot once it has floated out): a flash of light and stars flying out. */
+  .attendance-path-burst, .attendance-path-sparks {
+    position: absolute;
+    left: 66.6%;
+    top: 13.5%;
+    z-index: 4;
+    pointer-events: none;
+  }
+  .attendance-path-burst {
+    width: 26%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--color-on-solid) 85%, transparent), color-mix(in srgb, var(--color-primary) 55%, transparent) 45%, transparent);
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: screen;
+  }
+  .attendance-path-sparks { width: 0; height: 0; }
+  .attendance-path-sparks span {
+    position: absolute;
+    aspect-ratio: 1;
+    background: var(--color-on-solid);
+    clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+    opacity: 0;
+    transform: translate(-50%, -50%);
+  }
+  .attendance-path-sparks span:nth-child(even) { background: color-mix(in srgb, var(--color-primary) 55%, var(--color-on-solid)); }
+
+  /* 채린's line, in the login screen's dialogue box, centred over her head (inside the walker, so it follows her). */
+  .attendance-path-dialogue {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: var(--feet-x);
+    z-index: 5;
+    width: max-content;
+    max-width: 40cqw;
+    transform: translateX(calc(var(--bubble-shift, 50%) * -1));
+    pointer-events: none;
+  }
+  .attendance-path-walker[data-bubble='start'] .attendance-path-dialogue { --bubble-shift: 22%; }
+  .attendance-path-walker[data-bubble='end'] .attendance-path-dialogue { --bubble-shift: 84%; }
+  .attendance-path-dialogue .login-dialogue { border-radius: 14px; padding: 14px 16px 10px; }
+  .attendance-path-dialogue .login-dialogue-name { left: 14px; padding: 1px 10px; font-size: 12px; line-height: 18px; }
+  .attendance-path-dialogue .login-dialogue-text { font-size: max(12px, 1.6cqw); line-height: 1.55; }
+  /* No "next" mark here: the line is not part of a conversation that goes on. */
+  .attendance-path-dialogue .login-dialogue-next { display: none; }
+  @media (max-width: 767px) {
+    .attendance-path-dialogue { max-width: 46cqw; }
+    .attendance-path-dialogue .login-dialogue { padding: 12px 12px 8px; }
+  }
+
+  /*
+   * The character: 30% of the path's height, anchored at the feet. --feet-x is where the feet are across each pose's
+   * image (the walk pose leans forward, so its feet sit right of centre).
+   */
+  .attendance-path-walker {
+    --feet-x: 48%;
+    position: absolute;
+    height: 30%;
+    transform: translate(calc(var(--feet-x) * -1), -96%);
+    pointer-events: none;
+  }
+  .attendance-path-walker[data-pose='walk'] { --feet-x: 60%; }
+  .attendance-path-hop, .attendance-path-breathe { height: 100%; }
+  .attendance-path-breathe { animation: attendance-path-breathe 2.4s ease-in-out infinite; }
+  .attendance-path-walker[data-pose='walk'] .attendance-path-breathe { animation: none; }
+  @keyframes attendance-path-breathe {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+  .attendance-path-pose { display: block; width: auto; height: 100%; max-width: none; }
+  .attendance-path-walker:not([data-pose='walk']) .attendance-path-pose[data-pose='walk'],
+  .attendance-path-walker[data-pose='walk'] .attendance-path-pose[data-pose='idle'] { display: none; }
+  .attendance-path-shadow {
+    position: absolute;
+    left: var(--feet-x);
+    top: 96%;
+    width: 64%;
+    aspect-ratio: 3.4;
+    border-radius: 50%;
+    background: rgba(10, 5, 30, 0.45);
+    filter: blur(3px);
+    translate: -50% -50%;
+  }
+  /* The walk image is wider; keep the shadow the idle pose's size. */
+  .attendance-path-walker[data-pose='walk'] .attendance-path-shadow { width: calc(64% * 357 / 431); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .attendance-path-breathe, .attendance-path-capsule, .attendance-path-pad[data-state='today']::before { animation: none; }
+    .attendance-path-pad[data-state='today']::before { opacity: 1; }
+  }
+}

@@ -3,18 +3,19 @@
  * Sizes are whole CSS pixels; positions are measured from the top-left of a slot column unless noted.
  */
 
-export const CYCLE_DAYS = 6
+export const CYCLE_DAYS = 7
 /** Days shown side by side by default; a widget can show more (see `visibleSlots`). */
 export const SLOTS_PER_PAGE = 3
 
-/** Mock rewards until the server sends its own. Days 3 and 6 are milestones. */
+/** Mock rewards until the server sends its own. Days 3 and 7 (the reward capsule at the end of the path) are milestones. */
 export const DEFAULT_REWARDS = [
   { day: 1, credit: 300, milestone: false },
   { day: 2, credit: 100, milestone: false },
   { day: 3, credit: 500, milestone: true },
   { day: 4, credit: 100, milestone: false },
   { day: 5, credit: 700, milestone: false },
-  { day: 6, credit: 100, milestone: true },
+  { day: 6, credit: 100, milestone: false },
+  { day: 7, credit: 1000, milestone: true },
 ] as const
 
 export const ATTENDANCE_COPY = {
@@ -23,6 +24,24 @@ export const ATTENDANCE_COPY = {
   status: { done: '완료', today: '오늘', upcoming: '예정' },
   reward: (credit: number) => `+${credit.toLocaleString('ko-KR')} 크레딧`,
   pageLabel: (first: number, last: number) => `${first}~${last}일차 보기`,
+} as const
+
+/** What 채린 says on the home attendance path: one line per day reached, and two while today is still open. */
+export const ATTENDANCE_PATH_LINES = {
+  speaker: '채린',
+  days: [
+    '안녕! 앞으로 잘 부탁해!',
+    '오늘도 와 줬네? 반가워!',
+    '벌써 3일째야. 이제 좀 익숙해졌지?',
+    '우리 꽤 오래 봤다?',
+    '네가 오는 시간, 이제 기다려지더라.',
+    '내일이면 일주일이야. 꼭 와야 해!',
+    '일주일 내내 와 줬구나! 캡슐 속 선물, 너한테 줄게.',
+  ],
+  /** Before the first check-in of the week. */
+  start: '안녕! 오늘 출석하면 첫 발판으로 갈 수 있어.',
+  /** A day already reached, today not checked in yet. */
+  waiting: '왔구나! 오늘도 출석하고 한 칸 더 가 보자.',
 } as const
 
 /**

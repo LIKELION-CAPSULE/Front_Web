@@ -3,45 +3,34 @@ import { Link } from 'react-router'
 import { mateCallBackground, matePortrait } from '@/features/mates/artwork'
 import { ageRatingLabel, type AvailableMate } from '@/features/mates/catalog'
 import { useConnectMate } from '@/features/mates/use-connect-mate'
-import { AttendanceWidget } from '@/features/attendance/components/AttendanceWidget'
-import { ATTENDANCE_COPY } from '@/features/attendance/attendance-config'
 import { Button } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Icon } from '@/shared/ui/Icon'
 import { HOME_COPY } from '../home-copy'
 
+/** Cards in the row: available mates first, then 「추가 예정」 placeholders for the rest. */
+const ROW_SLOTS = 4
+
 /**
- * "오늘은 누구와 함께할까요?": a card per available mate (채린, 서도현), a placeholder for the next one while the row has
- * room, and the attendance rewards. The first card carries the service tour's home targets (`data-tour`).
+ * "오늘은 누구와 함께할까요?": a card per available mate (채린, 서도현) and 「추가 예정」 placeholders filling the row.
+ * The first card carries the service tour's home targets (`data-tour`).
  */
 export const HomeMateSection = forwardRef(function HomeMateSection(
   { mates, onRetry }: { mates: readonly AvailableMate[]; onRetry: () => void },
   headingRef: Ref<HTMLHeadingElement>,
 ) {
   return (
-    // Two sections side by side on wide screens (each column under its own title), stacked below that.
-    <div className="home-mates">
-      <section className="home-mates-column" aria-labelledby="mates-heading">
-        <div className="home-section-heading">
-          <h2 ref={headingRef} tabIndex={-1} id="mates-heading" className="home-section-title">{HOME_COPY.matesTitle}</h2>
-        </div>
-        <div className="home-mate-grid">
-          {mates.length
-            ? mates.map((mate, index) => <MateShowcaseCard key={mate.id} mate={mate} tour={index === 0} />)
-            : <MateLoadFailedCard onRetry={onRetry} />}
-          {/* Two mate slots; 「추가 예정」 fills the second until a mate takes it. */}
-          {mates.length < 2 && <UpcomingMateCard />}
-        </div>
-      </section>
-      <section className="home-attendance-column" aria-labelledby="home-attendance-title">
-        <div className="home-section-heading">
-          <h2 id="home-attendance-title" className="home-section-title">{ATTENDANCE_COPY.title}</h2>
-        </div>
-        <div className="home-attendance" data-tour="home-attendance">
-          <AttendanceWidget size="compact" visibleSlots={4} headingId="home-attendance-title" />
-        </div>
-      </section>
-    </div>
+    <section className="home-mates" aria-labelledby="mates-heading">
+      <div className="home-section-heading">
+        <h2 ref={headingRef} tabIndex={-1} id="mates-heading" className="home-section-title">{HOME_COPY.matesTitle}</h2>
+      </div>
+      <div className="home-mate-grid">
+        {mates.length
+          ? mates.map((mate, index) => <MateShowcaseCard key={mate.id} mate={mate} tour={index === 0} />)
+          : <MateLoadFailedCard onRetry={onRetry} />}
+        {Array.from({ length: Math.max(0, ROW_SLOTS - Math.max(mates.length, 1)) }, (_, index) => <UpcomingMateCard key={index} />)}
+      </div>
+    </section>
   )
 })
 

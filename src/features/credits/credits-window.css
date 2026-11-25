@@ -1,180 +1,434 @@
 /*
  * 내 크레딧 (/credits, SCR-30) and 친구 초대 (/credits/invite, SCR-31; /credits/charge and /invite still open it).
- * A plain page panel: the title row (with 「친구 초대」 on 내 크레딧), then the content. Colours come from the
- * design tokens only.
+ * 내 크레딧 is a dashboard on the open page: title and balance card, the attendance and invite cards, then the activity
+ * list. 친구 초대 is a plain page panel. Colours come from the design tokens only.
  */
 .credits-window {
   --credits-line: color-mix(in srgb, var(--color-text-accent) 16%, transparent);
   --credits-card: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  --credits-glow-line: color-mix(in srgb, var(--color-text-accent) 30%, transparent);
+  --credits-glass: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-primary) 30%, var(--color-panel)) 0%,
+    color-mix(in srgb, var(--color-primary-soft) 92%, transparent) 55%,
+    color-mix(in srgb, var(--color-primary) 16%, var(--color-canvas)) 100%
+  );
 }
 
 .credits-window-body {
   padding: 24px 28px 32px;
 }
 
-/* ─── 내 크레딧: summary ─── */
-.credits-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+/* The dashboard sits on the page itself, like the mockup: no panel surface around it. */
+.credits-window--dashboard {
+  overflow: visible;
+  background: transparent;
 }
 
-.credits-stat-card {
+.credits-window--dashboard > .credits-window-body,
+.app-surface .credits-window--dashboard > .credits-window-body {
+  background: transparent;
+}
+
+.credits-window--dashboard > .credits-window-body {
   display: flex;
   flex-direction: column;
-  padding: 22px 24px;
-  border: 1px solid var(--credits-line);
-  border-radius: 20px;
-  background: var(--credits-card);
+  gap: 24px;
+  padding: 8px 0 32px;
 }
 
-.credits-stat-card--primary {
-  border-color: color-mix(in srgb, var(--color-text-accent) 26%, transparent);
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--color-primary) 18%, var(--color-surface)),
-    var(--color-primary-soft)
-  );
+.credits-unit {
+  margin-left: 6px;
+  font-size: 0.5em;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--color-muted);
 }
 
-.credits-stat-card h2 {
+/* ─── Title and balance ─── */
+.credits-top {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.32fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 32px;
+}
+
+.credits-intro-title {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text-accent);
+  font-size: clamp(32px, 3.2vw, 42px);
+  line-height: 1.2;
+  color: var(--color-ink);
+}
+
+.credits-intro-sub {
+  max-width: 17em;
+  margin: 12px 0 0;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--color-muted);
   word-break: keep-all;
 }
 
-.credits-stat-value {
-  margin: 10px 0 0;
-  font-size: 32px;
-  line-height: 1.2;
+.credits-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.85fr);
+  align-items: center;
+  min-height: 220px;
+  overflow: hidden;
+  border: 1px solid var(--credits-glow-line);
+  border-radius: 24px;
+  background: var(--credits-glass);
+  box-shadow:
+    0 24px 60px color-mix(in srgb, var(--color-primary) 22%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent);
+}
+
+.credits-hero-copy {
+  position: relative;
+  z-index: 1;
+  padding: 30px 0 30px 36px;
+}
+
+.credits-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-accent);
+}
+
+.credits-hero-eyebrow .app-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  color: var(--color-on-solid);
+}
+
+.credits-hero-total {
+  margin: 10px 0 0;
+  font-size: clamp(44px, 5vw, 64px);
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   color: var(--color-ink);
 }
 
-.credits-stat-value--sub {
-  font-size: 22px;
-  line-height: 1.5;
+.credits-hero-total .credits-unit {
+  color: var(--color-ink);
 }
 
-.credits-stat-value--sub span {
-  font-size: 17px;
+.credits-hero-expiry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 14px 0 0;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-warning);
 }
 
-.credits-attendance-track {
-  height: 6px;
-  margin-top: 14px;
+.credits-hero-expiry strong {
+  font-weight: 700;
+}
+
+.credits-hero-countdown {
+  font-weight: 500;
+  color: var(--color-subtle);
+}
+
+.credits-hero-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 420px;
+  margin-top: 16px;
+}
+
+.credits-hero-track {
+  flex: 1;
+  height: 12px;
   overflow: hidden;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  background: color-mix(in srgb, var(--color-canvas) 70%, transparent);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-canvas) 60%, transparent);
 }
 
-.credits-attendance-fill {
+.credits-hero-fill {
+  display: block;
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--color-primary), var(--color-text-accent));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--color-primary) 60%, transparent);
   transition: width 240ms ease;
 }
 
-.credits-attendance-meta {
-  margin: 10px 0 0;
-  font-size: 12.5px;
-  line-height: 1.45;
+.credits-hero-pct {
+  min-width: 3ch;
+  font-size: 15px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--color-muted);
 }
 
-/* ─── 내 크레딧: ledger ─── */
-.credits-history {
-  margin-top: 28px;
+/* Balance art: the open capsule, coins and orbit (one image, transparent). */
+.credit-hero-art {
+  position: relative;
+  align-self: stretch;
+  min-height: 220px;
 }
 
-.credits-ledger-wrap {
-  margin-top: 16px;
-  overflow-x: auto;
-  border: 1px solid var(--credits-line);
-  border-radius: 20px;
+.credit-hero-art img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: auto;
+  height: 104%;
+  max-width: none;
+  translate: -50% -50%;
+  pointer-events: none;
+  user-select: none;
 }
 
-.credits-ledger {
-  width: 100%;
-  min-width: 640px;
-  border-collapse: collapse;
-  font-variant-numeric: tabular-nums;
+/* ─── 출석 보상 · 친구 초대 ─── */
+.credits-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
 }
 
-.credits-ledger th {
-  padding: 16px;
-  font-size: 14px;
-  font-weight: 500;
-  text-align: left;
-  color: var(--color-subtle);
+.credits-action-card {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 20px;
+  min-height: 150px;
+  padding: 18px 24px 18px 12px;
+  overflow: hidden;
+  border: 1px solid var(--credits-glow-line);
+  border-radius: 22px;
+  background: var(--credits-glass);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent);
 }
 
-.credits-ledger td {
-  padding: 16px;
-  border-top: 1px solid var(--color-divider);
-  font-size: 15px;
+.credits-action-copy h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
   color: var(--color-ink);
 }
 
-.credits-ledger th:first-child,
-.credits-ledger td:first-child {
-  width: 1%;
-  white-space: nowrap;
-}
-
-.credits-ledger-time {
-  color: var(--color-subtle) !important;
-}
-
-.credits-ledger-desc {
-  word-break: keep-all;
-}
-
-.credits-ledger-change {
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.credits-ledger-change[data-positive] {
-  color: var(--color-text-accent) !important;
-}
-
-.credits-ledger-balance {
-  color: var(--color-muted) !important;
-  white-space: nowrap;
-}
-
-.credits-kind-badge {
-  display: inline-flex;
-  align-items: center;
-  height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--color-surface);
-  font-size: 13px;
+.credits-action-copy h2 span {
   font-weight: 500;
-  color: var(--color-muted);
-  white-space: nowrap;
-}
-
-.credits-kind-badge[data-kind='attendance'],
-.credits-kind-badge[data-kind='invite'] {
-  background: color-mix(in srgb, var(--color-primary) 20%, transparent);
-  color: var(--color-text-accent);
-}
-
-.credits-kind-badge[data-kind='expiration'] {
   color: var(--color-subtle);
 }
 
+.credits-action-value {
+  margin: 6px 0 0;
+  font-size: 34px;
+  line-height: 1.15;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.credits-action-value .credits-unit {
+  color: var(--color-ink);
+}
+
+.credits-action-note {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted);
+  word-break: keep-all;
+}
+
+.credits-action-button {
+  gap: 4px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.credit-card-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 120px;
+}
+
+/* A soft glowing floor under each icon, as in the mockup. */
+.credit-card-art::before {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 92%;
+  height: 26px;
+  border-radius: 50%;
+  translate: -50% 0;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-primary) 55%, transparent), transparent);
+}
+
+.credit-card-art img {
+  position: relative;
+  width: auto;
+  height: 128px;
+  max-width: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ─── 크레딧 활동 기록 ─── */
+.credits-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px 28px 18px;
+  border: 1px solid var(--credits-line);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--color-panel) 92%, transparent);
+}
+
+.credits-activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.credits-activity-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.credits-activity-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 36px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-accent);
+  cursor: pointer;
+}
+
+.credits-activity-more[aria-expanded='true'] .app-icon {
+  rotate: -90deg;
+}
+
+.credits-activity-more:hover {
+  color: var(--color-text-accent-hover);
+}
+
+.credits-timeline {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-divider);
+}
+
+.credits-timeline-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px 118px 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 52px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-divider) 70%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.credits-timeline-row:last-child {
+  border-bottom: 0;
+}
+
+/* The line through the dots. */
+.credits-timeline-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 9px;
+  width: 2px;
+  background: color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.credits-timeline-row:first-child::before { top: 50%; }
+.credits-timeline-row:last-child::before { bottom: 50%; }
+.credits-timeline-row:only-child::before { display: none; }
+
+.credits-timeline-dot {
+  position: relative;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  margin-left: 4px;
+  border: 2px solid var(--color-text-accent);
+  border-radius: 999px;
+  background: var(--color-panel);
+}
+
+.credits-timeline-row[data-kind='attendance'] .credits-timeline-dot,
+.credits-timeline-row[data-kind='invite'] .credits-timeline-dot {
+  background: var(--color-primary);
+}
+
+.credits-timeline-time {
+  font-size: 15px;
+  color: var(--color-subtle);
+  white-space: nowrap;
+}
+
+.credits-timeline-icon {
+  display: inline-grid;
+  place-items: center;
+  color: var(--color-muted);
+}
+
+.credits-timeline-desc {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.credits-timeline-change {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-subtle);
+  white-space: nowrap;
+}
+
+.credits-timeline-change[data-positive] {
+  color: var(--color-text-accent);
+}
+
 .credits-empty-box {
-  margin-top: 16px;
+  margin: 0;
   padding: 36px 20px;
   border: 1px dashed color-mix(in srgb, var(--color-ink) 12%, transparent);
   border-radius: 14px;
@@ -320,6 +574,7 @@
   color: var(--color-text-accent);
 }
 
+
 /* ─── Error and loading ─── */
 .credits-state-box {
   display: flex;
@@ -347,12 +602,17 @@
 
 .credits-skeleton-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
+.credits-skeleton-hero {
+  height: 200px;
+  border-radius: 24px;
+}
+
 .credits-skeleton-card {
-  height: 120px;
+  height: 140px;
   border-radius: 20px;
 }
 
@@ -370,12 +630,32 @@
   width: 65%;
 }
 
+@media (max-width: 1100px) {
+  .credits-top {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .credits-action-card {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+
+  .credits-action-button {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
+
 @media (max-width: 959px) {
   .credits-window-body {
     padding: 18px 20px 26px;
   }
 
-  .credits-summary-grid,
+  .credits-window--dashboard > .credits-window-body {
+    padding: 4px 0 26px;
+  }
+
+  .credits-action-grid,
   .credits-skeleton-row,
   .invite-grid {
     grid-template-columns: 1fr;
@@ -386,6 +666,54 @@
   .credits-window-body {
     padding: 16px 16px 24px;
   }
+
+  .credits-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .credits-hero-copy {
+    padding: 24px 22px 8px;
+  }
+
+  .credit-hero-art {
+    min-height: 170px;
+  }
+
+  .credits-action-card {
+    grid-template-columns: 96px minmax(0, 1fr);
+    padding: 16px 18px 16px 8px;
+  }
+
+  .credit-card-art {
+    height: 96px;
+  }
+
+  .credit-card-art img {
+    height: 100px;
+  }
+
+  .credits-action-value {
+    font-size: 28px;
+  }
+
+  .credits-activity {
+    padding: 20px 16px 12px;
+  }
+
+  .credits-timeline-row {
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'dot desc change'
+      'dot time change';
+    gap: 2px 12px;
+    padding: 10px 0;
+  }
+
+  .credits-timeline-dot { grid-area: dot; }
+  .credits-timeline-desc { grid-area: desc; }
+  .credits-timeline-time { grid-area: time; font-size: 13px; }
+  .credits-timeline-change { grid-area: change; }
+  .credits-timeline-icon { display: none; }
 
   .invite-card {
     padding: 22px 20px;
