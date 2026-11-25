@@ -11,7 +11,7 @@ import { CREDIT_PRICING } from '@/features/credits/credit-utils'
 /**
  * Account settings 「설정」 tab: every item of PRD §7.9 (T-1…T-10), one row each — label on the left, control on the
  * right — in four sections of related items (user request 2026-11-25): 메이트와 대화 (T-1, T-7, T-10), 메이트 음성
- * (T-2…T-4), 마이크 · 카메라 (T-5, T-8), PIP (T-6, T-9). Values are per-account preferences (connection-preferences.ts,
+ * (T-2…T-4, on since 2026-11-26), 마이크 · 카메라 (T-5, T-8), PIP (T-6, T-9). Values are per-account preferences (connection-preferences.ts,
  * the server copy for the server-owned ones); the device choice is the media controller's.
  */
 
@@ -175,40 +175,40 @@ export function ConnectionSettingsPanel() {
           </Row>
         </ul>
       ))}
-      {/* T-2…T-4: the mate's voice is not ready yet, so its three controls are disabled together (a disabled fieldset);
-          the saved values are kept as they are. */}
-      {section('voice', <>메이트 음성<span className="settings-row-badge">준비 중</span></>, (
-        <fieldset disabled className="settings-group-fields">
-          <legend className="sr-only">메이트 음성 · 준비 중</legend>
-          <ul className="settings-rows">
-            {/* T-2 */}
-            <Row id={`${id}-voice`} label="메이트 음성" hint={`메이트 음성을 끄면 음성 크레딧(${CREDIT_PRICING.voice})이 들지 않아요`}>
-              <Switch labelledBy={`${id}-voice`} describedBy={`${id}-voice-hint`} checked={settings.voice} onChange={(voice) => updateSettings({ voice })} />
-            </Row>
-            {/* T-3 */}
-            <Row id={`${id}-volume`} label="음성 볼륨">
-              <div className="settings-slider">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={settings.volume}
-                  aria-labelledby={`${id}-volume`}
-                  aria-valuetext={`${settings.volume}`}
-                  style={{ '--value': `${settings.volume}%` } as CSSProperties}
-                  onChange={(event) => updateSettings({ volume: Number(event.target.value) })}
-                />
-                <output className="settings-slider-value" aria-hidden="true">{settings.volume}</output>
-              </div>
-            </Row>
-            {/* T-4 */}
-            <Row id={`${id}-speed`} label="음성 속도">
-              <Segment label="음성 속도" value={settings.speed} onChange={(speed) => updateSettings({ speed })}
-                options={[{ value: 'slow', label: '느리게' }, { value: 'normal', label: '보통' }, { value: 'fast', label: '빠르게' }]} />
-            </Row>
-          </ul>
-        </fieldset>
+      {/* T-2…T-4: the mate's voice. On: replies and reaction lines come with her voice (20 credits a turn; text only
+          when credits are short). The volume is played here; the speed is the server's TTS speed. */}
+      {section('voice', '메이트 음성', (
+        <ul className="settings-rows">
+          {/* T-2 */}
+          <Row id={`${id}-voice`} label="메이트 음성" hint={`메이트 음성을 끄면 음성 크레딧(${CREDIT_PRICING.voice})이 들지 않아요`}>
+            <Switch labelledBy={`${id}-voice`} describedBy={`${id}-voice-hint`} checked={settings.voice} onChange={(voice) => updateSettings({ voice })} />
+          </Row>
+          {/* T-3 */}
+          <Row id={`${id}-volume`} label="음성 볼륨">
+            <div className="settings-slider">
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={settings.volume}
+                aria-labelledby={`${id}-volume`}
+                aria-valuetext={`${settings.volume}`}
+                style={{ '--value': `${settings.volume}%` } as CSSProperties}
+                onChange={(event) => updateSettings({ volume: Number(event.target.value) })}
+              />
+              <output className="settings-slider-value" aria-hidden="true">{settings.volume}</output>
+            </div>
+          </Row>
+          {/* T-4 */}
+          <Row id={`${id}-speed`} label="음성 속도">
+            <Segment label="음성 속도" value={settings.speed} onChange={(speed) => updateSettings({ speed })}
+              options={[{ value: 'slow', label: '느리게' }, { value: 'normal', label: '보통' }, { value: 'fast', label: '빠르게' }]} />
+          </Row>
+          <li className="settings-row-feedback">
+            <p className="settings-row-hint">음성으로 답하면 1턴에 {CREDIT_PRICING.voice} 크레딧이 들어요. 크레딧이 모자라면 글로만 답해요.</p>
+          </li>
+        </ul>
       ))}
       {section('devices', '마이크 · 카메라', (
         <ul className="settings-rows">
