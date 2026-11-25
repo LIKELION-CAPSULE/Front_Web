@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState }
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { DemoContext } from './demo-context'
-import { betaReducer, type ConnectionReducer } from '@/features/backend/beta-reducer'
+import { betaReducer, type ConnectionAction } from '@/features/backend/beta-reducer'
 import { readConnectionCache, serverMessages, serverRecords, writeConnectionCache } from '@/features/backend/connection-cache'
 import type { DemoState, FocusTotals, Message, TierId } from './types'
 import type { ConnectionModeChoice } from '@/features/backend/backend-context'
@@ -16,7 +16,7 @@ import { streamMessage } from '@/features/backend/message-stream'
 import { accountScope } from '@/features/backend/account-scope'
 import { EndedConnectionError, isConnectionEnded } from '@/features/backend/ended-connection'
 import * as adapt from '@/features/backend/adapters'
-import { getStudyRooms, registerReportRoom, setServerRooms } from '@/features/rooms/services/room-service'
+import { getMateRooms, registerReportRoom, setMateRooms } from '@/features/mates/mate-rooms'
 import { flushSessionEvents, getSessionTotals, readSessionStorageItem } from '@/features/backend/use-session-sync'
 import type { BackendContextValue } from '@/features/backend/backend-context'
 import { Live2DStage } from '@/features/live2d/live2d-stage'
@@ -54,7 +54,7 @@ const engineAllowlist = () => ({ pageOrigin: location.origin, apiBaseUrl: import
 /** Cached reports may belong to mates no longer returned by /home. */
 function registerCachedReportRooms(records: DemoState['records']) {
   for (const record of records) {
-    if (!record.serverReport || getStudyRooms().some(room => room.id === record.roomId)) continue
+    if (!record.serverReport || getMateRooms().some(room => room.id === record.roomId)) continue
     const name = record.characterName ?? adapt.mateName(record.serverReport.mate?.name)
     registerReportRoom({ id: record.roomId, serverRoom: true, name: record.roomName ?? name,
       description: '', introduction: '', contentStatus: 'preview', characters: [{ id: record.characterIds[0]!,
@@ -70,9 +70,9 @@ function connectionSummary(active: DemoState['activeSession'] & object, mateName
 const summaryId = (summary: ActiveConnectionSummary | null | undefined) => summary?.connectionId === undefined ? undefined : String(summary.connectionId)
 
 /** Server-backed beta state. Optional UI ports inject isolated local previews; legacy demo saves are never loaded. */
-export function DemoProvider({ children, modelFactory = createLive2DStage, reducer = betaReducer, accountPort, matePort, featurePort }: { children: ReactNode; modelFactory?: SessionModelFactory; reducer?: ConnectionReducer; accountPort?: BetaAccountPort; matePort?: MateContentPort; featurePort?: BetaFeaturePort }) {
+export function DemoProvider({ children, modelFactory = createLive2DStage, accountPort, matePort, featurePort }: { children: ReactNode; modelFactory?: SessionModelFactory; accountPort?: BetaAccountPort; matePort?: MateContentPort; featurePort?: BetaFeaturePort }) {
   const { pathname } = useLocation()
-  const [state, reducerDispatch] = useReducer(reducer, undefined, adapt.emptyState)
+  const [state, reducerDispatch] = useReducer(betaReducer, undefined, adapt.emptyState)
   const [meta, setMeta] = useState<Meta>(initialMeta)
   const [betaSettings, setBetaSettings] = useState<BetaFeatureSnapshot['settings']>()
   const [models] = useState(() => new SessionModel(modelFactory, undefined, { createAliving: createAlivingStage, allowlist: engineAllowlist }))
@@ -82,10 +82,10 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   const currentPath = useRef(pathname)
   const stateRef = useRef(state)
   const [storageAvailable, setStorageAvailable] = useState(true)
-  const dispatch = useCallback((action: Parameters<ConnectionReducer>[1]) => {
-    stateRef.current = reducer(stateRef.current, action)
+  const dispatch = useCallback((action: ConnectionAction) => {
+    stateRef.current = betaReducer(stateRef.current, action)
     reducerDispatch(action)
-  }, [reducer])
+  }, [])
   const epoch = useRef(0)
   const bootstrap = useRef<Promise<void> | null>(null)
   const termsLoaded = useRef(false)
@@ -156,11 +156,11 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     previousPath.current = pathname
     const active = stateRef.current.activeSession
     if (!active || !isSessionSurface(before, active) || pathname === before) return
-    if (!active.serverSession) { dispatch({ type: 'PAUSE_SESSION', now: Date.now() }); return }
+    if (!active.serverSession) return
     // Returning through browser history must use the same server recovery as a reload.
     queueMicrotask(() => {
       if (stateRef.current.activeSession?.id !== active.id) return
-      const room = getStudyRooms().find(value => value.id === active.roomId)
+      const room = getMateRooms().find(value => value.id === active.roomId)
       releaseModel()
       patch({ activeSession: null, messages: stateRef.current.messages.filter(message => message.sessionId !== active.id || message.delivery !== 'pending') })
       setMeta(previous => ({ ...previous, visuals: null, activeSummary: connectionSummary(active, room?.characters.find(value => value.id === active.characterIds[0])?.name) }))
@@ -179,7 +179,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     mateReads.current.clear()
     resettingMates.current = new Set()
     api.setToken(null)
-    setServerRooms([])
+    setMateRooms([])
     patch(adapt.emptyState())
     setMeta(previous => ({ ...initialMeta, terms: previous.terms, status: 'ready', signedOutNotice }))
   }, [patch, releaseModel])
@@ -221,7 +221,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
       if (me.onboardingRequired) {
         const avatars = await loadAvatars()
         if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
-        setServerRooms([])
+        setMateRooms([])
         let cache = { records: [] as DemoState['records'], messages: [] as DemoState['messages'], latestRecordId: null as string | null }
         try { cache = readConnectionCache(localStorage, me.userId!) } catch { /* No local cache. */ }
         patch({ ...adapt.emptyState(), ...cache, profile: userProfile })
@@ -231,7 +231,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
       // Avatars are only needed by onboarding and the profile editor, which loads them itself.
       const { home, rooms } = await homeData
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
-      if (homeVersion === homeRevision.current) setServerRooms(rooms)
+      if (homeVersion === homeRevision.current) setMateRooms(rooms)
       const previous = stateRef.current
       const sameUser = previous.profile.userId === me.userId
       let cache = { records: [] as DemoState['records'], messages: [] as DemoState['messages'], latestRecordId: null as string | null }
@@ -284,7 +284,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   }, [clear, loadUser])
   useEffect(() => {
     api.onExpired(clear)
-    setServerRooms([])
+    setMateRooms([])
     if (!bootstrap.current) bootstrap.current = reload()
     return () => api.onExpired(null)
   }, [clear, reload])
@@ -363,7 +363,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     const task = (async () => {
       const { home, rooms } = await loadHome()
       if (generation !== epoch.current || homeVersion !== homeRevision.current) return
-      setServerRooms(rooms)
+      setMateRooms(rooms)
       registerCachedReportRooms(stateRef.current.records)
       patch({ memories: [], firstVisit: (home.todayConnectedSeconds ?? 0) === 0 && !home.activeConnection })
       setMeta(previous => ({ ...previous, home, activeSummary: stateRef.current.activeSession ? null : home.activeConnection ?? null }))
@@ -453,7 +453,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
       invalidateSessionQueries()
       patch({ messages: stateRef.current.messages.filter(message => message.characterId !== mate.characterId) })
       for (const key of failedMessages.current.keys()) if (key.endsWith(`:${mate.characterId}`)) failedMessages.current.delete(key)
-      setServerRooms(getStudyRooms().map(room => ({ ...room, characters: room.characters.map(character => character.id === mate.characterId ? { ...character, relation: undefined } : character) })))
+      setMateRooms(getMateRooms().map(room => ({ ...room, characters: room.characters.map(character => character.id === mate.characterId ? { ...character, relation: undefined } : character) })))
       setMeta(previous => {
         const mateDetails = { ...previous.mateDetails }, affinities = { ...previous.affinities }
         delete mateDetails[mateId]; delete affinities[mate.characterId]
@@ -553,8 +553,8 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
           active.focus = normalizeFocusTotals(stored?.focus)
         } catch { /* Only newly measured camera time is used when no snapshot can be restored. */ }
       }
-      if (!getStudyRooms().some(value => value.id === active.roomId) && dto.mate?.name) {
-        setServerRooms([...getStudyRooms(), adapt.mateRoom({ id: dto.mate.id, name: dto.mate.name, cardImageUrl: dto.mate.profileImageUrl })])
+      if (!getMateRooms().some(value => value.id === active.roomId) && dto.mate?.name) {
+        setMateRooms([...getMateRooms(), adapt.mateRoom({ id: dto.mate.id, name: dto.mate.name, cardImageUrl: dto.mate.profileImageUrl })])
       }
       if (generation !== epoch.current || currentPath.current !== entry.pathname || modelEntry.current !== entry) throw new ApiError('연결이 취소됐어요.', 409)
       // The same still the call screen shows without a model (matePortrait), used if the v2 model breaks mid-call.
@@ -614,7 +614,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   /** API 16. `roomId` and `characterId` are both the mate id since 11-25; the old target minutes are ignored. */
   const startSession = useCallback(async (roomId: string, characterId: string, _minutes?: number, options: { tier?: TierId; characterIds?: string[] } = {}) => {
     const operations = pending.current
-    const room = getStudyRooms().find(value => value.id === roomId)
+    const room = getMateRooms().find(value => value.id === roomId)
     const character = room?.characters.find(value => value.id === characterId)
     const ids = options.characterIds ?? [characterId]
     if (!room || !character || !ids.length || !ids.includes(characterId) || !ids.every(id => room.characters.some(c => c.id === id))) throw new ApiError('메이트를 선택해 주세요.', 400)
@@ -790,7 +790,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     if (generation !== epoch.current) return
     if (String(dto.connectionId) !== sessionId) throw new ApiError('연결 기록을 확인하지 못했어요.', 502)
     const record = adapt.report(dto)
-    if (!getStudyRooms().some(value => value.id === record.roomId)) {
+    if (!getMateRooms().some(value => value.id === record.roomId)) {
       registerReportRoom({ id: record.roomId, serverRoom: true, name: record.characterName ?? '', description: '', introduction: '', contentStatus: 'preview',
         characters: [{ id: record.characterIds[0]!, name: record.characterName ?? '', description: '', serverCharacter: true }] })
     }

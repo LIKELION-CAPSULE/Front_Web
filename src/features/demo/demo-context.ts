@@ -1,11 +1,11 @@
 import { createContext, useContext } from 'react'
 import type { Dispatch } from 'react'
-import type { DemoAction } from './reducer'
+import type { ConnectionAction } from '../backend/beta-reducer'
 import type { DemoState } from './types'
 
 export const DemoContext = createContext<{
   state: DemoState
-  dispatch: Dispatch<DemoAction>
+  dispatch: Dispatch<ConnectionAction>
   storageAvailable: boolean
 } | null>(null)
 

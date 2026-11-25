@@ -1,4 +1,3 @@
-import type { CameraBackgroundId } from '../media/camera-backgrounds.ts'
 
 export type TierId = 'basic' | 'standard' | 'premium' | 'special'
 export type AvatarSettings = {
@@ -115,8 +114,6 @@ export type DemoState = {
   pass: Pass | null
   cameraChecked: boolean
   cameraEnabled: boolean
-  /** Optional so saves from before virtual backgrounds still load; missing means 'none'. */
-  cameraBackground?: CameraBackgroundId
   examPromptedRooms: string[]
   records: StudyRecord[]
   activeSession: ActiveSession | null

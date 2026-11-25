@@ -87,10 +87,10 @@ test('a source a preview is showing right now is not prewarmed again', () => {
 test('login hand-over: the wake-up renderer is parked and the mate preview with the same source takes it', () => {
   const { pool, created, fire } = harness()
   const v2 = {
-    modelJsonUrl: '/__local-assets/chaerin-v2/model/model.json',
-    engineUrl: '/__local-assets/chaerin-v2/engine/engine.js',
-    playerUrl: '/__local-assets/chaerin-v2/engine/player.js',
-    reactionsUrl: '/__local-assets/chaerin-v2/engine/reactions.default.json',
+    modelJsonUrl: '/__local-assets/chaerin-v3/model/model.json',
+    engineUrl: '/__local-assets/chaerin-v3/engine/engine.js',
+    playerUrl: '/__local-assets/chaerin-v3/engine/player.js',
+    reactionsUrl: '/__local-assets/chaerin-v3/engine/reactions.default.json',
   }
   const options = { pageOrigin: 'http://local.test' }
   // Login resolves its source with resolveMateSource; the mate screens with resolvePreviewSource (API `model`).

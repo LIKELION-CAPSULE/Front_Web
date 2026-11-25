@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import type { Dispatch } from 'react'
 import type { ActiveSession, FocusTotals } from '../demo/types'
 import { sessionStudySeconds } from '../session/connection-time'
-import type { DemoAction } from '../demo/reducer'
+import type { ConnectionAction } from '../backend/beta-reducer'
 import { normalizeFocusTotals } from '../session/focus'
 import { FaceFocusTracker, MAX_FACE_SAMPLE_GAP_MS } from './face-focus-tracker'
 import type { Observation } from './types'
@@ -12,7 +12,7 @@ export function useFaceFocus({ session, enabled, observation, dispatch }: {
   session: ActiveSession | null
   enabled: boolean
   observation: Observation | null
-  dispatch: Dispatch<DemoAction>
+  dispatch: Dispatch<ConnectionAction>
 }) {
   const trackerRef = useRef<FaceFocusTracker | null>(null)
   const published = useRef<FocusTotals | null>(null)

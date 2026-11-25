@@ -11,13 +11,12 @@ function mounts() {
   return used
 }
 
-test('chaerin-v3 and chaerin-v2 are mounted before /chaerin, so neither is swallowed by the shorter prefix', () => {
+test('chaerin-v3 is mounted before /chaerin, so it is not swallowed by the shorter prefix; chaerin-v2 is no longer served', () => {
   const order = mounts().map((m) => m.prefix)
   const at = (prefix: string) => order.indexOf(prefix)
   assert.ok(at('/__local-assets/chaerin-v3') >= 0, 'v3 is served')
-  assert.ok(at('/__local-assets/chaerin-v2') >= 0, 'v2 is still served')
+  assert.equal(at('/__local-assets/chaerin-v2'), -1, 'the previous v2 bundle is not mounted')
   assert.ok(at('/__local-assets/chaerin-v3') < at('/__local-assets/chaerin'))
-  assert.ok(at('/__local-assets/chaerin-v2') < at('/__local-assets/chaerin'))
 })
 
 test('a /chaerin-v3 request that reaches the /chaerin mount is passed on, not answered', () => {

@@ -37,7 +37,7 @@ flowchart LR
   → /reports/:recordId → /capsules/:recordId → 홈·다음 약속
 ```
 
-현재 실행 경로의 근거는 [App.tsx](../src/app/App.tsx), MVP 정책의 근거는 [policy.ts](../src/features/mvp/policy.ts)다.
+현재 실행 경로의 근거는 [App.tsx](../src/app/App.tsx), MVP 정책의 근거는 policy.ts (2026-11-25 정리에서 삭제)다.
 
 - 실제 시연 룸은 `dawn-library`, 캐릭터는 `chaerin`(채린)이다. 나머지 룸은 표시되지만 공부 진입을 제한한다.
 - 목표 선택 UI의 값과 별개로 `START_MVP`가 **3분(180초)** 세션을 만든다. 대화 옵션·유료 기능은 MVP 범위에서 제한한다.
@@ -56,9 +56,9 @@ flowchart LR
 | [src/app/App.tsx](../src/app/App.tsx) | 화면 라우트·지연 로딩·로컬 데모 진입 가드 |
 | `src/pages/` | URL별 화면과 사용자 행동 조합 |
 | [features/demo/types.ts](../src/features/demo/types.ts) | 프런트 화면용 프로필·세션·기록·메시지·일정 타입 |
-| [features/demo/reducer.ts](../src/features/demo/reducer.ts) | 로컬 로그인·세션·휴식·종료·메시지·일정 상태 전이 |
-| [features/demo/DemoProvider.tsx](../src/features/demo/DemoProvider.tsx), [persistence.ts](../src/features/demo/persistence.ts) | 상태 공유, 1초 TICK, `capsule-wireframe-demo:v1` 저장·복구·이전 |
-| [features/rooms/services/room-service.ts](../src/features/rooms/services/room-service.ts) | 정적 룸·인물 콘텐츠와 이미지 결합. 서버 조회로 교체할 경계 |
+| features/demo/reducer.ts (2026-11-25 정리에서 삭제) | 로컬 로그인·세션·휴식·종료·메시지·일정 상태 전이 |
+| [features/demo/DemoProvider.tsx](../src/features/demo/DemoProvider.tsx), persistence.ts (2026-11-25 정리에서 삭제) | 상태 공유, 1초 TICK, `capsule-wireframe-demo:v1` 저장·복구·이전 |
+| [features/mates/mate-rooms.ts](../src/features/mates/mate-rooms.ts) | 서버 메이트를 앱의 1인 「룸」으로 등록하는 레지스트리 (옛 `features/rooms/services/room-service.ts`를 2026-11-25에 옮김) |
 | `features/session/` | 공부 UI·타이머·채팅·상호작용과 감지 후 발화 판단 |
 | `features/media/` | 장치 수명, 웹워커 추론, 얼굴 기반 관측 집계, 가상 배경 |
 | `features/reports/` | 종료 화면·레벨 진행·기간 기록·캡슐 카드 합성/내보내기 |
@@ -79,11 +79,11 @@ flowchart LR
 
 [MediaProvider.tsx](../src/features/media/MediaProvider.tsx)가 장치와 워커를 관리한다. Face Landmarker, Gesture Recognizer, Object Detector를 사용하고, 얼굴·손·핸드폰을 다른 주기로 처리한다. 카메라 영상·얼굴 좌표는 로컬에서 처리하며 현재 채팅 요청에는 감지 상황을 텍스트로 전달한다.
 
-[behavior-constants.ts](../src/features/media/behavior-constants.ts)의 현재 주요 기준은 자리 비움 3초, 졸음 2초, 하품 1초, 고개 돌림 25도·2초, 핸드폰 3회 연속 검출이다. [behavior-chat.ts](../src/features/session/behavior-chat.ts)는 같은 감지 종류 60초·전체 20초의 발화 간격을 적용하고, 자리 비움은 돌아왔을 때 반응한다. 이는 **현재 프런트 규칙**이며 Swagger가 확정한 서버 이벤트 코드·정책으로 취급하지 않는다.
+[behavior-constants.ts](../src/features/media/behavior-constants.ts)의 현재 주요 기준은 자리 비움 3초, 졸음 2초, 하품 1초, 고개 돌림 25도·2초, 핸드폰 3회 연속 검출이다. behavior-chat.ts (2026-11-25 정리에서 삭제)는 같은 감지 종류 60초·전체 20초의 발화 간격을 적용하고, 자리 비움은 돌아왔을 때 반응한다. 이는 **현재 프런트 규칙**이며 Swagger가 확정한 서버 이벤트 코드·정책으로 취급하지 않는다.
 
 ### 채팅과 인증의 현재 구현
 
-[llm-chat.ts](../src/features/session/llm-chat.ts)는 `POST /api/chat`으로 `{ userName, room, character, phase, elapsedMinutes, goalMinutes, history, text }`를 보내고 `{ reply }`를 받는다. 서버는 입력 최대 500자·최근 이력 12건을 처리한다. Railway의 세션 메시지 API는 최대 300자이며 응답 구조도 달라 URL 교체만으로 연결되지 않는다.
+llm-chat.ts (2026-11-25 정리에서 삭제)는 `POST /api/chat`으로 `{ userName, room, character, phase, elapsedMinutes, goalMinutes, history, text }`를 보내고 `{ reply }`를 받는다. 서버는 입력 최대 500자·최근 이력 12건을 처리한다. Railway의 세션 메시지 API는 최대 300자이며 응답 구조도 달라 URL 교체만으로 연결되지 않는다.
 
 이메일 인증은 [EmailVerificationForm.tsx](../src/features/auth/components/EmailVerificationForm.tsx)의 명시적인 화면 확인용 흐름이다. [PasswordRecoveryForm.tsx](../src/features/auth/components/PasswordRecoveryForm.tsx)는 API 미연결 안내를 표시한다. 실제 메일 발송·가입·로그인·카카오 OAuth·토큰 갱신은 별도 연결이 필요하다.
 

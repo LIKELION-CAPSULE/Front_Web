@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { emptyState, report, session } from '../src/features/backend/adapters.ts'
 import { connectionCacheKey, readConnectionCache, serverRecords, writeConnectionCache } from '../src/features/backend/connection-cache.ts'
-import type { DemoAction } from '../src/features/demo/reducer.ts'
 import { betaReducer } from '../src/features/backend/beta-reducer.ts'
 import { cameraRecords, connectionSummary } from '../src/features/reports/connection-records.ts'
 import { legacyBetaDestination } from '../src/features/mates/legacy-destination.ts'
@@ -60,11 +59,6 @@ test('start and resume responses never create connection limits; resume continue
  const active=session({...base,startedAt:dto.startedAt},Date.parse(dto.endedAt))
  assert.equal(active.targetSeconds,undefined)
  assert.equal(session({...base,connectedSeconds:1500,presentSeconds:0,cameraOnSeconds:0,pipSeconds:0},Date.parse(dto.endedAt)).studySeconds,1500)
-})
-test('production reducer cannot purchase, start simulated sessions, send scripted replies or add schedules',()=>{
- const state=emptyState()
- const retired:DemoAction[]=[{type:'PURCHASE',productId:'x',method:'card',now:0},{type:'START',roomId:'dawn-library',characterIds:['chaerin'],tier:'basic',targetMinutes:50,camera:false,now:0},{type:'MESSAGE',characterId:'201',name:'채린',text:'test',now:0},{type:'MEMORY',memory:{id:'1',kind:'목표',title:'test',date:'',time:''}}]
- for(const action of retired)assert.equal(betaReducer(state,action),state)
 })
 test('production camera totals remain monotonic, bounded by connected time and scoped to the active server session',()=>{
  const active=session({connectionId:9001,mate:{id:201},startedAt:dto.startedAt,serverTime:dto.startedAt},0)

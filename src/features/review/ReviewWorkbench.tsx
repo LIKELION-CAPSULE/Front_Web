@@ -170,7 +170,7 @@ export function ReviewWorkbench() {
               <h2>{group}</h2>
               {items.map(item => <button key={item.id} type="button" className={`review-scenario${selected === item.id ? ' is-selected' : ''}`} aria-current={selected === item.id ? 'true' : undefined} onClick={() => select(item.id)}>
                 <span className="review-check" aria-label={checked.has(item.id) ? '검토 완료' : '미검토'}>{checked.has(item.id) ? '✓' : '○'}</span>
-                <span>{item.title}</span>{item.draft && <small>보관</small>}
+                <span>{item.title}</span>
               </button>)}
             </section> : null
           })}
@@ -211,7 +211,7 @@ export function ReviewWorkbench() {
             <iframe ref={frame} key={`${selected}:${revision}`} name={`capsule-ui-review:${selected}`} title={`${scenario.title} 미리보기`} src={reviewPreviewUrl(scenario)} width={width} height={height}
               style={{ transform: `scale(${scale})` }} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" allow="camera 'none'; microphone 'none'" />
           </div></div>
-          <p className="review-preview-tip">미리보기 안에서 버튼·입력·스크롤을 직접 확인할 수 있어요. 초기 상태로 돌아가려면 ‘상태 초기화’를 눌러 주세요.{scenario.draft && ' 보관 화면은 현재 서비스에 공개되지 않은 원본 UI예요.'}</p>
+          <p className="review-preview-tip">미리보기 안에서 버튼·입력·스크롤을 직접 확인할 수 있어요. 초기 상태로 돌아가려면 ‘상태 초기화’를 눌러 주세요.</p>
         </div>
         {tab === 'messages' && <ReviewMessagesPanel entries={entries} messages={messages} selected={selected} error={copyError} onSelect={select} onReload={() => { void loadCopy() }} onCopy={text => { void copy(text) }} />}
         {tab === 'visible' && <section className="review-inspector" role="tabpanel" id="review-panel-visible" aria-labelledby="review-tab-visible">

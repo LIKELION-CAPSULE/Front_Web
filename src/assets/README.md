@@ -1,42 +1,19 @@
 # CAPSULE 에셋
 
-새 캐릭터 [말포이 TS · 밤의 호그와트 도서관](characters/malfoy-ts-v1/README.md)은 기준 전신·홈 전경·공부/반응/휴식·배너·포스터·투명 제목·캡슐 카드·리포트 v3 분리 레이어를 한 세트로 보관합니다. PNG 원본과 WebP, 역할 매핑, 생성 프롬프트 및 시각 레퍼런스 기록은 해당 폴더에서 확인할 수 있습니다.
+메이트 연결 서비스가 쓰는 번들 에셋만 둔다. 외부 이미지 URL이나 `Landing_Page` 경로를 런타임에 참조하지 않는다. 운영의 메이트 모델·카드 이미지는 백엔드 응답(`model` · `cardImageUrl`)을 쓰고, 여기 있는 것은 그 응답이 없을 때의 대체 이미지와 화면 고유 그림이다.
 
-화면 구현 중 생성한 이미지 원본과 현재 제목 크롭은 [Figma 생성 에셋 관리 페이지](../../docs/FIGMA_GENERATED_ASSETS.md)에 용도·버전·파일 경로별로 정리했습니다.
+공식 로고는 이 폴더가 아니라 [로고 v2 원본](../../design/brand/capsule-logo-2026-11-22-v2/README.md)을 `src/shared/design/brand-logo.ts` 한 곳에서 가져온다.
 
-메인 환영 배너는 새로 생성한 [채린·수아·다희 전용 가로 이미지 3종](welcome-banners/README.md)을 사용합니다. PNG 마스터·웹용 WebP·전체 생성 프롬프트를 함께 보관하며, 첫 방문/이어하기 문구와 버튼은 HTML로 분리합니다.
-
-룸 상세는 배경·인물·좌석을 함께 그린 [상세 전용 완성형 배너 9종](room-detail-banners/README.md)을 사용합니다. 제목·소개는 HTML이며 생성 PNG·웹용 WebP·프롬프트 세트를 따로 보관합니다.
-
-종료 리포트는 [빈 노을 교실·투명 채린 분리 레이어 v3](reports/completion-layers-v3/README.md)를 사용합니다. 기존 완료 이미지의 표정·복장·손인사를 유지하며 배경과 인물을 분리해 캐릭터와 말풍선을 가운데 정렬합니다. [전체 화면 장면 v2](reports/completion-scene-v2/README.md)는 생성 참조·이력으로 보관하고, 캡슐 카드에는 [기존 세로 완료 이미지](reports/completion-v1/README.md)를 유지합니다.
-
-외부 이미지 URL이나 `Landing_Page` 경로를 런타임에 참조하지 않고 이 프로젝트 안의 파일을 사용합니다. `Landing_Page` 원본은 수정하지 않았습니다.
-
-공식 로고는 이 폴더가 아니라 [로고 v2 원본](../../design/brand/capsule-logo-2026-11-22-v2/README.md)을 `src/shared/design/brand-logo.ts` 한 곳에서 가져옵니다(2026-11-24, 이전 `brand/logo.webp` 삭제).
-
-| 위치 | 원본 | 사용처 |
+| 위치 | 내용 | 사용처 |
 | --- | --- | --- |
-| `brand/PretendardVariable.woff2` | `Landing_Page/src/assets/fonts/PretendardVariable.woff2` | 공통 타이포그래피 |
-| `brand/FONT-LICENSE.txt` | 같은 폴더의 `LICENSE.txt` | Pretendard 라이선스 |
-| `rooms/classroom.webp` | `optimized/hero/poster-1.webp` | 쌀쌀맞은 갸루짝꿍이 나에게만 친절하다! |
-| `rooms/night-study.webp` | `optimized/hero/poster-3.webp` | 전교 1등을 이겨라 |
-| `rooms/cat-library.webp` | `optimized/hero/poster-5.webp` | 냥냥이가 날 그렇게 쳐다보면 집중할 수가 없잖아!! |
-| `rooms/fantasy.webp` | `optimized/hero/poster-4.webp` | 기존 포스터 보관 |
-| `auth-posters/lantern.webp` | `optimized/hero/poster-2.webp` | 로그인 포스터 격자 |
-| `auth-posters/fantasy.webp` | `optimized/story/room-select/fantasy.webp` | 로그인 포스터 격자 |
-| `auth-posters/cat.webp` | `optimized/story/gallery-cat.webp` | 로그인 포스터 격자 |
-| `auth-posters/iljin.webp` | `optimized/rooms/poster-8.webp` | 로그인 포스터 격자 |
-| `auth-posters/jurassic.webp` | `optimized/story/gallery-jurassic.webp` | 로그인 포스터 격자 |
-| `auth-posters/lab.webp` | `optimized/rooms/poster-9.webp` | 로그인 포스터 격자 |
-| `auth-posters/joseon.webp` | `optimized/rooms/joseon.webp` | 로그인 포스터 격자 |
-| `characters/kang-*.webp` | `optimized/story/study-session/kang-*.webp` | 채린 공부·반응·휴식 |
-| `characters/han-*.webp` | `optimized/story/study-session/han-*.webp` | 수아 공부·반응·휴식 |
-| `characters/ryu-*.webp` | `optimized/story/study-session/ryu-*.webp` | 다희 공부·반응·휴식 |
-| `public/favicon.svg` | `Landing_Page/public/favicon.svg` | 파비콘 |
-| `figma/` | 기존 읽기 전용 와이어프레임 분석에서 추출 | 대화·상태 아이콘 및 원본 참고 |
+| `brand/` | Pretendard(공통 서체)·Hahmlet(캡슐 카드 대표 문장)과 라이선스 · [서체 기록](brand/README.md) | `styles/design-tokens.css`, `styles/index.css` |
+| `characters/chaerin-v2/` | 채린 카드·히어로·전신·졸음·아바타 정지 이미지와 상반신 표정(일부) · [생성 기록](characters/chaerin-v2/README.md) | `features/mates/artwork.ts`, `expression-busts.ts`, 로그인 졸음 화면 |
+| `characters/seojin/` | 서도현(서버 이름 서진) 같은 구성 · [생성 기록](characters/seojin/README.md) | 같은 곳 |
+| `characters/chaerin-call-bg/` | 채린 통화 배경(가로·세로) | 연결 화면, 홈 히어로 |
+| `connection/` | 통화 종료·전화 받기 연출의 수화기 3D 이미지 · [제작 기록](connection/README.md) | `features/mates/hangup-sequence.ts`, `pickup-sequence.ts` |
+| `attendance/` | 홈 출석 위젯 그림 | `features/attendance/` |
+| `public/favicon.svg` | `Landing_Page/public/favicon.svg` 복사 | 파비콘 |
 
-메인 룸 카드와 공부 장면에는 새 [레이어 에셋](scenes/README.md)을 사용합니다. 9종 모두 built-in image_gen으로 [전신 캐릭터/그룹](scenes/layered-v2/README.md)과 [메인화면용 바닥 배경](scenes/seated-v1/README.md)을 만들었습니다. 모든 룸과 리포트 이미지 저장에서 캐릭터 앞의 별도 책상 전경을 제외합니다. 각 PNG 마스터·WebP·프롬프트·알파 검사 결과를 `scenes/`에 보관합니다. 원본 포스터 서체를 참조한 [투명 제목 9종](room-titles/README.md)도 `room-titles/`에 따로 보관합니다. `features/rooms/artwork.ts`의 `sceneArtwork.titleImage`로 연결하며 실제 제목 문자열도 별도로 관리합니다. 개발 서버의 `/src/assets/scenes/preview.html`에서 레이어와 화면 비율을 바꿔 볼 수 있습니다.
+`characters/*/expressions/`·`expressions-bust/`는 `scripts/render-chaerin-expressions.mjs`·`render-mate-stills.mjs`가 만든 세트 전체를 둔다. 화면이 지금 쓰는 것은 그중 일부다.
 
-로그인 격자는 `Landing_Page/src/data/rooms.ts`의 실제 스터디룸 9종을 기준으로 합니다. 위의 `auth-posters` 7개와 기존 `rooms/classroom.webp`, `rooms/night-study.webp`를 사용합니다. 랜딩페이지의 최적화된 WebP를 그대로 복사했으며 런타임 경로는 공유하지 않습니다.
-
-`features/characters/artwork.ts`에서 캐릭터 ID별 이미지, 크롭 위치, 대사, 포인트 색을 관리합니다. 전용 세션 이미지가 없는 도윤·모루는 새 배경·투명 캐릭터 레이어를 합성한 정지 장면을 사용합니다. `shared/ui/AvatarIllustration.tsx`는 코드로 그린 SVG이며 헤어·의상·외모 선택에 반응합니다.
+옛 스터디 버전의 에셋(룸 포스터·장면 레이어·룸 제목·상세 배너·환영 배너·리포트 완료 이미지·말포이 TS 세트·가상 배경·Figma 추출 아이콘·League Gothic)은 2026-11-25 정리에서 삭제했다. 생성 기록과 프롬프트는 git 이력에서 볼 수 있다.
