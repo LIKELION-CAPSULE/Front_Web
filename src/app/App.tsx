@@ -39,7 +39,7 @@ function isAuthPath(pathname: string): boolean {
 
 function isCreditsPath(pathname: string): boolean {
   const clean = pathname.replace(/\/$/, '') || '/'
-  return clean === '/credits' || clean === '/credits/charge' || clean === '/invite'
+  return clean === '/credits' || clean === '/credits/invite' || clean === '/credits/charge' || clean === '/invite'
 }
 
 /** Captures ?ref=<code> on any route entry, stores for 7 days in localStorage, and strips ref from URL. */
@@ -100,6 +100,7 @@ export function App() {
                 <Route path="records" element={<RecordsPage />} />
                 <Route path="mates/me" element={<MyMatesPage />} />
                 <Route path="credits" element={<CreditsPage />} />
+                <Route path="credits/invite" element={<InvitePage />} />
                 <Route path="credits/charge" element={<InvitePage />} />
                 <Route path="invite" element={<InvitePage />} />
               </Route>

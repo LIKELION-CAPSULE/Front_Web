@@ -21,7 +21,8 @@ export function HomeHero({ mate, onExplore }: { mate: AvailableMate | null; onEx
 
   function onCta() {
     if (!done) return void start()
-    if (mate) void connect()
+    // Starting to study picks up the phone (the hang-up in reverse) on the way into the call.
+    if (mate) void connect({ pickup: true })
     else onExplore()
   }
 

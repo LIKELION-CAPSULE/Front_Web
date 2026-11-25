@@ -7,6 +7,7 @@ const titles: Record<string, string> = {
   '/characters': '내 메이트',
   '/mates/me': '내 메이트',
   '/credits': '내 크레딧',
+  '/credits/invite': '친구 초대',
   '/credits/charge': '친구 초대',
   '/login': '나만의 메이트가 기다리고 있어요',
   '/onboarding': '프로필 선택',

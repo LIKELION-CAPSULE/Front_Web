@@ -25,6 +25,7 @@ import { AlivingSessionStage } from '@/features/mate-render/AlivingSessionStage'
 import { availableMates } from '@/features/mates/catalog'
 import { showConnectionNotice } from '@/features/mates/connection-notice'
 import { connectedMate } from '@/features/mates/connected-mate'
+import { withParticle } from '@/shared/lib/korean'
 import { isSessionSurface } from '@/features/mates/session-surface'
 import { matePortrait } from '@/features/mates/artwork'
 import type { BetaAccountPort, BetaAccountResult, BetaOnboardingInput, BetaProfileInput, BetaSignupInput } from '@/features/auth/beta-account'
@@ -656,12 +657,16 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     const mate = availableMates(meta.home).find(value => value.id === mateId)
     if (!mate) throw new ApiError('요청을 처리하지 못했어요.', 404)
     if (resettingMates.current.has(mate.characterId)) throw new ApiError('요청을 처리하지 못했어요.', 409)
+    // Only one connection at a time: name the mate it is with, so the user knows which one to finish first.
+    const busyWith = (name: string | undefined) => new ApiError(
+      name ? `${withParticle(name, '과', '와')} 연결 중이에요. 그 연결을 먼저 마쳐 주세요.` : '진행 중인 연결을 먼저 마쳐 주세요.', 409)
     const current = stateRef.current.activeSession
+    const mateNamed = (characterId: string | number | undefined) => availableMates(meta.home).find(value => value.characterId === String(characterId))?.name
     if (current && (current.characterIds.length !== 1 || current.characterIds[0] !== mate.characterId || !current.serverSession)) {
-      throw new ApiError('요청을 처리하지 못했어요.', 409)
+      throw busyWith(mateNamed(current.characterIds[0]))
     }
     const summary = meta.activeSummary
-    if (summary && String(summary.mateId) !== mate.characterId) throw new ApiError('요청을 처리하지 못했어요.', 409)
+    if (summary && String(summary.mateId) !== mate.characterId) throw busyWith(summary.mateName ?? mateNamed(summary.mateId))
     const active = current ?? (summary?.connectionId
       ? await resumeSession(String(summary.connectionId))
       : await startSession(mate.roomId, mate.characterId))

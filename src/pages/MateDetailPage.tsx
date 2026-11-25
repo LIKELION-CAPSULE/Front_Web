@@ -174,7 +174,7 @@ export default function MateDetailPage() {
             </div>
 
             <div className="mate-hero-actions" data-tour="mate-detail-connect">
-              <ConnectMateButton mate={mate} />
+              <ConnectMateButton mate={mate} pickup />
             </div>
 
             {loadMateDetail && !detail && !error && (
