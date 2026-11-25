@@ -8,6 +8,7 @@ import {
   recordAmount,
   recordCardDate,
   recordEndedLabel,
+  recordStageLine,
   type CapsuleRecordCardProps,
   type CapsuleRecordStats,
 } from '../capsule-record'
@@ -150,14 +151,18 @@ function RecordStats({ stats }: { stats: CapsuleRecordStats }) {
 
 /** Regular record: the stage (unchanged), time to the next stage, and its progress. */
 function RecordAffinity({ mateName, stage, nextStageCaption, stageProgress }: CapsuleRecordCardProps) {
-  if (!stage.current && !nextStageCaption && stageProgress === undefined) return null
+  const stageLine = recordStageLine(stage)
+  if (!stageLine && !nextStageCaption && stageProgress === undefined) return null
   return (
     <section className="capsule-record-affinity" aria-label={COPY.affinity(mateName)} {...reveal(3)}>
       <h2>{COPY.affinity(mateName)}</h2>
       <div className="capsule-record-affinity-row">
-        {stage.current && (
+        {stageLine && (
           <p className="capsule-record-stage-text">
-            {stage.previous ?? stage.current} <span aria-hidden="true">→</span><span className="sr-only">에서</span> {stage.current}
+            {stageLine.previous && (
+              <>{stageLine.previous} <span aria-hidden="true">→</span><span className="sr-only">에서</span> </>
+            )}
+            {stageLine.current}
           </p>
         )}
         {nextStageCaption && <p className="capsule-record-next">{nextStageCaption}</p>}

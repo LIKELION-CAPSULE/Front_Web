@@ -8,8 +8,10 @@ export const CAPSULE_RECORD_COPY = {
   levelUpSubtitle: '함께한 시간이 쌓여, 새로운 단계에 도달했어요.',
   levelUpBadge: '친밀도 상승',
   levelUp: 'LEVEL UP!',
-  summaryBefore: '함께 ',
-  summaryAfter: ' 함께했어요.',
+  // 「23분 동안 같이 있었어요.」 — the amount in between. Not 「함께했어요」 again under the title, and no 「오늘」 (the
+  // record may be read on a later day).
+  summaryBefore: '',
+  summaryAfter: ' 동안 같이 있었어요.',
   completed: '완료',
   together: '함께한 시간',
   togetherRing: '함께한 시간(캠)',
@@ -68,6 +70,15 @@ export type CapsuleRecordCardProps = {
   reconnect?: ReactNode
   /** Extra notice above the actions (e.g. credits ran out). */
   notice?: ReactNode
+}
+
+/**
+ * The stage line of a regular record: 「아는 사이 → 친구」 only when the stage really changed, the current stage alone
+ * otherwise (no previous stage, or the same one); null without a current stage.
+ */
+export function recordStageLine(stage: CapsuleRecordCardProps['stage']): { previous: string | null; current: string } | null {
+  if (!stage.current) return null
+  return { previous: stage.previous && stage.previous !== stage.current ? stage.previous : null, current: stage.current }
 }
 
 /** Seconds under a minute, minutes from there on: 42초, 25분, 132분. */

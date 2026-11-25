@@ -1,35 +1,33 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { resolveServerData, type ServerData, type ServerDataInput } from './server-data'
 
-export type ServerData<T> =
-  | { status: 'loading'; data: T | null; error: null }
-  | { status: 'ready'; data: T; error: null }
-  | { status: 'error'; data: T | null; error: string }
+export type { ServerData } from './server-data'
 
 /**
  * Reads one server view for `key` (null: nothing to read yet). A new key starts a new read and the previous answer is
- * ignored when it arrives late (filters changed meanwhile); the last good data stays shown while the next loads.
+ * ignored when it arrives late (filters changed meanwhile); the last good data stays shown while the next loads, with
+ * the key it came from (`dataKey`, server-data.ts): a screen shows its sums only for the key it asked for.
  * `retry()` reads the same key again. `scope` (default: the key) limits what is kept: pass the account so a filter change
  * keeps the last answer on screen while another account starts empty.
  */
 export function useServerData<T>(key: string | null, load: () => Promise<T>, scope: string | null = key): ServerData<T> & { retry: () => void } {
   const [attempt, setAttempt] = useState(0)
   /** The answer and the read it belongs to (`key#attempt`); a newer read shows as loading with the last data. */
-  const [state, setState] = useState<{ token: string | null; value: ServerData<T> }>({ token: null, value: { status: 'loading', data: null, error: null } })
+  const [state, setState] = useState<ServerDataInput<T>['state']>({ token: null, value: { status: 'loading', data: null, error: null } })
   /** Kept only within one `scope` (an account): another account never sees the previous one's data. */
-  const [last, setLast] = useState<{ scope: string | null; data: T } | null>(null)
-  const lastData = last && last.scope === scope ? last.data : null
+  const [last, setLast] = useState<ServerDataInput<T>['last']>(null)
   const loadRef = useRef(load)
   useEffect(() => { loadRef.current = load })
   const token = key === null ? null : `${key}#${attempt}`
 
   useEffect(() => {
-    if (token === null) return
+    if (token === null || key === null) return
     let current = true
     loadRef.current().then(
       data => {
         if (!current) return
         setState({ token, value: { status: 'ready', data, error: null } })
-        setLast({ scope, data })
+        setLast({ scope, key, data })
       },
       reason => {
         if (!current) return
@@ -38,10 +36,8 @@ export function useServerData<T>(key: string | null, load: () => Promise<T>, sco
     )
     // A newer read (or leaving) drops this one's answer.
     return () => { current = false }
-  }, [token, scope])
+  }, [token, key, scope])
 
   const retry = useCallback(() => setAttempt(value => value + 1), [])
-  if (state.token !== token) return { status: 'loading', data: lastData, error: null, retry }
-  if (state.value.status === 'error') return { ...state.value, data: lastData, retry }
-  return { ...state.value, retry }
+  return { ...resolveServerData({ key, token, state, last, scope }), retry }
 }

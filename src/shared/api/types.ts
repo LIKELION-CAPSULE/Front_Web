@@ -554,7 +554,14 @@ export type MateUnlock = {
   unlockedAt?: string | null
 }
 /** 37 `recent[]` (the real shape; OpenAPI merged it with 38's). */
-export type MyMateRecent = { connectionId?: number; endedAt?: string; presentSeconds?: number; connectedSeconds?: number }
+export type MyMateRecent = {
+  connectionId?: number
+  endedAt?: string
+  presentSeconds?: number
+  connectedSeconds?: number
+  /** Requested from the backend (not sent yet): the real start, which decides the connection's day (05:00 Seoul). */
+  startedAt?: string
+}
 export type MyMate = {
   id?: number
   name?: string

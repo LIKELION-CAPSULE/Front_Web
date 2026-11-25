@@ -25,6 +25,14 @@ export function voiceStopsWhenHidden(input: { hidden: boolean; pipOpen: boolean 
   return input.hidden && !input.pipOpen
 }
 
+/**
+ * Checked again right before a voice that was asked for earlier starts (a reaction line arrives seconds later): it plays
+ * only if the call still wants it now — voice on, the user not talking, the call live, and the screen in sight (or PiP).
+ */
+export function voiceMayPlayNow(input: { voiceOn: boolean; listening: boolean; hidden: boolean; pipOpen: boolean; callLive: boolean }) {
+  return input.voiceOn && !input.listening && input.callLive && !voiceStopsWhenHidden(input)
+}
+
 /** Push-to-talk states in which the user is talking (the voice gives way the moment a press starts). */
 export function voiceStopsForListening(status: string) {
   return status === 'listening' || status === 'finishing'
