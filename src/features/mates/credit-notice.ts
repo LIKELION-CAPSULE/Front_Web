@@ -18,12 +18,9 @@ export function creditShortage(reason: unknown): { credits: number | null } | nu
 }
 
 /**
- * Voice replies are not asked for yet: messages go with `tts: false` (T-2 메이트 음성 is 「준비 중」), so `done.voice` is
- * never expected. Turn this on with voice replies; the note below then shows once when a reply comes as text.
+ * The voice-fallback note: only when a voice reply was asked for (`tts: true`, voice-reply.ts `voiceRequested`) and
+ * came as text (`done.voice` false: credits short), and only the first time in a call.
  */
-export const VOICE_REPLIES_REQUESTED = false
-
-/** The voice-fallback note: only when a voice reply was asked for and came as text, and only the first time. */
 export function shouldNoteVoiceFallback(input: { requestedVoice: boolean; voice: boolean | undefined; noted: boolean }) {
   return input.requestedVoice && input.voice === false && !input.noted
 }

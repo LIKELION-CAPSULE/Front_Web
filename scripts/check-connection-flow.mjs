@@ -3,7 +3,7 @@
 //   connection record opens;
 // - 10 minutes without input (camera off) ends with `endType: AUTO_AWAY`;
 // - a start handed over (409) to a connection with another mate goes to that mate's call and says so;
-// - the conversation mode toggle is what the message sends (`mode: ADVANCED` → a 30-credit 「고급 대화」 use).
+// - the conversation mode toggle is what the message sends (`mode: ADVANCED` → a 「고급 대화」 use: 30, 50 with voice).
 //
 // Needs the dev server in local mock mode and Playwright (not a project dependency):
 //
@@ -130,7 +130,8 @@ async function advancedMode() {
   await box.press('Enter')
   await page.waitForTimeout(2500)
   const items = await page.evaluate(async () => (await (await fetch('/api/backend/credits/transactions?filter=USE')).json()).data.items)
-  check('mode: the message went as ADVANCED (a 30-credit 고급 use)', items.length === before + 1 && items[0]?.change === -30, JSON.stringify(items[0]))
+  // 「메이트 음성」 is on by default (30 `voiceEnabled` true): the turn is 고급 (30) plus voice (20) = 50.
+  check('mode: the message went as ADVANCED (a 고급 use: 30, or 50 with voice)', items.length === before + 1 && (items[0]?.change === -30 || items[0]?.change === -50) && items[0]?.title.includes('고급'), JSON.stringify(items[0]))
   await context.close()
 }
 

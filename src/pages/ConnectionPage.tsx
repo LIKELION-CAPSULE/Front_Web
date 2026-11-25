@@ -1,5 +1,5 @@
 import { startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useSessionSync } from '@/features/backend/use-session-sync'
 import type { EndType } from '@/shared/api/types'
@@ -53,7 +53,10 @@ import { useChatHistory } from '@/features/mates/use-chat-history'
 import { ChatHistoryStatus } from '@/features/mates/components/ChatHistoryStatus'
 import { ReplyActions, ReportedReply } from '@/features/mates/components/ReplyActions'
 import { CreditShortNotice } from '@/features/mates/components/CreditShortNotice'
-import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback, VOICE_REPLIES_REQUESTED } from '@/features/mates/credit-notice'
+import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback } from '@/features/mates/credit-notice'
+import { useVoiceReply } from '@/features/mates/use-voice-reply'
+import type { VoiceTurn } from '@/features/mates/voice-player'
+import { voiceRequested, voiceStopsForListening, voiceStopsWhenHidden } from '@/features/mates/voice-reply'
 import hangupHandset from '@/assets/connection/hangup-handset-3d.webp'
 import hangupHandsetRed from '@/assets/connection/hangup-handset-3d-red.webp'
 
@@ -74,7 +77,7 @@ function ConnectionHelpNote() {
       <p>카메라를 켜면 이 기기 안에서 얼굴을 감지해 자리에 있는지 알아봐요. 영상은 서버로 보내거나 저장하지 않고, 자리 비움·돌아옴 같은 상태만 보내요.</p>
       <p>마이크는 「누르고 말하기」를 누르는 동안에만 써요. 그 음성은 브라우저의 음성 인식 서비스로 보내져 글자로 바뀌고, 바뀐 글자가 채팅으로 보내져요.</p>
       <p>「카메라로 함께한 시간」은 카메라에 얼굴이 보인 시간만 세요. 10초 넘게 보이지 않으면 메이트가 자리 비움으로 알아채요.</p>
-      <p>크레딧은 기본 대화 0, 고급 대화 한 턴에 {CREDIT_PRICING.advanced}이에요. 음성 대화는 준비 중이에요.</p>
+      <p>크레딧은 기본 대화 0, 고급 대화 한 턴에 {CREDIT_PRICING.advanced}이에요. 메이트 음성을 켜 두면 음성으로 답한 턴마다 {CREDIT_PRICING.voice}이 더 들어요. 크레딧이 모자라면 글로만 답해요.</p>
     </div>
   )
 }
@@ -99,6 +102,7 @@ const prefersReducedMotion = () =>
 export default function ConnectionPage() {
   const { mateId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const backend = useBackend()
   const { showPipSpeech, settings, updateSettings, modeConfirmed = true } = useConnectionPreferences()
   // 「말 걸기 빈도」 on the stage: a short note of what the choice means, for a moment after choosing.
@@ -159,6 +163,11 @@ export default function ConnectionPage() {
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
   )
   const pip = useDocumentPip()
+  // The mate's voice (T-2…T-4): replies and reaction lines ask for it while 「메이트 음성」 is on; never from the
+  // service tour (no credits there). The volume is this browser's; the speed is the server's TTS.
+  const voice = useVoiceReply({ volume: settings.volume, windows: [typeof window === 'undefined' ? null : window, pip.window] })
+  const voicePlaying = voice.status === 'playing'
+  const ttsWanted = voiceRequested({ voiceEnabled: settings.voice, practice: new URLSearchParams(location.search).has('tour'), playable: voice.player.supported })
   const camera = devices.camera.stream
   const video = useRef<HTMLVideoElement>(null)
   const busy = useRef(false)
@@ -255,13 +264,36 @@ export default function ConnectionPage() {
   const cancelTalk = pushToTalk.cancel
   useEffect(() => { if (finishing) cancelTalk() }, [finishing, cancelTalk])
   // The mouth moves exactly while a line is typing on screen: a chat reply (also while it streams in) or the event
-  // bubble. v2 stages only; Cubism stages have no `setTalking`.
+  // bubble. v2 stages only; Cubism stages have no `setTalking`. While her voice plays, the voice moves the mouth
+  // instead (its level, every frame; Cubism and v2), so the typing motion steps aside.
   const talking = speaking || bubbleTyping
   useEffect(() => {
     const stage = backend.live2dStage
-    stage?.setTalking?.(talking)
+    stage?.setTalking?.(talking && !voicePlaying)
     return () => stage?.setTalking?.(false)
-  }, [backend.live2dStage, talking])
+  }, [backend.live2dStage, talking, voicePlaying])
+  useEffect(() => {
+    const stage = backend.live2dStage
+    // Reduced motion: no talking mouth (as with typing).
+    stage?.setMouthSource?.(prefersReducedMotion() ? null : () => voice.player.level())
+    return () => stage?.setMouthSource?.(null)
+  }, [backend.live2dStage, voice.player])
+  // The voice stops when the user starts talking (누르고 말하기), when the call ends or is being hung up, and when the
+  // tab goes out of sight with no PiP window (with PiP the call goes on there, and so does the voice).
+  const listening = voiceStopsForListening(pushToTalk.snapshot.status)
+  useEffect(() => { if (listening) voice.player.stop() }, [listening, voice.player])
+  const callLive = Boolean(active) && !finishing && !ending
+  const callLiveRef = useRef(callLive)
+  useLayoutEffect(() => { callLiveRef.current = callLive }, [callLive])
+  useEffect(() => { if (!callLive) voice.player.stop() }, [callLive, voice.player])
+  const pipWindow = pip.window
+  useEffect(() => {
+    const onVisibility = () => {
+      if (voiceStopsWhenHidden({ hidden: document.hidden, pipOpen: Boolean(pipWindow && !pipWindow.closed) })) voice.player.stop()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [pipWindow, voice.player])
   const cue = useCallback((input: Parameters<typeof expressions.cue>[0]) => expressions.cue(input), [expressions])
   const navigateToRecord = useCallback((recordId: string, afterHangup = false) => {
     const target = `/connections/${recordId}`
@@ -335,7 +367,8 @@ export default function ConnectionPage() {
     navigateToRecord(active.id)
   }, [active, state.profile.userId, flushFocus, backend, controller, pip, navigateToRecord])
   const sync = useSessionSync({
-    active, userId: state.profile.userId, observation, camera: !!camera, busy: sending || speaking, talk: settings.talk,
+    // Her voice still playing counts as talking: a reaction line waits for it instead of cutting it off.
+    active, userId: state.profile.userId, observation, camera: !!camera, busy: sending || speaking || voicePlaying, talk: settings.talk, tts: ttsWanted,
     // 「먼저 말 걸기」 (idle-talk.ts): quiet counts from the end of the last talk; the event line typing, the user's voice
     // and the hang-up also hold it.
     idleTalk: true,
@@ -345,6 +378,8 @@ export default function ConnectionPage() {
       const reply = result.characters?.find(value => String(value.characterId) === mate?.characterId)
       const content = reply?.content
       if (content) setSpeech(previous => ({ id: previous.id + 1, at: Date.now(), text: content }))
+      // 19 `audioBase64`: the line's voice (asked with `tts`, made when the setting is on and credits cover it).
+      if (content && reply?.audioBase64 && callLiveRef.current) voice.player.play(reply.audioBase64)
       if (reply?.characterId) cue({ characterId: reply.characterId, expression: reply.expression, event, stage: 'speech', text: reply.content })
     },
     // A server-side end during the hang-up is the same ending; the sequence already navigates.
@@ -449,11 +484,22 @@ export default function ConnectionPage() {
     followMessages.current = true
     setSending(true)
     setError('')
+    // A new reply is on its way: the voice before it stops, and this reply's voice (if asked) starts as it arrives.
+    const tts = ttsWanted
+    let turn: VoiceTurn | null = null
+    if (tts) turn = voice.player.begin()
+    else voice.player.stop()
     try {
-      const result = await backend.sendMessage(mate.characterId, text, inputType)
+      const result = await backend.sendMessage(mate.characterId, text, inputType, {
+        tts,
+        onAudio: audio => turn?.push(audio),
+        onAudioEnd: end => turn?.end(end),
+        onClose: () => turn?.end(null),
+      })
       if (!mounted.current) return false
       setCreditShort(null)
-      if (shouldNoteVoiceFallback({ requestedVoice: VOICE_REPLIES_REQUESTED, voice: result.voice, noted: voiceNote !== 'none' })) setVoiceNote('shown')
+      // Asked for voice but it came as text (credits short): said once.
+      if (shouldNoteVoiceFallback({ requestedVoice: tts, voice: result.voice, noted: voiceNote !== 'none' })) setVoiceNote('shown')
       if (result.characterId) cue({ characterId: result.characterId, expression: result.expression, event: 'MESSAGE', stage: 'speech', text: result.content })
       setDraft('')
       return true
@@ -828,8 +874,15 @@ export default function ConnectionPage() {
             </section>
           </div>
 
-          {(creditInsufficient || floatingErrors.length > 0) && (
+          {(creditInsufficient || floatingErrors.length > 0 || voice.status === 'blocked') && (
             <div className="connection-floating-notices" aria-live="polite">
+              {/* The browser held her voice until a click or key press (autoplay rule); any press allows it, this too. */}
+              {voice.status === 'blocked' && (
+                <button type="button" className="connection-notice-card connection-voice-unlock" onClick={voice.player.unlock}>
+                  <Icon name="headphones" size={16} />
+                  소리 켜기
+                </button>
+              )}
               {creditInsufficient && (
                 <div className="connection-notice-card">
                   <FeedbackMessage tone="warning">크레딧이 부족해요. 기본 대화로 계속할 수 있어요.</FeedbackMessage>
