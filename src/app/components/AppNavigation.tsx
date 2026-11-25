@@ -6,6 +6,7 @@ const navigation = [
   { to: '/', label: '홈', end: true, icon: 'home', tour: 'nav-home' },
   { to: '/mates/me', label: '내 메이트', end: false, icon: 'heart', tour: 'nav-my-mates' },
   { to: '/records', label: '내 기록', end: false, icon: 'chart', tour: 'nav-records' },
+  { to: '/credits', label: '내 크레딧', end: false, icon: 'coin', tour: 'nav-credits' },
 ]
 
 export function AppNavigation() {

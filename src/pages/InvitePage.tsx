@@ -39,7 +39,7 @@ export default function InvitePage() {
 
   if (loading) {
     return (
-      <CreditsAppWindow activeTab="invite" loadingScreen="invite">
+      <CreditsAppWindow page="invite" loadingScreen="invite">
         <div className="credits-skeleton-stack" aria-busy="true">
           <span className="sr-only" role="status">
             초대 정보를 불러오고 있어요.
@@ -57,7 +57,7 @@ export default function InvitePage() {
 
   if (!invitation) {
     return (
-      <CreditsAppWindow activeTab="invite">
+      <CreditsAppWindow page="invite">
         <div className="credits-state-box" role="alert">
           <p className="credits-state-title">초대 정보를 불러오지 못했어요.</p>
           <Button
@@ -92,8 +92,13 @@ export default function InvitePage() {
     }
   }
 
+  /** 「초대 링크 공유」: the share sheet where the browser has one, otherwise the link is copied. */
   async function handleShare() {
-    if (!invitation?.url || !canNativeShare) return
+    if (!invitation?.url) return
+    if (!canNativeShare) {
+      await handleCopy('url', invitation.url)
+      return
+    }
     setError('')
     try {
       await navigator.share({
@@ -154,20 +159,18 @@ export default function InvitePage() {
   }
 
   return (
-    <CreditsAppWindow activeTab="invite">
-      <p className="invite-intro">
-        친구를 초대하면 둘 다 크레딧 {number(CREDIT_PRICING.inviteReward)}을 받아요. 친구가 첫 연결을 마치면 들어와요.
-      </p>
-
+    <CreditsAppWindow page="invite">
       <div className="invite-grid">
-        <section className="invite-card" aria-label="내 초대 코드">
-          <h2>내 초대 코드</h2>
+        {/* ② My code: copy it, or share the invite link */}
+        <section className="invite-card" aria-labelledby="invite-mine-title">
+          <h2 id="invite-mine-title">
+            친구를 초대하면 둘 다 크레딧 {number(CREDIT_PRICING.inviteReward)}을 받아요
+          </h2>
+          <p className="invite-card-sub">친구가 첫 연결을 마치면 들어와요. 초대 크레딧은 사라지지 않아요.</p>
           {invitation.code ? (
             <>
-              <div className="invite-capsule-ticket" aria-label={`내 초대 코드 ${invitation.code}`}>
-                <span className="invite-capsule-code">{invitation.code}</span>
-              </div>
-              <div className="invite-actions">
+              <div className="invite-code-row">
+                <span className="invite-code-box" aria-label={`내 초대 코드 ${invitation.code}`}>{invitation.code}</span>
                 <Button
                   variant="primary"
                   onClick={() => {
@@ -180,20 +183,10 @@ export default function InvitePage() {
                   <Button
                     variant="secondary"
                     onClick={() => {
-                      void handleCopy('url', invitation.url)
-                    }}
-                  >
-                    {copiedKey === 'url' ? '복사했어요' : '초대 링크 복사'}
-                  </Button>
-                )}
-                {canNativeShare && invitation.url && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
                       void handleShare()
                     }}
                   >
-                    공유
+                    {copiedKey === 'url' ? '링크를 복사했어요' : '초대 링크 공유'}
                   </Button>
                 )}
               </div>
@@ -206,49 +199,55 @@ export default function InvitePage() {
           )}
         </section>
 
-        <section className="invite-card" aria-label="받은 초대 코드">
+        {/* ③ A code I received (for anyone who skipped it while signing up) */}
+        <section className="invite-card" aria-labelledby="invite-received-title">
+          <h2 id="invite-received-title">초대 코드를 받았나요?</h2>
           {alreadyRegistered ? (
-            <>
-              <h2>받은 초대 코드</h2>
-              <p className="invite-registered-note">등록된 초대 코드가 있어요.</p>
-            </>
+            <p className="invite-registered-note">등록된 초대 코드가 있어요.</p>
           ) : (
             <form
+              className="invite-redeem-form"
               onSubmit={(event) => {
                 event.preventDefault()
                 void redeem()
               }}
             >
-              <ReferralCodeField
-                label="받은 초대 코드"
-                showHelp={false}
-                value={code}
-                validation={validation}
-                disabled={!invitation.canRedeem || !redeemInvitation || busy}
-                onChange={(nextVal) => {
-                  setCode(nextVal)
-                  setValidation({ status: 'idle' })
-                }}
-                onBlurValidate={() => {
-                  if (normalizeReferralCode(code)) void validateCode(code)
-                }}
-              />
-              <Button
-                type="submit"
-                variant="primary"
-                className="mt-5"
-                loading={busy}
-                disabled={!invitation.canRedeem || !redeemInvitation || !code.trim()}
-              >
-                받기
-              </Button>
+              <div className="invite-redeem-row">
+                <ReferralCodeField
+                  label="받은 초대 코드"
+                  showHelp={false}
+                  value={code}
+                  validation={validation}
+                  disabled={!invitation.canRedeem || !redeemInvitation || busy}
+                  onChange={(nextVal) => {
+                    setCode(nextVal)
+                    setValidation({ status: 'idle' })
+                  }}
+                  onBlurValidate={() => {
+                    if (normalizeReferralCode(code)) void validateCode(code)
+                  }}
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={busy}
+                  disabled={!invitation.canRedeem || !redeemInvitation || !code.trim()}
+                >
+                  받기
+                </Button>
+              </div>
+              <p className="invite-card-note">가입 후 7일 안에 1번만 입력할 수 있어요.</p>
             </form>
           )}
         </section>
       </div>
 
-      <section className="invite-card invite-progress-card" aria-label="초대 현황">
-        <h2>초대 현황</h2>
+      {/* ④ Progress: n / 10 friends and the credits they brought */}
+      <section className="invite-card invite-progress-card" aria-labelledby="invite-progress-title">
+        <h2 id="invite-progress-title">
+          초대 현황 · {number(invitation.invitedCount)} / {CREDIT_PRICING.inviteMaxCount}명 · 받은 크레딧{' '}
+          {number(invitation.rewardedCredits)}
+        </h2>
         <div
           className="invite-capsule-slots"
           role="img"
@@ -263,10 +262,6 @@ export default function InvitePage() {
             />
           ))}
         </div>
-        <p className="invite-progress-summary">
-          {number(invitation.invitedCount)} / {CREDIT_PRICING.inviteMaxCount}명 · 받은 크레딧{' '}
-          {number(invitation.rewardedCredits)}
-        </p>
         {inviteFull && (
           <p className="invite-progress-complete">
             초대 보상을 모두 받았어요. 친구 초대는 계속할 수 있어요.
