@@ -156,7 +156,7 @@ export default function ServiceTour() {
   const featureOverride = search.get('features')
   const context = useMemo(() => {
     const features = resolveMateFeatures(import.meta.env.DEV, featureOverride)
-    return { mateId, features: { affinity: features.affinity, expressions: features.expressions } }
+    return { mateId, features: { affinity: features.affinity, world: features.affinity && features.world } }
   }, [mateId, featureOverride])
   const steps = useMemo(() => tourSteps(context), [context])
   const stepId = search.get('tour')

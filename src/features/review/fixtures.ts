@@ -130,6 +130,14 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
       return new Response(`event: error\ndata: ${JSON.stringify({ code: 'CONNECTION_ENDED', message: 'CONNECTION_ENDED' })}\n\n`, { headers: { 'content-type': 'text/event-stream' } })
     }
     if (operation === 'heartbeat' && (fault === 'server-ended-heartbeat' || fault === 'server-ended-report')) return ended()
+    if (operation === 'heartbeat' && fault === 'stage-up') {
+      // 21 with a stage-up (아는 사이 → 친구) on the local heartbeat's answer.
+      const response = await local(input, options)
+      log(response.status)
+      const body = await response.json() as { data?: Record<string, unknown> }
+      if (body.data) body.data.stageUp = { stage: 3, stageName: '친구', unlocked: [] }
+      return new Response(JSON.stringify(body), { status: response.status, headers: { 'content-type': 'application/json' } })
+    }
     if (operation === 'end' && fault === 'server-ended-finish') return ended()
     if (operation === 'end' && fault === 'end') return fail(500)
     if (operation === '' && method === 'GET' && reportFailures > 0) { reportFailures--; return fail(503) }

@@ -13,6 +13,11 @@ import { Button, ButtonLink } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { MatePreview } from '@/features/mates/components/MatePreview'
 import { VoiceSampleButton } from '@/features/mates/components/VoiceSampleButton'
+import { MateWorldStrip } from '@/features/mates/components/MateWorldStrip'
+import { normalizeAffinityStage } from '@/features/mates/affinity-stages'
+import { resolveMateFeatures } from '@/features/mates/mate-features'
+import { useMyMates } from '@/features/mates/use-my-mates'
+import { useMateWorlds } from '@/features/mates/use-mate-worlds'
 import NotFoundPage from './NotFoundPage'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
@@ -36,6 +41,18 @@ export default function MateDetailPage() {
   const key = `${state.profile.userId}:${id}:${mateContentVersion}`
   const detail = id ? mateDetails[id] : undefined
   const error = failure?.key === key ? failure.message : ''
+  // 세계관 (mate-worlds.ts) under the mate: the stage from 37 내 메이트; a mate not met yet has all five locked.
+  const features = resolveMateFeatures(import.meta.env.DEV, null)
+  const mine = useMyMates().byMate.get(id ?? '')
+  const worlds = useMateWorlds({
+    enabled: features.affinity && features.world && Boolean(mate),
+    mateId: id ?? '',
+    mateName: mate?.name ?? '',
+    mateImage: mate?.image,
+    stage: normalizeAffinityStage(mine?.relation?.stage, mine?.relation?.stageName)?.stage,
+    met: (mine?.connectionCount ?? 0) > 0,
+    unlocks: mine?.unlocks,
+  })
 
   useEffect(() => {
     if (!id || !loadMateDetail) return
@@ -141,6 +158,9 @@ export default function MateDetailPage() {
             />
           </div>
         </div>
+
+        {/* 세계관: the five places right under the mate (layout until the Figma frame arrives). */}
+        {worlds && <MateWorldStrip worlds={worlds} mateName={mate.name} className="mate-hero-worlds" />}
 
         <section className="mate-hero-info page-container" aria-labelledby="mate-name">
           <div className="mate-hero-copy">

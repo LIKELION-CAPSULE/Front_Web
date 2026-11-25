@@ -22,10 +22,8 @@ export const CAPSULE_RECORD_COPY = {
   dialogueUnit: '번',
   affinity: (name: string) => `${name} · 친밀도`,
   remembered: '기억한 것',
-  unlockTitle: '새로운 표현이 열렸어요!',
-  unlockSub: '더 다양한 대화를 나눠보세요.',
-  view: '표정 보기',
-  viewing: '되돌리기',
+  unlockSub: '내 메이트에서 볼 수 있어요.',
+  view: '세계관 보기',
   home: '홈으로',
 } as const
 
@@ -37,12 +35,13 @@ export type CapsuleRecordStats = {
   dialogueCount?: number
 }
 
-/** A newly opened mate expression; `onView` is absent when there is no expression file to show. */
+/**
+ * The world the new stage opened (mate-worlds.ts): `line` is 「새 세계관이 열렸어요 · EP.03 도서관」 (the episode alone
+ * before its content exists); `to` opens 내 메이트 at that mate.
+ */
 export type CapsuleRecordUnlock = {
-  kind: string
-  label: string
-  viewing: boolean
-  onView?: () => void
+  line: string
+  to?: string
 }
 
 export type CapsuleRecordCardProps = {

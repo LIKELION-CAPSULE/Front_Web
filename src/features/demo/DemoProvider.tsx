@@ -38,7 +38,7 @@ import { engineAllowlist } from '@/features/mate-render/engine-allowlist'
 import { forgetAllChatRooms, forgetChatRoom } from '@/features/mates/chat-room'
 import type { BetaFeaturePort, BetaFeatureSnapshot } from '@/features/backend/beta-feature-port'
 
-type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'signedOutNotice' | 'me' | 'accountDetails' | 'home' | 'homeContentVersion' | 'mateDetails' | 'mateContentVersion' | 'wallet' | 'invitation' | 'mateUnlocks' | 'redeemInvitation' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
+type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'signedOutNotice' | 'me' | 'accountDetails' | 'home' | 'homeContentVersion' | 'mateDetails' | 'mateContentVersion' | 'wallet' | 'invitation' | 'redeemInvitation' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
 /**
  * Local mutations invalidate the affected server queries immediately. These limits bound
  * how long data changed on another device can remain cached here.
@@ -46,7 +46,7 @@ type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'sig
 const HOME_MAX_AGE = 60_000
 const MATE_MAX_AGE = 300_000
 const AVATARS_MAX_AGE = 300_000
-const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null, signedOutNotice: null, me: null, accountDetails: null, home: null, homeContentVersion: 0, mateDetails: {}, mateContentVersion: 0, wallet: null, invitation: null, mateUnlocks: undefined, redeemInvitation: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
+const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null, signedOutNotice: null, me: null, accountDetails: null, home: null, homeContentVersion: 0, mateDetails: {}, mateContentVersion: 0, wallet: null, invitation: null, redeemInvitation: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : '요청을 처리하지 못했어요.'
 const createLive2DStage: SessionModelFactory = (url, layout) => new Live2DStage(url, layout, new URL(import.meta.env.BASE_URL, location.href).href)
 /** v2 (Aliving2D) session models; engine scripts run only from this page's origin or the API origin. */
@@ -130,7 +130,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     const sync = () => {
       if (!current) return
       const snapshot = featurePort.read(userId)
-      setMeta(previous => ({ ...previous, wallet: snapshot.wallet, invitation: snapshot.invitation, mateUnlocks: snapshot.mateUnlocks, affinities: snapshot.affinities, redeemInvitation: featurePort.redeemInvitation }))
+      setMeta(previous => ({ ...previous, wallet: snapshot.wallet, invitation: snapshot.invitation, affinities: snapshot.affinities, redeemInvitation: featurePort.redeemInvitation }))
       setBetaSettings(snapshot.settings)
     }
     const unsubscribe = featurePort.subscribe(sync)

@@ -9,9 +9,8 @@ import {
 } from '../src/features/mates/capsule-jar/capsule-jar-data.ts'
 import { generateDummyCapsules } from '../src/features/mates/capsule-jar/capsule-jar-dummy.ts'
 import { AFFINITY_STAGE_COUNT, MATE_FEATURES_OFF, resolveMateFeatures } from '../src/features/mates/mate-features.ts'
-import { AFFINITY_STAGES, sampleRelation, sampleUnlocks } from '../src/features/mates/mate-sample-data.ts'
+import { AFFINITY_STAGES, sampleRelation } from '../src/features/mates/mate-sample-data.ts'
 import { affinityStageLabel, affinityUnlockCondition, normalizeAffinityStage } from '../src/features/mates/affinity-stages.ts'
-import { toV2ExpressionName } from '../src/features/mate-render/expression-map.ts'
 import {
   capsuleVisitKey,
   clearLastVisit,
@@ -226,7 +225,7 @@ test('mate features: all off in production, on in development unless ?features=o
   assert.deepEqual(resolveMateFeatures(true, 'off'), MATE_FEATURES_OFF)
   const dev = resolveMateFeatures(true, null)
   assert.equal(dev.affinity, true)
-  assert.equal(dev.expressions, true)
+  assert.equal(dev.world, true)
   assert.equal(dev.voices, false, 'voice lines stay hidden until the samples ship')
 })
 
@@ -242,31 +241,10 @@ test('sample affinity follows the PRD stages from connection time', () => {
   assert.equal(sampleRelation(100 * 3600).nextStageName, undefined)
 })
 
-test('sample expressions unlock one per stage and map to the v2 model', () => {
-  const unlocks = sampleUnlocks(3)
-  assert.equal(unlocks.expressions.length, 6)
-  assert.equal(unlocks.expressions.filter((item) => item.unlocked).length, 4)
-  const locked = unlocks.expressions.filter((item) => !item.unlocked)
-  assert.deepEqual(locked.map((item) => item.condition), ['4단계 · 친한 친구에서 열려요', '5단계 · 단짝에서 열려요'])
-  for (const item of unlocks.expressions) assert.ok(toV2ExpressionName(item.expressionFile), `${item.expressionFile} plays on v2`)
-  assert.equal(unlocks.voices.length, 0)
-})
-
-test('affinity stages: one table; a locked expression always needs a higher stage than the current one', () => {
+test('affinity stages: one table of five stage names and conditions', () => {
   assert.deepEqual(AFFINITY_STAGES.map((item) => `${item.stage}:${item.name}`), ['1:처음 만남', '2:아는 사이', '3:친구', '4:친한 친구', '5:단짝'])
   assert.equal(affinityStageLabel(3, '친구'), '3단계 · 친구')
   assert.equal(affinityUnlockCondition(4), '4단계 · 친한 친구에서 열려요')
-  for (const { stage } of AFFINITY_STAGES) {
-    const { expressions } = sampleUnlocks(stage)
-    for (const item of expressions) {
-      if (item.unlocked) assert.ok(item.unlockStage! <= stage)
-      else {
-        assert.ok(item.unlockStage! > stage, `stage ${stage}: ${item.label} locked at ${item.unlockStage}`)
-        assert.equal(item.condition, affinityUnlockCondition(item.unlockStage!))
-        assert.equal(item.unlockStageName, AFFINITY_STAGES[item.unlockStage! - 1]!.name)
-      }
-    }
-  }
   // A source counting from another base is put on the table by the stage name.
   assert.deepEqual(normalizeAffinityStage(2, '친구'), { stage: 3, stageName: '친구' })
   assert.deepEqual(normalizeAffinityStage(7, '새 단계'), { stage: 7, stageName: '새 단계' })

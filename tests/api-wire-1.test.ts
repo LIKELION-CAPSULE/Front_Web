@@ -8,7 +8,8 @@ import { mergeMyMates, mergeRecords, myMates, records } from '../src/features/ba
 import { mateDetailContent } from '../src/features/backend/server-ports.ts'
 import { checkedMateDetail } from '../src/features/mates/mate-contract.ts'
 import { availableMates, serverAgeRating } from '../src/features/mates/catalog.ts'
-import { capsulesFromConnections, estimatedCapsuleCount, expressionUnlocks, myMatesByLaunchMate } from '../src/features/mates/my-mates-source.ts'
+import { capsulesFromConnections, estimatedCapsuleCount, myMatesByLaunchMate } from '../src/features/mates/my-mates-source.ts'
+import { mateWorldsForStage, worldContentFromServer } from '../src/features/mates/mate-worlds.ts'
 import { boardRecords, connectionRecord, isDayRecord, recordsRequests, recordsSummary, type RecordsMate } from '../src/features/records/records-source.ts'
 import { getRecordRange } from '../src/features/reports/record-period.ts'
 
@@ -26,6 +27,8 @@ const myMatesExample: MyMatesResponse = {
         { id: 12, type: 'EXPRESSION', title: '웃음', unlockStage: 4, unlockStageName: '친한 친구', expressionName: 'laugh', assetUrl: null, unlocked: false },
         { id: 13, type: 'VOICE_LINE', title: '응원', unlockStage: 3, unlockStageName: '친구', expressionName: null, assetUrl: 'https://cdn.example/v.mp3', unlocked: true },
         { id: 14, type: 'STICKER', title: '모르는 종류', unlocked: true },
+        { id: 15, title: '종류 없음', unlocked: true },
+        { type: 'EXPRESSION', title: 'id 없음', unlocked: true },
       ],
       recent: [
         { connectionId: 101, endedAt: '2026-11-25T01:00:00Z', presentSeconds: 2400, connectedSeconds: 3000 },
@@ -42,14 +45,14 @@ const myMatesExample: MyMatesResponse = {
   ],
 }
 
-test('37: parses mates, relation (0–1), unlocks (unknown types skipped) and recent (newest first)', () => {
+test('37: parses mates, relation (0–1), unlocks (every typed item kept, untyped skipped) and recent (newest first)', () => {
   const [chaerin] = myMates(myMatesExample)
   assert.equal(chaerin!.name, '채린')
   assert.equal(chaerin!.connectionCount, 8)
   assert.equal(chaerin!.totalConnectedSeconds, 31200)
   assert.equal(chaerin!.firstMetAt, Date.parse('2026-11-13T10:00:00Z'))
   assert.deepEqual(chaerin!.relation, { stage: 3, stageName: '친구', nextStageName: '친한 친구', nextLevelSeconds: 5400, stageProgress: 0.62 })
-  assert.deepEqual(chaerin!.unlocks.map(item => item.id), ['11', '12', '13'])
+  assert.deepEqual(chaerin!.unlocks.map(item => item.id), ['11', '12', '13', '14'])
   assert.deepEqual(chaerin!.recent.map(item => item.connectionId), ['101', '100'])
   assert.deepEqual(myMates({ mates: [] }), [])
 })
@@ -62,12 +65,14 @@ test('37: a missing required field fails the response (502); a missing optional 
     { mates: [{ id: 4, name: '채린', totalPresentSeconds: 0, totalConnectedSeconds: 1 }] },
     { mates: [{ id: 4, name: '채린', connectionCount: 1, totalPresentSeconds: -1, totalConnectedSeconds: 1 }] },
     { mates: [{ id: 4, name: '채린', connectionCount: 1, totalPresentSeconds: 0, totalConnectedSeconds: 1, recent: [{ endedAt: '2026-11-25T01:00:00Z', connectedSeconds: 1 }] }] },
-    { mates: [{ id: 4, name: '채린', connectionCount: 1, totalPresentSeconds: 0, totalConnectedSeconds: 1, unlocks: [{ id: 1, type: 'EXPRESSION', unlocked: true }] }] },
   ] as MyMatesResponse[]) {
     assert.throws(() => myMates(broken), (error: unknown) => error instanceof ApiError && error.status === 502, JSON.stringify(broken))
   }
   const [minimal] = myMates({ mates: [{ id: 4, name: '채린', connectionCount: 0, totalPresentSeconds: 0, totalConnectedSeconds: 0 }] })
   assert.deepEqual([minimal!.relation, minimal!.unlocks, minimal!.recent, minimal!.firstMetAt, minimal!.cardImageUrl], [null, [], [], null, null])
+  // An unlock item without a title no longer fails 37 (the expression unlocks are gone; the world type is not fixed yet).
+  const [loose] = myMates({ mates: [{ id: 4, name: '채린', connectionCount: 1, totalPresentSeconds: 0, totalConnectedSeconds: 1, unlocks: [{ id: 1, type: 'EXPRESSION', unlocked: true }] }] })
+  assert.deepEqual(loose!.unlocks.map(item => [item.type, item.title]), [['EXPRESSION', null]])
 })
 
 test('37: the two 서진 entries are one 서도현 (sums, widest dates, newest relation, merged recent)', () => {
@@ -85,7 +90,7 @@ test('37: the two 서진 entries are one 서도현 (sums, widest dates, newest r
   assert.equal(mergeMyMates([dohyun]), dohyun)
 })
 
-test('37 → my-mates page: capsules from recent, an estimated capsule total, the expression tiles', () => {
+test('37 → my-mates page: capsules from recent, an estimated capsule total, the five worlds (old unlock types ignored)', () => {
   const chaerin = myMates(myMatesExample)[0]!
   const capsules = capsulesFromConnections(chaerin.recent)
   assert.deepEqual(capsules.map(item => item.id), ['100', '101'], 'oldest first')
@@ -93,10 +98,10 @@ test('37 → my-mates page: capsules from recent, an estimated capsule total, th
   assert.equal(capsules[1]!.connectionId, '101')
   // 101: 50 min → 5, 100: 20 min → min 3; 6 older connections with 27000 s → max(6 × 3, 45) = 45.
   assert.equal(estimatedCapsuleCount(chaerin), 5 + 3 + 45)
-  const tiles = expressionUnlocks(chaerin)!
-  assert.deepEqual(tiles.map(tile => [tile.label, tile.expressionFile, tile.unlocked, tile.unlockStage]), [['수줍음', 'shy', true, 2], ['웃음', 'laugh', false, 4]])
-  assert.equal(tiles[1]!.condition, '친한 친구 단계에서 열려요')
-  assert.equal(expressionUnlocks(undefined), null)
+  // EXPRESSION / VOICE_LINE (and STICKER) are not worlds: no content, the stage alone opens EP.01–03.
+  assert.deepEqual(worldContentFromServer(chaerin.unlocks), [])
+  const worlds = mateWorldsForStage(chaerin.relation!.stage, { content: worldContentFromServer(chaerin.unlocks) })
+  assert.deepEqual(worlds.map(world => [world.episode, world.unlocked, world.place]), [[1, true, '준비 중'], [2, true, '준비 중'], [3, true, '준비 중'], [4, false, '준비 중'], [5, false, '준비 중']])
 })
 
 const recordsExample: RecordsResponse = {

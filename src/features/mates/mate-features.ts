@@ -10,17 +10,20 @@
 export type MateFeatureFlags = {
   /** Affinity stage in the panel caption ("3단계 · 친구") and the column's affinity block. */
   affinity: boolean
-  /** Expression collection in the column; picking one makes the panel's big mate wear it. */
-  expressions: boolean
+  /**
+   * 세계관 (mate-worlds.ts) under the affinity in the same card and on the mate page: one place per stage. Needs `affinity`
+   * (the stage decides what is open); with affinity off the whole card is left out.
+   */
+  world: boolean
   /** Unlocked voice lines. Built, but kept hidden until the voice samples ship. */
   voices: boolean
 }
 
-export const MATE_FEATURES_OFF: MateFeatureFlags = { affinity: false, expressions: false, voices: false }
+export const MATE_FEATURES_OFF: MateFeatureFlags = { affinity: false, world: false, voices: false }
 
 export function resolveMateFeatures(isDevelopment: boolean, override: string | null): MateFeatureFlags {
   if (!isDevelopment || override === 'off') return MATE_FEATURES_OFF
-  return { affinity: true, expressions: true, voices: false }
+  return { affinity: true, world: true, voices: false }
 }
 
 /** Affinity stages in the beta PRD (처음 만남 → 단짝): the stage table's length. */

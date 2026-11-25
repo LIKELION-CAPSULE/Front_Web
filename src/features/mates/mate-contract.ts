@@ -42,7 +42,7 @@ export type MateDetailContent = {
  * `CONNECTION_IN_PROGRESS` (connected with this mate now). docs/API_FRONT_GAP_2026-11-25.md §13.
  */
 export const MATE_RESET_CLEARS = ['대화 기록', '대화 맥락(메이트가 기억한 내용)'] as const
-export const MATE_RESET_KEEPS = ['친밀도와 열린 표정', '연결 기록', '크레딧'] as const
+export const MATE_RESET_KEEPS = ['친밀도와 열린 세계관', '연결 기록', '크레딧'] as const
 export type MateContentPort = {
   load: (userId: number, characterId: number) => Promise<MateDetailContent>
   resetConversation?: (input: { userId: number; characterId: number }) => Promise<void>

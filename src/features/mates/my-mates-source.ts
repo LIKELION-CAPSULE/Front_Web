@@ -3,7 +3,6 @@ import type { AvailableMate } from './catalog.ts'
 import { frontMateOf } from './connected-mate.ts'
 import { CAPSULE_COUNT, capsulesForConnection } from './capsule-jar/capsule-floor-layout.ts'
 import type { CapsuleRecord } from './capsule-jar/capsule-jar-types.ts'
-import type { MateExpressionUnlock } from './my-mates-utils.ts'
 
 /** 37 내 메이트 → the my-mates page (use-my-mates.ts reads it). Pure, so the tests import it directly. */
 
@@ -40,18 +39,4 @@ export function estimatedCapsuleCount(view: Pick<MyMateView, 'connectionCount' |
   if (!olderCount) return recent
   const olderSeconds = Math.max(0, view.totalConnectedSeconds - view.recent.reduce((sum, connection) => sum + connection.connectedSeconds, 0))
   return recent + Math.max(olderCount * CAPSULE_COUNT.min, Math.round(olderSeconds / 60 / CAPSULE_COUNT.minutesPerCapsule))
-}
-
-/** 37 `unlocks[]` (EXPRESSION) as the expression collection's tiles. The model's expression name is the tile key. */
-export function expressionUnlocks(view: MyMateView | undefined): MateExpressionUnlock[] | null {
-  const items = view?.unlocks.filter(item => item.type === 'EXPRESSION') ?? []
-  if (!items.length) return null
-  return items.map(item => ({
-    id: item.id,
-    label: item.title,
-    expressionFile: item.expressionName ?? item.title,
-    unlocked: item.unlocked,
-    ...(item.unlockStage !== null ? { unlockStage: item.unlockStage } : {}),
-    ...(item.unlockStageName ? { unlockStageName: item.unlockStageName, condition: `${item.unlockStageName} 단계에서 열려요` } : {}),
-  }))
 }
