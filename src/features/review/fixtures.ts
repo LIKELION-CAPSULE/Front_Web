@@ -17,6 +17,7 @@ export const REVIEW_SESSION_ID = 9001
 const PENDING: Partial<Record<NonNullable<ReviewScenario['fault']>, (method: string, path: string) => boolean>> = {
   'bootstrap-pending': (_, path) => path === '/auth/refresh',
   'kakao-pending': (_, path) => path === '/auth/social/KAKAO',
+  'kakao-signup-pending': (_, path) => path === '/auth/social/KAKAO/signup',
   'home-pending': (_, path) => path === '/home',
   'avatars-pending': (_, path) => path === '/avatars',
   'report-pending': (method, path) => method === 'GET' && /^\/connections\/\d+$/.test(path),
@@ -48,12 +49,16 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     store.data.nextSessionId = REVIEW_SESSION_ID
     store.start(LOCAL_CHARACTER_ID)
   }
-  // The local mock's QA switches (local-demo/transport.ts): a full beta (4 · 6 → 403 BETA_FULL), a coming-soon 서도현.
+  // The local mock's QA switches (local-demo/transport.ts): a full beta (4 · 6 → 403 BETA_FULL), a coming-soon 서도현,
+  // the Kakao sign-up step's failures.
   try {
     if (scenario.fault === 'beta-full') sessionStorage.setItem('capsule-local-beta-full', '1')
     if (scenario.fault === 'coming-soon') sessionStorage.setItem('capsule-local-coming-soon', 'dohyun')
     if (scenario.fault === 'notifications-empty') sessionStorage.setItem('capsule-local-notifications', 'empty')
     if (scenario.fault === 'notifications-error') sessionStorage.setItem('capsule-local-notifications', 'error')
+    if (scenario.fault === 'kakao-signup-invalid') sessionStorage.setItem('capsule-local-kakao-signup', 'invalid')
+    if (scenario.fault === 'kakao-signup-terms') sessionStorage.setItem('capsule-local-kakao-signup', 'terms')
+    if (scenario.fault === 'kakao-consent-off') sessionStorage.setItem('capsule-local-kakao-consent', 'off')
     // A slow 32 for checking the chat while older pages load (`?chatDelay=ms` on the preview address).
     const chatDelay = new URLSearchParams(location.search).get('chatDelay')
     if (chatDelay && /^\d+$/.test(chatDelay)) sessionStorage.setItem('capsule-local-chat-delay', chatDelay)

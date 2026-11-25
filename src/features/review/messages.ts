@@ -47,6 +47,13 @@ export function messagePreview(entry: ReviewMessageEntry): { id: string; exact: 
     return { id: screens[entry.text] ?? 'app-loading', exact: !!screens[entry.text] }
   }
   if (entry.file.includes('KakaoCallbackPage')) return { id: 'kakao-loading', exact: false }
+  if (entry.file.includes('KakaoTermsPage')) {
+    const states: Record<string, string> = {
+      '가입 확인 시간이 지났어요': 'kakao-terms-expired', '가입 요청을 확인하지 못했어요': 'kakao-terms-invalid',
+      '약관이 새로 바뀌었어요. 내용을 다시 확인하고 동의해 주세요.': 'kakao-terms-changed',
+    }
+    return { id: states[entry.text] ?? 'kakao-terms-consent', exact: !!states[entry.text] }
+  }
   return null
 }
 
@@ -56,6 +63,8 @@ export const reviewMessageScenarios: { id: string; tone: ReviewMessageTone }[] =
   { id: 'reset-requested', tone: 'success' }, { id: 'reset-invalid', tone: 'error' }, { id: 'reset-done', tone: 'success' },
   { id: 'kakao-loading', tone: 'loading' }, { id: 'kakao-failed', tone: 'error' }, { id: 'kakao-cancelled', tone: 'info' },
   { id: 'kakao-invalid', tone: 'error' }, { id: 'kakao-terms', tone: 'error' }, { id: 'kakao-error', tone: 'error' },
+  { id: 'kakao-terms-expired', tone: 'error' }, { id: 'kakao-terms-invalid', tone: 'error' }, { id: 'kakao-terms-changed', tone: 'warning' },
+  { id: 'kakao-terms-pending', tone: 'loading' },
   { id:'connection-model-missing',tone:'error' },{ id:'connection-camera-error',tone:'error' },{ id:'connection-finish-error',tone:'error' },{ id:'connection-message-error',tone:'error' },{ id:'connection-record-error',tone:'error' },{ id: 'onboarding-error', tone: 'error' }, { id: 'home-empty', tone: 'empty' }, { id: 'connection-start-error', tone: 'error' },
   { id: 'app-loading', tone: 'loading' }, { id: 'app-error', tone: 'error' },
   { id: 'home-loading', tone: 'loading' }, { id: 'onboarding-loading', tone: 'loading' }, { id: 'kakao-onboarding-loading', tone: 'loading' },

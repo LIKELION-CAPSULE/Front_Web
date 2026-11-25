@@ -14,6 +14,7 @@ const titles: Record<string, string> = {
   '/password/reset': '비밀번호 재설정',
   '/reset-password': '비밀번호 재설정',
   '/oauth/kakao': '카카오 로그인',
+  '/login/kakao-terms': '약관 동의',
 }
 
 /** Mount inside the route Suspense boundary so the actual page is ready before moving focus. */

@@ -24,6 +24,12 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     messages: [201, 202].map(characterId => ({ id: `review-confirmed-${characterId}`, sessionId: String(REVIEW_SESSION_ID), characterId: String(characterId), sender: 'character', text: '좋아, 우리 조금만 더 집중해 보자!', voice: false, delivery: 'confirmed' })),
   }))
   session.setItem('capsule-kakao', JSON.stringify({ state: 'review-state', next: scenario.loginNext ?? '/', redirect: `${location.origin}/oauth/kakao` }))
+  // The consent screen's entry (kakao-signup.ts): a ticket in this tab's session storage, as the callback leaves it.
+  if (scenario.kakaoSignup) session.setItem('capsule-kakao-signup', JSON.stringify({
+    signupToken: `local-signup.${Date.now() + 600_000}.review`,
+    expiresAt: scenario.kakaoSignup === 'expired' ? Date.now() - 1000 : Date.now() + 600_000,
+    next: scenario.loginNext ?? '/',
+  }))
   if (scenario.id !== 'report-no-target') local.setItem(`capsule-session:${REVIEW_USER_ID}:${REVIEW_SESSION_ID}`, JSON.stringify({ targetSeconds: 1800, focus: scenario.cameraFocus }))
   const recordsScenarios = new Set(['records', 'records-two-mates', 'records-past-empty'])
   const recordsCamOffIds = new Set([9004, 9007])
