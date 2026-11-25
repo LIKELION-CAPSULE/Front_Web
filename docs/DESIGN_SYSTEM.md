@@ -281,7 +281,7 @@ Hahmlet은 룸의 분위기를 소개하는 제목과 한 영역의 대표 문�
 
 홈 배너의 인사 말풍선은 `home-greeting`을 사용한다. Pretendard 16/24·500, 640px 미만에서는 14/22·500으로 표시하고 현재의 짧은 인사는 한 줄로 유지한다. 대표 대사용 `story-quote`를 적용하지 않는다. 문구 추가 시 320px에서도 줄바꿈·잘림 없이 들어가는 길이로 작성한다.
 
-목표 기본 스택은 `Pretendard, Apple SD Gothic Neo, sans-serif`, 포인트 스택은 `Hahmlet, Pretendard, serif`다. Hahmlet은 공식 Google Fonts 가변 TTF를 수정 없이 자체 호스팅한다. [폰트 배포 기록](../src/assets/brand/README.md)과 [OFL 원문 고지](../public/licenses/Hahmlet-OFL.txt)를 포함하며, 500·700 굵기를 사용한다. `font-display: swap`과 대체 폰트에서도 버튼·제목·내보내기 레이아웃이 유지되어야 한다.
+목표 기본 스택은 `Pretendard, Apple SD Gothic Neo, sans-serif`, 포인트 스택은 `Hahmlet, Pretendard, serif`다. Hahmlet은 공식 Google Fonts 가변 TTF를 글리프·글자 범위 변경 없이 WOFF2로 압축만 해 자체 호스팅한다. [폰트 배포 기록](../src/assets/brand/README.md)과 [OFL 원문 고지](../public/licenses/Hahmlet-OFL.txt)를 포함하며, 500·700 굵기를 사용한다. `font-display: swap`과 대체 폰트에서도 버튼·제목·내보내기 레이아웃이 유지되어야 한다.
 
 코드 이름은 `--font-sans`, `--font-story`를 사용하고, 숫자 계열은 `--font-sans`를 공유한다. JSON의 `font.numeric`은 다른 폰트 파일이 아니라 숫자 기능 설정이다. Figma에서도 같은 두 서체 계열을 사용한다.
 
