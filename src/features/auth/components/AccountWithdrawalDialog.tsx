@@ -7,9 +7,10 @@ import { FormField } from '@/shared/ui/FormField'
 import { WITHDRAWAL_CONFIRMATION } from '../withdrawal-confirmation'
 
 /**
- * 회원탈퇴 confirmation (the security tab's inline panel, AccountSecurityPanel): the exact phrase, then the withdrawal
- * (a connection still running is refused with a message; success signs out). The former modal wrapper
- * (`AccountWithdrawalDialog`) had no users and was removed.
+ * 회원탈퇴 confirmation (the security tab's panel, open from the start: AccountSecurityPanel): the exact phrase, then
+ * the withdrawal (a connection still running is refused with a message; success signs out). 「취소」 clears what was
+ * typed and any error; `onCancel` is told as well. The former modal wrapper (`AccountWithdrawalDialog`) had no users and
+ * was removed.
  */
 export function AccountWithdrawalContent({ onCancel, onBusyChange }: { onCancel?: () => void; onBusyChange?: (busy: boolean) => void }) {
   const { withdrawAccount } = useBackend()
@@ -41,7 +42,7 @@ export function AccountWithdrawalContent({ onCancel, onBusyChange }: { onCancel?
     </FormField>
     {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
     <div className="mt-6 flex flex-wrap justify-end gap-3">
-      <Button variant="ghost" disabled={busy} onClick={() => { setConfirmation(''); setError(''); onCancel?.() }} data-dialog-initial-focus>취소</Button>
+      <Button variant="ghost" disabled={busy} onClick={() => { setConfirmation(''); setError(''); onCancel?.() }}>취소</Button>
       <Button type="submit" variant="danger-solid" loading={busy} disabled={confirmation !== WITHDRAWAL_CONFIRMATION}>회원탈퇴</Button>
     </div>
   </form>

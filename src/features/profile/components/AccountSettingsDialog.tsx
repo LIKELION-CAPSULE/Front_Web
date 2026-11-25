@@ -113,8 +113,9 @@ export default function AccountSettingsDialog({
   function selectView(next: AccountView, focusTab = false) {
     setView(next)
     main.current?.scrollTo({ top: 0 })
-    if (focusTab) {
-      document.getElementById(`${prefix}-tab-${next}`)?.focus()
+    // 보안 keeps the focus on its tab: the withdrawal field below is open from the start and must never take it.
+    if (focusTab || next === 'security') {
+      document.getElementById(`${prefix}-tab-${next}`)?.focus({ preventScroll: true })
     } else if (document.activeElement instanceof HTMLElement && document.activeElement.getAttribute('role') === 'tab') {
       document.activeElement.blur()
     }

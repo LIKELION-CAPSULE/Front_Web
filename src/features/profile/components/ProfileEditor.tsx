@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
 import { Button } from '@/shared/ui/Button'
@@ -9,6 +9,28 @@ import { AvatarDial } from './AvatarDial'
 import { ABOUT_ME_MAX_LENGTH, nicknameError } from '../profile-input'
 import { NICKNAME_MAX_INPUT_UNITS } from '@/shared/api/constraints'
 
+/**
+ * The dialog is `min(760px, 90dvh)` tall (account-settings.css): below ~600px (a viewport under 667px) the vertical arc
+ * has too little height, so the stills go back to one row under the stage.
+ */
+const LOW_HEIGHT = '(max-height: 666px)'
+function subscribeLowHeight(onChange: () => void) {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {}
+  const media = window.matchMedia(LOW_HEIGHT)
+  media.addEventListener('change', onChange)
+  return () => media.removeEventListener('change', onChange)
+}
+const useLowHeight = () => useSyncExternalStore(
+  subscribeLowHeight,
+  () => typeof window.matchMedia === 'function' && window.matchMedia(LOW_HEIGHT).matches,
+  () => false,
+)
+
+/**
+ * The account settings profile tab, laid out like onboarding step 1: the avatar arc at the content's left edge
+ * (AvatarArcRail), the chosen avatar's Live2D stage with its name and a greeting, and the fields on the login panel's
+ * outlined card at the right. Low dialogs use the row of stills instead of the arc; narrow ones stack.
+ */
 export function ProfileEditor({
   active = true,
   onBusyChange,
@@ -22,6 +44,7 @@ export function ProfileEditor({
   const formId = useId()
   const { state } = useDemo()
   const { avatars, saveProfile, ensureAvatars, accountDetails, saveBetaProfile } = useBackend()
+  const lowHeight = useLowHeight()
 
   // Load avatar choices when the editor opens; without them only the current portrait is offered.
   useEffect(() => {
@@ -56,8 +79,12 @@ export function ProfileEditor({
       (callName.trim() !== (accountDetails?.callName ?? '') ||
         aboutMe.trim() !== (accountDetails?.aboutMe ?? '')))
 
+  // Under the avatar's name, as onboarding greets the nickname being typed.
+  const nickname = name.trim()
+  const greeting = nickname && !nicknameError(nickname) ? `반가워요, ${nickname}님! 이 모습으로 함께할게요.` : '닉네임을 알려 주면 인사할게요.'
+
   return (
-    <section aria-labelledby={headingId} className="profile-editor">
+    <section aria-labelledby={headingId} className="profile-editor" data-rail={lowHeight ? 'row' : 'arc'}>
       <div className="profile-editor-scroll">
         <form
           id={formId}
@@ -94,102 +121,105 @@ export function ProfileEditor({
             }
           }}
         >
-          <div className="profile-editor-grid">
-            <div className="profile-editor-dial-col" data-tour="account-avatar">
-              <AvatarDial
-                size="compact"
-                avatars={choices}
-                value={avatarId ?? 0}
-                disabled={busy}
-                previewActive={active}
-                onChange={(value) => {
-                  setPicked({ id: value === 0 ? undefined : value })
-                  setSaved(false)
-                }}
-                fallback={<AvatarIllustration settings={state.profile.avatar} />}
-              />
-            </div>
+          <div className="profile-editor-stage" data-tour="account-avatar">
+            <AvatarDial
+              size="compact"
+              layout={lowHeight ? 'row' : 'arc'}
+              avatars={choices}
+              value={avatarId ?? 0}
+              disabled={busy}
+              previewActive={active}
+              onChange={(value) => {
+                setPicked({ id: value === 0 ? undefined : value })
+                setSaved(false)
+              }}
+              fallback={<AvatarIllustration settings={state.profile.avatar} />}
+              greeting={greeting}
+            />
+          </div>
 
-            <div className="profile-editor-details">
-              <h2 id={headingId} className="account-settings-title">
-                프로필
-              </h2>
-              <FormField label="닉네임" error={nameError} errorId={`${headingId}-nickname-error`}>
-                <input
-                  className="form-input"
-                  name="nickname"
-                  autoComplete="nickname"
-                  readOnly={busy}
-                  required
-                  maxLength={NICKNAME_MAX_INPUT_UNITS}
-                  value={name}
-                  onChange={(event) => {
-                    setName(event.target.value)
-                    setNameError(undefined)
-                  }}
-                  aria-invalid={!!nameError || undefined}
-                  aria-describedby={nameError ? `${headingId}-nickname-error` : undefined}
-                />
-              </FormField>
+          <div className="profile-editor-side">
+            <div className="profile-editor-panel">
+              <div className="profile-editor-panel-scroll">
+                <h2 id={headingId} className="profile-editor-title">
+                  프로필
+                </h2>
+                <p className="profile-editor-lead">함께할 모습과 이름을 정해요.</p>
+                <FormField label="닉네임" error={nameError} errorId={`${headingId}-nickname-error`}>
+                  <input
+                    className="form-input"
+                    name="nickname"
+                    autoComplete="nickname"
+                    readOnly={busy}
+                    required
+                    maxLength={NICKNAME_MAX_INPUT_UNITS}
+                    value={name}
+                    onChange={(event) => {
+                      setName(event.target.value)
+                      setNameError(undefined)
+                    }}
+                    aria-invalid={!!nameError || undefined}
+                    aria-describedby={nameError ? `${headingId}-nickname-error` : undefined}
+                  />
+                </FormField>
 
-              {saveBetaProfile && (
-                <>
-                  <div className="profile-editor-extra">
-                    <FormField label="호칭">
-                      <input
-                        className="form-input"
-                        name="callName"
-                        value={callName}
-                        onChange={(event) => setCallName(event.target.value)}
-                        readOnly={busy}
-                        aria-describedby={`${headingId}-callName-hint`}
-                      />
-                    </FormField>
-                    <p id={`${headingId}-callName-hint`} className="profile-editor-hint">
-                      메이트가 나를 부르는 이름
-                    </p>
-                  </div>
-                  <div className="profile-editor-extra">
-                    <FormField label="나에 대해">
-                      <input
-                        className="form-input"
-                        name="aboutMe"
-                        value={aboutMe}
-                        maxLength={ABOUT_ME_MAX_LENGTH}
-                        placeholder="예: 대학교 3학년, 요즘 졸업 준비로 바빠요"
-                        onChange={(event) => setAboutMe(event.target.value)}
-                        readOnly={busy}
-                        aria-describedby={`${headingId}-aboutMe-hint`}
-                      />
-                    </FormField>
-                    <p id={`${headingId}-aboutMe-hint`} className="profile-editor-hint profile-editor-hint--count">
-                      <span>하는 일, 요즘 상황</span>
-                      <span className="profile-editor-count">
-                        {aboutMe.length}/{ABOUT_ME_MAX_LENGTH}
-                        <span className="sr-only">자</span>
-                      </span>
-                    </p>
-                  </div>
-                </>
-              )}
+                {saveBetaProfile && (
+                  <>
+                    <div className="profile-editor-extra">
+                      <FormField label="호칭">
+                        <input
+                          className="form-input"
+                          name="callName"
+                          value={callName}
+                          onChange={(event) => setCallName(event.target.value)}
+                          readOnly={busy}
+                          aria-describedby={`${headingId}-callName-hint`}
+                        />
+                      </FormField>
+                      <p id={`${headingId}-callName-hint`} className="profile-editor-hint">
+                        메이트가 나를 부르는 이름
+                      </p>
+                    </div>
+                    <div className="profile-editor-extra">
+                      <FormField label="나에 대해">
+                        <input
+                          className="form-input"
+                          name="aboutMe"
+                          value={aboutMe}
+                          maxLength={ABOUT_ME_MAX_LENGTH}
+                          placeholder="예: 대학교 3학년, 요즘 졸업 준비로 바빠요"
+                          onChange={(event) => setAboutMe(event.target.value)}
+                          readOnly={busy}
+                          aria-describedby={`${headingId}-aboutMe-hint`}
+                        />
+                      </FormField>
+                      <p id={`${headingId}-aboutMe-hint`} className="profile-editor-hint profile-editor-hint--count">
+                        <span>하는 일, 요즘 상황</span>
+                        <span className="profile-editor-count">
+                          {aboutMe.length}/{ABOUT_ME_MAX_LENGTH}
+                          <span className="sr-only">자</span>
+                        </span>
+                      </p>
+                    </div>
+                  </>
+                )}
 
-              {error && (
-                <FeedbackMessage tone="error" className="mt-4">
-                  {error}
-                </FeedbackMessage>
-              )}
-              {saved && !error && (
-                <FeedbackMessage tone="success" className="mt-4">
-                  프로필을 저장했어요.
-                </FeedbackMessage>
-              )}
+                {error && (
+                  <FeedbackMessage tone="error" className="profile-editor-feedback">
+                    {error}
+                  </FeedbackMessage>
+                )}
+                {saved && !error && (
+                  <FeedbackMessage tone="success" className="profile-editor-feedback">
+                    프로필을 저장했어요.
+                  </FeedbackMessage>
+                )}
 
-              <div className="profile-editor-footer">
                 <Button
                   type="submit"
-                  size="md"
                   loading={busy}
                   disabled={busy || !name.trim() || !changed}
+                  className="profile-editor-save"
                 >
                   프로필 저장
                 </Button>

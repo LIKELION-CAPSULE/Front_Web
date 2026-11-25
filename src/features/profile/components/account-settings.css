@@ -7,10 +7,12 @@
 .app-dialog.account-settings-dialog {
   --account-settings-divider: color-mix(in srgb, var(--color-ink) 8%, transparent);
   --form-input-border: transparent;
-  width: min(960px, calc(100% - 32px));
-  max-width: 960px;
-  height: min(640px, 85dvh);
-  max-height: 85dvh;
+  /* One size for every tab (profile, settings, security): larger than the old 960 × 640 so the profile tab fits
+     onboarding's arc, stage and panel. */
+  width: min(1180px, 92vw);
+  max-width: 1180px;
+  height: min(760px, 90dvh);
+  max-height: 90dvh;
   overflow: hidden;
   border: 0;
   border-radius: var(--radius-panel);
@@ -253,8 +255,13 @@
   color: var(--color-ink);
 }
 
-/* Profile Tab: the avatar picker (same component as onboarding) beside a glass panel with the fields. */
+/*
+ * Profile tab: onboarding step 1 inside the dialog (ProfileEditor). The avatar arc at the content's left edge, the big
+ * Live2D stage with the name and greeting over its faded foot (AvatarDial `arc`, avatar-dial.css), and the fields on the
+ * login / onboarding panel at the right: a thin light edge, 20px corners (the design system's panel-outline exception).
+ */
 .profile-editor {
+  --profile-panel-width: clamp(320px, 33cqw, 388px);
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -266,50 +273,88 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  /* The right inset keeps the fields panel clear of the dialog's close button. */
-  padding: 20px 68px 24px 28px;
   overscroll-behavior: contain;
 }
 
-.profile-editor-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
-  gap: 24px;
-  align-items: center;
-  min-height: 100%;
-}
-
 .profile-editor-form {
-  min-height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--profile-panel-width);
+  column-gap: clamp(12px, 2cqw, 28px);
+  height: 100%;
+  min-height: 0;
 }
 
-.profile-editor-dial-col {
-  min-width: 0;
-}
-
-.profile-editor-details {
-  min-width: 0;
+/* Arc + stage: the whole height of the dialog, from the content's left edge. */
+.profile-editor-stage {
   display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+.profile-editor-stage > .avatar-picker { flex: 1; min-height: 0; }
+.profile-editor .avatar-picker[data-layout='arc'] {
+  --arc-r: 440px;
+  --arc-step: 14deg;
+  --arc-bulge: 78px;
+  --arc-size: 72px;
+  --arc-w: 136px;
+}
+.profile-editor .avatar-picker[data-layout='arc'] .avatar-picker-main { padding-top: 12px; }
+.profile-editor .avatar-picker[data-layout='arc'] .avatar-picker-name { font-size: 26px; line-height: 34px; }
+.profile-editor .avatar-picker[data-layout='arc'] .avatar-picker-caption { bottom: 28px; }
+
+/* The panel column: centred in the height, clear of the close button at the top right. */
+.profile-editor-side {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
   flex-direction: column;
-  border-radius: var(--radius-card);
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--color-panel) 68%, transparent),
-    color-mix(in srgb, var(--color-canvas) 62%, transparent)
-  );
-  padding: 22px 22px 20px;
+  justify-content: center;
+  padding: 64px 32px 28px 0;
 }
 
-.profile-editor-details .account-settings-title {
-  margin-bottom: 16px;
-  padding: 0;
+.profile-editor-panel {
+  --text-label: 14px;
+  --text-label--line-height: 20px;
+  --text-control: 15px;
+  --text-control--line-height: 22px;
+  display: flex;
+  min-height: 0;
+  max-height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(250, 250, 253, 0.2);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-canvas) 30%, transparent);
+}
+.profile-editor-panel-scroll {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 28px 28px 30px;
+}
+.profile-editor-panel .form-input { min-height: 48px; padding: 11px 16px; }
+
+.profile-editor-title {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 26px;
+  line-height: 34px;
+  font-weight: 700;
+}
+.profile-editor-lead {
+  margin: 4px 0 20px;
+  color: var(--color-subtle);
+  font-size: 14px;
+  line-height: 22px;
 }
 
-.account-settings-dialog .profile-editor-details .field-label {
+.account-settings-dialog .profile-editor-panel .field-label {
   text-align: left;
 }
 
-.account-settings-dialog .profile-editor-details .form-input {
+.account-settings-dialog .profile-editor-panel .form-input {
   text-align: left;
 }
 
@@ -336,11 +381,32 @@
   font-variant-numeric: tabular-nums;
 }
 
-.profile-editor-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
+.profile-editor-feedback { margin-top: 16px; }
+
+.profile-editor-save.ui-button {
+  width: 100%;
+  min-height: 50px;
+  margin-top: 22px;
 }
+
+/* A low dialog (ProfileEditor `useLowHeight`): the row of stills under a smaller stage, centred in the column. */
+.profile-editor[data-rail='row'] .profile-editor-stage {
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0 12px 28px;
+}
+.profile-editor[data-rail='row'] .avatar-picker {
+  --stage-w: min(100%, 300px, calc((90dvh - 260px) * 0.8));
+  flex: none;
+}
+.profile-editor[data-rail='row'] .profile-editor-side { padding: 52px 28px 20px 0; }
+/* …and a tighter panel, so the save button stays in view without scrolling. */
+.profile-editor[data-rail='row'] .profile-editor-panel-scroll { padding: 20px 24px 22px; }
+.profile-editor[data-rail='row'] .profile-editor-title { font-size: 22px; line-height: 30px; }
+.profile-editor[data-rail='row'] .profile-editor-lead { margin-bottom: 12px; }
+.profile-editor[data-rail='row'] .profile-editor-panel .form-input { min-height: 44px; padding-block: 9px; }
+.profile-editor[data-rail='row'] .profile-editor-extra { margin-top: 10px; }
+.profile-editor[data-rail='row'] .profile-editor-save.ui-button { min-height: 46px; margin-top: 16px; }
 
 /* Settings Tab: 3 grouped sections */
 .connection-settings-groups {
@@ -605,10 +671,6 @@
   margin-top: 0;
 }
 
-.account-withdraw-trigger.ui-button {
-  border: 0;
-}
-
 .account-settings-loading {
   display: grid;
   min-height: 100%;
@@ -667,22 +729,12 @@
     padding-top: 0;
   }
 
-  .profile-editor-scroll,
   .account-settings-main-scroll {
     padding: 18px 18px 28px;
   }
 
   .account-settings-title.account-settings-main-title {
     padding: 18px 18px 0;
-  }
-
-  .profile-editor-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 18px;
-  }
-
-  .profile-editor-details {
-    padding: 18px 16px;
   }
 
   .account-security-row {
@@ -728,3 +780,35 @@
   padding: 0 4px;
 }
 .connection-settings-sections > .connection-settings-save-error { margin: 0; }
+
+/*
+ * Narrow dialogs stack the profile tab: the arc and the stage on top (their own height), the panel below, and the tab
+ * scrolls. The dialog is 92vw wide, so this covers 900px windows and below (and a little above, where the panel, the
+ * stage and the arc no longer fit side by side).
+ */
+@container account-window (max-width: 979px) {
+  .profile-editor-form {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    row-gap: 8px;
+  }
+  .profile-editor[data-rail='arc'] .profile-editor-stage { height: clamp(380px, 56dvh, 480px); }
+  .profile-editor[data-rail='row'] .profile-editor-stage { padding: 20px 20px 8px; }
+  .profile-editor-side,
+  .profile-editor[data-rail='row'] .profile-editor-side { align-items: center; padding: 0 24px 28px; }
+  .profile-editor-panel { width: min(460px, 100%); max-height: none; overflow: visible; }
+  .profile-editor-panel-scroll { overflow: visible; }
+}
+@container account-window (max-width: 719px) {
+  .profile-editor[data-rail='arc'] .avatar-picker[data-layout='arc'] { --arc-r: 380px; --arc-step: 16deg; --arc-bulge: 64px; --arc-size: 60px; --arc-w: 112px; }
+  .profile-editor-side,
+  .profile-editor[data-rail='row'] .profile-editor-side { padding: 0 16px 24px; }
+  .profile-editor-panel-scroll { padding: 22px 18px 24px; }
+}
+
+/* Settings and security in the wider dialog: the rows keep a readable width instead of running across it. */
+.account-settings-main-title,
+.account-settings-main-scroll > .account-settings-panel {
+  width: 100%;
+  max-width: 820px;
+}
