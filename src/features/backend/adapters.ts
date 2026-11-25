@@ -65,6 +65,25 @@ export function mateRoom(card: MateCard): StudyRoom {
   }
 }
 
+/**
+ * 17's last heartbeat totals. The server always sends all four (0 before any heartbeat), so a missing, non-numeric or
+ * negative value, or totals that break `present ≤ cameraOn ≤ connected` / `pip ≤ connected`, is a malformed response
+ * (502), never silently repaired: continuing from wrong totals would make the next heartbeat or end fail (400).
+ */
+export function resumeTotals(dto: ResumeResponse, connected: number) {
+  const value = (input: unknown) => {
+    if (typeof input !== 'number' || !Number.isFinite(input) || input < 0) throw new ApiError('연결 응답을 확인하지 못했어요.', 502)
+    return input
+  }
+  const presentSeconds = value(dto.presentSeconds)
+  const cameraOnSeconds = value(dto.cameraOnSeconds)
+  const pipSeconds = value(dto.pipSeconds)
+  if (presentSeconds > cameraOnSeconds || cameraOnSeconds > connected || pipSeconds > connected) {
+    throw new ApiError('연결 응답의 시간 기록을 확인하지 못했어요.', 502)
+  }
+  return { presentSeconds, cameraOnSeconds, pipSeconds }
+}
+
 /** 16 start / 17 resume → the running connection. `id` is the connection id; room and character are the mate id. */
 export function session(dto: StartResponse | ResumeResponse, now = Date.now()): ActiveSession {
   if (!dto.mate) throw new ApiError('연결 응답을 확인하지 못했어요.', 502)
@@ -72,7 +91,7 @@ export function session(dto: StartResponse | ResumeResponse, now = Date.now()): 
   const offset = timestamp(dto.serverTime) - now
   const start = 'startedAt' in dto && dto.startedAt !== undefined ? timestamp(dto.startedAt) - offset : undefined
   // 17: time while disconnected does not count, so the connection continues from the last heartbeat total.
-  const connected = start === undefined ? seconds((dto as ResumeResponse).connectedSeconds ?? 0) : Math.max(0, (now - start) / 1000)
+  const connected = start === undefined ? seconds((dto as ResumeResponse).connectedSeconds) : Math.max(0, (now - start) / 1000)
   const active: ActiveSession = {
     id: id(dto.connectionId), roomId: mateId, characterIds: [mateId], serverSession: true, serverOffsetMs: offset,
     tier: 'basic', paidCredits: 0, phase: 'study', elapsedMs: connected * 1000, runningSince: now,
@@ -81,15 +100,7 @@ export function session(dto: StartResponse | ResumeResponse, now = Date.now()): 
     camera: false, focus: { observedMs: 0, focusedMs: 0, returns: 0 },
     presenceKnown: true,
   }
-  if (start === undefined) {
-    const resume = dto as ResumeResponse
-    const cameraOnSeconds = Math.min(connected, optionalSeconds(resume.cameraOnSeconds))
-    active.initialTotals = {
-      cameraOnSeconds,
-      presentSeconds: Math.min(cameraOnSeconds, optionalSeconds(resume.presentSeconds)),
-      pipSeconds: Math.min(connected, optionalSeconds(resume.pipSeconds)),
-    }
-  }
+  if (start === undefined) active.initialTotals = resumeTotals(dto as ResumeResponse, connected)
   return active
 }
 

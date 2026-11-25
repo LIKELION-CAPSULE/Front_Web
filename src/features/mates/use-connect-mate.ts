@@ -21,8 +21,9 @@ export function useConnectMate(mate: AvailableMate | null | undefined) {
     setBusy(true)
     setError('')
     try {
-      await connectMate(mate.id)
-      if (mounted.current) navigate(`/connect/${mate.id}`)
+      // The connection that continued may be another mate's (409 hand-off): go to that mate's call, which shows why.
+      const connection = await connectMate(mate.id)
+      if (mounted.current) navigate(`/connect/${connection.mateId ?? mate.id}`)
     } catch (reason) {
       if (!mounted.current) return
       if (reason instanceof EndedConnectionError) navigate(`/connections/${reason.connectionId}`, { replace: true })

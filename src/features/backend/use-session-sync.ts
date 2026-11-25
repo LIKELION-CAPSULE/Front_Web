@@ -15,6 +15,7 @@ import { escalateAway, eventQueued, takeHeldReaction, type EventFlow, type HeldR
 import { IDLE_TALK_EVENT, IdleTalkTimer } from './idle-talk'
 import { flushSessionOutbox } from './session-outbox'
 import { isConnectionEnded } from './ended-connection'
+import { minorDeadlineOf } from '../mates/minor-limit'
 
 export type SessionTotals = ConnectionTotals
 const totalsBySession = new Map<string, () => SessionTotals>()
@@ -33,6 +34,7 @@ export function readSessionStorageItem(key: string) {
 }
 
 const connectionPath = (id: string) => `/connections/${id}`
+
 const pipOpen = () => { const window_ = documentPipApi(window)?.window; return Boolean(window_ && !window_.closed) }
 
 type Input = {
@@ -77,7 +79,7 @@ export function useSessionSync(input: Input) {
   const [error, setError] = useState('')
   const [presentSeconds, setPresentSeconds] = useState(0)
   /** API 21 results of the current connection (`signature`): under-19 remaining seconds and the `stageUp` preview. */
-  const [pulse, setPulse] = useState<{ signature: string; minorRemainingSeconds: number | null; stageUp: StageUp | null } | null>(null)
+  const [pulse, setPulse] = useState<{ signature: string; minorDeadline: number | null; stageUp: StageUp | null } | null>(null)
   const latest = useRef(input)
   const runtime = useRef<Runtime | null>(null)
   useLayoutEffect(() => { latest.current = input }, [input])
@@ -220,7 +222,7 @@ export function useSessionSync(input: Input) {
       setError('')
       if (result) setPulse(previous => ({
         signature: current.signature,
-        minorRemainingSeconds: typeof result.minorRemainingSeconds === 'number' ? result.minorRemainingSeconds : null,
+        minorDeadline: minorDeadlineOf(result.minorRemainingSeconds, result.serverTime, latest.current.active?.serverOffsetMs, Date.now()),
         stageUp: result.stageUp ?? (previous?.signature === current.signature ? previous.stageUp : null),
       }))
     } catch (reason) { fail(reason, current) }
@@ -284,7 +286,7 @@ export function useSessionSync(input: Input) {
   }, [])
   const current = pulse?.signature === signature ? pulse : null
   /** API 16 · 17 value until the first heartbeat of this connection answers. */
-  const minorRemainingSeconds = current ? current.minorRemainingSeconds
-    : typeof visuals?.minorRemainingSeconds === 'number' ? visuals.minorRemainingSeconds : null
-  return { error, retry, presentSeconds, cancelReaction, minorRemainingSeconds, stageUp: current?.stageUp ?? null }
+  const minorDeadline = current ? current.minorDeadline
+    : minorDeadlineOf(visuals?.minorRemainingSeconds, visuals?.serverTime, input.active?.serverOffsetMs, null)
+  return { error, retry, presentSeconds, cancelReaction, minorDeadline, stageUp: current?.stageUp ?? null }
 }

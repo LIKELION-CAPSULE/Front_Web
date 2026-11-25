@@ -5,6 +5,7 @@ import { DemoContext } from './demo-context'
 import { betaReducer, type ConnectionReducer } from '@/features/backend/beta-reducer'
 import { readConnectionCache, serverMessages, serverRecords, writeConnectionCache } from '@/features/backend/connection-cache'
 import type { DemoState, FocusTotals, Message, TierId } from './types'
+import type { ConnectionModeChoice } from '@/features/backend/backend-context'
 import { normalizeFocusTotals } from '@/features/session/focus'
 import { api, ApiError } from '@/shared/api/client'
 import { QueryCache } from '@/shared/api/query-cache'
@@ -22,6 +23,8 @@ import { Live2DStage } from '@/features/live2d/live2d-stage'
 import { SessionModel, type AlivingStageFactory, type SessionModelFactory, type SessionModelStage } from '@/features/live2d/session-model'
 import { AlivingSessionStage } from '@/features/mate-render/AlivingSessionStage'
 import { availableMates } from '@/features/mates/catalog'
+import { showConnectionNotice } from '@/features/mates/connection-notice'
+import { connectedMate } from '@/features/mates/connected-mate'
 import { isSessionSurface } from '@/features/mates/session-surface'
 import { matePortrait } from '@/features/mates/artwork'
 import type { BetaAccountPort, BetaAccountResult, BetaOnboardingInput, BetaProfileInput, BetaSignupInput } from '@/features/auth/beta-account'
@@ -97,6 +100,14 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   const previousPath = useRef(pathname)
   /** A referral code typed at signup, entered (36) after the new account signs in. */
   const pendingReferral = useRef<string | null>(null)
+  /**
+   * The conversation mode of the running connection (T-7; BASIC 0 · ADVANCED 30 credits a turn), the same in production
+   * and the local mock: starts from the start response's `settings.defaultMode`, the call screen applies the account
+   * setting and its toggle, and every message sends it (20 · 28 `mode`).
+   */
+  const [connectionMode, setConnectionModeState] = useState<{ id: string | null; mode: ConnectionModeChoice }>({ id: null, mode: 'basic' })
+  const connectionModeRef = useRef(connectionMode)
+  useLayoutEffect(() => { connectionModeRef.current = connectionMode }, [connectionMode])
   useLayoutEffect(() => { stateRef.current = state }, [state])
   useLayoutEffect(() => { currentPath.current = pathname }, [pathname])
   useEffect(() => () => models.release(), [models])
@@ -305,8 +316,17 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
       throw error
     }
   }, [clear, loadUser, accountPort])
+  /** Work to finish before signing out (e.g. settings still waiting to be saved); each gets at most 2 s. */
+  const beforeSignOut = useRef(new Set<() => Promise<unknown>>())
+  const onBeforeSignOut = useCallback((task: () => Promise<unknown>) => {
+    const tasks = beforeSignOut.current
+    tasks.add(task)
+    return () => { tasks.delete(task) }
+  }, [])
   const logout = useCallback(async () => {
     const account = accountScope(() => epoch.current)
+    const pendingWork = [...beforeSignOut.current].map(task => Promise.race([task().catch(() => undefined), new Promise(resolve => setTimeout(resolve, 2000))]))
+    if (pendingWork.length) await account.wait(Promise.all(pendingWork))
     await account.wait(api.waitForRefresh())
     await account.wait(api.request('/auth/logout', { method: 'POST', auth: false }))
     clear()
@@ -507,6 +527,15 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   }, [accountPort, applyAccountResult])
   // Retired source previews still type-check, but cannot call the schedule API.
   const createMemory = useCallback(async (): Promise<never> => { throw new ApiError('요청을 처리하지 못했어요.', 410) }, [])
+  const setConnectionMode = useCallback((mode: ConnectionModeChoice) => {
+    const active = stateRef.current.activeSession
+    if (!active) return
+    if (connectionModeRef.current.id === active.id && connectionModeRef.current.mode === mode) return
+    connectionModeRef.current = { id: active.id, mode }
+    setConnectionModeState(connectionModeRef.current)
+    // The local preview's credit simulation follows the same choice.
+    featurePort?.setSettings({ advanced: mode === 'advanced' })
+  }, [featurePort])
   const installSession = useCallback(async (dto: StartResponse | ResumeResponse) => {
     const generation = epoch.current
     const entry = { pathname: currentPath.current }
@@ -534,6 +563,11 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
       }
       setLive2dStage(stage)
       pendingSession.current = null
+      const previousMode = connectionModeRef.current
+      const mode: ConnectionModeChoice = previousMode.id === active.id ? previousMode.mode
+        : 'settings' in dto && dto.settings?.defaultMode === 'ADVANCED' ? 'advanced' : 'basic'
+      connectionModeRef.current = { id: active.id, mode }
+      setConnectionModeState(connectionModeRef.current)
       patch({ activeSession: active, firstVisit: false })
       invalidateSessionQueries()
       setMeta(previous => ({ ...previous, visuals: dto, activeSummary: null }))
@@ -631,7 +665,10 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     const active = current ?? (summary?.connectionId
       ? await resumeSession(String(summary.connectionId))
       : await startSession(mate.roomId, mate.characterId))
-    const connection = { ...active, mateId: mate.id }
+    // The 409 hand-off may continue another mate's connection: it stays that mate's (connected-mate.ts).
+    const actual = connectedMate(mate, active.characterIds[0], availableMates(meta.home))
+    if (actual.notice) showConnectionNotice(actual.notice)
+    const connection = { ...active, mateId: actual.mate?.id ?? active.mateId }
     patch({ activeSession: connection })
     return connection
   }, [meta.home, meta.activeSummary, startSession, resumeSession, patch])
@@ -710,9 +747,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     })
     // The user's line shows right away so streamed reply text appears below it.
     upsert({ id: `${requestId}:user`, requestId, sessionId: current.id, characterId, sender: 'user', text: content.trim(), voice: false, createdAt: Date.now(), delivery: 'pending' })
-    // The conversation mode (BASIC 0 · ADVANCED 30 credits a turn). Only the local preview's feature port carries the
-    // choice today; production sends BASIC until the connection screen passes its mode (T-7) here.
-    const mode = betaSettings?.advanced ? 'ADVANCED' : 'BASIC'
+    const mode = connectionModeRef.current.id === current.id && connectionModeRef.current.mode === 'advanced' ? 'ADVANCED' : 'BASIC'
     try {
       const result = await accountScope(() => epoch.current).wait(streamMessage(api, adapt.numericId(current.id), { requestId, characterId: adapt.numericId(characterId), content: content.trim(), inputType, mode, tts: false }, {
         onReply: text => { if (live()) upsert(reply(text)) },
@@ -730,9 +765,11 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     } catch (error) {
       // As with API 20, a failed send leaves no messages; sending the same text again reuses the requestId.
       if (live()) patch({ messages: stateRef.current.messages.filter(value => value.requestId !== requestId) })
+      // Not enough credits for ADVANCED (409, nothing saved): back to BASIC, as the server suggests; the message says so.
+      if (error instanceof ApiError && error.code === 'CREDIT_INSUFFICIENT' && connectionModeRef.current.id === current.id) setConnectionMode('basic')
       throw error
     } finally { operations.delete(key) }
-  }, [patch, updateAffinity, betaSettings?.advanced])
+  }, [patch, updateAffinity, setConnectionMode])
   /** API 23 `GET /connections/{id}`: the record of an ended connection (409 `CONNECTION_IN_PROGRESS` while it runs). */
   const loadReport = useCallback(async (sessionId: string) => {
     if (stateRef.current.records.some(value => value.id === sessionId)) return
@@ -754,7 +791,8 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   }, [patch])
   return (
     <DemoContext value={{ state, dispatch, storageAvailable }}>
-      <BackendContext value={{ ...meta, featurePort, betaSettings, loadMateDetail: matePort ? loadMateDetail : null, resetMateConversation: matePort?.resetConversation ? resetMateConversation : null, previewModelFactory: modelFactory, betaSignup: accountPort ? betaSignup : null, completeOnboarding: accountPort ? completeOnboarding : null, saveBetaProfile: accountPort ? saveBetaProfile : null, validateReferralCode: accountPort?.validateReferralCode ? validateReferralCode : null, live2dStage, reload, refreshHome, ensureAvatars, updateAffinity, authenticate, logout, withdrawAccount, forgetAuthentication: clear, saveProfile, createMemory, startSession, connectMate, resumeSession, finishSession, acknowledgeEndedSession, sendMessage, loadReport }}>
+      <BackendContext value={{ ...meta, featurePort, betaSettings, loadMateDetail: matePort ? loadMateDetail : null, resetMateConversation: matePort?.resetConversation ? resetMateConversation : null, previewModelFactory: modelFactory, betaSignup: accountPort ? betaSignup : null, completeOnboarding: accountPort ? completeOnboarding : null, saveBetaProfile: accountPort ? saveBetaProfile : null, validateReferralCode: accountPort?.validateReferralCode ? validateReferralCode : null, live2dStage, reload, refreshHome, ensureAvatars, updateAffinity, authenticate, logout, withdrawAccount, forgetAuthentication: clear, saveProfile, createMemory, startSession, connectMate, resumeSession, finishSession, acknowledgeEndedSession, sendMessage, loadReport,
+        connectionMode: connectionMode.id && connectionMode.id === state.activeSession?.id ? connectionMode.mode : 'basic', setConnectionMode, onBeforeSignOut }}>
         {children}
       </BackendContext>
     </DemoContext>

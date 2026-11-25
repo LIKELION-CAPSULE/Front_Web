@@ -11,6 +11,9 @@ import type { MateServerRelationStats, MateUnlocks } from '@/features/mates/my-m
 import type { SessionModelFactory } from '@/features/live2d/session-model'
 import type { BetaFeaturePort, BetaFeatureSnapshot } from './beta-feature-port'
 
+/** The conversation mode of a connection (T-7): BASIC 0 · ADVANCED 30 credits a turn. */
+export type ConnectionModeChoice = 'basic' | 'advanced'
+
 export type BackendContextValue = {
   status: 'loading' | 'ready' | 'error'
   loadingStage: LoadingStage
@@ -66,6 +69,11 @@ export type BackendContextValue = {
   acknowledgeEndedSession: (sessionId: string, expectedUserId: number) => boolean
   sendMessage: (characterId: string, content: string, inputType?: 'TEXT' | 'QUICK') => Promise<MessageResponse>
   loadReport: (sessionId: string) => Promise<void>
+  /** The running connection's conversation mode, sent with every message (20 · 28 `mode`). */
+  connectionMode: ConnectionModeChoice
+  setConnectionMode: (mode: ConnectionModeChoice) => void
+  /** Registers work to finish before signing out (at most 2 s each); returns the unregister function. */
+  onBeforeSignOut: (task: () => Promise<unknown>) => () => void
 }
 export const BackendContext = createContext<BackendContextValue | null>(null)
 export function useBackend() {

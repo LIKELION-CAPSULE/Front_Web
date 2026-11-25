@@ -48,12 +48,19 @@ test('server time corrects a skewed local clock without a study goal', () => {
   assert.equal(active.initialTotals, undefined)
 })
 
-test('resume continues from the last heartbeat totals and keeps them ordered', () => {
-  const active = session({ ...base, connectedSeconds: 120, presentSeconds: 90, cameraOnSeconds: 200, pipSeconds: 500 }, Date.parse(serverTime))
+test('resume continues from the last heartbeat totals; malformed totals are refused, zeros accepted', () => {
+  const active = session({ ...base, connectedSeconds: 120, presentSeconds: 90, cameraOnSeconds: 100, pipSeconds: 30 }, Date.parse(serverTime))
   assert.equal(active.studySeconds, 120)
   assert.equal(active.elapsedMs, 120_000)
-  assert.deepEqual(active.initialTotals, { cameraOnSeconds: 120, presentSeconds: 90, pipSeconds: 120 })
+  assert.deepEqual(active.initialTotals, { presentSeconds: 90, cameraOnSeconds: 100, pipSeconds: 30 })
   assert.equal(active.presenceKnown, true)
+  assert.deepEqual(session({ ...base, connectedSeconds: 0, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0 }, Date.parse(serverTime)).initialTotals,
+    { presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0 }, 'a server that sends 0 is fine')
+  const good = { ...base, connectedSeconds: 120, presentSeconds: 90, cameraOnSeconds: 100, pipSeconds: 30 }
+  for (const bad of [
+    { ...good, presentSeconds: undefined }, { ...good, cameraOnSeconds: '100' }, { ...good, pipSeconds: -1 }, { ...good, connectedSeconds: NaN },
+    { ...good, presentSeconds: 101 }, { ...good, cameraOnSeconds: 121 }, { ...good, pipSeconds: 121 },
+  ]) assert.throws(() => session(bad as never, Date.parse(serverTime)), { status: 502 }, JSON.stringify(bad))
   assert.throws(() => session({ connectionId: 512, serverTime }))
 })
 

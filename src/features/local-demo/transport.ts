@@ -64,11 +64,23 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
   const figure = (mate: LocalMate) => ({ id: mate.characterId, name: mate.name, profileImageUrl: mateArtwork(mate.mateId)?.card,
     // v2 (Aliving2D) model; the server sends `format: ALIVING2D_V2`.
     ...LOCAL_V2_MODELS[mate.mateId], format: 'ALIVING2D_V2' })
+  /**
+   * QA: `sessionStorage['capsule-local-minor-seconds'] = '600'` makes the account under 19 with that many seconds left
+   * today when the connection starts (API 16 · 17 · 21 `minorRemainingSeconds`); unset, an adult (null).
+   */
+  const minorRemaining = () => {
+    let raw: string | null = null
+    try { raw = globalThis.sessionStorage?.getItem('capsule-local-minor-seconds') ?? null } catch { /* Storage blocked. */ }
+    const total = raw === null ? NaN : Number(raw)
+    if (!Number.isFinite(total)) return null
+    const active = store.data.active
+    return Math.max(0, Math.floor(total - (active ? (Date.now() - active.startedAt) / 1000 : 0)))
+  }
   const figures = () => {
     const mate = store.activeMate()
     return { connectionId: store.data.active!.id, mate: figure(mate),
       me: { nickname: store.data.nickname, honorific: store.data.details.callName || null, profileImageUrl: image() },
-      serverTime: new Date().toISOString(), minorRemainingSeconds: null, backgrounds: [], background: null }
+      serverTime: new Date().toISOString(), minorRemainingSeconds: minorRemaining(), backgrounds: [], background: null }
   }
   const detail = (mate: LocalMate): MateDetailResponse => ({
     id: mate.characterId, name: mate.name, oneLiner: null, ageRating: 'ALL', hashtags: [], illustrationUrl: mateArtwork(mate.mateId)?.hero ?? null,
@@ -175,6 +187,10 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
     }
     if (path === '/me') return reply(store.me(image()))
     if (path === '/me/settings' && method === 'PATCH') {
+      // QA: `sessionStorage['capsule-local-settings-fail'] = '1'` makes saving fail (the settings tab's 「다시 저장」).
+      let failing = false
+      try { failing = globalThis.sessionStorage?.getItem('capsule-local-settings-fail') === '1' } catch { /* Storage blocked. */ }
+      if (failing) return error('LOCAL_TEST_FAILURE', 503)
       for (const [key, value] of Object.entries(body)) {
         if (!(key in SETTING_VALUES) || value !== null && !SETTING_VALUES[key as keyof UserSettings](value)) return error('INVALID_SETTINGS', 400)
       }
@@ -302,7 +318,7 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
     if (operation === 'heartbeat' || operation === 'end') {
       if (!validConnectionTotals(body, (Date.now() - active.startedAt) / 1000)) return error('INVALID_CONNECTION_TIME', 400)
       const totals = { connectedSeconds: body.connectedSeconds, presentSeconds: body.presentSeconds, cameraOnSeconds: body.cameraOnSeconds, pipSeconds: body.pipSeconds }
-      if (operation === 'heartbeat') { store.heartbeat(totals); return reply({ minorRemainingSeconds: null, serverTime: new Date().toISOString(), stageUp: null }) }
+      if (operation === 'heartbeat') { store.heartbeat(totals); return reply({ minorRemainingSeconds: minorRemaining(), serverTime: new Date().toISOString(), stageUp: null }) }
       const endType = (body.endType ?? 'NORMAL') as EndType
       if (!END_TYPES.has(endType)) return error('INVALID_REQUEST', 400)
       return reply(store.finish(totals, endType))

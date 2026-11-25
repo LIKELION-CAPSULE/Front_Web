@@ -109,7 +109,7 @@ test('acknowledging a server-ended connection releases only the matching account
     if (path === '/me') return me as T
     if (path === '/avatars') return { avatars: [] } as T
     if (path === '/home') return { mates: [] } as T
-    if (path.endsWith('/resume')) return { connectionId: Number(path.split('/')[2]), mate: character, connectedSeconds: 65, serverTime: new Date().toISOString() } as T
+    if (path.endsWith('/resume')) return { connectionId: Number(path.split('/')[2]), mate: character, connectedSeconds: 65, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     throw new Error(`Unexpected request: ${path}`)
   }
   await backend.authenticate({ accessToken: 'isolated-ended-session' })
@@ -134,7 +134,7 @@ test('a late message failure after authentication changes cannot report the new 
     if (path === '/me') return me as T
     if (path === '/avatars') return { avatars: [] } as T
     if (path === '/home') return { mates: [] } as T
-    if (path.endsWith('/resume')) return { connectionId: Number(path.split('/')[2]), mate: { id: 42, name: 'mate', modelJsonUrl: '/mate.model3.json' }, connectedSeconds: 65, serverTime: new Date().toISOString() } as T
+    if (path.endsWith('/resume')) return { connectionId: Number(path.split('/')[2]), mate: { id: 42, name: 'mate', modelJsonUrl: '/mate.model3.json' }, connectedSeconds: 65, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     throw new Error(`Unexpected request: ${path}`)
   }
   await backend.authenticate({ accessToken: 'isolated-before' })
@@ -235,7 +235,7 @@ test('confirmed start and resume responses invalidate home even when the model c
     if (path === '/me') return { ...me, onboardingRequired: false } as T
     if (path === '/home') { homeReads++; return { mates: [{ id: 42, name: 'mate' }] } as T }
     if (path === '/connections') return { connectionId: 31, mate: character, startedAt: new Date().toISOString(), serverTime: new Date().toISOString() } as T
-    if (path === '/connections/31/resume') return { connectionId: 31, mate: character, connectedSeconds: 0, serverTime: new Date().toISOString() } as T
+    if (path === '/connections/31/resume') return { connectionId: 31, mate: character, connectedSeconds: 0, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     throw new Error(`Unexpected request: ${path}`)
   }
   await backend.authenticate({ accessToken: 'isolated-home-invalidation' })
@@ -260,7 +260,7 @@ test('resume rejects a different connection or mate before replacing the current
     if (path === '/me') return me as T
     if (path === '/avatars') return { avatars: [] } as T
     if (path === '/home') return { mates: [] } as T
-    if (path === '/connections/31/resume') return { connectionId: mismatch === 'session' ? 32 : 31, mate: { id: mismatch === 'mate' ? 43 : 42, name: 'mate', modelJsonUrl: '/mate.model3.json' }, connectedSeconds: 65, serverTime: new Date().toISOString() } as T
+    if (path === '/connections/31/resume') return { connectionId: mismatch === 'session' ? 32 : 31, mate: { id: mismatch === 'mate' ? 43 : 42, name: 'mate', modelJsonUrl: '/mate.model3.json' }, connectedSeconds: 65, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     throw new Error(`Unexpected request: ${path}`)
   }
   await backend.authenticate({ accessToken: 'isolated-resume-identity' })
@@ -326,7 +326,7 @@ for (const entry of ['start', 'resume'] as const) {
       if (path !== '/connections' && path !== '/connections/31/resume') throw new Error(`Unexpected request: ${path}`)
       const now = new Date().toISOString()
       return { connectionId: 31, mate: character, serverTime: now,
-        ...(entry === 'start' ? { startedAt: now } : { connectedSeconds: 65 }),
+        ...(entry === 'start' ? { startedAt: now } : { connectedSeconds: 65, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0 }),
       } as T
     }
     const active = entry === 'start' ? await backend.startSession('42', '42', 3) : await backend.resumeSession('31')
@@ -355,7 +355,7 @@ test('a cancelled entry cannot destroy the pending model reused by a newer entry
     if (path === '/avatars') return { avatars: [] } as T
     if (path.endsWith('/resume')) {
       if (++requests === 2) resumed.resolve()
-      return { connectionId: 31, mate: character, connectedSeconds: 0, serverTime: new Date().toISOString() } as T
+      return { connectionId: 31, mate: character, connectedSeconds: 0, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     }
     throw new Error(`Unexpected request: ${path}`)
   }
@@ -393,7 +393,7 @@ test('changing accounts releases the old model and its late completion cannot de
   api.request = async <T>(path: string) => {
     if (path === '/me') return me as T
     if (path === '/avatars') return { avatars: [] } as T
-    if (path.endsWith('/resume')) return { connectionId: 31, mate: { id: 42, modelJsonUrl: '/friend.model3.json' }, connectedSeconds: 0, serverTime: new Date().toISOString() } as T
+    if (path.endsWith('/resume')) return { connectionId: 31, mate: { id: 42, modelJsonUrl: '/friend.model3.json' }, connectedSeconds: 0, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
     throw new Error(`Unexpected request: ${path}`)
   }
   setServerRooms(roomInfo)
@@ -416,4 +416,55 @@ test('changing accounts releases the old model and its late completion cannot de
   stages[1]!.listeners.forEach(callback => callback())
   assert.equal((await newEntry).id, '31')
   assert.equal(stages[1]!.destroyed, 0)
+})
+
+test('a start handed over (409) to a connection with another mate resumes that mate\'s connection', async () => {
+  const backend = mount(() => ({ getStatus: () => 'ready', subscribe: () => () => {}, attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() {} }))
+  api.request = async <T>(path: string) => {
+    if (path === '/me') return me as T
+    if (path === '/avatars') return { avatars: [] } as T
+    if (path === '/connections') throw new ServerApiError('이미 진행 중인 연결이 있어요.', 409, 'CONNECTION_ALREADY_IN_PROGRESS', { connectionId: 77 })
+    if (path === '/connections/77/resume') return { connectionId: 77, mate: { id: 43, name: '서진', modelJsonUrl: '/seojin.model3.json' }, connectedSeconds: 30, presentSeconds: 0, cameraOnSeconds: 0, pipSeconds: 0, serverTime: new Date().toISOString() } as T
+    throw new Error(`Unexpected request: ${path}`)
+  }
+  await backend.authenticate({ accessToken: 'isolated-other-mate' })
+  setServerRooms([{ id: '42', name: '채린', serverRoom: true, characters: [{ id: '42', name: '채린', serverCharacter: true }] }])
+  const connection = await backend.startSession('42', '42')
+  assert.equal(connection.id, '77')
+  assert.deepEqual(connection.characterIds, ['43'], 'the mate the server is connected with')
+  assert.equal(backend.acknowledgeEndedSession('77', 7), true)
+})
+
+test('production (no feature port) sends the connection mode it holds; not enough credits falls back to BASIC', async () => {
+  const backend = mount(() => ({ getStatus: () => 'ready', subscribe: () => () => {}, attach() {}, detach() {}, setTracking() {}, setExpression() {}, destroy() {} }))
+  const character = { id: 42, name: '채린', modelJsonUrl: '/mate.model3.json' }
+  api.request = async <T>(path: string) => {
+    if (path === '/me') return { ...me, onboardingRequired: false } as T
+    if (path === '/home') return { mates: [{ id: 42, name: '채린' }] } as T
+    if (path === '/connections') return { connectionId: 31, mate: character, startedAt: new Date().toISOString(), serverTime: new Date().toISOString(), settings: { defaultMode: 'BASIC' } } as T
+    throw new Error(`Unexpected request: ${path}`)
+  }
+  await backend.authenticate({ accessToken: 'isolated-mode' })
+  setServerRooms([{ id: '42', name: '채린', serverRoom: true, characters: [{ id: '42', name: '채린', serverCharacter: true }] }])
+  await backend.startSession('42', '42')
+  const modes: unknown[] = []
+  let refuse = false
+  const originalStream = api.stream
+  api.stream = (async (_path: string, options: { body?: { mode?: string; requestId?: string; characterId?: number } }, onEvent: (event: { event: string; data: string }) => void) => {
+    modes.push(options.body?.mode)
+    if (refuse) throw new ServerApiError('크레딧이 부족해요.', 409, 'CREDIT_INSUFFICIENT', { credits: {} })
+    onEvent({ event: 'done', data: JSON.stringify({ requestId: options.body?.requestId, characterId: options.body?.characterId, content: '응.' }) })
+    return { type: 'events' }
+  }) as typeof api.stream
+  try {
+    await backend.sendMessage('42', '안녕')
+    backend.setConnectionMode('advanced')
+    await backend.sendMessage('42', '고급으로')
+    refuse = true
+    await assert.rejects(backend.sendMessage('42', '또 고급'), { code: 'CREDIT_INSUFFICIENT' })
+    refuse = false
+    await backend.sendMessage('42', '이번엔')
+    assert.deepEqual(modes, ['BASIC', 'ADVANCED', 'ADVANCED', 'BASIC'])
+  } finally { api.stream = originalStream }
+  assert.equal(backend.acknowledgeEndedSession('31', 7), true)
 })

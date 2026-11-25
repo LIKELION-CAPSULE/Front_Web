@@ -81,3 +81,16 @@ test('only the active connection or its legacy session surface can keep camera m
   for (const path of ['/', '/mates/chaerin', '/connect/other', '/study/32']) assert.equal(isSessionSurface(path, active), false)
   assert.equal(isSessionSurface('/connect/chaerin', { id: '31' }), false)
 })
+
+test('a connection handed over to another mate keeps that mate and explains it', async () => {
+  const { connectedMate } = await import('../src/features/mates/connected-mate.ts')
+  const mates = availableMates({ mates: [{ id: 42, name: '채린' }, { id: 43, name: '서진' }] })
+  const chaerin = mates[0]!
+  assert.deepEqual(connectedMate(chaerin, '42', mates), { mate: chaerin, notice: null })
+  const other = connectedMate(chaerin, '43', mates)
+  assert.equal(other.mate?.id, 'dohyun')
+  assert.equal(other.notice, '다른 곳에서 서도현과 연결 중이었어요. 그 연결을 이어서 할게요.')
+  const unknown = connectedMate(chaerin, '99', mates)
+  assert.equal(unknown.mate, undefined)
+  assert.match(unknown.notice ?? '', /다른 메이트와 연결 중/)
+})

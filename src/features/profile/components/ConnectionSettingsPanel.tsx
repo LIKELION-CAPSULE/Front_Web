@@ -78,7 +78,7 @@ function Row({ id, label, hint, children }: { id: string; label: string; hint?: 
 
 export function ConnectionSettingsPanel() {
   const { devices, selectedDevices, controller, flushFocus } = useMedia()
-  const { showPipSpeech, setShowPipSpeech, settings, updateSettings } = useConnectionPreferences()
+  const { showPipSpeech, setShowPipSpeech, settings, updateSettings, saveStatus, retrySave } = useConnectionPreferences()
   const [inputs, setInputs] = useState<MediaDeviceInfo[]>([])
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState(0)
@@ -231,6 +231,13 @@ export function ConnectionSettingsPanel() {
           <Switch labelledBy={`${id}-gaze`} describedBy={`${id}-gaze-hint`} checked={settings.gaze} onChange={(gaze) => updateSettings({ gaze })} />
         </Row>
       </ul>
+      {/* The server copy could not be saved (API 30): quiet, since this browser keeps the choice; 「다시 저장」 sends it. */}
+      {saveStatus === 'error' && (
+        <p className="connection-settings-save-error" role="status">
+          설정을 계정에 저장하지 못했어요. 이 브라우저에는 저장돼 있어요.
+          {retrySave && <button type="button" className="connection-settings-save-retry" onClick={retrySave}>다시 저장</button>}
+        </p>
+      )}
     </>
   )
 }

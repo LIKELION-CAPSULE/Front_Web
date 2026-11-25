@@ -25,10 +25,12 @@ const CAPACITY = 7
 
 type Choice = AvatarItem & { id: number }
 
-function ArcOption({ avatar, index, offset, ends, checked, disabled, reduced, name, portrait, onChoose, onKey }: {
+function ArcOption({ avatar, index, offset, shift, ends, checked, disabled, reduced, name, portrait, onChoose, onKey }: {
   avatar: Choice
   index: number
   offset: number
+  /** The last move of the choice (signed). Entering slots read it from here: AnimatePresence `custom` reaches leaving ones only. */
+  shift: number
   /** One step beyond the outermost slots: where slots come in from and go out to. */
   ends: readonly [number, number]
   checked: boolean
@@ -50,10 +52,11 @@ function ArcOption({ avatar, index, offset, ends, checked, disabled, reduced, na
       inert={!present}
       // `--arc` belongs to motion alone: a style value here would paint the target before `enter` and make the slot jump.
       style={{ zIndex: checked ? 3 : 2 - Math.min(2, Math.abs(Math.round(offset))) } as CSSProperties}
+      custom={shift}
       initial={reduced ? false : 'enter'}
       animate={{ '--arc': offset, opacity: 1 }}
       exit="leave"
-      // `shift` (AnimatePresence `custom`, read by entering and leaving slots alike): how far the choice moved, signed.
+      // `shift` (this slot's `custom` when it enters, AnimatePresence `custom` when it leaves): how far the choice moved.
       // Every slot slides by −shift, so a new slot comes from `offset + shift` and a leaving one goes to `offset − shift`
       // (its last offset): both on their own side of the arc, the way the others move.
       variants={{
@@ -200,6 +203,7 @@ export function AvatarArcRail({ choices, selectedIndex, disabled, reduced, name,
               avatar={avatar}
               index={index}
               offset={slot - center}
+              shift={shift}
               ends={ends}
               checked={index === selectedIndex && slot === center}
               disabled={disabled}

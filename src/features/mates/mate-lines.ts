@@ -40,8 +40,8 @@ const DOHYUN_LINES: Readonly<Record<MateLineKey, string>> = {
 
 /**
  * 채린 (persona 2026-11-25, short blunt 반말: 「~거든?」 「~잖아.」 「…뭐.」 「됐어.」 「착각하지 마.」 「책이나 봐!」).
- * greet · returnAfterLong · quiet · praised · question · farewell are the persona's own lines; the rest are drafts in
- * her voice awaiting the user's review (docs/MATE_MODEL_V2_CONTRACT.md).
+ * greet · returnAfterLong · quiet · praised · question · farewell are the persona's own lines; the rest were written in
+ * her voice and confirmed by the user as they are (2026-11-25, docs/MATE_MODEL_V2_CONTRACT.md).
  */
 const CHAERIN_LINES: Readonly<Record<MateLineKey, string>> = {
   greet: '…왔냐. 늦었잖아. 빨리 앉기나 해.',

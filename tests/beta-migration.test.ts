@@ -59,7 +59,7 @@ test('start and resume responses never create connection limits; resume continue
  const base={mate:{id:201},connectionId:9001,serverTime:dto.endedAt}
  const active=session({...base,startedAt:dto.startedAt},Date.parse(dto.endedAt))
  assert.equal(active.targetSeconds,undefined)
- assert.equal(session({...base,connectedSeconds:1500},Date.parse(dto.endedAt)).studySeconds,1500)
+ assert.equal(session({...base,connectedSeconds:1500,presentSeconds:0,cameraOnSeconds:0,pipSeconds:0},Date.parse(dto.endedAt)).studySeconds,1500)
 })
 test('production reducer cannot purchase, start simulated sessions, send scripted replies or add schedules',()=>{
  const state=emptyState()
