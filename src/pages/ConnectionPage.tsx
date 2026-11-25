@@ -1,4 +1,4 @@
-import { startTransition, useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useSessionSync } from '@/features/backend/use-session-sync'
@@ -43,6 +43,7 @@ import { DevicePrivacyInfo } from '@/features/media/components/DevicePrivacyInfo
 import { Brand } from '@/shared/ui/Brand'
 import { MateTap, onMate } from '@/features/mates/mate-tap'
 import { playHangup, whenRendered, type HangupPlayback } from '@/features/mates/hangup-sequence'
+import { takePickup } from '@/features/mates/pickup-sequence'
 import hangupHandset from '@/assets/connection/hangup-handset-3d.webp'
 import hangupHandsetRed from '@/assets/connection/hangup-handset-3d-red.webp'
 
@@ -110,6 +111,12 @@ export default function ConnectionPage() {
   const [endingWait, setEndingWait] = useState(false)
   const shown = active ?? ending?.session ?? null
   const pageRef = useRef<HTMLElement>(null)
+  // Arriving from "공부 시작하기": the pickup overlay is still on screen; open the call screen from its line of light
+  // before the first paint (the TV switching on), then let the overlay go.
+  const callShown = Boolean(shown)
+  useLayoutEffect(() => {
+    if (callShown) takePickup()?.handoff(pageRef.current)
+  }, [callShown])
   const hangup = useRef<HangupPlayback | null>(null)
   useEffect(() => () => { hangup.current?.cancel(); hangup.current = null }, [])
   const now = useNow()
