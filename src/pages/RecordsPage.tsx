@@ -16,6 +16,7 @@ import { defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-
 import { connectionDayKey } from '@/features/records/connection-day'
 import { CapsuleBoard } from '@/features/records/capsule-board/CapsuleBoard'
 import { ContributionGrid, ContributionLegend } from '@/features/records/ContributionGrid'
+import { BoardViewSwitch } from '@/features/records/BoardViewSwitch'
 import { SatinBackdrop } from '@/features/records/satin-backdrop/SatinBackdrop'
 import { buildCapsuleBoard, offsetContaining } from '@/features/records/capsule-board/capsule-board-layout'
 import {
@@ -519,32 +520,37 @@ export default function RecordsPage() {
                 })}
               </ul>
             )}
-            {showGrid ? (
-              <ContributionGrid
-                model={board}
-                selectedKey={activeDay?.key}
-                showMates={!activeMate && board.mates.length >= 2}
-                onSelect={selectDay}
-              />
-            ) : (
-              <CapsuleBoard
-                model={board}
-                view="25d"
-                selectedKey={activeDay?.key}
-                emphasis={mateComment?.highlight ?? null}
-                onEmphasisControl={onEmphasisControl}
-                onStageWidth={setStageWidth}
-                onFallback={() => setBoardFallback(true)}
-                onController={exposeBoardBenchmark}
-                onSelectDay={selectDay}
-                onSelectMonth={(month) => {
-                  const key = `${range.startDay.slice(0, 4)}-${String(month + 1).padStart(2, '0')}-01`
-                  // A month that has not begun cannot be opened (the board disables it too).
-                  if (key > range.today) return
-                  updateParams({ period: 'month', offset: Math.min(0, offsetContaining('month', key, range.today)) })
-                }}
-              />
-            )}
+            <BoardViewSwitch
+              view={showGrid ? '2d' : '25d'}
+              grid={
+                <ContributionGrid
+                  model={board}
+                  selectedKey={activeDay?.key}
+                  showMates={!activeMate && board.mates.length >= 2}
+                  onSelect={selectDay}
+                />
+              }
+              board={(onReady) => (
+                <CapsuleBoard
+                  model={board}
+                  view="25d"
+                  selectedKey={activeDay?.key}
+                  emphasis={mateComment?.highlight ?? null}
+                  onEmphasisControl={onEmphasisControl}
+                  onStageWidth={setStageWidth}
+                  onFallback={() => setBoardFallback(true)}
+                  onController={exposeBoardBenchmark}
+                  onReady={onReady}
+                  onSelectDay={selectDay}
+                  onSelectMonth={(month) => {
+                    const key = `${range.startDay.slice(0, 4)}-${String(month + 1).padStart(2, '0')}-01`
+                    // A month that has not begun cannot be opened (the board disables it too).
+                    if (key > range.today) return
+                    updateParams({ period: 'month', offset: Math.min(0, offsetContaining('month', key, range.today)) })
+                  }}
+                />
+              )}
+            />
             {selectedDay && (
               // Folded away (not removed) in the year's 2.5D (it picks months, not days), with the board's morph, so the
               // block does not jump. The 2D grid picks days in the year too.

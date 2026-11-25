@@ -51,7 +51,12 @@ export const designColors = {
   "floating-hover": "#5E5C69",
   "dialog-roof": "#3B2C82",
   "dialog-roof-dither": "#30246B",
-  "dialog-surface": "#1E1A31"
+  "dialog-surface": "#1E1A31",
+  "records-grid-0": "#272630",
+  "records-grid-1": "#312F40",
+  "records-grid-2": "#423F55",
+  "records-grid-3": "#57526E",
+  "records-grid-4": "#6B6587"
 } as const
 
 export const designPalette = {

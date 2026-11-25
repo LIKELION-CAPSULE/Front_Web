@@ -150,7 +150,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       { targets: ['[data-tour="records-view"]'], at: CORNER, action: 'hover' },
       { targets: ['[data-tour="records-board"]'], at: { x: 0.5, y: 0.72 }, action: 'click', preview: ['그날의 기록 카드'] },
     ],
-    say: '주, 월, 연으로 기간을 바꾸고, 보드는 2D나 2.5D로 볼 수 있어. 칸이 진할수록 오래 함께한 날이고, 날짜를 누르면 그날 기록이 열려.',
+    say: '주, 월, 연으로 기간을 바꾸고, 보드는 2D나 2.5D로 볼 수 있어. 날짜를 누르면 그날 기록이 열려.',
   },
   // 계정 설정
   {

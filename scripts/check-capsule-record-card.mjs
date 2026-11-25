@@ -13,7 +13,7 @@
 //     node scripts/check-capsule-record-card.mjs http://127.0.0.1:5231
 //
 // Prints one line per check and exits with 1 when any fails.
-/* global document, HTMLElement -- page.evaluate bodies run in the browser */
+/* global document -- page.evaluate bodies run in the browser */
 
 import { startWatchdog, warmUpDevServer } from './lib/browser-check-guard.mjs'
 
@@ -133,7 +133,7 @@ async function recordsCalendar() {
   let opened = false
   if (target) {
     // Keyboard: the day's cell, Enter. (Closing a card puts the focus back on its cell: leave it first.)
-    await page.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur())
+    await page.evaluate(() => document.activeElement?.blur?.())
     await page.mouse.move(0, 0)
     await page.locator(`[data-grid-day="${target}"]`).focus()
     check('records: focusing a grid cell shows its tooltip', (await page.locator('.contribution-tooltip').count()) > 0)

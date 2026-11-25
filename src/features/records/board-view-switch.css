@@ -1,0 +1,12 @@
+/* 2D ↔ 2.5D (BoardViewSwitch): the incoming layer waits hidden over the outgoing one; the board clips to its
+   animated height while they swap. */
+.board-view-switch { position: relative; }
+.board-view-switch[data-switching] { overflow: hidden; }
+.board-view-layer[data-role='in'] {
+  position: absolute;
+  inset: 0 0 auto;
+  opacity: 0;
+  pointer-events: none;
+}
+.board-view-layer[data-role='out'] { pointer-events: none; transform-origin: 50% 62%; }
+.board-view-layer[data-view='2d'][data-role='in'] { transform-origin: 50% 62%; }
