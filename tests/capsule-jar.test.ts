@@ -8,7 +8,7 @@ import {
   groupCapsulesByDay,
 } from '../src/features/mates/capsule-jar/capsule-jar-data.ts'
 import { generateDummyCapsules } from '../src/features/mates/capsule-jar/capsule-jar-dummy.ts'
-import { AFFINITY_STAGE_COUNT, MATE_FEATURES_OFF, resolveMateFeatures } from '../src/features/mates/mate-features.ts'
+import { AFFINITY_STAGE_COUNT, MATE_FEATURES_OFF, MATE_FEATURES_ON, resolveMateFeatures } from '../src/features/mates/mate-features.ts'
 import { AFFINITY_STAGES, sampleRelation } from '../src/features/mates/mate-sample-data.ts'
 import { affinityStageLabel, affinityUnlockCondition, normalizeAffinityStage } from '../src/features/mates/affinity-stages.ts'
 import {
@@ -219,14 +219,15 @@ test('pile: the same data gives the same layout; capsules shrink with the count 
 
 // ── Feature flags and sample data ────────────────────────────────────────────
 
-test('mate features: all off in production, on in development unless ?features=off', () => {
-  assert.deepEqual(resolveMateFeatures(false, null), MATE_FEATURES_OFF)
-  assert.deepEqual(resolveMateFeatures(false, 'on'), MATE_FEATURES_OFF)
+test('mate features: affinity and worlds on everywhere, voices off; ?features=off only in development', () => {
+  assert.deepEqual(resolveMateFeatures(false, null), MATE_FEATURES_ON)
+  assert.deepEqual(resolveMateFeatures(false, 'off'), MATE_FEATURES_ON, 'production ignores the override')
   assert.deepEqual(resolveMateFeatures(true, 'off'), MATE_FEATURES_OFF)
-  const dev = resolveMateFeatures(true, null)
-  assert.equal(dev.affinity, true)
-  assert.equal(dev.world, true)
-  assert.equal(dev.voices, false, 'voice lines stay hidden until the samples ship')
+  for (const flags of [resolveMateFeatures(false, null), resolveMateFeatures(true, null)]) {
+    assert.equal(flags.affinity, true)
+    assert.equal(flags.world, true)
+    assert.equal(flags.voices, false, 'voice lines stay hidden until the samples ship')
+  }
 })
 
 test('sample affinity follows the PRD stages from connection time', () => {

@@ -18,7 +18,7 @@ import { PixelSnow } from '@/features/mates/pixel-snow/PixelSnow'
 import { waistFraming } from '@/features/mates/my-mates-framing'
 import { capsuleJarTheme } from '@/features/mates/capsule-jar/capsule-jar-theme'
 import { affinityProgressView } from '@/features/mates/affinity-progress'
-import { normalizeAffinityStage } from '@/features/mates/affinity-stages'
+import { normalizeAffinityStage, notMetAffinity } from '@/features/mates/affinity-stages'
 import { mateWorldsForStage, worldContentFromServer } from '@/features/mates/mate-worlds'
 import { useMateWorldContent, WORLD_SAMPLES_ON } from '@/features/mates/use-mate-worlds'
 import type { StudySettlement } from '@/shared/api/types'
@@ -229,11 +229,14 @@ export default function MyMatesPage() {
   const totalSeconds = previewMate ? totalCapsuleSeconds(capsules) : mine?.totalConnectedSeconds ?? 0
   const firstMetAt = previewMate ? capsules[0]?.startedAt ?? null : mine?.firstMetAt ?? null
 
-  // Affinity: the server's stage when it sends one, sample data in development (mate-features.ts decides).
+  // Affinity: the server's stage when it sends one, sample data in development (mate-features.ts decides). Production
+  // without a server stage: a mate never met starts at 「1단계 · 처음 만남」 with every world locked; a mate met but
+  // sent no stage shows no card (nothing is guessed).
   // The stage is put on the one stage table (affinity-stages.ts) by its name.
   // Development only: `?affinity=1…5` puts the page at that stage with sample progress (the local mock tool sets it).
   const serverStage = normalizeAffinityStage(mine?.relation?.stage, mine?.relation?.stageName)
   const devStage = import.meta.env.DEV ? Number(searchParams.get('affinity')) : Number.NaN
+  const neverMet = !previewMate && (mine?.connectionCount ?? 0) === 0
   const relation: (Partial<StudySettlement> & { stage: number; stageName: string }) | null = features.affinity
     ? import.meta.env.DEV && devSamples && Number.isInteger(devStage) && devStage >= 1 && devStage <= 5
       ? devSamples.sampleRelation(devSamples.sampleSecondsForStage(devStage))
@@ -241,7 +244,9 @@ export default function MyMatesPage() {
       ? { ...mine?.relation, ...serverStage }
       : import.meta.env.DEV
         ? (devSamples?.sampleRelation(totalSeconds) ?? null)
-        : null
+        : neverMet
+          ? notMetAffinity()
+          : null
     : null
   // 세계관 (mate-worlds.ts): five places, opened by the stage above. What they are: the server's (none until its type
   // is named: 「준비 중」) in api mode, the planning examples in development with the local mock and on preview mates.

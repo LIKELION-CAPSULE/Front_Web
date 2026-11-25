@@ -17,6 +17,7 @@ import {
   type ServerUnlockItem,
 } from '../src/features/mates/mate-worlds.ts'
 import { sampleMateWorlds } from '../src/features/mates/mate-world-samples.ts'
+import { notMetAffinity } from '../src/features/mates/affinity-stages.ts'
 
 const item = (over: Partial<ServerUnlockItem>): ServerUnlockItem => ({
   id: '1', type: 'WORLD', title: '학교', unlockStage: 1, assetUrl: null, unlocked: null, unlockedAt: null, ...over,
@@ -35,6 +36,13 @@ test('세계관: five per mate, one per affinity level; the stage opens every wo
   assert.equal(worldCount(mateWorldsForStage(1, { met: false })).unlocked, 0)
   assert.equal(worldCount(mateWorldsForStage(null)).unlocked, 0)
   assert.equal(worldCount(mateWorldsForStage(Number.NaN)).unlocked, 0)
+})
+
+test('세계관: a mate never met (production, no server relation) is 「1단계 · 처음 만남」 at its start, all five locked', () => {
+  const start = notMetAffinity()
+  assert.deepEqual(start, { stage: 1, stageName: '처음 만남', nextStageName: '아는 사이', stageProgress: 0 })
+  assert.equal('nextLevelSeconds' in start, false, 'no made-up remaining time')
+  assert.equal(worldCount(mateWorldsForStage(start.stage, { met: false })).unlocked, 0)
 })
 
 test('세계관: starts at the current level, or EP.01 when none is open', () => {

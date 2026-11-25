@@ -536,7 +536,7 @@ export default function ConnectionPage() {
   }
 
   const relation = backend.affinities[Number(mate.characterId)]
-  // The affinity chip follows the affinity feature (off in production until the server sends stages).
+  // The affinity chip follows the affinity feature; with no server stage it shows 「—」 and no lit steps.
   const mateFeatures = resolveMateFeatures(import.meta.env.DEV, null)
   const showAffinity = mateFeatures.affinity
   const isAdvanced = backend.connectionMode === 'advanced'
