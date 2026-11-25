@@ -62,21 +62,17 @@
   align-items: center;
   gap: 8px;
 }
-/* The name joins the AI badge once she is awake: it fades in (and out on replay) and takes no room meanwhile. */
-.login-variant-mate-caption .login-variant-mate-name {
-  opacity: 1;
-  transition: opacity 300ms ease, display 300ms allow-discrete;
+/* Her status dot: red (danger, a status) while she dozes, green (success) once awake, cross-fading with the wake-up. */
+.login-variant-mate-caption .login-variant-mate-dot {
+  background: var(--color-danger-solid);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-danger-solid) 75%, transparent);
+  transition: background-color 300ms ease, box-shadow 300ms ease;
 }
-@starting-style {
-  .login-variant-mate-caption[data-caption-visible='true'] .login-variant-mate-name {
-    opacity: 0;
-  }
+.login-variant-mate-caption[data-awake='true'] .login-variant-mate-dot {
+  background: var(--color-success);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-success) 75%, transparent);
 }
-.login-variant-mate-caption[data-caption-visible='false'] .login-variant-mate-name {
-  display: none;
-  opacity: 0;
-}
-.login-variant-mate-caption[data-caption-immediate='true'] .login-variant-mate-name {
+.login-variant-mate-caption[data-caption-immediate='true'] .login-variant-mate-dot {
   transition: none;
 }
 .login-variant-mate-name {
@@ -393,7 +389,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-variant-mate-caption .login-variant-mate-name {
+  .login-variant-mate-caption .login-variant-mate-dot {
     transition: none;
   }
   .login-dialogue,
