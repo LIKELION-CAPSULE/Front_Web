@@ -18,10 +18,6 @@ export default function HomePage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const heading = useRef<HTMLHeadingElement>(null)
   const mates = availableMates(home)
-  const explore = useCallback(() => {
-    heading.current?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
-    heading.current?.focus({ preventScroll: true })
-  }, [])
   // Old 「사용법 보기」 links (`?tutorial=1`) open the tour from its start.
   const legacyTutorial = new URLSearchParams(location.search).get('tutorial') === '1'
   useEffect(() => {
@@ -57,7 +53,7 @@ export default function HomePage() {
     return () => { alive = false }
   }, [status, homeContentVersion, refreshHome, showError])
   return <AttendanceProvider>
-    <HomeHero mate={mates[0] ?? null} onExplore={explore} />
+    <HomeHero mate={mates[0] ?? null} />
     <HomeMateSection ref={heading} mates={mates} onRetry={() => { void reload() }} />
     <NotificationStack items={notifications} onDismiss={id => setNotifications(current => current.filter(item => item.id !== id))} />
   </AttendanceProvider>
