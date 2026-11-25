@@ -23,6 +23,7 @@ import { Live2DStage } from '@/features/live2d/live2d-stage'
 import { SessionModel, type AlivingStageFactory, type SessionModelFactory, type SessionModelStage } from '@/features/live2d/session-model'
 import { AlivingSessionStage } from '@/features/mate-render/AlivingSessionStage'
 import { availableMates, mateByName } from '@/features/mates/catalog'
+import { withParticle } from '@/shared/lib/korean'
 import { isSessionSurface } from '@/features/mates/session-surface'
 import { matePortrait } from '@/features/mates/artwork'
 import type { BetaAccountPort, BetaAccountResult, BetaOnboardingInput, BetaProfileInput, BetaSignupInput } from '@/features/auth/beta-account'
@@ -618,12 +619,15 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
     const mate = availableMates(meta.home).find(value => value.id === mateId)
     if (!mate) throw new ApiError('요청을 처리하지 못했어요.', 404)
     if (resettingMates.current.has(mate.characterId)) throw new ApiError('요청을 처리하지 못했어요.', 409)
+    // Only one connection at a time: name the mate it is with, so the user knows which one to finish first.
+    const busyWith = (name: string | undefined) => new ApiError(
+      name ? `${withParticle(name, '과', '와')} 연결 중이에요. 그 연결을 먼저 마쳐 주세요.` : '진행 중인 연결을 먼저 마쳐 주세요.', 409)
     const current = stateRef.current.activeSession
     if (current && (current.roomId !== mate.roomId || current.characterIds.length !== 1 || current.characterIds[0] !== mate.characterId || !current.serverSession)) {
-      throw new ApiError('요청을 처리하지 못했어요.', 409)
+      throw busyWith(availableMates(meta.home).find(value => value.characterId === current.characterIds[0])?.name)
     }
     if (meta.activeSummary && (!mateByName(meta.activeSummary.characterName, [mate]) || String(meta.activeSummary.roomId) !== mate.roomId)) {
-      throw new ApiError('요청을 처리하지 못했어요.', 409)
+      throw busyWith(meta.activeSummary.characterName)
     }
     // The current API requires a legacy target. Keep it in the request only; the beta UI
     // does not use it as a countdown or an automatic end condition. See REQUEST.md R09.
