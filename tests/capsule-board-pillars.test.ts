@@ -29,13 +29,16 @@ const blue: CapsuleColors = { light: '#ffffff', tint: '#4060f0', glow: '#6080ff'
 const capsules = (count: number, colors = violet, keepsakeAt = -1) =>
   Array.from({ length: count }, (_, index) => ({ colors, keepsake: index === keepsakeAt ? 100 : 0, roll: index * 0.37 }))
 
-test('pillars for the week and the month (the year keeps its columns); guide lines only in the week', () => {
-  assert.ok(pillarsApply('week') && pillarsApply('month') && !pillarsApply('year'))
+test('pillars for every period — the year too, one height rule (2026-11-26); guide lines only in the week', () => {
+  assert.ok(pillarsApply('week') && pillarsApply('month') && pillarsApply('year'))
   assert.ok(guidesApply('week') && !guidesApply('month') && !guidesApply('year'))
   // The month's pillars are thinner and lower and its camera looks down more steeply (less hidden behind the front).
   const week = pillarDims('week')
   const month = pillarDims('month')
+  const year = pillarDims('year')
   assert.ok(month.radius < week.radius && month.maxHeight < week.maxHeight && month.elevation > week.elevation)
+  // The year's small tiles take the thinnest, lowest pillars (the year camera is already the steepest).
+  assert.ok(year.radius < month.radius && year.maxHeight < month.maxHeight)
 })
 
 test('height rule: the longest day rounded up to whole hours (at least 2 h) is the full pillar', () => {

@@ -4,53 +4,16 @@ import { byConnectionStartDesc, connectionDayKey, connectionStartedAt } from './
 import { timeBand, timeBandLabels, type TimeBand } from './mate-comment.ts'
 import { focusDetectedSeconds } from '../session/focus.ts'
 import { periodDays, type RecordRange } from '../reports/record-period.ts'
-import { CHAERIN_JAR_THEME, capsuleBandTheme } from '../mates/capsule-jar/capsule-jar-theme.ts'
+import { gridLevel, gridNeighbor, type GridLevel } from './contribution-grid.ts'
 
 /**
- * Capsule calendar for /records: every day is a small capsule that fills with light by that day's
- * connection time ("함께한 시간"). Camera-measured time is kept only as secondary information.
+ * The days of a /records period: each day's connection time ("함께한 시간"), camera time, connections, its main time
+ * band and keepsake. The 2.5D board stands on these days and the 2D contribution grid shades them (`level`).
+ * Camera-measured time is kept only as secondary information.
  *
- * Like the capsules of 내 메이트, a day's light takes the tint of its **time band** (the band of a connection's start,
- * `timeBand`). A day with connections in several bands takes the band where the most time was spent (ties: the band
- * of the earlier connection) — one colour per capsule, so the small year capsules stay readable. A day on which the
- * time together passed a milestone (capsule-moments.ts `capsuleKeepsakes`) carries a keepsake mark.
+ * A day with connections in several time bands (`timeBand` of a connection's start) takes the band where the most time
+ * was spent (ties: the band of the earlier connection); the tooltip names it.
  */
-
-export type CapsuleFillLevel = 0 | 1 | 2 | 3 | 4
-
-/**
- * Light colour of a day by time band: the deep tone of the brand capsule (채린's jar theme, `tintHalfShade`) moved by
- * the same band shifts as the capsules of 내 메이트 (capsule-jar-theme.ts `capsuleBandTheme`). The calendar is the
- * user's record across mates, so it keeps the brand violet whichever mate a day belongs to.
- */
-export const CAPSULE_BASE_FILL = CHAERIN_JAR_THEME.tintHalfShade
-export const capsuleBandFill: Readonly<Record<TimeBand, string>> = {
-  dawn: capsuleBandTheme(CHAERIN_JAR_THEME, 'dawn').tintHalfShade,
-  morning: capsuleBandTheme(CHAERIN_JAR_THEME, 'morning').tintHalfShade,
-  day: capsuleBandTheme(CHAERIN_JAR_THEME, 'day').tintHalfShade,
-  evening: capsuleBandTheme(CHAERIN_JAR_THEME, 'evening').tintHalfShade,
-  night: capsuleBandTheme(CHAERIN_JAR_THEME, 'night').tintHalfShade,
-}
-
-/** Absolute steps, so a day means the same thing in week, month and year views. */
-export const capsuleFillSteps = [
-  { level: 1, minSeconds: 1, label: '30분 미만' },
-  { level: 2, minSeconds: 30 * 60, label: '30분+' },
-  { level: 3, minSeconds: 60 * 60, label: '1시간+' },
-  { level: 4, minSeconds: 2 * 60 * 60, label: '2시간+' },
-] as const satisfies readonly { level: CapsuleFillLevel; minSeconds: number; label: string }[]
-
-export function capsuleFillLevel(seconds: number): CapsuleFillLevel {
-  if (!Number.isFinite(seconds) || seconds <= 0) return 0
-  let level: CapsuleFillLevel = 0
-  for (const step of capsuleFillSteps) if (seconds >= step.minSeconds) level = step.level
-  return level
-}
-
-/** Share of the capsule body filled with light for a level. */
-export function capsuleFillRatio(level: CapsuleFillLevel): number {
-  return [0, 0.3, 0.55, 0.78, 1][level]!
-}
 
 export type CapsuleDay = {
   key: string
@@ -63,7 +26,8 @@ export type CapsuleDay = {
   connectionSeconds: number
   cameraSeconds: number
   sessions: number
-  level: CapsuleFillLevel
+  /** Shade of the day in the 2D contribution grid (contribution-grid.ts `gridLevel`). */
+  level: GridLevel
   /** Time band whose tint the day's light takes (null without a record). */
   band: TimeBand | null
   /** More than one band that day (the tooltip says 「주로 …」). */
@@ -152,7 +116,7 @@ export function buildCapsuleCalendar(
       connectionSeconds: stats.connection,
       cameraSeconds: stats.camera,
       sessions: stats.sessions,
-      level: capsuleFillLevel(stats.connection),
+      level: gridLevel(stats.connection),
       band: stats.sessions > 0 ? dominantBand(stats.bands) : null,
       mixedBands: stats.bands.size > 1,
       keepsakeHours: stats.keepsake,
@@ -174,50 +138,11 @@ export function buildCapsuleCalendar(
 }
 
 /**
- * Staggered fill-in for the days that have records. Empty capsules never animate. The whole reveal always takes
- * `totalMs` (inside 0.8–1.2 s) however many days are filled: with few days each capsule fills more slowly,
- * with many days the step between them shrinks.
+ * Keyboard movement between days (the 2.5D board's list): the grid's moves (contribution-grid.ts `gridNeighbor`).
+ * Week: ←/→. Month (rows = weeks): ←/→ one day, ↑/↓ one week. Year (columns = weeks, rows = weekdays): ↑/↓ one day,
+ * ←/→ one week. Home/End jump to the first/last selectable day; future days are not selectable.
  */
-export function capsuleRevealTiming(filledCount: number, totalMs = 1000) {
-  const minFillMs = 320
-  const maxStepMs = 110
-  const stepMs = filledCount > 1 ? Math.min(maxStepMs, (totalMs - minFillMs) / (filledCount - 1)) : 0
-  const fillMs = totalMs - stepMs * Math.max(0, filledCount - 1)
-  return { fillMs, stepMs, totalMs: filledCount > 0 ? totalMs : 0 }
-}
-
-/** Reveal order: days with records in date order (0, 1, 2 …); empty or future days get null. */
-export function capsuleRevealOrder(days: readonly Pick<CapsuleDay, 'level' | 'isFuture'>[]): (number | null)[] {
-  let next = 0
-  return days.map((day) => (day.level > 0 && !day.isFuture ? next++ : null))
-}
-
-/**
- * Keyboard movement between capsules. Week: ←/→. Month (rows = weeks): ←/→ one day, ↑/↓ one week.
- * Year (columns = weeks, rows = weekdays): ↑/↓ one day, ←/→ one week. Home/End jump to the first/last
- * selectable day. Future days are not selectable. Returns null when the key does not move focus.
- */
-export function capsuleNeighbor(
-  mode: RecordRange['period'],
-  index: number,
-  key: string,
-  days: readonly Pick<CapsuleDay, 'isFuture'>[],
-): number | null {
-  const lastSelectable = days.findLastIndex((day) => !day.isFuture)
-  if (lastSelectable < 0) return null
-  if (key === 'Home') return 0
-  if (key === 'End') return lastSelectable
-  const step =
-    mode === 'year'
-      ? { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 }[key]
-      : mode === 'month'
-        ? { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[key]
-        : { ArrowLeft: -1, ArrowRight: 1 }[key]
-  if (step === undefined) return null
-  const target = index + step
-  if (target < 0 || target > lastSelectable) return index
-  return target
-}
+export const capsuleNeighbor = gridNeighbor
 
 /** 「저녁」, or 「주로 저녁」 when the day had connections in several bands. */
 export function capsuleBandLabel(day: Pick<CapsuleDay, 'band' | 'mixedBands'>): string | null {

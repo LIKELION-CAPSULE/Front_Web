@@ -329,7 +329,7 @@ type CapsuleRef = {
   count: number
   start: number | null
   slot: { x: number; z: number; length: number }
-  /** Its place lying in the day's glass pillar (week, month), or null in the year's upright columns. */
+  /** Its place lying in the day's glass pillar (every period; null while a day has no pillar). */
   pillar: PillarCapsule | null
 }
 type Camera = { azimuth: number; elevation: number; center: Vector3; upp: number }
@@ -385,7 +385,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   const haloShader = haloMaterial(glowColor)
   haloShader.uniforms.strength!.value = 0.1
 
-  // Glass pillars (week, month): the tube (open, base at y = 0, unit radius and height), the fill inside it, the top ring.
+  // Glass pillars (every period): the tube (open, base at y = 0, unit radius and height), the fill inside it, the top ring.
   const tubeGeometry = new CylinderGeometry(1, 1, 1, 28, 1, true).translate(0, 0.5, 0)
   const fillGeometry = new CylinderGeometry(0.84, 0.84, 1, 24, 1, false).translate(0, 0.5, 0)
   const capGeometry = new TorusGeometry(1, 0.055, 6, 32).rotateX(Math.PI / 2)
@@ -511,7 +511,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   /** 2D share now (eased): 0 = 2.5D, 1 = 2D. */
   const flatNow = (at: number) => lerp(flatFrom, flatTo, easeInOut(progressOf(flatAnim, at)))
   const mode = () => model?.mode ?? 'week'
-  /** Glass pillars on for this period (week and month; the year keeps its columns). */
+  /** Glass pillars on for this period (every period since 2026-11-26, capsule-board-pillars.ts `pillarsApply`). */
   const pillarsOn = () => model !== null && pillarsApply(mode())
   /** The week's guide lines on the back wall. */
   const guidesOn = () => pillarsOn() && guidesApply(mode())
@@ -682,7 +682,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     board.add(beamMesh)
   }
 
-  /** Glass pillars (week, month): tubes, top rings and the fill's layers; the week's guide lines too. */
+  /** Glass pillars (every period): tubes, top rings and the fill's layers; the week's guide lines too. */
   function buildPillars() {
     const instances = pillarInstances(entryPillars)
     pillarEntries = instances.entries

@@ -147,7 +147,7 @@ BrowserRouter를 사용하므로 배포 시 직접 URL 접근에 SPA fallback이
 - `RoomArtwork`: 이미지 레이어와 제목 DOM 합성. 배경 cover, 전경 contain.
 - `draw-artwork.ts`: 동일한 레이어를 PNG 내보내기에 사용.
 - `PageSkeleton`: 라우트 지연 로딩의 실제 Suspense fallback.
-- `CapsuleCalendar`(`features/records`): 완료 기록의 날짜별 합계(연결 시작일 기준)와 선택 날짜 상세. 이전의 `ActivityHeatmap`은 2026-11-24에 삭제했습니다.
+- `ContributionGrid`(`features/records`): 내 기록 2D 잔디(하루 한 칸, 진하기 = 함께한 시간, 2026-11-26). 날짜별 합계는 `capsule-calendar.ts`(연결 시작일·오전 5시 기준). 이전의 `ActivityHeatmap`(2026-11-24)과 `CapsuleCalendar`(2026-11-26)는 삭제했습니다.
 - `ProgressRing`: 리포트 집중률의 접근 가능한 meter.
 - `report-relationship.ts` / `RelationshipGain`: 종료 시점의 관계 이전·이후 값과 레벨 경계별 진행·축하 효과. 레벨 규칙과 시간 배분은 공통 selectors를 사용합니다.
 - `CompletionPortrait` / `completion-artwork.ts`: 채린·수아·다희의 종료 전용 이미지와 다른 친구의 기존 장면 대체 표시.

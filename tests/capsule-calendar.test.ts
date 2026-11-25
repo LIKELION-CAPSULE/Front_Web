@@ -5,13 +5,8 @@ import { getRecordRange } from '../src/features/reports/record-period.ts'
 import {
   buildCapsuleCalendar,
   capsuleDaySummary,
-  capsuleFillLevel,
-  capsuleFillRatio,
   capsuleNeighbor,
-  capsuleRevealOrder,
-  capsuleRevealTiming,
   capsuleTooltip,
-  capsuleBandFill,
   capsuleBandLabel,
   defaultCapsuleDay,
   selectCapsuleDay,
@@ -39,23 +34,6 @@ function record(endIso: string, minutes: number, cameraMinutes?: number): StudyR
       : {}),
   }
 }
-
-test('fill level steps by absolute connection time: none, <30m, 30m+, 1h+, 2h+', () => {
-  assert.equal(capsuleFillLevel(0), 0)
-  assert.equal(capsuleFillLevel(-5), 0)
-  assert.equal(capsuleFillLevel(Number.NaN), 0)
-  assert.equal(capsuleFillLevel(60), 1)
-  assert.equal(capsuleFillLevel(29 * 60), 1)
-  assert.equal(capsuleFillLevel(30 * 60), 2)
-  assert.equal(capsuleFillLevel(60 * 60), 3)
-  assert.equal(capsuleFillLevel(119 * 60), 3)
-  assert.equal(capsuleFillLevel(120 * 60), 4)
-  assert.equal(capsuleFillLevel(9 * 3600), 4)
-  const ratios = ([0, 1, 2, 3, 4] as const).map(capsuleFillRatio)
-  assert.equal(ratios[0], 0)
-  assert.equal(ratios[4], 1)
-  for (let i = 1; i < ratios.length; i++) assert.ok(ratios[i]! > ratios[i - 1]!)
-})
 
 test('week, month and year produce one capsule per day with weekday alignment', () => {
   const records = [record('2026-11-23T20:00:00', 40), record('2026-11-23T22:00:00', 30), record('2026-11-24T08:00:00', 130)]
@@ -90,45 +68,6 @@ test('future records never fill a capsule', () => {
   assert.equal(thursday.isFuture, true)
   assert.equal(thursday.level, 0)
   assert.equal(thursday.sessions, 0)
-})
-
-test('the fill-in always lasts 0.8–1.2 seconds, however many days have records', () => {
-  for (const filled of [1, 2, 3, 7, 12, 30, 120, 365]) {
-    const timing = capsuleRevealTiming(filled)
-    const end = timing.fillMs + timing.stepMs * (filled - 1)
-    assert.ok(end >= 800 && end <= 1200, `${filled}: ${end}`)
-    assert.equal(timing.totalMs, end)
-    assert.ok(timing.fillMs >= 320, `${filled}: fill ${timing.fillMs}`)
-    assert.ok(timing.stepMs >= 0 && timing.stepMs <= 110)
-  }
-  assert.equal(capsuleRevealTiming(1).stepMs, 0)
-  assert.ok(capsuleRevealTiming(365).stepMs < capsuleRevealTiming(7).stepMs)
-  assert.equal(capsuleRevealTiming(0).totalMs, 0)
-})
-
-test('only days with records reveal, in date order; empty and future days stay still', () => {
-  const days = [
-    { level: 0, isFuture: false },
-    { level: 2, isFuture: false },
-    { level: 0, isFuture: false },
-    { level: 4, isFuture: false },
-    { level: 1, isFuture: false },
-    { level: 0, isFuture: true },
-  ] as const
-  assert.deepEqual(capsuleRevealOrder(days), [null, 0, null, 1, 2, null])
-
-  // A year whose only records are in late November starts filling right away (order 0), not after January.
-  const year = buildCapsuleCalendar(
-    [record('2026-11-20T20:00:00', 50), record('2026-11-23T20:00:00', 70)],
-    getRecordRange('year', NOW),
-  )
-  const order = capsuleRevealOrder(year.days)
-  const filled = year.days.map((day, i) => [day.key, order[i]] as const).filter(([, o]) => o !== null)
-  assert.deepEqual(filled, [['2026-11-20', 0], ['2026-11-23', 1]])
-  // The first filled day starts at 0 ms and the second one step later, ending at 1 s.
-  const timing = capsuleRevealTiming(filled.length)
-  assert.equal(timing.stepMs, 110)
-  assert.equal(timing.fillMs + timing.stepMs, 1000)
 })
 
 test('keyboard moves by day/week per layout and never lands on future days', () => {
@@ -186,8 +125,6 @@ test('a day takes the tint of the band where the most time was spent; ties keep 
   assert.equal(tuesday!.band, 'morning')
   assert.equal(wednesday!.band, null)
   assert.equal(capsuleBandLabel(wednesday!), null)
-  // Every band has its own colour, all different.
-  assert.equal(new Set(Object.values(capsuleBandFill)).size, 5)
 })
 
 test('keepsake days carry the highest milestone passed that day and say 「함께한 지 n시간」', () => {

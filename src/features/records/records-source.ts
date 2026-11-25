@@ -23,10 +23,8 @@ export type RecordsMate = { id: string; characterId: string; name: string; serve
 export type RecordsData = {
   /** Sums of the whole scope (all mates, or the chosen one). */
   totals: RecordsView
-  /** Day records and real connections, oldest first. */
+  /** Day records and real connections (the newest five of the scope), oldest first. */
   records: readonly StudyRecord[]
-  /** The newest five connections of the scope (real), newest first. */
-  recent: readonly StudyRecord[]
   /** Mates with time in this range. */
   matesInRange: number
   /** Each read mate's own 38 answer for the range (by mate id): the records comment speaks from these sums. */
