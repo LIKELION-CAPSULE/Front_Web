@@ -11,11 +11,17 @@ import { CHAERIN_JAR_THEME } from '../../mates/capsule-jar/capsule-jar-theme.ts'
 import { BOARD, boardRiseTiming, isMonthSelectable, type BoardCapsule, type BoardLabel, type BoardTile, type CapsuleBoardModel } from './capsule-board-layout.ts'
 import {
   guideHours,
+  isAidMode,
+  isStackMode,
   longestDayKey,
   pillarDims,
   pillarLayout,
   pillarScaleHours,
   pillarsApply,
+  stackCapsuleLength,
+  stackDims,
+  stackHourHeight,
+  stackLayout,
   type PillarCapsule,
   type PillarLayout,
   type PillarMode,
@@ -504,8 +510,20 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   const mode = () => model?.mode ?? 'week'
   /** Glass pillars on for this period (DEV draft; the year keeps its columns). */
   const pillarsOn = () => model !== null && pillarsApply(pillarMode, mode())
-  const aidOn = () => pillarsOn() && pillarMode === 'glass-aid'
-  const dims = () => pillarDims(mode(), pillarMode === 'glass-aid')
+  /** 「엇갈려 쌓기」 drafts: the lying capsules themselves form the bar (no glass). */
+  const stackOn = () => pillarsOn() && isStackMode(pillarMode)
+  const aidOn = () => pillarsOn() && isAidMode(pillarMode)
+  const dims = () =>
+    stackOn() ? { ...stackDims(mode(), aidOn()), radius: 0 } : pillarDims(mode(), pillarMode === 'glass-aid')
+  let stackCache: { model: CapsuleBoardModel; mode: PillarMode; length: number } | null = null
+  /** The stacked drafts' capsule length for this period (one size for every day, see stackCapsuleLength). */
+  const stackLength = () => {
+    if (!model) return 0.5
+    if (stackCache?.model !== model || stackCache.mode !== pillarMode) {
+      stackCache = { model, mode: pillarMode, length: stackCapsuleLength(model.tiles.map((tile) => tile.capsules.length), stackDims(mode(), aidOn())) }
+    }
+    return stackCache.length
+  }
   let scaleCache: { model: CapsuleBoardModel; hours: number } | null = null
   const scaleHours = () => {
     if (!model) return 2
@@ -518,6 +536,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     return tile.capsules.length ? pillarLayoutOf(tile).height : 0
   }
   function pillarLayoutOf(tile: BoardTile) {
+    if (stackOn()) return stackLayout(tile.capsules, stackLength())
     const { maxHeight, radius } = dims()
     return pillarLayout(tile.capsules, tile.day.connectionSeconds, { scaleHours: scaleHours(), maxHeight, radius })
   }
@@ -671,7 +690,16 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     pillarEntries = []
     fillRuns = []
     guides = []
+    ticks = []
     if (!pillarsOn()) return
+    // Stacked drafts: no glass. Their aid: the week's guide lines on the back wall at whole hours (one layer = 1 h);
+    // the month only marks its longest day (the page's chip), no ticks.
+    if (stackOn()) {
+      if (aidOn() && model && mode() === 'week') {
+        buildGuideLines(guideHours(scaleHours()).map((hour) => ({ hour, y: stackHourHeight(hour, stackLength()) })), model)
+      }
+      return
+    }
     entries.forEach((_, index) => {
       const pillar = entryPillars[index]
       if (!pillar || pillar.height <= 0) return
@@ -709,8 +737,13 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       if (ticks.length) ({ mesh: tickMesh, light: tickLight } = instanced(tickGeometry, capShader, ticks.length, 10))
       return
     }
+    buildGuideLines(levels, model)
+  }
+
+  /** The aid's lines at whole hours on the back wall (2.5D), with their 「n시간」 labels. */
+  function buildGuideLines(levels: { hour: number; y: number }[], next: CapsuleBoardModel) {
     guides = levels
-    guideWall = guideWallOf(model)
+    guideWall = guideWallOf(next)
     guideMesh = new InstancedMesh(guideGeometry, guideShader, Math.max(1, guides.length))
     guideMesh.count = guides.length
     guideMesh.frustumCulled = false
@@ -887,7 +920,9 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     for (const ref of capsules) {
       const tile = entries[ref.entry]!.tile!
       const start = timing.starts[tile.index]
-      ref.start = start === null || start === undefined ? null : start + ref.piece * timing.pieceStepMs
+      // Stacked drafts settle layer by layer: the two capsules of a layer together (the same total time per day).
+      const step = ref.pillar?.layer !== undefined ? ref.pillar.layer * 2 : ref.piece
+      ref.start = start === null || start === undefined ? null : start + step * timing.pieceStepMs
     }
   }
 
@@ -1002,7 +1037,8 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     // The week's highest guide line and its label stay in view.
     if (aidOn() && mode() === 'week' && standingShare > 0) {
       const top = guideHours(scaleHours()).at(-1) ?? 0
-      const y = (BOARD.tileHeight + (top / scaleHours()) * dims().maxHeight) * standingShare
+      const topY = stackOn() ? stackHourHeight(top, stackLength()) : (top / scaleHours()) * dims().maxHeight
+      const y = (BOARD.tileHeight + topY) * standingShare
       const wall = guideWallOf(model)
       add(wall.a0 - 0.7, y, wall.at)
       add(wall.a1, y, wall.at)
@@ -1165,9 +1201,11 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
         }
         const order = ref.count > 1 ? ref.piece / (ref.count - 1) : 0
         const stand = easeInOut(clamp01((standingShare - 0.3 * order) / 0.7))
-        const grow = easeOutBack(rise)
         const inPillar = ref.pillar
-        const drop = (1 - easeOut(rise)) * (inPillar ? 0.6 : capsule.length * 0.9)
+        const stacked = inPillar?.layer !== undefined
+        // Stacked: each layer comes down from a little above and settles flat (no overshoot); glass: rises in its tube.
+        const grow = stacked ? easeOut(rise) : easeOutBack(rise)
+        const drop = (1 - easeOut(rise)) * (inPillar ? (stacked ? -0.4 : 0.6) : capsule.length * 0.9)
         if (inPillar) {
           // Lying across the pillar, leaning a little to fill its 30-minute step; heading turned per capsule.
           spin.setFromAxisAngle(yAxis, inPillar.yaw)
@@ -1187,15 +1225,17 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
         const yStand = BOARD.tileHeight + lifts[ref.entry]! + (inPillar ? inPillar.y * standingShare : capsule.y) - drop
         const yLie = BOARD.tileHeight + chipRadius * 0.9
         position.set(
-          pose.x + lerp(ref.slot.x, 0, stand) * pose.s,
+          pose.x + lerp(ref.slot.x, inPillar?.dx ?? 0, stand) * pose.s,
           lerp(yLie, yStand, stand),
-          pose.z + lerp(ref.slot.z, 0, stand) * pose.s,
+          pose.z + lerp(ref.slot.z, inPillar?.dz ?? 0, stand) * pose.s,
         )
         scale.setScalar(length)
         matrix.compose(position, quaternion, scale)
         shellMesh!.setMatrixAt(index, matrix)
         const highlight = Math.max(entry.lift, entry.key === selectedKey ? 0.6 : 0, entry.emphasis * 0.9)
-        glowAttribute!.setX(index, 0.5 + capsule.glow * 0.42 + highlight * 1.0 + (capsule.keepsake ? 0.6 : 0))
+        // Stacked drafts: the top layer glows a little more, so the bar's end reads clearly (fades towards 2D).
+        const crown = stacked && inPillar?.top ? 0.38 * stand : 0
+        glowAttribute!.setX(index, 0.5 + capsule.glow * 0.42 + highlight * 1.0 + (capsule.keepsake ? 0.6 : 0) + crown)
       })
       shellMesh.instanceMatrix.needsUpdate = true
       glowAttribute.needsUpdate = true
@@ -1538,7 +1578,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     setView,
     setPillars,
     guideStep() {
-      if (!aidOn() || mode() !== 'month') return null
+      if (!aidOn() || stackOn() || mode() !== 'month') return null
       const hours = guideHours(scaleHours())
       return hours.length ? hours[0]! : null
     },

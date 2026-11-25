@@ -105,3 +105,62 @@ test('too many capsules for the pillar: a fill of light with the top few and the
 test('an empty day has no pillar', () => {
   assert.deepEqual(pillarLayout([], 0, { scaleHours: 2, maxHeight: 2, radius: 0.2 }), { height: 0, capsules: [], segments: [], simplified: false })
 })
+
+// ── 「엇갈려 쌓기」 (log cabin) ──
+import {
+  isAidMode,
+  isStackMode,
+  stackCapsuleLength,
+  stackDims,
+  stackHourHeight,
+  stackLayers,
+  stackLayout,
+  STACK_MIN_LENGTH,
+} from '../src/features/records/capsule-board/capsule-board-pillars.ts'
+import { CAPSULE_ASPECT as STACK_ASPECT } from '../src/features/mates/capsule-jar/capsule-jar-layout.ts'
+
+test('stack modes parse and are told apart from the glass ones', () => {
+  assert.equal(parsePillarMode('stack'), 'stack')
+  assert.equal(parsePillarMode('stack-aid'), 'stack-aid')
+  assert.equal(parsePillarMode('stacks'), 'off')
+  assert.ok(isStackMode('stack') && isStackMode('stack-aid') && !isStackMode('glass'))
+  assert.ok(isAidMode('stack-aid') && isAidMode('glass-aid') && !isAidMode('stack'))
+})
+
+test('log cabin: two per layer side by side, every layer turned 90°, a lone 30 minutes centred on top', () => {
+  const length = 0.5
+  const thick = length * STACK_ASPECT
+  const layout = stackLayout(new Array(5).fill(null), length)
+  assert.equal(stackLayers(5), 3)
+  assert.ok(Math.abs(layout.height - 3 * thick) < 1e-12, 'one capsule thick per layer')
+  const [a, b, c, d, e] = layout.capsules
+  // Layer 0 along x, the pair side by side in z; layer 1 along z, side by side in x.
+  assert.equal(a!.yaw, 0)
+  assert.equal(c!.yaw, Math.PI / 2)
+  assert.equal(e!.yaw, 0)
+  assert.ok(a!.dz! < 0 && b!.dz! > 0 && a!.dx === 0)
+  assert.ok(c!.dx! < 0 && d!.dx! > 0 && c!.dz === 0)
+  // Square footprint: the pair spans exactly one capsule length across.
+  const across = b!.dz! - a!.dz! + thick
+  assert.ok(Math.abs(across - length) < 1e-12)
+  // Time order bottom → top, levelled, no lean.
+  assert.ok(layout.capsules.every((capsule, index, list) => index === 0 || capsule.y >= list[index - 1]!.y))
+  assert.ok(layout.capsules.every((capsule) => capsule.tilt === 0))
+  // The lone last one is centred, alone in the top layer, and marked as the top.
+  assert.equal(e!.dx, 0)
+  assert.equal(e!.dz, 0)
+  assert.deepEqual(layout.capsules.map((capsule) => capsule.top), [false, false, false, false, true])
+  // An even count: the whole last layer is the top.
+  assert.deepEqual(stackLayout(new Array(4).fill(null), length).capsules.map((capsule) => capsule.top), [false, false, true, true])
+  assert.equal(stackLayout([], length).height, 0)
+})
+
+test('one capsule size per period: the longest day fits the period height, never below the minimum', () => {
+  const week = stackDims('week', false)
+  assert.equal(stackCapsuleLength([2, 4, 6], week), week.length, 'short days keep the full size')
+  const long = stackCapsuleLength([40], week) // 20 hours = 20 layers
+  assert.ok(Math.abs(20 * long * STACK_ASPECT - week.maxHeight) < 1e-9)
+  assert.equal(stackCapsuleLength([400], week), STACK_MIN_LENGTH)
+  // One hour = one layer.
+  assert.ok(Math.abs(stackHourHeight(3, 0.5) - stackLayout(new Array(6).fill(null), 0.5).height) < 1e-12)
+})

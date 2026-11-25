@@ -19,13 +19,24 @@ import { BOARD, type BoardCapsule, type BoardMode, type BoardTile, type CapsuleC
  * fill of light (coloured by connection, layer by layer) with only the top few capsules and any keepsake drawn.
  */
 
-export type PillarMode = 'off' | 'glass' | 'glass-aid'
-export const PILLAR_MODES: readonly PillarMode[] = ['off', 'glass', 'glass-aid']
-export const PILLAR_MODE_LABELS: Readonly<Record<PillarMode, string>> = { off: '지금', glass: '유리 기둥', 'glass-aid': '유리 기둥+보조' }
+export type PillarMode = 'off' | 'glass' | 'glass-aid' | 'stack' | 'stack-aid'
+export const PILLAR_MODES: readonly PillarMode[] = ['off', 'glass', 'glass-aid', 'stack', 'stack-aid']
+export const PILLAR_MODE_LABELS: Readonly<Record<PillarMode, string>> = {
+  off: '지금',
+  glass: '유리 기둥',
+  'glass-aid': '유리 기둥+보조',
+  stack: '엇갈려 쌓기',
+  'stack-aid': '엇갈려 쌓기+보조',
+}
 
 export function parsePillarMode(value: string | null | undefined): PillarMode {
-  return value === 'glass' || value === 'glass-aid' ? value : 'off'
+  return PILLAR_MODES.includes(value as PillarMode) ? (value as PillarMode) : 'off'
 }
+
+/** 「엇갈려 쌓기」 drafts: no pillar, the lying capsules themselves form the bar (stackLayout). */
+export const isStackMode = (mode: PillarMode) => mode === 'stack' || mode === 'stack-aid'
+/** The drafts with the aid (guides on the back wall, the longest day's chip). */
+export const isAidMode = (mode: PillarMode) => mode === 'glass-aid' || mode === 'stack-aid'
 
 /** Pillars are drawn for the week and the month (the year keeps its columns: 365 pillars read as a carpet of dots). */
 export const pillarsApply = (mode: PillarMode, period: BoardMode) => mode !== 'off' && period !== 'year'
@@ -79,6 +90,12 @@ export type PillarCapsule = {
   tilt: number
   yaw: number
   visible: boolean
+  /** Offset from the tile centre in the floor plane (the stacked drafts place two capsules side by side). */
+  dx?: number
+  dz?: number
+  /** Stacked drafts: its layer (0 = bottom) and whether it is in the top layer (a soft highlight marks the bar's end). */
+  layer?: number
+  top?: boolean
 }
 export type PillarSegment = { y0: number; y1: number; colors: CapsuleColors }
 export type PillarLayout = {
@@ -154,3 +171,69 @@ export function standingHeight(tile: Pick<BoardTile, 'height'>, pillar: PillarLa
 }
 
 export { BOARD }
+
+// ── 「엇갈려 쌓기」 (log cabin) ──────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Stacked drafts per period: the tallest the period's longest day may stand (tile units) and the capsule length to
+ * start from. With the aid the month is a little lower and the camera looks down more steeply (as the glass aid).
+ */
+export function stackDims(period: BoardMode, aid: boolean) {
+  if (period === 'week') return { maxHeight: 2.1, length: 0.5, elevation: 0 }
+  return aid ? { maxHeight: 1.25, length: 0.42, elevation: 4 } : { maxHeight: 1.45, length: 0.42, elevation: 0 }
+}
+
+/** Shortest capsule the stacked drafts use, however long the period's longest day (below this it stops reading). */
+export const STACK_MIN_LENGTH = 0.2
+
+/** Layers of a day: two capsules (one hour) per layer, a lone 30-minute capsule on top. */
+export const stackLayers = (count: number) => Math.ceil(count / 2)
+
+/**
+ * One capsule length for the whole period, so heights compare like a bar chart: as long as `dims.length`, shorter when
+ * the period's tallest stack would rise above `dims.maxHeight` (one layer is one capsule thick), never below
+ * STACK_MIN_LENGTH.
+ */
+export function stackCapsuleLength(counts: readonly number[], dims: { maxHeight: number; length: number }) {
+  const layers = counts.reduce((max, count) => Math.max(max, stackLayers(count)), 0)
+  if (!layers) return dims.length
+  return Math.max(STACK_MIN_LENGTH, Math.min(dims.length, dims.maxHeight / (layers * CAPSULE_ASPECT)))
+}
+
+/**
+ * Log-cabin stack of a day's capsules (in time order, bottom → top): two lying side by side per layer, every layer
+ * turned 90° from the one below, a lone last capsule (30 minutes left over) centred on top. The two of a layer sit
+ * `(length − thickness) / 2` from the centre, so the pair is exactly as wide as a capsule is long and every layer has
+ * the same square footprint seen from above (length : thickness = 1 : CAPSULE_ASPECT ≈ 1 : 0.44, so the gap between
+ * the pair is about 12 % of the length). Layers are one capsule thick (crossing capsules rest on each other), level
+ * and squared up: no lean, no turn.
+ */
+export function stackLayout(capsules: readonly unknown[], length: number): PillarLayout {
+  const count = capsules.length
+  if (!count) return { height: 0, capsules: [], segments: [], simplified: false }
+  const thick = length * CAPSULE_ASPECT
+  const offset = (length - thick) / 2
+  const layers = stackLayers(count)
+  const list = capsules.map((_, index): PillarCapsule => {
+    const layer = Math.floor(index / 2)
+    const alone = index === count - 1 && count % 2 === 1
+    const side = alone ? 0 : index % 2 === 0 ? -1 : 1
+    // Even layers lie along x (side by side in z), odd ones along z (side by side in x).
+    const alongX = layer % 2 === 0
+    return {
+      y: thick / 2 + layer * thick,
+      length,
+      tilt: 0,
+      yaw: alongX ? 0 : Math.PI / 2,
+      visible: true,
+      dx: alongX ? 0 : side * offset,
+      dz: alongX ? side * offset : 0,
+      layer,
+      top: layer === layers - 1,
+    }
+  })
+  return { height: layers * thick, capsules: list, segments: [], simplified: false }
+}
+
+/** Height of a whole number of hours in a stack (one layer = one hour). */
+export const stackHourHeight = (hours: number, length: number) => hours * length * CAPSULE_ASPECT

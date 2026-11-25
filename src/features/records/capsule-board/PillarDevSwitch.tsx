@@ -2,7 +2,7 @@ import { PILLAR_MODE_LABELS, PILLAR_MODES, type PillarMode } from './capsule-boa
 
 /**
  * DEV only (RecordsPage loads it behind `import.meta.env.DEV`): switches the 2.5D board between the current columns and
- * the 「유리 기둥」 drafts, the same as `?pillars=glass|glass-aid`. Bottom-left corner, out of the way of the local
+ * the 「유리 기둥」 and 「엇갈려 쌓기」 drafts, the same as `?pillars=glass|glass-aid|stack|stack-aid`. Bottom-left corner, out of the way of the local
  * dummy controls (bottom-right).
  */
 export default function PillarDevSwitch({ value, onChange }: { value: PillarMode; onChange: (mode: PillarMode) => void }) {

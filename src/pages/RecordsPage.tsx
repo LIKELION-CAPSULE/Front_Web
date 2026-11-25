@@ -104,7 +104,7 @@ export default function RecordsPage() {
   const { state } = useDemo()
   const { home, status } = useBackend()
   const [searchParams, setSearchParams] = useSearchParams()
-  // DEV draft: glass pillars (`?pillars=glass|glass-aid`); production always shows the columns.
+  // DEV drafts: glass pillars / log-cabin stacks (`?pillars=glass|glass-aid|stack|stack-aid`); production always shows the columns.
   const pillarMode = import.meta.env.DEV ? parsePillarMode(searchParams.get('pillars')) : 'off'
   const setPillarMode = (mode: string) => {
     const next = new URLSearchParams(searchParams)
