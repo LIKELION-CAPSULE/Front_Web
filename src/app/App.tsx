@@ -89,7 +89,7 @@ export function App() {
           </Route>
           <Route path="oauth/kakao" element={<KakaoCallbackPage />} />
           <Route element={<RequireDemo />}>
-            <Route element={<AuthPanelLayout />}>
+            <Route element={<AuthPanelLayout appHeader />}>
               <Route path="onboarding" element={<OnboardingPage />} />
             </Route>
             <Route path="mypage" element={<AccountRedirect />} />

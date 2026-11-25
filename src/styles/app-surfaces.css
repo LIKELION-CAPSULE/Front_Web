@@ -4,6 +4,10 @@
 .app-panel-heading { padding: 28px 28px 0; }
 .auth-panel-layout { display: flex; min-height: 100dvh; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding: 32px 24px; }
 .auth-panel-content { width: min(500px, 100%); padding: 32px; }
+/* Onboarding: the home app header (logo only) across the top instead of the centred logo; the content below it. */
+.auth-panel-layout[data-app-header] { justify-content: flex-start; padding: 0 0 32px; }
+.auth-panel-layout[data-app-header] > .site-header { align-self: stretch; }
+.auth-panel-layout[data-app-header] > .auth-panel-content { max-width: calc(100% - 48px); }
 .app-surface .page-skeleton :is(.app-panel, .mate-card, .mate-welcome) .skeleton-line { background: var(--color-surface); }
 .app-surface .page-skeleton .mate-card-image { height: auto; }
 

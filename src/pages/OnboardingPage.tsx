@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useWindupString } from 'windups'
 import { useDemo } from '@/features/demo/demo-context'
@@ -96,6 +97,7 @@ export default function OnboardingPage() {
   const { state } = useDemo()
   const backend = useBackend()
   const desktopShell = useDesktopShell()
+  const reducedMotion = useReducedMotion()
   const userId = state.profile.userId
   const [draft] = useState(() => readDraft(userId))
   const [name, setName] = useState(draft.nickname ?? state.profile.name)
@@ -181,10 +183,35 @@ export default function OnboardingPage() {
   const avatarTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const lastReactedNicknameRef = useRef(state.profile.name.trim())
 
+  // The panel's title takes the focus once the step's content has come in (it mounts after the swap starts).
+  const focusHeadingNext = useRef(true)
+  const headingMounted = useCallback((node: HTMLHeadingElement | null) => {
+    headingRef.current = node
+    if (node && focusHeadingNext.current) {
+      focusHeadingNext.current = false
+      node.focus({ preventScroll: true })
+    }
+  }, [])
+  const shownStep = useRef(step)
   useEffect(() => {
     document.title = step === 2 ? 'CAPSULE · 초대 코드' : 'CAPSULE · 프로필 만들기'
-    headingRef.current?.focus({ preventScroll: true })
-  }, [step])
+    if (shownStep.current === step) return
+    shownStep.current = step
+    focusHeadingNext.current = true
+    // Already mounted (no swap animation, e.g. reduced motion): focus now.
+    if (headingRef.current?.dataset.step === String(step)) headingMounted(headingRef.current)
+  }, [step, headingMounted])
+
+  // The panel follows its content's height when the step changes (CSS transition on the frame).
+  const panelInner = useRef<HTMLDivElement>(null)
+  const [panelHeight, setPanelHeight] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    const node = panelInner.current
+    if (!node || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(([entry]) => setPanelHeight(Math.ceil(entry?.borderBoxSize?.[0]?.blockSize ?? node.offsetHeight)))
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (!desktopShell) return
@@ -406,27 +433,51 @@ export default function OnboardingPage() {
 
   const nickname = name.trim()
   const greeting = nickname && !nicknameError(nickname) ? `안녕, ${nickname}! 이 모습으로 함께할게요.` : '닉네임을 알려 주면 인사할게요.'
+  // 「○○, 반가워!」 on its own line (pre-line in onboarding.css), then the rest.
   const helloText = inviter
-    ? `${nickname}, 반가워! ${inviter}님이 초대해 줬구나. 코드만 확인하면 바로 시작이야.`
-    : `${nickname}, 반가워! 친구한테 받은 초대 코드가 있으면 알려 줘.`
+    ? `${nickname}, 반가워!\n${inviter}님이 초대해 줬구나. 코드만 확인하면 바로 시작이야.`
+    : `${nickname}, 반가워!\n친구한테 받은 초대 코드가 있으면 알려 줘.`
+
+  // Step 1 ↔ 2 inside the panel only: the avatar and its arc stay; the panel's content slides and fades (~250ms,
+  // at once under reduced motion) and the panel's height follows. The rail stays usable on step 2 (the avatar shown
+  // is the one saved; changing it there is a choice like on step 1).
+  const panelSwap = {
+    initial: 'enter',
+    animate: 'center',
+    exit: 'leave',
+    variants: {
+      enter: (direction: number) => (reducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 24 * direction }),
+      center: { opacity: 1, x: 0 },
+      leave: (direction: number) => (reducedMotion ? { opacity: 0 } : { opacity: 0, x: -24 * direction }),
+    },
+    transition: { duration: reducedMotion ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] as const },
+  }
 
   return (
     <main id="main-content" tabIndex={-1} className="onboarding focus:outline-none" data-step={step}>
-      {step === 1 ? (
-        <div className="onboarding-step-one">
+      <div className="onboarding-step-one">
           <AvatarDial
             avatars={backend.avatars}
             value={selectedAvatarId}
             onChange={handleAvatarChange}
             disabled={!!busy}
+            layout="arc"
             fallback={<AvatarIllustration settings={state.profile.avatar} />}
             greeting={greeting}
           />
-          <form
+        <div className="onboarding-panel">
+          <div className="onboarding-panel-clip" style={panelHeight === null ? undefined : { height: panelHeight }}>
+          <div ref={panelInner} className="onboarding-panel-inner">
+            <AnimatePresence mode="popLayout" initial={false} custom={step === 2 ? 1 : -1}>
+              {step === 1 ? (
+          <motion.form
+            key="profile"
             ref={stepOneForm}
             noValidate
-            className="onboarding-panel"
+            className="onboarding-panel-body"
             aria-labelledby={`${fieldId}-title`}
+            custom={-1}
+            {...panelSwap}
             onSubmit={(event) => {
               event.preventDefault()
               if (needsReferral) goToStepTwo()
@@ -434,7 +485,7 @@ export default function OnboardingPage() {
             }}
           >
             <StepMeter step={1} total={totalSteps} />
-            <h1 ref={headingRef} id={`${fieldId}-title`} tabIndex={-1} className="onboarding-title">
+            <h1 ref={headingMounted} data-step="1" id={`${fieldId}-title`} tabIndex={-1} className="onboarding-title type-page-title">
               프로필 만들기
             </h1>
             <p className="onboarding-lead">함께할 모습과 이름을 정해요.</p>
@@ -475,75 +526,81 @@ export default function OnboardingPage() {
             <Button type="submit" loading={busy !== null} disabled={!!busy || !nickname} className="onboarding-primary">
               {needsReferral ? '다음' : '시작하기'}
             </Button>
-            <p className="onboarding-ai-note">캡슐 메이트는 AI 캐릭터예요.</p>
-          </form>
-        </div>
-      ) : (
-        <form
-          noValidate
-          className="onboarding-panel onboarding-invite"
-          aria-labelledby={`${fieldId}-invite-title`}
-          onSubmit={(event) => {
-            event.preventDefault()
-            void finish(false)
-          }}
-        >
-          <div className="onboarding-invite-top">
-            <Button variant="ghost" size="sm" className="onboarding-back" disabled={!!busy} onClick={backToStepOne}>
-              <Icon name="arrow" size={16} className="rotate-180" />
-              이전
-            </Button>
-            <StepMeter step={2} total={totalSteps} />
-          </div>
-          <MateHello key={helloText} text={helloText} />
-          <h1 ref={headingRef} id={`${fieldId}-invite-title`} tabIndex={-1} className="onboarding-title">
-            초대 코드
-          </h1>
-          <div className="onboarding-benefit">
-            <Icon name="gift" size={22} className="onboarding-benefit-icon" />
-            <div>
-              <p className="onboarding-benefit-title">친구를 초대하면 둘 다 크레딧 1,000</p>
-              <p className="onboarding-benefit-text">받은 초대 코드를 넣고 첫 연결을 마치면 나와 친구 모두 받아요.</p>
+          </motion.form>
+              ) : (
+          <motion.form
+            key="invite"
+            noValidate
+            className="onboarding-panel-body onboarding-invite"
+            aria-labelledby={`${fieldId}-invite-title`}
+            custom={1}
+            {...panelSwap}
+            onSubmit={(event) => {
+              event.preventDefault()
+              void finish(false)
+            }}
+          >
+            <div className="onboarding-invite-top">
+              <Button variant="ghost" size="sm" className="onboarding-back" disabled={!!busy} onClick={backToStepOne}>
+                <Icon name="arrow" size={16} className="rotate-180" />
+                이전
+              </Button>
+              <StepMeter step={2} total={totalSteps} />
             </div>
+            <MateHello key={helloText} text={helloText} />
+            <h1 ref={headingMounted} data-step="2" id={`${fieldId}-invite-title`} tabIndex={-1} className="onboarding-title type-page-title">
+              초대 코드
+            </h1>
+            <div className="onboarding-benefit">
+              <Icon name="gift" size={22} className="onboarding-benefit-icon" />
+              <div>
+                <p className="onboarding-benefit-title">친구를 초대하면 둘 다 크레딧 1,000</p>
+                <p className="onboarding-benefit-text">받은 초대 코드를 넣고 첫 연결을 마치면 나와 친구 모두 받아요.</p>
+              </div>
+            </div>
+            <ReferralCodeField
+              inputRef={referralInputRef}
+              value={referralCode}
+              label="초대 코드 (선택)"
+              placeholder="친구에게 받은 코드"
+              showHelp={false}
+              fromInviteLink={fromInviteLink}
+              inviterNickname={storedRef?.inviterNickname}
+              validation={referralValidation}
+              readOnly={!!busy}
+              onChange={(nextVal) => {
+                userEditedReferralRef.current = true
+                setReferralCode(nextVal)
+                if (normalizeReferralCode(nextVal) !== lastValidatedRef.current) {
+                  setReferralValidation({ status: 'idle' })
+                }
+              }}
+              onBlurValidate={() => {
+                const norm = normalizeReferralCode(referralCode)
+                if (!norm) {
+                  setReferralValidation({ status: 'idle' })
+                  return
+                }
+                if (norm !== lastValidatedRef.current) {
+                  void validateReferral(norm, false)
+                }
+              }}
+            />
+            <div className="onboarding-invite-actions">
+              <Button type="submit" loading={busy === 'start'} disabled={!!busy} className="onboarding-primary">
+                {fromInviteLink ? '확인하고 시작하기' : '시작하기'}
+              </Button>
+              <Button variant="ghost" loading={busy === 'skip'} disabled={!!busy} onClick={() => void finish(true)}>
+                건너뛰기
+              </Button>
+            </div>
+          </motion.form>
+              )}
+            </AnimatePresence>
           </div>
-          <ReferralCodeField
-            inputRef={referralInputRef}
-            value={referralCode}
-            label="초대 코드 (선택)"
-            placeholder="친구에게 받은 코드"
-            showHelp={false}
-            fromInviteLink={fromInviteLink}
-            inviterNickname={storedRef?.inviterNickname}
-            validation={referralValidation}
-            readOnly={!!busy}
-            onChange={(nextVal) => {
-              userEditedReferralRef.current = true
-              setReferralCode(nextVal)
-              if (normalizeReferralCode(nextVal) !== lastValidatedRef.current) {
-                setReferralValidation({ status: 'idle' })
-              }
-            }}
-            onBlurValidate={() => {
-              const norm = normalizeReferralCode(referralCode)
-              if (!norm) {
-                setReferralValidation({ status: 'idle' })
-                return
-              }
-              if (norm !== lastValidatedRef.current) {
-                void validateReferral(norm, false)
-              }
-            }}
-          />
-          <div className="onboarding-invite-actions">
-            <Button type="submit" loading={busy === 'start'} disabled={!!busy} className="onboarding-primary">
-              {fromInviteLink ? '확인하고 시작하기' : '시작하기'}
-            </Button>
-            <Button variant="ghost" loading={busy === 'skip'} disabled={!!busy} onClick={() => void finish(true)}>
-              건너뛰기
-            </Button>
           </div>
-        </form>
-      )}
+        </div>
+      </div>
       <NotificationStack
         items={notifications}
         onDismiss={(id) => setNotifications((current) => current.filter((item) => item.id !== id))}
