@@ -64,17 +64,22 @@ export function chooseLabelSide(tip: Point, size: Size, avoid: Avoid, preferred:
 }
 
 /**
- * Reduced motion: the line beside the lit target (spot = the target with its padding): below, above, right, left — and,
+ * Reduced motion: the line beside the lit target (spot = the target with its padding): below, above (left-aligned, then
+ * right-aligned), right, left — and,
  * for a target too large to leave room around it, just inside its top edge (last, so only when the rest cost more).
  */
 export function chooseLineBox(spot: Box, size: Size, avoid: Avoid, gap = 12): Box {
   const viewportWidth = avoid.viewport.width
   const alignedLeft = Math.max(16, Math.min(spot.left, viewportWidth - size.width - 16))
+  // Ending at the target's right edge: for a small target at the right of its card (the home card's arrow).
+  const alignedRight = Math.max(16, Math.min(spot.right - size.width, viewportWidth - size.width - 16))
   const middle = Math.max(16, (spot.top + spot.bottom) / 2 - size.height / 2)
   const at = (left: number, top: number): Box => ({ left, top, right: left + size.width, bottom: top + size.height })
   const candidates = [
     at(alignedLeft, spot.bottom + gap),
     at(alignedLeft, spot.top - gap - size.height),
+    at(alignedRight, spot.bottom + gap),
+    at(alignedRight, spot.top - gap - size.height),
     at(spot.right + gap, middle),
     at(spot.left - gap - size.width, middle),
     at(alignedLeft + gap, spot.top + gap),

@@ -10,16 +10,19 @@ import { QuarterRingSpinner } from '@/shared/ui/QuarterRingSpinner'
  * clicks through the rail). The model already on screen covers the wait.
  */
 export const AVATAR_PREVIEW_DELAY_MS = 160
-/** The new model fades in over the previous one for this long before the previous one is released (avatar-dial.css). */
+/** The new model fades in over its own still (the stand-in) for this long (avatar-dial.css). */
 export const AVATAR_PREVIEW_FADE_MS = 280
 
 /**
  * Owns one avatar's Live2D preview; it never borrows the study companion's model. Mounted with a key per avatar, so
- * unmounting fully releases the model (WebGL context, textures, ticker). `onShown` reports once the model is drawn and
- * has faded in, so the picker can release the model it replaces.
+ * unmounting fully releases the model (WebGL context, textures, ticker). `onShown` reports once the model is drawn (it
+ * starts fading in), so the picker fades the stand-in still out under it. `leaving`: the model fades out quickly
+ * before the picker releases it (never on screen with the next avatar).
  */
-export function AvatarModelPreview({ model, name, leaving = false, still, onShown, onFailed }: {
+export function AvatarModelPreview({ model, name, avatarKey, leaving = false, still, onShown, onFailed }: {
   model: ModelInfo
+  /** Which choice this is (`data-avatar`, for checks that two avatars are never visible together). */
+  avatarKey?: string
   name: string
   /** The model being replaced: kept drawn (no status UI) until the new one is shown. */
   leaving?: boolean
@@ -42,16 +45,14 @@ export function AvatarModelPreview({ model, name, leaving = false, still, onShow
   }, [stage, reduced, leaving])
 
   useEffect(() => {
-    if (status !== 'ready' || leaving) return
-    const timer = setTimeout(() => shownRef.current?.(), reduced ? 0 : AVATAR_PREVIEW_FADE_MS)
-    return () => clearTimeout(timer)
-  }, [status, leaving, reduced])
+    if (status === 'ready' && !leaving) shownRef.current?.()
+  }, [status, leaving])
 
   useEffect(() => {
     if (failed && !leaving) failedRef.current?.()
   }, [failed, leaving])
 
-  return <div className="avatar-picker-model" data-status={status} data-leaving={leaving || undefined} aria-busy={status === 'loading'}>
+  return <div className="avatar-picker-model" data-status={status} data-leaving={leaving || undefined} data-avatar={avatarKey} aria-busy={status === 'loading'}>
     {failed && !leaving && still && <div className="avatar-picker-still" aria-hidden="true">{still}</div>}
     {stage && <Live2DFigure stage={stage} />}
     {!leaving && (failed

@@ -23,8 +23,8 @@ test('local transport covers the real client boundary and never forwards API or 
     const { data } = await start.json(), path = `/sessions/${data.sessionId}`
     // v2 (Aliving2D) model in the draft contract shape (docs/MATE_MODEL_V2_CONTRACT.md)
     assert.equal(data.character.format, 'aliving2d')
-    assert.equal(data.character.modelJsonUrl, '/__local-assets/chaerin-v2/model/model.json')
-    assert.equal(data.character.engineUrl, '/__local-assets/chaerin-v2/engine/engine.js')
+    assert.equal(data.character.modelJsonUrl, '/__local-assets/chaerin-v3/model/model.json')
+    assert.equal(data.character.engineUrl, '/__local-assets/chaerin-v3/engine/engine.js')
     const event = await (await request(`${path}/events`, { type: 'FOCUS', occurredAt: new Date().toISOString() })).json()
     // Faces come as the v2 Korean label, like the backend seed (live2d_expressions.name)
     assert.deepEqual(event.data.characters[0].expression, { name: '집중' })

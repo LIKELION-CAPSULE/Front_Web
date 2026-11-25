@@ -45,7 +45,7 @@ await page.waitForLoadState('networkidle')
 await page.waitForTimeout(800)
 await page.evaluate(async () => {
   document.body.innerHTML = ''
-  for (const src of ['/__local-assets/chaerin-v2/engine/engine.js', '/__local-assets/chaerin-v2/engine/player.js']) {
+  for (const src of ['/__local-assets/chaerin-v3/engine/engine.js', '/__local-assets/chaerin-v3/engine/player.js']) {
     await new Promise((resolve, reject) => {
       const script = document.createElement('script')
       script.src = src
@@ -64,8 +64,8 @@ for (const name of EXPRESSIONS) {
       canvas.width = size[0]
       canvas.height = size[1]
       document.body.append(canvas)
-      const player = await window.CapsuleV2Player.create(canvas, '/__local-assets/chaerin-v2/model/model.json', {
-        reactions: '/__local-assets/chaerin-v2/engine/reactions.default.json',
+      const player = await window.CapsuleV2Player.create(canvas, '/__local-assets/chaerin-v3/model/model.json', {
+        reactions: '/__local-assets/chaerin-v3/engine/reactions.default.json',
         idle: false,
         zoom: view.zoom,
         cx: view.cx,

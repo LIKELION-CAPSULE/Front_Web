@@ -3,7 +3,18 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { AvatarItem, ModelInfo } from '@/shared/api/types'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { AvatarModelPreview } from './AvatarModelPreview'
-import { choosePreview, mountedPreviews, previewFailed, previewShown, type PreviewView } from '../avatar-preview-state'
+import { AvatarArcRail } from './AvatarArcRail'
+import {
+  AVATAR_LEAVE_MS,
+  choosePreview,
+  emptyPreview,
+  mountedPreviews,
+  previewFailed,
+  previewReleased,
+  previewShown,
+  standInVisible,
+  type PreviewView,
+} from '../avatar-preview-state'
 import './avatar-dial.css'
 
 /** Shown wherever the Live2D sample avatars can be picked (Live2D free material license, attribution duty). */
@@ -26,20 +37,27 @@ function AvatarPortrait({ avatar, fallback, className = 'avatar-picker-image' }:
  * into the page at the waist), its name, an optional greeting, and a row of round stills whose centre is the choice.
  * Shared by onboarding step 1 and the account settings profile tab.
  *
- * - Only the chosen avatar loads Live2D; the row is still images. Switching releases the previous model first.
+ * - Only the chosen avatar loads Live2D; the row is still images. Two avatars are never on the stage together: the
+ *   previous model fades out quickly and is released, the chosen avatar's still stands in while its model loads, and
+ *   the model fades in over it (avatar-preview-state.ts).
  * - Arrow keys / Home / End on the row, a click on any still, or a horizontal swipe on the preview or the row.
  * - Reduced motion: the row and the preview switch instantly, and the preview is the still image (no live model)
  *   whenever one exists.
  * - The model itself is never recoloured, filtered or reshaped (license); only the light behind it and the fade at
  *   the bottom edge belong to the stage.
  */
-export function AvatarDial({ avatars, value, onChange, disabled = false, size = 'large', previewActive = true, fallback, greeting }: {
+export function AvatarDial({ avatars, value, onChange, disabled = false, size = 'large', layout = 'row', previewActive = true, fallback, greeting }: {
   avatars: readonly AvatarItem[]
   value?: number
   onChange: (id: number) => void
   disabled?: boolean
   /** `large`: onboarding. `compact`: the account settings dialog. Same layout, smaller stage and row. */
   size?: 'large' | 'compact'
+  /**
+   * `row`: the stage with a row of stills under it (account settings). `arc`: onboarding's big stage with the stills on
+   * a vertical arc at the left edge of the screen (AvatarArcRail), the name and greeting over the stage's faded foot.
+   */
+  layout?: 'row' | 'arc'
   /** False keeps the still image (e.g. the dialog tab is hidden). */
   previewActive?: boolean
   fallback: ReactNode
@@ -55,12 +73,20 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   const previewKey = JSON.stringify([selected?.id, model?.modelJsonUrl, model?.scale, model?.offsetX, model?.offsetY])
   const live = Boolean(model?.modelJsonUrl) && previewActive && !(reduced && selected?.thumbnailUrl)
   const current: PreviewEntry | null = live && model ? { key: previewKey, model, name: selected?.name || '아바타' } : null
-  // The model on screen stays until the newly chosen one is drawn, and is released at once if that one fails
-  // (avatar-preview-state.ts). At most two models exist at once.
-  const [view, setView] = useState<PreviewView<PreviewEntry>>({ current, shown: null })
+  // The previous model fades out and is released before the chosen one mounts; meanwhile the chosen avatar's still
+  // stands in (avatar-preview-state.ts). Never two avatars visible; at most two models exist at once.
+  const [view, setView] = useState<PreviewView<PreviewEntry>>(() => emptyPreview(current))
   const nextView = choosePreview(view, current, reduced)
   if (nextView !== view) setView(nextView)
-  const previews = mountedPreviews(nextView).map(entry => entry.key === current?.key && current ? current : entry)
+  const previews = mountedPreviews(nextView).map(({ entry, leaving }) => ({ entry: !leaving && current && entry.key === current.key ? current : entry, leaving }))
+  const standIn = Boolean(current) && standInVisible(nextView)
+  const leavingKeys = nextView.leaving.map(entry => entry.key).join('|')
+  useEffect(() => {
+    if (!leavingKeys) return
+    const keys = leavingKeys.split('|')
+    const timer = setTimeout(() => setView(previous => keys.reduce((next, key) => previewReleased(next, key), previous)), AVATAR_LEAVE_MS)
+    return () => clearTimeout(timer)
+  }, [leavingKeys])
   const hasLive2D = choices.some(avatar => avatar.model?.modelJsonUrl)
   const root = useRef<HTMLFieldSetElement>(null)
   const rail = useRef<HTMLDivElement>(null)
@@ -134,24 +160,28 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   }
   const fade = reduced ? { duration: 0 } : { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }
 
-  return <fieldset ref={root} disabled={disabled} className="avatar-picker" data-size={size} aria-describedby={choices.length > 1 ? hintId : undefined}>
-    <legend className="sr-only">내 아바타 선택</legend>
-    {choices.length > 1 && <p id={hintId} className="sr-only">방향키나 좌우로 밀어서 다른 아바타를 고를 수 있어요.</p>}
-
-    <div className="avatar-picker-stage" data-no-native-drag data-draggable={!disabled && choices.length > 1 || undefined} {...swipe}>
+  const stage = <div className="avatar-picker-stage" data-no-native-drag data-draggable={!disabled && choices.length > 1 || undefined} {...swipe}>
       {/* Keyed so the light swells once on every change (CSS; none under reduced motion). */}
       <div key={selected?.id ?? 'none'} className="avatar-picker-halo" aria-hidden="true" />
       <figure className="avatar-picker-figure" aria-labelledby={nameId}>
-        {previews.length
-          ? previews.map(entry => <AvatarModelPreview key={entry.key} model={entry.model} name={entry.name} leaving={entry.key !== current?.key}
-            still={entry.key === current?.key ? <AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} /> : undefined}
-            onShown={() => setView(previous => previewShown(previous, entry.key))}
-            onFailed={() => setView(previous => previewFailed(previous, entry.key))} />)
-          : <div className="avatar-picker-still" aria-hidden="true"><AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} /></div>}
+        {current
+          ? <>
+            {/* The chosen avatar's still while its model loads (after the previous one has gone), under the model. */}
+            {nextView.leaving.length === 0 && <div key={current.key} className="avatar-picker-still avatar-picker-stand-in" data-out={!standIn || undefined} data-avatar={current.key} aria-hidden="true">
+              <AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} />
+            </div>}
+            {previews.map(({ entry, leaving }) => <AvatarModelPreview key={entry.key} avatarKey={entry.key} model={entry.model} name={entry.name} leaving={leaving}
+              still={leaving ? undefined : <AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} />}
+              onShown={() => setView(previous => previewShown(previous, entry.key))}
+              onFailed={() => setView(previous => previewFailed(previous, entry.key))} />)}
+          </>
+          : <>
+            {previews.map(({ entry }) => <AvatarModelPreview key={entry.key} avatarKey={entry.key} model={entry.model} name={entry.name} leaving />)}
+            {!previews.length && <div className="avatar-picker-still" aria-hidden="true"><AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} /></div>}
+          </>}
       </figure>
     </div>
-
-    <div className="avatar-picker-caption">
+  const caption = <div className="avatar-picker-caption">
       <AnimatePresence mode="wait" initial={false}>
         <motion.p key={selected?.id ?? 'none'} id={nameId} className="avatar-picker-name" title={selectedName}
           initial={reduced ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={reduced ? { opacity: 1 } : { opacity: 0, y: -4 }} transition={fade}>
@@ -160,6 +190,31 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
       </AnimatePresence>
       {greeting && <p className="avatar-picker-greeting">{greeting}</p>}
     </div>
+  const credit = hasLive2D && <p className="avatar-picker-credit">{LIVE2D_CREDIT}</p>
+
+  if (layout === 'arc') {
+    return <fieldset ref={root} disabled={disabled} className="avatar-picker" data-layout="arc" data-size={size} aria-describedby={choices.length > 1 ? hintId : undefined}>
+      <legend className="sr-only">내 아바타 선택</legend>
+      {choices.length > 1 && <p id={hintId} className="sr-only">위아래 방향키, 휠, 위아래로 끌기로 다른 아바타를 고를 수 있어요.</p>}
+      {choices.length
+        ? <AvatarArcRail choices={choices} selectedIndex={selectedIndex} disabled={disabled} reduced={reduced} name={radioName}
+          portraitOf={avatar => <AvatarPortrait avatar={avatar} fallback={fallback} />} onChoose={(index, focus) => choose(index, focus)} />
+        : <p className="avatar-picker-empty" role="status">선택할 수 있는 아바타가 없어요. 기본 아바타로 시작해요.</p>}
+      <div className="avatar-picker-main">
+        {stage}
+        {caption}
+        {credit}
+      </div>
+    </fieldset>
+  }
+
+  return <fieldset ref={root} disabled={disabled} className="avatar-picker" data-size={size} aria-describedby={choices.length > 1 ? hintId : undefined}>
+    <legend className="sr-only">내 아바타 선택</legend>
+    {choices.length > 1 && <p id={hintId} className="sr-only">방향키나 좌우로 밀어서 다른 아바타를 고를 수 있어요.</p>}
+
+    {stage}
+
+    {caption}
 
     {choices.length
       ? <div ref={rail} className="avatar-picker-rail" data-fit={fits || undefined} data-no-native-drag data-draggable={!disabled && choices.length > 1 || undefined} {...swipe}>
@@ -177,6 +232,6 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
       </div>
       : <p className="avatar-picker-empty" role="status">선택할 수 있는 아바타가 없어요. 기본 아바타로 시작해요.</p>}
 
-    {hasLive2D && <p className="avatar-picker-credit">{LIVE2D_CREDIT}</p>}
+    {credit}
   </fieldset>
 }

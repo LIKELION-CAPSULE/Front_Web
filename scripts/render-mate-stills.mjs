@@ -24,7 +24,7 @@ const args = process.argv.slice(2)
 const onlyIndex = args.indexOf('--only')
 const only = onlyIndex >= 0 ? args[onlyIndex + 1] : null
 const [origin = 'http://127.0.0.1:5231', mate = 'seojin', out = `src/assets/characters/${mate}`] =
-  args.filter((arg, index) => !arg.startsWith('--') && index !== onlyIndex + 1)
+  args.filter((arg, index) => !arg.startsWith('--') && (onlyIndex < 0 || index !== onlyIndex + 1))
 const base = `/__local-assets/${mate}`
 const EXPRESSIONS = ['sulky', 'happy', 'contempt', 'yawn', 'angry', 'laugh', 'shy', 'focus']
 // 채린's still views are the reference for every mate (same 1280×1280 model canvas).

@@ -10,8 +10,10 @@
  * a diagonal and the middle dimmed (the board stays clear); a wave every ~35 s; softer edges; no pointer hover — the
  * light only drifts a little toward the pointer; a drawing buffer at 0.4× the CSS size (device pixel ratio ignored);
  * at most 30 fps; paused when hidden or off-screen; one still frame under reduced motion; WebGL context loss handled.
+ * Entrance (satin-config.ts `reveal`): the ribbons' light eases up from the canvas while the bands drift in from beyond
+ * their edges of the screen and widen a little.
  */
-import { hexToRgb, SATIN } from './satin-config.ts'
+import { hexToRgb, revealAt, SATIN, type SatinReveal } from './satin-config.ts'
 
 const VERTEX = /* glsl */ `
 attribute vec2 aPos;
@@ -37,6 +39,7 @@ uniform float uFilament;
 uniform float uCentreDim;
 uniform float uWaveA;
 uniform float uWaveB;
+uniform float uReveal;
 uniform vec4 uBand[${BANDS}];
 uniform vec2 uBandB[${BANDS}];
 
@@ -61,8 +64,12 @@ void main() {
   // The middle of the screen (the board) gets less ribbon.
   float centre = 1.0 - uCentreDim * (1.0 - smoothstep(0.12, 0.34, abs(p.y)));
 
+  // Entrance: 0 → 1 (ease-out). Until then the bands sit a little beyond their edge of the screen and narrower.
+  float enter = 1.0 - uReveal;
   for (int i = 0; i < ${BANDS}; i++) {
     vec4 b = uBand[i];
+    b.x += sign(b.x) * enter * ${SATIN.reveal.drift.toFixed(3)};
+    b.z *= 1.0 - enter * ${SATIN.reveal.narrow.toFixed(3)};
     vec2 b2 = uBandB[i];
     float ph = b2.y;
     float a1 = p.x * 2.15 + 0.6 + ph + t;
@@ -93,7 +100,7 @@ void main() {
     body += uFil * fil * uFilament * (0.35 + 0.65 * sat(dot(N, L)));
     body *= 0.86 + 0.3 * pow(sat(1.0 - k), 0.7);
 
-    col = mix(col, uBg + body * uGain, cov * b2.x * centre);
+    col = mix(col, uBg + body * uGain * uReveal, cov * b2.x * centre);
   }
 
   gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
@@ -118,8 +125,11 @@ function compile(gl: WebGLRenderingContext, type: number, source: string) {
   return shader
 }
 
-/** Starts the backdrop on a canvas; null when WebGL (or the shader) is not available. */
-export function createSatinRenderer(canvas: HTMLCanvasElement, options: { reducedMotion: boolean }): SatinRenderer | null {
+/**
+ * Starts the backdrop on a canvas; null when WebGL (or the shader) is not available. `reveal`: the entrance's timing
+ * (none: the ribbons are there at once).
+ */
+export function createSatinRenderer(canvas: HTMLCanvasElement, options: { reducedMotion: boolean; reveal?: SatinReveal | null }): SatinRenderer | null {
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: false, stencil: false, powerPreference: 'low-power' })
   if (!gl) return null
   let reducedMotion = options.reducedMotion
@@ -193,6 +203,10 @@ export function createSatinRenderer(canvas: HTMLCanvasElement, options: { reduce
   let raf = 0
   let lastFrame = 0
   let clock = SATIN.stillTime
+  /** Seconds of the entrance played (frames only: it waits while the page is hidden). Reduced motion skips it. */
+  const reveal = options.reveal ?? null
+  let revealClock = 0
+  const revealed = () => (reveal && !reducedMotion ? revealAt(revealClock, reveal) : 1)
   let visible = true
   let disposed = false
   let lost = false
@@ -214,6 +228,7 @@ export function createSatinRenderer(canvas: HTMLCanvasElement, options: { reduce
     gl!.uniform2f(resources.uniform('uRes'), canvas.width, canvas.height)
     gl!.uniform1f(resources.uniform('uTime'), clock * SATIN.flow)
     gl!.uniform2f(resources.uniform('uLight'), light.x, light.y)
+    gl!.uniform1f(resources.uniform('uReveal'), revealed())
     gl!.drawArrays(gl!.TRIANGLES, 0, 3)
   }
 
@@ -230,6 +245,7 @@ export function createSatinRenderer(canvas: HTMLCanvasElement, options: { reduce
     const dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0
     lastFrame = now
     clock = (clock + dt) % 3600
+    revealClock += dt
     const follow = 1 - Math.exp(-SATIN.lightFollow * dt)
     light.x += (light.tx - light.x) * follow
     light.y += (light.ty - light.y) * follow

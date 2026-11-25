@@ -2,13 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { availableMates } from '@/features/mates/catalog'
-import { MateCard } from '@/features/mates/components/MateCard'
-import { MateWelcome } from '@/features/mates/components/MateWelcome'
 import { beginTour } from '@/features/tour/tour-start'
-import { Button } from '@/shared/ui/Button'
+import { AttendanceProvider } from '@/features/attendance/AttendanceProvider'
+import { HomeHero } from '@/features/home/components/HomeHero'
+import { HomeMateSection } from '@/features/home/components/HomeMateSection'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
 import { enqueueNotification, type NotificationItem } from '@/shared/ui/notification-queue'
 import '@/features/mates/mates.css'
+import '@/features/home/home.css'
 
 export default function HomePage() {
   const location = useLocation()
@@ -16,16 +17,11 @@ export default function HomePage() {
   const { refreshHome, reload, status, error, home, homeContentVersion } = useBackend()
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const heading = useRef<HTMLHeadingElement>(null)
-  const tourRunning = new URLSearchParams(location.search).has('tour')
   const mates = availableMates(home)
   const explore = useCallback(() => {
     heading.current?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
     heading.current?.focus({ preventScroll: true })
   }, [])
-  // 「사용법 보기」 starts the service tour (src/features/tour); the tour itself moves between screens.
-  function showTour() {
-    navigate(beginTour(location.pathname + location.search), { preventScrollReset: true })
-  }
   // Old 「사용법 보기」 links (`?tutorial=1`) open the tour from its start.
   const legacyTutorial = new URLSearchParams(location.search).get('tutorial') === '1'
   useEffect(() => {
@@ -60,32 +56,9 @@ export default function HomePage() {
     void refreshHome().catch(reason => { if (alive) showError(reason instanceof Error ? reason.message : '홈을 새로 불러오지 못했어요.') })
     return () => { alive = false }
   }, [status, homeContentVersion, refreshHome, showError])
-  return <>
-    <MateWelcome mates={mates} onExplore={explore} />
-    <section className="mate-section" aria-labelledby="mates-heading">
-      <div className="section-heading mate-section-heading">
-        <div>
-          <h2 ref={heading} tabIndex={-1} id="mates-heading" className="type-section-title mate-section-title">
-            오늘은 누구와 함께할까요?
-          </h2>
-        </div>
-        <Button variant="ghost" size="sm" className="mate-tutorial-trigger" aria-haspopup="dialog" aria-expanded={tourRunning} disabled={mates.length === 0} onClick={showTour}>
-          사용법 보기
-        </Button>
-      </div>
-      {mates.length === 0 ? (
-        <section className="app-panel mate-empty-window" aria-label="메이트 목록 비어 있음">
-          <div className="mate-empty-window-body">
-            <p className="mate-empty-title">메이트를 불러오지 못했어요</p>
-            <Button variant="secondary" size="sm" onClick={() => { void reload() }}>다시 시도</Button>
-          </div>
-        </section>
-      ) : (
-        <div className="mate-grid">
-          {mates.map(mate => <MateCard key={mate.id} mate={mate} />)}
-        </div>
-      )}
-    </section>
+  return <AttendanceProvider>
+    <HomeHero mate={mates[0] ?? null} onExplore={explore} />
+    <HomeMateSection ref={heading} mates={mates} onRetry={() => { void reload() }} />
     <NotificationStack items={notifications} onDismiss={id => setNotifications(current => current.filter(item => item.id !== id))} />
-  </>
+  </AttendanceProvider>
 }

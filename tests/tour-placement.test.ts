@@ -58,3 +58,13 @@ test('reduced motion: the line goes below the target, else where it covers nothi
   assert.equal(inside.top, 72)
   assert.equal(avoid.controls.every((control) => overlap(inside, control) === 0), true)
 })
+
+test('reduced motion: a small target at the right of its card gets the line ending at its right edge (home card arrow)', () => {
+  const line = { width: 320, height: 64 }
+  // The arrow at the card's lower right, the next card starting just right of it, the tour panel below in the middle.
+  const spot = { left: 324, top: 698, right: 380, bottom: 754 }
+  const avoid = { controls: [{ left: 410, top: 405, right: 710, bottom: 765 }], panel: { left: 513, top: 812, right: 927, bottom: 876 }, viewport }
+  const box = chooseLineBox(spot, line, avoid)
+  assert.equal(box.right, 380)
+  assert.equal(cost(box, avoid), 0)
+})

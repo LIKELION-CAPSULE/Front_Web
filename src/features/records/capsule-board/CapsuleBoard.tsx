@@ -6,7 +6,7 @@ import { boardMonthTooltip, isMonthSelectable, type CapsuleBoardModel } from './
 import type { BoardBenchmark, BoardSceneController, BoardTarget } from './capsule-board-scene'
 import {
   BOARD_NARROW_STAGE,
-  boardStageAspect,
+  boardStageRatio,
   boardTransition,
   supportsWebGL,
   yearMonthNeighbor,
@@ -72,6 +72,8 @@ export function CapsuleBoard({
   const [fallback, setFallback] = useState(() => !supportsWebGL())
   const [ready, setReady] = useState(false)
   const [stageWidth, setStageWidth] = useState(0)
+  // The viewport height caps the stage (boardStageCap); kept so the stage's ratio already holds the cap.
+  const [viewportHeight, setViewportHeight] = useState(() => (typeof window === 'undefined' ? 0 : window.innerHeight))
   const [pointed, setPointed] = useState<BoardTarget | null>(null)
   const [focused, setFocused] = useState<BoardTarget | null>(null)
   // A focus left over from the other kind of list (a month after entering it, a day of another period) is void.
@@ -86,6 +88,8 @@ export function CapsuleBoard({
   const focusIntoMonth = useRef(false)
   const [focusKey, setFocusKey] = useState<string | undefined>(undefined)
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
+  /** 「가장 긴 날」 above the period's longest day in the week / month 2.5D (hidden while its own tooltip shows). */
+  const [marker, setMarker] = useState<{ x: number; y: number } | null>(null)
   const modelRef = useRef(model)
   const handlers = useRef({ onSelectDay, onSelectMonth })
   const shownRef = useRef<BoardTarget | null>(null)
@@ -108,7 +112,18 @@ export function CapsuleBoard({
     return day ? capsuleTooltip(day) : null
   }, [])
 
+  const placeMarker = useCallback(() => {
+    const scene = sceneRef.current
+    const key = scene?.markedDay() ?? null
+    const shown = shownRef.current
+    const point = key && scene && !(shown?.kind === 'day' && shown.key === key) ? scene.targetPoint({ kind: 'day', key }) : null
+    setMarker((current) =>
+      current && point && Math.abs(current.x - point.x) < 0.5 && Math.abs(current.y - point.y) < 0.5 ? current : point,
+    )
+  }, [])
+
   const placeTooltip = useCallback(() => {
+    placeMarker()
     const target = shownRef.current
     const scene = sceneRef.current
     const text = target ? textFor(target) : null
@@ -123,7 +138,7 @@ export function CapsuleBoard({
         ? current
         : { text, x: point.x, y: point.y },
     )
-  }, [textFor])
+  }, [textFor, placeMarker])
 
   // The comment's typing progress (kept until the scene exists).
   useEffect(() => {
@@ -149,6 +164,12 @@ export function CapsuleBoard({
     observer.observe(wrap)
     return () => observer.disconnect()
   }, [onStageWidth, fallback])
+
+  useEffect(() => {
+    const update = () => setViewportHeight(window.innerHeight)
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   // ── Scene lifecycle (lazy chunk; disposed on unmount) ──
   useEffect(() => {
@@ -235,6 +256,10 @@ export function CapsuleBoard({
   }, [reducedMotion, ready])
 
   useEffect(() => {
+    placeMarker()
+  }, [ready, placeMarker])
+
+  useEffect(() => {
     if (replayToken) sceneRef.current?.replay()
   }, [replayToken])
 
@@ -314,13 +339,19 @@ export function CapsuleBoard({
       data-view={view}
       data-focus={activeFocus !== null || undefined}
       data-narrow={narrow || undefined}
-      style={{ '--board-aspect': boardStageAspect(model.mode, view, narrow) } as CSSProperties}
+      data-reduced-motion={reducedMotion || undefined}
+      style={{ '--board-ratio': boardStageRatio(model.mode, view, narrow, { width: stageWidth, viewportHeight }) } as CSSProperties}
       onMouseLeave={() => setPointed(null)}
     >
       <div ref={hostRef} className="capsule-board-stage" />
       {tooltip && (
         <span className="capsule-board-tooltip" role="presentation" style={{ left: tooltip.x, top: tooltip.y }}>
           {tooltip.text}
+        </span>
+      )}
+      {marker && (
+        <span className="capsule-board-marker" aria-hidden="true" style={{ left: marker.x, top: marker.y }}>
+          가장 긴 날
         </span>
       )}
       <div

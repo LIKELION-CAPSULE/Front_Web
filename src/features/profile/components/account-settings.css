@@ -393,6 +393,116 @@
   background: var(--color-on-solid);
 }
 
+/* Settings tab rows (T-1…T-10): one item per row card — label left, control right — on the modal's glass, no
+   outlines; violet only for what is selected (docs/DESIGN_SYSTEM.md). */
+.settings-rows {
+  display: grid;
+  gap: 8px;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 60px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-canvas) 46%, transparent);
+  padding: 10px 14px 10px 18px;
+}
+.settings-row-text { min-width: 0; }
+.settings-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-ink);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.settings-row-badge {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  padding: 1px 8px;
+  color: var(--color-muted);
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.settings-row-hint {
+  margin: 2px 0 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 18px;
+  word-break: keep-all;
+}
+.settings-row-control { display: flex; justify-content: flex-end; min-width: 0; }
+.settings-row-feedback { display: grid; gap: 8px; padding: 0 4px; }
+
+.settings-segment {
+  display: inline-flex;
+  gap: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-canvas) 70%, transparent);
+  padding: 3px;
+}
+.settings-segment-option {
+  min-height: 34px;
+  border-radius: 999px;
+  padding: 0 14px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.settings-segment-option:hover { color: var(--color-ink); }
+.settings-segment-option[aria-checked='true'] {
+  background: var(--color-selected);
+  color: var(--color-selected-text);
+}
+.settings-segment-option:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+
+.settings-select.form-input { width: min(240px, 36vw); min-height: 40px; padding-block: 6px; font-size: 13px; }
+
+.settings-slider { display: flex; align-items: center; gap: 12px; }
+.settings-slider input[type='range'] {
+  width: min(200px, 30vw);
+  height: 20px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.settings-slider input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--color-primary) var(--value), var(--color-control) var(--value));
+}
+.settings-slider input[type='range']::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 50%;
+  appearance: none;
+  background: var(--color-on-solid, #fff);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.settings-slider input[type='range']::-moz-range-track { height: 6px; border-radius: 999px; background: var(--color-control); }
+.settings-slider input[type='range']::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--color-primary); }
+.settings-slider input[type='range']::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: var(--color-on-solid, #fff); }
+.settings-slider input[type='range']:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 4px; border-radius: 999px; }
+.settings-slider-value { min-width: 2.5ch; color: var(--color-ink); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+
+@media (max-width: 719px) {
+  .settings-row { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 14px; }
+  .settings-row-control { justify-content: flex-start; }
+  .settings-select.form-input { width: 100%; }
+}
+
 /* Security Tab */
 .account-settings-action-card {
   min-width: 0;

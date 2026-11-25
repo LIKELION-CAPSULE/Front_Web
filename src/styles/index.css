@@ -173,13 +173,26 @@
   }
   .app-footer {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 16px 32px;
     border-top: 1px solid var(--color-divider);
     padding-block: 24px;
     color: var(--color-subtle);
     font-size: var(--text-caption); line-height: var(--text-caption--line-height);
   }
+  .app-footer-start, .app-footer-end { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; }
+  .app-footer-brand { color: var(--color-muted); font-weight: 800; letter-spacing: 0.04em; }
+  .app-footer-links { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+  .app-footer a { color: var(--color-subtle); transition: color 0.15s ease; }
+  .app-footer a:hover { color: var(--color-ink); }
+  /* 「사용법 보기」 is a button (it starts the tour) dressed as the footer's links. */
+  .app-footer-links button { border: 0; background: none; padding: 0; font: inherit; color: var(--color-subtle); cursor: pointer; transition: color 0.15s ease; }
+  .app-footer-links button:not(:disabled):hover { color: var(--color-ink); }
+  .app-footer-links button:disabled { opacity: 0.5; cursor: default; }
+  .app-footer-social { display: flex; gap: 14px; }
+  .app-footer-social a { display: inline-flex; }
   .ui-button, .button-subtle { border: 0; }
   .button-primary { background: var(--color-primary); color: var(--color-on-solid); }
   .button-primary:not(:disabled, [aria-disabled='true']):hover { background: var(--color-primary-hover); }

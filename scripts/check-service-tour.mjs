@@ -162,9 +162,10 @@ async function slow() {
   check('slow chunk: app is locked at once (inert, no scroll) while the tour loads', state.rootInert && state.overflow === 'hidden', JSON.stringify(state))
   check('slow chunk: a 「사용법 불러오는 중 · 건너뛰기」 panel shows', loading === 1)
   // Try the real 「연결하기」 (connectMate) and a card while it loads: nothing may happen.
-  const connect = page.locator('[data-tour="connect"] button, [data-tour="connect"] a').first()
-  if (await connect.count()) await connect.click({ force: true, timeout: 2000 }).catch(() => {})
-  await page.locator('a.mate-card').first().click({ force: true, timeout: 2000 }).catch(() => {})
+  for (const selector of ['[data-tour="mate-card-connect"]', '[data-tour="connect"]', '.home-mate-card-link']) {
+    const control = page.locator(selector).first()
+    if (await control.count()) await control.click({ force: true, timeout: 2000 }).catch(() => {})
+  }
   await page.waitForTimeout(600)
   check('slow chunk: the real screen did not react (still home, no /connect)', new URL(page.url()).pathname === '/', page.url())
   await nothingReal(page, 'slow chunk', since)

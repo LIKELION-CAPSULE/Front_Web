@@ -1,8 +1,8 @@
 import {
-  AdditiveBlending, AmbientLight, Box3, BufferAttribute, CanvasTexture, Color, DirectionalLight, DynamicDrawUsage,
-  Group, InstancedBufferAttribute, InstancedMesh, LatheGeometry, Matrix4, MeshLambertMaterial, NoToneMapping,
-  OrthographicCamera, PlaneGeometry, Quaternion, Ray, Raycaster, Scene, ShaderMaterial, SRGBColorSpace, Vector2,
-  Vector3, WebGLRenderer,
+  AdditiveBlending, AmbientLight, Box3, BufferAttribute, BufferGeometry, CanvasTexture, Color, CylinderGeometry, DirectionalLight,
+  DoubleSide, DynamicDrawUsage, Group, InstancedBufferAttribute, InstancedMesh, LatheGeometry, Matrix4,
+  MeshLambertMaterial, NoToneMapping, OrthographicCamera, PlaneGeometry, Quaternion, Ray, Raycaster, Scene,
+  ShaderMaterial, SRGBColorSpace, TorusGeometry, Vector2, Vector3, WebGLRenderer,
 } from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { capsuleGeometry, capsuleRadiusAt, coreMaterial, haloMaterial, shellMaterial } from '../../mates/capsule-jar/capsule-jar-scene.ts'
@@ -10,6 +10,26 @@ import { CAPSULE_ASPECT, CAPSULE_SEAM_OFFSET } from '../../mates/capsule-jar/cap
 import { CHAERIN_JAR_THEME } from '../../mates/capsule-jar/capsule-jar-theme.ts'
 import { BOARD, boardRiseTiming, isMonthSelectable, type BoardCapsule, type BoardLabel, type BoardTile, type CapsuleBoardModel } from './capsule-board-layout.ts'
 import {
+  guideHours,
+  guideLevel,
+  guidesApply,
+  instanceCapacity,
+  longestDayKey,
+  mixPillar,
+  pillarDims,
+  pillarFormAt,
+  pillarInstances,
+  pillarLayout,
+  pillarScaleHours,
+  pillarsApply,
+  planGuides,
+  type GuideFade,
+  type PillarCapsule,
+  type PillarForm,
+  type PillarLayout,
+} from './capsule-board-pillars.ts'
+import {
+  BOARD_MORPH_MS,
   chipSlots,
   requestView,
   settleViewRequest,
@@ -55,6 +75,8 @@ export type BoardSceneOptions = {
 export type BoardSceneController = {
   setBoard(model: CapsuleBoardModel, transition: BoardTransition): void
   setView(view: BoardView, animate: boolean): void
+  /** The period's longest day while the week / month pillars are shown in 2.5D (the page puts 「가장 긴 날」 on it). */
+  markedDay(): string | null
   replay(): void
   setReducedMotion(value: boolean): void
   /** Target lit from outside (keyboard focus), or null. */
@@ -99,7 +121,7 @@ const TILE_COLOR = {
 /** Pointer tilt (radians), hover lift (tile units) and timings (ms). Small on purpose. */
 const TILT = { x: 0.022, y: 0.035 } as const
 const LIFT = 0.09
-const MORPH_MS = 850
+const MORPH_MS = BOARD_MORPH_MS
 const FLAT_MS = 800
 /** The comment's emphasis stays this long after the line is typed, then fades. */
 const EMPHASIS_HOLD_MS = 1600
@@ -180,6 +202,83 @@ function floorLightMaterial(kind: 'round' | 'streak') {
   })
 }
 
+/**
+ * Glass pillars (week, month): additive like the capsules' glass. `glass` = the tube (a fresnel rim in the capsules'
+ * lavender, almost clear across), `fill` = the light filling it (soft, brighter towards the rim and the top of its
+ * layer), `cap` = the bright ring on top that marks the height. Per instance: rgb + strength.
+ */
+function pillarMaterial(kind: 'glass' | 'fill' | 'cap') {
+  return new ShaderMaterial({
+    defines: { [kind.toUpperCase()]: '' },
+    vertexShader: /* glsl */ `
+      attribute vec4 instanceLight;
+      varying vec3 vN;
+      varying vec3 vV;
+      varying vec4 vLight;
+      varying float vY;
+      void main() {
+        mat4 m = modelViewMatrix * instanceMatrix;
+        vec4 mv = m * vec4(position, 1.0);
+        vN = normalize(mat3(m) * normal);
+        vV = normalize(-mv.xyz);
+        vLight = instanceLight;
+        vY = position.y;
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      varying vec3 vN;
+      varying vec3 vV;
+      varying vec4 vLight;
+      varying float vY;
+      void main() {
+        float facing = abs(dot(normalize(vN), normalize(vV)));
+        float rim = pow(max(0.0, 1.0 - facing), 2.2);
+        #ifdef GLASS
+          float a = 0.035 + 0.55 * rim;
+          // A faint vertical gloss line on the front left.
+          a += 0.08 * pow(facing, 18.0);
+        #elif defined(FILL)
+          float a = (0.16 + 0.42 * rim) * (0.75 + 0.25 * vY);
+        #else
+          float a = 0.6 + 0.6 * facing;
+        #endif
+        gl_FragColor = vec4(vLight.rgb * a * vLight.a * (gl_FrontFacing ? 1.0 : 0.55), 1.0);
+      }
+    `,
+    transparent: false,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    side: DoubleSide,
+  })
+}
+
+/** The week's guide lines: thin light lines on the back wall, brighter in the middle. */
+function guideLineMaterial() {
+  return new ShaderMaterial({
+    uniforms: { uStrength: { value: 0 } },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform float uStrength;
+      varying vec2 vUv;
+      void main() {
+        float across = abs(vUv.y - 0.5) * 2.0;
+        float a = (1.0 - across) * smoothstep(0.0, 0.06, vUv.x) * smoothstep(1.0, 0.94, vUv.x);
+        gl_FragColor = vec4(vec3(0.72, 0.66, 0.98) * a * uStrength, 1.0);
+      }
+    `,
+    transparent: false,
+    depthWrite: false,
+    blending: AdditiveBlending,
+  })
+}
+
 /** Above this many capsules (and in the year) the board uses the light capsule mesh. */
 const LIGHT_MESH_FROM = 300
 
@@ -230,6 +329,8 @@ type CapsuleRef = {
   count: number
   start: number | null
   slot: { x: number; z: number; length: number }
+  /** Its place lying in the day's glass pillar (week, month), or null in the year's upright columns. */
+  pillar: PillarCapsule | null
 }
 type Camera = { azimuth: number; elevation: number; center: Vector3; upp: number }
 type Anim = { start: number; duration: number } | null
@@ -284,6 +385,16 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   const haloShader = haloMaterial(glowColor)
   haloShader.uniforms.strength!.value = 0.1
 
+  // Glass pillars (week, month): the tube (open, base at y = 0, unit radius and height), the fill inside it, the top ring.
+  const tubeGeometry = new CylinderGeometry(1, 1, 1, 28, 1, true).translate(0, 0.5, 0)
+  const fillGeometry = new CylinderGeometry(0.84, 0.84, 1, 24, 1, false).translate(0, 0.5, 0)
+  const capGeometry = new TorusGeometry(1, 0.055, 6, 32).rotateX(Math.PI / 2)
+  const tubeShader = pillarMaterial('glass')
+  const fillShader = pillarMaterial('fill')
+  const capShader = pillarMaterial('cap')
+  const guideGeometry = new PlaneGeometry(1, 1)
+  const guideShader = guideLineMaterial()
+
   let tileMesh: InstancedMesh | null = null
   let labelMesh: InstancedMesh | null = null
   let labelTexture: CanvasTexture | null = null
@@ -298,6 +409,44 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   let poolLight: InstancedBufferAttribute | null = null
   let beamMesh: InstancedMesh | null = null
   let beamLight: InstancedBufferAttribute | null = null
+  let tubeMesh: InstancedMesh | null = null
+  let capMesh: InstancedMesh | null = null
+  let fillMesh: InstancedMesh | null = null
+  let tubeLight: InstancedBufferAttribute | null = null
+  let capLight: InstancedBufferAttribute | null = null
+  let fillLight: InstancedBufferAttribute | null = null
+  let guideMesh: InstancedMesh | null = null
+  let guideLabelMesh: InstancedMesh | null = null
+  let guideLabelTexture: CanvasTexture | null = null
+  let guideLabelShader: ShaderMaterial | null = null
+  let guideLabelTint: InstancedBufferAttribute | null = null
+  const guideLabelGeometry = new PlaneGeometry(1, 1)
+  /** Per entry: its pillar (week / month), else null, and its radius. */
+  let entryPillars: (PillarLayout | null)[] = []
+  let entryRadius: number[] = []
+  /**
+   * Per entry during a period morph: the pillar it had before (old period's scale and size), so the pillar and its
+   * capsules turn into the new form with the morph (mixPillar). Null when there is nothing to blend from.
+   */
+  let entryPillarFrom: (PillarForm | null)[] = []
+  /**
+   * Set by setBoard for the rebuild of a morph: each day's pillar as it was on screen when the morph started (part-way
+   * through, when it cut another morph short), and the guide lines on screen then (their board and strength).
+   */
+  let morphSource: {
+    pillars: Map<string, PillarForm>
+    guides: { source: CapsuleBoardModel | null; level: number }
+  } | null = null
+  /** Pillar instances: the entry of each tube / cap, and of each fill layer with its run. */
+  let pillarEntries: number[] = []
+  let fillRuns: { entry: number; y0: number; y1: number; color: Color }[] = []
+  /** The week's guide lines (height above the tile top) and the back wall they stand on. */
+  let guides: { hour: number; y: number }[] = []
+  let guideWall = { a0: 0, a1: 0, at: 0 }
+  /** The board whose guide lines are drawn (the week, or the week being left during a morph), and their fade. */
+  let guideSource: CapsuleBoardModel | null = null
+  let guideFade: GuideFade = { from: 1, to: 1 }
+  let guideLabelAspect: number[] = []
 
   // ── State ──
   let model: CapsuleBoardModel | null = null
@@ -355,12 +504,39 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   const zero = new Matrix4().makeScale(0, 0, 0)
   const yAxis = new Vector3(0, 1, 0)
   const xAxis = new Vector3(1, 0, 0)
+  const zAxis = new Vector3(0, 0, 1)
 
   const now = () => performance.now()
   const progressOf = (anim: Anim, at: number) => (anim ? clamp01((at - anim.start) / anim.duration) : 1)
   /** 2D share now (eased): 0 = 2.5D, 1 = 2D. */
   const flatNow = (at: number) => lerp(flatFrom, flatTo, easeInOut(progressOf(flatAnim, at)))
   const mode = () => model?.mode ?? 'week'
+  /** Glass pillars on for this period (week and month; the year keeps its columns). */
+  const pillarsOn = () => model !== null && pillarsApply(mode())
+  /** The week's guide lines on the back wall. */
+  const guidesOn = () => pillarsOn() && guidesApply(mode())
+  const dims = () => pillarDims(mode())
+  let scaleCache: { model: CapsuleBoardModel; hours: number } | null = null
+  const scaleHours = () => {
+    if (!model) return 2
+    if (scaleCache?.model !== model) scaleCache = { model, hours: pillarScaleHours(model.tiles) }
+    return scaleCache.hours
+  }
+  /** Standing height of a day: its pillar with the pillars on, else its column. */
+  function columnHeight(tile: BoardTile) {
+    if (!pillarsOn()) return tile.height
+    return tile.capsules.length ? pillarLayoutOf(tile).height : 0
+  }
+  function pillarLayoutOf(tile: BoardTile) {
+    const { maxHeight, radius } = dims()
+    return pillarLayout(tile.capsules, tile.day.connectionSeconds, { scaleHours: scaleHours(), maxHeight, radius })
+  }
+
+  /** Strength the guide lines are drawn at now (before the 2D share), 0 without lines. */
+  function guideLevelAt(at: number) {
+    if (!guideSource || guides.length === 0) return 0
+    return morph ? guideLevel(guideFade, easeInOut(progressOf(morph, at))) : guideFade.to
+  }
 
   function entryPose(entry: Entry, at: number): Pose {
     const t = easeInOut(progressOf(morph, at))
@@ -369,20 +545,25 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
 
   // ── Building the instanced meshes for the current entries ──
   function disposeMeshes() {
-    for (const mesh of [tileMesh, labelMesh, shellMesh, coreMesh, haloMesh, poolMesh, beamMesh]) {
+    for (const mesh of [tileMesh, labelMesh, shellMesh, coreMesh, haloMesh, poolMesh, beamMesh, tubeMesh, capMesh, fillMesh, guideMesh, guideLabelMesh]) {
       if (!mesh) continue
       board.remove(mesh)
       mesh.dispose()
     }
     tileMesh = labelMesh = shellMesh = coreMesh = haloMesh = poolMesh = beamMesh = null
+    tubeMesh = capMesh = fillMesh = guideMesh = guideLabelMesh = null
     // Per-instance attributes live on the shared geometries: disposing frees their GPU buffers.
-    for (const geometry of [fullShellGeometry, lightShellGeometry, coreGeometry, haloGeometry, labelGeometry, poolGeometry, beamGeometry]) {
+    for (const geometry of [fullShellGeometry, lightShellGeometry, coreGeometry, haloGeometry, labelGeometry, poolGeometry, beamGeometry, tubeGeometry, fillGeometry, capGeometry, guideGeometry, guideLabelGeometry]) {
       geometry.dispose()
     }
     labelTexture?.dispose()
     labelShader?.dispose()
     labelTexture = null
     labelShader = null
+    guideLabelTexture?.dispose()
+    guideLabelShader?.dispose()
+    guideLabelTexture = null
+    guideLabelShader = null
   }
 
   function buildLabels() {
@@ -433,8 +614,9 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       if (!tile || tile.capsules.length === 0) continue
       poolEntries.push(entryIndex)
       const slots = chipSlots(tile.capsules.map((capsule) => capsule.length))
+      const pillar = entryPillars[entryIndex] ?? null
       tile.capsules.forEach((capsule, piece) => {
-        capsules.push({ entry: entryIndex, capsule, piece, count: tile.capsules.length, start: null, slot: slots[piece]! })
+        capsules.push({ entry: entryIndex, capsule, piece, count: tile.capsules.length, start: null, slot: slots[piece]!, pillar: pillar?.capsules[piece] ?? null })
       })
     }
     const count = capsules.length
@@ -500,8 +682,120 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     board.add(beamMesh)
   }
 
+  /** Glass pillars (week, month): tubes, top rings and the fill's layers; the week's guide lines too. */
+  function buildPillars() {
+    const instances = pillarInstances(entryPillars)
+    pillarEntries = instances.entries
+    fillRuns = instances.runs.map((run) => ({ entry: run.entry, y0: run.y0, y1: run.y1, color: new Color(run.colors.glow) }))
+    guides = []
+    guideSource = null
+    guideFade = { from: 1, to: 1 }
+    const instanced = (geometry: BufferGeometry, material: ShaderMaterial, count: number, order: number) => {
+      const light = new InstancedBufferAttribute(new Float32Array(instanceCapacity(count) * 4), 4)
+      light.setUsage(DynamicDrawUsage)
+      geometry.setAttribute('instanceLight', light)
+      const mesh = new InstancedMesh(geometry, material, instanceCapacity(count))
+      mesh.count = count
+      mesh.instanceMatrix.setUsage(DynamicDrawUsage)
+      mesh.frustumCulled = false
+      mesh.renderOrder = order
+      board.add(mesh)
+      return { mesh, light }
+    }
+    if (pillarEntries.length) {
+      ;({ mesh: fillMesh, light: fillLight } = instanced(fillGeometry, fillShader, fillRuns.length, 5))
+      ;({ mesh: tubeMesh, light: tubeLight } = instanced(tubeGeometry, tubeShader, pillarEntries.length, 6))
+      ;({ mesh: capMesh, light: capLight } = instanced(capGeometry, capShader, pillarEntries.length, 10))
+    }
+    // The week's guide lines at whole hours (pillar-scale heights). Morphing out of a week they fade out on the old
+    // board's wall from where they are; into a week they fade in from the strength shown (0 unless a morph out of
+    // the week was cut short).
+    let source: CapsuleBoardModel | null = guidesOn() ? model : null
+    if (morphSource && model) {
+      const plan = planGuides(morphSource.guides, { model, guides: guidesOn() })
+      source = plan.source
+      guideFade = plan.fade
+    }
+    if (!source) return
+    guideSource = source
+    const hoursScale = pillarScaleHours(source.tiles)
+    const { maxHeight } = pillarDims(source.mode)
+    buildGuideLines(guideHours(hoursScale).map((hour) => ({ hour, y: (hour / hoursScale) * maxHeight })), source)
+  }
+
+  /** The week's lines at whole hours on the back wall (2.5D), with their 「n시간」 labels. */
+  function buildGuideLines(levels: { hour: number; y: number }[], next: CapsuleBoardModel) {
+    guides = levels
+    guideWall = guideWallOf(next)
+    guideMesh = new InstancedMesh(guideGeometry, guideShader, instanceCapacity(guides.length))
+    guideMesh.count = guides.length
+    guideMesh.frustumCulled = false
+    guideMesh.renderOrder = 4
+    board.add(guideMesh)
+    // Their labels (「1시간」…), at the left end of each line.
+    const cell = { width: 192, height: 48 }
+    const atlas = document.createElement('canvas')
+    atlas.width = cell.width
+    atlas.height = cell.height * Math.max(1, guides.length)
+    const context = atlas.getContext('2d')!
+    context.fillStyle = '#ffffff'
+    context.textBaseline = 'middle'
+    context.font = `600 ${Math.round(cell.height * 0.62)}px ${getComputedStyle(host).fontFamily || 'system-ui, sans-serif'}`
+    const uv = new Float32Array(instanceCapacity(guides.length) * 4)
+    guideLabelAspect = []
+    guides.forEach((guide, index) => {
+      const text = `${guide.hour}시간`
+      const textWidth = Math.min(cell.width - 4, Math.ceil(context.measureText(text).width) + 4)
+      context.fillText(text, 2, index * cell.height + cell.height / 2 + 1)
+      guideLabelAspect.push(textWidth / cell.height)
+      uv.set([0, 1 - ((index + 1) * cell.height) / atlas.height, textWidth / atlas.width, 1 - (index * cell.height) / atlas.height], index * 4)
+    })
+    guideLabelTexture = new CanvasTexture(atlas)
+    guideLabelShader = labelMaterial(guideLabelTexture)
+    guideLabelGeometry.setAttribute('instanceUv', new InstancedBufferAttribute(uv, 4))
+    guideLabelTint = new InstancedBufferAttribute(new Float32Array(instanceCapacity(guides.length) * 4), 4)
+    guideLabelTint.setUsage(DynamicDrawUsage)
+    guideLabelGeometry.setAttribute('instanceTint', guideLabelTint)
+    guideLabelMesh = new InstancedMesh(guideLabelGeometry, guideLabelShader, instanceCapacity(guides.length))
+    guideLabelMesh.count = guides.length
+    guideLabelMesh.frustumCulled = false
+    guideLabelMesh.renderOrder = 4
+    board.add(guideLabelMesh)
+  }
+
+  function guideWallOf(next: CapsuleBoardModel) {
+    let x0 = Infinity
+    let x1 = -Infinity
+    let z0 = Infinity
+    for (const tile of next.tiles) {
+      x0 = Math.min(x0, tile.x)
+      x1 = Math.max(x1, tile.x)
+      z0 = Math.min(z0, tile.z)
+    }
+    return { a0: x0 - 0.5, a1: x1 + 0.5, at: z0 - 0.56 }
+  }
+
   function rebuild() {
     disposeMeshes()
+    // Each day's pillar in this period; during a morph also the one it had (days that leave keep theirs).
+    const currentKeys = new Set(model?.tiles.map((tile) => tile.day.key) ?? [])
+    const radiusNow = pillarsOn() ? dims().radius : 0
+    entryPillars = []
+    entryRadius = []
+    entryPillarFrom = []
+    for (const entry of entries) {
+      const old = morphSource?.pillars.get(entry.key) ?? null
+      if (morphSource && entry.tile && !currentKeys.has(entry.key)) {
+        entryPillars.push(old?.layout ?? null)
+        entryRadius.push(old?.radius ?? 0)
+        entryPillarFrom.push(null)
+        continue
+      }
+      const to = pillarsOn() && entry.tile && entry.tile.capsules.length ? pillarLayoutOf(entry.tile) : null
+      entryPillars.push(to)
+      entryRadius.push(radiusNow)
+      entryPillarFrom.push(to && old ? old : null)
+    }
     entryByKey = new Map(entries.map((entry, index) => [entry.key, index]))
     tileMesh = new InstancedMesh(tileGeometry, tileMaterial, Math.max(1, entries.length))
     tileMesh.count = entries.length
@@ -512,6 +806,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     for (let index = 0; index < entries.length; index++) tileMesh.setColorAt(index, TILE_COLOR.empty)
     buildLabels()
     buildCapsules()
+    buildPillars()
   }
 
   function entriesOf(next: CapsuleBoardModel): Entry[] {
@@ -542,6 +837,15 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   function finishMorph({ interrupted = false }: { interrupted?: boolean } = {}) {
     if (!morph) return
     morph = null
+    morphSource = null
+    // Guide lines that were fading out with the old week are gone now.
+    if (guideFade.to <= 0) {
+      guides = []
+      guideSource = null
+      if (guideMesh) guideMesh.count = 0
+      if (guideLabelMesh) guideLabelMesh.count = 0
+    }
+    guideFade = { from: guideFade.to, to: guideFade.to }
     const kept = entries.filter((entry) => entry.to.s > 0)
     for (const entry of kept) entry.from = { ...entry.to }
     if (kept.length !== entries.length) {
@@ -588,6 +892,15 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
         if (nextKeys.has(entry.key) || pose.s <= 0.001) continue
         merged.push({ ...entry, from: pose, to: { ...pose, s: 0 } })
       }
+      // Each day's pillar and the guide lines as they are on screen now, to turn into the new period's. A morph cut
+      // short hands over its in-between forms (like the days' positions above), not its targets.
+      const pillars = new Map<string, PillarForm>()
+      const shownT = morph ? easeInOut(progressOf(morph, at)) : 1
+      entries.forEach((entry, index) => {
+        const layout = entryPillars[index]
+        if (layout) pillars.set(entry.key, pillarFormAt(entryPillarFrom[index] ?? null, { layout, radius: entryRadius[index] ?? 0 }, shownT))
+      })
+      morphSource = { pillars, guides: { source: guideSource, level: guideLevelAt(at) } }
       entries = merged
       morph = { start: at, duration: MORPH_MS }
       riseStartedAt = -Infinity
@@ -596,6 +909,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     } else {
       // A running morph is cut short by the new board: a view asked for meanwhile is applied right away.
       morph = null
+      morphSource = null
       const { state, apply } = settleViewRequest(viewState, { interrupted: true })
       viewState = state
       if (apply) {
@@ -604,14 +918,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       }
       entries = nextEntries
       rebuild()
-      const timing = boardRiseTiming(next.tiles)
-      riseMs = timing.riseMs
-      riseEnd = timing.totalMs
-      for (const ref of capsules) {
-        const tile = entries[ref.entry]!.tile!
-        const start = timing.starts[tile.index]
-        ref.start = start === null || start === undefined ? null : start + ref.piece * timing.pieceStepMs
-      }
+      riseTiming(next)
       riseStartedAt = transition === 'rise' && !reducedMotion ? at : -Infinity
       cam = camFrom = camTo = fitCamera(flatTo)
       camAnim = null
@@ -623,6 +930,18 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     active = null
     updateTileColors()
     schedule()
+  }
+
+  /** Every capsule's start in the rise (days in date order, each column bottom-up). */
+  function riseTiming(next: CapsuleBoardModel) {
+    const timing = boardRiseTiming(next.tiles)
+    riseMs = timing.riseMs
+    riseEnd = timing.totalMs
+    for (const ref of capsules) {
+      const tile = entries[ref.entry]!.tile!
+      const start = timing.starts[tile.index]
+      ref.start = start === null || start === undefined ? null : start + ref.piece * timing.pieceStepMs
+    }
   }
 
   function setView(next: BoardView, animate: boolean) {
@@ -672,9 +991,11 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   // ── Camera ──
   function direction(targetFlat: number) {
     const base = (width < NARROW_WIDTH ? NARROW_VIEW : VIEW)[mode()]
+    // The month looks down a little more steeply, so front pillars hide less of the rows behind.
+    const elevation = base.elevation + (pillarsOn() ? dims().elevation : 0)
     return {
       azimuth: lerp(base.azimuth, FLAT_VIEW.azimuth, targetFlat),
-      elevation: lerp(base.elevation, FLAT_VIEW.elevation, targetFlat),
+      elevation: lerp(elevation, FLAT_VIEW.elevation, targetFlat),
     }
   }
 
@@ -710,9 +1031,19 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     const standingShare = 1 - targetFlat
     for (const tile of model.tiles) {
       for (const dx of [-half, half]) for (const dz of [-half, half]) add(tile.x + dx, 0, tile.z + dz)
-      if (tile.height > 0 && standingShare > 0) {
-        add(tile.x, (BOARD.tileHeight + tile.height + BOARD.capsuleLength + LIFT) * standingShare, tile.z)
+      const columnTop = columnHeight(tile)
+      if (columnTop > 0 && standingShare > 0) {
+        add(tile.x, (BOARD.tileHeight + columnTop + BOARD.capsuleLength + LIFT) * standingShare, tile.z)
       }
+    }
+    // The week's highest guide line and its label stay in view.
+    if (guidesOn() && standingShare > 0) {
+      const top = guideHours(scaleHours()).at(-1) ?? 0
+      const topY = (top / scaleHours()) * dims().maxHeight
+      const y = (BOARD.tileHeight + topY) * standingShare
+      const wall = guideWallOf(model)
+      add(wall.a0 - 0.7, y, wall.at)
+      add(wall.a1, y, wall.at)
     }
     for (const label of model.labels) {
       if (label.kind !== 'month') continue
@@ -856,29 +1187,52 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       labelTint.needsUpdate = true
     }
 
-    // Capsules: standing in the column (2.5D) ↔ lying as chips in the tile (2D). The bottom one stands up first.
+    // Capsules: lying across their glass pillar (week, month) or standing in the column (year) in 2.5D ↔ lying as
+    // chips in the tile (2D). The bottom one stands up first; pillars sink with their capsules into the chips.
+    const pillarRise = pillarEntries.length ? new Float32Array(entries.length) : null
+    // Each day's pillar now: during a period morph it turns from the old period's form into the new one.
+    const morphT = morph ? easeInOut(progressOf(morph, at)) : 1
+    const shapes = entryPillars.map((layout, index) => {
+      if (!layout) return null
+      const radius = entryRadius[index] ?? 0
+      const from = entryPillarFrom[index]
+      return from && morphT < 1
+        ? mixPillar(from, { layout, radius }, morphT)
+        : { height: layout.height, radius, capsules: layout.capsules }
+    })
     if (shellMesh && glowAttribute) {
       capsules.forEach((ref, index) => {
         const entry = entries[ref.entry]!
         const pose = poses[ref.entry]!
         const capsule = ref.capsule
         const rise = riseOf(ref, at)
+        if (pillarRise && ref.pillar) pillarRise[ref.entry]! += rise / ref.count
         if (rise <= 0 || pose.s <= 0.001) {
           shellMesh!.setMatrixAt(index, zero)
           return
         }
         const order = ref.count > 1 ? ref.piece / (ref.count - 1) : 0
         const stand = easeInOut(clamp01((standingShare - 0.3 * order) / 0.7))
+        const inPillar = ref.pillar ? (shapes[ref.entry]?.capsules[ref.piece] ?? ref.pillar) : null
         const grow = easeOutBack(rise)
-        const drop = (1 - easeOut(rise)) * capsule.length * 0.9
-        spin.setFromAxisAngle(yAxis, capsule.roll)
-        standing.copy(spin).multiply(upright)
+        const drop = (1 - easeOut(rise)) * (inPillar ? 0.6 : capsule.length * 0.9)
+        if (inPillar) {
+          // Lying across the pillar, leaning a little to fill its 30-minute step; heading turned per capsule.
+          spin.setFromAxisAngle(yAxis, inPillar.yaw)
+          standing.setFromAxisAngle(zAxis, inPillar.tilt)
+          standing.premultiply(spin)
+        } else {
+          spin.setFromAxisAngle(yAxis, capsule.roll)
+          standing.copy(spin).multiply(upright)
+        }
         lying.setFromAxisAngle(xAxis, capsule.roll)
         quaternion.slerpQuaternions(lying, standing, stand)
         const chipLength = ref.slot.length
-        const length = lerp(chipLength, capsule.length, stand) * Math.max(0.001, grow) * pose.s
+        const standLength = inPillar ? (inPillar.visible ? inPillar.length : 0) : capsule.length
+        const length = Math.max(0.0005, lerp(chipLength, standLength, stand) * Math.max(0.001, grow) * pose.s)
         const chipRadius = (chipLength * CAPSULE_ASPECT) / 2
-        const yStand = BOARD.tileHeight + lifts[ref.entry]! + capsule.y - drop
+        // In a pillar the capsules sink with it (its height shrinks with the 2D share).
+        const yStand = BOARD.tileHeight + lifts[ref.entry]! + (inPillar ? inPillar.y * standingShare : capsule.y) - drop
         const yLie = BOARD.tileHeight + chipRadius * 0.9
         position.set(
           pose.x + lerp(ref.slot.x, 0, stand) * pose.s,
@@ -893,6 +1247,83 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       })
       shellMesh.instanceMatrix.needsUpdate = true
       glowAttribute.needsUpdate = true
+    }
+
+    // Glass pillars: they grow with their capsules' rise and sink into the floor towards 2D.
+    if (pillarRise && tubeMesh && capMesh && fillMesh && tubeLight && capLight && fillLight) {
+      const marked = pillarsOn() ? longestDayKey(model?.tiles ?? []) : null
+      const visibleShare = new Float32Array(entries.length)
+      pillarEntries.forEach((entryIndex, index) => {
+        const entry = entries[entryIndex]!
+        const pose = poses[entryIndex]!
+        const shape = shapes[entryIndex]!
+        const share = clamp01(pillarRise[entryIndex]!) * standingShare
+        visibleShare[entryIndex] = share
+        const h = shape.height * share
+        if (h <= 0.002 || pose.s <= 0.001) {
+          tubeMesh!.setMatrixAt(index, zero)
+          capMesh!.setMatrixAt(index, zero)
+          return
+        }
+        const base = BOARD.tileHeight + lifts[entryIndex]!
+        const r = shape.radius * pose.s
+        matrix.makeScale(r, h, r).setPosition(pose.x, base, pose.z)
+        tubeMesh!.setMatrixAt(index, matrix)
+        matrix.makeScale(r, r, r).setPosition(pose.x, base + h, pose.z)
+        capMesh!.setMatrixAt(index, matrix)
+        const highlight = Math.max(entry.lift, entry.key === selectedKey ? 0.6 : 0, entry.emphasis)
+        const fade = Math.min(1, standingShare * 1.6)
+        tubeLight!.setXYZW(index, 0.82, 0.76, 0.98, (0.55 + 0.45 * highlight) * fade)
+        const top = entry.key === marked ? 1.35 : 1
+        capLight!.setXYZW(index, 0.86, 0.8, 1.0, (0.42 + 0.4 * highlight) * top * fade)
+      })
+      fillRuns.forEach((run, index) => {
+        const entry = entries[run.entry]!
+        const pose = poses[run.entry]!
+        const pillar = entryPillars[run.entry]!
+        const shape = shapes[run.entry]!
+        const share = visibleShare[run.entry]!
+        if (share <= 0.002 || pose.s <= 0.001) {
+          fillMesh!.setMatrixAt(index, zero)
+          return
+        }
+        // The fill's layers follow the pillar's height while it morphs.
+        const k = share * (pillar.height > 0 ? shape.height / pillar.height : 1)
+        const r = shape.radius * pose.s
+        const base = BOARD.tileHeight + lifts[run.entry]! + run.y0 * k
+        matrix.makeScale(r, Math.max(0.0005, (run.y1 - run.y0) * k), r).setPosition(pose.x, base, pose.z)
+        fillMesh!.setMatrixAt(index, matrix)
+        // The fill is the light of the day's capsules: stronger where few capsules are drawn (the filled pillar).
+        const highlight = Math.max(entry.lift, entry.key === selectedKey ? 0.6 : 0, entry.emphasis)
+        const strength = (pillar.simplified ? 0.62 : 0.4) + 0.3 * highlight
+        fillLight!.setXYZW(index, run.color.r, run.color.g, run.color.b, strength * Math.min(1, standingShare * 1.6))
+      })
+      for (const [mesh, light] of [[tubeMesh, tubeLight], [capMesh, capLight], [fillMesh, fillLight]] as const) {
+        mesh.instanceMatrix.needsUpdate = true
+        light.needsUpdate = true
+      }
+    }
+
+    // The week's guide lines on the back wall (2.5D only); they fade in / out with a morph into / out of the week.
+    if (guideMesh && guideLabelMesh && guideLabelTint) {
+      const fade = morph ? guideLevel(guideFade, morphT) : guideFade.to
+      const strength = Math.max(0, standingShare * 1.4 - 0.4) * fade
+      guideShader.uniforms.uStrength!.value = 0.62 * strength
+      const { a0, a1, at: wallAt } = guideWall
+      guides.forEach((guide, index) => {
+        const y = BOARD.tileHeight + guide.y * standingShare
+        // Upright on the back wall, facing the viewer (both draw on the XY plane); the label before its left end.
+        matrix.makeScale(a1 - a0, 0.016, 1).setPosition((a0 + a1) / 2, y, wallAt)
+        guideMesh!.setMatrixAt(index, matrix)
+        const size = 0.22
+        const w = size * guideLabelAspect[index]!
+        matrix.makeScale(w, size, 1).setPosition(a0 - 0.08 - w / 2, y, wallAt)
+        guideLabelMesh!.setMatrixAt(index, matrix)
+        guideLabelTint!.setXYZW(index, 0.78, 0.74, 0.92, 0.7 * strength)
+      })
+      guideMesh.instanceMatrix.needsUpdate = true
+      guideLabelMesh.instanceMatrix.needsUpdate = true
+      guideLabelTint.needsUpdate = true
     }
 
     // Pools of light under the columns.
@@ -976,7 +1407,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       if (!entry.tile) continue
       const pose = entryPose(entry, at)
       if (pose.s < 0.5) continue
-      const top = BOARD.tileHeight + LIFT + entry.tile.height * standingShare + 0.05
+      const top = BOARD.tileHeight + LIFT + columnHeight(entry.tile) * standingShare + 0.05
       box.min.set(pose.x - 0.5, 0, pose.z - 0.5)
       box.max.set(pose.x + 0.5, top, pose.z + 0.5)
       if (!localRay.intersectBox(box, hit)) continue
@@ -1118,7 +1549,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     if (target.kind === 'month') {
       const month = model.months[target.month]
       if (!month) return null
-      const tallest = model.tiles.reduce((max, tile) => (tile.month === target.month ? Math.max(max, tile.height) : max), 0)
+      const tallest = model.tiles.reduce((max, tile) => (tile.month === target.month ? Math.max(max, columnHeight(tile)) : max), 0)
       projected.set((month.x0 + month.x1) / 2, BOARD.tileHeight + (tallest + 0.2) * standingShare, month.z0 + 0.5)
     } else {
       const index = entryByKey.get(target.key)
@@ -1126,7 +1557,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       if (!entry?.tile) return null
       const pose = entryPose(entry, at)
       const lift = reducedMotion ? 0 : entry.lift * LIFT * standingShare
-      const top = BOARD.tileHeight + lift + entry.tile.height * standingShare + 0.06
+      const top = BOARD.tileHeight + lift + columnHeight(entry.tile) * standingShare + 0.06
       projected.set(pose.x, top, pose.z - (BOARD.tileSize / 2) * (1 - standingShare))
     }
     board.updateMatrixWorld()
@@ -1137,6 +1568,11 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   return {
     setBoard,
     setView,
+    markedDay() {
+      // Hidden while a period morph is running: the day's pillar is still flying in, the chip comes back when it lands.
+      if (!pillarsOn() || !model || morph || flatNow(now()) > 0.5) return null
+      return longestDayKey(model.tiles)
+    },
     replay() {
       if (!model || reducedMotion) return
       finishMorph()
@@ -1242,7 +1678,7 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
       canvas.removeEventListener('webglcontextrestored', onContextRestored)
       window.clearTimeout(contextTimer)
       disposeMeshes()
-      for (const disposable of [tileGeometry, tileMaterial, poolShader, beamShader, shellShader, coreShader, haloShader]) disposable.dispose()
+      for (const disposable of [tileGeometry, tileMaterial, poolShader, beamShader, shellShader, coreShader, haloShader, tubeShader, fillShader, capShader, guideShader]) disposable.dispose()
       renderer.dispose()
       renderer.forceContextLoss()
       canvas.remove()

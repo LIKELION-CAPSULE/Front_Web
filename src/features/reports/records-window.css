@@ -412,6 +412,29 @@
   margin-bottom: 14px;
 }
 
+/* The selected day's slot under the board: folded in the year (the year has none), opening / closing with the board's
+   period morph (850 ms, its ease-in-out: BOARD_MORPH_MS) so the block grows and shrinks instead of jumping. */
+.records-day-detail-slot {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 850ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.records-day-detail-slot[data-collapsed] {
+  grid-template-rows: 0fr;
+}
+
+.records-day-detail-slot-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .records-day-detail-slot {
+    transition: none;
+  }
+}
+
 /* Selected day: a line of text and the day's connections under a thin divider — no box inside the block. */
 .records-day-detail {
   margin-top: 12px;

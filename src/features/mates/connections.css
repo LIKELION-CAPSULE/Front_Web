@@ -121,12 +121,22 @@
   white-space: nowrap;
 }
 
+/* The call time: the right end of the titlebar, after a thin divider; fixed-width digits so it never jitters. */
 .connection-timer {
-  font-size: 13.5px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  min-width: 4.6em;
+  justify-content: flex-end;
+  font-size: 19px;
+  line-height: 24px;
   font-weight: 600;
+  letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
-  color: var(--color-muted);
-  padding-left: 6px;
+  color: var(--color-ink);
+  text-align: right;
+  padding-left: 12px;
   border-left: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
 }
 
@@ -139,16 +149,21 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 2px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 3px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
-  background: color-mix(in srgb, var(--color-canvas) 75%, transparent);
+  border: 0;
+  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
 }
 
 .connection-mode-option {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
   border: 0;
   border-radius: 999px;
-  padding: 3px 10px;
+  padding: 0 11px;
   font-size: 11.5px;
   font-weight: 500;
   line-height: 15px;
@@ -179,16 +194,41 @@
 }
 
 .connection-titlebar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  box-sizing: border-box;
+  border: 0;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
-  padding: 3px 10px;
+  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  padding: 0 12px 0 10px;
   font-size: 11.5px;
   font-weight: 500;
   line-height: 16px;
   white-space: nowrap;
   color: var(--color-muted);
 }
+.connection-titlebar-chip > svg { flex: none; color: var(--color-subtle); }
+.connection-chip-caption { color: var(--color-subtle); font-size: 11px; }
+.connection-chip-value { color: var(--color-ink); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Affinity: the stage name and the stage as small steps (the 내 메이트 bar's language: violet for what is filled). */
+.connection-affinity-steps { display: inline-flex; gap: 2px; }
+.connection-affinity-steps > span { width: 8px; height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--color-ink) 14%, transparent); }
+.connection-affinity-steps > span[data-on] { background: var(--color-primary); }
+
+/* Left of the titlebar: the CAPSULE logo (home header's, sized to the bar) | the mate's name and the AI badge. */
+.connection-titlebar-brand { display: inline-flex; flex: none; }
+.connection-titlebar-brand .brand-wordmark { width: 92px; }
+.connection-titlebar-divider { flex: none; width: 1px; height: 16px; background: color-mix(in srgb, var(--color-ink) 22%, transparent); }
+
+/* The 「?」 note (DevicePrivacyInfo): a small button in the bar, the note below it. */
+.connection-titlebar-help > button { width: 32px; height: 32px; }
+.connection-titlebar-left h1 { display: inline-flex; align-items: center; line-height: 20px; }
+.connection-titlebar-left .desktop-mate-ai-badge { display: inline-flex; align-items: center; }
+.connection-titlebar-help .device-privacy-tooltip { width: min(360px, calc(100vw - 32px)); }
+.connection-help-note { display: grid; gap: 8px; }
+.connection-help-note > p { margin: 0; color: var(--color-muted); font-size: 13px; line-height: 20px; word-break: keep-all; }
 
 .connection-window-dots {
   display: inline-flex;
@@ -434,10 +474,14 @@
   transform: scaleX(-1);
 }
 
+.connection-stage-wrap { container: connection-stage / inline-size; }
+
+/* The 「나」 tile sits on the dock's baseline (bottom 16px) beside it; a stage too narrow to keep them apart lifts
+   the tile above the dock instead (container query below). */
 .connection-stage .connection-self.desktop-window {
   position: absolute;
   right: 16px;
-  bottom: clamp(92px, 11.5%, 108px);
+  bottom: 16px;
   z-index: 15;
   width: clamp(160px, 21%, 220px);
   height: clamp(118px, 19%, 160px);
@@ -1008,118 +1052,7 @@
   cursor: auto;
 }
 
-.connection-stage[data-layout='split'] {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
 
-.connection-stage[data-layout='split'] .connection-self.desktop-window,
-.connection-stage[data-layout='self'] .connection-self.desktop-window {
-  position: relative;
-  right: auto;
-  bottom: auto;
-  z-index: auto;
-  width: auto;
-  height: auto;
-}
-
-.connection-stage[data-layout='self'] .connection-mate {
-  position: absolute;
-  right: 16px;
-  bottom: clamp(92px, 11.5%, 108px);
-  z-index: 15;
-  width: clamp(160px, 21%, 220px);
-  height: clamp(118px, 19%, 160px);
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-canvas) 60%, transparent);
-}
-
-/* A small tile has no room for the speech bubble; the line still lands in the chat. */
-.connection-stage[data-layout='self'] .connection-speech-slot {
-  display: none;
-}
-
-.connection-stage[data-layout='self'] .connection-self-titlebar {
-  height: 34px;
-  font-size: 12.5px;
-}
-
-/* The toggle: the current layout, top-left of the stage. */
-.connection-layout-toggle {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 20;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px 6px 8px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
-  backdrop-filter: blur(12px);
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--color-ink);
-  cursor: pointer;
-  opacity: 0.72;
-  transition: opacity 160ms ease, background 160ms ease;
-}
-
-/* With my camera large, its "나" titlebar sits on top; keep the toggle below it. */
-.connection-stage[data-layout='self'] .connection-layout-toggle {
-  top: 46px;
-}
-
-.connection-stage:hover .connection-layout-toggle,
-.connection-layout-toggle:focus-visible {
-  opacity: 1;
-}
-
-.connection-layout-toggle:hover {
-  background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
-}
-
-.connection-layout-toggle:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-/* A tiny diagram of the layout: the mate tile in accent, my tile in ink. */
-.connection-layout-toggle-icon {
-  position: relative;
-  width: 22px;
-  height: 15px;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.connection-layout-toggle-icon > span {
-  position: absolute;
-  border-radius: 2px;
-}
-
-.connection-layout-toggle-icon > [data-tile='mate'] { background: var(--color-text-accent); }
-.connection-layout-toggle-icon > [data-tile='self'] { background: var(--color-ink); }
-
-.connection-stage[data-layout='mate'] .connection-layout-toggle-icon > [data-tile='mate'] { inset: 0; }
-.connection-stage[data-layout='mate'] .connection-layout-toggle-icon > [data-tile='self'] { right: 2px; bottom: 2px; width: 8px; height: 6px; outline: 1px solid var(--color-canvas); }
-.connection-stage[data-layout='split'] .connection-layout-toggle-icon > [data-tile='mate'] { inset: 0 calc(50% + 1px) 0 0; }
-.connection-stage[data-layout='split'] .connection-layout-toggle-icon > [data-tile='self'] { inset: 0 0 0 calc(50% + 1px); }
-.connection-stage[data-layout='self'] .connection-layout-toggle-icon > [data-tile='self'] { inset: 0; }
-.connection-stage[data-layout='self'] .connection-layout-toggle-icon > [data-tile='mate'] { z-index: 1; right: 2px; bottom: 2px; width: 8px; height: 6px; outline: 1px solid var(--color-canvas); }
-
-@media (max-width: 680px) {
-  .connection-stage[data-layout='split'] {
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-  }
-
-  .connection-stage[data-layout='self'] .connection-mate {
-    right: 12px;
-    bottom: 12px;
-    width: 120px;
-    height: 96px;
-  }
-}
 
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-group(connection-layout-mate),
@@ -1136,3 +1069,150 @@
     object-fit: cover;
   }
 }
+
+/* 「누르고 말하기」 above the dock: what is heard, the sentence before it is sent, notices (ConnectionPage). */
+.connection-stt {
+  position: absolute;
+  z-index: 26;
+  bottom: 92px;
+  left: 50%;
+  display: grid;
+  gap: 6px;
+  width: max-content;
+  max-width: min(520px, calc(100% - 32px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.connection-stt > p {
+  margin: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-canvas) 82%, transparent);
+  padding: 8px 14px;
+  color: var(--color-ink);
+  font-size: var(--text-body-compact);
+  line-height: var(--text-body-compact--line-height);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.connection-stt-label {
+  margin-right: 8px;
+  color: var(--color-text-accent);
+  font-size: var(--text-caption);
+  font-weight: 700;
+}
+.connection-stt-privacy { color: var(--color-muted) !important; font-size: var(--text-caption) !important; }
+.connection-stt-notice[data-tone='error'] { color: var(--color-danger) !important; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .connection-stt > p { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+}
+
+/* Too narrow for the tile beside the centred dock (dock ≈ 330px + the tile + gaps): the tile goes above the dock. */
+@container connection-stage (max-width: 860px) {
+  .connection-stage .connection-self.desktop-window {
+    bottom: 92px;
+  }
+}
+
+/* 「말 걸기 빈도」 on the stage, top-left where the layout toggle was: the toggle's glass pill, three short options,
+   only the choice violet; what it means shows briefly below it. */
+.connection-talk {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
+  padding: 3px;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.connection-talk-option {
+  height: 28px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--color-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.connection-talk-option:hover { color: var(--color-ink); }
+.connection-talk-option[aria-checked='true'] { background: var(--color-selected); color: var(--color-selected-text); }
+.connection-talk-option:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+.connection-talk-note {
+  position: absolute;
+  top: 50px;
+  left: 14px;
+  z-index: 20;
+  margin: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+  padding: 5px 10px;
+  color: var(--color-ink);
+  font-size: 12px;
+  line-height: 18px;
+  pointer-events: none;
+  animation: connection-talk-note 1.5s ease both;
+}
+@keyframes connection-talk-note {
+  0% { opacity: 0; transform: translateY(-3px); }
+  12%, 80% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+/* A tap on the mate (mate-tap.ts): the pointer says so over her; the keyboard reaches the same through a button that
+   shows on focus only; the still image (no live model) gives a small hop instead of the nod. */
+.connection-stage[data-over-mate] { cursor: pointer; }
+.connection-mate-pet:not(:focus-visible) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+.connection-mate-pet:focus-visible {
+  position: absolute;
+  top: 52px;
+  left: 12px;
+  z-index: 20;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+  padding: 5px 12px;
+  color: var(--color-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+.connection-mate-fallback-img[data-bounce] { animation: connection-mate-hop 420ms cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes connection-mate-hop {
+  0%, 100% { transform: none; }
+  40% { transform: translateY(-10px) scale(1.01); }
+}
+.connection-pip-mate[data-tappable] { cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) {
+  .connection-talk-note { animation: none; }
+  .connection-mate-fallback-img[data-bounce] { animation: none; }
+}
+
+/* 누르고 말하기: a sentence that could not go out keeps 다시 보내기 / 지우기 (the bubble itself lets the pointer through). */
+.connection-stt-actions { display: flex; gap: 6px; padding: 4px !important; background: transparent !important; box-shadow: none !important; pointer-events: auto; }
+.connection-stt-retry,
+.connection-stt-dismiss {
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.connection-stt-retry { background: var(--color-selected); color: var(--color-selected-text); }
+.connection-stt-dismiss { background: color-mix(in srgb, var(--color-canvas) 82%, transparent); color: var(--color-muted); }
+.connection-stt-retry:focus-visible,
+.connection-stt-dismiss:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }

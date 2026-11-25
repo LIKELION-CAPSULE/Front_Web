@@ -107,8 +107,8 @@ function OnboardingSkeletonBody() {
 }
 
 function Onboarding() {
-  return <div className="auth-panel-layout">
-    <Brand />
+  return <div className="auth-panel-layout" data-app-header>
+    <SiteHeader sticky variant="logo-only" />
     <section className="app-panel auth-panel-content"><OnboardingSkeletonBody /></section>
   </div>
 }

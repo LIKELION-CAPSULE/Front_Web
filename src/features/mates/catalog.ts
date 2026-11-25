@@ -18,6 +18,9 @@ export type MateProfile = {
   farewellLine?: string
   tags: readonly string[]
   ageRating: MateAgeRating
+  /** Home card: relationship style and a one-line introduction (no tagline: the introduction). */
+  relationTag?: string
+  tagline?: string
 }
 
 export const AGE_RATING_LABELS: Readonly<Record<MateAgeRating, string>> = { all: '전연령', 15: '15세 이용가' }
@@ -38,6 +41,8 @@ export const launchMates: readonly MateProfile[] = [{
   intro: '',
   tags: [],
   ageRating: 'all',
+  relationTag: '연애형',
+  tagline: '시간이 지나도, 변하지 않는 마음이 있어요.',
 }, {
   // Model bundle `seojin` (local-assets/seojin, src/assets/characters/seojin); the persona's name is 서도현.
   id: 'dohyun',
@@ -50,6 +55,7 @@ export const launchMates: readonly MateProfile[] = [{
   farewellLine: '벌써 가냐. …그래, 내일 보자. 조심히 가고.',
   tags: [],
   ageRating: '15',
+  relationTag: '소꿉친구형',
 }]
 
 /** The launch profile of a mate id (unknown ids: undefined). */

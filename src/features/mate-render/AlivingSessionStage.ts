@@ -32,13 +32,23 @@ export interface AlivingSessionStageOptions {
  *   `Live2DStage`: the most recently attached host shows the model, so opening PiP moves the same canvas into the PiP
  *   window and closing it moves it back; nothing reloads.
  * - Camera: the card still's framing (`computeCallView`) on every host, recomputed when a host resizes.
- * - Gaze: forward by default (the call keeps the face to the user, as before). `setTracking(true)` follows the
- *   mouse/pen in the host's window.
+ * - Gaze: forward by default. `setTracking(true)` (the 「시선 따라오기」 setting, T-10) follows the mouse/pen in the
+ *   host's window — the call tab, or the PiP window once the canvas moves there — eased (no snapping), kept within a
+ *   modest turn, and easing back to the front when the pointer rests for a while or leaves the window. Only the gaze
+ *   (head/eye look target) moves; expressions, talking and reactions keep their own channels.
  * - Reduced motion: no talking mouth and no cursor tracking; expressions still change (eased by the engine).
  * - Failure: an error before the model is ready reports `error` (SessionModel then continues with the still image);
  *   a render error after that keeps the stage `ready` and swaps the canvas for `stillImage` in whichever host shows
  *   it (the call tile or the PiP window), so the screen never goes blank.
  */
+/** Gaze following (T-10): the most it turns (of the engine's ±1), how fast it eases (per second), when it rests. */
+const GAZE_LIMIT = 0.75
+const GAZE_EASE = 5
+const GAZE_REST_MS = 3500
+/** The nod of a tap: how long and how far down (of the engine's ±1). */
+const NOD_MS = 600
+const NOD_DEPTH = 0.22
+
 export class AlivingSessionStage implements SessionModelStage {
   private readonly renderer: AlivingRenderer
   private readonly unregister: () => void
@@ -49,6 +59,13 @@ export class AlivingSessionStage implements SessionModelStage {
   private trackingWindow: Window | null = null
   private frame: number | null = null
   private pendingPointer: { x: number; y: number } | null = null
+  /** Eased gaze: where it is, where it is heading, and when the pointer last moved. */
+  private gaze = { x: 0, y: 0 }
+  private gazeTarget = { x: 0, y: 0 }
+  private lastPointerAt = 0
+  private lastGazeFrame = 0
+  /** A nod in progress (a tap on the mate): when it started. It rides on the gaze, so it never fights the tracking. */
+  private nodAt = -Infinity
   private destroyed = false
   private readonly motionQuery: MediaQueryList | null
   private readonly listeners = new Set<() => void>()
@@ -191,40 +208,87 @@ export class AlivingSessionStage implements SessionModelStage {
     if (win === this.trackingWindow) return
     if (this.trackingWindow) {
       this.trackingWindow.removeEventListener('pointermove', this.onPointerMove)
-      if (this.frame !== null) this.trackingWindow.cancelAnimationFrame(this.frame)
+      this.trackingWindow.document.removeEventListener('mouseout', this.onPointerOut)
+      if (this.frame !== null) (this.frameWindow ?? this.trackingWindow).cancelAnimationFrame(this.frame)
       this.frame = null
       this.pendingPointer = null
+      this.gaze = { x: 0, y: 0 }
+      this.gazeTarget = { x: 0, y: 0 }
       this.renderer.lookAt(0, 0)
     }
     this.trackingWindow = win
     win?.addEventListener('pointermove', this.onPointerMove, { passive: true })
+    win?.document.addEventListener('mouseout', this.onPointerOut)
   }
+
+  /** The pointer left the window: ease back to the front. */
+  private onPointerOut = (event: MouseEvent) => {
+    if (event.relatedTarget) return
+    this.pendingPointer = null
+    this.gazeTarget = { x: 0, y: 0 }
+    this.scheduleGaze()
+  }
+
+  private scheduleGaze() {
+    const win = this.trackingWindow ?? this.hosts.at(-1)?.ownerDocument?.defaultView ?? null
+    if (this.frame === null && win) {
+      this.frameWindow = win
+      this.frame = win.requestAnimationFrame(this.flushGaze)
+    }
+  }
+  private frameWindow: Window | null = null
 
   private onPointerMove = (event: PointerEvent) => {
     if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return
     this.pendingPointer = { x: event.clientX, y: event.clientY }
-    if (this.frame === null && this.trackingWindow) this.frame = this.trackingWindow.requestAnimationFrame(this.flushGaze)
+    this.lastPointerAt = performance.now()
+    this.scheduleGaze()
   }
 
-  private flushGaze = () => {
+  private flushGaze = (at: number) => {
     this.frame = null
     const point = this.pendingPointer
     this.pendingPointer = null
     const host = this.hosts.at(-1)
     const view = this.view
-    if (!point || !host || !view) return
-    const rect = host.getBoundingClientRect()
-    if (!rect.width || !rect.height) return
-    const face = modelPointToScreen(CHAERIN_V2_LANDMARKS.centerX, CHAERIN_V2_LANDMARKS.eyesY, rect.width, rect.height, view)
-    const gaze = computePointerGaze({
-      pointerX: point.x,
-      pointerY: point.y,
-      faceX: rect.left + face.x,
-      faceY: rect.top + face.y,
-      stageWidth: rect.width,
-      stageHeight: rect.height,
-    })
-    this.renderer.lookAt(gaze.x, gaze.y)
+    if (point && host && view) {
+      const rect = host.getBoundingClientRect()
+      if (rect.width && rect.height) {
+        const face = modelPointToScreen(CHAERIN_V2_LANDMARKS.centerX, CHAERIN_V2_LANDMARKS.eyesY, rect.width, rect.height, view)
+        const target = computePointerGaze({
+          pointerX: point.x,
+          pointerY: point.y,
+          faceX: rect.left + face.x,
+          faceY: rect.top + face.y,
+          stageWidth: rect.width,
+          stageHeight: rect.height,
+        })
+        // A modest turn at most: the face stays towards the user.
+        this.gazeTarget = { x: Math.max(-GAZE_LIMIT, Math.min(GAZE_LIMIT, target.x)), y: Math.max(-GAZE_LIMIT, Math.min(GAZE_LIMIT, target.y)) }
+      }
+    }
+    // Resting pointer: back to the front, slowly.
+    if (at - this.lastPointerAt > GAZE_REST_MS) this.gazeTarget = { x: 0, y: 0 }
+    const dt = this.lastGazeFrame ? Math.min(0.1, (at - this.lastGazeFrame) / 1000) : 1 / 60
+    this.lastGazeFrame = at
+    const ease = 1 - Math.exp(-GAZE_EASE * dt)
+    this.gaze = { x: this.gaze.x + (this.gazeTarget.x - this.gaze.x) * ease, y: this.gaze.y + (this.gazeTarget.y - this.gaze.y) * ease }
+    const nodding = at - this.nodAt < NOD_MS
+    // The nod: down and back once, on top of wherever she looks.
+    const nod = nodding ? -NOD_DEPTH * Math.sin((Math.PI * (at - this.nodAt)) / NOD_MS) : 0
+    this.renderer.lookAt(this.gaze.x, this.gaze.y + nod)
+    const settled = !nodding && Math.abs(this.gazeTarget.x - this.gaze.x) < 0.002 && Math.abs(this.gazeTarget.y - this.gaze.y) < 0.002
+    const resting = this.gazeTarget.x === 0 && this.gazeTarget.y === 0
+    // Keep easing until settled; while the pointer is off the front, wake once more when the rest time is up.
+    if (!settled || (!resting && this.trackingWindow)) this.scheduleGaze()
+    else this.lastGazeFrame = 0
+  }
+
+  /** A small nod (a tap on the mate). Not under reduced motion. */
+  nudge() {
+    if (this.reduced || this.degraded || this.destroyed) return
+    this.nodAt = performance.now()
+    this.scheduleGaze()
   }
 
   /** Accepts a v2 name, a Korean label or a legacy Cubism file; unknown references keep the current face. */

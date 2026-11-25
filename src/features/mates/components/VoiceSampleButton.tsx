@@ -3,6 +3,8 @@ import { Button } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { SampleAudioPlayer } from '../sample-audio'
+import { useConnectionSettings } from '../connection-preferences-context'
+import { mateVoicePlayback } from '../connection-preferences'
 
 export type VoiceSampleStatus = 'idle' | 'loading' | 'playing' | 'error'
 
@@ -25,6 +27,9 @@ export function VoiceSampleButton({
   className?: string
 }) {
   const [player] = useState(() => new SampleAudioPlayer())
+  // The voice volume and speed of the settings (T-3, T-4), from the one place mate voice reads them.
+  const settings = useConnectionSettings()
+  useEffect(() => { player.setPlayback(mateVoicePlayback(settings)) }, [player, settings])
   const status = useSyncExternalStore(player.subscribe, player.getSnapshot, () => 'idle') as VoiceSampleStatus
   const active = status === 'playing' || status === 'loading'
   useEffect(() => () => player.stop(), [player, url])
