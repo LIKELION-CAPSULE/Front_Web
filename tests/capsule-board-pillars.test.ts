@@ -3,8 +3,9 @@ import assert from 'node:assert/strict'
 import { CAPSULE_ASPECT } from '../src/features/mates/capsule-jar/capsule-jar-layout.ts'
 import {
   guideHours,
+  guidesApply,
   longestDayKey,
-  parsePillarMode,
+  mixPillar,
   PILLAR_MIN_CAPSULE,
   PILLAR_TOP_CAPSULES,
   pillarDims,
@@ -21,12 +22,13 @@ const blue: CapsuleColors = { light: '#ffffff', tint: '#4060f0', glow: '#6080ff'
 const capsules = (count: number, colors = violet, keepsakeAt = -1) =>
   Array.from({ length: count }, (_, index) => ({ colors, keepsake: index === keepsakeAt ? 100 : 0, roll: index * 0.37 }))
 
-test('the switch is a DEV query: anything else is the current columns', () => {
-  assert.equal(parsePillarMode('glass'), 'glass')
-  assert.equal(parsePillarMode('glass-aid'), 'glass-aid')
-  for (const value of [null, '', 'GLASS', 'yes', 'off']) assert.equal(parsePillarMode(value), 'off')
-  assert.ok(pillarsApply('glass', 'week') && pillarsApply('glass-aid', 'month'))
-  assert.ok(!pillarsApply('glass', 'year') && !pillarsApply('off', 'week'))
+test('pillars for the week and the month (the year keeps its columns); guide lines only in the week', () => {
+  assert.ok(pillarsApply('week') && pillarsApply('month') && !pillarsApply('year'))
+  assert.ok(guidesApply('week') && !guidesApply('month') && !guidesApply('year'))
+  // The month's pillars are thinner and lower and its camera looks down more steeply (less hidden behind the front).
+  const week = pillarDims('week')
+  const month = pillarDims('month')
+  assert.ok(month.radius < week.radius && month.maxHeight < week.maxHeight && month.elevation > week.elevation)
 })
 
 test('height rule: the longest day rounded up to whole hours (at least 2 h) is the full pillar', () => {
@@ -34,7 +36,7 @@ test('height rule: the longest day rounded up to whole hours (at least 2 h) is t
   assert.equal(pillarScaleHours([day('a', 2.5)]), 3)
   assert.equal(pillarScaleHours([day('a', 3)]), 3)
   assert.equal(pillarScaleHours([]), 2)
-  const { maxHeight } = pillarDims('week', false)
+  const { maxHeight } = pillarDims('week')
   assert.equal(pillarHeight(3 * 3600, 3, maxHeight), maxHeight)
   assert.equal(pillarHeight(1.5 * 3600, 3, maxHeight), maxHeight / 2)
   // Proportional: twice the time, twice the height (a bar chart).
@@ -60,7 +62,7 @@ test('the longest day is marked (none without records)', () => {
 })
 
 test('capsules lie in the pillar, one per 30 minutes, filling its height in order', () => {
-  const dims = pillarDims('week', false)
+  const dims = pillarDims('week')
   const layout = pillarLayout(capsules(4), 2 * 3600, { scaleHours: 2, maxHeight: dims.maxHeight, radius: dims.radius })
   assert.equal(layout.height, dims.maxHeight)
   assert.equal(layout.capsules.length, 4)
@@ -87,7 +89,7 @@ test('mates (or connections) fill the pillar layer by layer', () => {
 })
 
 test('too many capsules for the pillar: a fill of light with the top few and the keepsake drawn', () => {
-  const dims = pillarDims('month', true)
+  const dims = pillarDims('month')
   const layout = pillarLayout(capsules(24, violet, 5), 12 * 3600, { scaleHours: 12, maxHeight: dims.maxHeight, radius: dims.radius })
   assert.ok(layout.simplified)
   const shown = layout.capsules.filter((capsule) => capsule.visible)
@@ -106,61 +108,32 @@ test('an empty day has no pillar', () => {
   assert.deepEqual(pillarLayout([], 0, { scaleHours: 2, maxHeight: 2, radius: 0.2 }), { height: 0, capsules: [], segments: [], simplified: false })
 })
 
-// ── 「엇갈려 쌓기」 (log cabin) ──
-import {
-  isAidMode,
-  isStackMode,
-  stackCapsuleLength,
-  stackDims,
-  stackHourHeight,
-  stackLayers,
-  stackLayout,
-  STACK_MIN_LENGTH,
-} from '../src/features/records/capsule-board/capsule-board-pillars.ts'
-import { CAPSULE_ASPECT as STACK_ASPECT } from '../src/features/mates/capsule-jar/capsule-jar-layout.ts'
-
-test('stack modes parse and are told apart from the glass ones', () => {
-  assert.equal(parsePillarMode('stack'), 'stack')
-  assert.equal(parsePillarMode('stack-aid'), 'stack-aid')
-  assert.equal(parsePillarMode('stacks'), 'off')
-  assert.ok(isStackMode('stack') && isStackMode('stack-aid') && !isStackMode('glass'))
-  assert.ok(isAidMode('stack-aid') && isAidMode('glass-aid') && !isAidMode('stack'))
-})
-
-test('log cabin: two per layer side by side, every layer turned 90°, a lone 30 minutes centred on top', () => {
-  const length = 0.5
-  const thick = length * STACK_ASPECT
-  const layout = stackLayout(new Array(5).fill(null), length)
-  assert.equal(stackLayers(5), 3)
-  assert.ok(Math.abs(layout.height - 3 * thick) < 1e-12, 'one capsule thick per layer')
-  const [a, b, c, d, e] = layout.capsules
-  // Layer 0 along x, the pair side by side in z; layer 1 along z, side by side in x.
-  assert.equal(a!.yaw, 0)
-  assert.equal(c!.yaw, Math.PI / 2)
-  assert.equal(e!.yaw, 0)
-  assert.ok(a!.dz! < 0 && b!.dz! > 0 && a!.dx === 0)
-  assert.ok(c!.dx! < 0 && d!.dx! > 0 && c!.dz === 0)
-  // Square footprint: the pair spans exactly one capsule length across.
-  const across = b!.dz! - a!.dz! + thick
-  assert.ok(Math.abs(across - length) < 1e-12)
-  // Time order bottom → top, levelled, no lean.
-  assert.ok(layout.capsules.every((capsule, index, list) => index === 0 || capsule.y >= list[index - 1]!.y))
-  assert.ok(layout.capsules.every((capsule) => capsule.tilt === 0))
-  // The lone last one is centred, alone in the top layer, and marked as the top.
-  assert.equal(e!.dx, 0)
-  assert.equal(e!.dz, 0)
-  assert.deepEqual(layout.capsules.map((capsule) => capsule.top), [false, false, false, false, true])
-  // An even count: the whole last layer is the top.
-  assert.deepEqual(stackLayout(new Array(4).fill(null), length).capsules.map((capsule) => capsule.top), [false, false, true, true])
-  assert.equal(stackLayout([], length).height, 0)
-})
-
-test('one capsule size per period: the longest day fits the period height, never below the minimum', () => {
-  const week = stackDims('week', false)
-  assert.equal(stackCapsuleLength([2, 4, 6], week), week.length, 'short days keep the full size')
-  const long = stackCapsuleLength([40], week) // 20 hours = 20 layers
-  assert.ok(Math.abs(20 * long * STACK_ASPECT - week.maxHeight) < 1e-9)
-  assert.equal(stackCapsuleLength([400], week), STACK_MIN_LENGTH)
-  // One hour = one layer.
-  assert.ok(Math.abs(stackHourHeight(3, 0.5) - stackLayout(new Array(6).fill(null), 0.5).height) < 1e-12)
+test('period morph: a pillar and its capsules turn from the old period form into the new one', () => {
+  const week = pillarDims('week')
+  const month = pillarDims('month')
+  const list = capsules(4)
+  const from = { layout: pillarLayout(list, 2 * 3600, { scaleHours: 2, ...week }), radius: week.radius }
+  const to = { layout: pillarLayout(list, 2 * 3600, { scaleHours: 5, ...month }), radius: month.radius }
+  const start = mixPillar(from, to, 0)
+  const end = mixPillar(from, to, 1)
+  const half = mixPillar(from, to, 0.5)
+  assert.equal(start.height, from.layout.height)
+  assert.equal(end.height, to.layout.height)
+  assert.ok(Math.abs(half.height - (from.layout.height + to.layout.height) / 2) < 1e-12)
+  assert.ok(Math.abs(half.radius - (week.radius + month.radius) / 2) < 1e-12)
+  end.capsules.forEach((capsule, index) => {
+    assert.ok(Math.abs(capsule.y - to.layout.capsules[index]!.y) < 1e-12)
+    assert.ok(Math.abs(capsule.length - to.layout.capsules[index]!.length) < 1e-12)
+  })
+  // Capsules move steadily between the two heights (no jump at the start).
+  assert.ok(Math.abs(start.capsules[2]!.y - from.layout.capsules[2]!.y) < 1e-12)
+  // A capsule hidden in one form (the filled pillar) grows in instead of popping.
+  const filled = { layout: pillarLayout(capsules(24, violet, 5), 12 * 3600, { scaleHours: 12, ...month }), radius: month.radius }
+  const roomy = { layout: pillarLayout(capsules(24, violet, 5), 12 * 3600, { scaleHours: 12, ...week }), radius: week.radius }
+  const hiddenIndex = filled.layout.capsules.findIndex((capsule) => !capsule.visible)
+  const mid = mixPillar(filled, roomy, 0.5).capsules[hiddenIndex]!
+  assert.ok(mid.visible && mid.length > 0 && mid.length < roomy.layout.capsules[hiddenIndex]!.length)
+  // Different counts (should not happen for one day): the new form as is.
+  const other = { layout: pillarLayout(capsules(3), 1.5 * 3600, { scaleHours: 2, ...week }), radius: week.radius }
+  assert.equal(mixPillar(other, to, 0.3).capsules, to.layout.capsules)
 })

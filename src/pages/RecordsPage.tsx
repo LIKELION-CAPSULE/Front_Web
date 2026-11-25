@@ -1,5 +1,5 @@
 import { AppPanel } from '@/shared/ui/AppPanel'
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
@@ -26,7 +26,6 @@ import {
   type BoardView,
 } from '@/features/records/capsule-board/capsule-board-view'
 import type { BoardBenchmark } from '@/features/records/capsule-board/capsule-board-scene'
-import { parsePillarMode } from '@/features/records/capsule-board/capsule-board-pillars'
 import { capsuleFromStudyRecord, capsuleRecordsFromStudyRecords } from '@/features/mates/capsule-jar/capsule-jar-data'
 import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
 import { capsuleKeepsakes, type CapsuleKeepsake } from '@/features/mates/capsule-jar/capsule-moments'
@@ -58,9 +57,6 @@ function isReviewRecordsLoading(): boolean {
     document.documentElement.dataset.reviewScenario === 'records-loading'
   )
 }
-
-/** Development only: the 「유리 기둥」 draft switch (`?pillars=`); production never loads it. */
-const PillarDevSwitch = import.meta.env.DEV ? lazy(() => import('@/features/records/capsule-board/PillarDevSwitch')) : null
 
 /** Development only: the board's frame-rate probe for measurements (`window.__capsuleBoard.benchmark(ms)`). */
 const exposeBoardBenchmark = import.meta.env.DEV
@@ -104,14 +100,6 @@ export default function RecordsPage() {
   const { state } = useDemo()
   const { home, status } = useBackend()
   const [searchParams, setSearchParams] = useSearchParams()
-  // DEV drafts: glass pillars / log-cabin stacks (`?pillars=glass|glass-aid|stack|stack-aid`); production always shows the columns.
-  const pillarMode = import.meta.env.DEV ? parsePillarMode(searchParams.get('pillars')) : 'off'
-  const setPillarMode = (mode: string) => {
-    const next = new URLSearchParams(searchParams)
-    if (mode === 'off') next.delete('pillars')
-    else next.set('pillars', mode)
-    setSearchParams(next, { replace: true, preventScrollReset: true })
-  }
   const [now] = useState(Date.now)
   const [selectedCellKey, setSelectedCellKey] = useState<string | null>(null)
   const [visibleCount, setVisibleCount] = useState(5)
@@ -560,7 +548,6 @@ export default function RecordsPage() {
               onStageWidth={setStageWidth}
               onFallback={() => setBoardFallback(true)}
               onController={exposeBoardBenchmark}
-              pillars={pillarMode}
               onSelectDay={(day) => {
                 setSelectedCellKey(day.key)
                 // A day with connections opens the same record card as a capsule in 내 메이트.
@@ -601,11 +588,6 @@ export default function RecordsPage() {
             )}
           </section>
         </>
-      )}
-      {PillarDevSwitch && (
-        <Suspense fallback={null}>
-          <PillarDevSwitch value={pillarMode} onChange={setPillarMode} />
-        </Suspense>
       )}
     </RecordsWindowFrame>
   )
