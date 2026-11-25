@@ -666,7 +666,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
       throw busyWith(mateNamed(current.characterIds[0]))
     }
     const summary = meta.activeSummary
-    if (summary && String(summary.mateId) !== mate.characterId) throw busyWith(summary.mateName ?? mateNamed(summary.mateId))
+    if (summary && String(summary.mateId) !== mate.characterId) throw busyWith(mateNamed(summary.mateId) ?? summary.mateName)
     const active = current ?? (summary?.connectionId
       ? await resumeSession(String(summary.connectionId))
       : await startSession(mate.roomId, mate.characterId))

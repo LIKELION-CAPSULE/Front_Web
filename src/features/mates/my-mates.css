@@ -41,8 +41,7 @@
   gap: 16px;
   /* No visible title (hideTitle): the body takes the heading's top padding. No surface of its own: the scene and
      the column sit right on the page. */
-  /* Sideways the page frame (.page-container) already insets it: the scene starts on the logo's line. */
-  padding: 20px 0 24px;
+  padding: 20px 28px 24px;
   background: none;
 }
 /* This screen only: the shared AppPanel surface and the window-body surface (app-surfaces.css) are left out. */
@@ -279,7 +278,7 @@
 
 /* Narrow screens: the panel (lower), then the column (mate picker first). */
 @media (max-width: 959px) {
-  .my-mates-window-body { padding: 24px 0 28px; }
+  .my-mates-window-body { padding: 24px 20px 28px; }
   .my-mates-layout {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: clamp(380px, 56vh, 520px) auto auto;

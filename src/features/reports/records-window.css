@@ -39,9 +39,8 @@
 }
 
 .records-window-body {
-  /* No visible title (hideTitle): the body takes the heading's top padding. Sideways the page frame
-     (.page-container) already insets it, so the blocks start on the logo's line. */
-  padding: 20px 0 32px;
+  /* No visible title (hideTitle): the body takes the heading's top padding. */
+  padding: 20px 28px 32px;
   background: none;
 }
 
@@ -623,7 +622,7 @@
 /* Below 960: the numbers wrap to two rows */
 @media (max-width: 959px) {
   .records-window-body {
-    padding: 16px 0 28px;
+    padding: 16px 20px 28px;
   }
 
   .records-summary-grid,
@@ -649,7 +648,7 @@
 
 @media (max-width: 720px) {
   .records-window-body {
-    padding: 16px 0 24px;
+    padding: 16px 14px 24px;
   }
 
   .records-block {
