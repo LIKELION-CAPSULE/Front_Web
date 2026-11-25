@@ -62,6 +62,8 @@ export type TourContext = {
 
 /** Lower-right corner just inside the box: buttons, chips, menu items, tabs. */
 const CORNER: TourPoint = { x: 0.9, y: 0.94 }
+/** The account modal's tabs: the lower-right corner, at the far right. */
+const TAB_CORNER: TourPoint = { x: 0.97, y: 0.94 }
 /** Right edge of a large block, a little above the middle. */
 const EDGE: TourPoint = { x: 0.97, y: 0.4 }
 
@@ -154,9 +156,11 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'account', screen: 'account', waitMs: 6000,
     marks: [
-      { targets: ['[data-account-view="profile"]'], at: CORNER, action: 'hover' },
-      { targets: ['[data-account-view="settings"]'], at: CORNER, action: 'hover' },
-      { targets: ['[data-account-view="security"]'], at: CORNER, action: 'hover' },
+      // The tabs sit at the modal's left edge: the arrow takes their far right corner, so a line opening to its left
+      // stays clear of the screen edge (with the resting cursor's 1–2 px sway too).
+      { targets: ['[data-account-view="profile"]'], at: TAB_CORNER, action: 'hover' },
+      { targets: ['[data-account-view="settings"]'], at: TAB_CORNER, action: 'hover' },
+      { targets: ['[data-account-view="security"]'], at: TAB_CORNER, action: 'hover' },
     ],
     say: '프로필에선 아바타랑 닉네임을 정하고, 설정에선 말 거는 정도랑 기기, PIP를 바꿔. 비밀번호랑 탈퇴는 보안 탭에 있어.',
   },

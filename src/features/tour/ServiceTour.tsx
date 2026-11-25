@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { ShowcasePointer, type CursorConfig, type CursorStep, type CursorTarget } from '@/shared/ui/showcase-pointer/showcase-pointer'
+import { ShowcasePointer, type CursorConfig, type CursorPath, type CursorStep, type CursorTarget } from '@/shared/ui/showcase-pointer/showcase-pointer'
 import { useBackend } from '@/features/backend/backend-context'
 import { availableMates } from '@/features/mates/catalog'
 import { mateAvatar } from '@/features/mates/artwork'
@@ -10,7 +10,8 @@ import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { SCREEN_LABELS, nextScreenStep, readMs, tourHref, tourSteps, type TourMark, type TourStep } from './tour-steps'
 import { focusTourTrigger, takeTourOrigin } from './tour-start'
 import { chooseLabelSide, chooseLineBox, type Avoid, type Box, type LabelSide } from './tour-placement'
-import { Spotlight, easeOutCubic, type SpotMotion, type SpotRect } from './tour-spotlight'
+import { Spotlight, type SpotMotion, type SpotRect } from './tour-spotlight'
+import { planPath, type Point } from './tour-motion'
 import './service-tour.css'
 
 /**
@@ -20,9 +21,16 @@ import './service-tour.css'
  * - Screens change only when the user presses 「다음」/「이전」/「이 화면 건너뛰기」 (the controller navigates); inside a screen a
  *   step moves on by itself once its line has been read. The cursor's click is a visual press: `onCursorPress` shows a
  *   local preview only, nothing is clicked, submitted, played or navigated.
- * - A step visits its marks in order. The lit area and the cursor leave together — same moment, same duration, same
- *   easing (`MOVE_MS`, `MOVE_EASING`); a pause comes first only when the page had to scroll. Marks close together are
- *   lit as one area (the cursor moves inside it); far apart, the light moves with the cursor from mark to mark.
+ * - A step visits its marks in order (tour-motion.ts): the cursor bows a little toward the middle of the screen, speeds
+ *   up and slows down like a hand (300–800 ms by distance) and flows through the marks it only points at; it stops
+ *   where it presses or types. The lit area leaves on the same frame and follows on a spring (tour-spotlight.ts).
+ *   Marks close together are lit as one area (the cursor moves inside it); far apart, the light moves mark to mark.
+ * - A target out of view scrolls in while the cursor already moves (no wait): the move aims at where the target will
+ *   be, then bends onto where it is, and the cursor stays on it until the scroll ends.
+ * - 채린's line fades out when the step changes and rises in (opacity, 5px) when the cursor reaches the first mark.
+ * - One cursor walks the whole tour: it stays mounted from step to step and carries on from where it is (the pointer's
+ *   `resume`); the app remounts the tour on a new address (and the account modal moves it), and the new cursor starts
+ *   where the old one was, fading in rather than popping.
  * - The address keeps the step, so a reload resumes it. 「그만보기」 (or Esc) returns to the screen the tour started from.
  * - After arriving, the controller waits for the step's first mark (a MutationObserver, up to `waitMs`); one that does
  *   not show up in time is skipped in the direction of travel.
@@ -37,17 +45,51 @@ import './service-tour.css'
 const PAD = 8
 const CHAERIN_COLOR = '#8053F2'
 const DEFAULT_WAIT_MS = 4000
-/** One move of the cursor and the light: the same length and easing for both. */
-export const MOVE_MS = 600
-/** The cursor's `ease-out` (1 − (1 − t)³), so the light and the arrow ease alike. */
-export const MOVE_EASING = easeOutCubic
-const POINTER_MOTION = { easing: 'ease-out', overshoot: 0, curvature: 0.7 } as const
-/** Only when the target had to be scrolled into view: let the smooth scroll settle before the move. */
-const SCROLL_SETTLE_MS = 560
-/** A rest on each mark before the next one. */
-const DWELL_MS = 900
+/** The built-in reach for the pointer's own small moves (before typing): no overshoot, a light bow. */
+const POINTER_MOTION = { overshoot: 0, curvature: 0.7 } as const
+/** The arrow's idle sway at rest: at most ~2 px, slow (the pointer's sines, periods of ~2–9 s). */
+const IDLE_DRIFT_PX = 1.5
+/** After a press: a short beat so the press reads before the cursor moves on. */
+const CLICK_REST_MS = 220
+/** The last step's line fades out this long before the new one is set (service-tour.css). */
+const LINE_OUT_MS = 140
+/** The least time the line stays after the step's last move. */
+const MIN_REST_MS = 1400
 /** Marks whose joint box covers at most this share of the screen are lit as one area. */
 const JOINT_AREA_MAX = 0.3
+/**
+ * Where the cursor was on the screen (viewport px) when the tour unmounted, for the next mount — a new address or the
+ * account modal, a moment later (a tour opened afresh later starts low in the middle again).
+ */
+let lastCursor: (Point & { at: number }) | null = null
+const CARRY_OVER_MS = 4000
+/**
+ * Where the pointer's own box starts on the screen. Inside the account modal the layer's fixed box can start off the
+ * viewport's corner (tour-spotlight.ts has the same): the cursor works in that box's px, tips and the screen in viewport
+ * px. Measured when the pointer mounts and at each move, never per frame.
+ */
+let pointerOrigin: Point = { x: 0, y: 0 }
+/** The mounted tour's cursor element (held even once the account modal around it is gone). */
+let liveCursor: HTMLElement | null = null
+
+/**
+ * Where 채린's cursor is on the screen now, read from its last drawn place (null when none is shown). The account modal
+ * opening or closing renders the next tour before the last one unmounts (closing, the modal may already be gone).
+ */
+function cursorOnScreen(): Point | null {
+  const cursor = liveCursor
+  if (!cursor?.hasAttribute('data-visible')) return null
+  const x = parseFloat(cursor.style.getPropertyValue('--cursor-x'))
+  const y = parseFloat(cursor.style.getPropertyValue('--cursor-y'))
+  const box = cursor.isConnected ? cursor.closest('.service-tour-pointer')?.getBoundingClientRect() : null
+  const origin = box ? { x: box.left, y: box.top } : pointerOrigin
+  return Number.isFinite(x) && Number.isFinite(y) ? { x: x + origin.x, y: y + origin.y } : null
+}
+function measurePointerOrigin(): Point {
+  const box = document.querySelector('.service-tour-pointer')?.getBoundingClientRect()
+  if (box) pointerOrigin = { x: box.left, y: box.top }
+  return pointerOrigin
+}
 
 function findTarget(targets: readonly string[]): Element | null {
   for (const selector of targets) {
@@ -106,12 +148,35 @@ function tipOf(element: Element, at: TourMark['at']) {
   return { x: rect.left + rect.width * (at?.x ?? 0.5), y: rect.top + rect.height * (at?.y ?? 0.5) }
 }
 
-/** Brings the target into view; resolves at once when it is already there, after the scroll settles otherwise. */
-function bringIntoView(element: Element): Promise<void> {
+/** Clear of the header and the tour panel. */
+function inView(element: Element): boolean {
   const rect = element.getBoundingClientRect()
-  if (rect.top >= 72 && rect.bottom <= window.innerHeight - 96) return Promise.resolve()
+  return rect.top >= 72 && rect.bottom <= window.innerHeight - 96
+}
+
+/** The boxes that scroll around `element` (and the page), with their offsets now. */
+function scrollersOf(element: Element): { node: Element; left: number; top: number }[] {
+  const nodes = new Set<Element>()
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    if (node.scrollHeight > node.clientHeight || node.scrollWidth > node.clientWidth) nodes.add(node)
+  }
+  if (document.scrollingElement) nodes.add(document.scrollingElement)
+  return [...nodes].map((node) => ({ node, left: node.scrollLeft, top: node.scrollTop }))
+}
+
+/**
+ * Brings `element` into view without waiting: when it is out of view, `measure` runs on the page as it will be once
+ * scrolled (scrolled there at once, measured, put back — nothing is painted in between), then the smooth scroll starts
+ * and the cursor leaves at the same time. In view already, `measure` runs on the page as it is.
+ */
+function scrollingInto<T>(element: Element, measure: () => T): T {
+  if (inView(element)) return measure()
+  const saved = scrollersOf(element)
+  element.scrollIntoView({ block: 'center', behavior: 'instant' })
+  const result = measure()
+  for (const { node, left, top } of saved) node.scrollTo({ left, top, behavior: 'instant' })
   element.scrollIntoView({ block: 'center', behavior: 'smooth' })
-  return new Promise((resolve) => window.setTimeout(resolve, SCROLL_SETTLE_MS))
+  return result
 }
 
 /** Finite animations running on the element or its ancestors (a dialog opening, a panel sliding in). */
@@ -180,6 +245,10 @@ export default function ServiceTour() {
   const [preview, setPreview] = useState<{ id: string; chips: readonly string[] } | null>(null)
   /** The mark the cursor is on its way to (its press shows that mark's preview). */
   const [visiting, setVisiting] = useState<{ id: string; at: number } | null>(null)
+  /** The step whose line 채린 is saying now (shown from the cursor's first arrival; any other step: faded out). */
+  const [lineFor, setLineFor] = useState<string | null>(null)
+  /** When the step changed (the old line starts fading out then); a plain holder the script reads later. */
+  const [stepAt] = useState(() => new StepClock())
   const atScreen = mateId !== '' && onScreen(step, location.pathname, search, mateId)
   /** On its screen with its first mark found (a step without marks, the outro, is ready on arrival). */
   const ready = atScreen && (step.marks.length === 0 || target?.id === step.id)
@@ -324,11 +393,33 @@ export default function ServiceTour() {
     panel.current?.querySelector<HTMLButtonElement>(step.screen === 'outro' ? '[data-tour-meet]' : '[data-tour-next]')?.focus({ preventScroll: true })
   }, [step.screen])
 
-  // One cursor script per step (buildScript below).
+  useLayoutEffect(() => { stepAt.mark(step.id) }, [stepAt, step.id])
+  // The app remounts the tour on every new address (App's Suspense is keyed by the path): the next mount's cursor
+  // starts where this one is now (its last drawn place, so a follow or the sway after the last move counts too).
+  // The cursor element is held from mount: by the time this unmounts, TourLayer may have taken the layer out of the page.
+  useLayoutEffect(() => {
+    const cursor = dimRef.current?.parentElement?.querySelector<HTMLElement>('.service-tour-pointer .showcase-pointer-cursor')
+    if (!cursor) return
+    measurePointerOrigin()
+    liveCursor = cursor
+    return () => {
+      const at = cursorOnScreen()
+      if (at) lastCursor = { ...at, at: performance.now() }
+      if (liveCursor === cursor) liveCursor = null
+    }
+  }, [reduced, mateId])
+
+  // One cursor for the whole tour: a script per step (buildScript below); between steps, while the next step's first
+  // mark is awaited, it rests where it is (an empty script, `resume`).
+  const [start] = useState<CursorTarget>(() => {
+    const at = cursorOnScreen() ?? (lastCursor && performance.now() - lastCursor.at < CARRY_OVER_MS ? lastCursor : null)
+    return at ? { x: at.x, y: at.y, client: true } : { x: '50%', y: '74%' }
+  })
   const cursors: CursorConfig[] = useMemo(() => {
-    if (reduced || !ready) return []
-    return [buildScript({ step, marks, element, next, previous, go, light, place: setPlaced, visit: setVisiting })]
-  }, [reduced, ready, step, marks, element, next, previous, go, light])
+    if (reduced) return []
+    if (!ready) return [{ ...CURSOR, start, script: [] }]
+    return [buildScript({ step, marks, next, go, light, start, stepAt, place: setPlaced, visit: setVisiting, showLine: setLineFor })]
+  }, [reduced, ready, step, marks, next, go, light, start, stepAt])
 
   /** A visual press: the visited mark's preview next to 채린's line (measured now, and again only on a scroll). */
   const onPress = useCallback(() => {
@@ -403,15 +494,16 @@ export default function ServiceTour() {
       </div>
       <div ref={ringRef} className="service-tour-spot" aria-hidden="true" />
 
-      {!reduced && ready && (
+      {!reduced && (
         <ShowcasePointer
           cursors={cursors}
           loop={false}
           playing
-          labelAnimation="fade"
+          labelAnimation="none"
           clickEffect
+          idleDrift={IDLE_DRIFT_PX}
           motion={POINTER_MOTION}
-          className={`service-tour-pointer${side.startsWith('left') ? ' service-tour-pointer--label-left' : ''}${side.endsWith('up') ? ' service-tour-pointer--label-up' : ''}`}
+          className={`service-tour-pointer${side.startsWith('left') ? ' service-tour-pointer--label-left' : ''}${side.endsWith('up') ? ' service-tour-pointer--label-up' : ''}${lineFor === step.id ? ' service-tour-pointer--line' : ''}`}
           style={{ position: 'fixed', inset: 0, zIndex: 2, pointerEvents: 'none', '--service-tour-avatar': `url("${mateAvatar('chaerin')}")`, '--service-tour-label-lift': `${Math.round(lift)}px` } as CSSProperties}
           onCycle={() => setPreview(null)}
           onCursorPress={onPress}
@@ -468,52 +560,128 @@ function preferredSide(step: TourStep): LabelSide {
 }
 
 /**
- * 채린's script for a step: say the line, then for each mark — scroll it into view only if needed, then the light and
- * the arrow leave together — and rest; then move on inside the same screen (screens change only on 「다음」).
+ * Counts the arrow's planned moves on the pointer (`data-tour-moves`): check-service-tour.mjs times each move's start
+ * against the light's (`data-moving` on the dim) — one attribute write per move, nothing per frame.
  */
-function buildScript({ step, marks, element, next, previous, go, light, place, visit }: {
+function stampMove() {
+  const pointer = document.querySelector<HTMLElement>('.service-tour-pointer')
+  if (pointer) pointer.dataset.tourMoves = String(Number(pointer.dataset.tourMoves ?? 0) + 1)
+}
+
+/** When the current step began (its old line started fading out then). */
+class StepClock {
+  private id = ''
+  private at = 0
+  mark(id: string) {
+    if (id === this.id) return
+    this.id = id
+    this.at = performance.now()
+  }
+  /** ms since `id` began (a long time when another step is current). */
+  since(id: string) { return id === this.id ? performance.now() - this.at : Infinity }
+}
+
+/** 채린's cursor (the same id throughout, so it is one cursor). */
+const CURSOR = { id: 'chaerin', name: '채린', color: CHAERIN_COLOR, textColor: '#FFFFFF', resume: true } as const
+
+const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, Math.max(0, ms)))
+/** After React has rendered what was just set (two frames). */
+const nextPaint = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+
+/**
+ * 채린's script for a step: let the last line fade out and set this one (still hidden); for each mark, start the scroll
+ * if it is out of view, then the arrow and the light leave together (the path aims at where the mark will be), flowing
+ * through the marks it only points at; the line rises in when the arrow reaches the first mark; it stays until read;
+ * then the step moves on inside the same screen (screens change only on 「다음」).
+ */
+function buildScript({ step, marks, next, go, light, start, stepAt, place, visit, showLine }: {
   step: TourStep
   marks: readonly { mark: TourMark; element: Element }[]
-  element: Element | null
   next: TourStep | undefined
-  previous: TourStep | undefined
   go: (to: TourStep, way: 1 | -1) => void
   light: TourLight
+  start: CursorTarget
+  stepAt: StepClock
   place: (placed: { id: string; side: LabelSide; lift: number }) => void
   visit: (visiting: { id: string; at: number }) => void
+  showLine: (id: string) => void
 }): CursorConfig {
-  const script: CursorStep[] = [{ action: 'say', text: step.say }]
   const elements = marks.map((entry) => entry.element)
   const together = litTogether(elements)
+  /** The pointer's own px (see pointerOrigin): a screen point there, and the middle of the screen the paths bow to. */
+  const local = (point: Point, origin: Point) => ({ x: point.x - origin.x, y: point.y - origin.y })
+  const centerIn = (origin: Point) => local({ x: window.innerWidth / 2, y: window.innerHeight / 2 }, origin)
+  /** Per mark: where the tip lands and the lit box, as they will be once any scroll ends. */
+  const aims: { tip: Point; spot: SpotRect | null }[] = []
+  /** The velocity a move hands on to the next one (it flows through a mark), and when the line was shown. */
+  const run = { carry: null as Point | null, lineAt: 0 }
+  // Typing aims at the field's centre (no landing jitter), every other mark at its `at`.
+  const aimOf = (at: number) => {
+    const { mark } = marks[at]!
+    return mark.action === 'type' ? { x: 0.5, y: 0.5 } : mark.at
+  }
+  const lights = (at: number) => !together || at === 0
+  const litAt = (at: number) => (together ? elements : [elements[at]!])
+
+  const script: CursorStep[] = [
+    { action: 'call', run: () => sleep(LINE_OUT_MS - stepAt.since(step.id)) },
+    { action: 'say', text: step.say },
+    // The new line is rendered (still hidden) before the first mark's side is chosen from its size.
+    { action: 'call', run: nextPaint },
+  ]
+  const sayIt: CursorStep = { action: 'call', run: () => { run.lineAt = performance.now(); showLine(step.id) } }
+
   marks.forEach(({ mark, element: markElement }, at) => {
-    script.push({ action: 'call', run: () => bringIntoView(together && at === 0 && elements.length > 1 ? elements[0]! : markElement) })
     script.push({
       action: 'call',
       run: () => {
-        // Before landing: the side of the arrow where 채린's line covers none of the controls around the target.
-        const box = document.querySelector('.service-tour-pointer .showcase-pointer-cursor-label')?.getBoundingClientRect()
-        const size = box && box.width ? { width: box.width, height: box.height } : { width: 300, height: 30 }
-        const tip = tipOf(markElement, mark.action === 'type' ? undefined : mark.at)
-        const lift = Math.max(0, tip.y - markElement.getBoundingClientRect().top)
-        place({ id: step.id, side: chooseLabelSide(tip, size, avoidAround(markElement), preferredSide(step), lift), lift })
+        // The scroll (when needed) starts now; the side of the arrow for 채린's line, the tip and the lit box are
+        // measured on the page as it will be once scrolled.
+        aims[at] = scrollingInto(markElement, () => {
+          const tip = tipOf(markElement, aimOf(at))
+          const box = document.querySelector('.service-tour-pointer .showcase-pointer-cursor-label')?.getBoundingClientRect()
+          const size = box && box.width ? { width: box.width, height: box.height } : { width: 300, height: 30 }
+          const lift = Math.max(0, tip.y - markElement.getBoundingClientRect().top)
+          place({ id: step.id, side: chooseLabelSide(tip, size, avoidAround(markElement), preferredSide(step), lift), lift })
+          return { tip, spot: lights(at) ? spotOf(litAt(at)) : null }
+        })
         visit({ id: step.id, at })
-        // The light leaves with the arrow (the hover below starts on the next frame, with the same duration).
-        if (!together || at === 0) light.lightUp(together ? elements : [markElement], { duration: MOVE_MS, ease: MOVE_EASING })
       },
     })
-    const spec: CursorTarget = mark.action === 'type' ? { target: markElement } : { target: markElement, ...mark.at }
-    script.push(mark.action === 'click' ? { action: 'click', target: spec, duration: MOVE_MS } : { action: 'hover', target: spec, duration: MOVE_MS })
+    // Passes through a mark it only points at when the next one is in view and not a sharp turn back (planPath).
+    const following = marks[at + 1]
+    const path: CursorPath = (from) => {
+      const origin = measurePointerOrigin()
+      const then = mark.action === 'hover' && following && inView(following.element) ? local(tipOf(following.element, aimOf(at + 1)), origin) : null
+      const plan = planPath(from, local(aims[at]!.tip, origin), { center: centerIn(origin), enter: run.carry, then })
+      run.carry = then ? plan.exit : null
+      stampMove()
+      // The light leaves on this frame too, on the arrow's own progress (its spring chases it).
+      if (lights(at)) light.lightUp(litAt(at), { duration: plan.duration, ease: plan.progress }, aims[at]!.spot)
+      return plan
+    }
+    const spec: CursorTarget = { target: markElement, ...aimOf(at) }
+    script.push({ action: 'hover', target: spec, path, follow: true, flow: true })
+    if (at === 0) script.push(sayIt)
+    if (mark.action === 'click') {
+      // Already on it: the press only (a short emphasis), then a beat.
+      script.push({ action: 'click', target: spec, path: (from) => ({ duration: 0, at: () => from }) })
+      script.push({ action: 'wait', duration: CLICK_REST_MS })
+    }
     if (mark.action === 'type' && mark.text) script.push({ action: 'type', target: markElement, text: mark.text })
-    if (at < marks.length - 1) script.push({ action: 'wait', duration: DWELL_MS })
   })
-  if (!marks.length) script.push({ action: 'move', to: { x: '50%', y: '42%' }, duration: MOVE_MS })
-  script.push({ action: 'wait', duration: Math.max(1600, readMs(step.say) - Math.max(0, marks.length - 1) * (MOVE_MS + DWELL_MS)) })
+  if (!marks.length) {
+    const path: CursorPath = (from, to) => {
+      const plan = planPath(from, to, { center: centerIn(measurePointerOrigin()) })
+      stampMove()
+      return plan
+    }
+    script.push({ action: 'move', to: { x: '50%', y: '42%' }, path }, sayIt)
+  }
+  // Long enough to read the line from when it showed.
+  script.push({ action: 'call', run: () => sleep(Math.max(MIN_REST_MS, readMs(step.say) - (performance.now() - run.lineAt))) })
   if (next && next.screen === step.screen) script.push({ action: 'call', run: () => go(next, 1) })
-  // The cursor carries on from the previous step's last mark while that is still on screen.
-  const lastMark = previous && previous.screen === step.screen ? previous.marks.at(-1) : undefined
-  const before = lastMark ? findTarget(lastMark.targets) : null
-  const start: CursorTarget = before && before !== element ? { target: before, ...lastMark?.at } : { x: '50%', y: '74%' }
-  return { id: 'chaerin', name: '채린', color: CHAERIN_COLOR, textColor: '#FFFFFF', start, script }
+  return { ...CURSOR, start, script }
 }
 
 /**
@@ -537,7 +705,8 @@ class TourLight {
       frame = requestAnimationFrame(() => {
         frame = 0
         const box = this.lit.length ? spotOf(this.lit) : null
-        if (!spotlight.moving && this.lit.length) spotlight.place(box)
+        // At rest the hole moves there at once; mid-move the move bends onto it (tour-spotlight.ts).
+        if (this.lit.length) spotlight.follow(box)
         this.onLit(box)
         onFollow()
       })
@@ -558,12 +727,15 @@ class TourLight {
     }
   }
 
-  /** Lights `elements` (eased with the cursor when `motion` is given) and follows them from now on. */
-  lightUp(elements: readonly Element[], motion: SpotMotion | null) {
+  /**
+   * Lights `elements` (with the cursor's move when `motion` is given) and follows them from now on. `aim`: their box
+   * once a scroll that has just started ends (the move heads there, then bends onto where they are).
+   */
+  lightUp(elements: readonly Element[], motion: SpotMotion | null, aim: SpotRect | null = null) {
     this.lit = elements
     this.resize?.disconnect()
     for (const node of elements) this.resize?.observe(node)
-    const box = spotOf(elements)
+    const box = aim ?? spotOf(elements)
     this.spotlight?.place(box, motion)
     requestAnimationFrame(() => this.onLit(box))
   }

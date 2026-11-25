@@ -127,6 +127,7 @@ export {
   defaultCursorMotion,
   type CursorEasing,
   type CursorMotion,
+  type Point,
 } from './showcase-pointer-motion';
 
 /**
@@ -138,9 +139,32 @@ export type CursorTarget =
   | string
   | Element
   | { target: string | Element; x?: number; y?: number }
-  | { x: number | `${number}%`; y: number | `${number}%` };
+  | {
+      x: number | `${number}%`;
+      y: number | `${number}%`;
+      /** Capsule addition: a point on the screen (viewport px or %), not on the component. */
+      client?: boolean;
+    };
 
-type MoveOptions = { duration?: number };
+/**
+ * A move's own path in place of the built-in reach: from where the cursor is to where the target is now (local px),
+ * the target's smaller side. Returns its length and its position at time progress 0–1 (`at(1)` is where it lands).
+ * (Capsule addition for the service tour, 2026-11-26; the built-in reach is unchanged.)
+ */
+export type CursorPath = (from: Point, to: Point, size: number) => { duration: number; at: (progress: number) => Point };
+
+type MoveOptions = {
+  duration?: number;
+  /** Capsule addition: this move's own path (see CursorPath). */
+  path?: CursorPath;
+  /**
+   * Capsule addition: keep aiming at the target element while the page scrolls (re-measured only on a scroll): the move
+   * bends onto where the target is now and lands on it, and the resting cursor stays on it until its next move.
+   */
+  follow?: boolean;
+  /** Capsule addition: start on the instant the previous move ended when it follows straight on (no frame held). */
+  flow?: boolean;
+};
 
 export type CursorPress = {
   cursorId: string;
@@ -182,6 +206,11 @@ export type CursorConfig = {
   textColor?: string;
   /** Initial position. Defaults to a spread across the lower half. */
   start?: CursorTarget;
+  /**
+   * Capsule addition: when the script changes, a cursor already on screen carries on from where it is, with its label
+   * text (`start` only places it the first time) — one cursor walking through a sequence of scripts.
+   */
+  resume?: boolean;
   /** Steps run in order. All cursors run their scripts at the same time. */
   script?: CursorStep[];
 };
@@ -275,6 +304,11 @@ type CursorRuntime = {
   sayTimer: number;
   selections: { range: Range; layer: HTMLDivElement }[];
   marked: Set<Element>;
+  /** Capsule addition: clock time the last move ended (`flow`), and the target a resting cursor stays on (`follow`). */
+  travelEnd: number;
+  anchor: (() => Point | null) | null;
+  /** Capsule addition: placed at least once (`resume` carries on from here). */
+  placed: boolean;
 };
 
 const hoverOwners = new WeakMap<Element, Set<string>>();
@@ -314,7 +348,8 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
     const overlay = useRef<HTMLDivElement>(null);
     const runtimes = useRef(new Map<string, CursorRuntime>());
     const tickers = useRef(new Set<Ticker>());
-    const clock = useRef({ time: 0, last: 0, frame: 0, visible: true });
+    // `scrolls` counts scroll events (Capsule addition): followed targets are re-measured only when it changes.
+    const clock = useRef({ time: 0, last: 0, frame: 0, visible: true, scrolls: 0 });
     const rules = { ...defaultCursorMotion, ...motion };
     const live = useRef({
       playing,
@@ -383,6 +418,9 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
           sayTimer: 0,
           selections: [],
           marked: new Set(),
+          travelEnd: -Infinity,
+          anchor: null,
+          placed: false,
         };
         runtimes.current.set(id, state);
       }
@@ -436,6 +474,12 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
       for (const cursor of runtimes.current.values()) {
         const element = cursor.element;
         if (!element) continue;
+        // A resting cursor stays on the target it followed (re-measured only after a scroll).
+        if (cursor.anchor) {
+          const point = cursor.anchor();
+          if (point) cursor.position = point;
+          else cursor.anchor = null;
+        }
         cursor.drift += (cursor.driftTarget - cursor.drift) * Math.min(1, dtReal * 2.5);
         const sway = idleSway(state.time, cursor.phase);
         const x = cursor.position.x + sway.x * drift * cursor.drift;
@@ -479,10 +523,15 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
         }
       };
       document.addEventListener('visibilitychange', onVisibility);
+      const onScroll = () => {
+        state.scrolls++;
+      };
+      window.addEventListener('scroll', onScroll, { capture: true, passive: true });
       return () => {
         cancelAnimationFrame(state.frame);
         observer?.disconnect();
         document.removeEventListener('visibilitychange', onVisibility);
+        window.removeEventListener('scroll', onScroll, { capture: true });
       };
       // The frame callback reads everything through refs.
     }, []);
@@ -498,9 +547,15 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
       const box = rootRect();
       if (typeof target === 'object' && !(target instanceof Element) && !('target' in target))
         return {
-          point: { x: cssPoint(target.x, box.width), y: cssPoint(target.y, box.height) },
+          point: target.client
+            ? {
+                x: cssPoint(target.x, window.innerWidth) - box.left,
+                y: cssPoint(target.y, window.innerHeight) - box.top,
+              }
+            : { x: cssPoint(target.x, box.width), y: cssPoint(target.y, box.height) },
           size: 40,
           element: null as Element | null,
+          track: null as (() => Point | null) | null,
         };
       const spec = typeof target === 'string' || target instanceof Element ? { target } : target;
       const element = resolveElement(spec.target);
@@ -510,14 +565,23 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
       const spread = live.current.rules.landingSpread;
       const fx = spec.x ?? 0.5 + (jitter ? (cursor.random() - 0.5) * 0.28 * spread : 0);
       const fy = spec.y ?? 0.5 + (jitter ? (cursor.random() - 0.5) * 0.24 * spread : 0);
-      return {
-        point: {
-          x: rect.left - box.left + rect.width * fx,
-          y: rect.top - box.top + rect.height * fy,
-        },
-        size: Math.min(rect.width, rect.height),
-        element,
+      const point = {
+        x: rect.left - box.left + rect.width * fx,
+        y: rect.top - box.top + rect.height * fy,
       };
+      // Capsule addition: the same spot on the element, re-measured only after a scroll (null once it is gone).
+      let seen = clock.current.scrolls;
+      let last: Point = point;
+      const track = () => {
+        if (!element.isConnected) return null;
+        if (seen === clock.current.scrolls) return last;
+        seen = clock.current.scrolls;
+        const now = element.getBoundingClientRect();
+        const area = rootRect();
+        last = { x: now.left - area.left + now.width * fx, y: now.top - area.top + now.height * fy };
+        return last;
+      };
+      return { point, size: Math.min(rect.width, rect.height), element, track };
     };
 
     /* ---------- scheduling ---------- */
@@ -527,6 +591,7 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
       duration: number,
       update: (progress: number) => void,
       motion = true,
+      startAt?: number,
     ) =>
       new Promise<void>((resolvePromise, reject) => {
         if (cancel.cancelled) return reject(new Cancelled());
@@ -535,7 +600,7 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
           update(1);
           return resolvePromise();
         }
-        let start = -1;
+        let start = startAt ?? -1;
         tickers.current.add((time) => {
           if (cancel.cancelled) {
             reject(new Cancelled());
@@ -650,16 +715,49 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
       cursor: CursorRuntime,
       to: Point,
       size: number,
-      options: MoveOptions & { pace?: number; onMove?: (point: Point) => void } = {},
+      options: MoveOptions & {
+        pace?: number;
+        onMove?: (point: Point) => void;
+        track?: (() => Point | null) | null;
+      } = {},
     ) => {
       const from = { ...cursor.position };
-      const plan = planReach(from, to, size, cursor.random, options.pace, live.current.rules);
+      cursor.anchor = null;
+      const plan = options.path
+        ? options.path(from, to, size)
+        : planReach(from, to, size, cursor.random, options.pace, live.current.rules);
+      const end = plan.at(1);
+      const duration = options.duration ?? plan.duration;
+      // Capsule additions: `follow` bends the last part of the move onto where the target is now (a cubic weight, so
+      // the start of the move keeps its own path); `flow` picks up on the previous move's last instant.
+      const track = options.follow ? (options.track ?? null) : null;
+      const startAt =
+        options.flow && clock.current.time - cursor.travelEnd < 50 ? cursor.travelEnd : undefined;
+      let began: number | undefined;
       cursor.driftTarget = 0;
-      await tween(cancel, options.duration ?? plan.duration, (progress) => {
-        cursor.position = plan.at(progress);
-        options.onMove?.(cursor.position);
-      });
-      cursor.position = { ...to };
+      await tween(
+        cancel,
+        duration,
+        (progress) => {
+          began ??= clock.current.time - progress * duration;
+          let position = plan.at(progress);
+          const now = track?.();
+          if (now) {
+            const weight = progress * progress * progress;
+            position = {
+              x: position.x + (now.x - end.x) * weight,
+              y: position.y + (now.y - end.y) * weight,
+            };
+          }
+          cursor.position = position;
+          options.onMove?.(cursor.position);
+        },
+        true,
+        startAt,
+      );
+      cursor.position = track?.() ?? { ...end };
+      cursor.anchor = track;
+      cursor.travelEnd = (began ?? clock.current.time) + duration;
       cursor.driftTarget = 1;
     };
 
@@ -775,12 +873,13 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
         }
         case 'hover':
         case 'click': {
-          const { point, size, element } = resolve(cursor, step.target);
-          await travel(cancel, cursor, point, size, step);
-          setHovered(cursor, hitTest(point, element));
+          const { point, size, element, track } = resolve(cursor, step.target);
+          await travel(cancel, cursor, point, size, { ...step, track });
+          // Where it landed (a custom path or a followed target can land off the first measured point).
+          setHovered(cursor, hitTest(cursor.position, element));
           if (step.action === 'hover') return;
           await wait(cancel, 120 + cursor.random() * 120);
-          const target = hitTest(point, element) ?? element;
+          const target = hitTest(cursor.position, element) ?? element;
           if (!target) return;
           press(cursor, true);
           target.setAttribute('data-cursor-press', cursor.id);
@@ -1002,16 +1101,28 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
           };
       cursor.label = { ...cursor.position };
       cursor.labelVelocity = { x: 0, y: 0 };
+      cursor.anchor = null;
+      cursor.placed = true;
     };
 
-    const resetAll = () => {
+    /** Capsule addition: a cursor that carries on into the new script (on screen, `resume`). */
+    const resumes = (config: CursorConfig) => {
+      const cursor = runtimes.current.get(config.id);
+      return Boolean(config.resume && cursor?.placed && cursor.visible);
+    };
+
+    const resetAll = (keep: ReadonlySet<string> = new Set()) => {
       for (const cursor of runtimes.current.values()) {
         clear(cursor);
         setHovered(cursor, null);
         press(cursor, false);
         cursor.sayTimer++;
+        if (!keep.has(cursor.id)) cursor.anchor = null;
       }
-      setLabels({});
+      // A resumed cursor keeps its label text until its new script says something.
+      setLabels((old) =>
+        Object.fromEntries(Object.entries(old).filter(([id]) => keep.has(id))),
+      );
     };
 
     // Restart only when ids or steps change; names and colors update live.
@@ -1025,14 +1136,19 @@ export const ShowcasePointer = forwardRef<ShowcasePointerHandle, ShowcasePointer
       if (!root.current) return;
       const cancel: Cancel = { cancelled: false };
       const configs = cursorsRef.current;
-      resetAll();
+      const keep = new Set(configs.filter(resumes).map((config) => config.id));
+      resetAll(keep);
       configs.forEach((config, index) => {
+        if (keep.has(config.id)) return;
         placeAtStart(config, index, configs.length);
         runtime(config.id).visible = !config.script?.length || config.script[0]!.action !== 'enter';
       });
-      setVisible(
+      setVisible((old) =>
         Object.fromEntries(
-          configs.map((config) => [config.id, runtime(config.id).visible ? 1 : 0]),
+          configs.map((config) => [
+            config.id,
+            keep.has(config.id) ? (old[config.id] ?? 1) : runtime(config.id).visible ? 1 : 0,
+          ]),
         ),
       );
       const cycle = async () => {
