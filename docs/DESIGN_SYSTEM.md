@@ -2,7 +2,7 @@
 
 버전 **1.0.19** · 기준일 **2026-11-05 (Asia/Seoul)** · 상태 **Front_Web 전체 화면에 코드 적용**
 
-후속 검수의 스타일 충돌 **7건과 개선안 6개를 반영**했다. [수정 결과와 검증](STYLE_CASCADE_AUDIT_2026-11-03.md#수정-결과와-검증)을 함께 확인한다. 사용자 요청으로 공부 화면 독은 디자인 시스템 적용 전의 유리 재질·색·원형 버튼을 유지하는 명시적 예외다.
+후속 검수의 스타일 충돌 **7건과 개선안 6개를 반영**했다. [수정 결과와 검증](STYLE_CASCADE_AUDIT_2026-11-03.md#수정-결과와-검증)을 함께 확인한다. 사용자 요청으로 공부 화면 독은 디자인 시스템 적용 전의 유리 재질·색·원형 버튼을 유지하는 명시적 예외다. 또 금색·주황을 쓰지 않는 원칙에도 명시적 예외가 하나 있다(2026-11-25 사용자 결정): 홈 출석 보상 위젯(`src/features/attendance/`, 홈에서는 `src/features/home/components/HomeMateSection.tsx`가 표시)의 보상 강조에 한정해 금색을 쓴다. 대상은 `attendance.css`의 `.att-sparkle`·`.att-slot-ring`·`.att-gold-*`(마일스톤 배지 글자)·`.att-slot[data-milestone] .att-slot-capsule-float img`(특별 보상일 캡슐의 금빛 그림자)·`.att-reward-flight`(+N 크레딧), `AttendanceEffects.tsx`의 `SPARK_COLORS`·`CONFETTI_COLORS` 금색 값, 그리고 `check_coin.webp`·`milestone_badge.webp` 그림이다. 다른 화면에서는 금색·주황을 쓰지 않는다.
 
 이 문서는 Front_Web의 컬러와 타이포그래피를 결정하는 기준이다. Landing_Page도 적용 대상(2026-11-24 사용자 결정). 참고 이미지의 레이아웃·외곽선·안내 문구·기능 정책을 그대로 옮기지는 않는다.
 
