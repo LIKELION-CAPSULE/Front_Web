@@ -56,10 +56,14 @@ function avoidAround(target: Element | null): Avoid {
   const layer = document.querySelector('.service-tour-layer')
   const scope: ParentNode = document.querySelector('dialog[open]') ?? document
   const controls: Box[] = []
+  const own = target?.getBoundingClientRect()
   for (const element of scope.querySelectorAll('a[href], button, input, select, textarea, [role="tab"], [role="button"], [tabindex="0"]')) {
     if (layer?.contains(element) || (target && (target.contains(element) || element.contains(target)))) continue
     if (element.checkVisibility && !element.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue
     const rect = element.getBoundingClientRect()
+    // A card-wide link laid over the card (home mate cards) covers the target's whole box: it is the target's card, not
+    // a neighbour to keep clear of — otherwise every place near the target would count as covering it.
+    if (own && rect.left <= own.left && rect.top <= own.top && rect.right >= own.right && rect.bottom >= own.bottom) continue
     if (rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight) controls.push(rect)
   }
   const panel = document.querySelector('.service-tour-panel')?.getBoundingClientRect() ?? null

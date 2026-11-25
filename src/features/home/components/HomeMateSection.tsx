@@ -31,7 +31,7 @@ export const HomeMateSection = forwardRef(function HomeMateSection(
           : <MateLoadFailedCard onRetry={onRetry} />}
         {/* The row holds two mate slots beside the rewards; 「추가 예정」 fills the second until a mate takes it. */}
         {mates.length < 2 && <UpcomingMateCard />}
-        <div className="home-attendance">
+        <div className="home-attendance" data-tour="home-attendance">
           <AttendanceWidget size="compact" visibleSlots={4} />
         </div>
       </div>

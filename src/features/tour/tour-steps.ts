@@ -53,7 +53,9 @@ const EDGE: TourPoint = { x: 0.97, y: 0.4 }
 export const TOUR_STEPS: readonly TourStep[] = [
   // 홈
   { id: 'home-card', screen: 'home', targets: ['[data-tour="mate-card"]'], at: { x: 0.96, y: 0.42 }, action: 'hover', say: '같이 있을 메이트는 여기서 골라. 카드를 누르면 먼저 만나 볼 수 있어.' },
-  { id: 'home-connect', screen: 'home', targets: ['[data-tour="connect"] button', '[data-tour="connect"] a', '[data-tour="mate-card-status"]'], at: CORNER, action: 'click', say: '연결하면 나랑 영상통화처럼 같이 있는 거야. 음성이랑 PIP도 돼.' },
+  // The card's 「스터디룸 들어가기」 arrow; then the hero's CTA (「○○와 공부 시작하기」 once checked in) or the card badge.
+  { id: 'home-connect', screen: 'home', targets: ['[data-tour="mate-card-connect"]', '[data-tour="connect"]', '[data-tour="mate-card-status"]'], at: CORNER, action: 'click', say: '연결하면 나랑 영상통화처럼 같이 있는 거야. 음성이랑 PIP도 돼.' },
+  { id: 'home-attendance', screen: 'home', targets: ['[data-tour="home-attendance"]'], at: EDGE, action: 'hover', labelSide: 'left', say: '매일 여기서 출석하면 크레딧을 받아. 날마다 보상이 달라지니까 빠지지 말고 와.' },
   // 메이트 상세
   { id: 'detail-intro', screen: 'mate-detail', targets: ['[data-tour="mate-detail-tagline"]', '[data-tour="mate-detail-intro"]', '[data-tour="mate-detail-name"]'], at: CORNER, action: 'hover', waitMs: 6000, say: '어떤 메이트인지, 어떤 상황에서 만나는지는 여기서 봐.' },
   { id: 'detail-age', screen: 'mate-detail', targets: ['[data-tour="mate-detail-age"]'], at: CORNER, action: 'hover', say: '메이트마다 연령 등급이 있어.' },
