@@ -326,15 +326,15 @@ export const chaerinVoice: MateVoice = {
   id: 'chaerin',
   templates: {
     firstMeet: [
-      () => '우리 아직 같이 공부한 적 없지? 오늘 한번 만나 볼래?',
+      () => '우리 아직 같이 있어 본 적 없지? 오늘 한번 만나 볼래?',
       () => '기록이 아직 텅 비었어. 첫 캡슐, 나랑 같이 채워 볼래?',
       () => '여기 아직 아무것도 없네. 첫 만남 기다리고 있을게!',
     ],
     missed: [
       (c) => (c.previousSessions > 0 ? `${c.periodWord}엔 아직 못 만났네. ${c.previousWord}엔 ${times(c.previousSessions)} 왔었잖아, 보고 싶었어!` : null),
       (c) => (c.lastSeenDaysAgo !== null && c.lastSeenDaysAgo >= 2 ? `마지막으로 본 게 ${days(c.lastSeenDaysAgo)} 전이야. 오늘은 잠깐이라도 올 거지?` : null),
-      (c) => (c.lastSeenDaysAgo !== null && c.lastSeenDaysAgo >= 3 ? `${c.periodTopic} 좀 조용하네… 오랜만에 같이 공부할래?` : null),
-      (c) => `${c.periodWord}엔 아직 못 만났네. 오늘 잠깐 같이 공부할래?`,
+      (c) => (c.lastSeenDaysAgo !== null && c.lastSeenDaysAgo >= 3 ? `${c.periodTopic} 좀 조용하네… 오랜만에 같이 있을래?` : null),
+      (c) => `${c.periodWord}엔 아직 못 만났네. 오늘 잠깐 만날래?`,
     ],
     firstPeriod: [
       (c) =>

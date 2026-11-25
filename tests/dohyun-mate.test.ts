@@ -8,11 +8,13 @@ import { toV2ExpressionName } from '../src/features/mate-render/expression-map.t
 import { V2_MATE_ALLOW } from '../server/local-assets.ts'
 import { LOCAL_MATES, LocalBetaStore, localMate } from '../src/features/local-demo/store.ts'
 
-test('서도현 is a launch mate (id dohyun, 15세 이용가) matched by his server name', () => {
+test('서도현 is a launch mate (id dohyun, 전연령) matched by his server name', () => {
   const profile = mateProfile('dohyun')
   assert.equal(profile?.name, '서도현')
-  assert.equal(profile?.ageRating, '15')
-  assert.equal(ageRatingLabel(profile?.ageRating), '15세 이용가')
+  // 15세 이용가 until 2026-11-25; now 전연령 like 채린 (no age badge on his card).
+  assert.equal(profile?.ageRating, 'all')
+  assert.equal(ageRatingLabel(profile?.ageRating), '전연령')
+  assert.equal(ageRatingLabel('15'), '15세 이용가')
   assert.equal(ageRatingLabel(mateProfile('chaerin')?.ageRating), '전연령')
   assert.equal(profile?.introduction, '말은 퉁명스러워도 늘 곁에 있는 무뚝뚝한 소꿉친구')
   assert.equal(profile?.role, '어릴 때부터 함께 자란 소꿉친구이자 공부 메이트')

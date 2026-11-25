@@ -164,7 +164,7 @@ function MobileNoticeScreen() {
                 <p className="mobile-notice-invite-code">
                   {inviter ? `${inviter}님이 초대했어요 · 코드 ${code}` : `초대 코드 · ${code}`}
                 </p>
-                <p className="mobile-notice-invite-sub">PC에서 가입하면 둘 다 1,000 크레딧</p>
+                <p className="mobile-notice-invite-sub">PC에서 가입하고 첫 연결을 마치면 둘 다 1,000 크레딧</p>
               </div>
             )}
 

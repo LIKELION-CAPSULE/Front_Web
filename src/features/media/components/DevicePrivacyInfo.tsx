@@ -53,8 +53,8 @@ export function DevicePrivacyInfo({ label = '카메라·마이크 권한 안내'
           <FloatingSurface className="rounded-card px-4 py-3 type-body-compact">
             {children ?? (
               <>
-                <p>카메라를 켜면 얼굴 감지로 집중 시간을 측정해요. 카메라와 마이크는 공부 화면에서 각각 켜고 끌 수 있어요.</p>
-                <p className="mt-2">영상과 소리는 내 기기에서만 처리하며 서버로 전송하거나 저장하지 않아요. 공부 화면에는 내 아바타가 보여요.</p>
+                <p>카메라를 켜면 얼굴 감지로 집중 시간을 측정해요. 카메라와 마이크는 연결 화면에서 각각 켜고 끌 수 있어요.</p>
+                <p className="mt-2">영상과 소리는 내 기기에서만 처리하며 서버로 전송하거나 저장하지 않아요. 연결 화면에는 내 아바타가 보여요.</p>
               </>
             )}
           </FloatingSurface>

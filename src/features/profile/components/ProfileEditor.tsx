@@ -6,7 +6,7 @@ import { FormField } from '@/shared/ui/FormField'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { AvatarIllustration } from '@/shared/ui/AvatarIllustration'
 import { AvatarDial } from './AvatarDial'
-import { nicknameError } from '../profile-input'
+import { ABOUT_ME_MAX_LENGTH, nicknameError } from '../profile-input'
 import { NICKNAME_MAX_INPUT_UNITS } from '@/shared/api/constraints'
 
 export function ProfileEditor({
@@ -47,6 +47,8 @@ export function ProfileEditor({
   const [busy, setBusy] = useState(false)
   const pending = useRef(false)
   const [error, setError] = useState('')
+  /** 「저장했어요」 after a successful save; any later edit clears it. */
+  const [saved, setSaved] = useState(false)
   const changed =
     name.trim() !== state.profile.name ||
     avatarId !== currentAvatar ||
@@ -61,6 +63,7 @@ export function ProfileEditor({
           id={formId}
           noValidate
           className="profile-editor-form"
+          onChange={() => setSaved(false)}
           onSubmit={async (event) => {
             event.preventDefault()
             if (pending.current || !changed) return
@@ -74,12 +77,14 @@ export function ProfileEditor({
             setBusy(true)
             onBusyChange?.(true)
             setError('')
+            setSaved(false)
             try {
               if (saveBetaProfile) await saveBetaProfile({ nickname: name, avatarId, callName, aboutMe })
               else await saveProfile(name, avatarId)
               setName(name.trim())
               setCallName(callName.trim())
               setAboutMe(aboutMe.trim())
+              setSaved(true)
             } catch (reason) {
               setError(reason instanceof Error ? reason.message : '저장하지 못했어요.')
             } finally {
@@ -97,7 +102,10 @@ export function ProfileEditor({
                 value={avatarId ?? 0}
                 disabled={busy}
                 previewActive={active}
-                onChange={(value) => setPicked({ id: value === 0 ? undefined : value })}
+                onChange={(value) => {
+                  setPicked({ id: value === 0 ? undefined : value })
+                  setSaved(false)
+                }}
                 fallback={<AvatarIllustration settings={state.profile.avatar} />}
               />
             </div>
@@ -147,13 +155,19 @@ export function ProfileEditor({
                         className="form-input"
                         name="aboutMe"
                         value={aboutMe}
+                        maxLength={ABOUT_ME_MAX_LENGTH}
+                        placeholder="예: 대학교 3학년, 요즘 졸업 준비로 바빠요"
                         onChange={(event) => setAboutMe(event.target.value)}
                         readOnly={busy}
                         aria-describedby={`${headingId}-aboutMe-hint`}
                       />
                     </FormField>
-                    <p id={`${headingId}-aboutMe-hint`} className="profile-editor-hint">
-                      하는 일, 요즘 상황
+                    <p id={`${headingId}-aboutMe-hint`} className="profile-editor-hint profile-editor-hint--count">
+                      <span>하는 일, 요즘 상황</span>
+                      <span className="profile-editor-count">
+                        {aboutMe.length}/{ABOUT_ME_MAX_LENGTH}
+                        <span className="sr-only">자</span>
+                      </span>
                     </p>
                   </div>
                 </>
@@ -162,6 +176,11 @@ export function ProfileEditor({
               {error && (
                 <FeedbackMessage tone="error" className="mt-4">
                   {error}
+                </FeedbackMessage>
+              )}
+              {saved && !error && (
+                <FeedbackMessage tone="success" className="mt-4">
+                  프로필을 저장했어요.
                 </FeedbackMessage>
               )}
 

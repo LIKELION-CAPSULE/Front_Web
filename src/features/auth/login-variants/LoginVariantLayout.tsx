@@ -196,13 +196,14 @@ export default function LoginVariantLayout() {
           <div className="login-variant-scrim" />
         </div>
 
+        {/* The AI disclosure is shown (and read) from the start, since she is on screen while dozing too; only her
+            name waits until she is awake. */}
         <div
           className="login-variant-mate-caption"
           data-caption-visible={captionVisible ? 'true' : 'false'}
           data-caption-immediate={captionImmediate ? 'true' : undefined}
-          aria-hidden={!captionVisible || undefined}
         >
-          <span className="login-variant-mate-name">
+          <span className="login-variant-mate-name" aria-hidden={!captionVisible || undefined}>
             <span className="desktop-mate-dot" aria-hidden="true" />
             {mate.name}
           </span>

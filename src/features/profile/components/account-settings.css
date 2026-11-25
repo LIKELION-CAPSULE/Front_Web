@@ -201,10 +201,25 @@
 
 .account-settings-main {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Settings and security: a fixed title row (clear of the close button at the top right), then the scrolling rows. */
+.account-settings-title.account-settings-main-title {
+  flex: none;
+  margin: 0;
+  padding: 28px 76px 14px 32px;
+}
+
+.account-settings-main-scroll {
+  flex: 1;
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  padding: 28px 32px 36px;
+  padding: 6px 32px 36px;
   scroll-padding: 8px 8px 28px;
   overscroll-behavior: contain;
 }
@@ -308,6 +323,17 @@
   font-size: 12px;
   line-height: 1.45;
   color: var(--color-muted);
+}
+
+.profile-editor-hint--count {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-editor-count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
 }
 
 .profile-editor-footer {
@@ -441,6 +467,35 @@
 }
 .settings-row-control { display: flex; justify-content: flex-end; min-width: 0; }
 .settings-row-feedback { display: grid; gap: 8px; padding: 0 4px; }
+
+/* 「음성 · 준비 중」: one group whose controls are all disabled (a disabled fieldset). Disabled controls take the
+   disabled colours (disabled + text-disabled), never opacity, and keep their saved position. */
+.settings-group-fields { display: grid; gap: 8px; min-width: 0; margin: 0; border: 0; padding: 0; }
+.settings-group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 2px;
+  padding: 0 4px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.settings-group-fields:disabled .settings-row-label { color: var(--color-text-disabled); }
+.settings-group-fields:disabled :is(.connection-settings-switch, .settings-segment-option, input[type='range']) { cursor: not-allowed; }
+.settings-group-fields:disabled .connection-settings-switch::before,
+.settings-group-fields:disabled .connection-settings-switch[aria-checked='true']::before { background: var(--color-disabled); }
+.settings-group-fields:disabled .connection-settings-switch > span { background: var(--color-text-disabled); }
+.settings-group-fields:disabled .settings-segment-option { color: var(--color-text-disabled); }
+.settings-group-fields:disabled .settings-segment-option:hover { color: var(--color-text-disabled); }
+.settings-group-fields:disabled .settings-segment-option[aria-checked='true'] { background: var(--color-disabled); color: var(--color-text-disabled); }
+.settings-group-fields:disabled .settings-slider input[type='range']::-webkit-slider-runnable-track { background: var(--color-disabled); }
+.settings-group-fields:disabled .settings-slider input[type='range']::-webkit-slider-thumb { background: var(--color-text-disabled); box-shadow: none; }
+.settings-group-fields:disabled .settings-slider input[type='range']::-moz-range-track,
+.settings-group-fields:disabled .settings-slider input[type='range']::-moz-range-progress { background: var(--color-disabled); }
+.settings-group-fields:disabled .settings-slider input[type='range']::-moz-range-thumb { background: var(--color-text-disabled); }
+.settings-group-fields:disabled .settings-slider-value { color: var(--color-text-disabled); }
 
 .settings-segment {
   display: inline-flex;
@@ -613,8 +668,12 @@
   }
 
   .profile-editor-scroll,
-  .account-settings-main {
+  .account-settings-main-scroll {
     padding: 18px 18px 28px;
+  }
+
+  .account-settings-title.account-settings-main-title {
+    padding: 18px 18px 0;
   }
 
   .profile-editor-grid {

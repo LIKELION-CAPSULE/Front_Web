@@ -24,8 +24,11 @@ function AccountSettingsLoading({ onClose }: { onClose: () => void }) {
   </Dialog>
 }
 
-/** The chip's icon and number. An attendance reward landing here counts the number up and bounces the icon. */
-function CreditCount() {
+/**
+ * The header's credit chip (a link to /credits). Its name carries the balance, so a screen reader hears the number and
+ * not only "크레딧". An attendance reward landing here counts the number up and bounces the icon.
+ */
+function CreditChip() {
   const { value, landing } = useCreditDisplay()
   const icon = useRef<HTMLSpanElement>(null)
   const reduced = useReducedMotion()
@@ -36,10 +39,10 @@ function CreditCount() {
     const bounce = animate(icon.current, { scale: [1, 1.32, 1] }, { type: 'spring', stiffness: 520, damping: 14 })
     return () => bounce.stop()
   }, [landing, reduced])
-  return <>
+  return <Link to="/credits" className="credit-chip" aria-label={`오늘 남은 크레딧 ${number(value ?? 0)}`} data-tour="credits">
     <span ref={icon} data-credit-target className="inline-flex"><Icon name="coin" size={17} /></span>
     <span className="font-sans tabular-nums text-label font-semibold text-ink">{number(value ?? 0)}</span>
-  </>
+  </Link>
 }
 
 export function HeaderAccount() {
@@ -59,11 +62,7 @@ export function HeaderAccount() {
   }
   return <>
     <div className="header-account ml-auto flex shrink-0 items-center gap-2 sm:gap-3.5">
-      {wallet && (
-        <Link to="/credits" className="credit-chip" aria-label="오늘 남은 크레딧" data-tour="credits">
-          <CreditCount />
-        </Link>
-      )}
+      {wallet && <CreditChip />}
       <button ref={trigger} type="button" data-tour="profile" aria-label="계정 설정 열기" aria-haspopup="dialog" aria-expanded={open} className="header-avatar-btn flex items-center justify-center rounded-full" onClick={() => setOpen(true)}><Avatar size="sm" /></button>
     </div>
     {open && <Suspense fallback={<AccountSettingsLoading onClose={close} />}><AccountSettingsDialog key={requested?.view ?? 'local'} initialView={requested?.view} locked={tourOwned} onClose={close} /></Suspense>}

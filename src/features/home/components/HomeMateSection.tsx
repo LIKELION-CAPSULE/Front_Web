@@ -43,7 +43,7 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
   const { connect, busy, error } = useConnectMate(mate)
   return (
     <article className="home-mate-card home-mate-card--active" data-tour={tour ? 'mate-card' : undefined}>
-      {/* The whole card opens the mate's page; the arrow enters the study room. */}
+      {/* The whole card opens the mate's page; the arrow starts the connection. */}
       <Link to={`/mates/${mate.id}`} className="home-mate-card-link" aria-label={`${mate.name} 메이트 보기`} />
       <div className="home-mate-card-art">
         <img className="home-mate-card-bg" src={mateCallBackground(mate.id).landscape} alt="" loading="lazy" decoding="async" draggable={false} />
@@ -54,7 +54,7 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
         <div className="home-mate-card-name">
           <h3>{mate.name}</h3>
           {mate.relationTag && <span className="home-mate-tag"><Icon name="heart" size={12} />{mate.relationTag}</span>}
-          {/* Age-rated mates (서도현 15+) show it on the card, as on their page. */}
+          {/* An age-rated mate (none at launch: 채린 and 서도현 are 전연령) shows it on the card, as on their page. */}
           {mate.ageRating !== 'all' && <span className="mate-age-badge" data-rating={mate.ageRating}>{ageRatingLabel(mate.ageRating)}</span>}
         </div>
         <p>{mate.tagline ?? mate.introduction}</p>
@@ -64,7 +64,7 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
         type="button"
         className="home-round-button home-mate-card-enter"
         data-tour={tour ? 'mate-card-connect' : undefined}
-        aria-label={HOME_COPY.enterRoom(mate.name)}
+        aria-label={HOME_COPY.connectMate(mate.name)}
         onClick={() => void connect()}
         disabled={busy}
       >

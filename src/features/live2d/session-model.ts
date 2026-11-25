@@ -41,7 +41,7 @@ function waitForModel(stage: SessionModelStage, signal: AbortSignal, timeoutMs: 
   return new Promise<void>((resolve, reject) => {
     let finished = false
     let unsubscribe = () => {}
-    const timer = Number.isFinite(timeoutMs) ? setTimeout(() => finish(new Error('캐릭터를 불러오는 데 시간이 걸리고 있어요. 다시 시도해 주세요.')), timeoutMs) : undefined
+    const timer = Number.isFinite(timeoutMs) ? setTimeout(() => finish(new Error('메이트를 불러오는 데 시간이 걸리고 있어요. 다시 시도해 주세요.')), timeoutMs) : undefined
     function finish(error?: unknown) {
       if (finished) return
       finished = true
@@ -51,10 +51,10 @@ function waitForModel(stage: SessionModelStage, signal: AbortSignal, timeoutMs: 
       if (error) reject(error)
       else resolve()
     }
-    function abort() { finish(new Error('캐릭터 불러오기를 취소했어요.')) }
+    function abort() { finish(new Error('메이트 불러오기를 취소했어요.')) }
     function check() {
       if (stage.getStatus() === 'ready') finish()
-      else if (stage.getStatus() === 'error') finish(new Error('캐릭터를 불러오지 못했어요. 다시 시도해 주세요.'))
+      else if (stage.getStatus() === 'error') finish(new Error('메이트를 불러오지 못했어요. 다시 시도해 주세요.'))
     }
     unsubscribe = stage.subscribe(check)
     signal.addEventListener('abort', abort, { once: true })
@@ -99,7 +99,7 @@ export class SessionModel {
   }
 
   prepare(figure: SessionFigure | undefined, options: SessionModelOptions = {}): Promise<SessionModelStage | null> {
-    if (!figure?.modelJsonUrl) return Promise.reject(new Error('캐릭터 모델 정보를 불러오지 못했어요. 다시 시도해 주세요.'))
+    if (!figure?.modelJsonUrl) return Promise.reject(new Error('메이트 모델 정보를 불러오지 못했어요. 다시 시도해 주세요.'))
     const format = text(figure.format)
     if (detectModelFormat(figure.modelJsonUrl, format) === 'aliving2d') {
       const source = resolvePreviewSource({

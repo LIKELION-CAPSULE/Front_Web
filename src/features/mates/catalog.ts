@@ -1,6 +1,9 @@
 import type { HomeResponse } from '../../shared/api/types.ts'
 
-/** `all`: 전연령. `15`: 15세 이용가. The login screen shows `all` mates only. */
+/**
+ * `all`: 전연령. `15`: 15세 이용가. Both launch mates are `all` (서도현 moved from 15 to 전연령, user decision 2026-11-25);
+ * `15` and its badge (home card, MateCard) stay for a later age-rated mate. The login screen shows `all` mates only.
+ */
 export type MateAgeRating = 'all' | '15'
 
 export type MateProfile = {
@@ -54,7 +57,7 @@ export const launchMates: readonly MateProfile[] = [{
   firstLine: '왔냐. 네 자리 맡아놨으니까 앉아. …뭐 해, 공부 안 하고.',
   farewellLine: '벌써 가냐. …그래, 내일 보자. 조심히 가고.',
   tags: [],
-  ageRating: '15',
+  ageRating: 'all',
   relationTag: '소꿉친구형',
 }]
 

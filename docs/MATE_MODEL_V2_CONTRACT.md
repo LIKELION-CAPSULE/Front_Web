@@ -102,7 +102,7 @@
 | 표정 | `expressions[].name` 8개가 채린 v2와 같아요: sulky, happy, contempt, yawn, angry, laugh, shy, focus. 한국어 라벨 대응도 같아요(`expression-map.ts`) |
 | 모션 | idle, talk |
 | 의상(`outfits`) | 없음. README에는 `setOutfit` 사용법이 있지만 이 모델의 model.json에는 `outfits`가 없어요 |
-| 연령 등급 | 15세 이용가(프런트 `ageRating: '15'`). 로그인 화면에는 전연령 메이트만 나와요 |
+| 연령 등급 | 전연령(프런트 `ageRating: 'all'`). 2026-11-25 사용자 결정으로 15세 이용가에서 바꿨어요. 서버 연령 등급도 전연령으로 맞춰 주세요 |
 
 - 해금 표정 4개(페르소나): 기본(무표정) → 기본 얼굴, 옅은 미소 → `laugh`(`happy`는 눈을 감고 크게 웃는 얼굴), 어이없음(장난) → `contempt`, 멋쩍음 → `shy`. 서버 해금 표에 이 매핑을 써 주세요.
 - 정지 이미지(카드·히어로·아바타·전신, 표정 썸네일·흉상)는 모델 렌더 임시본이에요(`src/assets/characters/seojin/`, 채린 v2와 같은 뷰). 정식 일러스트가 오면 교체해요. 서버 `profileImageUrl`도 같은 카드 구도(머리→가슴, 4:3)면 맞아요.

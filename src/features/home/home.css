@@ -121,14 +121,17 @@
     background: linear-gradient(90deg, #9474FF 0%, #7C5CFF 55%, #6A47F0 100%);
     padding: 0 24px 0 30px;
     color: #FFFFFF;
-    font-size: 17px;
+    /* The lg button's text size (DESIGN_SYSTEM.md 버튼: md·lg 16px). */
+    font-size: var(--text-button);
+    line-height: var(--text-button--line-height);
     font-weight: 700;
     box-shadow: 0 12px 32px rgb(124 92 255 / 0.36);
     transition: transform 0.2s ease, opacity 0.2s ease;
   }
   .home-hero-cta:not(:disabled):hover { transform: translateY(-2px); }
   .home-hero-cta:not(:disabled):active { transform: translateY(0); }
-  .home-hero-cta:disabled { cursor: default; opacity: 0.6; }
+  /* Only disabled while the check-in or the connection is in progress (aria-busy): it keeps its look, no dimming. */
+  .home-hero-cta:disabled { cursor: default; }
 
   /* ---- Mates ---- */
   .home-mates { margin: 28px 0 12px; }
@@ -170,18 +173,22 @@
     min-width: 0;
     min-height: 280px;
     overflow: hidden;
-    border: 1px solid rgb(185 166 255 / 0.14);
+    /* No standing outline or glow (cards use the surface colour); the purple edge only answers hover. The 1px stays
+       transparent so the hover edge does not move anything. */
+    border: 1px solid transparent;
     border-radius: 20px;
     background: var(--color-panel);
-    transition: transform 0.2s ease;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }
-  .home-mate-card--active {
+  .home-mate-card--active:hover {
+    transform: translateY(-4px);
     border-color: rgb(157 134 255 / 0.75);
     box-shadow: 0 0 0 1px rgb(124 92 255 / 0.35), 0 0 30px rgb(124 92 255 / 0.32);
   }
-  .home-mate-card--active:hover { transform: translateY(-4px); }
   .home-mate-card-link { position: absolute; inset: 0; z-index: 2; border-radius: inherit; }
-  .home-mate-card-link:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 3px; }
+  /* The card clips its art (overflow: hidden), which would cut the link's outer ring: the ring goes on the card. */
+  .home-mate-card-link:focus-visible { outline: none; }
+  .home-mate-card:has(> .home-mate-card-link:focus-visible) { outline: 2px solid var(--color-focus-ring); outline-offset: 3px; }
 
   .home-mate-card-art { position: absolute; inset: 0; z-index: 0; }
   .home-mate-card-art::after {

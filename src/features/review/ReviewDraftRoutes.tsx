@@ -9,7 +9,7 @@ import { AppLoading } from '@/shared/ui/AppLoading'
 /** Wait for the review image to load before opening the study preview. */
 export function ReviewStudyGate() {
   const { state } = useDemo()
-  return state.activeSession ? <App /> : <AppLoading label="캐릭터를 불러오고 있어요." />
+  return state.activeSession ? <App /> : <AppLoading label="메이트를 불러오고 있어요." />
 }
 
 /** Archived source pages are available only in development review scenarios. */

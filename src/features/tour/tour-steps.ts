@@ -53,7 +53,7 @@ const EDGE: TourPoint = { x: 0.97, y: 0.4 }
 export const TOUR_STEPS: readonly TourStep[] = [
   // 홈
   { id: 'home-card', screen: 'home', targets: ['[data-tour="mate-card"]'], at: { x: 0.96, y: 0.42 }, action: 'hover', say: '같이 있을 메이트는 여기서 골라. 카드를 누르면 먼저 만나 볼 수 있어.' },
-  // The card's 「스터디룸 들어가기」 arrow; then the hero's CTA (「○○와 공부 시작하기」 once checked in) or the card badge.
+  // The card's 「○○와 연결하기」 arrow; then the hero's CTA (「○○와 연결하기」 once checked in) or the card badge.
   { id: 'home-connect', screen: 'home', targets: ['[data-tour="mate-card-connect"]', '[data-tour="connect"]', '[data-tour="mate-card-status"]'], at: CORNER, action: 'click', say: '연결하면 나랑 영상통화처럼 같이 있는 거야. 음성이랑 PIP도 돼.' },
   { id: 'home-attendance', screen: 'home', targets: ['[data-tour="home-attendance"]'], at: EDGE, action: 'hover', labelSide: 'left', say: '매일 여기서 출석하면 크레딧을 받아. 날마다 보상이 달라지니까 빠지지 말고 와.' },
   // 메이트 상세
@@ -85,7 +85,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   { id: 'records-comment', screen: 'records', targets: ['[data-records-mate-comment]'], at: CORNER, action: 'hover', say: '기간마다 내가 한마디 남겨 둘게.' },
   { id: 'records-summary', screen: 'records', targets: ['[data-tour="records-summary"]'], at: CORNER, action: 'hover', labelSide: 'left', say: '함께한 시간, 만난 날, 연결 횟수는 여기서 한눈에 봐.' },
   // 계정 설정
-  { id: 'account-profile', screen: 'account', targets: ['[data-tour="account-avatar"]'], at: EDGE, action: 'hover', waitMs: 6000, say: '아바타랑 닉네임, 나를 부를 호칭은 여기서 정해.' },
+  { id: 'account-profile', screen: 'account', targets: ['[data-tour="account-avatar"]'], at: EDGE, action: 'hover', waitMs: 6000, say: '아바타랑 닉네임, 메이트가 너를 부를 호칭은 여기서 정해.' },
   { id: 'account-settings', screen: 'account', targets: ['[data-tour="account-settings"]'], at: CORNER, action: 'hover', waitMs: 6000, say: '말 거는 정도, 목소리, 기기, PIP는 설정에서 바꿔.' },
   { id: 'account-security', screen: 'account', targets: ['[data-account-view="security"]'], at: CORNER, action: 'hover', say: '비밀번호랑 탈퇴는 보안 탭에 있어.' },
   // 마무리
