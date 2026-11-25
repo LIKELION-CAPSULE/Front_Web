@@ -4,7 +4,8 @@ import { useBackend } from '@/features/backend/backend-context'
 import { api, ApiError } from '@/shared/api/client'
 import type { EmailRequest, ExpiresResponse, LoginRequest, LoginResponse } from '@/shared/api/types'
 import { authNotice } from '@/features/auth/auth-notices'
-import { rememberLoginProvider, saveKakaoLogin } from '@/features/auth/auth-storage'
+import { rememberLoginProvider } from '@/features/auth/auth-storage'
+import { startKakaoLogin } from '@/features/auth/kakao-start'
 import { NotificationStack } from '@/shared/ui/NotificationStack'
 import { enqueueNotification, type NotificationContent, type NotificationItem } from '@/shared/ui/notification-queue'
 import { postAuthDestination } from '@/features/auth/post-auth'
@@ -142,38 +143,8 @@ export default function LoginPage() {
     )
   }
   function kakao() {
-    const showError = (text: string) => showNotification({ tone: 'error', title: '카카오 로그인 오류', text })
-    const key = import.meta.env.VITE_KAKAO_REST_API_KEY as string | undefined
-    const redirect = import.meta.env.VITE_KAKAO_REDIRECT_URI as string | undefined
-    if (!key || !redirect) {
-      showError('카카오 로그인을 준비하고 있어요. 이메일로 로그인해 주세요.')
-      return
-    }
-    if (!legalTermsReady(backend.terms)) {
-      showError('약관 정보를 불러오지 못했어요. 페이지를 새로고침해 다시 시도해 주세요.')
-      return
-    }
-    try {
-      if (new URL(redirect).origin !== window.location.origin) {
-        showError('현재 접속 주소에서 카카오 로그인을 사용할 수 없어요. 로그인 페이지 주소를 확인해 주세요.')
-        return
-      }
-    } catch {
-      showError('카카오 로그인 주소를 확인하지 못했어요. 이메일로 로그인해 주세요.')
-      return
-    }
-    const state = crypto.randomUUID()
-    if (!saveKakaoLogin({ state, next, redirect })) {
-      showError('브라우저 저장소를 사용할 수 없어 카카오 로그인을 시작하지 못했어요. 저장소를 허용하거나 이메일로 로그인해 주세요.')
-      return
-    }
-    const query = new URLSearchParams({
-      client_id: key,
-      redirect_uri: redirect,
-      response_type: 'code',
-      state,
-    })
-    window.location.assign(`https://kauth.kakao.com/oauth/authorize?${query}`)
+    const error = startKakaoLogin(next)
+    if (error) showNotification({ tone: 'error', title: '카카오 로그인 오류', text: error })
   }
   if (params.has('token')) return <Navigate to={`/password/reset?${params}`} replace />
 
@@ -247,27 +218,6 @@ export default function LoginPage() {
                 <Icon name="chat" size={18} fill="currentColor" /> 카카오로 시작
               </Button>
             </div>
-            <p className="mt-3 text-center text-caption leading-6 text-subtle">
-              시작하면{' '}
-              <button
-                type="button"
-                aria-label="이용약관"
-                onClick={() => setLegal('terms')}
-                className="rounded-sm text-muted transition-colors hover:text-ink"
-              >
-                [이용약관]
-              </button>
-              과{' '}
-              <button
-                type="button"
-                aria-label="개인정보 처리방침"
-                onClick={() => setLegal('privacy')}
-                className="rounded-sm text-muted transition-colors hover:text-ink"
-              >
-                [개인정보 처리방침]
-              </button>
-              에 동의해요.
-            </p>
             <div className="mt-9 flex items-center gap-3 text-caption text-subtle">
               <span className="h-px flex-1 bg-divider" />
               또는

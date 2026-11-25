@@ -65,10 +65,14 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
   /** 40 · 41 for this tab: the ratings 32 reads back, the replies already reported. */
   const ratings = new Map<string, 'UP' | 'DOWN'>()
   const reported = new Set<string>()
+  /** Kakao sign-up tickets already spent in this tab (they are single use). */
+  const usedSignupTokens = new Set<string>()
   /**
    * QA (session storage, development only): `capsule-local-coming-soon` = a mate's catalogue id (e.g. `dohyun`) makes that
    * mate coming soon (11 · 31 `comingSoon`, 16 refuses it, 46 accepts the alert, 48 leaves it out);
-   * `capsule-local-beta-full` = `1` makes a new signup (4) and Kakao (6) answer 403 `BETA_FULL`;
+   * `capsule-local-beta-full` = `1` makes a new signup (4) and Kakao (6 and its sign-up step) answer 403 `BETA_FULL`;
+   * `capsule-local-kakao-signup` = `expired` | `invalid` | `terms` makes the Kakao sign-up step answer 401
+   * `SIGNUP_TOKEN_EXPIRED` (and its ticket last 1 s) | 401 `SIGNUP_TOKEN_INVALID` | 400 `TERMS_NOT_AGREED`;
    * `capsule-local-notifications` = `empty` | `error` empties 43 or makes it fail; `capsule-local-chat-delay` (ms) slows
    * 32 and `capsule-local-chat-fail` (N) fails its next N reads.
    */
@@ -177,10 +181,28 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
     if (path === '/login-mates') return reply({ mates: LOCAL_MATES.filter(mate => !comingSoon(mate)).map(mate => ({ id: mate.characterId, name: mate.name, ageRating: 'ALL', cardImageUrl: mateArtwork(mate.mateId)?.card ?? null, model: { ...LOCAL_V2_MODELS[mate.mateId], format: 'ALIVING2D_V2' } })) })
     if (path === '/auth/refresh') return store.data.authenticated ? reply({ accessToken: 'local-beta-access' }) : error('UNAUTHORIZED', 401)
     if (path === '/auth/email/login') return reply(store.login())
-    if (path === '/auth/social/KAKAO') {
+    if (path === '/auth/social/KAKAO' && method === 'POST') {
       if (!deviceOk) return error('INVALID_REQUEST', 400)
       if (qa('capsule-local-beta-full') === '1') return error('BETA_FULL', 403)
+      // Contract a′ (kakao-signup-contract.ts): a first-time Kakao user (here: a code starting with `new-`) gets no
+      // account yet, only a short sign-up ticket. Any other code is a Kakao user who already has an account.
+      if (typeof body.code === 'string' && body.code.startsWith('new-')) {
+        const expiresInSeconds = qa('capsule-local-kakao-signup') === 'expired' ? 1 : 600
+        return error('KAKAO_SIGNUP_REQUIRED', 403, { signupToken: `local-signup.${Date.now() + expiresInSeconds * 1000}.${crypto.randomUUID()}`, expiresInSeconds })
+      }
       return reply({ ...store.login(), isNewUser: false })
+    }
+    if (path === '/auth/social/KAKAO/signup' && method === 'POST') {
+      if (!deviceOk || typeof body.signupToken !== 'string' || !Array.isArray(body.agreedTermVersionIds)) return error('INVALID_REQUEST', 400)
+      // The ticket carries its own expiry, so a refreshed consent screen can still use it; each one works once per tab.
+      const [kind, expiry] = body.signupToken.split('.')
+      const switched = qa('capsule-local-kakao-signup')
+      if (switched === 'invalid' || kind !== 'local-signup' || usedSignupTokens.has(body.signupToken)) return error('SIGNUP_TOKEN_INVALID', 401)
+      if (switched === 'expired' || !(Number(expiry) > Date.now())) return error('SIGNUP_TOKEN_EXPIRED', 401)
+      if (switched === 'terms' || ![990501, 990502].every(id => (body.agreedTermVersionIds as unknown[]).includes(id))) return error('TERMS_NOT_AGREED', 400)
+      if (qa('capsule-local-beta-full') === '1') return error('BETA_FULL', 403)
+      usedSignupTokens.add(body.signupToken)
+      return reply({ ...store.beginOnboarding(), isNewUser: true })
     }
     if (path === '/auth/email/signup' && method === 'POST' && qa('capsule-local-beta-full') === '1') return error('BETA_FULL', 403)
     if (path === '/auth/email/signup' && method === 'POST') {

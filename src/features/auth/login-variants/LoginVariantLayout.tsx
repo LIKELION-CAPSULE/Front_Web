@@ -272,7 +272,7 @@ export default function LoginVariantLayout() {
           // Wider than the 512px Dialog default for long legal text; small screens still fill the width.
           className="login-variant-legal-dialog max-w-3xl"
         >
-          {legal && <LegalDocumentBody document={legal} />}
+          {legal && <LegalDocumentBody document={legal} terms={config?.legalTerms} />}
         </Dialog>
       </div>
     </DesktopShellContext>

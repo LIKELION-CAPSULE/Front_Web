@@ -31,6 +31,8 @@ export type ReviewScenario = {
   fault?: string
   loading?: SkeletonScreen | 'auth' | 'credits' | 'invite' | 'my-mates' | 'records'
   loginNext?: string
+  /** A Kakao sign-up ticket in the preview's session storage (the consent screen's entry): live, or already expired. */
+  kakaoSignup?: 'active' | 'expired'
   steps?: ReviewStep[]
 }
 
@@ -50,7 +52,7 @@ const resetMenu = [click('채린 메뉴'), click('대화 초기화')] satisfies 
 const passwordRequest = [...security, fill('input[name="email"]', 'review@example.invalid'), click('재설정 링크 받기')] satisfies ReviewStep[]
 
 export const reviewScenarios: ReviewScenario[] = [
-  { id: 'welcome', group: '로그인·가입', title: '로그인 시작', path: '/login', guest: true, note: '카카오·이메일 선택과 약관 안내' },
+  { id: 'welcome', group: '로그인·가입', title: '로그인 시작', path: '/login', guest: true, note: '카카오·이메일 선택(약관 안내 문구는 카카오 첫 가입의 동의 화면으로 옮김)' },
   { id: 'login', group: '로그인·가입', title: '이메일 로그인', path: '/login?mode=login', guest: true, note: '기본 입력·비밀번호 찾기' },
   { id: 'login-doze', group: '로그인·가입', title: '로그인 · 졸고 있는 채린', path: '/login', guest: true, note: '노트북 앞에서 꾸벅꾸벅 조는 채린(큰 Z, 「채린이를 톡 눌러서 깨워 봐」 안내). 다가가거나 누르거나 키를 누르면, 또는 10초 뒤 스스로 깸' },
   { id: 'login-doze-awake', group: '로그인·가입', title: '로그인 · 깬 채린', path: '/login?doze=awake', guest: true, note: '깨어나 웃으며 「앗, 왔어? 기다리고 있었어.」라고 인사한 상태(다시 보기 버튼 포함). Live2D가 있으면 커서를 따라봄' },
@@ -63,8 +65,8 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'verification-expired', group: '로그인·가입', title: '인증 시간 만료', path: '/login?mode=signup', guest: true, accountContract: true, fault: 'verification-expired', steps: signup, note: '신규 계정 계약 모의 포트: 1초 뒤 만료 안내 표시' },
   { id: 'verification-wrong', group: '로그인·가입', title: '인증번호 오류', path: '/login?mode=signup', guest: true, accountContract: true, fault: 'verification', steps: [...signup, fill('input[autocomplete="one-time-code"]', '001234'), click('인증하고 가입하기')], note: '신규 계정 계약 모의 포트: 잘못된 코드·입력 유지' },
   { id: 'signup-underage', group: '로그인·가입', title: '가입 · 만 14세 미만', path: '/login?mode=signup', guest: true, steps: [...signup.slice(0, -2), ...fillBirthDate('2020-01-01'), click('회원가입')], note: '문서의 연령 오류 문구·서버 요청 없음' },
-  { id: 'terms', group: '로그인·가입', title: '이용약관', path: '/login', guest: true, steps: [click('이용약관')], note: '실제 저장된 약관 전문과 모달' },
-  { id: 'privacy', group: '로그인·가입', title: '개인정보 처리방침', path: '/login', guest: true, steps: [click('개인정보 처리방침')], note: '실제 저장된 개인정보 처리방침 전문' },
+  { id: 'terms', group: '로그인·가입', title: '이용약관', path: '/login?mode=signup', guest: true, steps: [click('이용약관 보기')], note: '실제 저장된 약관 전문과 모달(회원가입의 보기)' },
+  { id: 'privacy', group: '로그인·가입', title: '개인정보 처리방침', path: '/login?mode=signup', guest: true, steps: [click('개인정보 처리방침 보기')], note: '실제 저장된 개인정보 처리방침 전문(회원가입의 보기)' },
   { id: 'reset-request', group: '비밀번호·카카오', title: '비밀번호 찾기', path: '/login?mode=forgot-password', guest: true, note: '메일 요청 입력 화면' },
   { id: 'reset-requested', group: '비밀번호·카카오', title: '재설정 메일 접수', path: '/login?mode=forgot-password', guest: true, steps: [fill('input[name="email"]', 'review@example.invalid'), click('재설정 링크 받기')], note: '가상 202·메일 발송 없이 접수 안내' },
   { id: 'reset-form', group: '비밀번호·카카오', title: '새 비밀번호', path: '/password/reset?token=review-reset', guest: true, note: '유효한 가상 링크·비밀번호 확인' },
@@ -82,6 +84,15 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'beta-waitlist-done', group: '비밀번호·카카오', title: '정원 초과 · 신청 완료', path: '/login?mode=waitlist', guest: true, steps: [fill('input[name="email"]', 'review@example.invalid'), click('출시 알림 받기')], note: '45 204(이미 신청한 이메일도 같음) 뒤 안내' },
   { id: 'beta-waitlist-invalid', group: '비밀번호·카카오', title: '정원 초과 · 잘못된 이메일', path: '/login?mode=waitlist', guest: true, steps: [fill('input[name="email"]', 'review@'), click('출시 알림 받기')], note: '이메일 형식 오류(45 400 INVALID_EMAIL과 같은 문구)' },
   { id: 'kakao-beta-full', group: '비밀번호·카카오', title: '카카오 · 정원 초과', path: '/oauth/kakao?code=review-code&state=review-state', guest: true, fault: 'beta-full', note: '6의 403 BETA_FULL → 출시 알림 신청 화면' },
+  { id: 'kakao-signup-required', group: '비밀번호·카카오', title: '카카오 첫 가입 · 동의 화면으로', path: '/oauth/kakao?code=new-review&state=review-state', guest: true, note: '6의 403 KAKAO_SIGNUP_REQUIRED → 가입 확인값은 이 탭 세션에만 두고 /login/kakao-terms로 이동' },
+  { id: 'kakao-terms-consent', group: '비밀번호·카카오', title: '카카오 첫 가입 · 약관 동의', path: '/login/kakao-terms', guest: true, kakaoSignup: 'active', note: '초기 상태: 전체 동의·필수 2종 꺼짐, 「동의하고 시작하기」 비활성' },
+  { id: 'kakao-terms-all', group: '비밀번호·카카오', title: '카카오 첫 가입 · 전체 동의', path: '/login/kakao-terms', guest: true, kakaoSignup: 'active', steps: [{ click: '', selector: 'input[aria-describedby$="-all-hint"]' }], note: '전체 동의로 필수 2종이 함께 켜지고 버튼 활성' },
+  { id: 'kakao-terms-view', group: '비밀번호·카카오', title: '카카오 첫 가입 · 약관 보기', path: '/login/kakao-terms', guest: true, kakaoSignup: 'active', steps: [click('이용약관 보기')], note: '동의 화면의 보기 → 기존 약관 모달(동의할 그 버전의 본문)' },
+  { id: 'kakao-terms-pending', group: '비밀번호·카카오', title: '카카오 첫 가입 · 처리 중', path: '/login/kakao-terms', guest: true, kakaoSignup: 'active', fault: 'kakao-signup-pending', steps: [{ click: '', selector: 'input[aria-describedby$="-all-hint"]' }, click('동의하고 시작하기')], note: '가입 요청 대기: 버튼 로딩·체크박스 잠금(중복 제출 없음)' },
+  { id: 'kakao-terms-expired', group: '비밀번호·카카오', title: '카카오 첫 가입 · 시간 만료', path: '/login/kakao-terms', guest: true, kakaoSignup: 'expired', note: '가입 확인값 만료 → 안내와 「카카오로 다시 시작」' },
+  { id: 'kakao-terms-invalid', group: '비밀번호·카카오', title: '카카오 첫 가입 · 확인 불가', path: '/login/kakao-terms', guest: true, kakaoSignup: 'active', fault: 'kakao-signup-invalid', steps: [{ click: '', selector: 'input[aria-describedby$="-all-hint"]' }, click('동의하고 시작하기')], note: '가입 단계의 401 SIGNUP_TOKEN_INVALID → 「카카오로 다시 시작」' },
+  { id: 'kakao-terms-changed', group: '비밀번호·카카오', title: '카카오 첫 가입 · 약관 변경', path: '/login/kakao-terms', guest: true, kakaoSignup: 'active', fault: 'kakao-signup-terms', steps: [{ click: '', selector: 'input[aria-describedby$="-all-hint"]' }, click('동의하고 시작하기')], note: '가입 단계의 400 TERMS_NOT_AGREED → 약관을 다시 불러오고 동의를 처음부터' },
+  { id: 'kakao-terms-beta-full', group: '비밀번호·카카오', title: '카카오 첫 가입 · 정원 초과', path: '/login/kakao-terms', guest: true, kakaoSignup: 'active', fault: 'beta-full', steps: [{ click: '', selector: 'input[aria-describedby$="-all-hint"]' }, click('동의하고 시작하기')], note: '가입 단계의 403 BETA_FULL → 출시 알림 신청 화면' },
   { id: 'kakao-failed', group: '비밀번호·카카오', title: '카카오 인증 실패', path: '/login?notice=kakao-expired', guest: true, note: '만료·사용된 코드 오류' },
   { id: 'kakao-cancelled', group: '비밀번호·카카오', title: '카카오 동의 취소', path: '/login?notice=kakao-cancelled', guest: true, note: '사용자가 동의를 취소한 경우' },
   { id: 'kakao-invalid', group: '비밀번호·카카오', title: '카카오 요청 확인 불가', path: '/login?notice=kakao-invalid-request', guest: true, note: '요청 상태·인가 코드 누락 안내' },

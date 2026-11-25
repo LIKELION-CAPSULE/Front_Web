@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { useBackend } from '../backend/backend-context'
+import { saveKakaoLogin } from '../auth/auth-storage'
 import type { SessionModelStage } from '../live2d/session-model'
 import { Icon } from '@/shared/ui/Icon'
 import { LOCAL_PANEL_OPEN_KEY } from './storage'
@@ -38,7 +39,7 @@ export function LocalControls({ store, stages }: { store: LocalBetaStore; stages
   const [open, setOpen] = useState(readInitialOpen)
   const [expression, setExpression] = useState('')
   const [, render] = useReducer(value => value + 1, 0)
-  const { authenticate, reload } = useBackend()
+  const { reload } = useBackend()
   const navigate = useNavigate()
   const route = useLocation()
   const affinityStage = route.pathname === '/mates/me' ? new URLSearchParams(route.search).get('affinity') ?? '' : ''
@@ -64,12 +65,17 @@ export function LocalControls({ store, stages }: { store: LocalBetaStore; stages
     return () => clearInterval(timer)
   }, [store])
   useEffect(() => {
+    // 「카카오로 시작」 without leaving for Kakao: the callback runs as after a real authorize, with a first-time user's code,
+    // so the mock answers KAKAO_SIGNUP_REQUIRED and the consent screen (/login/kakao-terms) follows.
     const kakao = () => {
-      void authenticate(store.beginOnboarding()).then(() => navigate('/onboarding')).catch(() => {})
+      const state = crypto.randomUUID()
+      const next = new URLSearchParams(location.search).get('next') ?? '/'
+      if (!saveKakaoLogin({ state, next, redirect: `${location.origin}/oauth/kakao` })) return
+      navigate(`/oauth/kakao?${new URLSearchParams({ code: `new-${crypto.randomUUID()}`, state })}`)
     }
     window.addEventListener('capsule-local:kakao', kakao)
     return () => window.removeEventListener('capsule-local:kakao', kakao)
-  }, [store, authenticate, navigate])
+  }, [navigate])
   const { wallet, settings } = store.data
   return <aside className="local-demo-controls" data-open={open || undefined} aria-label="로컬 더미 도구">
     <button
