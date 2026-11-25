@@ -33,7 +33,7 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
       profileImageUrl: index === 0 ? figure : getCharacterArtwork(room.characters[0]!.id).study,
       ...(index === 0 && scenario.farewellLine ? { farewellLine: scenario.farewellLine } : {}),
       personality: ['조용한', '다정한', '집중하는'],
-      relation: { level: 3, totalStudySeconds: 7200, points: 62, stage: 2, stageName: '친구' },
+      relation: { level: 3, totalStudySeconds: 7200, points: 62, stage: 3, stageName: '친구' },
     }],
   }))
   const avatars = createMockAvatars(77)
@@ -91,7 +91,7 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
               pointsBefore: 61,
               pointsAfter: 62,
               levelUp: isLevelUp,
-              stage: 2,
+              stage: 3,
               stageName: '친구',
               ...(isLevelUp ? { previousStageName: '아는 사이', stageProgress: 0.35 } : {}),
               nextStageName: '친한 친구',
@@ -188,7 +188,7 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     if (path.endsWith('/events')) {
       if (scenario.fault === 'server-ended-event') return ended()
       if (syncFailures > 0) { syncFailures--; return reply({}, 500) }
-      return reply({ eventId: eventId++, characters: [{ characterId: 201, affinity: { delta: 0, points: 62, level: 3, stage: 2, stageName: '친구' } }] }, 201)
+      return reply({ eventId: eventId++, characters: [{ characterId: 201, affinity: { delta: 0, points: 62, level: 3, stage: 3, stageName: '친구' } }] }, 201)
     }
     if (path.endsWith('/reaction')) return reply({ requestId: body.requestId, characters: [{ characterId: 201, content: '천천히 해도 괜찮아. 나도 옆에 있을게.' }] })
     if (path.endsWith('/messages/stream')) {
@@ -199,11 +199,11 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
       }
       if (scenario.fault === 'message') return reply({}, 500)
       const content = '좋아, 우리 조금만 더 집중해 보자!'
-      const message = { requestId: body.requestId, characterId: body.characterId, content, affinity: { points: 62, stage: 2, stageName: '친구' } }
+      const message = { requestId: body.requestId, characterId: body.characterId, content, affinity: { points: 62, stage: 3, stageName: '친구' } }
       log(200)
       return new Response(`event: reply\ndata: ${JSON.stringify({ content: '좋아,' })}\n\nevent: reply\ndata: ${JSON.stringify({ content })}\n\nevent: done\ndata: ${JSON.stringify(message)}\n\n`, { headers: { 'content-type': 'text/event-stream' } })
     }
-    if (path.endsWith('/messages')) return scenario.fault === 'message' ? reply({}, 500) : reply({ requestId: body.requestId, characterId: body.characterId, content: '좋아, 우리 조금만 더 집중해 보자!', affinity: { points: 62, stage: 2, stageName: '친구' } })
+    if (path.endsWith('/messages')) return scenario.fault === 'message' ? reply({}, 500) : reply({ requestId: body.requestId, characterId: body.characterId, content: '좋아, 우리 조금만 더 집중해 보자!', affinity: { points: 62, stage: 3, stageName: '친구' } })
     if (path.endsWith('/heartbeat')) {
       if (scenario.fault === 'server-ended-heartbeat' || scenario.fault === 'server-ended-report') return ended()
       if (!Number.isInteger(body.studySeconds) || !Number.isInteger(body.presentSeconds) || Number(body.presentSeconds) < 0 || Number(body.presentSeconds) > Number(body.studySeconds)) return reply({ code: 'INVALID_STUDY_TIME' }, 400)

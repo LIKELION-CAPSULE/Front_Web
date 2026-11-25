@@ -121,12 +121,22 @@
   white-space: nowrap;
 }
 
+/* The call time: the right end of the titlebar, after a thin divider; fixed-width digits so it never jitters. */
 .connection-timer {
-  font-size: 13.5px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  min-width: 4.6em;
+  justify-content: flex-end;
+  font-size: 19px;
+  line-height: 24px;
   font-weight: 600;
+  letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
-  color: var(--color-muted);
-  padding-left: 6px;
+  color: var(--color-ink);
+  text-align: right;
+  padding-left: 12px;
   border-left: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
 }
 
@@ -139,16 +149,21 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 2px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 3px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
-  background: color-mix(in srgb, var(--color-canvas) 75%, transparent);
+  border: 0;
+  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
 }
 
 .connection-mode-option {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
   border: 0;
   border-radius: 999px;
-  padding: 3px 10px;
+  padding: 0 11px;
   font-size: 11.5px;
   font-weight: 500;
   line-height: 15px;
@@ -179,16 +194,41 @@
 }
 
 .connection-titlebar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  box-sizing: border-box;
+  border: 0;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
-  padding: 3px 10px;
+  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  padding: 0 12px 0 10px;
   font-size: 11.5px;
   font-weight: 500;
   line-height: 16px;
   white-space: nowrap;
   color: var(--color-muted);
 }
+.connection-titlebar-chip > svg { flex: none; color: var(--color-subtle); }
+.connection-chip-caption { color: var(--color-subtle); font-size: 11px; }
+.connection-chip-value { color: var(--color-ink); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Affinity: the stage name and the stage as small steps (the 내 메이트 bar's language: violet for what is filled). */
+.connection-affinity-steps { display: inline-flex; gap: 2px; }
+.connection-affinity-steps > span { width: 8px; height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--color-ink) 14%, transparent); }
+.connection-affinity-steps > span[data-on] { background: var(--color-primary); }
+
+/* Left of the titlebar: the CAPSULE logo (home header's, sized to the bar) | the mate's name and the AI badge. */
+.connection-titlebar-brand { display: inline-flex; flex: none; }
+.connection-titlebar-brand .brand-wordmark { width: 92px; }
+.connection-titlebar-divider { flex: none; width: 1px; height: 16px; background: color-mix(in srgb, var(--color-ink) 22%, transparent); }
+
+/* The 「?」 note (DevicePrivacyInfo): a small button in the bar, the note below it. */
+.connection-titlebar-help > button { width: 32px; height: 32px; }
+.connection-titlebar-left h1 { display: inline-flex; align-items: center; line-height: 20px; }
+.connection-titlebar-left .desktop-mate-ai-badge { display: inline-flex; align-items: center; }
+.connection-titlebar-help .device-privacy-tooltip { width: min(360px, calc(100vw - 32px)); }
+.connection-help-note { display: grid; gap: 8px; }
+.connection-help-note > p { margin: 0; color: var(--color-muted); font-size: 13px; line-height: 20px; word-break: keep-all; }
 
 .connection-window-dots {
   display: inline-flex;
@@ -434,10 +474,14 @@
   transform: scaleX(-1);
 }
 
+.connection-stage-wrap { container: connection-stage / inline-size; }
+
+/* The 「나」 tile sits on the dock's baseline (bottom 16px) beside it; a stage too narrow to keep them apart lifts
+   the tile above the dock instead (container query below). */
 .connection-stage .connection-self.desktop-window {
   position: absolute;
   right: 16px;
-  bottom: clamp(92px, 11.5%, 108px);
+  bottom: 16px;
   z-index: 15;
   width: clamp(160px, 21%, 220px);
   height: clamp(118px, 19%, 160px);
@@ -605,7 +649,7 @@
   color: var(--color-ink);
 }
 
-/* Connection Record Window ("채린 · 연결 끊음 · 25분", reuses MateDetail window shell) */
+/* Connection record (the capsule card itself lives in features/reports/capsule-record-card.css) */
 .desktop-mate-dot--offline {
   background: var(--color-subtle);
   box-shadow: none;
@@ -655,243 +699,12 @@
   text-shadow: none;
 }
 
-.connection-record-copy h1 {
-  margin: 0;
-  font-size: clamp(26px, 3vw, 38px);
-  line-height: 1.26;
-  font-weight: 600;
-  color: var(--color-ink);
-  word-break: keep-all;
-}
-
-.connection-record-subtitle {
-  margin: 10px 0 0;
-  color: var(--color-muted);
-  font-size: 14.5px;
-  line-height: 1.5;
-  word-break: keep-all;
-}
-
-.connection-record-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px 28px;
-  margin: 28px 0 0;
-}
-
-.connection-record-stat {
-  min-width: 120px;
-}
-
-.connection-record-stat dt {
-  color: var(--color-muted);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.connection-record-stat dd {
-  margin: 6px 0 0;
-  font-size: 24px;
-  line-height: 1.25;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-ink);
-}
-
-.connection-record-stat-empty {
-  display: inline-block;
-  font-size: 13.5px;
-  font-weight: 500;
-  line-height: 1.45;
-  color: var(--color-subtle);
-  word-break: keep-all;
-}
-
-.connection-record-affinity {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
-}
-
-.connection-record-affinity-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-.connection-record-affinity-label {
-  font-size: 13px;
-  color: var(--color-muted);
-}
-
-.connection-record-affinity-stage {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-ink);
-}
-
-.connection-record-levelup {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 48%, transparent);
-  color: var(--color-text-accent);
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.connection-record-affinity-progress {
-  margin-top: 12px;
-}
-
-.connection-record-progress-track {
-  height: 6px;
-  width: 100%;
-  max-width: 340px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
-}
-
-.connection-record-progress-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-text-accent));
-}
-
-.connection-record-progress-caption {
-  margin: 8px 0 0;
-  font-size: 13px;
-  color: var(--color-muted);
-}
-
-.connection-record-credit-notice {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 14px;
-  margin-top: 20px;
-  padding: 11px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(196, 185, 243, 0.18);
-  background: color-mix(in srgb, var(--color-surface) 84%, transparent);
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--color-muted);
-}
-
 .connection-record-invite-link {
   color: var(--color-text-accent);
   font-weight: 600;
   white-space: nowrap;
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.connection-record-actions {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 28px;
-}
-
-.connection-record-actions .mate-connect-action {
-  margin-top: 0;
-}
-
-.connection-record-actions .ui-button {
-  min-height: 44px;
-}
-
-.connection-record-error-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 360px;
-  padding: 48px 24px;
-  text-align: center;
-  border-radius: 0 0 15px 15px;
-  background: linear-gradient(
-    155deg,
-    color-mix(in srgb, var(--color-surface-raised) 96%, transparent),
-    color-mix(in srgb, var(--color-panel) 98%, transparent)
-  );
-}
-
-.connection-record-error-title {
-  margin: 0;
-  font-size: clamp(22px, 2.4vw, 28px);
-  line-height: 1.35;
-  font-weight: 600;
-  color: var(--color-ink);
-  word-break: keep-all;
-}
-
-.connection-record-error-sub {
-  margin: 10px 0 0;
-  font-size: 14.5px;
-  color: var(--color-muted);
-}
-
-.connection-record-skeleton-stage {
-  background: linear-gradient(155deg, rgba(46, 36, 76, 0.65), rgba(21, 19, 34, 0.92));
-}
-
-.connection-record-skeleton-title {
-  height: 36px;
-  width: 68%;
-  border-radius: 10px;
-}
-
-.connection-record-skeleton-sub {
-  margin-top: 12px;
-  height: 18px;
-  width: 52%;
-  border-radius: 8px;
-}
-
-.connection-record-skeleton-stat {
-  height: 52px;
-  width: 130px;
-  border-radius: 10px;
-}
-
-.connection-record-skeleton-bar {
-  margin-top: 26px;
-  height: 44px;
-  width: 78%;
-  border-radius: 10px;
-}
-
-.connection-record-skeleton-btn {
-  height: 44px;
-  width: 128px;
-  border-radius: 12px;
-}
-
-/* 960px keeps side-by-side layout with adjusted ratio; < 960px stacks vertically */
-@media (max-width: 960px) and (min-width: 960px) {
-  .connection-record-body.mate-detail-window-body {
-    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
-  }
-  .connection-record-body .mate-detail-portrait {
-    aspect-ratio: 3 / 4;
-    height: auto;
-    max-height: none;
-    min-height: 420px;
-    border-right: 1px solid color-mix(in srgb, var(--color-ink) 7%, transparent);
-    border-bottom: 0;
-  }
-  .connection-record-copy.mate-detail-copy {
-    padding: 30px 32px;
-  }
 }
 
 @media (max-width: 959px) {
@@ -903,17 +716,6 @@
   .connection-record-speech-slot .character-speech-bubble--pill {
     padding: 7px 13px;
     font-size: 13px;
-  }
-  .connection-record-copy h1 {
-    font-size: 26px;
-    line-height: 1.3;
-  }
-  .connection-record-stats {
-    margin-top: 20px;
-    gap: 12px 22px;
-  }
-  .connection-record-actions {
-    margin-top: 22px;
   }
 }
 
@@ -1071,3 +873,346 @@
     transform: translateX(0);
   }
 }
+
+/* Hang-up → capsule card (src/features/mates/hangup-sequence.ts drives 0–3.22s; the record page plays the rest). */
+.connection-hangup {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.connection-page[data-hangup] .connection-hangup {
+  pointer-events: auto;
+}
+
+.connection-hangup-dim {
+  position: absolute;
+  inset: 0;
+  background: var(--color-canvas);
+  opacity: 0;
+}
+
+/* Wraps the titlebar and stage so the TV-off collapse squeezes the whole call screen to one line. */
+.connection-screen {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  transform-origin: 50% 50%;
+}
+
+/* The CRT line: a thin white bar with a purple halo, centred where the screen collapses. */
+.connection-hangup-crt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 3px;
+  translate: -50% -50%;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow:
+    0 0 8px 1px #fff,
+    0 0 28px 6px color-mix(in srgb, var(--color-primary) 70%, transparent);
+  opacity: 0;
+}
+
+.connection-hangup-handset {
+  position: relative;
+  width: clamp(168px, 22vmin, 220px);
+  aspect-ratio: 1;
+  opacity: 0;
+  filter: drop-shadow(0 12px 28px color-mix(in srgb, var(--color-primary) 45%, transparent));
+}
+
+.connection-hangup-handset > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.connection-hangup-handset > .connection-hangup-handset-red {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.connection-hangup-ended {
+  position: absolute;
+  top: calc(50% + clamp(84px, 11vmin, 108px));
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-ink);
+  opacity: 0;
+}
+
+.connection-hangup-ended strong {
+  font-weight: 600;
+}
+
+.connection-hangup-ended time {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.connection-hangup-ended-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f04e66;
+  box-shadow: 0 0 10px #f04e66;
+}
+
+.connection-hangup-wait {
+  position: absolute;
+  top: calc(50% + clamp(120px, 15vmin, 144px));
+  left: 0;
+  right: 0;
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  color: var(--color-subtle);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.connection-hangup[data-waiting] .connection-hangup-wait {
+  opacity: 1;
+}
+
+/* The line is down: no speaking ring, and the live dot goes offline at once. */
+.connection-page[data-hangup] .connection-mate[data-speaking]::after {
+  display: none;
+}
+
+.connection-page[data-hangup] .connection-titlebar .desktop-mate-dot {
+  background: var(--color-subtle);
+  box-shadow: none;
+  animation: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-view-transition='hangup']::view-transition-old(root),
+  html[data-view-transition='hangup']::view-transition-new(root) {
+    animation-duration: 500ms;
+    animation-timing-function: cubic-bezier(.65, 0, .35, 1);
+  }
+
+  /* The card rises inside the page cross-fade, not as its own snapshot. */
+  .connection-record-page[data-entrance='hangup'] .connection-record-window,
+  .connection-record-page[data-entrance='hangup'] .connection-record-stage {
+    view-transition-name: none;
+  }
+
+  /* STEP 05: after the 500ms page cross-fade, the capsule card grows from 0.94 and settles; its content then rises in order. */
+  .connection-record-page[data-entrance='hangup'] .connection-record-window {
+    animation: connection-record-settle 850ms cubic-bezier(.65, 0, .35, 1) 500ms both;
+  }
+}
+
+@keyframes connection-record-settle {
+  0% {
+    opacity: 0;
+    scale: 0.94;
+    translate: 0 10px;
+  }
+  70% {
+    opacity: 1;
+    scale: 1.004;
+    translate: 0 -2px;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+
+/*
+ * Stage layouts (ConnectionPage: click the stage, or the toggle in its corner).
+ * - mate: the mate fills the stage, my camera floats small (the default above)
+ * - split: side by side
+ * - self: my camera fills the stage, the mate floats small
+ * Only the tiles' place and size change, so Live2D and the camera keep running.
+ */
+.connection-stage {
+  cursor: pointer;
+}
+
+.connection-stage .connection-speech-slot {
+  cursor: auto;
+}
+
+
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(connection-layout-mate),
+  ::view-transition-group(connection-layout-self) {
+    animation-duration: 420ms;
+    animation-timing-function: cubic-bezier(.65, 0, .35, 1);
+  }
+
+  ::view-transition-old(connection-layout-mate),
+  ::view-transition-new(connection-layout-mate),
+  ::view-transition-old(connection-layout-self),
+  ::view-transition-new(connection-layout-self) {
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+/* 「누르고 말하기」 above the dock: what is heard, the sentence before it is sent, notices (ConnectionPage). */
+.connection-stt {
+  position: absolute;
+  z-index: 26;
+  bottom: 92px;
+  left: 50%;
+  display: grid;
+  gap: 6px;
+  width: max-content;
+  max-width: min(520px, calc(100% - 32px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.connection-stt > p {
+  margin: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-canvas) 82%, transparent);
+  padding: 8px 14px;
+  color: var(--color-ink);
+  font-size: var(--text-body-compact);
+  line-height: var(--text-body-compact--line-height);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.connection-stt-label {
+  margin-right: 8px;
+  color: var(--color-text-accent);
+  font-size: var(--text-caption);
+  font-weight: 700;
+}
+.connection-stt-privacy { color: var(--color-muted) !important; font-size: var(--text-caption) !important; }
+.connection-stt-notice[data-tone='error'] { color: var(--color-danger) !important; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .connection-stt > p { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+}
+
+/* Too narrow for the tile beside the centred dock (dock ≈ 330px + the tile + gaps): the tile goes above the dock. */
+@container connection-stage (max-width: 860px) {
+  .connection-stage .connection-self.desktop-window {
+    bottom: 92px;
+  }
+}
+
+/* 「말 걸기 빈도」 on the stage, top-left where the layout toggle was: the toggle's glass pill, three short options,
+   only the choice violet; what it means shows briefly below it. */
+.connection-talk {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
+  padding: 3px;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.connection-talk-option {
+  height: 28px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--color-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.connection-talk-option:hover { color: var(--color-ink); }
+.connection-talk-option[aria-checked='true'] { background: var(--color-selected); color: var(--color-selected-text); }
+.connection-talk-option:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+.connection-talk-note {
+  position: absolute;
+  top: 50px;
+  left: 14px;
+  z-index: 20;
+  margin: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+  padding: 5px 10px;
+  color: var(--color-ink);
+  font-size: 12px;
+  line-height: 18px;
+  pointer-events: none;
+  animation: connection-talk-note 1.5s ease both;
+}
+@keyframes connection-talk-note {
+  0% { opacity: 0; transform: translateY(-3px); }
+  12%, 80% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+/* A tap on the mate (mate-tap.ts): the pointer says so over her; the keyboard reaches the same through a button that
+   shows on focus only; the still image (no live model) gives a small hop instead of the nod. */
+.connection-stage[data-over-mate] { cursor: pointer; }
+.connection-mate-pet:not(:focus-visible) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+.connection-mate-pet:focus-visible {
+  position: absolute;
+  top: 52px;
+  left: 12px;
+  z-index: 20;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+  padding: 5px 12px;
+  color: var(--color-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+.connection-mate-fallback-img[data-bounce] { animation: connection-mate-hop 420ms cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes connection-mate-hop {
+  0%, 100% { transform: none; }
+  40% { transform: translateY(-10px) scale(1.01); }
+}
+.connection-pip-mate[data-tappable] { cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) {
+  .connection-talk-note { animation: none; }
+  .connection-mate-fallback-img[data-bounce] { animation: none; }
+}
+
+/* 누르고 말하기: a sentence that could not go out keeps 다시 보내기 / 지우기 (the bubble itself lets the pointer through). */
+.connection-stt-actions { display: flex; gap: 6px; padding: 4px !important; background: transparent !important; box-shadow: none !important; pointer-events: auto; }
+.connection-stt-retry,
+.connection-stt-dismiss {
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.connection-stt-retry { background: var(--color-selected); color: var(--color-selected-text); }
+.connection-stt-dismiss { background: color-mix(in srgb, var(--color-canvas) 82%, transparent); color: var(--color-muted); }
+.connection-stt-retry:focus-visible,
+.connection-stt-dismiss:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }

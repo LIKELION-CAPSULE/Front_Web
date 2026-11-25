@@ -73,25 +73,53 @@ function stripQueryAndHash(url: string): string {
   return (url.split(/[?#]/)[0] ?? '').toLowerCase()
 }
 
+/**
+ * Optional format hint from the server (`model.format`). When present it wins over the URL suffix, so hashed CDN
+ * file names still work; unknown values fall back to suffix detection.
+ */
+export type MateModelFormat = 'aliving2d' | 'cubism'
+
+function normalizeFormat(format: string | null | undefined): MateModelFormat | null {
+  const value = format?.trim().toLowerCase()
+  if (value === 'aliving2d' || value === 'aliving') return 'aliving2d'
+  if (value === 'cubism' || value === 'live2d-cubism') return 'cubism'
+  return null
+}
+
+/** Detects the model format from the optional hint, then the URL suffix (`.model3.json` / `/model.json`). */
+export function detectModelFormat(
+  modelUrl: string | null | undefined,
+  format?: string | null,
+): MateModelFormat | null {
+  const url = modelUrl?.trim() ?? ''
+  if (!url) return null
+  const hinted = normalizeFormat(format)
+  if (hinted) return hinted
+  const clean = stripQueryAndHash(url)
+  if (clean.endsWith('.model3.json')) return 'cubism'
+  if (clean === 'model.json' || clean.endsWith('/model.json')) return 'aliving2d'
+  return null
+}
+
 export function resolveMateSource(
   input: {
     modelUrl?: string | null
     engineUrl?: string | null
     playerUrl?: string | null
     reactionsUrl?: string | null
+    format?: string | null
   },
   options: AllowlistOptions = {},
 ): ResolvedMateSource {
   const modelUrl = input.modelUrl?.trim() ?? ''
   if (!modelUrl) return { kind: 'static' }
 
-  const cleanModel = stripQueryAndHash(modelUrl)
-  if (cleanModel.endsWith('.model3.json')) {
+  const format = detectModelFormat(modelUrl, input.format)
+  if (format === 'cubism') {
     return { kind: 'cubism', modelUrl }
   }
 
-  const isAlivingModel = cleanModel === 'model.json' || cleanModel.endsWith('/model.json')
-  if (isAlivingModel) {
+  if (format === 'aliving2d') {
     const engineUrl = input.engineUrl?.trim() ?? ''
     if (!engineUrl || !isAllowedEngineUrl(engineUrl, options)) {
       return { kind: 'static' }
@@ -108,4 +136,45 @@ export function resolveMateSource(
   }
 
   return { kind: 'static' }
+}
+
+/**
+ * Mate preview source (my mates / mate detail / connection record).
+ * - `aliving`: v2 Aliving2D model + allowlisted engine scripts -> AlivingRenderer
+ * - `legacy`: any other model URL -> the injected preview stage factory (Cubism `.model3.json`, or the review
+ *   workbench's image stage). Kept as a compatibility path while the server can still hand out Cubism models.
+ * - `static`: no model, or an Aliving2D model whose engine URL is missing / not allowlisted -> v2 still image
+ */
+export type PreviewMateSource =
+  | Extract<ResolvedMateSource, { kind: 'aliving' }>
+  | { kind: 'legacy'; modelUrl: string }
+  | { kind: 'static' }
+
+export function resolvePreviewSource(
+  model:
+    | {
+        modelJsonUrl?: string | null
+        engineUrl?: string | null
+        playerUrl?: string | null
+        reactionsUrl?: string | null
+        format?: string | null
+      }
+    | null
+    | undefined,
+  options: AllowlistOptions = {},
+): PreviewMateSource {
+  const modelUrl = model?.modelJsonUrl?.trim() ?? ''
+  if (!modelUrl) return { kind: 'static' }
+  if (detectModelFormat(modelUrl, model?.format) !== 'aliving2d') return { kind: 'legacy', modelUrl }
+  const resolved = resolveMateSource(
+    {
+      modelUrl,
+      engineUrl: model?.engineUrl,
+      playerUrl: model?.playerUrl,
+      reactionsUrl: model?.reactionsUrl,
+      format: 'aliving2d',
+    },
+    options,
+  )
+  return resolved.kind === 'aliving' ? resolved : { kind: 'static' }
 }

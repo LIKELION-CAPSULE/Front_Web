@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import type { ModelInfo } from '@/shared/api/types'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useBackend } from '@/features/backend/backend-context'
+import type { MateModelInfo } from '@/features/mates/mate-contract'
+import { resolvePreviewSource } from '@/features/mate-render/mate-source'
+import { useAlivingPreview } from '@/features/mate-render/use-aliving-preview'
+import type { AlivingView } from '@/features/mate-render/aliving-view'
 import { useAvatarModel } from '@/features/live2d/use-avatar-model'
 import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
 import {
@@ -10,7 +13,9 @@ import {
   requestExpression,
   type ExpressionSchedule,
 } from '@/features/live2d/expression-scheduler'
-import { CALL_STAGE_GRADIENT, chaerinArtwork, mateHeroPortrait } from '@/features/mates/artwork'
+import { CALL_STAGE_GRADIENT, mateCallBackground, mateHeroPortrait } from '@/features/mates/artwork'
+import { ageRatingLabel, mateProfile } from '@/features/mates/catalog'
+import { mateLineForState } from '@/features/mates/mate-lines'
 import {
   DEFAULT_EXPRESSION_MAPPING,
   type MateReactionState,
@@ -45,9 +50,12 @@ export function MatePreview({
   stageClassName,
   controlBar,
   onRetry,
+  framing,
+  pixelScale,
+  stillImage,
 }: {
   mateId: string
-  model?: ModelInfo
+  model?: MateModelInfo
   scope: string
   image?: string
   name: string
@@ -63,11 +71,49 @@ export function MatePreview({
   stageClassName?: string
   controlBar?: ReactNode
   onRetry: () => void
+  /** v2 camera for the stage size (layout px), e.g. to match another still (the my-mates card). */
+  framing?: (width: number, height: number) => AlivingView
+  /** v2 supersampling for small stages. */
+  pixelScale?: number
+  /**
+   * Replaces the hero still (same view), e.g. the picked expression's still while the model is not drawn (reduced
+   * motion). Undefined: the hero still.
+   */
+  stillImage?: string
 }) {
   const { previewModelFactory } = useBackend()
   const reduced = useReducedMotion()
+  // Reduced motion: no Live2D at all, the v2 still image stays (same as before for the Cubism preview).
   const effectiveModel = reduced ? undefined : model
-  const { stage, status, retry } = useAvatarModel(effectiveModel, scope, previewModelFactory)
+  const { modelJsonUrl, engineUrl, playerUrl, reactionsUrl, format } = effectiveModel ?? {}
+  // v2 (Aliving2D) -> shared AlivingRenderer; other model URLs -> the injected legacy stage factory (Cubism, or the
+  // review workbench's image stage); no model / blocked engine URL -> v2 still image.
+  const source = useMemo(
+    () =>
+      resolvePreviewSource(
+        { modelJsonUrl, engineUrl, playerUrl, reactionsUrl, format },
+        {
+          pageOrigin: typeof window !== 'undefined' ? window.location.origin : '',
+          apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
+        },
+      ),
+    [modelJsonUrl, engineUrl, playerUrl, reactionsUrl, format],
+  )
+  const legacy = useAvatarModel(source.kind === 'legacy' ? effectiveModel : undefined, scope, previewModelFactory)
+  const alivingHostRef = useRef<HTMLDivElement>(null)
+  const aliving = useAlivingPreview({
+    source,
+    hostRef: alivingHostRef,
+    scope,
+    paused,
+    tracking: !reduced && !paused,
+    framing,
+    pixelScale,
+  })
+  const stage = legacy.stage
+  const status = source.kind === 'aliving' ? aliving.status : legacy.status
+  const retry = source.kind === 'aliving' ? aliving.retry : legacy.retry
+  const setAlivingExpression = aliving.setExpression
   const [bgFailed, setBgFailed] = useState(false)
 
   // Reaction state machine (reuses existing greet / idleLong / error lines & expressions)
@@ -83,14 +129,14 @@ export function MatePreview({
     reactionStateRef.current = next
     setReactionState(next)
     if (!showLine) return
-    const line = getDefaultLineForState(next)
+    const line = mateLineForState(mateId, next, getDefaultLineForState)
     if (!line) return
     clearTimeout(bubbleTimerRef.current)
     setSpeechBubble(line)
     bubbleTimerRef.current = setTimeout(() => {
       setSpeechBubble(null)
     }, reactionBubbleDurationMs(line))
-  }, [])
+  }, [mateId])
 
   const isRecord = mode === 'record'
   const effectiveSuppressSpeech = suppressSpeech || status === 'error' || isRecord
@@ -161,7 +207,7 @@ export function MatePreview({
     }
   }, [])
 
-  // Cursor gaze tracking on Live2D stage
+  // Cursor gaze tracking on the legacy Live2D stage (the v2 renderer tracks inside useAlivingPreview)
   useEffect(() => {
     stage?.setTracking(!reduced && !paused)
     return () => stage?.setTracking(false)
@@ -183,7 +229,13 @@ export function MatePreview({
   }, [mateId, activeExpression])
 
   useEffect(() => {
-    if (!stage || status !== 'ready') return
+    if (status !== 'ready') return
+    const applyExpression = stage
+      ? (file: string | null) => stage.setExpression(file)
+      : source.kind === 'aliving'
+        ? setAlivingExpression
+        : null
+    if (!applyExpression) return
     clearTimeout(deadlineTimerRef.current)
 
     const scheduleStep = (now: number) => {
@@ -193,7 +245,7 @@ export function MatePreview({
         const tickNow = performance.now()
         const advanced = advanceExpression(scheduleRef.current, tickNow)
         scheduleRef.current = advanced.schedule
-        if (advanced.command) stage.setExpression(advanced.command.file)
+        if (advanced.command) applyExpression(advanced.command.file)
         scheduleStep(tickNow)
       }, Math.max(16, deadline - now))
     }
@@ -212,20 +264,22 @@ export function MatePreview({
           : buildExpressionRequestForState(reactionState, DEFAULT_EXPRESSION_MAPPING, speechBubble)
     const result = requestExpression(scheduleRef.current, request, now)
     scheduleRef.current = result.schedule
-    if (result.command) stage.setExpression(result.command.file)
+    if (result.command) applyExpression(result.command.file)
     scheduleStep(now)
 
     return () => clearTimeout(deadlineTimerRef.current)
-  }, [stage, status, isRecord, defaultRecordExpression, trimmedOverride, smiling, reactionState, speechBubble])
+  }, [stage, source.kind, setAlivingExpression, status, isRecord, defaultRecordExpression, trimmedOverride, smiling, reactionState, speechBubble])
 
-  const showLive2D = Boolean(stage) && status === 'ready'
-  const fallbackSrc = mateHeroPortrait(mateId, image)
+  const isAliving = source.kind === 'aliving'
+  const showLive2D = (Boolean(stage) || isAliving) && status === 'ready'
+  const fallbackSrc = stillImage ?? mateHeroPortrait(mateId, image)
 
   return (
     <div
       className={stageClassName ? `mate-detail-portrait ${stageClassName}` : 'mate-detail-portrait'}
       data-preview={status}
       data-mate-mode={showLive2D ? 'live2d' : 'static'}
+      data-model-format={source.kind}
       data-expression={activeExpression || undefined}
       aria-label={`${name} 미리보기`}
       aria-busy={status === 'loading'}
@@ -234,7 +288,7 @@ export function MatePreview({
       {/* Shared portrait room background; falls back to violet gradient */}
       {!bgFailed && (
         <img
-          src={chaerinArtwork.callBackground.portrait}
+          src={mateCallBackground(mateId).portrait}
           alt=""
           aria-hidden="true"
           className="desktop-mate-bg-img"
@@ -243,21 +297,30 @@ export function MatePreview({
         />
       )}
 
-      {/* Static transparent portrait fallback (visible when Live2D is absent, loading, failed, or reduced-motion) */}
-      {!showLive2D && fallbackSrc && (
-        <div className="mate-detail-fallback">
+      {/* Static transparent portrait (v2 hero): shown first, while Live2D loads, on failure and under reduced motion.
+          It stays under the fading-in Live2D layer and is hidden only once the crossfade is over (mates.css). */}
+      {fallbackSrc && (
+        <div className="mate-detail-fallback" data-hidden={showLive2D || undefined}>
           <img src={fallbackSrc} width={760} height={900} alt={name} className="mate-detail-fallback-img" draggable={false} />
         </div>
       )}
 
-      {/* Live2D or review preview stage */}
+      {/* Legacy Live2D (Cubism) or review preview stage */}
       {stage && status !== 'error' && (
         <div className="mate-detail-live2d-slot" data-visible={showLive2D}>
           <Live2DFigure stage={stage} />
         </div>
       )}
 
-      {showAgeBadge && <span className="mate-age-badge mate-detail-age-badge">전연령</span>}
+      {/* v2 (Aliving2D) stage: the host must exist before the renderer boots, so it stays mounted while loading.
+          Its camera reproduces the hero still's framing, so the crossfade is pixel-aligned. */}
+      {isAliving && status !== 'error' && (
+        <div className="mate-detail-live2d-slot" data-visible={showLive2D}>
+          <div ref={alivingHostRef} className="mate-aliving-host" aria-hidden="true" />
+        </div>
+      )}
+
+      {showAgeBadge && <span className="mate-age-badge mate-detail-age-badge">{ageRatingLabel(mateProfile(mateId)?.ageRating)}</span>}
 
       {/* Detail mode: reaction speech bubble above control bar */}
       {!effectiveSuppressSpeech && (
@@ -285,7 +348,8 @@ export function MatePreview({
       {/* Bottom-center translucent call control bar (VoiceSampleButton) */}
       {controlBar && <div className="mate-detail-control-bar">{controlBar}</div>}
 
-      {status === 'loading' && (
+      {/* The v2 path already shows the still image while loading, so it skips the spinner. */}
+      {status === 'loading' && !isAliving && (
         <div className="mate-preview-status" role="status">
           <QuarterRingSpinner />
           <span>캐릭터를 불러오고 있어요.</span>

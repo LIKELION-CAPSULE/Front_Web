@@ -1,0 +1,42 @@
+/* 내 기록 backdrop (SatinBackdrop). Fixed behind the page content: the app shell becomes its own stacking context
+   on this page only, so the backdrop (z-index −1) sits above the shell's canvas colour and under everything else,
+   including the opaque site header. Colours: satin-config.ts. */
+.app-shell:has(.satin-backdrop) {
+  isolation: isolate;
+}
+
+.satin-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--color-canvas);
+  pointer-events: none;
+}
+
+.satin-backdrop-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Without WebGL: the same violets as soft still glows, top and bottom (the middle stays dark like the ribbons). They
+   fade in over the canvas on entry with the ribbons' timing (SatinBackdrop sets it); reduced motion: at once. */
+.satin-backdrop[data-fallback]::before {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 22% at 30% 18%, rgb(128 83 242 / 0.16), transparent 70%),
+    radial-gradient(ellipse 55% 14% at 72% 10%, rgb(212 195 250 / 0.08), transparent 70%),
+    radial-gradient(ellipse 70% 20% at 60% 86%, rgb(128 83 242 / 0.13), transparent 70%);
+  content: '';
+  animation: satin-backdrop-reveal var(--satin-reveal-duration, 2.6s) cubic-bezier(0.33, 1, 0.68, 1) var(--satin-reveal-delay, 0.45s) both;
+}
+
+@keyframes satin-backdrop-reveal {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .satin-backdrop[data-fallback]::before { animation: none; }
+}

@@ -201,6 +201,8 @@ POST /api/sessions { roomId, characterId, targetMinutes }
 
 `EventRequest.type`은 **enum 없는 string**이다. operation 설명에는 상태 변화와 졸음·하품·손 흔들기·고개 돌림이 나오지만, 실제 코드 목록은 없다. `away`, `drowsy`, `headTurn`, `phone`, `wave`, 휴식 진입/종료 코드 등을 서버 enum으로 임의 확정하지 않는다. `occurredAt` 기준 시간, 이벤트 순서·중복·지연 전송, 기본 상태와 쿨다운 정책도 확인해야 한다.
 
+**IDLE_TALK 추가 요청 (2026-11-25, 프런트 선반영):** 연결 화면의 「먼저 말 걸기」(설정 T-1 「말 걸기 빈도」)는 사용자가 채팅을 보내지 않은 채 일정 시간(자주 1분, 가끔 3분, 조용히는 보내지 않음)이 지나면 18에 `type: 'IDLE_TALK'`를 보내고, 이어서 19(`intensity: 1`)로 대사·표정·모션을 받는다. 서버가 이 타입을 받아 메이트 페르소나에 맞는 말 걸기 대사를 만들어 줘야 한다. 지원 전에는 서버가 거절해도 프런트는 조용히 넘긴다(오류 문구 없음). **크레딧 정책은 백엔드 확인 필요:** 19는 LLM 대사라 차감 여부·금액을 서버 규칙으로 정해 주어야 하며, 프런트는 따로 차감하지 않는다. 로컬 mock(`local-demo/transport.ts`)에는 메이트별 대사가 들어 있다.
+
 `MessageRequest.content`의 스키마 길이는 **0~300자**, `inputType`은 `TEXT`·`QUICK`이다. 0은 스키마의 `minLength`이며 공백·빈 문자열이 업무적으로 허용된다는 의미로 확대하지 않는다. `ReactionRequest.intensity`는 범위가 없다. `tts` 기본값, 오디오 형식·샘플레이트·크기 제한, `fallback`의 발생·재시도 의미, emotion·motion의 가능한 값도 미기재다. SSE·WebSocket 스트림은 정의되어 있지 않다.
 
 `MessageRequest`와 `ReactionRequest`는 `requestId`를 필수로 요구하고 응답에 되돌려 준다. 요청 식별·응답 대조에 쓸 수 있지만, **같은 ID로 다시 보내면 중복 처리되지 않는다는 서버 보장은 명세에 없다.** 자동 재시도 전 보장 범위·TTL·동일 ID 다른 내용의 처리를 확인한다.

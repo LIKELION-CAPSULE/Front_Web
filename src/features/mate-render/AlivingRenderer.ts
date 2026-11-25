@@ -1,5 +1,6 @@
 import type { AlivingView } from './aliving-view'
 import type { MateRenderStatus, MateRenderer } from './types'
+import { loadScriptOnce } from './script-loader.ts'
 
 interface CapsuleV2ModelLike {
   background: [number, number, number, number]
@@ -7,7 +8,10 @@ interface CapsuleV2ModelLike {
   draw(): void
 }
 
-interface CapsuleV2PlayerLike {
+/** Face parameters for `track` (Live2D standard ids → values in Live2D units); ids left out are not driven. */
+export type TrackPose = Readonly<Partial<Record<string, number>>>
+
+export interface CapsuleV2PlayerLike {
   model: CapsuleV2ModelLike
   running: boolean
   raf: number
@@ -16,12 +20,21 @@ interface CapsuleV2PlayerLike {
   setExpression(name: string): boolean
   playMotion(name: string): boolean
   talk(ms: number): boolean
+  /** Fades the playing motion out and drops queued ones (used to end talking early). */
+  stopMotion?(): void
+  /**
+   * Drives face parameters directly (Live2D standard ids in Live2D units: `ParamEyeLOpen`, `ParamAngleY`, …). The
+   * player holds the values only for a short moment (it is meant for camera tracking), so callers send them every frame.
+   */
+  track?(params: TrackPose): void
+  /** Reaction table lookup (`reactions.default.json`): expression + hold + talk for a backend trigger. */
+  react?(trigger: string, intensity?: number): unknown
   lookAt(x: number, y: number): void
   setView(zoom: number, cx: number, cy: number): void
   destroy(): void
 }
 
-interface CapsuleV2PlayerGlobal {
+export interface CapsuleV2PlayerGlobal {
   create(
     canvas: HTMLCanvasElement,
     modelUrl: string,
@@ -29,40 +42,27 @@ interface CapsuleV2PlayerGlobal {
   ): Promise<CapsuleV2PlayerLike>
 }
 
-const scriptPromises = new Map<string, Promise<void>>()
-
-/**
- * Loads an external runtime script once per URL via `<script>` tag.
- * Engine scripts are never imported or bundled into the public repository.
- */
-export function loadScriptOnce(url: string): Promise<void> {
-  const existing = scriptPromises.get(url)
-  if (existing) return existing
-  const promise = new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = url
-    script.async = false
-    script.onload = () => resolve()
-    script.onerror = () => {
-      scriptPromises.delete(url)
-      script.remove()
-      reject(new Error(`엔진 스크립트를 불러오지 못했어요: ${url}`))
-    }
-    document.head.append(script)
-  })
-  scriptPromises.set(url, promise)
-  return promise
-}
+export { loadScriptOnce }
 
 function getPlayerGlobal(): CapsuleV2PlayerGlobal | null {
   const w = window as unknown as { CapsuleV2Player?: CapsuleV2PlayerGlobal }
   return w.CapsuleV2Player ?? null
 }
 
+/** One `talk` motion request while talking; the next one is queued shortly before it ends. */
+export const TALK_CHUNK_MS = 1_200
+/** Talking never runs longer than this without a new start (a hidden tab can leave typing "on"). */
+export const TALK_CAP_MS = 12_000
+
+type WindowWithObserver = Window & { ResizeObserver?: typeof ResizeObserver }
+
 /**
  * Aliving2D (chaerin-v2) WebGL2 renderer adapter.
  * Loads `engine.js` -> `player.js` dynamically via `<script>`, sizes the canvas with DPR <= 2,
  * clears background to transparent `[0,0,0,0]`, and pauses RAF when hidden.
+ *
+ * The canvas (with its WebGL context and player) is created once and moved between hosts, including into a Document
+ * Picture-in-Picture window; frames, size observation and pixel-ratio changes then follow the host's window.
  */
 export class AlivingRenderer implements MateRenderer {
   private readonly modelUrl: string
@@ -70,7 +70,13 @@ export class AlivingRenderer implements MateRenderer {
   private readonly playerUrl: string
   private readonly reactionsUrl?: string
   private readonly idle: boolean
+  private readonly pixelScale: number
+  private readonly maxPixelRatio: number
+  private readonly loadScript: (url: string, signal?: AbortSignal) => Promise<void>
+  private readonly getPlayer: () => CapsuleV2PlayerGlobal | null
   private readonly listeners = new Set<() => void>()
+  /** Ends this renderer's wait on shared script loads when it is destroyed. */
+  private readonly bootAbort = new AbortController()
 
   private status: MateRenderStatus = 'loading'
   private host: HTMLElement | null = null
@@ -80,9 +86,17 @@ export class AlivingRenderer implements MateRenderer {
   private view: AlivingView | null = null
   private paused = false
   private destroyed = false
+  private booting = false
   private pendingExpression: string | null | undefined = undefined
   private pendingLook: { x: number; y: number } | null = null
   private onVisibilityChange: (() => void) | null = null
+  private visibilityDocument: Document | null = null
+  /** Window whose requestAnimationFrame drives the player (the host's window: a Document PiP window when moved). */
+  private loopWindow: Window | null = null
+  private pixelRatioQuery: MediaQueryList | null = null
+  private talking = false
+  private talkStartedAt = 0
+  private talkTimer: ReturnType<typeof setTimeout> | undefined
 
   constructor(options: {
     modelUrl: string
@@ -92,6 +106,15 @@ export class AlivingRenderer implements MateRenderer {
     initialView?: AlivingView
     /** Engine idle motion toggle (default false until engine head-sway bug is fixed). */
     idle?: boolean
+    /**
+     * Supersampling: the canvas is drawn at devicePixelRatio × `pixelScale` (capped at `maxPixelRatio`) and the
+     * browser scales it down, which smooths hair edges on small stages (the engine draws without MSAA).
+     */
+    pixelScale?: number
+    maxPixelRatio?: number
+    /** Test seams: script loading and the player global. */
+    loadScript?: (url: string, signal?: AbortSignal) => Promise<void>
+    getPlayer?: () => CapsuleV2PlayerGlobal | null
   }) {
     this.modelUrl = options.modelUrl
     this.engineUrl = options.engineUrl
@@ -99,6 +122,10 @@ export class AlivingRenderer implements MateRenderer {
     this.reactionsUrl = options.reactionsUrl
     this.view = options.initialView ?? null
     this.idle = options.idle ?? false
+    this.pixelScale = options.pixelScale ?? 1
+    this.maxPixelRatio = options.maxPixelRatio ?? 2
+    this.loadScript = options.loadScript ?? loadScriptOnce
+    this.getPlayer = options.getPlayer ?? getPlayerGlobal
   }
 
   private setStatus(next: MateRenderStatus) {
@@ -111,10 +138,11 @@ export class AlivingRenderer implements MateRenderer {
     const host = this.host
     const canvas = this.canvas
     if (!host || !canvas) return
-    const rect = host.getBoundingClientRect()
-    const cssW = Math.max(1, Math.round(rect.width))
-    const cssH = Math.max(1, Math.round(rect.height))
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    // Layout size, not the transformed box: a host inside a CSS 3D transform (the card lying in the my-mates scene)
+    // has a skewed bounding box, and a buffer of that shape would stretch the model.
+    const cssW = Math.max(1, host.clientWidth)
+    const cssH = Math.max(1, host.clientHeight)
+    const dpr = Math.min((this.hostWindow().devicePixelRatio || 1) * this.pixelScale, this.maxPixelRatio)
     const bufW = Math.max(1, Math.round(cssW * dpr))
     const bufH = Math.max(1, Math.round(cssH * dpr))
     if (canvas.width !== bufW) canvas.width = bufW
@@ -124,37 +152,93 @@ export class AlivingRenderer implements MateRenderer {
     }
   }
 
+  private hostWindow(): Window {
+    return this.host?.ownerDocument?.defaultView ?? window
+  }
+
+  /**
+   * Re-sizes the buffer when the host window's pixel ratio changes (a PiP window dragged to another screen, browser
+   * zoom). `(resolution: Xdppx)` matches only the current ratio, so the query is renewed after every change.
+   */
+  private watchPixelRatio() {
+    this.unwatchPixelRatio()
+    const win = this.host?.ownerDocument?.defaultView
+    if (!win || typeof win.matchMedia !== 'function') return
+    const query = win.matchMedia(`(resolution: ${win.devicePixelRatio || 1}dppx)`)
+    query.addEventListener('change', this.onPixelRatioChange)
+    this.pixelRatioQuery = query
+  }
+
+  private unwatchPixelRatio() {
+    this.pixelRatioQuery?.removeEventListener('change', this.onPixelRatioChange)
+    this.pixelRatioQuery = null
+  }
+
+  private onPixelRatioChange = () => {
+    this.syncCanvasSize()
+    this.watchPixelRatio()
+  }
+
+  private stopLoop() {
+    const player = this.player
+    if (player?.running) {
+      player.running = false
+      // The player's own first loop runs on the main window; later loops on `loopWindow`.
+      ;(this.loopWindow ?? window).cancelAnimationFrame(player.raf)
+    }
+    this.loopWindow = null
+  }
+
+  /**
+   * Runs the player's frames on the host's window. A canvas moved into a Document Picture-in-Picture window keeps
+   * animating there even while the original tab is hidden or throttled.
+   */
   private applyPauseState() {
     const player = this.player
-    if (!player) return
-    const shouldPause = this.paused || document.hidden
+    if (!player || this.status === 'error') return
+    const host = this.host
+    const shouldPause = this.paused || !host || Boolean(host.ownerDocument?.hidden)
     if (shouldPause) {
-      if (player.running) {
-        player.running = false
-        cancelAnimationFrame(player.raf)
-      }
+      this.stopLoop()
       return
     }
-    if (!player.running && !this.destroyed) {
-      player.running = true
-      player.last = performance.now()
-      const tick = (now: number) => {
-        if (!player.running || this.destroyed) return
+    const win = this.hostWindow()
+    if (player.running && this.loopWindow === win) return
+    this.stopLoop()
+    if (this.destroyed) return
+    player.running = true
+    player.last = performance.now()
+    this.loopWindow = win
+    const tick = (now: number) => {
+      if (!player.running || this.destroyed || this.loopWindow !== win) return
+      try {
         player.frame(now)
-        player.raf = requestAnimationFrame(tick)
+      } catch (error) {
+        this.failRendering(error)
+        return
       }
-      player.raf = requestAnimationFrame(tick)
+      player.raf = win.requestAnimationFrame(tick)
     }
+    player.raf = win.requestAnimationFrame(tick)
+  }
+
+  /** A frame threw: stop drawing and report `error` so the screen falls back to the still image. */
+  private failRendering(error: unknown) {
+    console.warn('v2 모델을 그리지 못했어요.', error)
+    this.stopLoop()
+    this.setTalking(false)
+    this.setStatus('error')
   }
 
   private async boot(canvas: HTMLCanvasElement) {
+    const signal = this.bootAbort.signal
     try {
-      await loadScriptOnce(this.engineUrl)
+      await this.loadScript(this.engineUrl, signal)
       if (this.destroyed) return
-      await loadScriptOnce(this.playerUrl)
+      await this.loadScript(this.playerUrl, signal)
       if (this.destroyed) return
 
-      const api = getPlayerGlobal()
+      const api = this.getPlayer()
       if (!api) throw new Error('CapsuleV2Player global not found after loading scripts')
 
       this.syncCanvasSize()
@@ -164,6 +248,8 @@ export class AlivingRenderer implements MateRenderer {
         ...(this.view ? { zoom: this.view.zoom, cx: this.view.cx, cy: this.view.cy } : {}),
       })
       if (this.destroyed) {
+        // Created after the renderer was dropped: stop its own loop and free it.
+        player.running = false
         player.destroy()
         return
       }
@@ -182,56 +268,106 @@ export class AlivingRenderer implements MateRenderer {
         player.lookAt(this.pendingLook.x, this.pendingLook.y)
       }
 
-      this.applyPauseState()
       this.setStatus('ready')
+      this.applyPauseState()
+      if (this.talking) this.talkChunk()
     } catch {
       if (!this.destroyed) this.setStatus('error')
     }
   }
 
+  /**
+   * Shows the model in `host`. The canvas (and its WebGL context and player) is created once and moved between hosts,
+   * including into another document (Document PiP), so a move never reloads the model.
+   */
   attach(host: HTMLElement): void {
     if (this.destroyed) return
+    if (this.host === host && this.canvas?.parentElement === host) return
     this.detach()
     this.host = host
 
+    const canvas = this.ensureCanvas()
+    host.append(canvas)
+
+    this.syncCanvasSize()
+    // The observer comes from the host's window: one from the original tab stops reporting a PiP window's resizes
+    // while that tab is hidden.
+    const Observer = (host.ownerDocument?.defaultView as WindowWithObserver | null)?.ResizeObserver ?? ResizeObserver
+    this.resizeObserver = new Observer(() => this.syncCanvasSize())
+    this.resizeObserver.observe(host)
+    this.watchPixelRatio()
+
+    const doc = host.ownerDocument ?? document
+    this.onVisibilityChange = () => this.applyPauseState()
+    this.visibilityDocument = doc
+    doc.addEventListener('visibilitychange', this.onVisibilityChange)
+
+    if (!this.player) {
+      this.startBoot(canvas)
+    } else {
+      this.applyPauseState()
+      // A moved or resized buffer is blank until the next frame: draw at once.
+      try { this.player.model.draw() } catch { /* Drawn on the next frame. */ }
+    }
+  }
+
+  private ensureCanvas(): HTMLCanvasElement {
+    if (this.canvas) return this.canvas
     const canvas = document.createElement('canvas')
     canvas.style.width = '100%'
     canvas.style.height = '100%'
     canvas.style.display = 'block'
     canvas.style.background = 'transparent'
     canvas.setAttribute('aria-hidden', 'true')
-    host.append(canvas)
     this.canvas = canvas
-
-    this.syncCanvasSize()
-    this.resizeObserver = new ResizeObserver(() => this.syncCanvasSize())
-    this.resizeObserver.observe(host)
-
-    this.onVisibilityChange = () => this.applyPauseState()
-    document.addEventListener('visibilitychange', this.onVisibilityChange)
-
-    if (!this.player) {
-      void this.boot(canvas)
-    }
+    return canvas
   }
 
+  private startBoot(canvas: HTMLCanvasElement) {
+    if (this.booting || this.player || this.destroyed) return
+    this.booting = true
+    void this.boot(canvas)
+  }
+
+  /**
+   * Loads the engine and model before any host exists (the connection prepares the model before the call screen
+   * mounts). The canvas stays offscreen and does not animate until `attach`.
+   */
+  preload(): void {
+    if (this.destroyed) return
+    this.startBoot(this.ensureCanvas())
+  }
+
+  /** Takes the canvas out of its host and stops drawing; the model stays loaded for the next `attach`. */
   detach(): void {
     this.resizeObserver?.disconnect()
     this.resizeObserver = null
+    this.unwatchPixelRatio()
     if (this.onVisibilityChange) {
-      document.removeEventListener('visibilitychange', this.onVisibilityChange)
+      this.visibilityDocument?.removeEventListener('visibilitychange', this.onVisibilityChange)
       this.onVisibilityChange = null
+      this.visibilityDocument = null
     }
     this.canvas?.remove()
-    this.canvas = null
     this.host = null
+    this.stopLoop()
   }
 
   destroy(): void {
     if (this.destroyed) return
     this.destroyed = true
-    this.player?.destroy()
+    this.bootAbort.abort()
+    this.setTalking(false)
+    // Stop the loop while the player (and the window its frame was requested on) is still known.
+    this.stopLoop()
+    this.detach()
+    const player = this.player
     this.player = null
+    try {
+      player?.destroy()
+    } catch {
+      // Already torn down.
+    }
     if (this.canvas) {
       try {
         this.canvas.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext()
@@ -239,7 +375,7 @@ export class AlivingRenderer implements MateRenderer {
         // Ignore if context is already lost
       }
     }
-    this.detach()
+    this.canvas = null
     this.listeners.clear()
   }
 
@@ -264,6 +400,28 @@ export class AlivingRenderer implements MateRenderer {
     this.player?.lookAt(x, y)
   }
 
+  /** True once the model is ready and its player can take `track` poses. */
+  canTrack(): boolean {
+    return this.status === 'ready' && typeof this.player?.track === 'function'
+  }
+
+  /**
+   * Sets face parameters for this moment (Live2D standard ids in Live2D units, e.g. `{ ParamEyeLOpen: 0,
+   * ParamAngleY: -20 }`). The player keeps them only briefly, so send a pose every frame while driving the face and
+   * simply stop sending to hand it back (blinks, gaze, expressions return on their own). Nothing is remembered for a
+   * later attach. Returns false (and does nothing) before the model is ready, after destroy, or when the player has
+   * no `track`. Used by the login stage; the call screen and the previews never call it.
+   */
+  track(params: TrackPose): boolean {
+    if (this.destroyed || !this.canTrack()) return false
+    try {
+      this.player?.track?.(params)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   setExpression(name: string | null): void {
     this.pendingExpression = name
     this.player?.setExpression(name ?? 'neutral')
@@ -271,6 +429,56 @@ export class AlivingRenderer implements MateRenderer {
 
   talk(ms: number): void {
     if (ms > 0) this.player?.talk(ms)
+  }
+
+  /**
+   * Moves the mouth for as long as a line is being shown: on while text types, off when it finishes, is skipped or
+   * cancelled. Talking runs as short queued `talk` chunks, so turning it off (or the cap) ends it within a chunk.
+   */
+  setTalking(active: boolean): void {
+    if (this.destroyed && active) return
+    if (active === this.talking) {
+      // A new line while talking restarts the cap.
+      if (active) this.talkStartedAt = performance.now()
+      return
+    }
+    this.talking = active
+    clearTimeout(this.talkTimer)
+    this.talkTimer = undefined
+    if (active) {
+      this.talkStartedAt = performance.now()
+      this.talkChunk()
+    } else {
+      try { this.player?.stopMotion?.() } catch { /* The motion ends on its own. */ }
+    }
+  }
+
+  isTalking(): boolean {
+    return this.talking
+  }
+
+  private talkChunk() {
+    clearTimeout(this.talkTimer)
+    this.talkTimer = undefined
+    if (!this.talking || this.destroyed) return
+    if (performance.now() - this.talkStartedAt >= TALK_CAP_MS) {
+      this.talking = false
+      return
+    }
+    // Before the model is ready the timer keeps time; the first chunk plays once the player exists.
+    if (this.status !== 'error') this.player?.talk(TALK_CHUNK_MS)
+    this.talkTimer = setTimeout(() => this.talkChunk(), TALK_CHUNK_MS - 150)
+  }
+
+  /** Plays a reaction from the reaction table; false when the player has no table or no matching trigger. */
+  react(trigger: string, intensity = 1): boolean {
+    const player = this.player
+    if (!player?.react || !this.reactionsUrl) return false
+    try {
+      return player.react(trigger, intensity) !== false
+    } catch {
+      return false
+    }
   }
 
   setView(zoom: number, cx: number, cy: number): void {

@@ -1,8 +1,8 @@
 import {
   advanceExpression, cancelPendingExpression, createExpressionSchedule, expressionRequest, nextExpressionDeadline, requestExpression,
   type ExpressionCommand, type ExpressionCue, type ExpressionSchedule,
-} from './expression-scheduler'
-import type { SessionModelStage } from './session-model'
+} from './expression-scheduler.ts'
+import type { SessionModelStage } from './session-model.ts'
 
 /** Runs the pure scheduler on a timer and forwards its commands to the current stage. */
 export class ExpressionDirector {
@@ -23,8 +23,12 @@ export class ExpressionDirector {
   }
 
   cue(cue: ExpressionCue) {
-    const request = expressionRequest(cue)
+    const stage = this.stage
+    // v2 stages draw by expression name: let the stage turn the server reference into its key first.
+    const keyed = stage?.expressionKey ? { ...cue, expression: toKeyed(stage.expressionKey(cue.expression)) } : cue
+    const request = expressionRequest(keyed)
     if (request) this.run(requestExpression(this.schedule, request, this.now()))
+    // Talking follows the text actually typing on screen (ConnectionPage → stage.setTalking), not the cue.
   }
 
   cancelPending() {
@@ -49,4 +53,8 @@ export class ExpressionDirector {
     window.clearTimeout(this.timer)
     this.stage = null
   }
+}
+
+function toKeyed(key: string | null) {
+  return key ? { file: key } : null
 }

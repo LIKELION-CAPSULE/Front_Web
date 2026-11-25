@@ -32,13 +32,15 @@
 
 ## 기록 시각화
 
+> 2026-11-24: 이 절과 다음 절의 `StudyHeatmap`·`CompanionTimeChart`·`StudyActivityPanel`·`RecordSummary`·`ActivityHeatmap`·`FocusSummary`는 내 기록 개편으로 쓰이지 않아 삭제했습니다(계산 모듈 `heatmap-data.ts`·`companion-time.ts`는 테스트와 함께 남아 있습니다). 현재 내 기록은 [HOME_AND_RECORDS.md](HOME_AND_RECORDS.md)의 「2026-11-24 개편」 절을 보세요. 아래는 당시 기록입니다.
+
 [Bklit Heatmap Chart](https://bklit.com/docs/components/heatmap-chart)의 기여도 셀·툴팁·범례 상호작용을 참고해 자체 `StudyHeatmap`을 구현했습니다. 공부 횟수나 고정 세트 개수가 아닌 **실제 공부 시간**으로 색 단계를 정합니다. 0, 30분 미만, 30분 이상, 1시간 이상, 1시간 30분 이상의 5단계입니다.
 
 주·월은 해당 날짜를 달력 방향으로 배치하고, 년은 모든 날짜를 주별 열/요일 행으로 표시합니다. 윤년도 지원합니다. 연간 차트는 화면이 좁을 때 패널 안에서 가로 스크롤합니다. 셀에 포인터나 포커스를 두면 날짜·시간을 표시하며, 범례를 가리키면 같은 색 단계가 강조됩니다. 선택한 날짜의 실제 기록을 상세 영역에 표시합니다. 방향키·Home·End로 날짜를 이동할 수 있고 미래 날짜는 선택하지 못합니다.
 
 [UI Beats Progress Ring](https://uibeats.com/docs/component/progress-ring)의 숫자와 호가 함께 도착하는 방식을 참고해 기존 SVG 링을 확장했습니다. 숫자·호를 하나의 RAF 값으로 갱신합니다. 표시값 변경 중 다시 바뀌면 현재 값에서 이어지고, 모션 감소 설정에서는 즉시 최종값을 표시합니다. 집중률은 실제 집중 시간 / 공부 시간이며 목표 달성률과 혼동하지 않습니다.
 
-구현은 `features/reports/heatmap-data.ts`, `components/StudyHeatmap.tsx`, `study-heatmap.css`, `shared/ui/ProgressRing.tsx`입니다. 도입 판단과 조건은 [상업 이용 점검](REFERENCE_LICENSE_AUDIT.md)에 정리했습니다.
+구현은 `features/reports/heatmap-data.ts`, (삭제됨) `components/StudyHeatmap.tsx`·`study-heatmap.css`, `shared/ui/ProgressRing.tsx`였습니다. 도입 판단과 조건은 [상업 이용 점검](REFERENCE_LICENSE_AUDIT.md)에 정리했습니다.
 
 ## 캐릭터별 라인차트와 샘플 기록
 

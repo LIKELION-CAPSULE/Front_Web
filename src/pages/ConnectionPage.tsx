@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useSessionSync } from '@/features/backend/use-session-sync'
@@ -12,7 +12,8 @@ import { ConnectMateButton } from '@/features/mates/components/ConnectMateButton
 import { ConnectionPip } from '@/features/mates/components/ConnectionPip'
 import { useDocumentPip } from '@/features/mates/use-document-pip'
 import AccountSettingsDialog from '@/features/profile/components/AccountSettingsDialog'
-import { CALL_STAGE_GRADIENT, chaerinArtwork, mateHeroPortrait, matePortrait } from '@/features/mates/artwork'
+import { withParticle } from '@/shared/lib/korean'
+import { CALL_STAGE_GRADIENT, mateCallBackground, mateHeroPortrait, matePortrait } from '@/features/mates/artwork'
 import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
 import { useExpressionDirector } from '@/features/live2d/use-live2d'
 import { useNow } from '@/features/session/use-now'
@@ -34,25 +35,92 @@ import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
 import '@/features/mates/connections.css'
 import { useConnectionPreferences } from '@/features/mates/connection-preferences-context'
+import { PIP_WINDOW_SIZE, TALK_OPTIONS } from '@/features/mates/connection-preferences'
+import { usePushToTalk } from '@/features/mates/use-push-to-talk'
+import { PUSH_TO_TALK_TEXT } from '@/features/mates/push-to-talk'
+import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate-features'
+import { DevicePrivacyInfo } from '@/features/media/components/DevicePrivacyInfo'
+import { Brand } from '@/shared/ui/Brand'
+import { MateTap, onMate } from '@/features/mates/mate-tap'
+import { playHangup, whenRendered, type HangupPlayback } from '@/features/mates/hangup-sequence'
+import hangupHandset from '@/assets/connection/hangup-handset-3d.webp'
+import hangupHandsetRed from '@/assets/connection/hangup-handset-3d-red.webp'
 
 type ViewTransitionDocument = Document & {
-  startViewTransition?: (callback: () => void) => { finished: Promise<void> }
+  startViewTransition?: (callback: () => void | Promise<void>) => { finished: Promise<void> }
 }
+
+
+/**
+ * The 「?」 note of the connection screen: what the camera and the microphone do here, what is sent where, how
+ * 「카메라로 함께한 시간」 counts and what costs credits (checked against the code: vision.worker.ts runs face detection
+ * on the device and only state events go to the server; the microphone is only used by 누르고 말하기 — Web Speech API).
+ * Wording to be confirmed with the user and legal.
+ */
+function ConnectionHelpNote() {
+  return (
+    <div className="connection-help-note">
+      <p>카메라를 켜면 이 기기 안에서 얼굴을 감지해 자리에 있는지 알아봐요. 영상은 서버로 보내거나 저장하지 않고, 자리 비움·돌아옴 같은 상태만 보내요.</p>
+      <p>마이크는 「누르고 말하기」를 누르는 동안에만 써요. 그 음성은 브라우저의 음성 인식 서비스로 보내져 글자로 바뀌고, 바뀐 글자가 채팅으로 보내져요.</p>
+      <p>「카메라로 함께한 시간」은 카메라에 얼굴이 보인 시간만 세요. 10초 넘게 보이지 않으면 메이트가 자리 비움으로 알아채요.</p>
+      <p>크레딧은 기본 대화 0, 고급 대화 한 턴에 {CREDIT_PRICING.advanced}이에요. 음성 대화는 준비 중이에요.</p>
+    </div>
+  )
+}
+
+/** The label before the heard sentence above the dock. */
+const STT_LABEL: Record<string, string> = { listening: '듣는 중', finishing: '듣는 중', confirm: '보낼게요', sending: '보내는 중', unsent: '못 보냈어요', idle: '' }
+
+/** The first-use notice of 누르고 말하기; it counts as seen once it has been on screen. */
+function SttPrivacy({ onShown }: { onShown: () => void }) {
+  useEffect(() => { onShown() }, [onShown])
+  return <p className="connection-stt-privacy">{PUSH_TO_TALK_TEXT.privacy}</p>
+}
+
+/** Connections whose starting mode (T-7) was applied in this page load (a reload or remount keeps the call's mode). */
+const modeAppliedFor = new Set<string>()
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 export default function ConnectionPage() {
   const { mateId } = useParams()
   const navigate = useNavigate()
   const backend = useBackend()
-  const { showPipSpeech } = useConnectionPreferences()
+  const { showPipSpeech, settings, updateSettings } = useConnectionPreferences()
+  // 「말 걸기 빈도」 on the stage: a short note of what the choice means, for a moment after choosing.
+  const [talkNote, setTalkNote] = useState('')
+  useEffect(() => {
+    if (!talkNote) return
+    const timer = setTimeout(() => setTalkNote(''), 1500)
+    return () => clearTimeout(timer)
+  }, [talkNote])
+  const chooseTalk = (value: (typeof TALK_OPTIONS)[number]['value']) => {
+    updateSettings({ talk: value })
+    setTalkNote(TALK_OPTIONS.find((option) => option.value === value)?.description ?? '')
+  }
   const { state } = useDemo()
   const { devices, controller, observation, flushFocus } = useMedia()
   const mate = availableMates(backend.home).find(value => value.id === mateId)
   const active = state.activeSession?.mateId === mateId ? state.activeSession : null
+  // While the hang-up plays, the ended session keeps the call on screen: /end clears `activeSession` on success.
+  const [ending, setEnding] = useState<{ session: NonNullable<typeof active>; at: number } | null>(null)
+  const [endingWait, setEndingWait] = useState(false)
+  const shown = active ?? ending?.session ?? null
+  const pageRef = useRef<HTMLElement>(null)
+  const hangup = useRef<HangupPlayback | null>(null)
+  useEffect(() => () => { hangup.current?.cancel(); hangup.current = null }, [])
   const now = useNow()
   const [chatOpen, setChatOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth > 960 : true))
   const [infoMenuOpen, setInfoMenuOpen] = useState(false)
   const infoMenuRef = useRef<HTMLDivElement>(null)
   const stageWrapRef = useRef<HTMLDivElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
+  // A tap on the mate (mate-tap.ts): her face for a moment, a nod and one of her lines; no server, no credits.
+  const [tapper] = useState(() => new MateTap())
+  const [stillBounce, setStillBounce] = useState(0)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [finishing, setFinishing] = useState(false)
@@ -61,6 +129,8 @@ export default function ConnectionPage() {
   const [speech, setSpeech] = useState({ id: 0, at: 0, text: '' })
   const [speakingMessages, setSpeakingMessages] = useState<ReadonlySet<string>>(new Set())
   const speaking = speakingMessages.size > 0
+  /** The event bubble's line is typing (CharacterSpeechBubble: on while letters appear, off when done/skipped/gone). */
+  const [bubbleTyping, setBubbleTyping] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [privacySeen, setPrivacySeen] = useState(false)
@@ -132,14 +202,61 @@ export default function ConnectionPage() {
     })
   }, [])
   const expressions = useExpressionDirector(backend.live2dStage)
+  // T-10: the mate's gaze follows the mouse (the stage eases it and returns to the front when the pointer rests or
+  // leaves; reduced motion keeps the face forward).
+  useEffect(() => {
+    const stage = backend.live2dStage
+    stage?.setTracking(settings.gaze && !prefersReducedMotion())
+    return () => stage?.setTracking(false)
+  }, [backend.live2dStage, settings.gaze])
+  // T-7: a connection starts in the mode chosen in settings (the toggle on top still changes it during the call).
+  useEffect(() => {
+    if (!active || !backend.featurePort || modeAppliedFor.has(active.id)) return
+    modeAppliedFor.add(active.id)
+    backend.featurePort.setSettings({ advanced: settings.mode === 'advanced' })
+  }, [active, backend.featurePort, settings.mode])
+  // 「누르고 말하기」: browser speech recognition while the mic button or Space (T-8) is held; the sentence goes out
+  // as a chat message (same API and credit rule). Same rule as the chat box: not while a reply is on its way.
+  const pushToTalk = usePushToTalk({
+    holdToTalk: settings.holdToTalk,
+    windows: [typeof window === 'undefined' ? null : window, pip.window],
+    userId: state.profile.userId,
+    send: (text) => send(text),
+    canListen: () => !sending && !speaking && !finishing && Boolean(active),
+  })
+  // The connection ending stops a press and drops what was being heard.
+  const cancelTalk = pushToTalk.cancel
+  useEffect(() => { if (finishing) cancelTalk() }, [finishing, cancelTalk])
+  // The mouth moves exactly while a line is typing on screen: a chat reply (also while it streams in) or the event
+  // bubble. v2 stages only; Cubism stages have no `setTalking`.
+  const talking = speaking || bubbleTyping
+  useEffect(() => {
+    const stage = backend.live2dStage
+    stage?.setTalking?.(talking)
+    return () => stage?.setTalking?.(false)
+  }, [backend.live2dStage, talking])
   const cue = useCallback((input: Parameters<typeof expressions.cue>[0]) => expressions.cue(input), [expressions])
-  const navigateToRecord = useCallback((recordId: string) => {
+  const navigateToRecord = useCallback((recordId: string, afterHangup = false) => {
     const target = `/connections/${recordId}`
-    const reduced =
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const reduced = prefersReducedMotion()
     const doc = document as ViewTransitionDocument
+    if (afterHangup) {
+      // STEP 04: the darkened call screen cross-fades into the record page, which then raises the card (STEP 05).
+      const state = { hangup: true }
+      if (reduced || typeof doc.startViewTransition !== 'function') {
+        navigate(target, { replace: true, state })
+        return
+      }
+      const root = document.documentElement
+      root.dataset.viewTransition = 'hangup'
+      // A transition update keeps React from flashing the lazy route's fallback; the callback waits for the new page.
+      const transition = doc.startViewTransition(async () => {
+        startTransition(() => { void navigate(target, { replace: true, state }) })
+        await whenRendered('.connection-record-window')
+      })
+      void transition.finished.finally(() => { delete root.dataset.viewTransition })
+      return
+    }
     const stageEl = stageWrapRef.current?.querySelector<HTMLElement>('.connection-mate')
     if (reduced || typeof doc.startViewTransition !== 'function' || !stageEl) {
       navigate(target, { replace: true })
@@ -153,6 +270,35 @@ export default function ConnectionPage() {
       stageEl.style.viewTransitionName = ''
     })
   }, [navigate])
+  const tapMate = () => {
+    if (!mate || finishing) return
+    // Not while a reply is on its way, typing in the chat, or a line is typing in her bubble (it would be cut off).
+    const reaction = tapper.tap(mate.id, sending || talking)
+    if (!reaction) return
+    const reduced = prefersReducedMotion()
+    const stage = backend.live2dStage
+    if (stage) {
+      cue({ characterId: Number(mate.characterId), expression: { file: reaction.face }, event: 'TAP', stage: 'notice' })
+      if (!reduced) stage.nudge?.()
+    } else if (!reduced) {
+      setStillBounce((value) => value + 1)
+    }
+    setSpeech((previous) => ({ id: previous.id + 1, at: Date.now(), text: reaction.line }))
+  }
+  // The stage no longer changes its layout on a click (user decision): a click on the mate herself is a tap.
+  const onStageClick = (event: MouseEvent<HTMLDivElement>) => {
+    const target = event.target as Element
+    // The speech bubble (skips typing) and any control keep their own click.
+    if (target.closest('button, a, input, textarea, select, .connection-speech-slot')) return
+    const section = target.closest('.connection-mate')
+    if (!section || !onMate(section.getBoundingClientRect(), event.clientX, event.clientY)) return
+    tapMate()
+  }
+  const onStagePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const section = (event.target as Element).closest('.connection-mate')
+    const over = Boolean(section && !(event.target as Element).closest('button, a, .connection-speech-slot') && onMate(section.getBoundingClientRect(), event.clientX, event.clientY))
+    event.currentTarget.toggleAttribute('data-over-mate', over)
+  }
   const serverEnded = useCallback(() => {
     if (!mounted.current || !active || !state.profile.userId) return
     flushFocus()
@@ -162,7 +308,11 @@ export default function ConnectionPage() {
     navigateToRecord(active.id)
   }, [active, state.profile.userId, flushFocus, backend, controller, pip, navigateToRecord])
   const sync = useSessionSync({
-    active, userId: state.profile.userId, observation, camera: !!camera, busy: sending || speaking,
+    active, userId: state.profile.userId, observation, camera: !!camera, busy: sending || speaking, talk: settings.talk,
+    // 「먼저 말 걸기」 (idle-talk.ts): quiet counts from the end of the last talk; the event line typing, the user's voice
+    // and the hang-up also hold it.
+    idleTalk: true,
+    holdIdleTalk: bubbleTyping || finishing || (pushToTalk.snapshot.status !== 'idle' && pushToTalk.snapshot.status !== 'unsent'),
     onExpression: cue,
     onReaction: (result, event) => {
       const reply = result.characters?.find(value => String(value.characterId) === mate?.characterId)
@@ -170,7 +320,8 @@ export default function ConnectionPage() {
       if (content) setSpeech(previous => ({ id: previous.id + 1, at: Date.now(), text: content }))
       if (reply?.characterId) cue({ characterId: reply.characterId, expression: reply.expression, event, stage: 'speech', text: reply.content })
     },
-    onEnded: serverEnded,
+    // A server-side end during the hang-up is the same ending; the sequence already navigates.
+    onEnded: () => { if (!hangup.current) serverEnded() },
   })
   const messages = state.messages.filter(message => message.characterId === mate?.characterId && /^\d+$/.test(message.sessionId))
   const lastText = messages.at(-1)?.text
@@ -190,11 +341,33 @@ export default function ConnectionPage() {
     busy.current = true
     setFinishing(true)
     setFinishError('')
+    // The end request starts right away; the hang-up motion plays alongside it and never delays it.
+    // An unknown presence baseline without confirmation is refused at once, so it gets no motion.
+    const root = pageRef.current
+    const playback = root && (confirmed || active.presenceKnown !== false) ? playHangup(root, prefersReducedMotion()) : null
+    if (playback) {
+      hangup.current = playback
+      setEnding({ session: active, at: Date.now() })
+      setLeaveOpen(false)
+      void import('./ConnectionRecordPage')
+    }
+    let recorded = false
+    // If the record is still on its way when the motion ends, say so instead of sitting on a dark screen.
+    void playback?.finished.then(done => { if (done && !recorded && mounted.current) setEndingWait(true) })
     try {
       flushFocus()
       const record = await backend.finishSession({ acceptUnknownPresence: confirmed })
-      if (mounted.current) { controller.stop(); navigateToRecord(record.id) }
+      recorded = true
+      if (!mounted.current) return
+      controller.stop()
+      if (playback && !(await playback.finished)) return
+      if (mounted.current) navigateToRecord(record.id, Boolean(playback))
     } catch (reason) {
+      if (playback) {
+        playback.cancel()
+        hangup.current = null
+        if (mounted.current) { setEnding(null); setEndingWait(false) }
+      }
       if (!mounted.current) return
       if (reason instanceof ApiError && reason.code === 'SESSION_ENDED') serverEnded()
       else { setFinishError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.'); setLeaveOpen(true) }
@@ -244,7 +417,7 @@ export default function ConnectionPage() {
     }
   }
   if (!mate) return <NotFoundPage />
-  if (!active) {
+  if (!shown) {
     const heroSrc = mateHeroPortrait(mate.id, mate.image)
     return (
       <main id="main-content" tabIndex={-1} className="connection-entry focus:outline-none">
@@ -268,7 +441,7 @@ export default function ConnectionPage() {
           <div className="connection-entry-stage" style={{ background: CALL_STAGE_GRADIENT }}>
             {!bgFailed && (
               <img
-                src={chaerinArtwork.callBackground.portrait}
+                src={mateCallBackground(mate.id).portrait}
                 alt=""
                 aria-hidden="true"
                 className="desktop-mate-bg-img"
@@ -283,7 +456,7 @@ export default function ConnectionPage() {
             )}
           </div>
           <div className="connection-entry-body">
-            <h1 id="connection-entry-title">{backend.activeSummary ? `${mate.name}과 다시 연결할까요?` : mate.name}</h1>
+            <h1 id="connection-entry-title">{backend.activeSummary ? `${withParticle(mate.name, '과', '와')} 다시 연결할까요?` : mate.name}</h1>
             {backend.activeSummary && <p className="connection-entry-sub">하던 대화를 이어서 해요.</p>}
             <ConnectMateButton
               mate={mate}
@@ -298,6 +471,8 @@ export default function ConnectionPage() {
   }
 
   const relation = backend.affinities[Number(mate.characterId)]
+  // The affinity chip follows the affinity feature (off in production until the server sends stages).
+  const showAffinity = resolveMateFeatures(import.meta.env.DEV, null).affinity
   const isAdvanced = Boolean(backend.betaSettings?.advanced)
   const canSwitchMode = Boolean(backend.featurePort)
   const creditInsufficient = Boolean(
@@ -313,11 +488,14 @@ export default function ConnectionPage() {
   const dockItems: GlassDockItem[] = [
     {
       key: 'microphone',
-      label: '누르고 말하기',
-      tooltip: '누르고 말하기',
+      label: pushToTalk.supported ? (pushToTalk.snapshot.status === 'listening' ? '듣는 중' : '누르고 말하기') : PUSH_TO_TALK_TEXT.unsupported,
+      tooltip: pushToTalk.supported ? (pushToTalk.snapshot.status === 'listening' ? '듣는 중 · 떼면 보내요' : '누르고 말하기 · 스페이스') : PUSH_TO_TALK_TEXT.unsupported,
       icon: 'microphone',
-      disabled: true,
+      disabled: !pushToTalk.supported || finishing,
+      listening: pushToTalk.snapshot.status === 'listening',
       onAction: () => {},
+      onPressStart: () => pushToTalk.press('dock', window),
+      onPressEnd: () => pushToTalk.release('dock'),
     },
     {
       key: 'camera',
@@ -351,7 +529,16 @@ export default function ConnectionPage() {
       busy: pip.status === 'opening',
       dividerBefore: true,
       secondary: true,
-      onAction: () => { void pip.open() },
+      onAction: () => { void pip.open(PIP_WINDOW_SIZE[settings.pipSize]) },
+    },
+    {
+      key: 'fullscreen',
+      label: isFullscreen ? '전체화면 종료' : '전체화면 전환',
+      tooltip: isFullscreen ? '전체화면 종료' : '전체화면',
+      icon: 'expand',
+      pressed: isFullscreen,
+      secondary: true,
+      onAction: toggleFullscreen,
     },
     {
       key: 'settings',
@@ -376,14 +563,23 @@ export default function ConnectionPage() {
   ]
 
   return (
-    <main id="main-content" tabIndex={-1} className="connection-page focus:outline-none">
+    <main
+      ref={pageRef}
+      id="main-content"
+      tabIndex={-1}
+      className="connection-page focus:outline-none"
+      data-hangup={ending ? '' : undefined}
+    >
+      {/* The call "screen": the hang-up switches it off like a TV, so the titlebar and stage collapse as one. */}
+      <div className="connection-screen" inert={Boolean(ending)}>
       <header className="desktop-window-titlebar mate-window-titlebar-static connection-titlebar">
+        {/* Left: the CAPSULE logo (not a link: leaving would end the call; 「연결 끊기」 is in the dock) | the mate. */}
         <div className="connection-titlebar-left">
-          <span className="desktop-mate-dot" aria-hidden="true" />
-          <h1>{mate.name} · 연결 중</h1>
-          <time className="connection-timer" aria-label="연결 시간">
-            <AnimatedClock value={clock(sessionStudySeconds(active, now))} />
-          </time>
+          <span className="connection-titlebar-brand"><Brand /></span>
+          <span className="connection-titlebar-divider" aria-hidden="true" />
+          <span className="desktop-mate-dot" aria-hidden="true" title="연결 중" />
+          <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
+          <span className="desktop-mate-ai-badge">AI 캐릭터</span>
         </div>
 
         <div className="connection-titlebar-center">
@@ -412,10 +608,24 @@ export default function ConnectionPage() {
         </div>
 
         <div className="connection-titlebar-right">
-          <span className="connection-titlebar-chip">친밀도 {relation?.stageName || '—'}</span>
+          <DevicePrivacyInfo label="연결 화면 안내" className="connection-titlebar-help">
+            <ConnectionHelpNote />
+          </DevicePrivacyInfo>
+          {showAffinity && (
+            <span className="connection-titlebar-chip connection-affinity-chip" title="친밀도">
+              <Icon name="heart" size={13} />
+              <span className="connection-chip-value">{relation?.stageName || '—'}</span>
+              <span className="connection-affinity-steps" aria-hidden="true">
+                {Array.from({ length: AFFINITY_STAGE_COUNT }, (_, index) => <span key={index} data-on={index < (relation?.stage ?? 0) || undefined} />)}
+              </span>
+              <span className="sr-only">친밀도 {relation?.stage ?? 0}단계</span>
+            </span>
+          )}
           {backend.wallet && (
-            <span className="connection-titlebar-chip">
-              오늘 남은 크레딧 {(backend.wallet.attendance + backend.wallet.invitation).toLocaleString('ko-KR')}
+            <span className="connection-titlebar-chip connection-credit-chip" title="오늘 남은 크레딧">
+              <Icon name="coin" size={14} />
+              <span className="connection-chip-caption">오늘 남은</span>
+              <span className="connection-chip-value">{(backend.wallet.attendance + backend.wallet.invitation).toLocaleString('ko-KR')}</span>
             </span>
           )}
           <div ref={infoMenuRef} className="connection-titlebar-more-wrap">
@@ -431,10 +641,12 @@ export default function ConnectionPage() {
             </button>
             {infoMenuOpen && (
               <div role="menu" aria-label="연결 정보" className="mate-menu-panel connection-titlebar-more-menu">
-                <div className="connection-titlebar-more-item">
-                  <span>친밀도</span>
-                  <strong>{relation?.stageName || '—'}</strong>
-                </div>
+                {showAffinity && (
+                  <div className="connection-titlebar-more-item">
+                    <span>친밀도</span>
+                    <strong>{relation?.stageName || '—'}</strong>
+                  </div>
+                )}
                 {backend.wallet && (
                   <div className="connection-titlebar-more-item">
                     <span>오늘 남은 크레딧</span>
@@ -444,38 +656,47 @@ export default function ConnectionPage() {
               </div>
             )}
           </div>
-          <span className="desktop-mate-ai-badge">AI 캐릭터</span>
-          <div className="connection-window-actions">
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="연결 끊기 창 열기"
-              title="연결 끊기"
-              disabled={finishing}
-              onClick={() => setLeaveOpen(true)}
-            ><Icon name="phoneOff" size={18} /></Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="PIP 창으로 띄우기"
-              title="PIP로 띄우기"
-              disabled={pip.status === 'opening'}
-              onClick={() => { void pip.open() }}
-            ><Icon name="shrink" size={18} /></Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label={isFullscreen ? '전체화면 종료' : '전체화면 전환'}
-              title={isFullscreen ? '전체화면 종료' : '전체화면 전환'}
-              onClick={toggleFullscreen}
-            ><Icon name="expand" size={18} /></Button>
-          </div>
+          {/* The call time at the right end (hang-up, PIP and full screen live in the dock). */}
+          <time className="connection-timer" aria-label="연결 시간">
+            <AnimatedClock value={clock(sessionStudySeconds(shown, ending?.at ?? now))} />
+          </time>
         </div>
       </header>
 
       <div className="connection-content" data-chat={chatOpen || undefined}>
         <div ref={stageWrapRef} className="connection-stage-wrap">
-          <div className="connection-stage">
+          <div ref={stageRef} className="connection-stage" data-layout="mate" onClick={onStageClick} onPointerMove={onStagePointerMove} onPointerLeave={(event) => event.currentTarget.removeAttribute('data-over-mate')}>
+            {/* 「말 걸기 빈도」 (= settings T-1, kept in sync): short labels; what each means in its tooltip and, for a
+                moment after choosing, below. Only the choice is violet. */}
+            <div className="connection-talk" role="radiogroup" aria-label="말 걸기 빈도">
+              {TALK_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={settings.talk === option.value}
+                  tabIndex={settings.talk === option.value ? 0 : -1}
+                  title={option.description}
+                  className="connection-talk-option"
+                  onClick={() => chooseTalk(option.value)}
+                  onKeyDown={(event) => {
+                    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
+                    if (!step) return
+                    event.preventDefault()
+                    const index = TALK_OPTIONS.findIndex((item) => item.value === settings.talk)
+                    const next = TALK_OPTIONS[(index + step + TALK_OPTIONS.length) % TALK_OPTIONS.length]!
+                    chooseTalk(next.value)
+                    const group = event.currentTarget.parentElement
+                    requestAnimationFrame(() => group?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus())
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            {talkNote && <p className="connection-talk-note" role="status">{talkNote}</p>}
+            {/* The keyboard's way to tap the mate (shows on focus only). */}
+            <button type="button" className="connection-mate-pet" onClick={tapMate}>{mate.name} 쓰다듬기</button>
             <section
               className="connection-mate"
               aria-label={mate.name}
@@ -484,7 +705,7 @@ export default function ConnectionPage() {
             >
               {!bgFailed && (
                 <img
-                  src={chaerinArtwork.callBackground.landscape}
+                  src={mateCallBackground(mate.id).landscape}
                   alt=""
                   aria-hidden="true"
                   className="connection-mate-bg-img"
@@ -495,11 +716,11 @@ export default function ConnectionPage() {
               <div className="connection-mate-figure">
                 {backend.live2dStage ? (
                   <>
-                    {pip.window && <img src={matePortrait(mate.id, mate.image)} width={800} height={600} alt="" className="connection-mate-fallback-img" />}
+                    {pip.window && <img key={stillBounce} data-bounce={stillBounce > 0 || undefined} src={matePortrait(mate.id, mate.image)} width={800} height={600} alt="" className="connection-mate-fallback-img" />}
                     <Live2DFigure stage={backend.live2dStage} />
                   </>
                 ) : (
-                  <img src={matePortrait(mate.id, mate.image)} width={800} height={600} alt="" className="connection-mate-fallback-img" />
+                  <img key={stillBounce} data-bounce={stillBounce > 0 || undefined} src={matePortrait(mate.id, mate.image)} width={800} height={600} alt="" className="connection-mate-fallback-img" />
                 )}
               </div>
               {speech.text && (
@@ -510,6 +731,7 @@ export default function ConnectionPage() {
                     text={speech.text}
                     expanded
                     variant="pill"
+                    onTypingChange={setBubbleTyping}
                   />
                 </div>
               )}
@@ -557,6 +779,29 @@ export default function ConnectionPage() {
             </div>
           )}
 
+          {/* 「누르고 말하기」: what is being heard, the sentence before it goes out, notices; above the dock. */}
+          {(pushToTalk.snapshot.status !== 'idle' || pushToTalk.snapshot.notice || (pushToTalk.privacy && !pip.window)) && (
+            <div className="connection-stt" data-status={pushToTalk.snapshot.status} role="status" aria-live="polite">
+              {/* The first-use notice shows where the user is talking: here, or in the PIP window while it is open. */}
+              {pushToTalk.privacy && !pip.window && <SttPrivacy onShown={pushToTalk.privacyShown} />}
+              {pushToTalk.snapshot.status !== 'idle' && (
+                <p className="connection-stt-text">
+                  <span className="connection-stt-label">{STT_LABEL[pushToTalk.snapshot.status]}</span>
+                  {pushToTalk.snapshot.text || (pushToTalk.snapshot.status === 'listening' ? '말해 보세요…' : '')}
+                </p>
+              )}
+              {pushToTalk.snapshot.status === 'unsent' && (
+                <p className="connection-stt-actions">
+                  <button type="button" className="connection-stt-retry" onClick={pushToTalk.retry}>다시 보내기</button>
+                  <button type="button" className="connection-stt-dismiss" onClick={pushToTalk.dismiss}>지우기</button>
+                </p>
+              )}
+              {pushToTalk.snapshot.notice && (
+                <p className="connection-stt-notice" data-tone={pushToTalk.snapshot.noticeTone}>{pushToTalk.snapshot.notice}</p>
+              )}
+            </div>
+          )}
+
           <GlassDock
             className="connection-controls"
             ariaLabel="연결 컨트롤"
@@ -571,7 +816,7 @@ export default function ConnectionPage() {
           <aside id="connection-chat" className="connection-chat desktop-window" aria-labelledby="connection-chat-title">
             <header className="desktop-window-titlebar mate-window-titlebar-static">
               <div className="desktop-window-title-left">
-                <h2 id="connection-chat-title">{mate.name}과 대화</h2>
+                <h2 id="connection-chat-title">{withParticle(mate.name, '과', '와')} 대화</h2>
               </div>
               <div className="desktop-window-title-right">
                 <Button variant="ghost" size="sm" onClick={() => setChatOpen(false)} aria-label="대화창 닫기" className="connection-chat-close">
@@ -583,7 +828,7 @@ export default function ConnectionPage() {
               ref={messageList}
               className="connection-messages"
               role="log"
-              aria-label={`${mate.name}과 대화`}
+              aria-label={`${withParticle(mate.name, '과', '와')} 대화`}
               aria-live="polite"
               aria-relevant="additions"
               onScroll={() => {
@@ -620,12 +865,46 @@ export default function ConnectionPage() {
           </aside>
         )}
       </div>
+      </div>
+
+      {/* Hang-up stage (always mounted so the motion can start on the click's frame). */}
+      <div className="connection-hangup" data-waiting={endingWait || undefined} aria-hidden={!ending}>
+        <div className="connection-hangup-dim" />
+        <div className="connection-hangup-crt" />
+        {/* The handset turns from the call's purple to the end-call red as it is hung up. */}
+        <div className="connection-hangup-handset">
+          <img src={hangupHandset} width={480} height={480} alt="" decoding="async" draggable={false} />
+          <img className="connection-hangup-handset-red" src={hangupHandsetRed} width={480} height={480} alt="" decoding="async" draggable={false} />
+        </div>
+        {/* Like a phone's call-ended screen: the label and the final call time. */}
+        <p className="connection-hangup-ended" aria-hidden="true">
+          <span className="connection-hangup-ended-dot" />
+          <strong>통화 종료</strong>
+          <time>{ending ? clock(sessionStudySeconds(ending.session, ending.at)) : ''}</time>
+        </p>
+        {ending && <p className="sr-only" role="status">연결을 끊었어요. 연결 기록으로 이동해요.</p>}
+        <p className="connection-hangup-wait">{endingWait ? '연결 기록을 정리하고 있어요' : ''}</p>
+      </div>
 
       {pip.window && (
         <ConnectionPip
           target={pip.window}
           mate={mate}
           stage={backend.live2dStage}
+          onTapMate={tapMate}
+          talk={{
+            supported: pushToTalk.supported,
+            listening: pushToTalk.snapshot.status === 'listening',
+            text: pushToTalk.snapshot.status === 'idle' ? '' : pushToTalk.snapshot.text,
+            notice: pushToTalk.snapshot.notice,
+            disabled: finishing,
+            start: () => pushToTalk.press('pip', pip.window),
+            end: () => pushToTalk.release('pip'),
+            privacy: pushToTalk.privacy,
+            onPrivacyShown: pushToTalk.privacyShown,
+            unsent: pushToTalk.snapshot.status === 'unsent',
+            retry: pushToTalk.retry,
+          }}
           speech={showPipSpeech ? (latestReply && (latestReply.createdAt ?? 0) >= speech.at ? latestReply.text : speech.text) : undefined}
           onReturn={() => { window.focus(); pip.close() }}
         />
@@ -645,7 +924,7 @@ export default function ConnectionPage() {
         onClose={() => { if (!finishing) setLeaveOpen(false) }}
         dismissible={!finishing}
         showHeader={false}
-        title={`${mate.name}과의 연결을 끊을까요?`}
+        title={`${withParticle(mate.name, '과', '와')}의 연결을 끊을까요?`}
         className="mate-reset-dialog mate-reset-dialog--desktop connection-leave-dialog"
       >
         <header className="desktop-window-titlebar mate-window-titlebar-static">
@@ -667,7 +946,7 @@ export default function ConnectionPage() {
           </div>
         </header>
         <div className="mate-reset-dialog-body">
-          <h2 className="mate-reset-dialog-heading">{mate.name}과의 연결을 끊을까요?</h2>
+          <h2 className="mate-reset-dialog-heading">{withParticle(mate.name, '과', '와')}의 연결을 끊을까요?</h2>
           {leaveQuote && (
             <div className="connection-leave-quote">
               <span className="connection-leave-quote-name">{mate.name}</span>
@@ -675,7 +954,7 @@ export default function ConnectionPage() {
             </div>
           )}
           {finishError && <FeedbackMessage tone="error" className="mt-4">{finishError}</FeedbackMessage>}
-          {active.presenceKnown === false && (
+          {shown.presenceKnown === false && (
             <p className="mt-3 text-muted">
               이전 자리 지킴 시간을 불러오지 못했어요. 지금 끝내면 이어서 연결한 동안의 자리 지킴만 기록돼요.
             </p>

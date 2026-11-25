@@ -2,14 +2,13 @@ import type { BetaAccountPort } from '../auth/beta-account'
 import { simulateMockReferralValidation } from '../auth/referral-code'
 import type { MateContentPort } from '../mates/mate-contract'
 import type { BetaFeaturePort } from '../backend/beta-feature-port'
-import { LOCAL_MODEL_URL, LOCAL_USER_ID, type LocalBetaStore } from './store'
-import { CALL_STAGE_LIVE2D_LAYOUT } from '../live2d/call-framing'
-import { MOCK_AVATAR_URLS } from '../review/mock-avatars'
+import { LOCAL_USER_ID, localMate, type LocalBetaStore } from './store'
+import { LOCAL_V2_MODELS } from './local-asset-urls'
+import { localAvatarImage } from './local-avatars'
 
 export function createLocalPorts(store: LocalBetaStore) {
   let failedProfile = false
-  const images = MOCK_AVATAR_URLS
-  const me = () => store.me(images[(store.data.avatarId ?? 990401) - 990401] ?? images[0])
+  const me = () => store.me(localAvatarImage(store.data.avatarId))
   const accountPort: BetaAccountPort = {
     read: async () => ({ ...store.data.details }),
     validateReferralCode: async (code) =>
@@ -61,7 +60,8 @@ export function createLocalPorts(store: LocalBetaStore) {
   const matePort: MateContentPort = {
     load: async (_userId, characterId) => ({
       characterId,
-      model: { modelJsonUrl: LOCAL_MODEL_URL, ...CALL_STAGE_LIVE2D_LAYOUT },
+      // Each mate's own v2 (Aliving2D) model (docs/MATE_MODEL_V2_CONTRACT.md).
+      model: { ...LOCAL_V2_MODELS[localMate(characterId).mateId] },
     }),
   }
   const featurePort: BetaFeaturePort = {

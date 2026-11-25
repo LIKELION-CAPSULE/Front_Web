@@ -1,0 +1,23 @@
+/*
+ * Pixel snow / hearts behind a page's content (PixelSnow.tsx): the canvas fills the page's <main> and sits under it.
+ * Only <main> pages that render PixelSnow get the stacking below (`:has`), so other screens are untouched.
+ */
+/* The background spans the full window width under the header (main is centred and at most 1360px wide): the layer
+   reaches out to the window edges and the app shell clips the overflow, so no horizontal scroll appears. */
+.app-shell:has(.app-main > .pixel-snow) { overflow-x: clip; }
+.app-main:has(> .pixel-snow) { position: relative; isolation: isolate; }
+.app-main:has(> .pixel-snow) > :not(.pixel-snow) { position: relative; z-index: 1; }
+.pixel-snow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.pixel-snow-canvas {
+  display: block;
+  image-rendering: pixelated;
+}

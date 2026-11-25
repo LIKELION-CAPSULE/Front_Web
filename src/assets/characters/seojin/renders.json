@@ -1,0 +1,50 @@
+{
+ "seojin-hero": {
+  "size": [
+   1520,
+   1800
+  ],
+  "view": {
+   "zoom": 1.9718,
+   "cx": 640,
+   "cy": 384.6
+  },
+  "framing": "model y 31..769"
+ },
+ "seojin-card": {
+  "size": [
+   1600,
+   1200
+  ],
+  "view": {
+   "zoom": 2.5129,
+   "cx": 640,
+   "cy": 265.3
+  },
+  "framing": "model y 31..520"
+ },
+ "seojin-avatar": {
+  "size": [
+   1024,
+   1024
+  ],
+  "view": {
+   "zoom": 3.126,
+   "cx": 640,
+   "cy": 215.3
+  },
+  "framing": "model y 31..420"
+ },
+ "seojin-full": {
+  "size": [
+   1800,
+   2400
+  ],
+  "view": {
+   "zoom": 1.3581,
+   "cx": 640,
+   "cy": 621.6
+  },
+  "framing": "model y 31..1250"
+ }
+}

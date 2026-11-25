@@ -22,3 +22,10 @@ test('closing a linked dialog removes only its consumed parameters', () => {
   assert.equal(closeAccountRequest('?account=profile'), '')
   assert.equal(closeAccountRequest('?add=1&source=link'), '?add=1&source=link')
 })
+
+test('closing the account dialog the service tour opened ends the tour too (it would reopen it otherwise)', () => {
+  assert.equal(closeAccountRequest('?account=profile&tour=account-profile'), '')
+  assert.equal(closeAccountRequest('?account=settings&tour=account-settings&source=link'), '?source=link')
+  // Without an account request nothing changes, the tour included.
+  assert.equal(closeAccountRequest('?tour=outro'), '?tour=outro')
+})

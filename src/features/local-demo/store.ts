@@ -4,25 +4,64 @@ import type { Message, StudyRecord } from '../demo/types.ts'
 import type { ReportResponse, MeResponse, AffinityChange } from '../../shared/api/types.ts'
 import { LOCAL_CACHE_PREFIX, LOCAL_PANEL_OPEN_KEY } from './storage.ts'
 import { REFERRAL_STORAGE_KEY } from '../auth/referral-code.ts'
+import { isPatternRecordId, isRecordPattern, PATTERN_ID_BASE, patternSessions, type RecordPattern } from './record-patterns.ts'
+
+export {
+  LOCAL_MODEL_URL,
+  LOCAL_V2_ENGINE_URL,
+  LOCAL_V2_MODEL_URL,
+  LOCAL_V2_PLAYER_URL,
+  LOCAL_V2_REACTIONS_URL,
+} from './local-asset-urls.ts'
 
 export const LOCAL_USER_ID = 990101
 export const LOCAL_ROOM_ID = 990201
 export const LOCAL_CHARACTER_ID = 990301
+/** 서도현 (second mate, model bundle `seojin`): like the published API, one room per character. */
+export const LOCAL_DOHYUN_ROOM_ID = 990202
+export const LOCAL_DOHYUN_CHARACTER_ID = 990302
 export const LOCAL_STORAGE_KEY = 'capsule-local-beta:v1'
 export const LOCAL_REPLY = '좋아, 우리 조금만 더 집중해 보자!'
-export const LOCAL_MODEL_URL = '/__local-assets/chaerin/model.model3.json'
-export const LOCAL_V2_MODEL_URL = '/__local-assets/chaerin-v2/model/model.json'
-export const LOCAL_V2_ENGINE_URL = '/__local-assets/chaerin-v2/engine/engine.js'
-export const LOCAL_V2_PLAYER_URL = '/__local-assets/chaerin-v2/engine/player.js'
-export const LOCAL_V2_REACTIONS_URL = '/__local-assets/chaerin-v2/engine/reactions.default.json'
+const CHAERIN_CLOSING_LINE = '오늘도 같이 있어서 좋았어. 다음에도 여기서 만나자.'
+
+/**
+ * The local mates, in the server's shape (character id, room id, server name). `mateId` is the front-end catalog id.
+ * Replies and closing lines are each mate's own (서도현's from his persona, mate-lines.ts), never mixed.
+ */
+export const LOCAL_MATES = [
+  { characterId: LOCAL_CHARACTER_ID, roomId: LOCAL_ROOM_ID, name: '채린', mateId: 'chaerin', reply: LOCAL_REPLY, closingLine: CHAERIN_CLOSING_LINE },
+  { characterId: LOCAL_DOHYUN_CHARACTER_ID, roomId: LOCAL_DOHYUN_ROOM_ID, name: '서도현', mateId: 'dohyun',
+    reply: '잠깐 봐봐. …아, 이거네. 여기부터 다시 해.', closingLine: '다 했네. 오늘 좀 열심히 했다? 수고했어.' },
+] as const
+export type LocalMate = (typeof LOCAL_MATES)[number]
+/** The local mate of a character id (채린 for unknown ids, as in data saved before 서도현 existed). */
+export function localMate(characterId: number | string | undefined): LocalMate {
+  return LOCAL_MATES.find(mate => String(mate.characterId) === String(characterId)) ?? LOCAL_MATES[0]
+}
+const HISTORY_MESSAGE_ID = 'local-history-1'
+/**
+ * Sample affinity the local mock reports (stage numbers and names as in affinity-stages.ts): 3단계 · 친구, 8.5 of the
+ * 10 hours to 친한 친구, so the my-mates progress bar shows. Local mock only; never part of production builds.
+ */
+export const LOCAL_AFFINITY = {
+  stage: 3,
+  stageName: '친구',
+  previousStageName: '아는 사이',
+  nextStageName: '친한 친구',
+  stageSeconds: 8.5 * 3600,
+  stageTargetSeconds: 10 * 3600,
+  nextLevelSeconds: 1.5 * 3600,
+} as const
 export const localScenarios = ['normal', 'empty', 'loading', 'failure', 'exhausted', 'guest'] as const
 export type LocalScenario = typeof localScenarios[number]
-type Session = { id: number; startedAt: number; studySeconds: number; presentSeconds: number; targetMinutes: number }
+type Session = { id: number; startedAt: number; studySeconds: number; presentSeconds: number; targetMinutes: number; characterId?: number }
 type LocalData = {
   version: 1; authenticated: boolean; nickname: string; onboardingRequired: boolean; avatarId?: number
   details: BetaAccountDetails; scenario: LocalScenario; nextSessionId: number; active: Session | null
   wallet: BetaWallet; invitation: BetaInvitation; messages: Message[]; records: StudyRecord[]
   points: number; settings: { voice: boolean; advanced: boolean }; rewardedCodes: string[]
+  /** QA record pattern; absent in data saved before patterns existed. */
+  recordPattern?: RecordPattern
 }
 type StoragePort = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>
 
@@ -34,25 +73,41 @@ export function nextAttendanceExpiry(now: number) {
   return boundary.getTime()
 }
 
-function seed(now: number): LocalData {
-  const records: StudyRecord[] = []
-  const messages: Message[] = []
-  for (let day = 1; day <= 14; day++) {
-    if (day % 4 === 0) continue
-    const id = String(991000 + day), seconds = (day % 5 + 1) * 600
-    const endedAt = new Date(now)
-    endedAt.setDate(endedAt.getDate() - day)
-    endedAt.setHours(20, 0, 0, 0)
-    const report: ReportResponse = { sessionId: Number(id), roomName: '채린', character: { id: LOCAL_CHARACTER_ID, name: '채린' },
-      startedAt: new Date(endedAt.getTime() - seconds * 1000).toISOString(), endedAt: endedAt.toISOString(), endType: 'USER',
-      studySeconds: seconds, presentSeconds: seconds - 60, awaySeconds: 60, returnCount: 1,
-      relation: { levelBefore: 3, levelAfter: 3, pointsBefore: 61, pointsAfter: 62, stage: 2, stageName: '친구' },
-      closingLine: '오늘도 같이 있어서 좋았어. 다음에도 여기서 만나자.' }
-    records.push(toRecord(report))
-    if (day === 1) messages.push({ id: 'local-history-1', sessionId: id, characterId: String(LOCAL_CHARACTER_ID), sender: 'character', text: LOCAL_REPLY, voice: false, delivery: 'confirmed', createdAt: endedAt.getTime() })
+/**
+ * Generated history: every third connection is with 서도현 (the second mate), so 내 기록 「전체」 shows two mate colours
+ * and the mate filter, and 내 메이트 has capsules for both. (This replaced the 「가상 메이트(남학생 시안)」 QA switch.)
+ */
+function patternRecords(pattern: RecordPattern, now: number): StudyRecord[] {
+  return patternSessions(pattern, now).map((session, index) => {
+    const mate = index % 3 === 1 ? LOCAL_MATES[1] : LOCAL_MATES[0]
+    // 서도현's records get their own (still pattern) ids: the app keeps cached reports by id.
+    const sessionId = mate.characterId === LOCAL_CHARACTER_ID ? session.id : PATTERN_ID_BASE + ((session.id - PATTERN_ID_BASE + 45_000_000) % 90_000_000)
+    const report: ReportResponse = { sessionId, roomName: mate.name, character: { id: mate.characterId, name: mate.name },
+      startedAt: new Date(session.startedAt).toISOString(), endedAt: new Date(session.endedAt).toISOString(), endType: 'USER',
+      studySeconds: session.seconds, presentSeconds: session.seconds - 60, awaySeconds: 60, returnCount: 1,
+      relation: { levelBefore: 3, levelAfter: 3, pointsBefore: 61, pointsAfter: 62, ...LOCAL_AFFINITY },
+      closingLine: mate.closingLine }
+    return toRecord(report)
+  })
+}
+
+/** Pattern records are regenerated relative to today; locally finished connections are kept. */
+function withPatternRecords(data: Pick<LocalData, 'records' | 'messages' | 'recordPattern'>, now: number): Pick<LocalData, 'records' | 'messages'> {
+  const generated = patternRecords(data.recordPattern ?? 'none', now)
+  const records = [...data.records.filter(record => !isPatternRecordId(record.id)), ...generated].sort((a, b) => b.endedAt - a.endedAt)
+  const latest = generated[0]
+  const messages = data.messages.filter(message => message.id !== HISTORY_MESSAGE_ID)
+  if (latest) {
+    const mate = localMate(latest.characterIds[0])
+    messages.unshift({ id: HISTORY_MESSAGE_ID, sessionId: latest.id, characterId: String(mate.characterId), sender: 'character', text: mate.reply, voice: false, delivery: 'confirmed', createdAt: latest.endedAt })
   }
+  return { records, messages }
+}
+
+function seed(now: number, recordPattern: RecordPattern = 'steady'): LocalData {
+  const { records, messages } = withPatternRecords({ recordPattern, records: [], messages: [] }, now)
   return { version: 1, authenticated: true, nickname: '로컬 사용자', onboardingRequired: false, details: { birthDate: '2000-01-01', callName: '', aboutMe: '' },
-    scenario: 'normal', nextSessionId: 992001, active: null, points: 62, settings: { voice: false, advanced: false }, rewardedCodes: [], records, messages,
+    scenario: 'normal', recordPattern, nextSessionId: 992001, active: null, points: 62, settings: { voice: false, advanced: false }, rewardedCodes: [], records, messages,
     wallet: { attendance: 1500, invitation: 2000, usedToday: 0, attendanceExpiresAt: nextAttendanceExpiry(now), entries: [
       { id: 'local-attendance', at: now, description: '출석 크레딧', kind: 'attendance', change: 1500, balance: 3500 },
       { id: 'local-invite-2', at: now - 86_400_000, description: '친구 초대', kind: 'invite', change: 1000, balance: 2000 },
@@ -62,8 +117,9 @@ function seed(now: number): LocalData {
 
 function toRecord(report: ReportResponse): StudyRecord {
   const seconds = report.studySeconds ?? 0
-  return { id: String(report.sessionId), roomId: String(LOCAL_ROOM_ID), characterIds: [String(LOCAL_CHARACTER_ID)], tier: 'basic',
-    roomName: '채린', characterName: '채린', serverReport: report, startedAt: Date.parse(report.startedAt!), endedAt: Date.parse(report.endedAt!),
+  const mate = localMate(report.character?.id)
+  return { id: String(report.sessionId), roomId: String(mate.roomId), characterIds: [String(mate.characterId)], tier: 'basic',
+    roomName: mate.name, characterName: mate.name, serverReport: report, startedAt: Date.parse(report.startedAt!), endedAt: Date.parse(report.endedAt!),
     studySeconds: seconds, focusSeconds: report.presentSeconds ?? 0, awaySeconds: report.awaySeconds ?? 0, returns: report.returnCount ?? 0,
     cameraFocus: { observedMs: seconds * 1000, focusedMs: Math.floor(seconds * .8) * 1000, returns: 1 }, completed: false, automatic: false }
 }
@@ -88,6 +144,8 @@ export class LocalBetaStore {
         value.wallet && Number.isFinite(value.wallet.attendance) && Number.isFinite(value.wallet.invitation) && Array.isArray(value.wallet.entries) &&
         value.invitation && value.details && value.settings && Array.isArray(value.rewardedCodes)) this.data = value
     } catch { this.storageAvailable = false }
+    if (!isRecordPattern(this.data.recordPattern)) this.data.recordPattern = this.data.scenario === 'empty' || this.data.scenario === 'guest' ? 'none' : 'steady'
+    Object.assign(this.data, withPatternRecords(this.data, now()))
     this.expireAttendance()
   }
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
@@ -112,22 +170,34 @@ export class LocalBetaStore {
     this.changed()
   }
   snapshot = () => ({ wallet: structuredClone(this.data.wallet), invitation: structuredClone(this.data.invitation), records: structuredClone(this.data.records),
-    messages: structuredClone(this.data.messages), affinities: { [LOCAL_CHARACTER_ID]: this.affinity() }, settings: { ...this.data.settings } })
-  affinity = (): AffinityChange => ({ points: this.data.points, level: 3, stage: 2, stageName: '친구' })
+    messages: structuredClone(this.data.messages), affinities: Object.fromEntries(LOCAL_MATES.map(mate => [mate.characterId, this.affinity()])), settings: { ...this.data.settings } })
+  affinity = (): AffinityChange => ({ points: this.data.points, level: 3, stage: LOCAL_AFFINITY.stage, stageName: LOCAL_AFFINITY.stageName })
   me = (image?: string): MeResponse => ({ userId: LOCAL_USER_ID, nickname: this.data.nickname, onboardingRequired: this.data.onboardingRequired, profileImage: image, activeSession: this.summary() ?? undefined })
-  summary = () => this.data.active ? { sessionId: this.data.active.id, roomId: LOCAL_ROOM_ID, roomName: '채린', characterName: '채린', startedAt: new Date(this.data.active.startedAt).toISOString() } : null
+  /** The mate of the running connection (채린 for sessions saved before 서도현 existed). */
+  activeMate = () => localMate(this.data.active?.characterId)
+  summary = () => {
+    if (!this.data.active) return null
+    const mate = this.activeMate()
+    return { sessionId: this.data.active.id, roomId: mate.roomId, roomName: mate.name, characterName: mate.name, startedAt: new Date(this.data.active.startedAt).toISOString() }
+  }
   login() { this.data.authenticated = true; this.changed(); return { accessToken: 'local-beta-access', ...this.me() } }
   beginOnboarding() {
     this.reset('empty'); this.data.details = { callName: '', aboutMe: '' }; this.data.onboardingRequired = true
     return this.login()
   }
   setPreviewExpression(value: string | null) { this.previewExpression = value }
+  /** QA only: replaces the generated history with another pattern, keeping locally finished connections. */
+  setRecordPattern(pattern: RecordPattern) {
+    this.data.recordPattern = pattern
+    Object.assign(this.data, withPatternRecords(this.data, this.now()))
+    this.changed()
+  }
   logout() { this.data.authenticated = false; this.changed() }
   profile(nickname: string, avatarId?: number) { this.data.nickname = nickname; this.data.avatarId = avatarId; this.data.onboardingRequired = false; this.changed(); return this.me() }
   setSettings = (settings: Partial<LocalData['settings']>) => { this.data.settings = { ...this.data.settings, ...settings }; this.changed() }
-  start(targetMinutes: number) {
+  start(targetMinutes: number, characterId: number = LOCAL_CHARACTER_ID) {
     if (this.data.active) return this.data.active
-    this.data.active = { id: this.data.nextSessionId++, startedAt: this.now(), studySeconds: 0, presentSeconds: 0, targetMinutes }
+    this.data.active = { id: this.data.nextSessionId++, startedAt: this.now(), studySeconds: 0, presentSeconds: 0, targetMinutes, characterId }
     this.changed()
     return this.data.active
   }
@@ -146,18 +216,20 @@ export class LocalBetaStore {
       wallet.attendance -= attendance; wallet.invitation -= cost - attendance; wallet.usedToday += cost
       this.ledger('use', -cost, this.data.settings.voice && this.data.settings.advanced ? '음성 · 고급 대화' : this.data.settings.voice ? '음성 대화' : '고급 대화')
     } else if (cost) this.data.settings = { voice: false, advanced: false }
-    const sessionId = String(this.data.active!.id), characterId = String(LOCAL_CHARACTER_ID)
+    const mate = this.activeMate()
+    const sessionId = String(this.data.active!.id), characterId = String(mate.characterId)
     this.data.messages.push({ id: `local-user-${requestId}`, requestId, sessionId, characterId, sender: 'user', text: content, voice: false, delivery: 'confirmed', createdAt: this.now() },
-      { id: `local-reply-${requestId}`, requestId, sessionId, characterId, sender: 'character', text: LOCAL_REPLY, voice: false, delivery: 'confirmed', createdAt: this.now() })
-    const result = { content: LOCAL_REPLY, affinity: this.affinity() }
+      { id: `local-reply-${requestId}`, requestId, sessionId, characterId, sender: 'character', text: mate.reply, voice: false, delivery: 'confirmed', createdAt: this.now() })
+    const result = { content: mate.reply, affinity: this.affinity() }
     this.replies.set(requestId, result); this.changed(); return result
   }
   finish(studySeconds: number, presentSeconds: number) {
     const active = this.data.active!
-    const report: ReportResponse = { sessionId: active.id, roomName: '채린', character: { id: LOCAL_CHARACTER_ID, name: '채린' }, startedAt: new Date(active.startedAt).toISOString(), endedAt: new Date(this.now()).toISOString(), endType: 'USER',
+    const mate = this.activeMate()
+    const report: ReportResponse = { sessionId: active.id, roomName: mate.name, character: { id: mate.characterId, name: mate.name }, startedAt: new Date(active.startedAt).toISOString(), endedAt: new Date(this.now()).toISOString(), endType: 'USER',
       studySeconds, presentSeconds, awaySeconds: Math.max(0, studySeconds - presentSeconds), returnCount: 0,
-      relation: { levelBefore: 3, levelAfter: 3, pointsBefore: this.data.points, pointsAfter: this.data.points, stage: 2, stageName: '친구' },
-      closingLine: '오늘도 같이 있어서 좋았어. 다음에도 여기서 만나자.' }
+      relation: { levelBefore: 3, levelAfter: 3, pointsBefore: this.data.points, pointsAfter: this.data.points, ...LOCAL_AFFINITY },
+      closingLine: mate.closingLine }
     const record = toRecord(report)
     // New camera measurements belong to MediaProvider, never to a generated percentage.
     delete record.cameraFocus
@@ -198,7 +270,7 @@ export class LocalBetaStore {
         }
       }
     } catch { this.storageAvailable = false }
-    this.data = seed(this.now()); this.data.scenario = scenario; this.replies.clear()
+    this.data = seed(this.now(), scenario === 'empty' || scenario === 'guest' ? 'none' : 'steady'); this.data.scenario = scenario; this.replies.clear()
     if (scenario === 'empty' || scenario === 'guest') { this.data.records = []; this.data.messages = []; this.data.invitation.invitedCount = 0; this.data.invitation.rewardedCredits = 0; this.data.wallet.invitation = 0; this.data.wallet.entries = this.data.wallet.entries.filter(entry => entry.kind === 'attendance').map(entry => ({ ...entry, balance: 1500 })) }
     if (scenario === 'exhausted') { this.data.wallet.attendance = 0; this.data.wallet.invitation = 0; this.data.wallet.entries = []; this.data.settings = { voice: true, advanced: true } }
     if (scenario === 'guest') this.data.authenticated = false

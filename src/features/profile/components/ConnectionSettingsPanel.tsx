@@ -1,27 +1,90 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react'
 import { useMedia } from '@/features/media/media-context'
 import { deviceErrorMessage } from '@/features/media/device-controller'
-import { CREDIT_PRICING } from '@/features/credits/credit-utils'
 import { Button } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
-import { FormField } from '@/shared/ui/FormField'
 import { useConnectionPreferences } from '@/features/mates/connection-preferences-context'
+import { TALK_OPTIONS } from '@/features/mates/connection-preferences'
+import { speechRecognitionFactory } from '@/features/mates/push-to-talk'
+import { CREDIT_PRICING } from '@/features/credits/credit-utils'
 
-// Flip to true once real mate voice generation & credit billing contract is connected.
-const VOICE_BILLING_CONNECTED = false
+/**
+ * Account settings 「설정」 tab: every item of PRD §7.9 (T-1…T-10), one row each — label on the left, control on the
+ * right — in the plan's order. Values are this browser's per-account preferences (connection-preferences.ts); the
+ * device choice is the media controller's. No group titles: the plan's order puts the two PIP items apart.
+ */
+
+type Option<T extends string> = { value: T; label: string }
+
+function Segment<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: readonly Option<T>[]; onChange: (value: T) => void }) {
+  return (
+    <div className="settings-segment" role="radiogroup" aria-label={label}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="radio"
+          aria-checked={option.value === value}
+          tabIndex={option.value === value ? 0 : -1}
+          className="settings-segment-option"
+          onClick={() => onChange(option.value)}
+          onKeyDown={(event) => {
+            const index = options.findIndex((item) => item.value === value)
+            const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0
+            if (!step) return
+            event.preventDefault()
+            const next = options[(index + step + options.length) % options.length]!
+            onChange(next.value)
+            const group = event.currentTarget.parentElement
+            requestAnimationFrame(() => group?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus())
+          }}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function Switch({ labelledBy, describedBy, checked, onChange }: { labelledBy: string; describedBy?: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-labelledby={labelledBy}
+      aria-describedby={describedBy}
+      onClick={() => onChange(!checked)}
+      className="connection-settings-switch"
+    >
+      <span aria-hidden="true" />
+    </button>
+  )
+}
+
+function Row({ id, label, hint, badge, children }: { id: string; label: string; hint?: ReactNode; badge?: string; children: ReactNode }) {
+  return (
+    <li className="settings-row">
+      <div className="settings-row-text">
+        <span id={id} className="settings-row-label">
+          {label}
+          {badge && <span className="settings-row-badge">{badge}</span>}
+        </span>
+        {hint && <p id={`${id}-hint`} className="settings-row-hint">{hint}</p>}
+      </div>
+      <div className="settings-row-control">{children}</div>
+    </li>
+  )
+}
 
 export function ConnectionSettingsPanel() {
   const { devices, selectedDevices, controller, flushFocus } = useMedia()
-  const { showPipSpeech, setShowPipSpeech } = useConnectionPreferences()
+  const { showPipSpeech, setShowPipSpeech, settings, updateSettings } = useConnectionPreferences()
   const [inputs, setInputs] = useState<MediaDeviceInfo[]>([])
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState(0)
-  const [voiceEnabled, setVoiceEnabled] = useState(false)
-  const devicesId = useId()
-  const pipSectionId = useId()
-  const pipId = useId()
-  const voiceId = useId()
-  const costId = useId()
+  const [speechSupported] = useState(() => typeof window !== 'undefined' && speechRecognitionFactory(window) !== null)
+  const id = useId()
 
   useEffect(() => {
     let current = true
@@ -47,130 +110,117 @@ export function ConnectionSettingsPanel() {
     }
   }, [attempt, devices.camera.stream, devices.microphone.stream])
 
+  const device = (kind: 'microphone' | 'camera') => {
+    const label = kind === 'camera' ? '카메라' : '마이크'
+    const choices = inputs.filter((value) => value.kind === (kind === 'camera' ? 'videoinput' : 'audioinput'))
+    const selected = selectedDevices[kind]
+    return (
+      <select
+        className="form-input settings-select"
+        aria-labelledby={`${id}-${kind}`}
+        value={selected}
+        onChange={(event) => {
+          if (kind === 'camera') flushFocus()
+          void controller.select(kind, event.target.value)
+        }}
+      >
+        <option value="">기본</option>
+        {selected && !choices.some((value) => value.deviceId === selected) && (
+          <option value={selected} disabled>
+            {label} 선택
+          </option>
+        )}
+        {choices
+          .filter((value) => value.deviceId)
+          .map((value, index) => (
+            <option key={value.deviceId} value={value.deviceId}>
+              {value.label || `${label} ${index + 1}`}
+            </option>
+          ))}
+      </select>
+    )
+  }
+
   return (
     <>
       <h2 className="account-settings-title">설정</h2>
-      <div className="connection-settings-groups">
-        <section className="connection-settings-group" aria-labelledby={devicesId}>
-          <h3 id={devicesId} className="connection-settings-group-title">
-            통화 기기
-          </h3>
-          <div className="connection-settings-device-list">
-            {(['microphone', 'camera'] as const).map((kind) => {
-              const label = kind === 'camera' ? '카메라' : '마이크'
-              const choices = inputs.filter(
-                (value) => value.kind === (kind === 'camera' ? 'videoinput' : 'audioinput'),
-              )
-              const selected = selectedDevices[kind]
-              return (
-                <div key={kind}>
-                  <FormField label={`${label} 선택`}>
-                    <select
-                      className="form-input"
-                      aria-label={`${label} 선택`}
-                      value={selected}
-                      onChange={(event) => {
-                        if (kind === 'camera') flushFocus()
-                        void controller.select(kind, event.target.value)
-                      }}
-                    >
-                      <option value="">기본</option>
-                      {selected && !choices.some((value) => value.deviceId === selected) && (
-                        <option value={selected} disabled>
-                          {label} 선택
-                        </option>
-                      )}
-                      {choices
-                        .filter((value) => value.deviceId)
-                        .map((value, index) => (
-                          <option key={value.deviceId} value={value.deviceId}>
-                            {value.label || `${label} ${index + 1}`}
-                          </option>
-                        ))}
-                    </select>
-                  </FormField>
-                  {devices[kind].error && (
-                    <FeedbackMessage tone="error" className="mt-3">
-                      {devices[kind].error}
-                    </FeedbackMessage>
-                  )}
-                </div>
-              )
-            })}
+      <ul className="settings-rows connection-settings-groups" data-tour="account-settings" aria-label="연결 설정">
+        {/* T-1 */}
+        <Row id={`${id}-talk`} label="말 걸기 빈도" hint={TALK_OPTIONS.find((option) => option.value === settings.talk)?.description}>
+          <Segment label="말 걸기 빈도" value={settings.talk} onChange={(talk) => updateSettings({ talk })} options={TALK_OPTIONS} />
+        </Row>
+        {/* T-2 */}
+        <Row id={`${id}-voice`} label="메이트 음성" badge="준비 중" hint="끄면 크레딧이 들지 않아요">
+          <Switch labelledBy={`${id}-voice`} describedBy={`${id}-voice-hint`} checked={settings.voice} onChange={(voice) => updateSettings({ voice })} />
+        </Row>
+        {/* T-3 */}
+        <Row id={`${id}-volume`} label="음성 볼륨">
+          <div className="settings-slider">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={settings.volume}
+              aria-labelledby={`${id}-volume`}
+              aria-valuetext={`${settings.volume}`}
+              style={{ '--value': `${settings.volume}%` } as CSSProperties}
+              onChange={(event) => updateSettings({ volume: Number(event.target.value) })}
+            />
+            <output className="settings-slider-value" aria-hidden="true">{settings.volume}</output>
+          </div>
+        </Row>
+        {/* T-4 */}
+        <Row id={`${id}-speed`} label="음성 속도">
+          <Segment label="음성 속도" value={settings.speed} onChange={(speed) => updateSettings({ speed })}
+            options={[{ value: 'slow', label: '느리게' }, { value: 'normal', label: '보통' }, { value: 'fast', label: '빠르게' }]} />
+        </Row>
+        {/* T-5 */}
+        <Row id={`${id}-microphone`} label="마이크" hint={speechSupported ? '음성 입력(누르고 말하기)은 브라우저 기본 마이크를 써요' : undefined}>
+          {device('microphone')}
+        </Row>
+        <Row id={`${id}-camera`} label="카메라">
+          {device('camera')}
+        </Row>
+        {(devices.microphone.error || devices.camera.error || error) && (
+          <li className="settings-row-feedback">
+            {devices.microphone.error && <FeedbackMessage tone="error">{devices.microphone.error}</FeedbackMessage>}
+            {devices.camera.error && <FeedbackMessage tone="error">{devices.camera.error}</FeedbackMessage>}
             {error && (
-              <div>
+              <>
                 <FeedbackMessage tone="error">{error}</FeedbackMessage>
-                <Button
-                  className="mt-3"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setAttempt((value) => value + 1)}
-                >
-                  다시 시도
-                </Button>
-              </div>
+                <Button className="mt-3" variant="secondary" size="sm" onClick={() => setAttempt((value) => value + 1)}>다시 시도</Button>
+              </>
             )}
-          </div>
-        </section>
-
-        <section className="connection-settings-group" aria-labelledby={pipSectionId}>
-          <h3 id={pipSectionId} className="connection-settings-group-title">
-            PIP
-          </h3>
-          <div className="connection-settings-row">
-            <span id={pipId} className="field-label">
-              PIP 말풍선
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={showPipSpeech}
-              aria-labelledby={pipId}
-              onClick={() => setShowPipSpeech(!showPipSpeech)}
-              className="connection-settings-switch"
-            >
-              <span aria-hidden="true" />
-            </button>
-          </div>
-          {VOICE_BILLING_CONNECTED && (
-            <div className="connection-settings-row mt-4">
-              <div>
-                <span id={`${voiceId}-label`} className="field-label">
-                  메이트 음성
-                </span>
-                <p id={`${voiceId}-hint`} className="mt-1 text-caption text-muted">
-                  음성을 끄면 크레딧이 들지 않아요
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={voiceEnabled}
-                aria-labelledby={`${voiceId}-label`}
-                aria-describedby={`${voiceId}-hint`}
-                onClick={() => setVoiceEnabled((v) => !v)}
-                className="connection-settings-switch"
-              >
-                <span aria-hidden="true" />
-              </button>
-            </div>
-          )}
-        </section>
-
-        <section className="connection-settings-group" aria-labelledby={costId}>
-          <h3 id={costId} className="connection-settings-group-title">
-            대화 비용
-          </h3>
-          <div className="connection-settings-cost-chips">
-            <span className="connection-settings-cost-chip">기본 채팅 {CREDIT_PRICING.basicChat}</span>
-            <span className="connection-settings-cost-chip">보이스 {CREDIT_PRICING.voice}</span>
-            <span className="connection-settings-cost-chip">고급 {CREDIT_PRICING.advanced}</span>
-            <span className="connection-settings-cost-chip">
-              보이스+고급 {CREDIT_PRICING.voiceAndAdvanced}
-            </span>
-          </div>
-        </section>
-      </div>
+          </li>
+        )}
+        {/* T-6 */}
+        <Row id={`${id}-pip-speech`} label="PIP 말풍선">
+          <Switch labelledBy={`${id}-pip-speech`} checked={showPipSpeech} onChange={setShowPipSpeech} />
+        </Row>
+        {/* T-7 */}
+        <Row id={`${id}-mode`} label="대화 모드" hint="연결을 시작할 때의 모드예요. 연결 화면 위에서 바로 바꿀 수 있어요">
+          <Segment label="대화 모드" value={settings.mode} onChange={(mode) => updateSettings({ mode })}
+            options={[{ value: 'basic', label: '기본 · 크레딧 없음' }, { value: 'advanced', label: `고급 · 1턴 ${CREDIT_PRICING.advanced}` }]} />
+        </Row>
+        {/* T-8 */}
+        <Row
+          id={`${id}-hold`}
+          label="스페이스 누른 채 말하기"
+          hint={speechSupported ? '연결 화면이나 PIP 창에서 스페이스를 누르고 있는 동안 말해요' : '이 브라우저는 음성 입력을 지원하지 않아요. Chrome이나 Edge를 써 주세요'}
+        >
+          <Switch labelledBy={`${id}-hold`} describedBy={`${id}-hold-hint`} checked={settings.holdToTalk} onChange={(holdToTalk) => updateSettings({ holdToTalk })} />
+        </Row>
+        {/* T-9 */}
+        <Row id={`${id}-pip-size`} label="PIP 창 크기">
+          <Segment label="PIP 창 크기" value={settings.pipSize} onChange={(pipSize) => updateSettings({ pipSize })}
+            options={[{ value: 'small', label: '작게' }, { value: 'normal', label: '보통' }, { value: 'large', label: '크게' }]} />
+        </Row>
+        {/* T-10 */}
+        <Row id={`${id}-gaze`} label="시선 따라오기" hint="카메라를 꺼도 메이트가 마우스를 따라봐요">
+          <Switch labelledBy={`${id}-gaze`} describedBy={`${id}-gaze-hint`} checked={settings.gaze} onChange={(gaze) => updateSettings({ gaze })} />
+        </Row>
+      </ul>
     </>
   )
 }

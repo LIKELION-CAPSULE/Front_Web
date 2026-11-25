@@ -41,8 +41,9 @@ test('the first partial week retains Thursday alignment and excludes pre-2026 re
   assert.equal(range.endDay, '2026-01-04')
   const source = createDemoState(now).records[0]!
   const records = [
-    { ...source, id: 'before', endedAt: Date.parse('2025-12-31T23:59:59+09:00') },
-    { ...source, id: 'boundary', endedAt: Date.parse('2026-01-01T00:00:00+09:00') },
+    // A connection is filed by its start (records/connection-day.ts).
+    { ...source, id: 'before', startedAt: Date.parse('2025-12-31T23:59:59+09:00'), endedAt: Date.parse('2026-01-01T00:30:00+09:00') },
+    { ...source, id: 'boundary', startedAt: Date.parse('2026-01-01T00:00:00+09:00'), endedAt: Date.parse('2026-01-01T00:30:00+09:00') },
   ]
   assert.deepEqual(recordsInRange(records, range).map(record => record.id), ['boundary'])
   const cells = studyHeatmap(recordsInRange(records, range), range).cells

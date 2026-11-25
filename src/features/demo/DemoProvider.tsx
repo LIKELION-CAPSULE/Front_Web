@@ -20,9 +20,11 @@ import { getStudyRooms, registerReportRoom, setServerRooms } from '@/features/ro
 import { flushSessionEvents, getSessionTotals, presenceKey, readSessionStorageItem } from '@/features/backend/use-session-sync'
 import type { BackendContextValue } from '@/features/backend/backend-context'
 import { Live2DStage } from '@/features/live2d/live2d-stage'
-import { SessionModel, type SessionModelFactory, type SessionModelStage } from '@/features/live2d/session-model'
+import { SessionModel, type AlivingStageFactory, type SessionModelFactory, type SessionModelStage } from '@/features/live2d/session-model'
+import { AlivingSessionStage } from '@/features/mate-render/AlivingSessionStage'
 import { availableMates, mateByName } from '@/features/mates/catalog'
 import { isSessionSurface } from '@/features/mates/session-surface'
+import { matePortrait } from '@/features/mates/artwork'
 import type { BetaAccountPort, BetaAccountResult, BetaOnboardingInput, BetaProfileInput, BetaSignupInput } from '@/features/auth/beta-account'
 import { checkedAccountDetails } from '@/features/auth/beta-account'
 import { birthDateError } from '@/features/auth/birth-date'
@@ -42,6 +44,9 @@ const AVATARS_MAX_AGE = 300_000
 const initialMeta: Meta = { status: 'loading', loadingStage: 'auth', error: null, signedOutNotice: null, me: null, accountDetails: null, home: null, homeContentVersion: 0, mateDetails: {}, mateContentVersion: 0, wallet: null, invitation: null, mateUnlocks: undefined, mateRelationStats: undefined, redeemInvitation: null, activeSummary: null, avatars: [], terms: [], visuals: null, affinities: {} }
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : '요청을 처리하지 못했어요.'
 const createLive2DStage: SessionModelFactory = (url, layout) => new Live2DStage(url, layout, new URL(import.meta.env.BASE_URL, location.href).href)
+/** v2 (Aliving2D) session models; engine scripts run only from this page's origin or the API origin. */
+const createAlivingStage: AlivingStageFactory = (source, options) => new AlivingSessionStage(source, { stillImage: options.stillImage })
+const engineAllowlist = () => ({ pageOrigin: location.origin, apiBaseUrl: import.meta.env.VITE_API_BASE_URL })
 
 /** Cached reports may belong to rooms no longer returned by /home. */
 function registerCachedReportRooms(records: DemoState['records']) {
@@ -60,7 +65,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
   const [state, reducerDispatch] = useReducer(reducer, undefined, adapt.emptyState)
   const [meta, setMeta] = useState<Meta>(initialMeta)
   const [betaSettings, setBetaSettings] = useState<BetaFeatureSnapshot['settings']>()
-  const [models] = useState(() => new SessionModel(modelFactory))
+  const [models] = useState(() => new SessionModel(modelFactory, undefined, { createAliving: createAlivingStage, allowlist: engineAllowlist }))
   const [live2dStage, setLive2dStage] = useState<SessionModelStage | null>(null)
   const pendingSession = useRef<StartResponse | ResumeResponse | null>(null)
   const modelEntry = useRef<{ pathname: string } | null>(null)
@@ -531,7 +536,8 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, reduc
         setServerRooms([...getStudyRooms(), adapt.room(detail)])
       }
       if (generation !== epoch.current || currentPath.current !== entry.pathname || modelEntry.current !== entry) throw new ApiError('연결이 취소됐어요.', 409)
-      const stage = await models.prepare(dto.character)
+      // The same still the call screen shows without a model (matePortrait), used if the v2 model breaks mid-call.
+      const stage = await models.prepare(dto.character, { stillImage: matePortrait(active.mateId ?? '', dto.character?.profileImageUrl) })
       if (generation !== epoch.current || currentPath.current !== entry.pathname || modelEntry.current !== entry) {
         if (modelEntry.current === entry) releaseModel()
         throw new ApiError('연결이 취소됐어요.', 409)

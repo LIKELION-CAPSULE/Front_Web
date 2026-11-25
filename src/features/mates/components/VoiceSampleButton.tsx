@@ -1,8 +1,10 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Button } from '@/shared/ui/Button'
-import { Icon } from '@/shared/ui/Icon'
+import { Icon, type IconName } from '@/shared/ui/Icon'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { SampleAudioPlayer } from '../sample-audio'
+import { useConnectionSettings } from '../connection-preferences-context'
+import { mateVoicePlayback } from '../connection-preferences'
 
 export type VoiceSampleStatus = 'idle' | 'loading' | 'playing' | 'error'
 
@@ -10,12 +12,24 @@ export function VoiceSampleButton({
   url,
   disabled,
   onStatusChange,
+  idleLabel = '목소리 샘플 듣기',
+  idleIcon = 'play',
+  iconSize = 15,
+  className,
 }: {
   url?: string
   disabled: boolean
   onStatusChange?: (status: VoiceSampleStatus) => void
+  /** Button copy and icon while nothing plays (the mate detail page says "목소리 듣기"). */
+  idleLabel?: string
+  idleIcon?: IconName
+  iconSize?: number
+  className?: string
 }) {
   const [player] = useState(() => new SampleAudioPlayer())
+  // The voice volume and speed of the settings (T-3, T-4), from the one place mate voice reads them.
+  const settings = useConnectionSettings()
+  useEffect(() => { player.setPlayback(mateVoicePlayback(settings)) }, [player, settings])
   const status = useSyncExternalStore(player.subscribe, player.getSnapshot, () => 'idle') as VoiceSampleStatus
   const active = status === 'playing' || status === 'loading'
   useEffect(() => () => player.stop(), [player, url])
@@ -25,7 +39,7 @@ export function VoiceSampleButton({
   }, [status, onStatusChange])
 
   return (
-    <div className="mate-voice-sample">
+    <div className={className ? `mate-voice-sample ${className}` : 'mate-voice-sample'}>
       <div className="mate-voice-sample-row">
         <Button
           variant="secondary"
@@ -39,8 +53,8 @@ export function VoiceSampleButton({
             else if (url) void player.play(url)
           }}
         >
-          <Icon name={active ? 'pause' : 'play'} size={15} />
-          {active ? '목소리 샘플 멈추기' : '목소리 샘플 듣기'}
+          <Icon name={active ? 'pause' : idleIcon} size={iconSize} />
+          {active ? '목소리 샘플 멈추기' : idleLabel}
         </Button>
         {status === 'playing' && (
           <span className="mate-voice-wave" aria-hidden="true">

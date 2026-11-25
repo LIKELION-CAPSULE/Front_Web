@@ -1,7 +1,7 @@
 import { useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { chaerinArtwork, matePortrait } from '@/features/mates/artwork'
-import type { AvailableMate } from '../catalog'
+import { mateCallBackground, matePortrait } from '@/features/mates/artwork'
+import { ageRatingLabel, type AvailableMate } from '../catalog'
 
 type ViewTransitionDocument = Document & {
   startViewTransition?: (callback: () => void) => { finished: Promise<void> }
@@ -43,11 +43,11 @@ export function MateCard({ mate }: { mate: AvailableMate }) {
   }
 
   return (
-    <Link to={target} className="mate-card" onClick={handleClick}>
+    <Link to={target} className="mate-card" data-tour="mate-card" onClick={handleClick}>
       <div className="mate-card-image">
         {!bgFailed && (
           <img
-            src={chaerinArtwork.callBackground.landscape}
+            src={mateCallBackground(mate.id).landscape}
             alt=""
             aria-hidden="true"
             className="mate-card-bg-img"
@@ -71,9 +71,9 @@ export function MateCard({ mate }: { mate: AvailableMate }) {
       <div className="mate-card-copy">
         <div className="mate-card-heading">
           <h3 className="type-card-title">{mate.name}</h3>
-          <span className="mate-card-status-label mate-card-status-label--online">연결 가능</span>
+          <span className="mate-card-status-label mate-card-status-label--online" data-tour="mate-card-status">연결 가능</span>
         </div>
-        <span className="mate-age-badge">전연령</span>
+        <span className="mate-age-badge" data-rating={mate.ageRating}>{ageRatingLabel(mate.ageRating)}</span>
         {mate.introduction && <p>{mate.introduction}</p>}
         {mate.tags.length > 0 && (
           <div className="mate-tags">

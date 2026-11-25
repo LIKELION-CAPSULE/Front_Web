@@ -13,9 +13,10 @@ export type LoginDesktopEvent =
   | { name: 'login_desktop_icon_opened'; payload: { iconId: string } }
   | { name: 'login_photos_unlocked'; payload: { taps: number } }
   | { name: 'login_photo_viewed'; payload: { photoId: string } }
-  | { name: 'login_assemble_started'; payload: { method: 'drag' | 'keyboard' } }
-  | { name: 'login_assemble_completed'; payload: { result: 'live' | 'static' } }
-  | { name: 'login_assemble_replayed'; payload: Record<string, never> }
+  /** The dozing mate on /login was woken (how) and on which path (Live2D or stills). */
+  | { name: 'login_doze_woken'; payload: { method: 'tap' | 'keyboard' | 'near' | 'auto'; mode: 'live' | 'static' } }
+  /** 「다시 보기」: she was put back to sleep. */
+  | { name: 'login_doze_replayed'; payload: Record<string, never> }
 
 type LoginEventListener = (event: LoginDesktopEvent) => void
 

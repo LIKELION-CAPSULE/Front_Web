@@ -75,20 +75,22 @@ test('month navigation handles short months and crosses year boundaries without 
   assert.equal(getRecordRange('month', now, 13).startDay, '2029-02-01')
 })
 
-test('record filtering includes start, excludes end and orders recent sessions first', () => {
+test('record filtering uses the start time: includes the range start, excludes its end, newest first', () => {
   const range = getRecordRange('month', Date.parse('2026-10-27T10:00:00+09:00'))
+  const startingAt = (startedAt: number) => record(startedAt + 60000)
   const source = [
-    record(range.start - 1),
-    record(range.start),
-    record(range.end),
-    record(range.end - 1),
+    startingAt(range.start - 1),
+    startingAt(range.start),
+    startingAt(range.end),
+    startingAt(range.end - 1),
   ]
   const found = recordsInRange(source, range)
   assert.deepEqual(
-    found.map((item) => item.endedAt),
+    found.map((item) => item.startedAt),
     [range.end - 1, range.start],
   )
-  assert.equal(source[0]!.endedAt, range.start - 1)
+  // A connection that started just before the range and ended inside it belongs to the previous period.
+  assert.equal(source[0]!.startedAt, range.start - 1)
 })
 
 test('period summaries weight focus by time and count companions once', () => {

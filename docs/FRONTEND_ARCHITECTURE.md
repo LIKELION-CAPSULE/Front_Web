@@ -47,7 +47,7 @@ tests/demo-reducer.test.ts             Node 내장 테스트 러너로 상태 �
 - `shared/ui`는 도메인 규칙 없이 버튼·이동·입력·빈 상태·모달·탭·통계 패널을 제공합니다. `Button`은 동작, `ButtonLink`는 이동입니다.
 - `CharacterTile`은 캐릭터 칸, `CharacterFigure`는 크기별 실루엣을 담당합니다. 공부 그리드·포커스·휴식에서 공유합니다.
 - `ChatComposer`는 공부 중 미니 입력과 휴식 입력을 공유하고, `UpgradePanel`은 베이직 소진 시트와 유료 승급 팝오버를 공유합니다.
-- `MemoryEditor`, `SessionList`, `FocusTimeline`도 여러 화면의 공통 조각입니다.
+- `MemoryEditor`도 여러 화면의 공통 조각입니다. (`SessionList`·`FocusTimeline`은 2026-11-24에 쓰이지 않아 삭제했습니다.)
 - `cn`에서 `tailwind-merge`를 사용해 공통 UI의 크기·색 옵션이 호출부에서 정확히 덮어써지도록 합니다.
 
 페이지는 default export, 공유/기능 컴포넌트는 named export를 사용합니다. import alias는 `@/`이며 Vite와 TypeScript에 함께 설정합니다.
@@ -147,7 +147,7 @@ BrowserRouter를 사용하므로 배포 시 직접 URL 접근에 SPA fallback이
 - `RoomArtwork`: 이미지 레이어와 제목 DOM 합성. 배경 cover, 전경 contain.
 - `draw-artwork.ts`: 동일한 레이어를 PNG 내보내기에 사용.
 - `PageSkeleton`: 라우트 지연 로딩의 실제 Suspense fallback.
-- `ActivityHeatmap`: 완료 기록의 날짜별 합계와 선택 날짜 상세.
+- `CapsuleCalendar`(`features/records`): 완료 기록의 날짜별 합계(연결 시작일 기준)와 선택 날짜 상세. 이전의 `ActivityHeatmap`은 2026-11-24에 삭제했습니다.
 - `ProgressRing`: 리포트 집중률의 접근 가능한 meter.
 - `report-relationship.ts` / `RelationshipGain`: 종료 시점의 관계 이전·이후 값과 레벨 경계별 진행·축하 효과. 레벨 규칙과 시간 배분은 공통 selectors를 사용합니다.
 - `CompletionPortrait` / `completion-artwork.ts`: 채린·수아·다희의 종료 전용 이미지와 다른 친구의 기존 장면 대체 표시.

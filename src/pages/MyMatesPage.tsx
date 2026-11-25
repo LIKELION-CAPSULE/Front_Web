@@ -1,31 +1,64 @@
 import { AppPanel } from '@/shared/ui/AppPanel'
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
-import { availableMates, mateByName } from '@/features/mates/catalog'
-import { matePortrait } from '@/features/mates/artwork'
-import { formatNextStageCaption, resolveStageProgress } from '@/features/mates/affinity-progress'
-import {
-  countMateUnlocks,
-  formatFirstMetDate,
-  groupLockedVoices,
-  latestConnectedTimestamp,
-  summarizeMateRecords,
-  type MateVoiceUnlock,
-} from '@/features/mates/my-mates-utils'
-import { SampleAudioPlayer } from '@/features/mates/sample-audio'
-import { ConnectMateButton } from '@/features/mates/components/ConnectMateButton'
+import { availableMates, mateByName, type AvailableMate } from '@/features/mates/catalog'
+import { chaerinArtwork, mateArtwork, matePortrait } from '@/features/mates/artwork'
+import { expressionCount, formatFirstMetDate, latestConnectedTimestamp, summarizeMateRecords, type MateExpressionUnlock } from '@/features/mates/my-mates-utils'
+import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate-features'
+import { expressionThumbnail } from '@/features/mates/expression-thumbnails'
+import { expressionBust } from '@/features/mates/expression-busts'
+import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { MatePreview } from '@/features/mates/components/MatePreview'
-import { RecentConnectionRow } from '@/features/mates/components/RecentConnectionRow'
+import { MateExpressionCollection } from '@/features/mates/components/MateExpressionCollection'
+import { MateSwitcher, type MateSwitcherItem } from '@/features/mates/components/MateSwitcher'
+import { capsuleRecordsFromStudyRecords, formatTogether, totalCapsuleSeconds } from '@/features/mates/capsule-jar/capsule-jar-data'
+import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
+import type { CapsuleJarHandle } from '@/features/mates/capsule-jar/CapsuleJar'
+import { MateTimeColumn, type StageReward } from '@/features/mates/components/MateTimeColumn'
+import { PixelSnow } from '@/features/mates/pixel-snow/PixelSnow'
+import { waistFraming } from '@/features/mates/my-mates-framing'
+import { capsuleJarTheme } from '@/features/mates/capsule-jar/capsule-jar-theme'
+import { affinityProgressView, opensAtNextStage } from '@/features/mates/affinity-progress'
+import { affinityStageLabel, normalizeAffinityStage } from '@/features/mates/affinity-stages'
+import type { StudySettlement } from '@/shared/api/types'
+import { capsuleVisitKey } from '@/features/mates/capsule-jar/capsule-jar-visit'
+import { useCapsuleVisit } from '@/features/mates/capsule-jar/use-capsule-visit'
 import { ButtonLink } from '@/shared/ui/Button'
 import { Icon } from '@/shared/ui/Icon'
-import { dateLabel, duration } from '@/shared/lib/format'
-import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
 import '@/features/mates/my-mates.css'
 
-const EXPRESSION_PREVIEW_MS = 3_000
+/** The mate panel (big Live2D mate over the capsule floor): its own chunk; the three.js scene inside loads once it is on screen. */
+const CapsuleJar = lazy(() => import('@/features/mates/capsule-jar/CapsuleJar'))
+
+// Capsule scene preview (`?capsules=preview`): development / local dummy mode only. In production builds the
+// branch is a constant `null`, so the preview is not bundled at all.
+const CapsuleJarPreview = import.meta.env.DEV
+  ? lazy(() => import('@/features/mates/capsule-jar/CapsuleJarPreview'))
+  : null
+
+type DevSamples = typeof import('@/features/mates/dev-samples')
+
+/**
+ * Sample affinity / expressions and preview mates: development only. `import.meta.env.DEV` is a build-time constant,
+ * so in production this hook returns null and the dynamic import (and the samples) are not bundled.
+ */
+function useDevSamples(): DevSamples | null {
+  const [samples, setSamples] = useState<DevSamples | null>(null)
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    let cancelled = false
+    void import('@/features/mates/dev-samples').then((module) => {
+      if (!cancelled) setSamples(module)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return import.meta.env.DEV ? samples : null
+}
 
 function isReviewMyMatesLoading(): boolean {
   return (
@@ -35,129 +68,127 @@ function isReviewMyMatesLoading(): boolean {
   )
 }
 
-function MyMatesWindowFrame({
-  loadingScreen,
-  children,
-}: {
-  loadingScreen?: 'my-mates'
-  children: React.ReactNode
-}) {
-  return <AppPanel title="내 메이트" className="my-mates-window" loadingScreen={loadingScreen} bodyClassName="my-mates-window-body">
-    {children}
-  </AppPanel>
+function MyMatesWindowFrame({ loadingScreen, children }: { loadingScreen?: 'my-mates'; children: React.ReactNode }) {
+  return (
+    <AppPanel title="내 메이트" hideTitle className="my-mates-window" loadingScreen={loadingScreen} bodyClassName="my-mates-window-body">
+      {children}
+    </AppPanel>
+  )
+}
+
+/** The mate's v2 card still; mates without bundled stills use the server's portrait. */
+function cardArtFor(mate: AvailableMate) {
+  return mateArtwork(mate.id)?.card ?? matePortrait(mate.id, mate.image)
 }
 
 export default function MyMatesPage() {
-  const {
-    home,
-    activeSummary,
-    status,
-    mateDetails,
-    loadMateDetail,
-    mateUnlocks,
-    mateRelationStats,
-  } = useBackend()
+  const { home, activeSummary, status, mateDetails, loadMateDetail, mateUnlocks, mateRelationStats } = useBackend()
   const { state } = useDemo()
   const [searchParams, setSearchParams] = useSearchParams()
   const [modelAttempt, setModelAttempt] = useState(0)
+  const [listView, setListView] = useState(false)
+  const [expression, setExpression] = useState<MateExpressionUnlock | null>(null)
+  /** The first scene pours in fully; after picking another mate the pour is short. */
+  const [pourKind, setPourKind] = useState<'enter' | 'switch'>('enter')
+  const devSamples = useDevSamples()
+  const jarRef = useRef<CapsuleJarHandle>(null)
 
-  // Expression preview state (reverts after 3s or toggle off)
-  const [activeExpression, setActiveExpression] = useState<string | null>(null)
-  const expressionTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  // Single audio player guarantees at most one voice plays at a time
-  const [player] = useState(() => new SampleAudioPlayer())
-  const audioStatus = useSyncExternalStore(player.subscribe, player.getSnapshot, player.getSnapshot)
-  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
-
+  const features = resolveMateFeatures(import.meta.env.DEV, searchParams.get('features'))
+  // Every development-only branch below starts with `import.meta.env.DEV` so production builds drop it entirely.
+  const previewMates =
+    import.meta.env.DEV && devSamples && searchParams.get('mates') === 'demo' ? devSamples.PREVIEW_MATES : null
   const loading = status === 'loading' || isReviewMyMatesLoading()
 
-  const connectedMates = useMemo(() => {
-    const filtered = availableMates(home).filter(
-      (mate) =>
-        state.activeSession?.characterIds.includes(mate.characterId) ||
-        Boolean(mateByName(activeSummary?.characterName, [mate])) ||
-        state.records.some(
-          (record) => Boolean(record.serverReport) && record.characterIds.includes(mate.characterId),
-        ),
-    )
-    return filtered.slice().sort((a, b) => {
-      const aActive =
-        Boolean(state.activeSession?.characterIds.includes(a.characterId)) ||
-        Boolean(mateByName(activeSummary?.characterName, [a]))
-      const bActive =
-        Boolean(state.activeSession?.characterIds.includes(b.characterId)) ||
-        Boolean(mateByName(activeSummary?.characterName, [b]))
-      return (
-        latestConnectedTimestamp(b.characterId, state.records, bActive) -
-        latestConnectedTimestamp(a.characterId, state.records, aActive)
+  // Every open mate, the most recently connected first (the first one is shown when `?mate=` is absent).
+  const mates = useMemo(() => {
+    const isActive = (mate: AvailableMate) =>
+      Boolean(state.activeSession?.characterIds.includes(mate.characterId)) ||
+      Boolean(mateByName(activeSummary?.characterName, [mate]))
+    return availableMates(home)
+      .slice()
+      .sort(
+        (a, b) =>
+          latestConnectedTimestamp(b.characterId, state.records, isActive(b)) -
+          latestConnectedTimestamp(a.characterId, state.records, isActive(a)),
       )
-    })
   }, [home, state.activeSession, state.records, activeSummary])
 
   const requestedMateId = searchParams.get('mate')
-  const selectedMate =
-    (requestedMateId ? connectedMates.find((mate) => mate.id === requestedMateId) : undefined) ??
-    connectedMates[0]
+  const previewMate = import.meta.env.DEV ? previewMates?.find((mate) => mate.id === requestedMateId) : undefined
+  const selectedMate = (requestedMateId ? mates.find((mate) => mate.id === requestedMateId) : undefined) ?? mates[0]
+  const selectedId = previewMate?.id ?? selectedMate?.id
+  const detail = selectedMate ? mateDetails[selectedMate.id] : undefined
 
-  const selectedMateId = selectedMate?.id
-  const detail = selectedMateId ? mateDetails[selectedMateId] : undefined
-
-  // Load Live2D/preview detail for selected mate if available
+  // The big Live2D mate: the hero still shows first; the model is fetched only after the entry pour is over (the
+  // scene reports it, so it is on screen too) and the browser is idle, then MatePreview crossfades to it.
+  const [liveFor, setLiveFor] = useState<string | null>(null)
+  const liveAllowed = Boolean(selectedId) && liveFor === selectedId
+  const capsulePreview = Boolean(import.meta.env.DEV) && searchParams.get('capsules') === 'preview'
+  const onSceneSettled = useCallback(() => {
+    if (!selectedId) return
+    const allow = () => setLiveFor(selectedId)
+    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(allow, { timeout: 1500 })
+    else window.setTimeout(allow, 200)
+  }, [selectedId])
   useEffect(() => {
-    if (!selectedMateId || !loadMateDetail || detail) return
-    void loadMateDetail(selectedMateId, modelAttempt > 0).catch(() => {})
-  }, [selectedMateId, loadMateDetail, detail, modelAttempt])
+    if (!selectedMate || !loadMateDetail || detail || !(liveAllowed || capsulePreview)) return
+    void loadMateDetail(selectedMate.id, modelAttempt > 0).catch(() => {})
+  }, [selectedMate, loadMateDetail, detail, modelAttempt, liveAllowed, capsulePreview])
 
-  // Stop voice and clear expression override when switching mates or unmounting
+  // Reduced motion draws no live model: a picked expression swaps the still for that expression's still.
+  const reducedMotion = useReducedMotion()
+  const [bust, setBust] = useState<{ file: string; url: string | undefined } | null>(null)
+  const bustMateId = previewMate ? 'chaerin' : selectedMate?.id
+  const pickedFile = expression?.expressionFile ?? null
   useEffect(() => {
+    if (!reducedMotion || !pickedFile || !bustMateId) return
+    let alive = true
+    void expressionBust(bustMateId, pickedFile)
+      .then((url) => {
+        if (alive) setBust({ file: pickedFile, url })
+      })
+      .catch(() => {})
     return () => {
-      clearTimeout(expressionTimerRef.current)
-      player.stop()
+      alive = false
     }
-  }, [selectedMateId, player])
+  }, [reducedMotion, pickedFile, bustMateId])
+  const stillImage = reducedMotion && bust && bust.file === pickedFile ? bust.url : undefined
 
   const selectMate = useCallback(
     (mateId: string) => {
-      clearTimeout(expressionTimerRef.current)
-      setActiveExpression(null)
-      player.stop()
-      setPlayingVoiceId(null)
+      setExpression(null)
+      setPourKind('switch')
       const next = new URLSearchParams(searchParams)
       if (next.get('mate') !== mateId) {
         next.set('mate', mateId)
         setSearchParams(next)
       }
     },
-    [player, searchParams, setSearchParams],
+    [searchParams, setSearchParams],
   )
 
-  const toggleExpression = useCallback((expressionFile: string) => {
-    clearTimeout(expressionTimerRef.current)
-    setActiveExpression((current) => {
-      if (current === expressionFile) return null
-      expressionTimerRef.current = setTimeout(() => {
-        setActiveExpression(null)
-      }, EXPRESSION_PREVIEW_MS)
-      return expressionFile
-    })
-  }, [])
+  const capsules = useMemo(() => {
+    if (import.meta.env.DEV && previewMate && devSamples) {
+      return devSamples.generateDummyCapsules(previewMate.count, { seed: previewMate.seed, idPrefix: previewMate.id })
+    }
+    return selectedMate ? capsuleRecordsFromStudyRecords(state.records, selectedMate.characterId) : []
+  }, [previewMate, devSamples, selectedMate, state.records])
+  const visit = useCapsuleVisit(capsuleVisitKey(state.profile.userId, selectedId ?? 'none'), capsules)
 
-  const toggleVoice = useCallback(
-    (voice: MateVoiceUnlock) => {
-      if (!voice.unlocked || !voice.audioUrl) return
-      const isCurrentPlaying =
-        playingVoiceId === voice.id && (audioStatus === 'playing' || audioStatus === 'loading')
-      if (isCurrentPlaying) {
-        player.stop()
-        setPlayingVoiceId(null)
-        return
-      }
-      setPlayingVoiceId(voice.id)
-      void player.play(voice.audioUrl)
-    },
-    [audioStatus, player, playingVoiceId],
-  )
+  if (CapsuleJarPreview && searchParams.get('capsules') === 'preview') {
+    return (
+      <Suspense fallback={null}>
+        <CapsuleJarPreview
+          records={state.records}
+          characterId={selectedMate?.characterId}
+          mateId={selectedMate?.id ?? 'chaerin'}
+          mateName={selectedMate?.name ?? '채린'}
+          userId={state.profile.userId}
+          model={detail?.model}
+        />
+      </Suspense>
+    )
+  }
 
   if (loading) {
     return (
@@ -166,264 +197,187 @@ export default function MyMatesPage() {
           <span className="sr-only" role="status">
             내 메이트 정보를 불러오고 있어요.
           </span>
-          <div className="my-mates-skeleton-chips" aria-hidden="true">
-            <span className="skeleton-line my-mates-skeleton-chip" />
-          </div>
-          <div className="my-mates-skeleton-profile" aria-hidden="true">
-            <span className="skeleton-line my-mates-skeleton-stage" />
-            <div className="my-mates-skeleton-info">
-              <span className="skeleton-line my-mates-skeleton-title" />
-              <span className="skeleton-line my-mates-skeleton-bar" />
-              <span className="skeleton-line my-mates-skeleton-stats" />
-              <span className="skeleton-line my-mates-skeleton-btn" />
-            </div>
+          <div className="my-mates-skeleton-scene skeleton-line" aria-hidden="true" />
+          <div className="my-mates-skeleton-bar" aria-hidden="true">
+            <span className="skeleton-line" />
+            <span className="skeleton-line" />
           </div>
         </div>
       </MyMatesWindowFrame>
     )
   }
 
-  if (!selectedMate) {
+  if (!selectedMate || !selectedId) {
     return (
       <MyMatesWindowFrame>
         <div className="my-mates-empty-box">
-          <p className="my-mates-empty-title">아직 연결한 메이트가 없어요.</p>
-          <ButtonLink to="/">메이트 만나러 가기</ButtonLink>
+          <p className="my-mates-empty-title">아직 만날 수 있는 메이트가 없어요.</p>
+          <ButtonLink to="/">홈으로 가기</ButtonLink>
         </div>
       </MyMatesWindowFrame>
     )
   }
 
-  const serverStats = mateRelationStats?.[selectedMate.id]
-  const summary = summarizeMateRecords(state.records, selectedMate.characterId, serverStats)
-  const relation = summary.relation
-  const stageName = relation?.stageName?.trim() || ''
-  const stageProgress = resolveStageProgress(relation)
-  const progressPct = stageProgress !== null ? Math.round(stageProgress * 100) : null
-  const nextStageCaption = formatNextStageCaption(relation, duration)
-  const hasStats =
-    summary.togetherSeconds !== null ||
-    summary.connectionCount !== null ||
-    summary.firstMetAt !== null
+  const mateName = previewMate?.name ?? selectedMate.name
+  const totalSeconds = totalCapsuleSeconds(capsules)
+  const summary = summarizeMateRecords(state.records, selectedMate.characterId, mateRelationStats?.[selectedMate.id])
+  const firstMetAt = previewMate ? capsules[0]?.startedAt ?? null : summary.firstMetAt
 
-  const unlocks = mateUnlocks?.[selectedMate.id]
-  const unlockCounts = countMateUnlocks(unlocks)
-  const previewScope = `my-mates:${state.profile.userId ?? 'guest'}:${selectedMate.id}:${modelAttempt}`
+  // Affinity: the server's stage when it sends one, sample data in development (mate-features.ts decides).
+  // The stage is put on the one stage table (affinity-stages.ts) by its name.
+  // Development only: `?affinity=1…5` puts the page at that stage with sample progress (the local mock tool sets it).
+  const serverStage = normalizeAffinityStage(summary.relation?.stage, summary.relation?.stageName)
+  const devStage = import.meta.env.DEV ? Number(searchParams.get('affinity')) : Number.NaN
+  const relation: (Partial<StudySettlement> & { stage: number; stageName: string }) | null = features.affinity
+    ? import.meta.env.DEV && devSamples && Number.isInteger(devStage) && devStage >= 1 && devStage <= 5
+      ? devSamples.sampleRelation(devSamples.sampleSecondsForStage(devStage))
+      : serverStage && !previewMate
+      ? { ...summary.relation, ...serverStage }
+      : import.meta.env.DEV
+        ? (devSamples?.sampleRelation(totalSeconds) ?? null)
+        : null
+    : null
+  const expressions = features.expressions
+    ? ((!previewMate ? mateUnlocks?.[selectedMate.id]?.expressions : undefined) ??
+      (import.meta.env.DEV ? devSamples?.sampleUnlocks(relation?.stage ?? 1, firstMetAt ?? undefined, previewMate ? 'chaerin' : selectedMate.id).expressions : null) ??
+      null)
+    : null
+  // The one progress on the page: the affinity stage (the panel caption shows the stage, the column the rest).
+  const affinity = relation ? affinityProgressView(relation, expressions ?? [], AFFINITY_STAGE_COUNT, formatTogether) : null
+  // The next stage's rewards: its locked expressions, shown as locked slots beside the progress.
+  const nextRewards: StageReward[] =
+    relation && expressions
+      ? expressions
+          .filter((item) => opensAtNextStage(item, relation.stage, affinity?.nextStageName ?? null))
+          .map((item) => ({
+            id: item.id,
+            label: item.label,
+            thumbnail: expressionThumbnail(previewMate ? 'chaerin' : selectedMate.id, item.expressionFile),
+            tint: previewMate?.tint,
+          }))
+      : []
+  // Preview mates reuse 채린's art, so they reuse her face thumbnails too.
+  const thumbnailMateId = previewMate ? 'chaerin' : selectedMate.id
+
+  const switcherMates: MateSwitcherItem[] = [
+    ...mates.map((mate) => ({ id: mate.id, name: mate.name, image: cardArtFor(mate) })),
+    ...(import.meta.env.DEV && previewMates ? previewMates : []).map((mate) => ({ id: mate.id, name: mate.name, image: chaerinArtwork.card, tint: mate.tint })),
+  ]
+
+  // The panel's mate: the big Live2D bust (gaze follows the pointer; the v2 hero still under reduced motion, while
+  // loading and on failure). A picked expression plays here.
+  // Development preview mates reuse 채린's art in their own colours (a CSS filter on the whole layer).
+  const mateLayer = (
+    <div className="my-mates-live-tint" style={previewMate?.tint ? { filter: previewMate.tint } : undefined}>
+    <MatePreview
+      mode="detail"
+      mateId={selectedMate.id}
+      model={previewMate || !liveAllowed ? undefined : detail?.model}
+      stillImage={stillImage}
+      scope={`my-mates-panel:${state.profile.userId ?? 'guest'}:${selectedMate.id}:${modelAttempt}`}
+      image={matePortrait(selectedMate.id, selectedMate.image)}
+      name={mateName}
+      paused={listView}
+      suppressSpeech
+      showAgeBadge={false}
+      overrideExpression={expression?.expressionFile ?? null}
+      stageClassName="my-mates-live"
+      framing={waistFraming}
+      onRetry={() => setModelAttempt((value) => value + 1)}
+    />
+    </div>
+  )
+  const caption = (
+    <>
+      <p className="my-mates-caption-name">{mateName}</p>
+      {relation && <p className="my-mates-caption-stage">{affinityStageLabel(relation.stage, relation.stageName)}</p>}
+      {firstMetAt && <p className="my-mates-caption-date">처음 만난 날 {formatFirstMetDate(firstMetAt)}</p>}
+    </>
+  )
+  // Expression collection (feature on): picking one makes the big mate wear it.
+  const expressionBlock =
+    expressions && expressions.length > 0
+      ? {
+          ...expressionCount(expressions),
+          tiles: (
+            <MateExpressionCollection
+              expressions={expressions}
+              selected={expression?.expressionFile ?? null}
+              onSelect={setExpression}
+              thumbnailFor={(file) => expressionThumbnail(thumbnailMateId, file)}
+              tint={previewMate?.tint}
+              labelledBy="my-mates-expressions-label"
+            />
+          ),
+        }
+      : null
+
+  const capsuleCount = capsules.reduce((sum, capsule) => sum + capsulesForConnection(capsule.durationSeconds), 0)
+  // The list toggle sits in the recent block's title row; the main action takes the column's full width.
+  const listToggle = (
+    <button type="button" className="my-mates-list-toggle" aria-pressed={listView} onClick={() => setListView(!listView)}>
+      {listView ? '장면으로 보기' : '목록으로 보기'}
+    </button>
+  )
+  const actions = (
+    <>
+      {import.meta.env.DEV && previewMate ? (
+        <span className="my-mates-meet my-mates-meet--disabled" aria-disabled="true" data-tour="my-mates-meet">시안 메이트예요</span>
+      ) : (
+        <ButtonLink to={`/mates/${selectedMate.id}`} className="my-mates-meet" data-tour="my-mates-meet">
+          {`${mateName} 만나러 가기`}
+          <Icon name="chevron" size={16} />
+        </ButtonLink>
+      )}
+    </>
+  )
 
   return (
     <MyMatesWindowFrame>
-      <nav className="my-mates-chips" aria-label="연결한 메이트">
-        {connectedMates.map((mate) => {
-          const isSelected = mate.id === selectedMate.id
-          return (
-            <button
-              key={mate.id}
-              type="button"
-              className="my-mates-chip"
-              aria-pressed={isSelected}
-              data-mate-chip={mate.id}
-              onClick={() => selectMate(mate.id)}
-            >
-              <span className="desktop-mate-dot" aria-hidden="true" />
-              <span>{mate.name}</span>
-            </button>
-          )
-        })}
-      </nav>
-
-      <div className="my-mates-profile">
-        <MatePreview
-          mode="record"
-          mateId={selectedMate.id}
-          model={detail?.model}
-          scope={previewScope}
-          image={matePortrait(selectedMate.id, selectedMate.image)}
-          name={selectedMate.name}
-          paused={false}
-          suppressSpeech
-          showAgeBadge={false}
-          initialExpression="smile"
-          overrideExpression={activeExpression}
-          stageClassName="my-mates-stage"
-          onRetry={() => setModelAttempt((value) => value + 1)}
-        />
-
-        <div className="my-mates-info">
-          <h2 className="my-mates-heading">
-            <span>{selectedMate.name}</span>
-            {stageName && <span className="my-mates-stage-name">· {stageName}</span>}
-          </h2>
-
-          {(progressPct !== null || nextStageCaption !== null) && (
-            <div className="my-mates-progress">
-              {progressPct !== null && (
-                <div
-                  className="my-mates-progress-track"
-                  role="progressbar"
-                  aria-label="친밀도 진행률"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={progressPct}
-                >
-                  <div className="my-mates-progress-fill" style={{ width: `${progressPct}%` }} />
-                </div>
-              )}
-              {nextStageCaption !== null && (
-                <p className="my-mates-progress-caption">{nextStageCaption}</p>
-              )}
-            </div>
-          )}
-
-          {hasStats && (
-            <dl className="my-mates-stats">
-              {summary.togetherSeconds !== null && (
-                <div className="my-mates-stat">
-                  <dt>함께한 시간</dt>
-                  <dd>{duration(summary.togetherSeconds)}</dd>
-                </div>
-              )}
-              {summary.connectionCount !== null && (
-                <div className="my-mates-stat">
-                  <dt>연결 횟수</dt>
-                  <dd>{summary.connectionCount}회</dd>
-                </div>
-              )}
-              {summary.firstMetAt !== null && (
-                <div className="my-mates-stat">
-                  <dt>처음 만난 날</dt>
-                  <dd>{formatFirstMetDate(summary.firstMetAt)}</dd>
-                </div>
-              )}
-            </dl>
-          )}
-
-          <div className="my-mates-cta">
-            <ConnectMateButton mate={selectedMate} />
-          </div>
+      {/* Pixel snow behind the page, richer with the affinity stage (stage 1 snow when affinity is off); it shows
+          through the glass blocks as soft lights. */}
+      <PixelSnow stage={relation?.stage ?? 1} glowBehind=".mate-game-block, .mate-switcher-chip" />
+      <div className="my-mates-layout">
+        <div className="my-mates-switcher-slot">
+          <MateSwitcher mates={switcherMates} selectedId={selectedId} onSelect={selectMate} />
         </div>
+
+        <div className="my-mates-scene" data-tour="my-mates-scene">
+          <Suspense fallback={<div className="my-mates-scene-loading" aria-busy="true" />}>
+            <CapsuleJar
+              // One scene per mate: nothing of the previous mate's opening or record card can linger.
+              key={selectedId}
+              ref={jarRef}
+              pour={pourKind}
+              mateId={selectedId}
+              mateName={mateName}
+              capsules={capsules}
+              dropIds={visit.dropIds}
+              mateLayer={mateLayer}
+              caption={caption}
+              onSettled={onSceneSettled}
+              showHeader={false}
+              listView={listView}
+              onListViewChange={setListView}
+            />
+          </Suspense>
+        </div>
+
+        <MateTimeColumn
+          totalSeconds={totalSeconds}
+          connections={capsules}
+          capsuleCount={capsuleCount}
+          newIds={visit.dropIds}
+          affinity={affinity}
+          nextRewards={nextRewards}
+          expressions={expressionBlock}
+          theme={capsuleJarTheme(selectedId)}
+          onOpen={(id) => jarRef.current?.openCapsule(id)}
+          onPoint={(id) => jarRef.current?.highlight(id)}
+          listToggle={listToggle}
+          actions={actions}
+        />
       </div>
-
-      {unlocks && unlockCounts && (
-        <section className="my-mates-section" aria-labelledby="my-mates-unlocks-title" data-unlocks-section>
-          <h2 id="my-mates-unlocks-title" className="my-mates-section-title">
-            해금 {unlockCounts.unlocked} / {unlockCounts.total}
-          </h2>
-
-          {unlocks.expressions.length > 0 && (
-            <>
-              <h3 className="my-mates-subsection-title">표정</h3>
-              <div className="my-mates-expr-grid">
-                {unlocks.expressions.map((item) => {
-                  if (!item.unlocked) {
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className="my-mates-expr-tile my-mates-expr-tile--locked"
-                        disabled
-                        data-expr-locked="true"
-                      >
-                        <span className="my-mates-expr-lock-row">
-                          <Icon name="lock" size={16} />
-                        </span>
-                        {item.condition && (
-                          <span className="my-mates-expr-condition">{item.condition}</span>
-                        )}
-                      </button>
-                    )
-                  }
-                  const isActive = activeExpression === item.expressionFile
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="my-mates-expr-tile"
-                      aria-pressed={isActive}
-                      data-expr-file={item.expressionFile}
-                      onClick={() => toggleExpression(item.expressionFile)}
-                    >
-                      <span className="my-mates-expr-name">{item.label}</span>
-                      {item.unlockedAt !== undefined && (
-                        <span className="my-mates-expr-date">{dateLabel(item.unlockedAt)}</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          )}
-
-          {unlocks.voices.length > 0 && (
-            <>
-              <h3 className="my-mates-subsection-title">보이스 대사</h3>
-              <ul className="my-mates-voice-list">
-                {unlocks.voices
-                  .filter((item) => item.unlocked)
-                  .map((item) => {
-                    const isPlaying =
-                      playingVoiceId === item.id &&
-                      (audioStatus === 'playing' || audioStatus === 'loading')
-                    return (
-                      <li
-                        key={item.id}
-                        className="my-mates-voice-item"
-                        data-voice-id={item.id}
-                        data-playing={isPlaying ? 'true' : undefined}
-                      >
-                        <button
-                          type="button"
-                          className="my-mates-voice-btn"
-                          aria-label={
-                            isPlaying ? `'${item.text}' 멈추기` : `'${item.text}' 다시 듣기`
-                          }
-                          aria-pressed={isPlaying}
-                          disabled={!item.audioUrl}
-                          onClick={() => toggleVoice(item)}
-                        >
-                          <Icon name={isPlaying ? 'stop' : 'play'} size={14} />
-                        </button>
-                        <span className="my-mates-voice-text">{item.text}</span>
-                      </li>
-                    )
-                  })}
-                {groupLockedVoices(unlocks.voices).map((group) => (
-                  <li
-                    key={group.condition || '__empty__'}
-                    className="my-mates-voice-item my-mates-voice-item--locked"
-                    data-locked-voice-group={group.condition || 'default'}
-                  >
-                    <span className="my-mates-voice-lock" aria-hidden="true">
-                      <Icon name="lock" size={14} />
-                    </span>
-                    <span className="my-mates-voice-condition">{group.label}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-      )}
-
-      {summary.recentRecords.length > 0 && (
-        <section className="my-mates-section" aria-labelledby="my-mates-recent-title">
-          <h2 id="my-mates-recent-title" className="my-mates-section-title">
-            최근 연결
-          </h2>
-          <ul className="my-mates-recent-list">
-            {summary.recentRecords.map((record) => (
-              <li key={record.id}>
-                <RecentConnectionRow record={record} />
-              </li>
-            ))}
-          </ul>
-          {summary.hasMoreRecords && (
-            <Link to="/records" className="my-mates-more-link">
-              내 기록에서 모두 보기
-              <Icon name="chevron" size={14} />
-            </Link>
-          )}
-        </section>
-      )}
     </MyMatesWindowFrame>
   )
 }

@@ -1,0 +1,199 @@
+/* Capsule scene (card + capsule pile) · docs/DESIGN_SYSTEM.md: dark canvas, no outlines on cards/panels, purple only as accent. */
+
+.capsule-jar {
+  --jar-stage-height: clamp(480px, 70vh, 660px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 24px;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+.capsule-jar-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.capsule-jar-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.capsule-jar-meta {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--color-subtle);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.capsule-jar-toggle {
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-control);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.capsule-jar-toggle:hover { background: var(--color-control-hover); }
+.capsule-jar-toggle[aria-pressed='true'] { background: var(--color-selected); color: var(--color-selected-text); }
+
+.capsule-jar :focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+.capsule-jar-stage:focus-visible { outline-offset: -2px; }
+
+.capsule-jar-body {
+  position: relative;
+  min-height: var(--jar-stage-height);
+}
+
+.capsule-jar-stage {
+  position: relative;
+  isolation: isolate;
+  height: var(--jar-stage-height);
+  overflow: hidden;
+  border-radius: 20px;
+  outline: none;
+}
+.capsule-jar-stage[hidden] { display: none; }
+
+.capsule-jar-host {
+  position: absolute;
+  inset: 0;
+}
+
+.capsule-jar-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+}
+
+/* 2D fallback: the floor drawn at the bottom of the panel. */
+.capsule-jar-fallback { position: absolute; inset: 0; width: 100%; height: 100%; }
+.capsule-jar-fallback-capsule { cursor: pointer; }
+
+/* ── Mate panel layers over the canvas: the mate, the bottom shade, the caption ── */
+/* The mate lets pointer events through to the capsules (except where the scene's mate zone says otherwise). */
+.capsule-jar-mate { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+
+.capsule-jar-caption { position: absolute; inset: auto 0 0; z-index: 3; padding: 0 28px 26px; pointer-events: none; }
+
+.capsule-jar-tooltip-anchor {
+  z-index: 4;
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+.capsule-jar-tooltip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--color-floating);
+  box-shadow: var(--popover-shadow);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums lining-nums;
+  animation: capsule-jar-fade 140ms ease-out both;
+}
+.capsule-jar-tooltip-date { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; line-height: 20px; font-weight: 600; color: var(--color-ink); }
+.capsule-jar-tooltip-band { width: 7px; height: 7px; border-radius: 50%; }
+.capsule-jar-tooltip-keepsake { font-size: 12px; line-height: 18px; font-weight: 700; color: var(--color-text-accent); }
+.capsule-jar-tooltip-time { font-size: 12px; line-height: 18px; color: var(--color-muted); }
+
+/* First capsule / no capsule yet: a quiet invitation under the pedestal. */
+.capsule-jar-welcome {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  text-align: center;
+  pointer-events: none;
+  animation: capsule-jar-fade 600ms ease-out both;
+}
+.capsule-jar-welcome-title {
+  margin: 0;
+  font-family: var(--font-story);
+  font-size: 17px;
+  line-height: 26px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+.capsule-jar-welcome-text { margin: 2px 0 0; font-size: 13px; line-height: 20px; color: var(--color-subtle); }
+
+/* ── List view ── */
+.capsule-jar-list {
+  max-height: var(--jar-stage-height);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.capsule-jar-list ul { margin: 0; padding: 0; list-style: none; }
+.capsule-jar-list-day + .capsule-jar-list-day { margin-top: 16px; }
+.capsule-jar-list-date {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.capsule-jar-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.capsule-jar-list-item:hover { background: var(--color-surface-hover); }
+.capsule-jar-list-text { flex: 1; min-width: 0; color: var(--color-muted); }
+.capsule-jar-list-duration { flex: none; color: var(--color-ink); font-variant-numeric: tabular-nums lining-nums; }
+.capsule-jar-list-empty { margin: 24px 0; text-align: center; color: var(--color-subtle); }
+
+@keyframes capsule-jar-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes capsule-jar-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+.capsule-jar[data-reduced-motion='true'] *,
+.capsule-jar[data-reduced-motion='true'] *::before,
+.capsule-jar[data-reduced-motion='true'] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .capsule-jar *,
+  .capsule-jar *::before,
+  .capsule-jar *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .capsule-jar { --jar-stage-height: 460px; padding: 16px; }
+  .capsule-jar-header { flex-wrap: wrap; }
+}
+

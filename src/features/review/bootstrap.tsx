@@ -222,14 +222,14 @@ export async function mountReview(root: HTMLElement, id: string | null) {
                   label: '눈 감고 웃음',
                   expressionFile: 'files/005.exp3.json',
                   unlocked: false,
-                  condition: '친한 친구 단계에서 열려요',
+                  condition: '4단계 · 친한 친구에서 열려요',
                 },
                 {
                   id: 'expr-surprise',
                   label: '깜짝 놀람',
                   expressionFile: 'files/006.exp3.json',
                   unlocked: false,
-                  condition: '단짝 단계에서 열려요',
+                  condition: '5단계 · 단짝에서 열려요',
                 },
               ],
               voices: [
@@ -257,11 +257,35 @@ export async function mountReview(root: HTMLElement, id: string | null) {
                   audioUrl: silentWav,
                   unlocked: true,
                 },
-                { id: 'voice-5', text: '', unlocked: false, condition: '친한 친구 단계에서 열려요' },
-                { id: 'voice-6', text: '', unlocked: false, condition: '친한 친구 단계에서 열려요' },
-                { id: 'voice-7', text: '', unlocked: false, condition: '단짝 단계에서 열려요' },
-                { id: 'voice-8', text: '', unlocked: false, condition: '단짝 단계에서 열려요' },
+                { id: 'voice-5', text: '', unlocked: false, condition: '4단계 · 친한 친구에서 열려요' },
+                { id: 'voice-6', text: '', unlocked: false, condition: '4단계 · 친한 친구에서 열려요' },
+                { id: 'voice-7', text: '', unlocked: false, condition: '5단계 · 단짝에서 열려요' },
+                { id: 'voice-8', text: '', unlocked: false, condition: '5단계 · 단짝에서 열려요' },
               ],
+            },
+          },
+        }),
+        subscribe: () => () => {},
+        redeemInvitation: async () => {},
+        setSettings: () => {},
+      }
+    }
+    if (scenario.id === 'connection-record-levelup') {
+      // The reviewed session opened a new expression, so the level-up card shows its unlock box.
+      return {
+        read: () => ({
+          wallet: baseWallet,
+          invitation: baseInvitation,
+          records: [],
+          messages: [],
+          affinities: {},
+          settings: { voice: false, advanced: false },
+          mateUnlocks: {
+            chaerin: {
+              expressions: [
+                { id: 'expr-eyes-closed', label: '눈 감고 웃음', expressionFile: 'files/005.exp3.json', unlocked: true, unlockedAt: now },
+              ],
+              voices: [],
             },
           },
         }),
