@@ -189,8 +189,11 @@
   .home-mate-card-art::after {
     position: absolute;
     inset: 0;
-    /* Clear over the face (top half); the name and line sit on the dark bottom third. */
-    background: linear-gradient(180deg, transparent 50%, color-mix(in srgb, var(--color-canvas) 72%, transparent) 72%, var(--color-canvas) 100%);
+    /* Clear over the face (top half); the name and line sit on the dark bottom third with a soft mate tint. */
+    background:
+      radial-gradient(ellipse 90% 42% at 50% 100%, color-mix(in srgb, var(--mate-tint, var(--color-primary)) 22%, transparent), transparent 72%),
+      radial-gradient(ellipse 75% 24% at 50% 0%, color-mix(in srgb, var(--mate-tint, var(--color-primary)) 14%, transparent), transparent 70%),
+      linear-gradient(180deg, transparent 50%, color-mix(in srgb, var(--color-canvas) 72%, transparent) 72%, var(--color-canvas) 100%);
     content: '';
   }
   .home-mate-card-bg, .home-mate-card-figure { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }

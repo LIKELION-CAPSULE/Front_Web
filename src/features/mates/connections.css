@@ -1283,3 +1283,15 @@
 .connection-stt-dismiss { background: color-mix(in srgb, var(--color-canvas) 82%, transparent); color: var(--color-muted); }
 .connection-stt-retry:focus-visible,
 .connection-stt-dismiss:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+
+/* Identity accents; action, semantic status, and dialog modal colours keep their semantic tokens. */
+.connection-page .connection-chat-head > .px-roof-strip > .px-image,
+.connection-page .call-dialogue-frame > .px-roof-strip > .px-image {
+  filter: hue-rotate(var(--mate-color-rotation, 0deg));
+}
+.connection-page .call-dialogue-name {
+  background: color-mix(in srgb, var(--mate-tint, var(--color-primary)) 24%, var(--color-dialog-roof));
+}
+.connection-page .connection-chat-avatar {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mate-glow, var(--color-text-accent)) 60%, transparent);
+}

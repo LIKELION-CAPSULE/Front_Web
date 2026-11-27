@@ -1,4 +1,5 @@
-import { forwardRef, useId, type Ref } from 'react'
+import { mateColorStyle } from '@/features/mates/capsule-jar/capsule-jar-theme'
+import { forwardRef, useId, type Ref, type CSSProperties } from 'react'
 import { Link } from 'react-router'
 import { mateCallBackground, mateHeroPortrait } from '@/features/mates/artwork'
 import { ageRatingLabel, type AvailableMate } from '@/features/mates/catalog'
@@ -43,7 +44,7 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
   // control (a closed one read as if the whole card were closed).
   const comingSoon = Boolean(mate.comingSoon)
   return (
-    <article className="home-mate-card home-mate-card--active" data-coming-soon={comingSoon || undefined} data-tour={tour ? 'mate-card' : undefined}>
+    <article style={mateColorStyle(mate.id, mate.name) as CSSProperties} className="home-mate-card home-mate-card--active" data-coming-soon={comingSoon || undefined} data-tour={tour ? 'mate-card' : undefined}>
       {/* The whole card opens the mate's page; 「바로 연결」 starts the connection (with the pickup sequence, which 취소 or
           Esc stops). A labelled call control, not a `>`: an arrow on a card reads as "open the page" (UX review 2-1). */}
       <Link to={`/mates/${mate.id}`} className="home-mate-card-link" aria-label={`${mate.name} 메이트 보기`} />
