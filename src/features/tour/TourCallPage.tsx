@@ -147,10 +147,16 @@ export default function TourCallPage() {
           </div>
 
           <aside id="tour-call-chat" className="connection-chat desktop-window" aria-labelledby="tour-call-chat-title">
-            <header className="desktop-window-titlebar mate-window-titlebar-static connection-chat-head">
+            {/* The call's chat head (P1, 2026-11-28): her mini profile; the practice says so instead of the call time. */}
+            <header className="connection-chat-head">
               <PixelRoofStrip />
-              <div className="desktop-window-title-left">
-                <h2 id="tour-call-chat-title">{withParticle(mate.name, '과', '와')} 대화</h2>
+              <span className="connection-chat-avatar" aria-hidden="true">
+                <img src={mateAvatar(mate.id, mate.image)} width={36} height={36} alt="" draggable={false} />
+                <span className="connection-chat-status-dot" />
+              </span>
+              <div className="connection-chat-who">
+                <h2 id="tour-call-chat-title">{mate.name}<span className="sr-only">{withParticle(mate.name, '과', '와').slice(mate.name.length)} 대화</span></h2>
+                <p className="connection-chat-status">연습 통화 중</p>
               </div>
             </header>
             <div className="connection-messages" role="log" aria-label={`${withParticle(mate.name, '과', '와')} 대화`}>
