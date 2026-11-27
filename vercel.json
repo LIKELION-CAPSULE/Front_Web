@@ -8,6 +8,8 @@
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/router" },
+    { "source": "/i/:code", "destination": "/api/router" },
+    { "source": "/((?!api(?:/|$)).+)", "has": [{ "type": "query", "key": "ref" }], "destination": "/api/router" },
     { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
   ],
   "headers": [

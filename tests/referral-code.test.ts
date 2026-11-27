@@ -59,6 +59,20 @@ test('captureReferralFromLocation synchronously stores ?ref= before render and c
   assert.deepEqual(readStoredReferralCode(now + 1000, storage), { code: 'FRIEND1000' })
 })
 
+test('captureReferralFromLocation takes the invite link /i/<code> (35 link) and opens the invitation screen', () => {
+  const storage = createMemoryStorage()
+  let replacedUrl = ''
+  const now = 1_700_000_000_000
+  const history = { replaceState: (_state: unknown, _unused: string, url?: string | URL | null) => { replacedUrl = String(url ?? '') } }
+  assert.deepEqual(captureReferralFromLocation({ pathname: '/i/capsule2026', search: '?utm=kakao', hash: '' }, history, storage, now), { code: 'CAPSULE2026' })
+  assert.equal(replacedUrl, '/invite?utm=kakao')
+  assert.deepEqual(readStoredReferralCode(now + 1000, storage), { code: 'CAPSULE2026' })
+  // Not an invite link: nothing stored, the address kept.
+  replacedUrl = ''
+  assert.equal(captureReferralFromLocation({ pathname: '/invite', search: '', hash: '' }, history, createMemoryStorage(), now), null)
+  assert.equal(replacedUrl, '')
+})
+
 test('stored referral code expires cleanly after 7 days', () => {
   const storage = createMemoryStorage()
   const t0 = 1_700_000_000_000

@@ -1,11 +1,15 @@
 import type { BetaAccountDetails } from '../auth/beta-account.ts'
-import type { BetaWallet, BetaInvitation } from '../credits/beta-types.ts'
+import type { BetaWallet } from '../credits/beta-types.ts'
 import type { Message, StudyRecord } from '../demo/types.ts'
 import type { ReportResponse, MeResponse, AffinityChange, ActiveConnectionSummary, ConnectionTotals, Credits, EndType, IntimacyView, UpdateMeRequest } from '../../shared/api/types.ts'
 import { LOCAL_CACHE_PREFIX, LOCAL_PANEL_OPEN_KEY } from './storage.ts'
 import { mateProfileByName } from '../mates/catalog.ts'
 import { REFERRAL_STORAGE_KEY } from '../auth/referral-code.ts'
 import { isPatternRecordId, isRecordPattern, PATTERN_ID_BASE, patternSessions, type RecordPattern } from './record-patterns.ts'
+import { attendanceSource } from '../attendance/attendance-source.ts'
+import { attendanceFromDays } from '../attendance/attendance-model.ts'
+import { DAILY_ATTENDANCE_CREDIT } from '../attendance/attendance-config.ts'
+import { businessDay } from '../../shared/lib/format.ts'
 
 export {
   LOCAL_MODEL_URL,
@@ -64,6 +68,23 @@ export function localIntimacy(stageUp = false): IntimacyView {
     creditedSeconds: 0, nextStageSeconds: LOCAL_AFFINITY.nextLevelSeconds,
     stageProgress: Math.round(LOCAL_AFFINITY.stageSeconds / LOCAL_AFFINITY.stageTargetSeconds * 100), unlocked: [] }
 }
+/**
+ * The local server's invitation record (35): my code, the friends whose first connection rewarded me
+ * (`invitedCount`, as 35 `rewardedCount`), friends who entered my code but have not finished a connection
+ * (`joinedCount`), and whether I can still enter a received code (`canRedeem`).
+ */
+export type LocalInvitation = { code: string; url: string; invitedCount: number; rewardedCredits: number; canRedeem: boolean; joinedCount?: number }
+const DAY_MS = 86_400_000
+/** The local server's ledger lines, worded as the server writes them (docs/BACKEND_API.md 4.5). */
+export const LOCAL_LEDGER_TITLES = {
+  attendance: '출석',
+  expiration: '출석분 소멸',
+  invited: (nickname: string) => `친구 초대 · ${nickname}님 첫 연결`,
+  inviteReceived: '친구 초대 · 초대 코드 보상',
+  spend: (mate: string, voice: boolean, advanced: boolean) => `${[advanced ? '고급 모드' : '', voice ? '보이스 대화' : ''].filter(Boolean).join(' · ')} · ${mate}`,
+} as const
+/** Friends who used my code, in order (local sample nicknames). */
+export const LOCAL_FRIEND_NAMES = ['민지', '하준', '서연', '도윤', '지우', '예준', '하은', '시우', '수아', '주원', '지호', '윤서'] as const
 export const localScenarios = ['normal', 'empty', 'loading', 'failure', 'exhausted', 'guest'] as const
 export type LocalScenario = typeof localScenarios[number]
 /** A running connection; the totals are the last heartbeat's (API 21), as the server keeps them for 17. */
@@ -71,7 +92,7 @@ type Session = { id: number; startedAt: number; characterId?: number; studySecon
 type LocalData = {
   version: 1; authenticated: boolean; nickname: string; onboardingRequired: boolean; avatarId?: number
   details: BetaAccountDetails; scenario: LocalScenario; nextSessionId: number; active: Session | null
-  wallet: BetaWallet; invitation: BetaInvitation; messages: Message[]; records: StudyRecord[]
+  wallet: BetaWallet; invitation: LocalInvitation; messages: Message[]; records: StudyRecord[]
   points: number; settings: { voice: boolean; advanced: boolean }; rewardedCodes: string[]
   /** QA record pattern; absent in data saved before patterns existed. */
   recordPattern?: RecordPattern
@@ -120,11 +141,38 @@ function seed(now: number, recordPattern: RecordPattern = 'steady'): LocalData {
   const { records, messages } = withPatternRecords({ recordPattern, records: [], messages: [] }, now)
   return { version: 1, authenticated: true, nickname: '로컬 사용자', onboardingRequired: false, details: { birthDate: '2000-01-01', aboutMe: '' },
     scenario: 'normal', recordPattern, nextSessionId: 992001, active: null, points: 62, settings: { voice: false, advanced: false }, rewardedCodes: [], records, messages,
-    wallet: { attendance: 1500, invitation: 2000, usedToday: 0, attendanceExpiresAt: nextAttendanceExpiry(now), entries: [
-      { id: 'local-attendance', at: now, description: '출석 크레딧', kind: 'attendance', change: 1500, balance: 3500 },
-      { id: 'local-invite-2', at: now - 86_400_000, description: '친구 초대', kind: 'invite', change: 1000, balance: 2000 },
-      { id: 'local-invite-1', at: now - 172_800_000, description: '친구 초대', kind: 'invite', change: 1000, balance: 1000 },
-    ] }, invitation: { code: 'LOCALCAPSULE', url: '/login?invite=LOCALCAPSULE', invitedCount: 2, rewardedCredits: 2000, canRedeem: true } }
+    wallet: { attendance: 1500, invitation: 2000, usedToday: 0, attendanceExpiresAt: nextAttendanceExpiry(now), entries: seedLedger(now) },
+    invitation: { code: 'LOCALCAPSULE', url: '/i/LOCALCAPSULE', invitedCount: 2, rewardedCredits: 2000, canRedeem: true, joinedCount: 1 } }
+}
+
+/**
+ * A plausible past for 34 (newest first): today's attendance, and over the previous six days attendance on four of
+ * them (the home path's check marks), a few uses, the expiries at 05:00 and two invitation rewards. Balances are
+ * worked out from the oldest line, ending at today's 3,500 (1,500 attendance + 2,000 invitation).
+ */
+function seedLedger(now: number): BetaWallet['entries'] {
+  const today = nextAttendanceExpiry(now) - DAY_MS
+  type Line = { at: number; kind: BetaWallet['entries'][number]['kind']; change: number; description: string }
+  const lines: Line[] = []
+  const attendedDaysAgo = [1, 2, 4, 5]
+  for (const ago of [5, 4, 2, 1]) {
+    const start = today - ago * DAY_MS
+    if (!attendedDaysAgo.includes(ago)) continue
+    lines.push({ at: start + 3 * 3_600_000, kind: 'attendance', change: 1500, description: LOCAL_LEDGER_TITLES.attendance })
+    lines.push({ at: start + 4 * 3_600_000, kind: 'use', change: -30, description: LOCAL_LEDGER_TITLES.spend('채린', false, true) })
+    lines.push({ at: start + 4 * 3_600_000 + 600_000, kind: 'use', change: -20, description: LOCAL_LEDGER_TITLES.spend('채린', true, false) })
+    if (ago === 4) lines.push({ at: start + 6 * 3_600_000, kind: 'invite', change: 1000, description: LOCAL_LEDGER_TITLES.invited(LOCAL_FRIEND_NAMES[0]) })
+    if (ago === 2) lines.push({ at: start + 6 * 3_600_000, kind: 'invite', change: 1000, description: LOCAL_LEDGER_TITLES.invited(LOCAL_FRIEND_NAMES[1]) })
+    // The rest of that day's attendance part goes at the next 05:00.
+    lines.push({ at: start + DAY_MS, kind: 'expiration', change: -1450, description: LOCAL_LEDGER_TITLES.expiration })
+  }
+  lines.push({ at: Math.max(today, now - 60_000), kind: 'attendance', change: 1500, description: LOCAL_LEDGER_TITLES.attendance })
+  lines.sort((a, b) => a.at - b.at)
+  let balance = 3500 - lines.reduce((sum, line) => sum + line.change, 0)
+  return lines.map((line, index) => {
+    balance += line.change
+    return { id: `local-seed-${index + 1}`, at: line.at, description: line.description, kind: line.kind, change: line.change, balance }
+  }).reverse()
 }
 
 function toRecord(report: ReportResponse): StudyRecord {
@@ -144,19 +192,33 @@ export class LocalBetaStore {
   previewExpression: string | null = null
   storageAvailable = true
   private listeners = new Set<() => void>()
+  /**
+   * The day's attendance was granted and no response has said so yet: the next credit summary carries
+   * `attendanceGrantedNow` (4.5), as the server's first credit read of the day does. In memory only, like the server's
+   * flag on a single response: a fresh account (or a new day) starts with it, a reload the same day does not.
+   */
+  private attendanceGrantPending = false
+  /**
+   * The proposed attendance API (attendance-source.ts `attendance-api`): no grant on reads; `POST /attendance/check-in`
+   * grants the day's 1,500. Otherwise the server as it is: the day's first credit read grants it.
+   */
+  readonly attendanceApi: boolean
   private replies = new Map<string, { content: string; affinity: AffinityChange; charged: number }>()
   private storage: StoragePort | null
   private now: () => number
   constructor(storage: StoragePort | null, now = () => Date.now()) {
     this.storage = storage; this.now = now
     this.storageAvailable = storage !== null
+    this.attendanceApi = attendanceSource() === 'attendance-api'
     this.data = seed(now())
+    if (this.attendanceApi) this.withoutTodayAttendance()
+    else this.attendanceGrantPending = true
     try {
       const value = JSON.parse(storage?.getItem(LOCAL_STORAGE_KEY) ?? 'null') as LocalData | null
       if (value?.version === 1 && localScenarios.includes(value.scenario) && Array.isArray(value.records) && Array.isArray(value.messages) &&
         typeof value.authenticated === 'boolean' && typeof value.nickname === 'string' && Number.isSafeInteger(value.nextSessionId) &&
         value.wallet && Number.isFinite(value.wallet.attendance) && Number.isFinite(value.wallet.invitation) && Array.isArray(value.wallet.entries) &&
-        value.invitation && value.details && value.settings && Array.isArray(value.rewardedCodes)) this.data = value
+        value.invitation && value.details && value.settings && Array.isArray(value.rewardedCodes)) { this.data = value; this.attendanceGrantPending = false }
     } catch { this.storageAvailable = false }
     if (!isRecordPattern(this.data.recordPattern)) this.data.recordPattern = this.data.scenario === 'empty' || this.data.scenario === 'guest' ? 'none' : 'steady'
     Object.assign(this.data, withPatternRecords(this.data, now()))
@@ -171,26 +233,67 @@ export class LocalBetaStore {
     const wallet = this.data.wallet
     wallet.entries = [{ id: `local-${this.now()}-${wallet.entries.length}`, at: this.now(), description, kind, change, balance: wallet.attendance + wallet.invitation }, ...wallet.entries]
   }
+  /** A fresh account under the attendance API: today's attendance is not granted until the check-in. */
+  private withoutTodayAttendance() {
+    const wallet = this.data.wallet, today = businessDay(this.now())
+    wallet.entries = wallet.entries.filter(entry => !(entry.kind === 'attendance' && businessDay(entry.at) === today))
+    wallet.attendance = 0
+  }
   expireAttendance() {
     const wallet = this.data.wallet, now = this.now()
     if (now < wallet.attendanceExpiresAt) return
     const expired = wallet.attendance
     wallet.attendance = 0
-    if (expired) this.ledger('expiration', -expired, '출석 크레딧 만료')
+    if (expired) this.ledger('expiration', -expired, LOCAL_LEDGER_TITLES.expiration)
     wallet.usedToday = 0
+    wallet.attendanceExpiresAt = nextAttendanceExpiry(now)
+    // Under the attendance API the new day's credits wait for the check-in.
+    if (this.attendanceApi) { this.changed(); return }
     wallet.attendance = 1500
     wallet.attendanceExpiresAt = nextAttendanceExpiry(now)
-    this.ledger('attendance', 1500, '출석 크레딧')
+    this.ledger('attendance', 1500, LOCAL_LEDGER_TITLES.attendance)
+    this.attendanceGrantPending = true
     this.changed()
   }
-  snapshot = () => ({ wallet: structuredClone(this.data.wallet), invitation: structuredClone(this.data.invitation), records: structuredClone(this.data.records),
+  snapshot = () => ({ wallet: structuredClone(this.data.wallet), records: structuredClone(this.data.records),
     messages: structuredClone(this.data.messages), affinities: Object.fromEntries(LOCAL_MATES.map(mate => [mate.characterId, this.affinity()])), settings: { ...this.data.settings } })
   affinity = (): AffinityChange => ({ points: this.data.points, level: 3, stage: LOCAL_AFFINITY.stage, stageName: LOCAL_AFFINITY.stageName })
-  /** 8 · 16 · 20 `credits` from the local wallet. */
+  /** 8 · 16 · 20 · 33 `credits` from the local wallet. The first summary after the day's grant says so, once. */
   credits = (): Credits => {
     const wallet = this.data.wallet, todayRemaining = wallet.attendance + wallet.invitation
+    const attendanceGrantedNow = this.attendanceGrantPending
+    this.attendanceGrantPending = false
     return { todayRemaining, attendanceRemaining: wallet.attendance, attendanceExpiresAt: new Date(wallet.attendanceExpiresAt).toISOString(),
-      inviteBalance: wallet.invitation, low: todayRemaining < 100, exhausted: todayRemaining === 0, attendanceGrantedNow: false }
+      inviteBalance: wallet.invitation, low: todayRemaining < 100, exhausted: todayRemaining === 0, attendanceGrantedNow }
+  }
+  /** QA: as if the next day's 05:00 had passed — today's attendance part expires and the new day's is granted. */
+  nextAttendanceDay() {
+    this.data.wallet.attendanceExpiresAt = this.now() - 1
+    this.expireAttendance()
+  }
+  /** The business days with an attendance grant. */
+  private attendanceDays() {
+    return this.data.wallet.entries.filter(entry => entry.kind === 'attendance').map(entry => businessDay(entry.at))
+  }
+  /** Proposed `GET /attendance`: today and the 7-day cycle, counted from the days attended. */
+  attendanceStatus() {
+    this.expireAttendance()
+    const today = businessDay(this.now())
+    const days = this.attendanceDays()
+    const state = attendanceFromDays(days, today, { received: true })
+    return { checkedToday: days.includes(today), cycleDay: state.cycleDay, totalDays: state.totalDays, rewardPerDay: DAILY_ATTENDANCE_CREDIT }
+  }
+  /** Proposed `POST /attendance/check-in`: grants today's 1,500 once (null: already checked in → 409). */
+  checkInAttendance() {
+    this.expireAttendance()
+    const today = businessDay(this.now())
+    if (this.attendanceDays().includes(today)) return null
+    const wallet = this.data.wallet
+    wallet.attendance = DAILY_ATTENDANCE_CREDIT
+    wallet.attendanceExpiresAt = nextAttendanceExpiry(this.now())
+    this.ledger('attendance', DAILY_ATTENDANCE_CREDIT, LOCAL_LEDGER_TITLES.attendance)
+    this.changed()
+    return { granted: DAILY_ATTENDANCE_CREDIT, cycleDay: this.attendanceStatus().cycleDay, credits: { ...this.credits(), todayUsed: wallet.usedToday, invitedFriends: this.data.invitation.invitedCount } }
   }
   /** 8 `/me`. The onboarding rule is the server's: avatar or birth date missing. */
   me = (image?: string): MeResponse => ({ userId: LOCAL_USER_ID, nickname: this.data.nickname, email: 'local@capsule.invalid',
@@ -267,7 +370,7 @@ export class LocalBetaStore {
     if (cost) {
       const attendance = Math.min(wallet.attendance, cost)
       wallet.attendance -= attendance; wallet.invitation -= cost - attendance; wallet.usedToday += cost
-      this.ledger('use', -cost, voice && advanced ? '음성 · 고급 대화' : voice ? '음성 대화' : '고급 대화')
+      this.ledger('use', -cost, LOCAL_LEDGER_TITLES.spend(this.activeMate().name, voice, advanced))
     }
     const mate = this.activeMate()
     const sessionId = String(this.data.active!.id), characterId = String(mate.characterId)
@@ -283,7 +386,7 @@ export class LocalBetaStore {
     if (wallet.attendance + wallet.invitation < 20) return false
     const attendance = Math.min(wallet.attendance, 20)
     wallet.attendance -= attendance; wallet.invitation -= 20 - attendance; wallet.usedToday += 20
-    this.ledger('use', -20, '음성 대사')
+    this.ledger('use', -20, LOCAL_LEDGER_TITLES.spend(this.activeMate().name, true, false))
     this.changed()
     return true
   }
@@ -302,18 +405,11 @@ export class LocalBetaStore {
     delete record.cameraFocus
     this.data.records.unshift(record); this.data.active = null; this.changed(); return report
   }
-  redeemInvitation = async (input: string) => {
-    const code = input.trim().toUpperCase()
-    if (!/^[A-Z0-9]{6,20}$/.test(code) || code === this.data.invitation.code) throw new Error('초대 코드를 확인해 주세요.')
-    if (!this.data.invitation.canRedeem || this.data.rewardedCodes.includes(code)) throw new Error('이미 초대 코드를 입력했어요.')
-    // Entering a code never pays early. The first completed connection triggers the local reward.
-    this.data.rewardedCodes.push(code); this.data.invitation.canRedeem = false; this.changed()
-  }
   /** The referral reward of the first connection ending after a code was entered; true when paid now. */
   rewardFirstConnection() {
     if (!this.data.rewardedCodes.some(code => !code.startsWith('__')) || this.data.rewardedCodes.includes('__rewarded__')) return false
     this.data.rewardedCodes.push('__rewarded__'); this.data.wallet.invitation += 1000
-    this.ledger('invite', 1000, '친구 초대'); this.changed()
+    this.ledger('invite', 1000, LOCAL_LEDGER_TITLES.inviteReceived); this.changed()
     return true
   }
   completeInvitedFriend(friendId: string) {
@@ -321,9 +417,11 @@ export class LocalBetaStore {
     if (this.data.rewardedCodes.includes(marker)) return
     if (this.data.invitation.invitedCount >= 10) throw new Error('초대 보상은 최대 10명까지 받을 수 있어요.')
     this.data.rewardedCodes.push(marker)
+    const nickname = LOCAL_FRIEND_NAMES[this.data.invitation.invitedCount % LOCAL_FRIEND_NAMES.length]!
     this.data.invitation.invitedCount++; this.data.invitation.rewardedCredits += 1000
+    if (this.data.invitation.joinedCount) this.data.invitation.joinedCount--
     this.data.wallet.invitation += 1000
-    this.ledger('invite', 1000, '친구 초대'); this.changed()
+    this.ledger('invite', 1000, LOCAL_LEDGER_TITLES.invited(nickname)); this.changed()
   }
   reset(scenario: LocalScenario) {
     // Clear only this mock user's auxiliary snapshots, preserving real accounts and user preferences.
@@ -340,7 +438,9 @@ export class LocalBetaStore {
       }
     } catch { this.storageAvailable = false }
     this.data = seed(this.now(), scenario === 'empty' || scenario === 'guest' ? 'none' : 'steady'); this.data.scenario = scenario; this.replies.clear()
-    if (scenario === 'empty' || scenario === 'guest') { this.data.records = []; this.data.messages = []; this.data.invitation.invitedCount = 0; this.data.invitation.rewardedCredits = 0; this.data.wallet.invitation = 0; this.data.wallet.entries = this.data.wallet.entries.filter(entry => entry.kind === 'attendance').map(entry => ({ ...entry, balance: 1500 })) }
+    if (this.attendanceApi) this.withoutTodayAttendance()
+    else this.attendanceGrantPending = true
+    if (scenario === 'empty' || scenario === 'guest') { this.data.records = []; this.data.messages = []; this.data.invitation.invitedCount = 0; this.data.invitation.rewardedCredits = 0; this.data.invitation.joinedCount = 0; this.data.wallet.invitation = 0; this.data.wallet.entries = this.data.wallet.entries.slice(0, this.attendanceApi ? 0 : 1).map(entry => ({ ...entry, balance: 1500 })) }
     if (scenario === 'exhausted') { this.data.wallet.attendance = 0; this.data.wallet.invitation = 0; this.data.wallet.entries = []; this.data.settings = { voice: true, advanced: true } }
     if (scenario === 'guest') this.data.authenticated = false
     this.changed()

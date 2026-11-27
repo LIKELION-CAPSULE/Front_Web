@@ -1,12 +1,15 @@
 /*
  * 내 크레딧 (/credits, SCR-30) and 친구 초대 (/credits/invite, SCR-31; /credits/charge and /invite still open it).
  * 내 크레딧 is a dashboard on the open page: title and balance card, the attendance and invite cards, then the activity
- * list. 친구 초대 is a plain page panel. Colours come from the design tokens only.
+ * list. 친구 초대 is its own dashboard (invite.css) on the same frame. Colours come from the design tokens only.
+ *
+ * No card outlines (DESIGN_SYSTEM.md 4.2): the page is `canvas`, each card a `panel` face, what sits inside a card a
+ * `surface` face (the hero and the two action cards keep their purple glass). Earned amounts are credit gold
+ * (exception 2, `warning`).
  */
 .credits-window {
-  --credits-line: color-mix(in srgb, var(--color-text-accent) 16%, transparent);
-  --credits-card: color-mix(in srgb, var(--color-surface) 88%, transparent);
-  --credits-glow-line: color-mix(in srgb, var(--color-text-accent) 30%, transparent);
+  --credits-card: var(--color-panel);
+  --credits-inset: var(--color-surface);
   --credits-glass: linear-gradient(
     135deg,
     color-mix(in srgb, var(--color-primary) 30%, var(--color-panel)) 0%,
@@ -76,12 +79,9 @@
   align-items: center;
   min-height: 220px;
   overflow: hidden;
-  border: 1px solid var(--credits-glow-line);
   border-radius: 24px;
   background: var(--credits-glass);
-  box-shadow:
-    0 24px 60px color-mix(in srgb, var(--color-primary) 22%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 
 .credits-hero-copy {
@@ -215,10 +215,8 @@
   min-height: 150px;
   padding: 18px 24px 18px 12px;
   overflow: hidden;
-  border: 1px solid var(--credits-glow-line);
   border-radius: 22px;
   background: var(--credits-glass);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent);
 }
 
 .credits-action-copy h2 {
@@ -296,9 +294,8 @@
   flex-direction: column;
   gap: 14px;
   padding: 24px 28px 18px;
-  border: 1px solid var(--credits-line);
   border-radius: 22px;
-  background: color-mix(in srgb, var(--color-panel) 92%, transparent);
+  background: var(--credits-card);
 }
 
 .credits-activity-head {
@@ -332,12 +329,45 @@
   cursor: pointer;
 }
 
-.credits-activity-more[aria-expanded='true'] .app-icon {
-  rotate: -90deg;
+.credits-activity-more:hover:not(:disabled) {
+  color: var(--color-text-accent-hover);
 }
 
-.credits-activity-more:hover {
-  color: var(--color-text-accent-hover);
+.credits-activity-more:disabled {
+  cursor: default;
+  color: var(--color-subtle);
+}
+
+/* 「더 보기」 under the list: the next server page (34 cursor). */
+.credits-activity-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.credits-activity-more-error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.credits-activity-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.credits-activity-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.credits-activity-error p {
+  margin: 0;
 }
 
 .credits-timeline {
@@ -424,14 +454,14 @@
 }
 
 .credits-timeline-change[data-positive] {
-  color: var(--color-text-accent);
+  color: var(--color-warning);
 }
 
 .credits-empty-box {
   margin: 0;
   padding: 36px 20px;
-  border: 1px dashed color-mix(in srgb, var(--color-ink) 12%, transparent);
   border-radius: 14px;
+  background: var(--credits-inset);
   font-size: 14px;
   line-height: 1.55;
   text-align: center;
@@ -439,89 +469,7 @@
   word-break: keep-all;
 }
 
-/* ─── 친구 초대 ─── */
-.invite-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-
-.invite-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 28px;
-  border: 1px solid var(--credits-line);
-  border-radius: 16px;
-  background: var(--credits-card);
-}
-
-.invite-card h2 {
-  margin: 0;
-  font-size: 21px;
-  line-height: 1.45;
-  font-weight: 700;
-  color: var(--color-text-accent);
-  word-break: keep-all;
-}
-
-.invite-card-sub,
-.invite-card-note {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--color-muted);
-  word-break: keep-all;
-}
-
-.invite-card-note {
-  margin-top: 12px;
-  font-size: 14px;
-}
-
-.invite-code-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-.invite-code-box {
-  padding: 10px 18px;
-  border-radius: 10px;
-  background: var(--color-surface-hover);
-  font-size: 21px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-ink);
-}
-
-.invite-code-pending,
-.invite-registered-note {
-  margin: 0;
-  font-size: 14px;
-  color: var(--color-muted);
-}
-
-.invite-redeem-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.invite-redeem-row > :first-child {
-  flex: 1 1 240px;
-  min-width: 0;
-}
-
-/* Line the button up with the input (the field has a label above it). */
-.invite-redeem-row > .ui-button {
-  margin-top: 28px;
-}
-
+/* Inputs on the credits pages (the received-code field on 친구 초대). */
 .credits-window .form-input {
   border: 1px solid color-mix(in srgb, var(--color-text-accent) 30%, transparent);
   background: color-mix(in srgb, var(--color-canvas) 82%, transparent);
@@ -530,50 +478,6 @@
 .credits-window .form-input:focus {
   border-color: var(--color-primary);
 }
-
-/* Progress: ten capsule slots */
-.invite-progress-card {
-  margin-top: 24px;
-}
-
-.invite-progress-card h2 {
-  font-size: 19px;
-  font-variant-numeric: tabular-nums;
-}
-
-.invite-capsule-slots {
-  display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: clamp(6px, 1.2vw, 12px);
-  align-items: center;
-}
-
-.invite-capsule-slot {
-  height: clamp(22px, 3vw, 28px);
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--color-text-accent) 22%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-canvas) 75%, transparent);
-}
-
-.invite-capsule-slot[data-filled='true'] {
-  border-color: color-mix(in srgb, var(--color-text-accent) 52%, transparent);
-  background: linear-gradient(
-    90deg,
-    var(--color-primary) 0%,
-    var(--color-primary) 50%,
-    color-mix(in srgb, var(--color-ink) 24%, transparent) 50%,
-    color-mix(in srgb, var(--color-ink) 14%, transparent) 100%
-  );
-  box-shadow: 0 3px 10px color-mix(in srgb, var(--color-primary) 28%, transparent);
-}
-
-.invite-progress-complete {
-  margin: 0;
-  font-size: 13px;
-  color: var(--color-text-accent);
-}
-
 
 /* ─── Error and loading ─── */
 .credits-state-box {
@@ -656,8 +560,7 @@
   }
 
   .credits-action-grid,
-  .credits-skeleton-row,
-  .invite-grid {
+  .credits-skeleton-row {
     grid-template-columns: 1fr;
   }
 }
@@ -714,16 +617,4 @@
   .credits-timeline-time { grid-area: time; font-size: 13px; }
   .credits-timeline-change { grid-area: change; }
   .credits-timeline-icon { display: none; }
-
-  .invite-card {
-    padding: 22px 20px;
-  }
-
-  .invite-capsule-slots {
-    gap: 5px;
-  }
-
-  .invite-capsule-slot {
-    height: 18px;
-  }
 }

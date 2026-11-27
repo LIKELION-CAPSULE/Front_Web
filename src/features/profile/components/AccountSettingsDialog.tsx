@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Icon, type IconName } from '@/shared/ui/Icon'
+import { ScrollMoreHint } from '@/shared/ui/ScrollMoreHint'
 import { ProfileEditor } from './ProfileEditor'
 import { AccountSecurityPanel } from './AccountSecurityPanel'
 import { ConnectionSettingsPanel } from './ConnectionSettingsPanel'
@@ -231,6 +232,8 @@ export default function AccountSettingsDialog({
                   {view === 'security' && <AccountSecurityPanel busy={busy} onBusyChange={setBusy} />}
                 </section>
               </div>
+              {/* The rows below the fold (마이크 · 카메라, PIP; 회원탈퇴) say they are there (UX review 7-2). */}
+              <ScrollMoreHint key={view} target={main} />
             </div>
           </div>
         </div>

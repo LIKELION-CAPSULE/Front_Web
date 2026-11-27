@@ -28,6 +28,11 @@ export type TourFeature = 'affinity' | 'world'
 export type TourMark = {
   /** CSS selectors tried in order; the first present element is the target. */
   targets: readonly string[]
+  /**
+   * Light this box around the target instead of the target (`closest`): the whole chat composer while the arrow types
+   * into its field, so the light covers the send button too (UX review 9-1).
+   */
+  lit?: string
   at?: TourPoint
   action: 'hover' | 'click' | 'type'
   /** `type`: what the cursor types into the target (the practice chat). */
@@ -49,6 +54,11 @@ export type TourStep = {
   say: string
   /** The line when a mark of this step is left out by its feature flag (it must not name a hidden feature). */
   sayWithout?: string
+  /**
+   * The line when the first mark lands on a stand-in, not its first selector (a narrow practice call folds 「PIP로
+   * 띄우기」 into the dock's ⋯): it says where the thing is.
+   */
+  sayFallback?: string
   labelSide?: 'left'
   /** How long to wait for the first mark after arriving (lazy screens, the my-mates pour, the records board). */
   waitMs?: number
@@ -83,7 +93,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     // The hero's attendance path: its box keeps the art's clear right margin, so the arrow comes in at the road's start
     // (lower left) and the line sits over the empty space beside it, leaving the pads and the day-7 capsule in view.
     marks: [{ targets: ['[data-tour="home-attendance"]'], at: { x: 0.08, y: 0.86 }, action: 'hover' }],
-    say: '매일 출석하면 크레딧을 받고 발판을 한 칸씩 건너. 7일째엔 캡슐 선물이 기다려.',
+    say: '매일 출석하면 1,500 크레딧을 받고 발판을 한 칸씩 건너. 7일을 채우면 캡슐이 열려.',
   },
   // 메이트 상세
   {
@@ -108,7 +118,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'call-talk', screen: 'call',
     marks: [
-      { targets: ['[data-tour="call-composer"] textarea', '[data-tour="call-composer"] input'], at: CORNER, action: 'type', text: '오늘 수학 같이 하자' },
+      { targets: ['[data-tour="call-composer"] textarea', '[data-tour="call-composer"] input'], lit: '[data-tour="call-composer"]', at: CORNER, action: 'type', text: '오늘 수학 같이 하자' },
       { targets: ['[data-tour="call-dock"] [data-action="camera"]', '[data-tour="call-dock"]'], at: CORNER, action: 'hover' },
       { targets: ['[data-tour="call-mode"]'], at: CORNER, action: 'hover' },
     ],
@@ -121,6 +131,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       { targets: ['[data-tour="call-dock"] [data-action="leave"]'], at: CORNER, action: 'click', preview: ['끊으면 연결 기록이 남아요'] },
     ],
     say: 'PIP로 작게 띄워 두면 다른 일 하면서도 같이 있을 수 있어. 끝낼 땐 여기, 끊으면 연결 기록이 남아.',
+    sayFallback: '창이 좁으면 PIP는 ⋯ 안에 있어. 작게 띄워 두고 다른 일 해도 되고, 끝낼 땐 여기, 끊으면 연결 기록이 남아.',
   },
   // 내 메이트
   {
@@ -164,7 +175,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       { targets: ['[data-account-view="settings"]'], at: TAB_CORNER, action: 'hover' },
       { targets: ['[data-account-view="security"]'], at: TAB_CORNER, action: 'hover' },
     ],
-    say: '프로필에선 아바타랑 닉네임을 정하고, 설정에선 말 거는 정도랑 기기, PIP를 바꿔. 비밀번호랑 탈퇴는 보안 탭에 있어.',
+    say: '프로필에선 아바타랑 닉네임을 정하고, 설정에선 말 거는 정도랑 메이트 음성, 기기, PIP를 바꿔. 비밀번호랑 탈퇴는 보안 탭에 있어.',
   },
   // 마무리
   { id: 'outro', screen: 'outro', marks: [], say: '이제 만나러 가 볼까?' },

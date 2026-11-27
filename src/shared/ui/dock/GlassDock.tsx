@@ -17,6 +17,11 @@ export interface GlassDockItem {
   device?: boolean
   tone?: 'default' | 'danger'
   dividerBefore?: boolean
+  /**
+   * The item's group (e.g. 「대화」·「기기」·「화면」): a divider is drawn wherever the group changes, and the divider is
+   * named after the group that follows (screen readers). Items without a group keep `dividerBefore` only.
+   */
+  group?: string
   secondary?: boolean
   controls?: string
   hasPopup?: 'menu' | 'dialog' | 'true'
@@ -100,6 +105,7 @@ export function GlassDock({
     hasPopup: 'true',
     controls: moreVisible ? `${id}-more-tools` : undefined,
     dividerBefore: secondaryItems[0]?.dividerBefore,
+    group: secondaryItems[0]?.group,
     onAction: () => setMoreOpen((open) => !open),
   }
 
@@ -187,12 +193,24 @@ export function GlassDock({
         if (!event.currentTarget.contains(event.relatedTarget)) reset()
       }}
     >
-      {visibleItems.map((item, index) => (
+      {visibleItems.map((item, index) => {
+        const previousGroup = visibleItems[index - 1]?.group
+        const groupStarts = index > 0 && item.group !== undefined && item.group !== previousGroup
+        return (
         <Fragment key={item.key}>
-          {item.dividerBefore && <span role="separator" aria-orientation="vertical" className="glass-dock-divider" />}
+          {(item.dividerBefore || groupStarts) && (
+            <span
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={groupStarts ? item.group : undefined}
+              className="glass-dock-divider"
+              data-group={groupStarts ? item.group : undefined}
+            />
+          )}
           <div
             className="glass-dock-item"
             data-dock-slot
+            data-group={item.group}
             data-dock-popover-slot={item.key === 'more' || undefined}
             onBlur={
               item.key === 'more'
@@ -291,7 +309,8 @@ export function GlassDock({
             )}
           </div>
         </Fragment>
-      ))}
+        )
+      })}
     </div>
   )
 }

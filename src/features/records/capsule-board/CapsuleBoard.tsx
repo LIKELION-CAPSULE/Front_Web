@@ -92,8 +92,12 @@ export function CapsuleBoard({
   const focusIntoMonth = useRef(false)
   const [focusKey, setFocusKey] = useState<string | undefined>(undefined)
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
-  /** 「가장 긴 날」 above the period's longest day in the week / month 2.5D (hidden while its own tooltip shows). */
-  const [marker, setMarker] = useState<{ x: number; y: number } | null>(null)
+  /**
+   * 「가장 긴 날」 above the period's longest day in the week / month 2.5D (hidden while its own tooltip shows). The year's
+   * day cells are too small for a chip over them (it covered the neighbouring days and months): there it sits in the
+   * board's top-left corner with the date, and the pillar keeps its brighter top ring.
+   */
+  const [marker, setMarker] = useState<{ x: number; y: number; key: string } | null>(null)
   const modelRef = useRef(model)
   const handlers = useRef({ onSelectDay, onSelectMonth })
   const shownRef = useRef<BoardTarget | null>(null)
@@ -122,7 +126,9 @@ export function CapsuleBoard({
     const shown = shownRef.current
     const point = key && scene && !(shown?.kind === 'day' && shown.key === key) ? scene.targetPoint({ kind: 'day', key }) : null
     setMarker((current) =>
-      current && point && Math.abs(current.x - point.x) < 0.5 && Math.abs(current.y - point.y) < 0.5 ? current : point,
+      current && point && current.key === key && Math.abs(current.x - point.x) < 0.5 && Math.abs(current.y - point.y) < 0.5
+        ? current
+        : point && key ? { ...point, key } : null,
     )
   }, [])
 
@@ -353,11 +359,15 @@ export function CapsuleBoard({
           {tooltip.text}
         </span>
       )}
-      {marker && (
+      {marker && (yearMode ? (
+        <span className="capsule-board-marker capsule-board-marker--corner" aria-hidden="true">
+          가장 긴 날 · {monthDayLabel(marker.key)}
+        </span>
+      ) : (
         <span className="capsule-board-marker" aria-hidden="true" style={{ left: marker.x, top: marker.y }}>
           가장 긴 날
         </span>
-      )}
+      ))}
       <div
         className="sr-only capsule-board-keys"
         role="group"
@@ -403,4 +413,10 @@ export function CapsuleBoard({
       </div>
     </div>
   )
+}
+
+/** 'YYYY-MM-DD' → 「11월 20일」 (the year chip). */
+function monthDayLabel(key: string) {
+  const [, month, day] = key.split('-')
+  return `${Number(month)}월 ${Number(day)}일`
 }

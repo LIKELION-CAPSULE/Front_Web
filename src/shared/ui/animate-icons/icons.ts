@@ -33,6 +33,7 @@ import { UserRoundIcon } from './user-round-icon'
 import { SlidersHorizontalIcon } from './sliders-horizontal-icon'
 import { MaximizeIcon } from './maximize-icon'
 import { MinimizeIcon } from './minimize-icon'
+import { PictureInPictureIcon } from './picture-in-picture-icon'
 import { MoonIcon } from './moon-icon'
 import { CoffeeIcon } from './coffee-icon'
 import { LockKeyholeIcon } from './lock-keyhole-icon'
@@ -40,6 +41,7 @@ import { XIcon } from './x-icon'
 import { BanIcon } from './ban-icon'
 import { DropletIcon } from './droplet-icon'
 import { ImageIcon } from './image-icon'
+import { CopyIcon } from './copy-icon'
 
 export const animatedIcons = {
   search: SearchIcon,
@@ -77,6 +79,7 @@ export const animatedIcons = {
   sliders: SlidersHorizontalIcon,
   expand: MaximizeIcon,
   shrink: MinimizeIcon,
+  pip: PictureInPictureIcon,
   moon: MoonIcon,
   coffee: CoffeeIcon,
   lock: LockKeyholeIcon,
@@ -84,6 +87,7 @@ export const animatedIcons = {
   ban: BanIcon,
   droplet: DropletIcon,
   image: ImageIcon,
+  copy: CopyIcon,
 } as const
 
 export type IconName = keyof typeof animatedIcons

@@ -29,14 +29,23 @@ export function parseEngineSources(raw: string | null | undefined): readonly Eng
   const sources: EngineSource[] = []
   for (const entry of raw.split(',').map(value => value.trim()).filter(Boolean)) {
     if (entry.includes('*') || entry.includes('\\') || /%(2e|2f|5c|25)/i.test(entry)) continue
+    // Before `new URL`: the parser resolves `..` and `.` (`/engines/../other/` becomes `/other/`), so its pathname can
+    // no longer show them.
+    if (hasDotSegment(entry)) continue
     try {
       const url = new URL(entry)
       if (url.protocol !== 'https:' || url.search || url.hash || url.username || url.password) continue
-      if (!url.pathname.endsWith('/') || url.pathname.includes('//') || /\/\.\.?(\/|$)/.test(url.pathname)) continue
+      if (!url.pathname.endsWith('/') || url.pathname.includes('//')) continue
       sources.push({ origin: url.origin, pathPrefix: url.pathname })
     } catch { /* Dropped. */ }
   }
   return sources.length ? sources : ENGINE_SOURCES
+}
+
+/** A `.` or `..` path segment (also percent-encoded, `%2e`) in the path as written, before any URL parsing. */
+function hasDotSegment(entry: string): boolean {
+  const path = entry.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/?#]*/i, '').split(/[?#]/)[0] ?? ''
+  return path.split('/').some(segment => /^(\.|%2e){1,2}$/i.test(segment))
 }
 
 /** Is `url` (already parsed) under one of `sources`: https, the exact origin, a clean path inside the prefix? */

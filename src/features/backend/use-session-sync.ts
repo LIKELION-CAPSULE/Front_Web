@@ -16,6 +16,7 @@ import { IDLE_TALK_EVENT, IdleTalkTimer } from './idle-talk'
 import { flushSessionOutbox } from './session-outbox'
 import { isConnectionEnded } from './ended-connection'
 import { minorDeadlineOf } from '../mates/minor-limit'
+import { noteServerCredits } from './server-credits'
 
 export type SessionTotals = ConnectionTotals
 const totalsBySession = new Map<string, () => SessionTotals>()
@@ -41,8 +42,8 @@ type Input = {
   active: ActiveSession | null; userId?: number; observation: Observation | null; camera: boolean
   /** Legacy local studies only: gestures are no longer sent to the server (11-25 API 18 takes state events only). */
   behavior?: BehaviorMonitor
-  /** `event` is the API 18 type the line answers. */
-  onReaction: (result: ReactionResponse, event: string) => void
+  /** `event` is the API 18 type the line answers; `voiceTicket` is `voiceTicket()` as it was when the line was asked for. */
+  onReaction: (result: ReactionResponse, event: string, voiceTicket?: number) => void
   /** Immediate faces from API 18 `reaction.expression` (`stage: 'notice'`). Faces with lines arrive through `onReaction`. */
   onExpression?: (cue: ExpressionCue) => void
   onEnded: () => void
@@ -58,8 +59,13 @@ type Input = {
   holdIdleTalk?: boolean
   /** Reaction lines (19, `IDLE_TALK` too) ask for voice (`tts: true`; 20 credits when the server makes it). */
   tts?: boolean
+  /**
+   * The voice player's generation (voice-player.ts `ticket()`), read when a line is asked for and handed back with it:
+   * a voice asked for before the voice was stopped (turned off, the user talking, …) is dropped when it arrives.
+   */
+  voiceTicket?: () => number
 }
-type Pending = { result: ReactionResponse; event: string; revision: number; turn?: number }
+type Pending = { result: ReactionResponse; event: string; revision: number; turn?: number; voiceTicket?: number }
 type Runtime = {
   sessionId: string; signature: string; clock: PresenceClock; outbox: StateEvent[]; draining: Promise<void> | null
   heartbeat: boolean; lastHeartbeatAt: number; alive: boolean
@@ -98,15 +104,18 @@ export function useSessionSync(input: Input) {
   const react = useCallback(async (current: Runtime, eventId: number, event: string, intensity?: number, turn?: number, idle = false) => {
     const revision = current.flow.revision
     const requestId = crypto.randomUUID()
+    const voiceTicket = latest.current.voiceTicket?.()
     current.reactions++
     try {
       const result = await api.request<ReactionResponse>(`${connectionPath(current.sessionId)}/events/${eventId}/reaction`, {
         method: 'POST', body: { requestId, ...(event === 'AWAY' ? { intensity: intensity ?? 1 } : {}), tts: latest.current.tts === true } satisfies ReactionRequest,
       })
-      const pending: Pending = { result, event, revision, turn }
+      // With `tts` the line's summary comes back (20 when its voice was made): the chips follow it (server-credits.ts).
+      noteServerCredits(result.credits)
+      const pending: Pending = { result, event, revision, turn, voiceTicket }
       if (result.requestId !== requestId || !stillCurrent(current, pending)) return
       if (latest.current.busy || current.held.length) { if (!idle) current.held.push({ value: pending, heldAt: Date.now() }) }
-      else latest.current.onReaction(result, event)
+      else latest.current.onReaction(result, event, voiceTicket)
     } catch (reason) {
       if (!idle || isConnectionEnded(reason)) fail(reason, current)
     } finally { current.reactions-- }
@@ -116,7 +125,7 @@ export function useSessionSync(input: Input) {
     if (!current.held.length || latest.current.busy) return
     const { next, rest } = takeHeldReaction(current.held, Date.now(), value => stillCurrent(current, value))
     current.held = rest
-    if (next) latest.current.onReaction(next.result, next.event)
+    if (next) latest.current.onReaction(next.result, next.event, next.voiceTicket)
   }, [stillCurrent])
   /** API 18 `reaction.expression` is a plain expression name (an object only in 19 · 20 · 28). */
   const notice = useCallback((result: EventResponse, event: string) => {

@@ -1,9 +1,9 @@
 import { createContext, useContext } from 'react'
 import type { ActiveSession, Memory, StudyRecord, TierId } from '../demo/types'
-import type { ActiveConnectionSummary, AffinityChange, EndType, AvatarItem, HomeResponse, LoginResponse, MeResponse, MessageResponse, MessageStreamAudio, MessageStreamAudioEnd, StartResponse, ResumeResponse, TermVersion } from '@/shared/api/types'
+import type { ActiveConnectionSummary, AffinityChange, ConnectionTotals, EndType, AvatarItem, HomeResponse, LoginResponse, MeResponse, MessageResponse, MessageStreamAudio, MessageStreamAudioEnd, StartResponse, ResumeResponse, TermVersion } from '@/shared/api/types'
 import type { LoadingStage } from '@/shared/lib/loading-screen'
 import type { SessionModelStage } from '@/features/live2d/session-model'
-import type { BetaInvitation, BetaWallet } from '@/features/credits/beta-types'
+import type { BetaWallet } from '@/features/credits/beta-types'
 import type { BetaAccountDetails, BetaAccountPort, BetaOnboardingInput, BetaProfileInput } from '@/features/auth/beta-account'
 import type { ReferralValidationResult } from '@/features/auth/referral-code'
 import type { MateDetailContent } from '@/features/mates/mate-contract'
@@ -39,10 +39,12 @@ export type BackendContextValue = {
   previewModelFactory: SessionModelFactory
   featurePort?: BetaFeaturePort
   betaSettings?: BetaFeatureSnapshot['settings']
-  /** Null without a connected feature port; local previews inject an isolated wallet explicitly. */
+  /**
+   * A local or review preview's injected wallet (null in production). Not a data source for credits any more: 내 크레딧,
+   * 친구 초대, 출석 and the credit chips read the server (33 · 34 · 35 · server-credits.ts). Only the call screen's and the
+   * connection record's credit pre-checks still read it (follow-up: move them to `useServerCredits`).
+   */
   wallet: BetaWallet | null
-  invitation: BetaInvitation | null
-  redeemInvitation: ((code: string) => Promise<void>) | null
   /** 8 · 11 `activeConnection`: a connection to continue (17), when not running on this screen. */
   activeSummary: ActiveConnectionSummary | null
   avatars: AvatarItem[]
@@ -64,8 +66,12 @@ export type BackendContextValue = {
   startSession: (roomId: string, characterId: string, minutes?: number, options?: { tier?: TierId; characterIds?: string[] }) => Promise<ActiveSession>
   connectMate: (mateId: string) => Promise<ActiveSession>
   resumeSession: (sessionId: string) => Promise<ActiveSession>
-  /** API 22. `endType` defaults to `NORMAL` (`AUTO_AWAY` after 10 minutes away or idle, `MINOR_LIMIT` at the under-19 limit). */
-  finishSession: (options?: { acceptUnknownPresence?: boolean; endType?: EndType }) => Promise<StudyRecord>
+  /**
+   * API 22. `endType` defaults to `NORMAL` (`AUTO_AWAY` after 10 minutes away or idle, `MINOR_LIMIT` at the under-19 limit).
+   * `totals` only for a connection whose call screen never opened (no measurement running): a pickup cancelled on the
+   * way in (use-connect-mate.ts) ends it with zero totals.
+   */
+  finishSession: (options?: { acceptUnknownPresence?: boolean; endType?: EndType; totals?: ConnectionTotals }) => Promise<StudyRecord>
   /** Clear only a connection the server has authoritatively reported as ended. Does not send /end again. */
   acknowledgeEndedSession: (sessionId: string, expectedUserId: number) => boolean
   /**

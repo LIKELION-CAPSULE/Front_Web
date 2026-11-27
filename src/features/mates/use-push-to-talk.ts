@@ -4,8 +4,8 @@ import { holdKeyApplies, PushToTalk, speechRecognitionFactory } from './push-to-
 const privacyKey = (userId: number) => `capsule-stt-notice:v1:${userId}`
 const PRIVACY_MS = 7000
 
-/** Who holds the press: the call screen's mic button, the PIP window's, or Space (T-8). One at a time. */
-export type PressSource = 'dock' | 'pip' | 'key'
+/** Who holds the press: the call screen's mic button (dock or chat box), the PIP window's, or Space (T-8). One at a time. */
+export type PressSource = 'dock' | 'composer' | 'pip' | 'key'
 
 /**
  * 「누르고 말하기」 for the connection screen (push-to-talk.ts): the recognizer, Space held on the page or its PIP window

@@ -38,12 +38,17 @@ export function isPhoneDevice(input?: PhoneDetectionInput): boolean {
   return shortSidePx < 600
 }
 
+/** Review scenarios of the mobile notice: `mobile-notice` and its states (`mobile-notice-plain`, …). */
+export function isMobileNoticeReviewId(id: string | null | undefined): boolean {
+  return id === 'mobile-notice' || (typeof id === 'string' && id.startsWith('mobile-notice-'))
+}
+
 export function isReviewMobileNoticeForced(): boolean {
   if (!import.meta.env.DEV || typeof window === 'undefined') return false
-  if (document.documentElement.dataset.reviewScenario === 'mobile-notice') return true
-  if (window.name === 'capsule-ui-review:mobile-notice') return true
+  if (isMobileNoticeReviewId(document.documentElement.dataset.reviewScenario)) return true
+  if (window.name.startsWith('capsule-ui-review:') && isMobileNoticeReviewId(window.name.slice('capsule-ui-review:'.length))) return true
   try {
-    return new URLSearchParams(window.location.search).get('__review') === 'mobile-notice'
+    return isMobileNoticeReviewId(new URLSearchParams(window.location.search).get('__review'))
   } catch {
     return false
   }

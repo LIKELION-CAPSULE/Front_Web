@@ -161,3 +161,6 @@ export const TALK_OPTIONS: readonly { value: TalkFrequency; label: string; descr
   { value: 'sometimes', label: '가끔', description: '가끔 먼저 말을 걸어요' },
   { value: 'often', label: '자주', description: '자주 먼저 말을 걸어요' },
 ]
+
+/** The call screen's quick replies above the chat box (sent as `inputType: QUICK`, the same credit rule as typing). */
+export const QUICK_REPLIES: readonly string[] = ['응', '잠깐만', '오늘 뭐 했어?']

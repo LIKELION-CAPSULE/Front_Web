@@ -20,6 +20,7 @@ const sizePresets: readonly SizePreset[] = [
   { key: '1440', width: 1440, label: '1440 · 데스크톱' },
   { key: '1280', width: 1280, label: '1280 · 데스크톱' },
   { key: '960', width: 960, label: '960 · 반쪽 화면' },
+  { key: '900', width: 900, label: '900 · 좁은 창' },
   { key: '720', width: 720, label: '720 · 반쪽 화면' },
   { key: '640', width: 640, label: '640 · 반쪽 화면' },
   { key: 'mobile', width: 390, label: '휴대폰 · 접속 안내', scenarioId: 'mobile-notice' },
@@ -71,8 +72,11 @@ export function ReviewWorkbench() {
 
   function select(id: string) {
     setSelected(id); setRevision(value => value + 1); setReady(false); setNotice(''); setTexts([]); setMessages([]); setRequests([]); setPath(''); setTab('preview')
+    // The mobile access notice is a phone screen: open it at the phone width.
+    const nextSize = findReviewScenario(id).phone ? 'mobile' : sizeKey
+    if (nextSize !== sizeKey) setSizeKey(nextSize)
     const url = new URL(location.href)
-    url.searchParams.set('case', id); url.searchParams.set('width', sizeKey)
+    url.searchParams.set('case', id); url.searchParams.set('width', nextSize)
     history.replaceState(null, '', url)
   }
   function resize(nextKey: string) {
@@ -80,7 +84,8 @@ export function ReviewWorkbench() {
     setSizeKey(preset.key)
     const url = new URL(location.href)
     url.searchParams.set('width', preset.key)
-    if (preset.scenarioId) {
+    // The phone preset opens the mobile notice, unless one of its states is already on screen.
+    if (preset.scenarioId && !findReviewScenario(selected).phone) {
       setSelected(preset.scenarioId)
       setRevision(value => value + 1)
       setReady(false)

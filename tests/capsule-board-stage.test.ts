@@ -37,12 +37,18 @@ test('the stage ratio holds the height limits, so the eased height runs the whol
     }
   }
   // The limits are the stylesheet's.
-  const { min, max, floor, chrome, narrowYearMax } = BOARD_STAGE_LIMITS
+  const { min, max, floor, chrome, weekChrome, narrowYearMax } = BOARD_STAGE_LIMITS
   assert.match(css, new RegExp(`min-height: ${min}px;`))
   assert.match(css, new RegExp(`max-height: min\\(${max}px, max\\(${floor}px, calc\\(100vh - ${chrome}px\\)\\)\\);`))
+  // The wide week keeps the selected day's summary on the first screen (review [6-2]).
+  assert.match(css, new RegExp(`\\.capsule-board\\[data-mode='week'\\]:not\\(\\[data-narrow\\]\\) \\.capsule-board-stage \\{\\s*max-height: min\\(${max}px, max\\(${floor}px, calc\\(100vh - ${weekChrome}px\\)\\)\\);`))
   assert.match(css, new RegExp(`max-height: ${narrowYearMax}px;`))
   assert.equal(boardStageCap(900, 'month', false), 520)
-  assert.equal(boardStageCap(720, 'week', false), 340)
+  assert.equal(boardStageCap(900, 'year', false), 520)
+  assert.equal(boardStageCap(900, 'week', false), 350)
+  assert.equal(boardStageCap(900, 'week', true), 520)
+  assert.equal(boardStageCap(720, 'month', false), 340)
+  assert.equal(boardStageCap(720, 'week', false), 320)
   assert.equal(boardStageCap(600, 'week', false), 320)
   assert.equal(boardStageCap(1400, 'week', false), 600)
   assert.equal(boardStageCap(900, 'year', true), 1100)
@@ -52,9 +58,9 @@ test('the stage ratio holds the height limits, so the eased height runs the whol
   // 1440 × 900: the stage is 1168 px wide.
   const size = { width: 1168, viewportHeight: 900 }
   const cases = [
-    { from: ['week', '25d'], to: ['month', '25d'], heights: [487, 520] },
+    { from: ['week', '25d'], to: ['month', '25d'], heights: [350, 520] },
+    { from: ['week', '25d'], to: ['year', '25d'], heights: [350, 520] },
     { from: ['week', '2d'], to: ['month', '2d'], heights: [344, 520] },
-    { from: ['week', '2d'], to: ['week', '25d'], heights: [344, 487] },
     { from: ['month', '25d'], to: ['year', '2d'], heights: [520, 520] },
   ] as const
   for (const { from, to, heights } of cases) {
@@ -74,9 +80,9 @@ test('the stage ratio holds the height limits, so the eased height runs the whol
     // The height keeps changing over (nearly) the whole morph, not only until a limit is reached.
     if (heights[0] !== heights[1]) assert.ok(moving >= frames * 0.8, `${from}→${to}: moving ${moving}/${frames}`)
   }
-  // 1280 × 720: week and month both fill the capped 340 px stage — nothing moves.
+  // 1280 × 720: the week holds the floor, the month fills the capped 340 px stage.
   const small = { width: 1008, viewportHeight: 720 }
-  assert.equal(Math.round(boardStageRatio('week', '25d', false, small) * small.width), 340)
+  assert.equal(Math.round(boardStageRatio('week', '25d', false, small) * small.width), 320)
   assert.equal(Math.round(boardStageRatio('month', '25d', false, small) * small.width), 340)
 })
 

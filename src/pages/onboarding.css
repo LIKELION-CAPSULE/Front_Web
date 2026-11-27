@@ -57,8 +57,9 @@
 
   /*
    * The panel: the login screen's right panel (login-variants.css `.login-variant-panel`, not shared as a component
-   * since it is part of that layout): a thin light edge on the dark page, no fill or shadow, 20px corners, 36/40/38
-   * padding and the login form's one-step-larger type scale (only re-declared inside the panel).
+   * since it is part of that layout): a `panel` surface on the dark page with no outline (DESIGN_SYSTEM.md §4.2, UX
+   * review 10-1), 20px corners, 36/40/38 padding and the login form's one-step-larger type scale (only re-declared
+   * inside the panel).
    */
   .onboarding-panel {
     --spacing: 4.5px;
@@ -83,9 +84,9 @@
     gap: 18px;
     width: 100%;
     min-width: 0;
-    border: 1px solid rgba(250, 250, 253, 0.2);
+    border: 0;
     border-radius: 20px;
-    background: transparent;
+    background: var(--color-panel);
     padding: 36px 40px 38px;
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
@@ -142,7 +143,9 @@
   @media (max-width: 959px) {
     .onboarding-step-one {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: max(440px, 60dvh) auto;
+      /* Short enough that the step's main action (다음 · 시작하기) shows in the first screen at 900×800, 768 and
+         390 wide (UX review 1-2). */
+      grid-template-rows: clamp(260px, 38dvh, 400px) auto;
       justify-items: center;
       height: auto;
       gap: 24px;
@@ -154,6 +157,10 @@
     .onboarding-step-one .avatar-picker[data-layout='arc'] .avatar-picker-name { font-size: 28px; line-height: 36px; }
   }
   @media (max-width: 479px) {
+    /* Phone width: the greeting wraps to two lines, so the stage keeps a little more height and the Live2D credit
+       moves down into the gap above the panel, clear of the name and greeting (UX review 1-2). */
+    .onboarding-step-one { grid-template-rows: clamp(330px, 40dvh, 400px) auto; }
+    .onboarding-step-one .avatar-picker[data-layout='arc'] .avatar-picker-credit { bottom: -18px; }
     .onboarding-panel { border-radius: 20px; padding: 22px 18px; }
     .onboarding-title { font-size: 22px; line-height: 30px; }
   }

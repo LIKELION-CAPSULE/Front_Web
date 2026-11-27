@@ -4,6 +4,7 @@ import type { AvatarItem, ModelInfo } from '@/shared/api/types'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
 import { AvatarModelPreview } from './AvatarModelPreview'
 import { AvatarArcRail } from './AvatarArcRail'
+import { Icon } from '@/shared/ui/Icon'
 import { canPrefetchModels, cancelModelPrefetch, prefetchModels, prefetchTargets, whenIdle } from '@/features/live2d/model-prefetch'
 import {
   AVATAR_LEAVE_MS,
@@ -28,6 +29,17 @@ const EMPTY_AVATARS = '선택할 수 있는 아바타가 없어요. 기본 아�
 export const LIVE2D_CREDIT = '본 서비스의 아바타 캐릭터에는 주식회사 Live2D의 저작물이 이용되었습니다.'
 
 type PreviewEntry = { key: string; model: ModelInfo; name: string }
+
+/** The arc's how-to hint is shown once per browser (UX review 1-3): after this key is set it never comes back. */
+const RAIL_HINT_KEY = 'capsule-avatar-rail-hint:v1'
+const RAIL_HINT_DELAY_MS = 700
+const RAIL_HINT_MS = 7000
+function railHintSeen() {
+  try { return localStorage.getItem(RAIL_HINT_KEY) === '1' } catch { return true }
+}
+function markRailHintSeen() {
+  try { localStorage.setItem(RAIL_HINT_KEY, '1') } catch { /* Shown again next time; harmless. */ }
+}
 
 
 const wrap = (index: number, count: number) => count ? ((index % count) + count) % count : 0
@@ -54,7 +66,7 @@ function AvatarPortrait({ avatar, fallback, className = 'avatar-picker-image' }:
  * - The model itself is never recoloured, filtered or reshaped (license); only the light behind it and the fade at
  *   the bottom edge belong to the stage.
  */
-export function AvatarDial({ avatars, value, onChange, disabled = false, size = 'large', layout = 'row', previewActive = true, fallback, greeting }: {
+export function AvatarDial({ avatars, value, onChange, disabled = false, size = 'large', layout = 'row', previewActive = true, fallback, greeting, railHint = false }: {
   avatars: readonly AvatarItem[]
   value?: number
   onChange: (id: number) => void
@@ -71,6 +83,11 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   fallback: ReactNode
   /** A short line under the avatar's name (onboarding greets the nickname being typed). */
   greeting?: ReactNode
+  /**
+   * `arc` only: once per browser, a short hint beside the choice on how to turn the arc (wheel, drag, ↑ ↓), gone after
+   * a few seconds or at the first change (onboarding, where the arc is met first).
+   */
+  railHint?: boolean
 }) {
   const reduced = useReducedMotion()
   const choices = avatars.filter((avatar): avatar is AvatarItem & { id: number } => typeof avatar.id === 'number')
@@ -142,9 +159,22 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   const nameId = useId()
   const selectedName = selected?.name || (choices.length ? `아바타 ${selectedIndex + 1}` : '기본 아바타')
   const radioName = useId()
+  const hintable = railHint && layout === 'arc' && choices.length > 1 && !disabled
+  const [hintShown, setHintShown] = useState(false)
+  useEffect(() => {
+    if (!hintable || railHintSeen()) return
+    const show = setTimeout(() => { setHintShown(true); markRailHintSeen() }, RAIL_HINT_DELAY_MS)
+    return () => clearTimeout(show)
+  }, [hintable])
+  useEffect(() => {
+    if (!hintShown) return
+    const hide = setTimeout(() => setHintShown(false), RAIL_HINT_MS)
+    return () => clearTimeout(hide)
+  }, [hintShown])
 
   function choose(index: number, focus = false) {
     if (disabled || !choices.length) return
+    setHintShown(false)
     onChange(choices[wrap(index, choices.length)]!.id)
     if (focus) requestAnimationFrame(() => root.current?.querySelector<HTMLInputElement>('input:checked:not(:disabled)')?.focus({ preventScroll: true }))
   }
@@ -240,6 +270,14 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
         {caption}
         {credit}
       </div>
+      {/* Visual only: the same words are the group's description (the sr-only line above). */}
+      <AnimatePresence>
+        {hintShown && hintable && <motion.p key="hint" className="avatar-arc-hint" aria-hidden="true"
+          initial={reduced ? false : { opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={reduced ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, x: -4 }} transition={fade}>
+          <Icon name="chevronsVertical" size={16} className="avatar-arc-hint-icon" />
+          <span>휠 · 위아래로 끌기 · ↑↓ 키로<br />다른 아바타를 골라요</span>
+        </motion.p>}
+      </AnimatePresence>
     </fieldset>
   }
 

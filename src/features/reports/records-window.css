@@ -541,6 +541,34 @@
   color: var(--color-subtle);
 }
 
+/* Another range or filter is loading (or failed): the previous screen stays, dimmed and inert, without its sums. */
+[data-records-stale] {
+  opacity: 0.42;
+  transition: opacity 0.2s ease;
+}
+
+.records-stale-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-top: 14px;
+}
+
+.records-stale-status p {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 14px;
+  word-break: keep-all;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-records-stale] {
+    transition: none;
+  }
+}
+
 /* Empty & Loading States */
 .records-empty-box {
   display: flex;

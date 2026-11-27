@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { Button } from '@/shared/ui/Button'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
@@ -14,6 +14,7 @@ export function VoiceSampleButton({
   onStatusChange,
   idleLabel = '목소리 샘플 듣기',
   idleIcon = 'play',
+  idleArt,
   iconSize = 15,
   className,
 }: {
@@ -23,6 +24,8 @@ export function VoiceSampleButton({
   /** Button copy and icon while nothing plays (the mate detail page says "목소리 듣기"). */
   idleLabel?: string
   idleIcon?: IconName
+  /** Drawn instead of `idleIcon` while nothing plays (the mate detail page's sound-wave mark). */
+  idleArt?: ReactNode
   iconSize?: number
   className?: string
 }) {
@@ -53,7 +56,7 @@ export function VoiceSampleButton({
             else if (url) void player.play(url)
           }}
         >
-          <Icon name={active ? 'pause' : idleIcon} size={iconSize} />
+          {active || !idleArt ? <Icon name={active ? 'pause' : idleIcon} size={iconSize} /> : idleArt}
           {active ? '목소리 샘플 멈추기' : idleLabel}
         </Button>
         {status === 'playing' && (

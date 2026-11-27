@@ -31,7 +31,7 @@ export function ReferralCodeField({
   validation,
   fromInviteLink = false,
   inviterNickname,
-  label = '추천인 코드 (선택)',
+  label = '초대 코드 (선택)',
   placeholder = '친구에게 받은 코드를 입력해 주세요',
   showHelp = true,
   disabled = false,

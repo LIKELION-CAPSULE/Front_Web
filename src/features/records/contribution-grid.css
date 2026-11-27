@@ -2,9 +2,11 @@
  * 내 기록 2D contribution grid (ContributionGrid). Base rules (docs/DESIGN_SYSTEM.md): no gold, orange or rainbow;
  * violet only for main actions and selection — with one exception (user decision 2026-11-26): the grid's data shade is
  * a pale violet ramp, the `--color-records-grid-*` tokens (docs/DESIGN_TOKENS.json: the brand's soft violet
- * `text-accent` 14 / 24 / 36 / 48% over the panel, the empty day a faint ink). The deepest step stays muted (no glare
- * on large month cells) and keeps ink text at AA (5.25:1). So the selected day is not violet: a bright ink ring around
- * the cell. Today: a small ink dot, no border. Future days: faded and disabled.
+ * `text-accent` 22 / 37 / 53 / 70% over the panel, the empty day a faint ink). The steps sit about 1.4–1.5:1 apart so
+ * the pattern reads at a glance (2026-11-27 UX review; 14 / 24 / 36 / 48% blurred 30 min–2 h+). Steps 1–3 keep ink
+ * text at AA (10.31 / 6.91 / 4.65:1); the deepest step, a mid lavender with no glare, takes canvas text (5.89:1).
+ * So the selected day is not violet: a bright ink ring around the cell. Today: a small dot in the text colour, no
+ * border. Future days: disabled, their fill faded but their date still readable.
  */
 .contribution-grid,
 .contribution-legend {
@@ -89,13 +91,15 @@
 .contribution-cell[data-level='1'] { background: var(--grid-1); color: var(--color-ink); }
 .contribution-cell[data-level='2'] { background: var(--grid-2); color: var(--color-ink); }
 .contribution-cell[data-level='3'] { background: var(--grid-3); color: var(--color-ink); }
-.contribution-cell[data-level='4'] { background: var(--grid-4); color: var(--color-ink); }
+.contribution-cell[data-level='4'] { background: var(--grid-4); color: var(--color-canvas); }
 .contribution-cell:hover:not(:disabled) { filter: brightness(1.18); }
 .contribution-cell:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 /* The selected day (the one below the board): a bright ink ring just outside the cell (the fill is the violet data). */
 .contribution-cell[aria-pressed='true'] { outline: 2px solid var(--color-ink); outline-offset: 1px; }
 .contribution-cell[aria-pressed='true']:focus-visible { outline-color: var(--color-focus-ring); }
-.contribution-cell[data-future] { opacity: 0.32; cursor: default; }
+/* Only the fill fades (the empty day at 45% over the panel); the date stays readable: text-disabled ≈ 4.1:1 on it
+   (it was the whole cell at 32%, ≈ 2:1). Disabled, so not held to 4.5:1, but never under 3:1. */
+.contribution-cell[data-future] { background: color-mix(in srgb, var(--grid-0) 45%, transparent); color: var(--color-text-disabled); cursor: default; }
 
 /* Month and week: the date at the top-left, the week's time at the bottom. */
 .contribution-date {

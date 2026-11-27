@@ -16,11 +16,14 @@
   opacity: 0;
   cursor: inherit;
 }
+/* Unchecked, the box is told apart by a 1px `input-border` line (DESIGN_SYSTEM §4.2 input-control exception): its fill
+ * is the same `surface` as the 전체 동의 row and close to the panel, so without the line it vanished (UX review 1-1).
+ * #807E8D is 3.7:1 on `surface` and 4.5:1 on `panel`. Checked, the primary fill (::before, inset -1px) covers the line. */
 .animated-checkbox-face {
   position: relative;
   display: grid;
   place-items: center;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-input-border);
   border-radius: 5px;
   background: var(--color-surface);
   pointer-events: none;
@@ -66,6 +69,7 @@
   outline-offset: 4px;
 }
 .animated-checkbox-input:disabled + .animated-checkbox-face {
+  border-color: var(--color-divider);
   background: var(--color-disabled);
   color: var(--color-text-disabled);
 }

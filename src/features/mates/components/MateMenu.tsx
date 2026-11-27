@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useBackend } from '@/features/backend/backend-context'
-import { MATE_RESET_CLEARS, MATE_RESET_KEEPS, mateResetErrorMessage } from '@/features/mates/mate-contract'
+import { isMateResetBlocked, MATE_RESET_CLEARS, MATE_RESET_KEEPS, mateResetErrorMessage } from '@/features/mates/mate-contract'
 import { Button } from '@/shared/ui/Button'
 import { withParticle } from '@/shared/lib/korean'
 import { Icon } from '@/shared/ui/Icon'
@@ -31,7 +31,8 @@ export function MateMenu({
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirm, setConfirm] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  /** A failed reset: `warning` when it was refused because the mate is connected (nothing went wrong; end it first). */
+  const [error, setError] = useState<{ tone: 'error' | 'warning'; text: string } | null>(null)
   const pending = useRef(false)
   const mounted = useRef(false)
   const wasConfirmOpen = useRef(false)
@@ -72,7 +73,7 @@ export function MateMenu({
     pending.current = true
     setBusy(true)
     onBusyChange?.(true)
-    setError('')
+    setError(null)
     try {
       await resetMateConversation(mateId)
       if (mounted.current) {
@@ -81,7 +82,12 @@ export function MateMenu({
         onReset?.()
       }
     } catch (reason) {
-      if (mounted.current) setError(mateResetErrorMessage(reason))
+      if (mounted.current) {
+        // 409: this mate is connected now — here, in another tab or on another device. Say whose connection and what to do.
+        setError(isMateResetBlocked(reason)
+          ? { tone: 'warning', text: `지금 ${withParticle(mateName, '과', '와')} 연결 중이라 초기화할 수 없어요. 다른 탭이나 기기의 연결까지 끝낸 뒤 다시 눌러 주세요.` }
+          : { tone: 'error', text: mateResetErrorMessage(reason) })
+      }
     } finally {
       pending.current = false
       if (mounted.current) {
@@ -97,6 +103,8 @@ export function MateMenu({
         type="button"
         className="mate-menu-trigger"
         aria-label={`${mateName} 메뉴`}
+        // The only way to 「대화 초기화」: the pointer gets the menu's purpose before opening it.
+        title="메이트 관리 · 대화 초기화"
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         aria-controls={menuOpen ? id : undefined}
@@ -138,7 +146,7 @@ export function MateMenu({
             role="menuitem"
             onClick={() => {
               setMenuOpen(false)
-              setError('')
+              setError(null)
               setConfirm(true)
               onDialogChange?.(true)
             }}
@@ -168,7 +176,7 @@ export function MateMenu({
           </div>
         </dl>
         <p className="mt-3 text-danger">초기화한 대화는 되돌릴 수 없어요.</p>
-        {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
+        {error && <FeedbackMessage tone={error.tone} className="mt-4">{error.text}</FeedbackMessage>}
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="secondary" disabled={busy} onClick={close} data-dialog-initial-focus>
             취소

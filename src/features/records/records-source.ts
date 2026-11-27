@@ -13,6 +13,13 @@ import { connectionDayKey } from './connection-day.ts'
  * - the newest five connections replace their day's record with the real connections (exact times, a record card that
  *   opens and links to the connection record); time of the day left over from older connections stays a day record.
  *
+ * The day totals are always the server's buckets: a listed connection only takes its share of a bucket, never adds
+ * time. 38 `recent[]` has no start yet (requested: `startedAt`, read when sent), and its end minus its connected time is
+ * only an estimate — time cut off mid-connection is not connected time, so near the 05:00 day boundary the estimate can
+ * fall on the next day while the server counted the connection on the day it began. A listed connection is therefore
+ * shown on its (estimated) day only when that mate's bucket there still has room for it; otherwise its time stays in
+ * the bucket's day record, on the day the server put it. Connections of other mates or outside the range add nothing.
+ *
  * Day records start at noon of their day (38 has no time of day): they never open a record card, and the time-band
  * tint of those days is the day band. See docs in the report (`API wiring 1`).
  */
@@ -21,6 +28,9 @@ import { connectionDayKey } from './connection-day.ts'
 export type RecordsMate = { id: string; characterId: string; name: string; serverIds: readonly number[] }
 
 export type RecordsData = {
+  /** The range and mate filter (`RecordsMate.id`, null: 전체) this answer is for. */
+  range: RecordRange
+  mateId: string | null
   /** Sums of the whole scope (all mates, or the chosen one). */
   totals: RecordsView
   /** Day records and real connections (the newest five of the scope), oldest first. */
@@ -56,8 +66,7 @@ function report(mate: RecordsMate | undefined, values: { connectionId?: number; 
   }
 }
 
-function record(id: string, mate: RecordsMate | undefined, startedAt: number, connectedSeconds: number, presentSeconds: number, connectionId?: number): StudyRecord {
-  const endedAt = startedAt + connectedSeconds * 1000
+function record(id: string, mate: RecordsMate | undefined, startedAt: number, connectedSeconds: number, presentSeconds: number, connectionId?: number, endedAt = startedAt + connectedSeconds * 1000): StudyRecord {
   const characterId = mate?.characterId ?? ''
   return {
     id, roomId: characterId, characterIds: [characterId], tier: 'basic',
@@ -70,10 +79,13 @@ function record(id: string, mate: RecordsMate | undefined, startedAt: number, co
   }
 }
 
-/** A real connection (38 `recent[]`) as a record: its start is its end minus its connection time. */
+/**
+ * A real connection (38 `recent[]`) as a record: its start is the server's when sent, else its end minus its connection
+ * time (an estimate: see the module comment).
+ */
 export function connectionRecord(connection: RecordsConnectionView, mate: RecordsMate | undefined): StudyRecord {
-  const startedAt = connection.endedAt - connection.connectedSeconds * 1000
-  return record(connection.connectionId, mate, startedAt, connection.connectedSeconds, connection.presentSeconds, Number(connection.connectionId))
+  const startedAt = connection.startedAt ?? connection.endedAt - connection.connectedSeconds * 1000
+  return record(connection.connectionId, mate, startedAt, connection.connectedSeconds, connection.presentSeconds, Number(connection.connectionId), connection.endedAt)
 }
 
 /** A record built from a day bucket (no single connection behind it): never opens a record card. */
@@ -81,19 +93,29 @@ export const isDayRecord = (value: Pick<StudyRecord, 'id'>) => value.id.startsWi
 
 /**
  * Day records of each mate's buckets, with the real connections put in their place (see the module comment).
- * `parts`: each mate's own 38 answer for the range; `recent`: the scope's newest connections.
+ * `parts`: each mate's own 38 answer for the range; `recent`: the scope's newest connections (newest first).
+ * The board's day totals are the buckets', whatever `recent` holds.
  */
 export function boardRecords(parts: readonly { mate: RecordsMate; view: RecordsView }[], recent: readonly StudyRecord[]): StudyRecord[] {
-  const result: StudyRecord[] = [...recent]
+  const result: StudyRecord[] = []
   for (const { mate, view } of parts) {
-    for (const bucket of view.buckets) {
-      if (!(bucket.connectedSeconds > 0) || bucket.key.length !== 10) continue
-      const real = recent.filter(item => item.characterIds[0] === mate.characterId && connectionDayKey(item) === bucket.key)
-      const connected = bucket.connectedSeconds - real.reduce((sum, item) => sum + item.studySeconds, 0)
+    /** What is left of each day's bucket once its listed connections took their share. */
+    const left = new Map(view.buckets.filter(bucket => bucket.key.length === 10).map(bucket => [bucket.key, { connected: bucket.connectedSeconds, present: bucket.presentSeconds, real: 0 }]))
+    for (const item of recent) {
+      if (item.characterIds[0] !== mate.characterId) continue
+      const day = left.get(connectionDayKey(item))
+      // No bucket (another range) or no room for it there (the server counted it on another day): its time is in the
+      // buckets already, so it is not shown on its own. One second of slack for the server's rounding.
+      if (!day || item.studySeconds > day.connected + 1) continue
+      day.connected = Math.max(0, day.connected - item.studySeconds)
+      day.present = Math.max(0, day.present - item.focusSeconds)
+      day.real++
+      result.push(item)
+    }
+    for (const [key, day] of left) {
       // The day's time beyond its listed connections (older ones of the same day). A rounding second is not a capsule.
-      if (connected < 60 && real.length) continue
-      const present = Math.max(0, bucket.presentSeconds - real.reduce((sum, item) => sum + item.focusSeconds, 0))
-      result.push(record(`day:${mate.id}:${bucket.key}`, mate, Date.parse(`${bucket.key}${NOON}`), Math.max(0, connected), present))
+      if (!(day.connected > 0) || (day.connected < 60 && day.real)) continue
+      result.push(record(`day:${mate.id}:${key}`, mate, Date.parse(`${key}${NOON}`), day.connected, day.present))
     }
   }
   return result.sort((a, b) => a.startedAt - b.startedAt || a.id.localeCompare(b.id))

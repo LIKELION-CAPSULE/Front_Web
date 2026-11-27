@@ -109,6 +109,27 @@
   font-weight: 600;
 }
 .service-tour-actions { display: flex; gap: 8px; }
+/* A label never breaks inside its button (900px: 「이 화면 / 건너뛰기」 took two lines, UX review 9-2). */
+.service-tour-actions > * { white-space: nowrap; }
+
+/* Narrower windows: 「이 화면 건너뛰기」 shows as 「건너뛰기」 (its accessible name stays whole) and the gaps tighten. */
+@media (max-width: 1100px) {
+  .service-tour-panel { gap: 14px; padding: 10px 10px 10px 16px; }
+  .service-tour-wide { display: none; }
+}
+
+/* The practice call keeps its chat open on the right: the panel centres over the stage, not the window, so it never
+   covers the chat's first lines (connections.css: the stage is the content box less the chat column and the gap). */
+@media (min-width: 961px) {
+  .service-tour-panel[data-place='top'] { left: calc(16px + (100vw - 46px - clamp(310px, 25vw, 360px)) / 2); }
+}
+@media (min-width: 861px) and (max-width: 960px) {
+  .service-tour-panel[data-place='top'] { left: calc(12px + (100vw - 36px - clamp(280px, 31vw, 312px)) / 2); }
+}
+/* A stage narrower than the panel's single row: the title above the buttons. */
+@media (min-width: 861px) and (max-width: 1100px) {
+  .service-tour-panel[data-place='top'] { flex-direction: column; gap: 8px; padding: 10px 12px; }
+}
 
 .service-tour-loading-text { margin: 0; color: var(--color-ink); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 600; white-space: nowrap; }
 

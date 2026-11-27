@@ -100,7 +100,6 @@
 }
 
 .connection-titlebar-left,
-.connection-titlebar-center,
 .connection-titlebar-right {
   display: flex;
   align-items: center;
@@ -138,11 +137,6 @@
   text-align: right;
   padding-left: 12px;
   border-left: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
-}
-
-.connection-titlebar-center {
-  flex: none;
-  justify-content: center;
 }
 
 .connection-mode-segment {
@@ -188,7 +182,7 @@
 }
 
 .connection-titlebar-right {
-  flex: 1 1 0;
+  flex: none;
   justify-content: flex-end;
   gap: 8px;
 }
@@ -303,71 +297,7 @@
   display: block;
 }
 
-.connection-mate[data-speaking]::after {
-  position: absolute;
-  z-index: 20;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 2px var(--color-success);
-  pointer-events: none;
-  content: '';
-}
-
-/* Bottom-center pill speech bubble (strictly above floating glass dock, below tie knot, clear of self tile) */
-.connection-speech-slot {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: clamp(92px, 11.5%, 108px);
-  z-index: 12;
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
-  transition: transform 180ms cubic-bezier(.2, .8, .2, 1);
-}
-
-/* Shift speech bubble upward while dock is hovered or keyboard-focused so tooltips never obscure it */
-.connection-stage-wrap:has(.connection-controls:hover) .connection-speech-slot,
-.connection-stage-wrap:has(.connection-controls button:focus-visible) .connection-speech-slot {
-  transform: translateY(-44px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .connection-speech-slot {
-    transition: none;
-  }
-}
-
-.connection-stage .connection-speech-slot .character-speech-bubble--pill {
-  max-width: min(460px, calc(100% - 26% - 48px));
-}
-
-.connection-speech-slot .character-speech-bubble--pill {
-  position: static;
-  top: auto;
-  right: auto;
-  left: auto;
-  margin: 0;
-  max-width: min(560px, 100%);
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: 1px solid rgba(250, 250, 253, 0.16);
-  background: rgba(15, 14, 23, 0.84);
-  backdrop-filter: blur(14px) saturate(140%);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
-  color: var(--color-ink);
-  font-size: 14px;
-  line-height: 1.45;
-  pointer-events: auto;
-}
-
-.connection-speech-slot .character-speech-bubble--pill::before {
-  display: none;
-}
-
-.connection-speech-slot .character-speech-bubble--pill .character-speech-bubble-text {
-  text-shadow: none;
-}
+/* 「말하는 중」 and her lines are on the dialogue box over the dock (CallDialogueBox, call-dialogue.css). */
 
 /* "나" Self Tile = Mini Desktop Window */
 .connection-self.desktop-window {
@@ -431,15 +361,16 @@
 
 .connection-stage-wrap { container: connection-stage / inline-size; }
 
-/* The 「나」 tile sits on the dock's baseline (bottom 16px) beside it; a stage too narrow to keep them apart lifts
-   the tile above the dock instead (container query below). */
+/* The 「나」 tile sits in the stage's top-right corner (call UI step 2, 2026-11-27), across from 「말 걸기」 on the
+   left; the bottom belongs to the dialogue box and the dock. Its height is shared with the notices under it. */
+.connection-stage-wrap { --connection-self-h: clamp(118px, 19%, 160px); }
 .connection-stage .connection-self.desktop-window {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
+  top: 12px;
+  right: 12px;
   z-index: 15;
   width: clamp(160px, 21%, 220px);
-  height: clamp(118px, 19%, 160px);
+  height: var(--connection-self-h);
 }
 
 .connection-avatar {
@@ -460,11 +391,11 @@
   border-radius: inherit;
 }
 
-/* Floating Desktop Notices (top-right over stage) */
+/* Floating notices: top-right over the stage, under the 「나」 tile (12px + its height + 10px). */
 .connection-floating-notices {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: calc(22px + var(--connection-self-h));
+  right: 12px;
   z-index: 22;
   display: flex;
   flex-direction: column;
@@ -512,7 +443,8 @@
   line-height: 18px;
   cursor: pointer;
 }
-.connection-voice-intro {
+.connection-voice-intro,
+.connection-voice-unavailable {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -559,6 +491,22 @@
   padding: 0;
 }
 
+.connection-chat-head.desktop-window-titlebar {
+  position: relative;
+  padding-top: 14px;
+}
+/* The roof strip sits on the panel's top edge (border radius clips it with the panel). */
+.connection-chat-head .px-roof-strip { z-index: 0; }
+.connection-chat-head > :not(.px-roof-strip) { position: relative; z-index: 1; }
+
+.connection-log-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
 .connection-messages {
   flex: 1;
   min-height: 0;
@@ -567,56 +515,50 @@
   padding: 18px 14px;
 }
 
-.connection-messages article {
-  margin-bottom: 18px;
-}
+/* Lines in runs: chat-log.css (ChatLogGroups). */
 
-.connection-messages article small {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--color-subtle);
-  font-size: 12px;
+/* 「새 메시지 ↓」: her new lines while the chat is scrolled up; one click goes to the newest. */
+.connection-new-pill {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  left: 50%;
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 0 14px;
+  background: var(--color-floating);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 40%);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 700;
+  transform: translateX(-50%);
 }
-
-.connection-messages article p {
-  width: fit-content;
-  max-width: 90%;
-  padding: 11px 15px;
-  border-radius: 0 14px 14px;
-  background: var(--color-canvas);
-  font-size: 14px;
-  line-height: 1.65;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+.connection-new-pill:hover { background: var(--color-floating-hover); }
+.connection-new-pill:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .connection-new-pill { animation: connection-new-pill-in 220ms steps(3, jump-end) backwards; }
 }
-
-.connection-messages article[data-sender='user'] {
-  display: grid;
-  justify-items: end;
-}
-
-.connection-messages article[data-sender='user'] p {
-  border-radius: 14px 0 14px 14px;
-  background: var(--color-primary);
-  color: var(--color-on-solid);
-}
+@keyframes connection-new-pill-in { from { opacity: 0; transform: translate(-50%, 6px); } }
 
 .connection-chat-error {
   flex: none;
   padding: 0 12px 6px;
 }
 
-.connection-chat .session-chat-composer {
+/* The chat box (ChatComposer): quick replies, the box with 누르고 말하기 inside, the key hint. */
+.connection-chat .session-chat-composer-wrap {
   flex: none;
-  margin: 0 12px 12px;
-  border: 1px solid var(--color-divider);
+  padding: 6px 12px 12px;
+}
+.connection-chat .session-chat-composer {
   background: var(--color-canvas);
+  box-shadow: none;
 }
-
-.connection-chat .session-chat-composer:focus-within {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 1px;
-}
+.connection-chat .session-chat-composer:focus-within { box-shadow: 0 0 0 2px var(--color-focus-ring); }
+.connection-chat .session-chat-composer:has(button:focus-visible) { box-shadow: none; }
 
 /* Leave Confirmation Mate Quote */
 .connection-leave-quote {
@@ -708,37 +650,28 @@
   }
 }
 
-.connection-titlebar-more-wrap {
-  position: relative;
-  display: none;
-  align-items: center;
-}
-
-.connection-titlebar-more-menu {
-  min-width: 196px;
-  padding: 8px 10px;
-}
-
-.connection-titlebar-more-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 6px 4px;
-  font-size: 12.5px;
-  color: var(--color-muted);
-}
-
-.connection-titlebar-more-item strong {
-  color: var(--color-ink);
-  font-weight: 600;
-}
-
 @media (max-width: 1120px) {
   .connection-titlebar-chip {
     padding: 3px 8px;
     font-size: 11px;
   }
+}
+
+/* ≤ 1100px (900 included): the info bar keeps one line by shortening — the affinity chip to its heart and steps, the
+   credit chip to the coin and the number, the mode to 「기본 · 고급」. The words stay for screen readers (sr-only, not
+   display: none) and in the tooltip (title). */
+@media (max-width: 1100px) {
+  .connection-titlebar-right .connection-chip-long,
+  .connection-mode-detail {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .connection-titlebar-right { gap: 6px; }
+  .connection-timer { font-size: 17px; min-width: max-content; padding-left: 10px; white-space: nowrap; }
 }
 
 /* 861px ~ 960px (960 half-screen): chat sits side-by-side without covering stage or dock;
@@ -798,48 +731,23 @@
     width: 100%;
     box-shadow: none;
   }
-  .connection-speech-slot {
-    bottom: 12px;
-  }
-  .connection-stage .connection-self.desktop-window {
-    bottom: 12px;
-  }
 }
 
 @media (max-width: 720px) {
-  .connection-titlebar-chip {
-    display: none;
-  }
-  .connection-titlebar-more-wrap {
-    display: inline-flex;
-  }
-  .connection-titlebar-center {
-    order: 3;
-    width: 100%;
-    justify-content: flex-start;
+  .connection-titlebar-right {
+    flex-wrap: wrap;
+    row-gap: 4px;
   }
 }
 
 @media (max-width: 680px) {
+  .connection-stage-wrap { --connection-self-h: 96px; }
   .connection-stage .connection-self.desktop-window {
-    right: 12px;
-    bottom: 12px;
     width: 120px;
-    height: 96px;
   }
   .connection-self.desktop-window .connection-avatar {
     width: 44px;
     height: 44px;
-  }
-  .connection-stage .connection-speech-slot {
-    left: 12px;
-    right: 144px;
-    justify-content: flex-start;
-  }
-  .connection-stage .connection-speech-slot .character-speech-bubble--pill {
-    max-width: 100%;
-    padding: 8px 14px;
-    font-size: 13px;
   }
 }
 
@@ -978,11 +886,7 @@
   opacity: 1;
 }
 
-/* The line is down: no speaking ring, and the live dot goes offline at once. */
-.connection-page[data-hangup] .connection-mate[data-speaking]::after {
-  display: none;
-}
-
+/* The line is down: the live dot goes offline at once (the speaking chip is not drawn while hanging up). */
 .connection-page[data-hangup] .connection-titlebar .desktop-mate-dot {
   background: var(--color-subtle);
   box-shadow: none;
@@ -1037,9 +941,6 @@
   cursor: pointer;
 }
 
-.connection-stage .connection-speech-slot {
-  cursor: auto;
-}
 
 
 
@@ -1096,10 +997,16 @@
   .connection-stt > p { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 }
 
-/* Too narrow for the tile beside the centred dock (dock ≈ 330px + the tile + gaps): the tile goes above the dock. */
-@container connection-stage (max-width: 860px) {
+/* A narrow stage (≈ 900px window with the chat open): a smaller tile, clear of 「말 걸기」 on the left. */
+@container connection-stage (max-width: 640px) {
+  .connection-stage,
+  .connection-floating-notices { --connection-self-h: 98px; }
   .connection-stage .connection-self.desktop-window {
-    bottom: 92px;
+    width: 128px;
+  }
+  .connection-self.desktop-window .connection-avatar {
+    width: 44px;
+    height: 44px;
   }
 }
 
@@ -1118,6 +1025,17 @@
   padding: 3px;
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
+}
+/* What the toggle is for, in front of the three words: quieter than the options and not one of them. */
+.connection-talk-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px 0 9px;
+  color: var(--color-subtle);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 .connection-talk-option {
   height: 28px;

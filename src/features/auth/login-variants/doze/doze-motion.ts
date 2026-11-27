@@ -50,12 +50,18 @@ export const DOZE_TIMINGS_MS = {
   liveFade: 420,
 } as const
 
-/** The "tap her" bubble over the dozing mate (Korean particle 이/가 follows the name's last syllable). */
+/**
+ * The "tap her" hint over the dozing mate: a UI hint, so in the service's 해요체 like the rest of the screen (UX review
+ * 1-5; her own lines stay in the dialogue box). The particle 을/를 follows the name's last syllable.
+ */
 export function dozeCallLine(name: string): string {
   const last = name.charCodeAt(name.length - 1)
   const hasBatchim = last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0
-  return `${name}${hasBatchim ? '이를' : '를'} 톡 눌러서 깨워 봐`
+  return `${name}${hasBatchim ? '을' : '를'} 눌러 깨워 보세요`
 }
+
+/** The same hint for a keyboard user. */
+export const DOZE_KEY_LINE = 'Enter 키로 깨워 보세요'
 
 /** Just woken: the 앗 owns up to having dozed off (the plain greeting is desktop-config's '왔어? 기다리고 있었어.'). */
 export const DOZE_GREETING = '앗, 왔어? 기다리고 있었어.'

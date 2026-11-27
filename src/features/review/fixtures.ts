@@ -1,5 +1,7 @@
 import { mateHeroPortrait } from '@/features/mates/artwork'
-import { LOCAL_CHARACTER_ID, LOCAL_MATES, LOCAL_USER_ID, LocalBetaStore } from '@/features/local-demo/store'
+import { LOCAL_CHARACTER_ID, LOCAL_LEDGER_TITLES, LOCAL_MATES, LOCAL_USER_ID, LocalBetaStore } from '@/features/local-demo/store'
+import { ATTENDANCE_SOURCE_QA_KEY } from '@/features/attendance/attendance-source'
+import { businessDay } from '@/shared/lib/format'
 import { createLocalTransport } from '@/features/local-demo/transport'
 import type { ReviewScenario } from './catalog'
 
@@ -24,9 +26,42 @@ const PENDING: Partial<Record<NonNullable<ReviewScenario['fault']>, (method: str
   'withdraw-pending': (method, path) => method === 'DELETE' && path === '/me',
   'reset-request-pending': (_, path) => path === '/auth/password/reset-request',
   'start-pending': (method, path) => method === 'POST' && path === '/connections',
+  'credits-pending': (method, path) => method === 'GET' && path === '/credits',
+  'invite-pending': (method, path) => method === 'GET' && path === '/referrals/me',
+}
+
+/** 36 refusals the review shows on the code field (the code itself passes 39 first). */
+const REFERRAL_FAULTS: Record<string, [string, number]> = {
+  'referral-expired': ['REFERRAL_EXPIRED', 400],
+  'referral-same-device': ['REFERRAL_SAME_DEVICE', 400],
+  'referral-already': ['REFERRAL_ALREADY_ENTERED', 409],
+}
+
+/** The credits and invitation scenarios' server data (the local server's account, changed as the scenario needs). */
+function seedCredits(store: LocalBetaStore, scenario: ReviewScenario) {
+  const wallet = store.data.wallet, invitation = store.data.invitation
+  if (scenario.id === 'credits-empty') wallet.entries = []
+  if (scenario.id === 'credits-more') {
+    // Three server pages (20 + 20 + 5): 「더 보기」 twice.
+    const now = Date.now()
+    wallet.entries = Array.from({ length: 45 }, (_, index) => {
+      const use = index % 3 !== 2
+      return { id: `review-more-${index}`, at: now - index * 5_400_000, kind: use ? 'use' as const : 'attendance' as const, change: use ? -20 : 1500,
+        description: use ? LOCAL_LEDGER_TITLES.spend('채린', true, false) : LOCAL_LEDGER_TITLES.attendance, balance: 3500 - index * 10 }
+    })
+  }
+  if (scenario.id === 'invite-full') { invitation.invitedCount = 10; invitation.rewardedCredits = 10000; invitation.joinedCount = 0; invitation.canRedeem = false; wallet.invitation = 10000 }
+  if (scenario.id === 'invite-empty') { invitation.invitedCount = 0; invitation.rewardedCredits = 0; invitation.joinedCount = 0 }
+  if (scenario.id === 'connection-record-credit-out') { wallet.attendance = 0; wallet.invitation = 0; wallet.entries = [] }
+  // The home path, server as it is: today's 1,500 already granted; 「received」 already pressed in this browser.
+  if (scenario.id === 'home-attendance-done') {
+    try { localStorage.setItem(`capsule-attendance-received:${LOCAL_USER_ID}`, businessDay()) } catch { /* In-memory review storage. */ }
+  }
 }
 
 export function createReviewTransport(scenario: ReviewScenario, original: typeof fetch): typeof fetch {
+  // The proposed attendance API (attendance-source.ts), before the store reads the switch.
+  if (scenario.fault === 'attendance-api') try { sessionStorage.setItem(ATTENDANCE_SOURCE_QA_KEY, 'attendance-api') } catch { /* In memory. */ }
   const store = new LocalBetaStore(null)
   if (scenario.guest) store.reset('guest')
   else if (scenario.empty) store.reset('empty')
@@ -76,6 +111,7 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
       )
     }
   }
+  seedCredits(store, scenario)
   const local = createLocalTransport(store, original, location.origin)
   let syncFailures = scenario.fault === 'sync' ? 1 : 0
   let reportFailures = scenario.fault === 'server-ended-report' ? 1 : 0
@@ -153,6 +189,11 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     if (operation === 'end' && fault === 'end') return fail(500)
     if (operation === '' && method === 'GET' && reportFailures > 0) { reportFailures--; return fail(503) }
     if (operation === '' && method === 'GET' && fault === 'report') return fail(500)
+    // 내 크레딧 · 친구 초대: the summary, the activity list or the invitation unreadable; a code refused by 36.
+    if (path === '/credits' && fault === 'credits-error') return fail(500)
+    if (path === '/credits/transactions' && fault === 'credits-activity-error' && url.searchParams.get('filter') !== 'ATTENDANCE') return fail(500)
+    if (path === '/referrals/me' && fault === 'invite-error') return fail(500)
+    if (path === '/referrals' && method === 'POST' && fault && REFERRAL_FAULTS[fault]) return fail(REFERRAL_FAULTS[fault][1], REFERRAL_FAULTS[fault][0])
 
     const response = await local(input, options)
     log(response.status)

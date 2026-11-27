@@ -97,9 +97,31 @@
 .credit-short-notice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .credit-short-notice-invite { color: var(--color-muted); font-size: var(--text-caption); text-decoration: underline; text-underline-offset: 3px; }
 .credit-short-notice-invite:hover { color: var(--color-ink); }
-.voice-fallback-note { margin: 0 12px 8px; color: var(--color-subtle); font-size: var(--text-caption); }
-.voice-fallback-note { animation: voice-fallback-note 6s ease forwards; }
-@keyframes voice-fallback-note { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
+/* Opens in a new tab (CreditShortNotice): an arrow pointing up and out, as links that leave the page do. */
+.credit-short-notice-invite { display: inline-flex; align-items: center; gap: 3px; }
+.credit-short-notice-invite-icon { rotate: -45deg; }
+/* 메이트 음성 asked for but the credits ran short (the reply came as text): a warning chip over the composer, with the
+   voice button's headphones, long enough to be read before it fades. */
+.voice-fallback-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 8px;
+  border-radius: 10px;
+  background: var(--color-warning-bg);
+  padding: 7px 12px;
+  color: var(--color-ink);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  animation: voice-fallback-note 9s ease forwards;
+}
+.voice-fallback-note > :first-child { flex: none; color: var(--color-warning); }
+/* The chat is closed: the same chip among the stage's floating notices (connection-floating-notices). */
+.connection-floating-notices > .voice-fallback-note { margin: 0; pointer-events: auto; box-shadow: 0 10px 28px rgb(0 0 0 / 0.48); }
+@keyframes voice-fallback-note { 0% { opacity: 0; transform: translateY(4px); } 4%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  @keyframes voice-fallback-note { 0%, 88% { opacity: 1; } 100% { opacity: 0; } }
+}
 .connection-history-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; margin: 0 0 8px; color: var(--color-subtle); font-size: var(--text-caption); line-height: 26px; text-align: center; }
 /* An older page on its way: over the top of the list (no height of its own), so the lines in view do not move. */
 .connection-history-status--over { position: sticky; z-index: 1; top: 0; width: fit-content; height: 26px; margin: 0 auto -26px; border-radius: 999px; background: color-mix(in srgb, var(--color-panel) 92%, transparent); padding: 0 12px; pointer-events: none; }

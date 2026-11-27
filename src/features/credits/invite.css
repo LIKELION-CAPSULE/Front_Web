@@ -1,0 +1,548 @@
+/*
+ * 친구 초대 (/credits/invite, SCR-31; InvitePage.tsx). A dashboard on the open page like 내 크레딧: the event hero with
+ * the capsule dome and mascots, the n / 10 capsule strip, my code, then a received code.
+ * Art: src/assets/invite/README.md. Colours come from the design tokens only.
+ */
+
+/* ─── ① Hero ─── */
+.invite-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 360px;
+}
+
+.invite-hero-copy {
+  position: relative;
+  z-index: 1;
+  padding-left: 8px;
+}
+
+/* Set like the home hero's 「오늘도 캡슐과 함께해요!」: upright, heavy, one word in the purple gradient. */
+.invite-hero-title {
+  margin: 0;
+  font-size: clamp(40px, 4.6vw, 64px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--color-ink);
+  word-break: keep-all;
+}
+
+.invite-hero-title span {
+  background: linear-gradient(90deg, var(--color-text-accent), var(--color-primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.invite-hero-sub {
+  margin: 20px 0 0;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--color-muted);
+  word-break: keep-all;
+}
+
+.invite-hero-sub strong {
+  font-weight: 700;
+  color: var(--color-text-accent);
+}
+
+/* The art: the dome in the middle, a mascot either side, all scaled with the box. */
+.invite-art {
+  position: relative;
+  aspect-ratio: 1.75;
+  width: 100%;
+}
+
+.invite-art-glow {
+  position: absolute;
+  inset: 8% 14% -4%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-primary) 34%, transparent), transparent);
+  filter: blur(8px);
+}
+
+.invite-dome {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  height: 100%;
+  aspect-ratio: 840 / 891;
+  translate: -50% 0;
+}
+
+.invite-dome > img:first-child {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* A capsule per invited friend, standing in its slot. */
+.invite-dome-capsule {
+  position: absolute;
+  height: 13.6%;
+  width: auto;
+  translate: -50% -50%;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 70%, transparent));
+}
+
+.invite-dome-capsule[data-enter] {
+  animation: invite-capsule-drop 620ms cubic-bezier(0.34, 1.4, 0.64, 1) var(--enter-delay, 0ms) both;
+}
+
+@keyframes invite-capsule-drop {
+  0% { opacity: 0; transform: translateY(-140%) scale(0.7); }
+  60% { opacity: 1; transform: translateY(6%) scale(1.04, 0.94); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.invite-mascot {
+  position: absolute;
+  bottom: 2%;
+  height: 64%;
+  aspect-ratio: 400 / 504;
+  animation: invite-mascot-float 3.4s ease-in-out infinite;
+}
+
+.invite-mascot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+}
+
+.invite-mascot--left {
+  left: 0;
+}
+
+.invite-mascot--right {
+  right: 0;
+  bottom: 6%;
+  animation-delay: -1.7s;
+}
+
+@keyframes invite-mascot-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -3%; }
+}
+
+/* Sparkles and hearts that burst up when a friend joins (played by InviteHeroArt). */
+.invite-cheer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.invite-cheer span {
+  position: absolute;
+  width: 4%;
+  aspect-ratio: 1;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
+.invite-cheer span[data-kind='star'] {
+  background: var(--color-on-solid);
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+}
+
+.invite-cheer span[data-kind='heart'] {
+  width: 5%;
+  background: var(--color-text-accent);
+  clip-path: path('M12 21s-7.5-4.6-9.6-9.3C.8 8.3 3 4.5 6.6 4.5c2.1 0 3.5 1.1 4.4 2.5.9-1.4 2.3-2.5 4.4-2.5 3.6 0 5.8 3.8 4.2 7.2C19.5 16.4 12 21 12 21z');
+}
+
+/* ─── ② Progress strip ─── */
+.invite-progress {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 28px;
+  /* The same box as the cards below (corners, padding). */
+  padding: 20px 20px 20px 32px;
+  border-radius: 20px;
+  background: var(--credits-card);
+}
+
+.invite-progress-count {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.invite-progress-count strong {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.invite-progress-goal-count {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-ink);
+}
+
+.invite-progress-unit {
+  margin-left: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+.invite-progress-capsules {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  align-items: center;
+  gap: clamp(4px, 0.8vw, 12px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.invite-progress-capsules li {
+  display: grid;
+  place-items: center;
+  height: 56px;
+}
+
+/* The capsule lies diagonally; an empty place is the same capsule, dark and unlit. */
+.invite-progress-capsules img {
+  height: 50px;
+  width: auto;
+  rotate: 58deg;
+  filter: saturate(0.45) brightness(0.36);
+  opacity: 0.85;
+}
+
+.invite-progress-capsules li[data-filled] img {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 75%, transparent));
+  opacity: 1;
+}
+
+.invite-progress-capsules li[data-enter] img {
+  animation: invite-capsule-pop 560ms cubic-bezier(0.34, 1.5, 0.64, 1) var(--enter-delay, 0ms) both;
+}
+
+@keyframes invite-capsule-pop {
+  0% { filter: saturate(0.45) brightness(0.36); transform: scale(0.8); }
+  55% { filter: brightness(1.5) drop-shadow(0 0 14px color-mix(in srgb, var(--color-primary) 90%, transparent)); transform: scale(1.18); }
+  100% { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 75%, transparent)); transform: scale(1); }
+}
+
+.invite-progress-goal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 14px 24px;
+  border-radius: 14px;
+  background: var(--credits-inset);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+/* The header's credit coin and the credits earned, in credit gold (DESIGN_SYSTEM.md exception 2). */
+.invite-progress-goal .app-icon {
+  color: var(--color-warning);
+}
+
+.invite-progress-goal strong {
+  color: var(--color-warning);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── ③ My code, ④ received code ─── */
+.invite-panel {
+  position: relative;
+  border-radius: 20px;
+  background: var(--credits-card);
+}
+
+.invite-code-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px 32px;
+}
+
+.invite-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.invite-panel-title .app-icon {
+  color: var(--color-text-accent);
+}
+
+.invite-code-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* The code stays on one line, its copy button inside the box on the right; share wraps below when narrow. */
+.invite-code-box {
+  display: flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 10px 8px 24px;
+  border-radius: 14px;
+  background: var(--credits-inset);
+}
+
+.invite-code-text {
+  white-space: nowrap;
+  font-size: clamp(22px, 2.2vw, 30px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.invite-code-copy {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-accent);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.invite-code-copy:hover {
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  color: var(--color-ink);
+}
+
+.invite-code-copy:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.invite-code-copy[data-copied] {
+  color: var(--color-success);
+}
+
+/* ③-2 초대한 친구 (35 `friends`): rows split by the list's own dividers, not boxed. */
+.invite-friends {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 32px;
+}
+
+.invite-friends-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.invite-friend {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--color-divider);
+  font-size: 15px;
+}
+
+.invite-friend:last-child {
+  border-bottom: 0;
+}
+
+.invite-friend-name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--color-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-friend-date {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-subtle);
+}
+
+.invite-friend-status {
+  border-radius: 999px;
+  background: var(--credits-inset);
+  padding: 2px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.invite-friend[data-rewarded] .invite-friend-status {
+  color: var(--color-warning);
+}
+
+.invite-panel-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted);
+  word-break: keep-all;
+}
+
+.invite-redeem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(280px, 1.15fr);
+  align-items: center;
+  gap: 18px;
+  padding: 24px 28px;
+}
+
+.invite-redeem-icon {
+  display: grid;
+  place-items: center;
+  color: var(--color-text-accent);
+}
+
+.invite-redeem-copy h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.invite-redeem-copy p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted);
+  word-break: keep-all;
+}
+
+.invite-redeem-form {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.invite-redeem-form > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/*
+ * The input lines up with 「받기」: no row gap above it (its label is hidden below) and the lg button's 48px height
+ * (the shared input is 50px with its border).
+ */
+.invite-redeem-form .referral-field-layout {
+  row-gap: 0;
+}
+
+.invite-redeem-form .form-input {
+  height: 48px;
+  min-height: 48px;
+  padding-block: 11px;
+}
+
+/* The section title names the field; its own label stays for screen readers only. */
+.invite-redeem-form .referral-field-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ─── Narrower ─── */
+@media (max-width: 1100px) {
+  .invite-progress {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 20px 24px;
+  }
+
+  .invite-progress-goal {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .invite-redeem {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .invite-redeem-form {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .invite-hero {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .invite-hero-copy {
+    padding-left: 0;
+  }
+
+  .invite-hero-title {
+    font-size: 36px;
+  }
+
+  .invite-progress {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .invite-progress-capsules li {
+    height: 40px;
+  }
+
+  .invite-progress-capsules img {
+    height: 34px;
+  }
+
+  .invite-progress-goal {
+    white-space: normal;
+  }
+
+  .invite-code-panel {
+    padding: 22px 20px;
+  }
+
+  .invite-code-row > .ui-button {
+    flex: 1 1 auto;
+  }
+
+  .invite-redeem {
+    padding: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invite-dome-capsule[data-enter],
+  .invite-progress-capsules li[data-enter] img,
+  .invite-mascot {
+    animation: none;
+  }
+}
