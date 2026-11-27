@@ -18,6 +18,14 @@ export const HOME_COPY = {
    */
   connectNow: '바로 연결',
   connectMate: (name: string) => `${withParticle(name, '과', '와')} 바로 연결`,
+  /**
+   * The 「?」 cards that fill the row after the real mates (home only, not mate data). New mates open after the beta, on
+   * no set date: nothing here may promise when (no 「곧」, no "coming soon").
+   */
+  mysteryName: '???',
+  mysteryLine: '다음 메이트를 준비하고 있어요',
+  /** Read once for all the 「?」 cards (each card itself is hidden from screen readers). */
+  mysteryLabel: '다음 메이트 준비 중',
   loadFailed: '메이트를 불러오지 못했어요',
   retry: '다시 시도',
 } as const
