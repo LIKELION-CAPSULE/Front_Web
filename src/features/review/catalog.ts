@@ -38,6 +38,8 @@ export type ReviewScenario = {
   dialogDesign?: 'a' | 'b' | 'c' | 'b2' | 'b3' | 'toast'
   /** Call-screen UI draft (call-ui/). Mounted on its own instead of the app; never part of the product. */
   callUi?: 'c1' | 'c2' | 'c3'
+  /** Mobile access screen draft (mobile-gate/). Mounted on its own instead of the app; never part of the product. */
+  mobileGate?: { variant: 'm1' | 'm2'; invite?: boolean }
 }
 
 const click = (text: string): ReviewStep => ({ click: text })
@@ -222,6 +224,10 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'call-ui-c2', group: '디자인 시안', title: '통화 화면 시안 C2 · 말풍선 무대', path: '/connect/chaerin', callUi: 'c2', note: '2026-11-27 시안: 머리 옆 말풍선(계단형 꼬리)과 후광, 채팅이 닫혀 있을 때만. 채팅은 무대 위 반투명 오버레이, 상단 정보는 무대 위에 떠 있음' },
   { id: 'call-ui-c3', group: '디자인 시안', title: '통화 화면 시안 C3 · 분할 정돈', path: '/connect/chaerin', callUi: 'c3', note: '2026-11-27 시안(보수안): 지금 배치 유지. 무대 아래 자막 띠(채팅 열림이면 한 줄), 무대 초록 테두리·이름 칩, 묶음 말풍선·한 줄 정보 바·도크 그룹' },
   { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/?ref=CAP-7K2Q', note: '휴대폰 접속 시 PC 안내 창·초대 코드 유지·약관 열기' },
+  { id: 'mobile-gate-m1', group: '디자인 시안', title: '모바일 접속 시안 M1 · 포스터', path: '/', mobileGate: { variant: 'm1' }, note: '2026-11-27 시안: 로그인 화면의 「노트북 앞에서 조는 채린」을 위 2/3에 크게(끄덕임·z 연출), 아래에 헤드라인·소개·「PC로 링크 보내기」·「링크 복사」·약관·AI 고지. 휴대폰 너비(390·360·430)로 보기. 위 막대나 ?mg-invite=1로 초대 링크 상태, mg-bar=0이면 막대 숨김' },
+  { id: 'mobile-gate-m1-invite', group: '디자인 시안', title: '모바일 접속 시안 M1 · 초대 링크', path: '/', mobileGate: { variant: 'm1', invite: true }, note: '2026-11-27 시안 M1에 초대 링크로 들어온 상태: 「민수님의 초대 코드가 저장됐어요 · PC에서 가입하면 둘 다 1,000 크레딧」 카드(계단형 픽셀 모서리·픽셀 캡슐·동전)' },
+  { id: 'mobile-gate-m2', group: '디자인 시안', title: '모바일 접속 시안 M2 · 스크롤 소개', path: '/', mobileGate: { variant: 'm2' }, note: '2026-11-27 시안: 첫 화면은 채린 장면 위 책상 앞에 헤드라인·버튼, 「캡슐 둘러보기」로 내리면 기능 카드 3장(영상통화처럼 곁에·목소리로 대화·함께한 시간 · 세계관, 픽셀 아이콘)과 버튼·약관·AI 고지' },
+  { id: 'mobile-gate-m2-invite', group: '디자인 시안', title: '모바일 접속 시안 M2 · 초대 링크', path: '/', mobileGate: { variant: 'm2', invite: true }, note: '2026-11-27 시안 M2에 초대 링크로 들어온 상태: 첫 화면 버튼 위에 초대 카드' },
 ]
 
 // Saved review links of retired scenarios open the current screen instead.

@@ -72,8 +72,11 @@ export function ReviewWorkbench() {
 
   function select(id: string) {
     setSelected(id); setRevision(value => value + 1); setReady(false); setNotice(''); setTexts([]); setMessages([]); setRequests([]); setPath(''); setTab('preview')
+    // Mobile access drafts are phone screens: open them at the phone width.
+    const nextSize = findReviewScenario(id).mobileGate ? 'mobile' : sizeKey
+    if (nextSize !== sizeKey) setSizeKey(nextSize)
     const url = new URL(location.href)
-    url.searchParams.set('case', id); url.searchParams.set('width', sizeKey)
+    url.searchParams.set('case', id); url.searchParams.set('width', nextSize)
     history.replaceState(null, '', url)
   }
   function resize(nextKey: string) {
@@ -81,7 +84,8 @@ export function ReviewWorkbench() {
     setSizeKey(preset.key)
     const url = new URL(location.href)
     url.searchParams.set('width', preset.key)
-    if (preset.scenarioId) {
+    // The phone preset opens today's mobile notice, unless a mobile access draft is already on screen.
+    if (preset.scenarioId && !findReviewScenario(selected).mobileGate) {
       setSelected(preset.scenarioId)
       setRevision(value => value + 1)
       setReady(false)

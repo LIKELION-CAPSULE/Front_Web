@@ -1,0 +1,343 @@
+/*
+ * Mobile access screen drafts M1 / M2 (2026-11-27, review catalog only; MobileGatePreview.tsx). No outlines: surfaces,
+ * spacing and the scene separate things. Violet only on the main button, links' focus and the review bar. Gold only on
+ * the credit coin and 「1,000 크레딧」 (credit display exception). Pixel points: stepped corners (clip-path) on the
+ * invite card and feature cards, the 8-bit capsule and coin, the pixel feature icons, a stepped scroll cue.
+ * The scene itself (still, desk, z z Z, nod) uses the login screen's doze.css classes.
+ */
+@layer components {
+  .mg-root {
+    --mg-gutter: 20px;
+    --mg-step: polygon(
+      0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px,
+      calc(100% - 4px) 8px, 100% 8px, 100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px),
+      calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%, 8px 100%,
+      8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px)
+    );
+    position: relative;
+    min-height: 100svh;
+    width: 100%;
+    overflow-x: clip;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    outline: none;
+  }
+
+  /* ── Scene ─────────────────────────────────────────────────────────────────────────────────────────────── */
+  .mg-scene {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    user-select: none;
+    pointer-events: none;
+  }
+  .mg-room {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 30% 35%;
+    filter: blur(5px) brightness(0.58) saturate(1.1);
+    transform: scale(1.08);
+  }
+  .mg-still {
+    z-index: 1;
+  }
+  .mg-brand {
+    position: absolute;
+    z-index: 4;
+    top: max(18px, env(safe-area-inset-top));
+    left: var(--mg-gutter);
+    width: 112px;
+    height: auto;
+  }
+
+  /* ── Type ──────────────────────────────────────────────────────────────────────────────────────────────── */
+  .mg-headline {
+    margin: 0;
+    font-size: 27px;
+    line-height: 36px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    word-break: keep-all;
+    text-wrap: balance;
+  }
+  .mg-intro {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 15px;
+    line-height: 23px;
+    word-break: keep-all;
+  }
+  .mg-pc-only {
+    margin: 0;
+    color: var(--color-subtle);
+    font-size: 13px;
+    line-height: 19px;
+    text-align: center;
+    word-break: keep-all;
+  }
+  .mg-status {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 13px;
+    line-height: 19px;
+    text-align: center;
+  }
+  .mg-actions {
+    display: grid;
+    gap: 8px;
+  }
+
+  /* ── Invite card: large, neutral surface, stepped corners ─────────────────────────────────────────────── */
+  .mg-invite {
+    position: relative;
+    display: grid;
+    gap: 6px;
+    padding: 16px 16px 16px 18px;
+    background: var(--color-surface);
+    clip-path: var(--mg-step);
+  }
+  .mg-invite-capsule {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+  }
+  .mg-invite-title {
+    margin: 0;
+    padding-right: 44px;
+    font-size: 18px;
+    line-height: 26px;
+    font-weight: 700;
+    word-break: keep-all;
+  }
+  .mg-invite-title strong {
+    font-weight: 800;
+  }
+  .mg-invite-reward {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 15px;
+    line-height: 22px;
+    word-break: keep-all;
+  }
+  .mg-invite-reward em {
+    font-style: normal;
+    font-weight: 700;
+    color: var(--color-warning);
+  }
+  .mg-invite-code {
+    margin: 0;
+    color: var(--color-subtle);
+    font-size: 13px;
+    line-height: 18px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Footer ────────────────────────────────────────────────────────────────────────────────────────────── */
+  .mg-footer {
+    display: grid;
+    gap: 8px;
+    padding-top: 4px;
+    text-align: center;
+  }
+  .mg-legal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-subtle);
+    font-size: 13px;
+  }
+  .mg-legal button {
+    min-height: 44px;
+    padding: 0 8px;
+    color: var(--color-muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .mg-ai-notice {
+    margin: 0;
+    color: var(--color-subtle);
+    font-size: 12px;
+    line-height: 18px;
+    word-break: keep-all;
+  }
+
+  /* ── M1 포스터: scene on the top two thirds, words and buttons below ────────────────────────────────────── */
+  .mg-m1-scene {
+    height: clamp(360px, 64svh, 620px);
+    /* The scene melts into the page instead of ending in an edge. */
+    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 72px), transparent);
+    mask-image: linear-gradient(180deg, #000 calc(100% - 72px), transparent);
+  }
+  .mg-m1[data-invite='true'] .mg-m1-scene {
+    height: clamp(300px, 50svh, 520px);
+  }
+  .mg-m1-body {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    gap: 16px;
+    margin-top: -28px;
+    padding: 0 var(--mg-gutter) max(20px, env(safe-area-inset-bottom));
+  }
+  .mg-m1-body > .mg-intro {
+    margin-top: -6px;
+  }
+
+  /* ── M2 스크롤 소개: the first screen is the scene with the headline and buttons on the desk ─────────────── */
+  .mg-m2-first {
+    position: relative;
+    height: 100svh;
+    min-height: 560px;
+    display: flex;
+    flex-direction: column;
+  }
+  /* The scene takes whatever height the words leave, so the first screen is always exactly one phone screen. */
+  .mg-m2-scene {
+    flex: 1 1 auto;
+    min-height: 260px;
+    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 56px), transparent);
+    mask-image: linear-gradient(180deg, #000 calc(100% - 56px), transparent);
+  }
+  .mg-m2-hero {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    gap: 14px;
+    margin-top: -24px;
+    padding: 0 var(--mg-gutter) 68px;
+  }
+  .mg-m2 .mg-headline {
+    font-size: 30px;
+    line-height: 39px;
+  }
+  .mg-m2-hero > .mg-intro {
+    margin-top: -4px;
+  }
+  .mg-more {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 4px 12px;
+    transform: translateX(-50%);
+    color: var(--color-subtle);
+    font-size: 12px;
+    line-height: 16px;
+    white-space: nowrap;
+  }
+  /* Stepped pixel chevron pointing down. */
+  .mg-more-arrow {
+    width: 14px;
+    height: 8px;
+    background: currentColor;
+    clip-path: polygon(0 0, 4px 0, 4px 2px, 6px 2px, 6px 4px, 8px 4px, 8px 2px, 10px 2px, 10px 0, 14px 0, 14px 2px, 12px 2px, 12px 4px, 10px 4px, 10px 6px, 8px 6px, 8px 8px, 6px 8px, 6px 6px, 4px 6px, 4px 4px, 2px 4px, 2px 2px, 0 2px);
+    animation: mg-nudge 1.6s steps(3, jump-none) infinite alternate;
+  }
+  @keyframes mg-nudge {
+    to { transform: translateY(4px); }
+  }
+
+  .mg-m2-features {
+    display: grid;
+    gap: 16px;
+    padding: 40px var(--mg-gutter) max(20px, env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, var(--color-canvas), var(--color-panel) 60%, var(--color-canvas));
+    scroll-margin-top: 0;
+  }
+  .mg-section-title {
+    margin: 0;
+    font-size: 22px;
+    line-height: 30px;
+    font-weight: 800;
+    word-break: keep-all;
+  }
+  .mg-cards {
+    display: grid;
+    gap: 10px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+  }
+  .mg-card {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    column-gap: 14px;
+    row-gap: 4px;
+    align-items: start;
+    padding: 18px 16px;
+    background: var(--color-surface);
+    clip-path: var(--mg-step);
+  }
+  .mg-card-icon {
+    grid-row: span 2;
+    justify-self: center;
+    margin-top: 4px;
+  }
+  .mg-card h3 {
+    margin: 0;
+    font-size: 17px;
+    line-height: 24px;
+    font-weight: 700;
+  }
+  .mg-card p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 14px;
+    line-height: 21px;
+    word-break: keep-all;
+  }
+  .mg-px {
+    display: inline-block;
+    flex: none;
+    background-size: 100% 100%;
+    image-rendering: pixelated;
+  }
+
+  /* ── Narrow phones (360 × 740) ─────────────────────────────────────────────────────────────────────────── */
+  @media (max-width: 370px) {
+    .mg-root { --mg-gutter: 16px; }
+    .mg-headline { font-size: 24px; line-height: 32px; }
+    .mg-m2 .mg-headline { font-size: 26px; line-height: 34px; }
+    .mg-invite-title { font-size: 17px; line-height: 24px; }
+  }
+  @media (max-height: 760px) {
+    .mg-m2-hero { gap: 12px; padding-bottom: 62px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mg-more-arrow { animation: none; }
+  }
+
+  /* ── Review bar (not part of the design) ──────────────────────────────────────────────────────────────── */
+  .mg-bar {
+    position: fixed;
+    z-index: 100;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    max-width: calc(100vw - 16px);
+    padding: 4px;
+    border-radius: 10px;
+    background: rgb(8 8 12 / 88%);
+    color: var(--color-muted);
+    font-size: 11px;
+  }
+  .mg-bar-name { padding: 0 4px; color: var(--color-ink); white-space: nowrap; }
+  .mg-bar button { height: 26px; border-radius: 6px; padding: 0 8px; white-space: nowrap; }
+  .mg-bar button[aria-pressed='true'] { background: var(--color-primary); color: var(--color-on-solid); }
+}
