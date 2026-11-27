@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useBackend } from '@/features/backend/backend-context'
 import { CreditsAppWindow, INVITE_PATH } from '@/features/credits/components/CreditsAppWindow'
 import { CreditAttendanceArt, CreditHeroArt, CreditInviteArt } from '@/features/credits/components/CreditArt'
 import { CREDIT_PRICING, attendanceBarRatio } from '@/features/credits/credit-utils'
-import type { BetaCreditEntry } from '@/features/credits/beta-types'
+import { CREDIT_FILTERS, type CreditKind } from '@/features/credits/credits-data'
+import { useCreditActivity, useCreditSummary } from '@/features/credits/use-credits'
+import type { CreditTransactionFilter } from '@/shared/api/types'
 import { useAttendance } from '@/features/attendance/use-attendance'
 import { useCreditDisplay } from '@/features/attendance/use-credit-display'
 import { useNow } from '@/features/session/use-now'
@@ -13,42 +14,20 @@ import { Tabs } from '@/shared/ui/Tabs'
 import { clock, dateLabel, number } from '@/shared/lib/format'
 
 /** Each ledger kind's icon in the activity list. */
-const KIND_ICON: Record<BetaCreditEntry['kind'], IconName> = { attendance: 'calendar', use: 'coin', invite: 'gift', expiration: 'clock' }
+const KIND_ICON: Record<CreditKind, IconName> = { attendance: 'calendar', use: 'coin', invite: 'gift', expiration: 'clock', other: 'coin' }
 
-/** The activity filters: 적립 is everything that came in (attendance and invites). */
-const FILTERS = [
-  { id: 'all', label: '전체' },
-  { id: 'earn', label: '적립' },
-  { id: 'use', label: '사용' },
-  { id: 'expiration', label: '만료' },
-] as const
-type FilterId = (typeof FILTERS)[number]['id']
-
-function matches(entry: BetaCreditEntry, filter: FilterId): boolean {
-  if (filter === 'all') return true
-  if (filter === 'earn') return entry.kind === 'attendance' || entry.kind === 'invite'
-  return entry.kind === filter
-}
-
-/** Rows shown before 「전체 보기」. */
-const PREVIEW_ROWS = 5
-
-function isReviewCreditsLoading(): boolean {
-  return (
-    import.meta.env.DEV &&
-    typeof document !== 'undefined' &&
-    document.documentElement.dataset.reviewScenario === 'credits-loading'
-  )
-}
-
+/**
+ * 내 크레딧 (SCR-30), from the server: the balance card and the two cards from 33, the activity list from 34 (the
+ * server's filters, 20 at a time with 「더 보기」), today's attendance from attendance-service.ts.
+ */
 export default function CreditsPage() {
-  const { wallet, invitation, status, reload } = useBackend()
+  const summary = useCreditSummary()
+  const [filter, setFilter] = useState<CreditTransactionFilter>('ALL')
+  const activity = useCreditActivity(filter)
   const { value: displayTotal } = useCreditDisplay()
   const attendance = useAttendance()
   const now = useNow()
-  const [filter, setFilter] = useState<FilterId>('all')
-  const [expanded, setExpanded] = useState(false)
-  const loading = status === 'loading' || isReviewCreditsLoading()
+  const loading = summary.status === 'loading'
 
   useEffect(() => {
     void import('@/pages/InvitePage')
@@ -73,35 +52,27 @@ export default function CreditsPage() {
     )
   }
 
-  if (!wallet) {
+  if (summary.status === 'error') {
     return (
       <CreditsAppWindow page="credits">
         <div className="credits-state-box" role="alert">
           <p className="credits-state-title">크레딧 정보를 불러오지 못했어요.</p>
-          <Button
-            onClick={() => {
-              void reload()
-            }}
-          >
-            다시 시도
-          </Button>
+          <Button onClick={summary.retry}>다시 시도</Button>
         </div>
       </CreditsAppWindow>
     )
   }
 
-  const total = displayTotal ?? wallet.attendance + wallet.invitation
+  const wallet = summary.data
+  const total = displayTotal ?? wallet.remaining
   const attendancePct = Math.round(attendanceBarRatio(wallet.attendance) * 100)
-  const remainingSeconds = Math.max(0, (wallet.attendanceExpiresAt - now) / 1000)
+  const remainingSeconds = wallet.attendanceExpiresAt === null ? null : Math.max(0, (wallet.attendanceExpiresAt - now) / 1000)
 
   // 출석 보상: today's reward until checked in, then what today gave.
   const { state: attendanceState, isLoading: attendanceLoading } = attendance
   const rewardIndex = attendanceState.checkedToday ? attendanceState.cycleDay - 1 : attendanceState.cycleDay
   const reward = attendanceState.rewards[Math.max(0, rewardIndex)]
-  const invitedCount = invitation?.invitedCount ?? 0
-
-  const filtered = wallet.entries.filter(entry => matches(entry, filter))
-  const shown = expanded ? filtered : filtered.slice(0, PREVIEW_ROWS)
+  const invitedCount = wallet.invitedFriends
 
   return (
     <CreditsAppWindow page="credits" dashboard>
@@ -119,18 +90,18 @@ export default function CreditsPage() {
           <div className="credits-hero-copy">
             <p className="credits-hero-eyebrow">
               <Icon name="sparkle" size={14} />
-              MY CAPSULE CREDIT
+              남은 크레딧
             </p>
             <p className="credits-hero-total">
               {number(total)}
-              <span className="credits-unit">CR</span>
+              <span className="credits-unit">크레딧</span>
             </p>
             <p className="credits-hero-expiry">
               <Icon name="clock" size={16} />
               <span>
-                오전 5시 만료 예정 <strong>{number(wallet.attendance)} CR</strong>
+                오전 5시 만료 예정 <strong>{number(wallet.attendance)} 크레딧</strong>
               </span>
-              <span className="credits-hero-countdown">· {clock(remainingSeconds)} 남음</span>
+              {remainingSeconds !== null && <span className="credits-hero-countdown">· {clock(remainingSeconds)} 남음</span>}
             </p>
             <div className="credits-hero-bar">
               <div
@@ -156,8 +127,8 @@ export default function CreditsPage() {
           <div className="credits-action-copy">
             <h2 id="credits-attendance-title">출석 보상{reward && <span> · {reward.day}일차</span>}</h2>
             <p className="credits-action-value">
-              {number(reward?.credit ?? 0)}
-              <span className="credits-unit">CR</span>
+              {number(reward?.credit ?? CREDIT_PRICING.dailyAttendance)}
+              <span className="credits-unit">크레딧</span>
             </p>
             <p className="credits-action-note">
               {attendanceState.checkedToday ? '오늘 출석 보상을 받았어요!' : '오늘 출석하면 받을 수 있어요!'}
@@ -180,13 +151,13 @@ export default function CreditsPage() {
           <div className="credits-action-copy">
             <h2 id="credits-invite-title">친구 초대</h2>
             <p className="credits-action-value">
-              {number(wallet.invitation)}
-              <span className="credits-unit">CR</span>
+              {number(wallet.invite)}
+              <span className="credits-unit">크레딧</span>
             </p>
             <p className="credits-action-note">
               {invitedCount > 0
                 ? `친구 ${number(invitedCount)}명을 초대해서 받았어요!`
-                : `친구를 초대하면 둘 다 ${number(CREDIT_PRICING.inviteReward)} CR을 받아요!`}
+                : `친구를 초대하면 둘 다 ${number(CREDIT_PRICING.inviteReward)} 크레딧을 받아요!`}
             </p>
           </div>
           <ButtonLink to={INVITE_PATH} size="md" className="credits-action-button">
@@ -196,59 +167,66 @@ export default function CreditsPage() {
         </section>
       </div>
 
-      {/* Every change, newest first (an attendance expiry included). */}
-      <section className="credits-activity" aria-labelledby="credits-activity-title">
+      {/* Every change, newest first (an attendance expiry included), a server page at a time. */}
+      <section className="credits-activity" aria-labelledby="credits-activity-title" aria-busy={activity.status === 'loading' || activity.more === 'loading'}>
         <div className="credits-activity-head">
           <h2 id="credits-activity-title">
             <Icon name="clock" size={18} />
             크레딧 활동 기록
           </h2>
-          {filtered.length > PREVIEW_ROWS && (
-            <button type="button" className="credits-activity-more" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>
-              {expanded ? '접기' : '전체 보기'}
-              <Icon name="chevron" size={14} />
-            </button>
-          )}
         </div>
-        <Tabs
-          label="크레딧 활동 필터"
-          size="sm"
-          value={filter}
-          onChange={value => {
-            setFilter(value as FilterId)
-            setExpanded(false)
-          }}
-          options={FILTERS}
-        />
+        <Tabs label="크레딧 활동 필터" size="sm" value={filter} onChange={value => setFilter(value as CreditTransactionFilter)} options={CREDIT_FILTERS} />
 
-        {wallet.entries.length === 0 ? (
+        {activity.status === 'loading' ? (
+          <div className="credits-activity-skeleton" aria-hidden="true">
+            <span className="skeleton-line credits-skeleton-line credits-skeleton-line--wide" />
+            <span className="skeleton-line credits-skeleton-line credits-skeleton-line--wide" />
+            <span className="skeleton-line credits-skeleton-line credits-skeleton-line--mid" />
+          </div>
+        ) : activity.status === 'error' ? (
+          <div className="credits-empty-box credits-activity-error" role="alert">
+            <p>크레딧 내역을 불러오지 못했어요.</p>
+            <Button size="sm" variant="secondary" onClick={activity.retry}>다시 시도</Button>
+          </div>
+        ) : activity.entries.length === 0 ? (
           <p className="credits-empty-box">
-            아직 내역이 없어요. 매일 오전 5시에 출석 크레딧 {number(CREDIT_PRICING.dailyAttendance)}이 들어와요.
+            {filter === 'ALL'
+              ? `아직 내역이 없어요. 매일 오전 5시에 출석 크레딧 ${number(CREDIT_PRICING.dailyAttendance)}이 들어와요.`
+              : '선택한 항목의 내역이 없어요.'}
           </p>
-        ) : filtered.length === 0 ? (
-          <p className="credits-empty-box">선택한 항목의 내역이 없어요.</p>
         ) : (
-          <ol className="credits-timeline">
-            {shown.map(entry => {
-              const positive = entry.change > 0
-              return (
-                <li key={entry.id} className="credits-timeline-row" data-kind={entry.kind}>
-                  <span className="credits-timeline-dot" aria-hidden="true" />
-                  <time className="credits-timeline-time" dateTime={new Date(entry.at).toISOString()}>
-                    {dateLabel(entry.at, true)}
-                  </time>
-                  <span className="credits-timeline-icon" aria-hidden="true">
-                    <Icon name={KIND_ICON[entry.kind]} size={18} />
-                  </span>
-                  <span className="credits-timeline-desc">{entry.description}</span>
-                  <span className="credits-timeline-change" data-positive={positive || undefined}>
-                    {positive ? '+ ' : '− '}
-                    {number(Math.abs(entry.change))}
-                  </span>
-                </li>
-              )
-            })}
-          </ol>
+          <>
+            <ol className="credits-timeline">
+              {activity.entries.map(entry => {
+                const positive = entry.change > 0
+                return (
+                  <li key={entry.id} className="credits-timeline-row" data-kind={entry.kind}>
+                    <span className="credits-timeline-dot" aria-hidden="true" />
+                    <time className="credits-timeline-time" dateTime={new Date(entry.at).toISOString()}>
+                      {dateLabel(entry.at, true)}
+                    </time>
+                    <span className="credits-timeline-icon" aria-hidden="true">
+                      <Icon name={KIND_ICON[entry.kind]} size={18} />
+                    </span>
+                    <span className="credits-timeline-desc">{entry.title}</span>
+                    <span className="credits-timeline-change" data-positive={positive || undefined}>
+                      {positive ? '+ ' : '− '}
+                      {number(Math.abs(entry.change))}
+                    </span>
+                  </li>
+                )
+              })}
+            </ol>
+            {(activity.hasMore || activity.more === 'error') && (
+              <div className="credits-activity-foot">
+                {activity.more === 'error' && <p className="credits-activity-more-error" role="alert">더 불러오지 못했어요.</p>}
+                <button type="button" className="credits-activity-more" disabled={activity.more === 'loading'} onClick={() => { void activity.loadMore() }}>
+                  {activity.more === 'loading' ? '불러오는 중…' : activity.more === 'error' ? '다시 시도' : '더 보기'}
+                  {activity.more !== 'loading' && <Icon name="chevron" size={14} />}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
     </CreditsAppWindow>

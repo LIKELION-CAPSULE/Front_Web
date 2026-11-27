@@ -1,30 +1,34 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useBackend } from '@/features/backend/backend-context'
+import { enterReferral } from '@/features/backend/server-api'
 import { CreditsAppWindow } from '@/features/credits/components/CreditsAppWindow'
 import { CAPSULE_STAGGER_MS, InviteHeroArt } from '@/features/credits/components/InviteHeroArt'
 import { CopyIcon, LinkIcon, UsersIcon } from '@/features/credits/components/InviteIcons'
 import { CREDIT_PRICING } from '@/features/credits/credit-utils'
+import { referralRefusal, type ReferralFriendView } from '@/features/credits/credits-data'
+import { useReferralStatus } from '@/features/credits/use-credits'
 import capsuleArt from '@/assets/invite/invite-capsule.webp'
+import { api } from '@/shared/api/client'
+import { deviceHash } from '@/shared/api/device-hash'
 import { Button } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Icon } from '@/shared/ui/Icon'
-import { number } from '@/shared/lib/format'
+import { dateLabel, number } from '@/shared/lib/format'
 import {
   ReferralCodeField,
   type ReferralFieldValidationState,
 } from '@/features/auth/components/ReferralCodeField'
-import { clearStoredReferralCode, normalizeReferralCode } from '@/features/auth/referral-code'
+import { clearStoredReferralCode, normalizeReferralCode, readStoredReferralCode } from '@/features/auth/referral-code'
 import '@/features/credits/invite.css'
 
-const GOAL = CREDIT_PRICING.inviteMaxCount
-
-function isReviewInviteLoading(): boolean {
-  return (
-    import.meta.env.DEV &&
-    typeof document !== 'undefined' &&
-    document.documentElement.dataset.reviewScenario === 'invite-loading'
-  )
+/** 35 `friends[].status` as the list says it. */
+function friendStatus(friend: ReferralFriendView) {
+  if (friend.status === 'qualified') return friend.rewarded ? '보상 받음' : '첫 연결 완료'
+  return '첫 연결 전'
 }
+
+/** 35 `codeInputDeadline` as 「11. 30.까지」. */
+const deadlineLabel = (at: number) => `${dateLabel(at)}까지`
 
 /**
  * What the capsules show: how many are filled, the first one that should drop in (all of them on the first load, only
@@ -32,8 +36,15 @@ function isReviewInviteLoading(): boolean {
  */
 type CapsuleFill = { filled: number; enterFrom: number; ready: boolean; joined: number }
 
+/**
+ * 친구 초대 (SCR-31), from the server: my code, link, rewards and friends from 35 (the capsules fill with
+ * `rewardedCount`), a received code checked with 39 and entered with 36 (its refusals on the field). A code from an
+ * invite link (`/i/<code>`, `?ref=`) is put in the field and checked (39) when the code can still be entered.
+ */
 export default function InvitePage() {
-  const { invitation, status, reload, redeemInvitation, accountDetails, validateReferralCode } = useBackend()
+  const referral = useReferralStatus()
+  const { validateReferralCode } = useBackend()
+  const invitation = referral.status === 'ready' ? referral.data : null
   const [code, setCode] = useState('')
   const [validation, setValidation] = useState<ReferralFieldValidationState>({ status: 'idle' })
   const [error, setError] = useState('')
@@ -41,11 +52,19 @@ export default function InvitePage() {
   const [copiedKey, setCopiedKey] = useState<'code' | 'url' | null>(null)
   const [copyStatus, setCopyStatus] = useState('')
   const [redeemed, setRedeemed] = useState(0)
+  const [linkCode, setLinkCode] = useState<string | null>(null)
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const GOAL = invitation?.maxRewards ?? CREDIT_PRICING.inviteMaxCount
 
-  // Follow the invited count as it changes (render-time update, so the new capsules animate on the same paint).
-  const filled = invitation ? Math.max(0, Math.min(GOAL, invitation.invitedCount)) : 0
+  // Follow the rewarded count as it changes (render-time update, so the new capsules animate on the same paint).
+  const filled = invitation ? Math.max(0, Math.min(GOAL, invitation.rewardedCount)) : 0
   const [fill, setFill] = useState<CapsuleFill>({ filled: 0, enterFrom: 0, ready: false, joined: 0 })
+  // A code from an invite link goes into the field once, while a received code can still be entered.
+  if (invitation?.canEnterCode && linkCode === null) {
+    const stored = readStoredReferralCode()
+    setLinkCode(stored?.code ?? '')
+    if (stored?.code && !code) setCode(stored.code)
+  }
   if (invitation && (!fill.ready || fill.filled !== filled)) {
     setFill({
       filled,
@@ -60,7 +79,17 @@ export default function InvitePage() {
     return () => clearTimeout(copyTimerRef.current)
   }, [])
 
-  const loading = status === 'loading' || isReviewInviteLoading()
+  // The link's code is checked (39) as soon as it is in the field.
+  const linkChecked = useRef(false)
+  useEffect(() => {
+    if (!linkCode || linkChecked.current) return
+    linkChecked.current = true
+    void validateCode(linkCode)
+    // validateCode reads only stable state setters and the context's checker.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkCode])
+
+  const loading = referral.status === 'loading'
   const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
   if (loading) {
@@ -86,21 +115,15 @@ export default function InvitePage() {
       <CreditsAppWindow page="invite">
         <div className="credits-state-box" role="alert">
           <p className="credits-state-title">초대 정보를 불러오지 못했어요.</p>
-          <Button
-            onClick={() => {
-              void reload()
-            }}
-          >
-            다시 시도
-          </Button>
+          <Button onClick={referral.reload}>다시 시도</Button>
         </div>
       </CreditsAppWindow>
     )
   }
 
-  const alreadyRegistered =
-    Boolean(accountDetails?.referralRegistered) || invitation.canRedeem === false
-  const remaining = Math.max(0, GOAL - invitation.invitedCount)
+  // 35 `canEnterCode` false: entered already, or the 7 days after signup are over.
+  const alreadyRegistered = !invitation.canEnterCode
+  const remaining = Math.max(0, GOAL - invitation.rewardedCount)
 
   async function handleCopy(kind: 'code' | 'url', value: string) {
     setError('')
@@ -119,9 +142,9 @@ export default function InvitePage() {
 
   /** 「초대 링크 공유하기」: the share sheet where the browser has one, otherwise the link is copied. */
   async function handleShare() {
-    if (!invitation?.url) return
+    if (!invitation?.link) return
     if (!canNativeShare) {
-      await handleCopy('url', invitation.url)
+      await handleCopy('url', invitation.link)
       return
     }
     setError('')
@@ -129,7 +152,7 @@ export default function InvitePage() {
       await navigator.share({
         title: 'CAPSULE 초대',
         text: `초대 코드 ${invitation.code}로 함께해요.`,
-        url: invitation.url,
+        url: invitation.link,
       })
     } catch (reason) {
       if (reason instanceof Error && reason.name === 'AbortError') return
@@ -162,9 +185,10 @@ export default function InvitePage() {
     }
   }
 
+  /** 36. A refusal (REFERRAL_*) goes on the field; the form closes when the code can no longer be entered at all. */
   async function redeem() {
     const norm = normalizeReferralCode(code)
-    if (alreadyRegistered || !invitation?.canRedeem || !redeemInvitation || busy || !norm) return
+    if (alreadyRegistered || busy || !norm) return
     if (validateReferralCode) {
       const ok = await validateCode(norm)
       if (!ok) return
@@ -172,13 +196,18 @@ export default function InvitePage() {
     setBusy(true)
     setError('')
     try {
-      await redeemInvitation(norm)
+      await enterReferral(api, { code: norm, deviceHash: await deviceHash() })
       clearStoredReferralCode()
       setCode('')
       setValidation({ status: 'idle' })
       setRedeemed((value) => value + 1)
+      referral.reload()
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.')
+      const refusal = referralRefusal(reason)
+      if (refusal) {
+        setValidation({ status: 'invalid', message: refusal.message })
+        if (refusal.closesForm) referral.reload()
+      } else setError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.')
     } finally {
       setBusy(false)
     }
@@ -194,7 +223,7 @@ export default function InvitePage() {
             <br />더 많은 <span>캡슐을</span>!
           </h2>
           <p className="invite-hero-sub">
-            친구를 초대하고 둘 다 <strong>{number(CREDIT_PRICING.inviteReward)} CR</strong>을 받아보세요.
+            친구를 초대하고 둘 다 <strong>{number(CREDIT_PRICING.inviteReward)} 크레딧</strong>을 받아보세요.
           </p>
         </div>
         <InviteHeroArt filled={filled} enterFrom={fill.enterFrom} cheer={fill.joined + redeemed} />
@@ -204,7 +233,7 @@ export default function InvitePage() {
       <section className="invite-progress" aria-labelledby="invite-progress-title">
         <h2 id="invite-progress-title" className="sr-only">초대 현황</h2>
         <p className="invite-progress-count">
-          <strong>{number(invitation.invitedCount)}</strong>
+          <strong>{number(invitation.rewardedCount)}</strong>
           <span className="invite-progress-goal-count"> / {GOAL}</span>
           <span className="invite-progress-unit">FRIENDS</span>
         </p>
@@ -229,7 +258,7 @@ export default function InvitePage() {
           <Icon name="coin" size={18} />
           <span>
             {remaining > 0 ? '지금까지 ' : '목표 달성! '}
-            <strong>{number(invitation.rewardedCredits)} CR</strong> 받았어요
+            <strong>{number(invitation.rewardedCredits)} 크레딧</strong> 받았어요
           </span>
         </p>
       </section>
@@ -258,7 +287,7 @@ export default function InvitePage() {
                 {copiedKey === 'code' ? <Icon name="check" size={22} /> : <CopyIcon size={22} />}
               </button>
             </div>
-            {invitation.url && (
+            {invitation.link && (
               <Button
                 className="invite-code-share"
                 onClick={() => {
@@ -279,6 +308,25 @@ export default function InvitePage() {
         <p className="invite-panel-note">친구가 첫 연결을 마치면 들어와요. 초대 크레딧은 사라지지 않아요.</p>
       </section>
 
+      {/* ③-2 Friends who used my code (35 `friends`, newest first). */}
+      {invitation.friends.length > 0 && (
+        <section className="invite-panel invite-friends" aria-labelledby="invite-friends-title">
+          <h2 id="invite-friends-title" className="invite-panel-title">
+            <UsersIcon size={18} />
+            초대한 친구
+          </h2>
+          <ul className="invite-friends-list">
+            {invitation.friends.map((friend) => (
+              <li key={friend.key} className="invite-friend" data-status={friend.status} data-rewarded={friend.rewarded || undefined}>
+                <span className="invite-friend-name">{friend.nickname ? `${friend.nickname}님` : '탈퇴한 친구'}</span>
+                {friend.joinedAt !== null && <time className="invite-friend-date" dateTime={new Date(friend.joinedAt).toISOString()}>{dateLabel(friend.joinedAt)} 가입</time>}
+                <span className="invite-friend-status">{friendStatus(friend)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* ④ A code I received (for anyone who skipped it while signing up) */}
       <section className="invite-panel invite-redeem" aria-labelledby="invite-received-title">
         <span className="invite-redeem-icon" aria-hidden="true"><UsersIcon size={26} /></span>
@@ -286,8 +334,8 @@ export default function InvitePage() {
           <h2 id="invite-received-title">초대 코드 입력하기</h2>
           <p>
             {alreadyRegistered
-              ? '등록된 초대 코드가 있어요.'
-              : '친구가 공유한 초대 코드를 입력하고 크레딧을 받아보세요! 가입 후 7일 안에 1번만 입력할 수 있어요.'}
+              ? redeemed > 0 ? '등록된 초대 코드가 있어요. 첫 연결을 마치면 크레딧이 들어와요.' : '초대 코드를 이미 입력했거나, 입력할 수 있는 기간(가입 후 7일)이 지났어요.'
+              : `친구가 공유한 초대 코드를 입력하고 크레딧을 받아보세요! 가입 후 7일 안에 1번만 입력할 수 있어요.${invitation.codeInputDeadline !== null ? ` (${deadlineLabel(invitation.codeInputDeadline)})` : ''}`}
           </p>
         </div>
         {!alreadyRegistered && (
@@ -303,7 +351,8 @@ export default function InvitePage() {
               showHelp={false}
               value={code}
               validation={validation}
-              disabled={!invitation.canRedeem || !redeemInvitation || busy}
+              fromInviteLink={Boolean(linkCode) && code === linkCode}
+              disabled={busy}
               onChange={(nextVal) => {
                 setCode(nextVal)
                 setValidation({ status: 'idle' })
@@ -316,7 +365,7 @@ export default function InvitePage() {
               type="submit"
               variant="secondary"
               loading={busy}
-              disabled={!invitation.canRedeem || !redeemInvitation || !code.trim()}
+              disabled={!code.trim()}
             >
               받기
             </Button>

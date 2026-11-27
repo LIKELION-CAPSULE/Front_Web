@@ -110,6 +110,24 @@ test('local transport covers the real client boundary and never forwards API or 
     const ledger = await (await request('/credits/transactions?filter=USE')).json()
     assert.ok(ledger.data.items.every((item: { type: string }) => item.type === 'USE'))
     assert.equal((await request('/credits/transactions?filter=BAD')).status, 400)
+    // 34 pages: newest first, `size`, `nextCursor` → the next page, no repeats, the last page has none.
+    const all = (await (await request('/credits/transactions?size=50')).json()).data.items as { id: number }[]
+    const firstPage = (await (await request('/credits/transactions?size=3')).json()).data
+    assert.deepEqual(firstPage.items.map((item: { id: number }) => item.id), all.slice(0, 3).map(item => item.id))
+    assert.equal(firstPage.nextCursor, String(all[2]!.id))
+    const secondPage = (await (await request(`/credits/transactions?size=50&cursor=${firstPage.nextCursor}`)).json()).data
+    assert.deepEqual(secondPage.items.map((item: { id: number }) => item.id), all.slice(3).map(item => item.id))
+    assert.equal(secondPage.nextCursor, null)
+    for (const bad of ['size=0', 'size=51', 'cursor=x']) assert.equal((await request(`/credits/transactions?${bad}`)).status, 400)
+    // 35: the friends who used my code (two rewarded, one not yet), newest first; 39 names my own code too.
+    const mine = (await (await request('/referrals/me')).json()).data
+    assert.deepEqual(mine.friends.map((friend: { status: string }) => friend.status), ['JOINED', 'QUALIFIED', 'QUALIFIED'])
+    assert.equal(mine.link, 'http://local.test/i/LOCALCAPSULE')
+    assert.equal((await request('/referrals/LOCALCAPSULE')).status, 200)
+    assert.equal((await (await request('/referrals', { code: 'LOCALCAPSULE', deviceHash: 'a'.repeat(64) })).json()).code, 'REFERRAL_SELF')
+    // The proposed attendance API is not on the server as it is (attendance-source.ts `credits`).
+    assert.equal((await request('/attendance')).status, 404)
+    assert.equal((await request('/attendance/check-in', {})).status, 404)
     assert.equal((await request('/referrals/NOPE')).status, 404)
     assert.equal((await (await request('/referrals/friend1000')).json()).data.rewardOnFirstConnection, 1000)
     assert.equal((await request('/referrals', { code: 'FRIEND1000' })).status, 400, 'deviceHash is required')
@@ -139,4 +157,38 @@ test('local transport covers the real client boundary and never forwards API or 
     controller.abort()
     await assert.rejects(pending)
   } finally { await server.close() }
+})
+
+test('local transport plays the proposed attendance API when switched to it', async () => {
+  const server = await createServer({ configFile: false, envDir: false, logLevel: 'silent',
+    server: { middlewareMode: true, hmr: false, watch: null }, resolve: { alias: { '@': fileURLToPath(new URL('../src', import.meta.url)) } } })
+  const session = new Map<string, string>()
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage')
+  Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: (key: string) => session.get(key) ?? null } })
+  try {
+    // The QA switch is read in development only; vite's SSR modules run as development.
+    session.set('capsule-attendance-source', 'attendance-api')
+    const { createLocalTransport } = await server.ssrLoadModule('/src/features/local-demo/transport.ts') as typeof import('../src/features/local-demo/transport.ts')
+    const { LocalBetaStore: Store } = await server.ssrLoadModule('/src/features/local-demo/store.ts') as typeof import('../src/features/local-demo/store.ts')
+    const store = new Store(null)
+    assert.equal(store.attendanceApi, true)
+    const fetch = createLocalTransport(store, async () => new Response('asset'), 'http://local.test')
+    const request = (path: string, body?: object) => fetch(`http://local.test/api/backend${path}`, { method: body ? 'POST' : 'GET', ...(body ? { body: JSON.stringify(body) } : {}) })
+    // No grant on reads: the day's credits wait for the check-in.
+    const me = (await (await request('/me')).json()).data
+    assert.deepEqual([me.credits.attendanceGrantedNow, me.credits.attendanceRemaining, me.credits.todayRemaining], [false, 0, 2000])
+    const status = (await (await request('/attendance')).json()).data
+    assert.deepEqual(status, { checkedToday: false, cycleDay: 4, totalDays: 4, rewardPerDay: 1500 })
+    const checkIn = await request('/attendance/check-in', {})
+    assert.equal(checkIn.status, 201)
+    const granted = (await checkIn.json()).data
+    assert.deepEqual([granted.granted, granted.cycleDay, granted.credits.todayRemaining, granted.credits.attendanceRemaining], [1500, 5, 3500, 1500])
+    assert.equal((await (await request('/attendance')).json()).data.checkedToday, true)
+    const again = await request('/attendance/check-in', {})
+    assert.deepEqual([again.status, (await again.json()).code], [409, 'ALREADY_CHECKED_IN'])
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'sessionStorage', previous)
+    else delete (globalThis as { sessionStorage?: unknown }).sessionStorage
+    await server.close()
+  }
 })

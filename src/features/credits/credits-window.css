@@ -2,11 +2,14 @@
  * 내 크레딧 (/credits, SCR-30) and 친구 초대 (/credits/invite, SCR-31; /credits/charge and /invite still open it).
  * 내 크레딧 is a dashboard on the open page: title and balance card, the attendance and invite cards, then the activity
  * list. 친구 초대 is its own dashboard (invite.css) on the same frame. Colours come from the design tokens only.
+ *
+ * No card outlines (DESIGN_SYSTEM.md 4.2): the page is `canvas`, each card a `panel` face, what sits inside a card a
+ * `surface` face (the hero and the two action cards keep their purple glass). Earned amounts are credit gold
+ * (exception 2, `warning`).
  */
 .credits-window {
-  --credits-line: color-mix(in srgb, var(--color-text-accent) 16%, transparent);
-  --credits-card: color-mix(in srgb, var(--color-surface) 88%, transparent);
-  --credits-glow-line: color-mix(in srgb, var(--color-text-accent) 30%, transparent);
+  --credits-card: var(--color-panel);
+  --credits-inset: var(--color-surface);
   --credits-glass: linear-gradient(
     135deg,
     color-mix(in srgb, var(--color-primary) 30%, var(--color-panel)) 0%,
@@ -76,12 +79,9 @@
   align-items: center;
   min-height: 220px;
   overflow: hidden;
-  border: 1px solid var(--credits-glow-line);
   border-radius: 24px;
   background: var(--credits-glass);
-  box-shadow:
-    0 24px 60px color-mix(in srgb, var(--color-primary) 22%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--color-ink) 10%, transparent);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 
 .credits-hero-copy {
@@ -215,10 +215,8 @@
   min-height: 150px;
   padding: 18px 24px 18px 12px;
   overflow: hidden;
-  border: 1px solid var(--credits-glow-line);
   border-radius: 22px;
   background: var(--credits-glass);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent);
 }
 
 .credits-action-copy h2 {
@@ -296,9 +294,8 @@
   flex-direction: column;
   gap: 14px;
   padding: 24px 28px 18px;
-  border: 1px solid var(--credits-line);
   border-radius: 22px;
-  background: color-mix(in srgb, var(--color-panel) 92%, transparent);
+  background: var(--credits-card);
 }
 
 .credits-activity-head {
@@ -332,12 +329,45 @@
   cursor: pointer;
 }
 
-.credits-activity-more[aria-expanded='true'] .app-icon {
-  rotate: -90deg;
+.credits-activity-more:hover:not(:disabled) {
+  color: var(--color-text-accent-hover);
 }
 
-.credits-activity-more:hover {
-  color: var(--color-text-accent-hover);
+.credits-activity-more:disabled {
+  cursor: default;
+  color: var(--color-subtle);
+}
+
+/* 「더 보기」 under the list: the next server page (34 cursor). */
+.credits-activity-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.credits-activity-more-error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.credits-activity-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.credits-activity-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.credits-activity-error p {
+  margin: 0;
 }
 
 .credits-timeline {
@@ -424,14 +454,14 @@
 }
 
 .credits-timeline-change[data-positive] {
-  color: var(--color-text-accent);
+  color: var(--color-warning);
 }
 
 .credits-empty-box {
   margin: 0;
   padding: 36px 20px;
-  border: 1px dashed color-mix(in srgb, var(--color-ink) 12%, transparent);
   border-radius: 14px;
+  background: var(--credits-inset);
   font-size: 14px;
   line-height: 1.55;
   text-align: center;

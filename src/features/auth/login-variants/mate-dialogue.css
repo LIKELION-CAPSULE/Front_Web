@@ -5,13 +5,21 @@
    */
   .login-dialogue {
     position: relative;
-    /* Same language as the login form panel: a thin line, a near-transparent dark fill, no blur or shadow. */
-    border: 1px solid rgba(250, 250, 253, 0.2);
+    /* No outline (DESIGN_SYSTEM.md 4.2, UX review 10-1): the character speech glass — `panel` 68% → `canvas` 62%, 18px
+       blur, 140% saturation; opaque `panel` without backdrop-filter. The login stage and the home attendance path. */
+    border: 0;
     border-radius: 20px;
-    background: linear-gradient(180deg, rgba(15, 14, 23, 0.52) 0%, rgba(15, 14, 23, 0.74) 100%);
+    background: var(--color-panel);
     padding: 24px 30px 20px;
     color: var(--color-ink);
     animation: login-dialogue-in 220ms ease-out both;
+  }
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .login-dialogue {
+      background: linear-gradient(180deg, color-mix(in srgb, var(--color-panel) 68%, transparent), color-mix(in srgb, var(--color-canvas) 62%, transparent));
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      backdrop-filter: blur(18px) saturate(140%);
+    }
   }
   .login-dialogue[data-leaving] {
     animation: login-dialogue-out 180ms ease-in both;
