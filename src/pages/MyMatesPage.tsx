@@ -375,14 +375,7 @@ export default function MyMatesPage() {
           theme={capsuleJarTheme(selectedId)}
           onOpen={(id) => jarRef.current?.openCapsule(id)}
           onPoint={(id) => jarRef.current?.highlight(id)}
-          listToggle={listToggle}
-          emptyAction={
-            import.meta.env.DEV && previewMate ? undefined : (
-              <Button size="sm" variant="secondary" loading={meet.busy} onClick={() => void meet.connect({ pickup: true })}>
-                첫 연결 시작하기
-              </Button>
-            )
-          }
+          listToggle={capsules.length > 0 || listView ? listToggle : undefined}
           actions={actions}
         />
       </div>
