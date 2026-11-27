@@ -651,8 +651,11 @@ export default function ConnectionPage() {
   )
   const leaveQuote = selectLeaveQuote(backend.mateDetails[mate.id], mate)
   const cameraBusy = devices.camera.status === 'requesting'
+  // Grouped (GlassDock `group`): 대화 (누르고 말하기 · 채팅 · 메이트 음성) | 기기 (카메라) | 화면 (PIP · 전체화면 · 설정) | 끊기.
+  // The dock's 누르고 말하기 stays next to the composer's: with the chat closed it is the only one on screen.
   const dockItems: GlassDockItem[] = [
     {
+      group: '대화',
       key: 'microphone',
       label: pushToTalk.supported ? (pushToTalk.snapshot.status === 'listening' ? '듣는 중' : '누르고 말하기') : PUSH_TO_TALK_TEXT.unsupported,
       tooltip: pushToTalk.supported ? (pushToTalk.snapshot.status === 'listening' ? '듣는 중 · 떼면 보내요' : '누르고 말하기 · 스페이스') : PUSH_TO_TALK_TEXT.unsupported,
@@ -664,17 +667,7 @@ export default function ConnectionPage() {
       onPressEnd: () => pushToTalk.release('dock'),
     },
     {
-      key: 'camera',
-      label: cameraBusy ? '카메라 연결 중' : camera ? '카메라 끄기' : '카메라 켜기',
-      tooltip: cameraBusy ? '연결 중' : camera ? '카메라 끄기' : '카메라 켜기',
-      icon: camera ? 'video' : 'videoOff',
-      pressed: !!camera,
-      device: true,
-      disabled: cameraBusy,
-      busy: cameraBusy,
-      onAction: toggleCamera,
-    },
-    {
+      group: '대화',
       key: 'chat',
       label: chatOpen ? '채팅 닫기' : '채팅 열기',
       tooltip: chatOpen ? '채팅 닫기' : '채팅 열기',
@@ -687,6 +680,7 @@ export default function ConnectionPage() {
     },
     {
       // 「메이트 음성」 (T-2, the same value as the settings switch): her voice on replies, 20 credits a reply.
+      group: '대화',
       key: 'voice',
       label: voiceOn ? '메이트 음성 끄기' : '메이트 음성 켜기',
       tooltip: voiceUnavailable ? VOICE_UNAVAILABLE : voiceOn ? `메이트 음성 끄기 · 답장마다 ${CREDIT_PRICING.voice} 크레딧` : '메이트 음성 켜기',
@@ -696,8 +690,21 @@ export default function ConnectionPage() {
       onAction: toggleVoice,
     },
     {
+      group: '기기',
+      key: 'camera',
+      label: cameraBusy ? '카메라 연결 중' : camera ? '카메라 끄기' : '카메라 켜기',
+      tooltip: cameraBusy ? '연결 중' : camera ? '카메라 끄기' : '카메라 켜기',
+      icon: camera ? 'video' : 'videoOff',
+      pressed: !!camera,
+      device: true,
+      disabled: cameraBusy,
+      busy: cameraBusy,
+      onAction: toggleCamera,
+    },
+    {
       // Picture-in-picture artwork (a small window over a large one), not 「minimize」, which reads as 「exit full screen」.
       // While the window is open the button brings it forward (DocumentPip.open focuses it).
+      group: '화면',
       key: 'pip',
       label: pip.status === 'open' ? 'PIP 창으로 가기' : 'PIP로 띄우기',
       tooltip: pip.status === 'open' ? 'PIP 창으로 가기' : 'PIP로 띄우기 · 작은 창으로 곁에 두기',
@@ -705,11 +712,11 @@ export default function ConnectionPage() {
       pressed: pip.status === 'open',
       disabled: pip.status === 'opening',
       busy: pip.status === 'opening',
-      dividerBefore: true,
       secondary: true,
       onAction: () => { void pip.open(PIP_WINDOW_SIZE[settings.pipSize]) },
     },
     {
+      group: '화면',
       key: 'fullscreen',
       label: isFullscreen ? '전체화면 종료' : '전체화면 전환',
       tooltip: isFullscreen ? '전체화면 종료' : '전체화면',
@@ -719,6 +726,7 @@ export default function ConnectionPage() {
       onAction: toggleFullscreen,
     },
     {
+      group: '화면',
       key: 'settings',
       label: '설정',
       tooltip: '설정',
@@ -728,12 +736,12 @@ export default function ConnectionPage() {
       onAction: () => setSettingsOpen(true),
     },
     {
+      group: '끊기',
       key: 'leave',
       label: '연결 끊기',
       tooltip: '연결 끊기',
       icon: 'phoneOff',
       tone: 'danger',
-      dividerBefore: true,
       disabled: finishing,
       busy: finishing,
       onAction: () => setLeaveOpen(true),
