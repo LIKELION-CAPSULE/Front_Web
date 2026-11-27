@@ -122,18 +122,7 @@
   );
   left: calc(var(--dialogue-cx) - var(--dialogue-half));
   width: calc(2 * var(--dialogue-half));
-  /* On the login stage the box drops its outline (DESIGN_SYSTEM.md §4.2, UX review 10-1) for the character speech
-     glass (`panel` 68% → `canvas` 62%, 18px blur, 140% saturation; opaque `panel` without backdrop-filter). Only here:
-     the home attendance path's box (mate-dialogue.css) is the teammate's screen. */
-  border: 0;
-  background: var(--color-panel);
-}
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .login-dialogue-layer .login-dialogue {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--color-panel) 68%, transparent), color-mix(in srgb, var(--color-canvas) 62%, transparent));
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
-    backdrop-filter: blur(18px) saturate(140%);
-  }
+  /* The box itself (no outline, the character speech glass) is mate-dialogue.css, shared with the attendance path. */
 }
 
 /* ---------- Form panel (right) ---------- */

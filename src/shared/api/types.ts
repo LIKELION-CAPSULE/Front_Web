@@ -528,6 +528,24 @@ export type ReferralStatus = {
   codeInputDeadline?: string | null
 }
 export type EnterReferralRequest = { code: string; deviceHash: string }
+
+/**
+ * PROPOSED, not on the server yet (requested 2026-11-27): `GET /attendance`. Until it exists the app reads attendance
+ * from 34 `ATTENDANCE` items and the `attendanceGrantedNow` flag (attendance-source.ts).
+ */
+export type AttendanceStatusResponse = {
+  checkedToday?: boolean
+  /** Days attended in the current 7-day cycle, 0–7. */
+  cycleDay?: number
+  totalDays?: number
+  rewardPerDay?: number
+}
+/** PROPOSED: `POST /attendance/check-in` (201). 409 `ALREADY_CHECKED_IN` when today is done. */
+export type AttendanceCheckInResponse = {
+  granted?: number
+  cycleDay?: number
+  credits?: CreditSummaryResponse
+}
 /** 36 · 39. */
 export type ReferralEntered = { inviterNickname?: string; rewardOnFirstConnection?: number }
 

@@ -11,18 +11,18 @@ import { useCreditReward } from './credit-reward'
 const CREDITS_REFRESH_MS = 60_000
 
 /**
- * The credit balance as every surface should show it (header chip, call screen chip): 「남은 크레딧」 — what can be
- * spent now, attendance part + invitation part (docs/BACKEND_API.md Credits `todayRemaining`). A local preview's
- * isolated wallet comes first (it is what its credits page shows); otherwise the server's summary (server-credits.ts:
- * 8 `/me`, 16, 19, 20 · 28, 33). Rewards earned on this page are added on top and count up when an attendance reward
- * lands. `null` while there is no balance to show.
+ * The credit balance as every surface should show it (header chip, call screen chip, 내 크레딧): 「남은 크레딧」 — what
+ * can be spent now, attendance part + invitation part (docs/BACKEND_API.md Credits `todayRemaining`), always the
+ * server's summary (server-credits.ts: 8 `/me`, 16, 19, 20 · 28, 33; the local mock answers the same paths). Today's
+ * attendance grant is held back while the home path is about to play it, and counts up when it lands
+ * (credit-reward.ts). `null` while there is no balance to show.
  */
 export function useCreditDisplay() {
-  const { wallet, me } = useBackend()
+  const { me } = useBackend()
   const server = useServerCredits(me?.userId)
-  const { bonus, landing } = useCreditReward()
-  const base = wallet ? wallet.attendance + wallet.invitation : server?.todayRemaining ?? null
-  const total = base === null ? null : base + bonus
+  const { held, landing } = useCreditReward()
+  const base = server?.todayRemaining ?? null
+  const total = base === null ? null : Math.max(0, base - held)
   const [counting, setCounting] = useState<number | null>(null)
   const reduced = useReducedMotion()
   const landed = useRef(landing?.id)
@@ -48,16 +48,16 @@ export function useCreditDisplay() {
 
 /**
  * Keeps the server balance fresh where the header shows it: 33 `/credits` on entry and when the tab shows again, at most
- * once a minute (a friend's invitation reward or the 5 a.m. reset arrive with no response of ours). Not with a local
- * preview wallet, and not during the service tour (nothing about credits is asked for there).
+ * once a minute (a friend's invitation reward or the 5 a.m. reset arrive with no response of ours). Not during the
+ * service tour (nothing about credits is asked for there).
  */
 export function useServerCreditsRefresh() {
-  const { status, wallet, me } = useBackend()
+  const { status, me } = useBackend()
   const { search } = useLocation()
   const userId = me?.userId
   const touring = new URLSearchParams(search).has('tour')
   useEffect(() => {
-    if (status !== 'ready' || wallet || touring || userId === undefined) return
+    if (status !== 'ready' || touring || userId === undefined) return
     let alive = true
     const refresh = () => {
       if (document.visibilityState !== 'visible' || serverCreditsAge(userId) < CREDITS_REFRESH_MS) return
@@ -71,5 +71,5 @@ export function useServerCreditsRefresh() {
       alive = false
       document.removeEventListener('visibilitychange', refresh)
     }
-  }, [status, wallet, touring, userId])
+  }, [status, touring, userId])
 }

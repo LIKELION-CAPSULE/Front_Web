@@ -84,116 +84,24 @@ export async function mountReview(root: HTMLElement, id: string | null) {
   ])
   const accountPort = scenario.accountContract ? (await import('./account-port')).createReviewAccountPort(scenario) : undefined
   const matePort = scenario.mateContract ? (await import('./mate-port')).createReviewMatePort(scenario) : undefined
+  // Call screen / connection record previews only: their credit pre-checks still read the injected wallet
+  // (backend-context.ts `wallet`). 내 크레딧 · 친구 초대 · 출석 read the review server (fixtures.ts) instead.
   const featurePort = (() => {
-    const now = Date.now()
-    const expiresAt = now + (3 * 3600 + 12 * 60 + 40) * 1000
-    const day2 = Date.UTC(2026, 10, 22, 16, 6, 0) // 11/23 01:06 KST
-    const day1 = Date.UTC(2026, 10, 21, 20, 0, 0) // 11/22 05:00 KST
-
-    const baseInvitation = {
-      code: 'CAP-7K2Q',
-      url: 'https://capsule.local/?ref=CAP-7K2Q',
-      invitedCount: 3,
-      rewardedCredits: 3000,
-      canRedeem: true,
-    }
-    const baseWallet = {
-      attendance: 980,
-      invitation: 200,
-      usedToday: 320,
-      attendanceExpiresAt: expiresAt,
-      entries: [
-        { id: 'r1', at: day2, description: '보이스 대화 · 채린', kind: 'use' as const, change: -20, balance: 1180 },
-        { id: 'r2', at: day2 - 600_000, description: '고급 모드 · 채린', kind: 'use' as const, change: -30, balance: 1200 },
-        { id: 'r3', at: day2 - 3_600_000, description: '출석', kind: 'attendance' as const, change: 1500, balance: 1700 },
-        { id: 'r4', at: day1 + 7_200_000, description: '친구 초대 · 민지님 첫 연결', kind: 'invite' as const, change: 1000, balance: 1200 },
-        { id: 'r5', at: day1 + 3_600_000, description: '보이스 대화 · 채린', kind: 'use' as const, change: -20, balance: 200 },
-        { id: 'r6', at: day1, description: '출석분 소멸', kind: 'expiration' as const, change: -320, balance: 220 },
-      ],
-    }
-
-    if (scenario.id === 'connection-record-credit-out') {
-      return {
-        read: () => ({
-          wallet: { attendance: 0, invitation: 0, usedToday: 300, attendanceExpiresAt: expiresAt, entries: [] },
-          invitation: { code: 'CAP-REVIEW', url: 'https://capsule.local/?ref=CAP-REVIEW', invitedCount: 0, rewardedCredits: 0, canRedeem: true },
-          records: [],
-          messages: [],
-          affinities: {},
-          settings: { voice: false, advanced: false },
-        }),
-        subscribe: () => () => {},
-        redeemInvitation: async () => {},
-        setSettings: () => {},
-      }
-    }
-    if (scenario.id === 'credits-filled' || scenario.id === 'invite-filled') {
-      return {
-        read: () => ({
-          wallet: baseWallet,
-          invitation: baseInvitation,
-          records: [],
-          messages: [],
-          affinities: {},
-          settings: { voice: false, advanced: false },
-        }),
-        subscribe: () => () => {},
-        redeemInvitation: async () => {},
-        setSettings: () => {},
-      }
-    }
-    if (scenario.id === 'credits-empty') {
-      return {
-        read: () => ({
-          wallet: { attendance: 1500, invitation: 0, usedToday: 0, attendanceExpiresAt: expiresAt, entries: [] },
-          invitation: baseInvitation,
-          records: [],
-          messages: [],
-          affinities: {},
-          settings: { voice: false, advanced: false },
-        }),
-        subscribe: () => () => {},
-        redeemInvitation: async () => {},
-        setSettings: () => {},
-      }
-    }
-    if (scenario.id === 'invite-full') {
-      return {
-        read: () => ({
-          wallet: baseWallet,
-          invitation: {
-            code: 'CAP-7K2Q',
-            url: 'https://capsule.local/?ref=CAP-7K2Q',
-            invitedCount: 10,
-            rewardedCredits: 10000,
-            canRedeem: false,
-          },
-          records: [],
-          messages: [],
-          affinities: {},
-          settings: { voice: false, advanced: false },
-        }),
-        subscribe: () => () => {},
-        redeemInvitation: async () => {},
-        setSettings: () => {},
-      }
-    }
-    if (scenario.id === 'my-mates-full' || scenario.id === 'connection-record-levelup') {
-      // The beta port as these screens were reviewed with (the worlds come from the stage, mate-worlds.ts).
-      return {
-        read: () => ({
-          wallet: baseWallet,
-          invitation: baseInvitation,
-          records: [],
-          messages: [],
-          affinities: {},
-          settings: { voice: false, advanced: false },
-        }),
-        subscribe: () => () => {},
-        redeemInvitation: async () => {},
-        setSettings: () => {},
-      }
-    }
+    const expiresAt = Date.now() + (3 * 3600 + 12 * 60 + 40) * 1000
+    const port = (wallet: { attendance: number; invitation: number; usedToday: number }) => ({
+      read: () => ({
+        wallet: { ...wallet, attendanceExpiresAt: expiresAt, entries: [] },
+        records: [],
+        messages: [],
+        affinities: {},
+        settings: { voice: false, advanced: false },
+      }),
+      subscribe: () => () => {},
+      setSettings: () => {},
+    })
+    if (scenario.id === 'connection-record-credit-out') return port({ attendance: 0, invitation: 0, usedToday: 300 })
+    // The beta port as these screens were reviewed with (the worlds come from the stage, mate-worlds.ts).
+    if (scenario.id === 'my-mates-full' || scenario.id === 'connection-record-levelup') return port({ attendance: 980, invitation: 200, usedToday: 320 })
     return undefined
   })()
   // Modal design drafts (review only): drawn over the real page, never imported by the product entry.
