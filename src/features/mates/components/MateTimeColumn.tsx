@@ -155,6 +155,7 @@ export function MateTimeColumn({
                 const { weekday, hour } = seoulWeekdayHour(connection.startedAt)
                 const isNew = fresh.has(connection.id)
                 const keepsake = keepsakes.get(connection.id)
+                const badgeCount = Number(Boolean(keepsake)) + Number(isNew)
                 const count = capsulesForConnection(connection.durationSeconds)
                 return (
                   <li key={connection.id}>
@@ -162,6 +163,7 @@ export function MateTimeColumn({
                       type="button"
                       className="mate-game-slot"
                       data-pointed={pointed === connection.id ? 'true' : undefined}
+                      data-badges={badgeCount > 0 ? badgeCount : undefined}
                       onClick={() => onOpen(connection.id)}
                       onPointerEnter={() => point(connection.id)}
                       onPointerLeave={() => point(null)}
@@ -174,7 +176,9 @@ export function MateTimeColumn({
                       </span>
                       <span className="mate-game-slot-text">
                         <span className="mate-game-slot-date">
-                          {formatCapsuleShortDate(connection.startedAt)} ({weekday}) · {partOfDay(hour)}
+                          {formatCapsuleShortDate(connection.startedAt)}
+                          <span className="mate-game-slot-weekday"> ({weekday})</span>
+                          <span className="mate-game-slot-part"> · {partOfDay(hour)}</span>
                         </span>
                         <span className="mate-game-slot-end">
                           {keepsake && (
