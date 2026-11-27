@@ -8,6 +8,7 @@ import { proxyBackend, type BackendEnv } from './server/backend-proxy'
 import { reviewCopyPlugin } from './server/review-copy.ts'
 import { localAssetsPlugin } from './server/local-assets.ts'
 import { remoteVisionModelsPlugin } from './server/remote-vision-models.ts'
+import { handleInvitePage, isInvitePageRequest } from './server/og-meta.ts'
 
 /** Local API gateway. Production uses api/router.ts on Vercel or server/worker.ts on Cloudflare. */
 function chatApi(env: ChatEnv & BackendEnv): Plugin {
@@ -50,11 +51,28 @@ function chatApi(env: ChatEnv & BackendEnv): Plugin {
   }
 }
 
+/** `vite preview` only: invite links (`/i/<code>`, `<path>?ref=`) get their link-preview tags as on Vercel (api/router.ts). */
+function invitePreview(env: BackendEnv): Plugin {
+  return {
+    name: 'capsule-invite-og',
+    configurePreviewServer: (server) => {
+      server.middlewares.use(async (req, res, next) => {
+        const request = new Request(new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`), { method: req.method })
+        if (!isInvitePageRequest(request)) return next()
+        const response = await handleInvitePage(request, env)
+        res.statusCode = response.status
+        response.headers.forEach((value, key) => res.setHeader(key, value))
+        res.end(Buffer.from(await response.arrayBuffer()))
+      })
+    },
+  }
+}
+
 export default defineConfig(({ mode }) => {
   // Empty prefix loads OPENAI_* from .env.local without exposing it to client code (only VITE_* is exposed).
   const env = loadEnv(mode, process.cwd(), '')
   return {
-    plugins: [react(), tailwindcss(), reviewCopyPlugin(), localAssetsPlugin(), remoteVisionModelsPlugin(), chatApi({ OPENAI_API_KEY: env.OPENAI_API_KEY, OPENAI_MODEL: env.OPENAI_MODEL, BACKEND_API_ORIGIN: env.BACKEND_API_ORIGIN })],
+    plugins: [react(), tailwindcss(), reviewCopyPlugin(), localAssetsPlugin(), remoteVisionModelsPlugin(), chatApi({ OPENAI_API_KEY: env.OPENAI_API_KEY, OPENAI_MODEL: env.OPENAI_MODEL, BACKEND_API_ORIGIN: env.BACKEND_API_ORIGIN }), invitePreview({ BACKEND_API_ORIGIN: env.BACKEND_API_ORIGIN })],
     server: { port: 3000, strictPort: true, headers: { 'Referrer-Policy': 'no-referrer' } },
     preview: { port: 3000, strictPort: true, headers: { 'Referrer-Policy': 'no-referrer' } },
     worker: { format: 'es' },

@@ -22,6 +22,13 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     parent.postMessage({ type: 'capsule-review:ready', id: scenario.id }, location.origin)
     return
   }
+  // Mobile access screen drafts (review only): stand-alone, like the call-screen drafts.
+  if (scenario.mobileGate) {
+    const { MobileGatePreview } = await import('./mobile-gate/MobileGatePreview')
+    createRoot(root).render(<StrictMode><MobileGatePreview variant={scenario.mobileGate.variant} invite={scenario.mobileGate.invite} /></StrictMode>)
+    parent.postMessage({ type: 'capsule-review:ready', id: scenario.id }, location.origin)
+    return
+  }
   const local = createReviewStorage(), session = createReviewStorage()
   Object.defineProperty(window, 'localStorage', { configurable: true, value: local })
   Object.defineProperty(window, 'sessionStorage', { configurable: true, value: session })
