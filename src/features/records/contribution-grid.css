@@ -21,13 +21,17 @@
   --grid-side: 0px;
   position: relative;
   box-sizing: border-box;
-  padding: 8px 0 4px;
+  /* With the scroll box's 4px all round: 8px above the cells and 6px below, as before. */
+  padding: 4px 0 2px;
 }
 .contribution-grid[data-mode='year'] { --grid-side: 24px; }
 .contribution-grid[data-mode='month'] { --grid-gap: 6px; }
 .contribution-grid[data-mode='week'] { --grid-gap: 10px; }
 
-.contribution-scroll { overflow-x: auto; overflow-y: hidden; padding-bottom: 2px; }
+/* The scroll box clips (overflow-x: auto makes y clip too), so it leaves room for the rings drawn outside a cell: the
+   selected day's 2px ink ring 1px out (3px) and the focus ring 2px out (4px). Without it the edge rows and columns
+   lost the ring's outer side — the week view's one row its top and bottom (2026-11-28). */
+.contribution-scroll { overflow-x: auto; overflow-y: hidden; padding: 4px; }
 
 /* The frame's width sets the cell size: at most 20 px (year), 76 px (month) or 128 px (week) a cell. */
 .contribution-frame { margin-inline: auto; }

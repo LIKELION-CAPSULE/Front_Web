@@ -4,6 +4,7 @@ import { findReviewScenario, reviewPreviewUrl } from './catalog'
 import { createReviewTransport, REVIEW_SESSION_ID, REVIEW_USER_ID } from './fixtures'
 import { createReviewStorage } from './storage'
 import { createReviewImageStage } from './image-stage'
+import { rememberReviewIdInWindowName } from '@/shared/lib/review-window-name'
 
 export async function mountReview(root: HTMLElement, id: string | null) {
   if (!id) {
@@ -13,7 +14,7 @@ export async function mountReview(root: HTMLElement, id: string | null) {
   }
   const scenario = findReviewScenario(id)
   if (id !== scenario.id) history.replaceState(null, '', reviewPreviewUrl(scenario))
-  window.name = `capsule-ui-review:${scenario.id}`
+  rememberReviewIdInWindowName(scenario.id)
   document.documentElement.dataset.reviewScenario = scenario.id
   // Call-screen drafts (review only): a stand-alone copy of the call screen, so the app is not mounted at all.
   if (scenario.callUi) {

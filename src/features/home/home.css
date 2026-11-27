@@ -142,10 +142,11 @@
   }
   .home-section-title:focus { outline: none; }
 
-  /* Available mates first, then 「추가 예정」 placeholders, four to a row. */
+  /* The available mates side by side, tall cards (2:3) capped in width, from the left edge under the title. */
   .home-mate-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 300px));
+    justify-content: start;
     gap: 20px;
     margin-top: 20px;
   }
@@ -155,7 +156,7 @@
     flex-direction: column;
     justify-content: flex-end;
     min-width: 0;
-    min-height: 280px;
+    aspect-ratio: 2 / 3;
     overflow: hidden;
     /* No standing outline or glow (cards use the surface colour); the purple edge only answers hover. The 1px stays
        transparent so the hover edge does not move anything. */
@@ -178,28 +179,13 @@
   .home-mate-card-art::after {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, transparent 35%, color-mix(in srgb, var(--color-canvas) 70%, transparent) 70%, var(--color-canvas) 100%);
+    /* Clear over the face (top half); the name and line sit on the dark bottom third. */
+    background: linear-gradient(180deg, transparent 50%, color-mix(in srgb, var(--color-canvas) 72%, transparent) 72%, var(--color-canvas) 100%);
     content: '';
   }
   .home-mate-card-bg, .home-mate-card-figure { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .home-mate-card-figure { object-position: center 18%; }
-
-  .home-mate-card--upcoming { cursor: default; filter: saturate(0.55); opacity: 0.88; }
-  .home-mate-card-art--upcoming {
-    display: grid;
-    place-items: center;
-    background: radial-gradient(circle at 50% 38%, rgb(124 92 255 / 0.3), transparent 62%), linear-gradient(180deg, #221C36, #17141F);
-  }
-  .home-mate-silhouette { position: absolute; bottom: 18%; width: 58%; fill: rgb(185 166 255 / 0.13); filter: blur(2px); }
-  .home-mate-question {
-    position: relative;
-    z-index: 1;
-    margin-bottom: 18%;
-    color: rgb(200 186 255 / 0.62);
-    font-size: 72px;
-    font-weight: 800;
-    line-height: 1;
-  }
+  /* Head → waist still, its top edge at the card's top: the face lands in the upper half, clear of the copy. */
+  .home-mate-card-figure { object-position: center top; }
 
   .home-mate-badge {
     position: absolute;
@@ -228,7 +214,7 @@
   .home-mate-card-copy { position: relative; z-index: 1; padding: 20px 68px 20px 20px; }
   /* A connectable card keeps a row under the copy for 「바로 연결」; the line itself runs the full width. */
   .home-mate-card:has(> .home-mate-card-enter) .home-mate-card-copy { padding: 20px 20px 64px; }
-  .home-mate-card--upcoming .home-mate-card-copy, .home-mate-card[data-coming-soon] .home-mate-card-copy { padding-right: 20px; }
+  .home-mate-card[data-coming-soon] .home-mate-card-copy { padding-right: 20px; }
   .home-mate-card-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .home-mate-card-name h3 { margin: 0; font-size: 20px; font-weight: 700; }
   .home-mate-tag {
@@ -278,12 +264,11 @@
   .home-mate-card--failed { align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; }
   .home-mate-card--failed p { color: var(--color-muted); }
 
-  /* ---- Tablet: path narrowed to the right, two-column cards ---- */
+  /* ---- Tablet: path narrowed to the right ---- */
   @media (max-width: 1279px) {
     .home-hero { min-height: 480px; }
     .home-hero { --hero-path-width: min(760px, 62vw); --hero-path-raise: 0.38; }
     .home-hero-inner { padding-block: 44px; }
-    .home-mate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
   /* ---- Mobile: copy and CTA, the path under them, then one card per row ---- */
@@ -297,9 +282,7 @@
     .home-hero-inner { padding-block: 32px 0; translate: none; }
     .home-hero-figure { position: relative; top: auto; right: auto; order: 1; width: calc(100% / 0.8775); margin-top: 80px; translate: none; }
     /* (Wider than the column by the art's clear right margin, so the road still ends on the column's edge.) */
-    .home-mate-grid { grid-template-columns: minmax(0, 1fr); }
-    /* One placeholder is enough when the cards stack. */
-    .home-mate-card--upcoming ~ .home-mate-card--upcoming { display: none; }
+    .home-mate-grid { grid-template-columns: minmax(0, 300px); }
   }
 
   @media (prefers-reduced-motion: reduce) {

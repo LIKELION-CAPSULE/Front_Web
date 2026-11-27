@@ -1,6 +1,6 @@
 import { forwardRef, type Ref } from 'react'
 import { Link } from 'react-router'
-import { mateCallBackground, matePortrait } from '@/features/mates/artwork'
+import { mateCallBackground, mateHeroPortrait } from '@/features/mates/artwork'
 import { ageRatingLabel, type AvailableMate } from '@/features/mates/catalog'
 import { useConnectMate } from '@/features/mates/use-connect-mate'
 import { Button } from '@/shared/ui/Button'
@@ -8,11 +8,8 @@ import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Icon } from '@/shared/ui/Icon'
 import { HOME_COPY } from '../home-copy'
 
-/** Cards in the row: available mates first, then 「추가 예정」 placeholders for the rest. */
-const ROW_SLOTS = 4
-
 /**
- * "오늘은 누구와 함께할까요?": a card per available mate (채린, 서도현) and 「추가 예정」 placeholders filling the row.
+ * "오늘은 누구와 함께할까요?": a tall card per available mate (채린, 서도현), no placeholders for mates to come.
  * The first card carries the service tour's home targets (`data-tour`).
  */
 export const HomeMateSection = forwardRef(function HomeMateSection(
@@ -28,7 +25,6 @@ export const HomeMateSection = forwardRef(function HomeMateSection(
         {mates.length
           ? mates.map((mate, index) => <MateShowcaseCard key={mate.id} mate={mate} tour={index === 0} />)
           : <MateLoadFailedCard onRetry={onRetry} />}
-        {Array.from({ length: Math.max(0, ROW_SLOTS - Math.max(mates.length, 1)) }, (_, index) => <UpcomingMateCard key={index} />)}
       </div>
     </section>
   )
@@ -46,7 +42,8 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
       <Link to={`/mates/${mate.id}`} className="home-mate-card-link" aria-label={`${mate.name} 메이트 보기`} />
       <div className="home-mate-card-art">
         <img className="home-mate-card-bg" src={mateCallBackground(mate.id).landscape} alt="" loading="lazy" decoding="async" draggable={false} />
-        <img className="home-mate-card-figure" src={matePortrait(mate.id, mate.image)} alt="" loading="lazy" decoding="async" draggable={false} />
+        {/* Head → waist (the tall card's framing): the face stays above the name and line at the bottom. */}
+        <img className="home-mate-card-figure" src={mateHeroPortrait(mate.id, mate.image)} alt="" loading="lazy" decoding="async" draggable={false} />
       </div>
       {/* Age rating at the top left, the status at the top right: one row of chips over the art (the name row keeps its
           layout). */}
@@ -81,26 +78,6 @@ function MateShowcaseCard({ mate, tour }: { mate: AvailableMate; tour: boolean }
           <span>{HOME_COPY.connectNow}</span>
         </button>
       )}
-    </article>
-  )
-}
-
-/** A mate still to come: an abstract silhouette and a question mark, not clickable. */
-function UpcomingMateCard() {
-  return (
-    <article className="home-mate-card home-mate-card--upcoming" aria-label={`${HOME_COPY.upcomingName} · ${HOME_COPY.upcoming}`}>
-      <div className="home-mate-card-art home-mate-card-art--upcoming" aria-hidden="true">
-        <svg className="home-mate-silhouette" viewBox="0 0 120 120">
-          <circle cx="60" cy="44" r="22" />
-          <path d="M18 120c4-30 20-46 42-46s38 16 42 46z" />
-        </svg>
-        <span className="home-mate-question">?</span>
-      </div>
-      <span className="home-mate-badge">{HOME_COPY.upcoming}</span>
-      <div className="home-mate-card-copy">
-        <div className="home-mate-card-name"><h3>{HOME_COPY.upcomingName}</h3></div>
-        <p>{HOME_COPY.upcomingLine}</p>
-      </div>
     </article>
   )
 }

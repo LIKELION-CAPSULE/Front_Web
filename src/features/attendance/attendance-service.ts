@@ -116,6 +116,31 @@ const ADAPTERS: Record<AttendanceSource, Adapter> = { credits: creditsAdapter, '
 // ── Development override (AttendanceDevPanel): any point of the cycle, nothing sent ──
 const devOverride = new Map<number, StoredAttendance>()
 
+/**
+ * `credits` source only: today's 1,500 counts as received without the button — the header has shown the full balance
+ * (the home page was left while it held the amount back, or another screen showed it first; use-credit-display.ts).
+ * The server granted it on the day's first credit read, so this only stops the home path from holding it back again:
+ * coming back home the same day shows today 「받음」. Nothing is sent. The attendance API has its own check-in, so
+ * nothing happens there. Returns whether it was recorded.
+ */
+export function markAttendanceReceived(userId: number, source: AttendanceSource = attendanceSource(), now = Date.now()): boolean {
+  if (source !== 'credits' || devOverride.has(userId)) return false
+  const today = businessDay(now)
+  if (readReceived(userId) === today) return false
+  writeReceived(userId, today)
+  return true
+}
+
+/**
+ * Another screen than home shows a balance read today (`creditsAgeMs` ago): it already includes today's grant
+ * (granted on the day's first credit read), so the home path must not hold it back later (`markAttendanceReceived`).
+ * Not during the service tour, which reads no credits.
+ */
+export function balanceShownAwayFromHome(pathname: string, touring: boolean, creditsAgeMs: number, now = Date.now()): boolean {
+  if (pathname === '/' || touring || !Number.isFinite(creditsAgeMs) || creditsAgeMs < 0) return false
+  return businessDay(now - creditsAgeMs) === businessDay(now)
+}
+
 export async function fetchAttendance(client: Client, userId: number): Promise<AttendanceState> {
   const today = businessDay()
   const override = devOverride.get(userId)

@@ -12,9 +12,6 @@ export const HOME_COPY = {
   /** A mate shown but not open yet (11 `comingSoon`): its page offers 「공개 알림 받기」 (46). */
   comingSoon: '곧 만나요',
   comingSoonLabel: (name: string) => `${name} · 곧 만나요`,
-  upcoming: '추가 예정',
-  upcomingName: '새로운 메이트',
-  upcomingLine: '곧 새로운 인연이 찾아와요!',
   /**
    * The card's 「바로 연결」 control starts the connection right away (the card itself opens the detail). Its name holds
    * the visible words, so voice control and screen readers match what is on screen (UX review 2-1).
