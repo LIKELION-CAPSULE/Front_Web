@@ -25,14 +25,27 @@ export function affinityUnlockCondition(stage: number) {
 /**
  * A stage as the server (or a fixture) sends it, put on the table: a known stage name decides the number, so a
  * source that counts from another base never shows "2단계 · 친구" next to "3단계 · 친구에서 열려요". Unknown names
- * keep what was sent.
+ * keep what was sent. A stage 1–5 sent without a name (37 `relation` of a mate met once: `stageName: null`) takes the
+ * table's name, and `nextStageName` the table's next one when it is not sent either (null at the last stage). No
+ * name and no stage on the table: null (nothing is guessed). Times and progress stay the server's (callers keep them).
  */
-export function normalizeAffinityStage(stage: number | undefined, stageName: string | undefined) {
+export function normalizeAffinityStage(
+  stage: number | null | undefined,
+  stageName: string | null | undefined,
+  nextStageName?: string | null,
+): { stage: number; stageName: string; nextStageName: string | null } | null {
   const name = stageName?.trim()
+  const next = nextStageName?.trim() || null
   const byName = name ? AFFINITY_STAGES.find((item) => item.name === name) : undefined
-  if (byName) return { stage: byName.stage, stageName: byName.name }
-  if (stage && name) return { stage, stageName: name }
+  if (byName) return { stage: byName.stage, stageName: byName.name, nextStageName: next ?? tableNextName(byName.stage) }
+  if (stage && name) return { stage, stageName: name, nextStageName: next ?? tableNextName(stage) }
+  const byNumber = AFFINITY_STAGES.find((item) => item.stage === stage)
+  if (byNumber) return { stage: byNumber.stage, stageName: byNumber.name, nextStageName: next ?? tableNextName(byNumber.stage) }
   return null
+}
+
+function tableNextName(stage: number): string | null {
+  return AFFINITY_STAGES.find((item) => item.stage === stage + 1)?.name ?? null
 }
 
 /**
