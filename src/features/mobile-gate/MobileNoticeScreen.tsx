@@ -11,7 +11,8 @@ import { Dialog } from '@/shared/ui/Dialog'
 import { Icon } from '@/shared/ui/Icon'
 import { PixelImage } from '@/shared/ui/pixel/PixelFrame'
 import { pixelArtSize, pixelArtUrl, type PixelArt } from '@/shared/ui/pixel/pixel-art'
-import { MOBILE_GATE_FEATURES } from './feature-icons'
+import { MOBILE_GATE_DIGITS, MOBILE_GATE_FEATURES } from './feature-icons'
+import { PC_START_TITLE, pcStartSteps } from './pc-steps'
 import { PhoneDozeScene } from './PhoneDozeScene'
 import { buildMobileShareUrl, resolveMobileInvite, type MobileInvite } from './share-link'
 import './mobile-gate.css'
@@ -20,7 +21,7 @@ import './mobile-gate.css'
  * Mobile access screen (SCR-40; design M2 「스크롤 소개」, user decision 2026-11-27). What a phone sees for every path
  * except the password-reset links (MobileAccessGate). The first screen is exactly one phone screen: the login screen's
  * dozing 채린, the headline, the invite card when the visit came from an invite link, and 「PC로 링크 보내기」·「링크 복사」.
- * Scrolling shows three feature cards, the PC-only line, the legal links and the AI notice. Once the first screen's
+ * Scrolling shows three feature cards, the three 「PC에서 이렇게 시작해요」 steps, the legal links and the AI notice. Once the first screen's
  * buttons have scrolled away, a bar with the same two actions is fixed to the bottom (and leaves when they come back).
  * Lazy-loaded by MobileAccessGate, so the desktop app never downloads it.
  */
@@ -28,7 +29,6 @@ import './mobile-gate.css'
 const COPY = {
   headline: '나만의 메이트가 기다리고 있어요',
   intro: '영상통화처럼 곁에 있는 메이트와 목소리로 이야기하고, 함께한 시간을 기록해요.',
-  pcOnly: '캡슐은 PC에서 열려요. 링크를 PC로 보내 두세요.',
   share: 'PC로 링크 보내기',
   copy: '링크 복사',
 } as const
@@ -98,6 +98,7 @@ export default function MobileNoticeScreen() {
 
   const invite = useMemo(() => resolveMobileInvite(location.search, readStoredReferralCode()), [location.search])
   const code = invite?.code ?? null
+  const steps = useMemo(() => pcStartSteps(invite !== null), [invite])
   const shareUrl = useMemo(
     () => typeof window === 'undefined' ? '' : buildMobileShareUrl(window.location.origin, location.pathname, location.search, location.hash, code),
     [location.pathname, location.search, location.hash, code],
@@ -192,7 +193,22 @@ export default function MobileNoticeScreen() {
             </li>
           ))}
         </ul>
-        <p className="mg-pc-only">{COPY.pcOnly}</p>
+        <section className="mg-steps" aria-labelledby={`${featuresId}-steps`}>
+          <h3 id={`${featuresId}-steps`} className="mg-steps-title">{PC_START_TITLE}</h3>
+          <ol className="mg-steps-list">
+            {steps.map((step, index) => (
+              <li key={step.title} className="mg-step">
+                <span className="mg-step-num">
+                  <FeaturePixel art={MOBILE_GATE_DIGITS[index]!} />
+                </span>
+                <span className="mg-step-text">
+                  <span className="mg-step-title">{step.title}</span>
+                  {step.note && <span className="mg-step-note">{step.note}</span>}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
         <footer className="mg-footer">
           <nav aria-label="약관 안내" className="mg-legal">
             <button type="button" onClick={() => setLegalDoc('terms')}>이용약관</button>

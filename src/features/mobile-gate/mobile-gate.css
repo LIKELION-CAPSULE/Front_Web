@@ -2,7 +2,8 @@
  * Mobile access screen (SCR-40, design M2 「스크롤 소개」; MobileNoticeScreen.tsx). No outlines: surfaces, spacing and
  * the scene separate things. Violet only on the main button and focus. Gold only on the credit coin and
  * 「1,000 크레딧」 (credit display exception). Pixel points: stepped corners (clip-path) on the invite card, the feature
- * cards and their icon tiles, the 8-bit capsule and coin, the pixel feature icons, a stepped scroll cue.
+ * cards and their icon tiles, the 8-bit capsule and coin, the pixel feature icons, the stepped step numbers with
+ * pixel digits and their dotted track, a stepped scroll cue.
  * The scene itself (still, desk, z z Z, nod) uses the login screen's doze.css classes.
  */
 @layer components {
@@ -74,14 +75,6 @@
     color: var(--color-muted);
     font-size: 15px;
     line-height: 23px;
-    word-break: keep-all;
-  }
-  .mg-pc-only {
-    margin: 0;
-    color: var(--color-subtle);
-    font-size: 13px;
-    line-height: 19px;
-    text-align: center;
     word-break: keep-all;
   }
   .mg-status {
@@ -203,17 +196,14 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    /* Just under a screen: the first screen's buttons end 62px+ above its bottom, so at the end of the page only that strip shows and the buttons are off screen. Spare height collects below the notice, above the bar. */
+    /* Just under a screen: the first screen's buttons end 62px+ above its bottom, so at the end of the page only that strip shows and the buttons are off screen. Spare height collects below the notice, above the bar.
+       Still needed with the 「PC에서 이렇게 시작해요」 steps (2026-11-27): measured content is 867px at 390 × 844 but 863px
+       (plain) / 882px (invite) at 440 × 956, under this 900px floor, so a tall phone keeps a 30–50px strip, not 190px. */
     min-height: calc(100svh - 56px);
     /* Room under the AI notice for the fixed bar, so it never covers the legal links. */
     padding: 40px var(--mg-gutter) calc(var(--mg-dock-h) + 16px);
     background: linear-gradient(180deg, var(--color-canvas), var(--color-panel) 60%, var(--color-canvas));
     outline: none;
-  }
-  /* The PC-only line, the legal links and the AI notice follow the cards; any spare height ends up below them. */
-  .mg-features > .mg-pc-only {
-    margin-top: 0;
-    padding-top: 16px;
   }
   .mg-section-title {
     margin: 0;
@@ -261,6 +251,68 @@
     color: var(--color-muted);
     font-size: 14px;
     line-height: 21px;
+    word-break: keep-all;
+  }
+  /* ── 「PC에서 이렇게 시작해요」: a light ordered list, numbers in stepped tiles joined by a dotted pixel track ─── */
+  .mg-steps {
+    display: grid;
+    gap: 14px;
+    padding: 4px 4px 0;
+  }
+  .mg-steps-title {
+    margin: 0;
+    font-size: 17px;
+    line-height: 24px;
+    font-weight: 700;
+    word-break: keep-all;
+  }
+  .mg-steps-list {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .mg-step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: start;
+  }
+  /* The track from this number down to the next one: 2px pixels with 2px gaps. */
+  .mg-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 13px;
+    top: 30px;
+    bottom: -12px;
+    width: 2px;
+    background: repeating-linear-gradient(180deg, var(--color-surface-hover) 0 2px, transparent 2px 4px);
+  }
+  .mg-step-num {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    background: var(--color-surface);
+    clip-path: var(--mg-step);
+  }
+  .mg-step-text {
+    display: grid;
+    gap: 2px;
+    padding-top: 2px;
+  }
+  .mg-step-title {
+    font-size: 15px;
+    line-height: 24px;
+    font-weight: 600;
+    word-break: keep-all;
+  }
+  .mg-step-note {
+    color: var(--color-muted);
+    font-size: 13px;
+    line-height: 19px;
     word-break: keep-all;
   }
   .mg-px {

@@ -73,3 +73,11 @@ export const MOBILE_GATE_FEATURES = [
   { art: VOICE, title: '목소리로 대화', body: '말을 걸면 메이트가 목소리로 대답해요. 채팅으로 이야기해도 좋아요.' },
   { art: RECORD, title: '함께한 시간 · 세계관', body: '함께한 시간이 캡슐로 쌓여 기록돼요. 친해질수록 메이트의 새 세계관이 열려요.' },
 ] as const
+
+/** 3 × 5 pixel digits for the 「PC에서 이렇게 시작해요」 step numbers (ink white, 2 CSS px per art pixel). */
+const DIGIT = (rows: readonly string[]): PixelArt => ({ rows, palette: { a: INK } })
+export const MOBILE_GATE_DIGITS: readonly PixelArt[] = [
+  DIGIT(['.a.', 'aa.', '.a.', '.a.', 'aaa']),
+  DIGIT(['aa.', '..a', '.a.', 'a..', 'aaa']),
+  DIGIT(['aa.', '..a', '.a.', '..a', 'aa.']),
+]

@@ -43,3 +43,13 @@ test('buildMobileShareUrl keeps the page, drops the review marker and carries th
   assert.equal(buildMobileShareUrl(origin, '/credits', '?ref=MINE', '#top', 'OTHER'), 'https://capsule.ai.kr/credits?ref=MINE#top')
   assert.equal(buildMobileShareUrl(origin, '/', '?invite=X', '', 'Y'), 'https://capsule.ai.kr/?invite=X')
 })
+
+test('pcStartSteps: three steps in order; the invite-code note only on an invite visit', async () => {
+  const { pcStartSteps } = await import('../src/features/mobile-gate/pc-steps.ts')
+  const plain = pcStartSteps(false)
+  assert.deepEqual(plain.map(step => step.title), ['링크를 PC로 보내요', 'PC 브라우저에서 열어요', '가입하고 메이트를 만나요'])
+  assert.deepEqual(plain.map(step => step.note), ["카톡 '나에게 보내기'나 메일", null, null])
+  const invited = pcStartSteps(true)
+  assert.deepEqual(invited.map(step => step.title), plain.map(step => step.title))
+  assert.equal(invited[2]!.note, '초대 코드는 자동으로 들어가요')
+})

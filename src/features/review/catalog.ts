@@ -238,9 +238,9 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'call-ui-c1', group: '디자인 시안', title: '통화 화면 시안 C1 · 대사창', path: '/connect/chaerin', callUi: 'c1', note: '2026-11-27 시안: 무대 아래 게임식 대사창(계단형 픽셀 모서리·디더링 띠·이름표에 「말하는 중」), 채팅이 열려 있어도 자막 표시. 채팅은 기록 보관용 「대화 기록」. 아래 막대나 ?cu-scene=idle|speaking|waiting|unread·cu-chat=open|closed로 전환' },
   { id: 'call-ui-c2', group: '디자인 시안', title: '통화 화면 시안 C2 · 말풍선 무대', path: '/connect/chaerin', callUi: 'c2', note: '2026-11-27 시안: 머리 옆 말풍선(계단형 꼬리)과 후광, 채팅이 닫혀 있을 때만. 채팅은 무대 위 반투명 오버레이, 상단 정보는 무대 위에 떠 있음' },
   { id: 'call-ui-c3', group: '디자인 시안', title: '통화 화면 시안 C3 · 분할 정돈', path: '/connect/chaerin', callUi: 'c3', note: '2026-11-27 시안(보수안): 지금 배치 유지. 무대 아래 자막 띠(채팅 열림이면 한 줄), 무대 초록 테두리·이름 칩, 묶음 말풍선·한 줄 정보 바·도크 그룹' },
-  { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대 링크', path: '/?ref=CAP-7K2Q', phone: true, note: '휴대폰 접속 시 안내(시안 M2 「스크롤 소개」 적용, 2026-11-27). 초대 링크로 들어온 상태: 첫 화면 버튼 위 초대 카드 「초대 코드 CAP-7K2Q가 저장됐어요 · PC에서 가입하고 첫 연결을 마치면 둘 다 1,000 크레딧」. 내려서 첫 화면 버튼이 사라지면 아래 고정 막대(PC로 링크 보내기·복사 아이콘)' },
-  { id: 'mobile-notice-plain', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/', phone: true, note: '휴대폰 접속 시 안내: 조는 채린 장면·헤드라인·소개·「PC로 링크 보내기」·「링크 복사」, 「캡슐 둘러보기」로 기능 카드 3장·PC 안내 한 줄·약관(모달)·AI 고지. 스크롤하면 아래 고정 막대. 공유 기능이 없는 브라우저는 「링크 복사」만' },
-  { id: 'mobile-notice-inviter', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대한 사람 이름', path: '/?ref=CAP-7K2Q&inviter=민수', phone: true, note: '초대한 사람 이름을 아는 초대 링크: 「민수님의 초대 코드가 저장됐어요」와 코드 한 줄' },
+  { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대 링크', path: '/?ref=CAP-7K2Q', phone: true, note: '휴대폰 접속 시 안내(시안 M2 「스크롤 소개」 적용, 2026-11-27). 초대 링크로 들어온 상태: 첫 화면 버튼 위 초대 카드 「초대 코드 CAP-7K2Q가 저장됐어요 · PC에서 가입하고 첫 연결을 마치면 둘 다 1,000 크레딧」. 내려서 첫 화면 버튼이 사라지면 아래 고정 막대(PC로 링크 보내기·복사 아이콘). 기능 카드 아래 「PC에서 이렇게 시작해요」 3단계, 초대 링크라 3단계에 「초대 코드는 자동으로 들어가요」' },
+  { id: 'mobile-notice-plain', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/', phone: true, note: '휴대폰 접속 시 안내: 조는 채린 장면·헤드라인·소개·「PC로 링크 보내기」·「링크 복사」, 「캡슐 둘러보기」로 기능 카드 3장·「PC에서 이렇게 시작해요」 3단계(초대 문구 없음)·약관(모달)·AI 고지. 스크롤하면 아래 고정 막대. 공유 기능이 없는 브라우저는 「링크 복사」만' },
+  { id: 'mobile-notice-inviter', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대한 사람 이름', path: '/?ref=CAP-7K2Q&inviter=민수', phone: true, note: '초대한 사람 이름을 아는 초대 링크: 「민수님의 초대 코드가 저장됐어요」와 코드 한 줄. 3단계에 「초대 코드는 자동으로 들어가요」' },
 ]
 
 // Saved review links of retired scenarios open the current screen instead.
