@@ -778,7 +778,7 @@ export default function ConnectionPage() {
               // The mode itself is free; her voice (the dock's button) is counted apart, so say so while it is on.
               title={voiceOn ? `기본 모드는 크레딧 없이 대화해요. 메이트 음성은 답장마다 ${CREDIT_PRICING.voice} 크레딧이 따로 들어요` : '기본 모드 · 크레딧 없음'}
             >
-              기본<span className="connection-mode-detail"> · 크레딧 없음</span>
+              <span>기본<span className="connection-mode-detail"> · 크레딧 없음</span></span>
             </button>
             <button
               type="button"
@@ -789,7 +789,7 @@ export default function ConnectionPage() {
               onClick={() => chooseMode('advanced')}
               title={`고급 모드 · 1턴에 ${CREDIT_PRICING.advanced} 크레딧`}
             >
-              고급<span className="connection-mode-detail"> · 1턴 {CREDIT_PRICING.advanced}</span>
+              <span>고급<span className="connection-mode-detail"> · 1턴 {CREDIT_PRICING.advanced}</span></span>
             </button>
           </div>
           {/* 「남은 크레딧」: the whole balance that can be spent now (server `todayRemaining`; use-credit-display.ts). */}

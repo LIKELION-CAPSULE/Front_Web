@@ -724,7 +724,7 @@
     white-space: nowrap;
   }
   .connection-titlebar-right { gap: 6px; }
-  .connection-timer { font-size: 17px; min-width: 4.3em; padding-left: 10px; }
+  .connection-timer { font-size: 17px; min-width: max-content; padding-left: 10px; white-space: nowrap; }
 }
 
 /* 861px ~ 960px (960 half-screen): chat sits side-by-side without covering stage or dock;
