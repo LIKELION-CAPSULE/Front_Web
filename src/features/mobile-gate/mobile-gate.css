@@ -1,18 +1,24 @@
 /*
- * Mobile access screen drafts M1 / M2 (2026-11-27, review catalog only; MobileGatePreview.tsx). No outlines: surfaces,
- * spacing and the scene separate things. Violet only on the main button, links' focus and the review bar. Gold only on
- * the credit coin and 「1,000 크레딧」 (credit display exception). Pixel points: stepped corners (clip-path) on the
- * invite card and feature cards, the 8-bit capsule and coin, the pixel feature icons, a stepped scroll cue.
+ * Mobile access screen (SCR-40, design M2 「스크롤 소개」; MobileNoticeScreen.tsx). No outlines: surfaces, spacing and
+ * the scene separate things. Violet only on the main button and focus. Gold only on the credit coin and
+ * 「1,000 크레딧」 (credit display exception). Pixel points: stepped corners (clip-path) on the invite card, the feature
+ * cards and their icon tiles, the 8-bit capsule and coin, the pixel feature icons, a stepped scroll cue.
  * The scene itself (still, desk, z z Z, nod) uses the login screen's doze.css classes.
  */
 @layer components {
   .mg-root {
     --mg-gutter: 20px;
+    /* The fixed bottom bar: 12px + 48px button + 12px, plus the iPhone home indicator. */
+    --mg-dock-h: calc(72px + env(safe-area-inset-bottom));
     --mg-step: polygon(
       0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px,
       calc(100% - 4px) 8px, 100% 8px, 100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px),
       calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%, 8px 100%,
       8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px)
+    );
+    --mg-step-sm: polygon(
+      0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px),
+      calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
     );
     position: relative;
     min-height: 100svh;
@@ -56,15 +62,15 @@
   /* ── Type ──────────────────────────────────────────────────────────────────────────────────────────────── */
   .mg-headline {
     margin: 0;
-    font-size: 27px;
-    line-height: 36px;
+    font-size: 30px;
+    line-height: 39px;
     font-weight: 800;
     letter-spacing: -0.01em;
     word-break: keep-all;
     text-wrap: balance;
   }
   .mg-intro {
-    margin: 0;
+    margin: -4px 0 0;
     color: var(--color-muted);
     font-size: 15px;
     line-height: 23px;
@@ -121,12 +127,13 @@
     gap: 8px;
     margin: 0;
     color: var(--color-muted);
-    font-size: 15px;
-    line-height: 22px;
+    font-size: 14px;
+    line-height: 21px;
     word-break: keep-all;
   }
   .mg-invite-reward em {
     font-style: normal;
+    white-space: nowrap;
     font-weight: 700;
     color: var(--color-warning);
   }
@@ -138,87 +145,27 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ── Footer ────────────────────────────────────────────────────────────────────────────────────────────── */
-  .mg-footer {
-    display: grid;
-    gap: 8px;
-    padding-top: 4px;
-    text-align: center;
-  }
-  .mg-legal {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 4px;
-    color: var(--color-subtle);
-    font-size: 13px;
-  }
-  .mg-legal button {
-    min-height: 44px;
-    padding: 0 8px;
-    color: var(--color-muted);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-  .mg-ai-notice {
-    margin: 0;
-    color: var(--color-subtle);
-    font-size: 12px;
-    line-height: 18px;
-    word-break: keep-all;
-  }
-
-  /* ── M1 포스터: scene on the top two thirds, words and buttons below ────────────────────────────────────── */
-  .mg-m1-scene {
-    height: clamp(360px, 64svh, 620px);
-    /* The scene melts into the page instead of ending in an edge. */
-    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 72px), transparent);
-    mask-image: linear-gradient(180deg, #000 calc(100% - 72px), transparent);
-  }
-  .mg-m1[data-invite='true'] .mg-m1-scene {
-    height: clamp(300px, 50svh, 520px);
-  }
-  .mg-m1-body {
-    position: relative;
-    z-index: 2;
-    display: grid;
-    gap: 16px;
-    margin-top: -28px;
-    padding: 0 var(--mg-gutter) max(20px, env(safe-area-inset-bottom));
-  }
-  .mg-m1-body > .mg-intro {
-    margin-top: -6px;
-  }
-
-  /* ── M2 스크롤 소개: the first screen is the scene with the headline and buttons on the desk ─────────────── */
-  .mg-m2-first {
+  /* ── First screen: exactly one phone screen; the scene takes whatever height the words leave ─────────── */
+  .mg-first {
     position: relative;
     height: 100svh;
     min-height: 560px;
     display: flex;
     flex-direction: column;
   }
-  /* The scene takes whatever height the words leave, so the first screen is always exactly one phone screen. */
-  .mg-m2-scene {
+  .mg-first-scene {
     flex: 1 1 auto;
     min-height: 260px;
     -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 56px), transparent);
     mask-image: linear-gradient(180deg, #000 calc(100% - 56px), transparent);
   }
-  .mg-m2-hero {
+  .mg-hero {
     position: relative;
     z-index: 2;
     display: grid;
     gap: 14px;
     margin-top: -24px;
     padding: 0 var(--mg-gutter) 68px;
-  }
-  .mg-m2 .mg-headline {
-    font-size: 30px;
-    line-height: 39px;
-  }
-  .mg-m2-hero > .mg-intro {
-    margin-top: -4px;
   }
   .mg-more {
     position: absolute;
@@ -249,12 +196,23 @@
     to { transform: translateY(4px); }
   }
 
-  .mg-m2-features {
-    display: grid;
+  /* ── Features ──────────────────────────────────────────────────────────────────────────────────────────── */
+  /* At least one phone screen: 「캡슐 둘러보기」 can bring it to the top, and at the bottom of the page the first screen's
+     buttons are fully off screen, so the bar is there (otherwise a tall phone would end with both half in view). */
+  .mg-features {
+    display: flex;
+    flex-direction: column;
     gap: 16px;
-    padding: 40px var(--mg-gutter) max(20px, env(safe-area-inset-bottom));
+    min-height: 100svh;
+    /* Room under the AI notice for the fixed bar, so it never covers the legal links. */
+    padding: 40px var(--mg-gutter) calc(var(--mg-dock-h) + 16px);
     background: linear-gradient(180deg, var(--color-canvas), var(--color-panel) 60%, var(--color-canvas));
-    scroll-margin-top: 0;
+    outline: none;
+  }
+  /* The PC-only line, the legal links and the AI notice end the page together, right above the bar. */
+  .mg-features > .mg-pc-only {
+    margin-top: auto;
+    padding-top: 8px;
   }
   .mg-section-title {
     margin: 0;
@@ -270,28 +228,34 @@
     padding: 0;
     list-style: none;
   }
+  /* Icon tile and title share the first row, centred on each other; the description starts under the title. */
   .mg-card {
     display: grid;
-    grid-template-columns: 48px 1fr;
+    grid-template-columns: 40px minmax(0, 1fr);
     column-gap: 14px;
-    row-gap: 4px;
-    align-items: start;
-    padding: 18px 16px;
+    row-gap: 6px;
+    align-items: center;
+    padding: 16px;
     background: var(--color-surface);
     clip-path: var(--mg-step);
   }
-  .mg-card-icon {
-    grid-row: span 2;
-    justify-self: center;
-    margin-top: 4px;
+  .mg-card-tile {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    background: var(--color-surface-hover);
+    clip-path: var(--mg-step-sm);
   }
   .mg-card h3 {
     margin: 0;
     font-size: 17px;
     line-height: 24px;
     font-weight: 700;
+    word-break: keep-all;
   }
   .mg-card p {
+    grid-column: 2;
     margin: 0;
     color: var(--color-muted);
     font-size: 14px;
@@ -299,45 +263,106 @@
     word-break: keep-all;
   }
   .mg-px {
-    display: inline-block;
-    flex: none;
+    display: block;
     background-size: 100% 100%;
     image-rendering: pixelated;
+  }
+
+  /* ── Footer ────────────────────────────────────────────────────────────────────────────────────────────── */
+  .mg-footer {
+    display: grid;
+    gap: 8px;
+    padding-top: 4px;
+    text-align: center;
+  }
+  .mg-legal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-subtle);
+    font-size: 13px;
+  }
+  .mg-legal button {
+    min-height: 44px;
+    padding: 0 8px;
+    color: var(--color-muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .mg-legal button:hover {
+    color: var(--color-ink);
+  }
+  .mg-ai-notice {
+    margin: 0;
+    color: var(--color-subtle);
+    font-size: 12px;
+    line-height: 18px;
+    word-break: keep-all;
+  }
+
+  /* ── Bottom bar: the first screen's actions once they scrolled away ────────────────────────────────────── */
+  .mg-dock {
+    position: fixed;
+    z-index: 20;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px var(--mg-gutter) calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-canvas) 0%, transparent), var(--color-canvas) 18px);
+    transform: translateY(100%);
+    visibility: hidden;
+    transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 220ms;
+  }
+  .mg-dock[data-visible] {
+    transform: none;
+    visibility: visible;
+    transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
+  }
+  .mg-dock-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .mg-dock-share {
+    flex: 1 1 auto;
+  }
+  .mg-dock-copy {
+    flex: none;
+    width: 48px;
+    padding: 0;
+  }
+  .mg-dock-status {
+    position: absolute;
+    left: var(--mg-gutter);
+    right: var(--mg-gutter);
+    bottom: calc(100% - 4px);
+    margin: 0;
+    padding: 8px 12px;
+    background: var(--color-floating);
+    color: var(--color-ink);
+    font-size: 13px;
+    line-height: 19px;
+    text-align: center;
+    clip-path: var(--mg-step-sm);
+  }
+
+  .app-dialog.mg-legal-dialog {
+    width: min(460px, calc(100% - 32px));
   }
 
   /* ── Narrow phones (360 × 740) ─────────────────────────────────────────────────────────────────────────── */
   @media (max-width: 370px) {
     .mg-root { --mg-gutter: 16px; }
-    .mg-headline { font-size: 24px; line-height: 32px; }
-    .mg-m2 .mg-headline { font-size: 26px; line-height: 34px; }
+    .mg-headline { font-size: 26px; line-height: 34px; }
     .mg-invite-title { font-size: 17px; line-height: 24px; }
   }
   @media (max-height: 760px) {
-    .mg-m2-hero { gap: 12px; padding-bottom: 62px; }
+    .mg-hero { gap: 12px; padding-bottom: 62px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .mg-more-arrow { animation: none; }
+    .mg-dock,
+    .mg-dock[data-visible] { transform: none; transition: none; }
   }
-
-  /* ── Review bar (not part of the design) ──────────────────────────────────────────────────────────────── */
-  .mg-bar {
-    position: fixed;
-    z-index: 100;
-    top: 8px;
-    right: 8px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-    max-width: calc(100vw - 16px);
-    padding: 4px;
-    border-radius: 10px;
-    background: rgb(8 8 12 / 88%);
-    color: var(--color-muted);
-    font-size: 11px;
-  }
-  .mg-bar-name { padding: 0 4px; color: var(--color-ink); white-space: nowrap; }
-  .mg-bar button { height: 26px; border-radius: 6px; padding: 0 8px; white-space: nowrap; }
-  .mg-bar button[aria-pressed='true'] { background: var(--color-primary); color: var(--color-on-solid); }
 }

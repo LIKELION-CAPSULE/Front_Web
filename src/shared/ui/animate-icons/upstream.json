@@ -265,6 +265,12 @@
       "icon": "image",
       "path": "icons/lucide/image-icon.tsx",
       "originalSha256": "f65c81ae687505013110f5bdf9a1b40c9a1058beb423e365ad056f826a0296dc"
+    },
+    {
+      "name": "copy",
+      "icon": "copy",
+      "path": "icons/lucide/copy-icon.tsx",
+      "originalSha256": "ed71ad3aa2346ff4ca08b3125f4f03ab5781ee24e4ec8cb9af705bdc9d61212c"
     }
   ]
 }

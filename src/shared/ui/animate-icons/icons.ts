@@ -41,6 +41,7 @@ import { XIcon } from './x-icon'
 import { BanIcon } from './ban-icon'
 import { DropletIcon } from './droplet-icon'
 import { ImageIcon } from './image-icon'
+import { CopyIcon } from './copy-icon'
 
 export const animatedIcons = {
   search: SearchIcon,
@@ -86,6 +87,7 @@ export const animatedIcons = {
   ban: BanIcon,
   droplet: DropletIcon,
   image: ImageIcon,
+  copy: CopyIcon,
 } as const
 
 export type IconName = keyof typeof animatedIcons
