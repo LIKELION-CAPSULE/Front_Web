@@ -84,7 +84,7 @@ async function change(page, selector, waitMs) {
 const STILL = 0.25
 const ART = '.invite-art'
 /** Draw calls of the dome without capsules. */
-const DOME_CALLS = 40
+const DOME_CALLS = 50 // Includes the ten shared additive light cards inside the wells.
 const INVITE = (scenario) => `/credits/invite?__review=${scenario}`
 
 // ── Invite dome ──
@@ -128,7 +128,8 @@ const INVITE = (scenario) => `/credits/invite?__review=${scenario}`
   await page.waitForTimeout(2400)
   check('dome: and stops after it', (await domeStats(page))?.animating === false)
   // Off screen: nothing draws.
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  // Use an instant scroll: the site's smooth scrolling otherwise leaves the hero visible during the assertion.
+  await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }))
   await page.waitForTimeout(300)
   await page.evaluate(() => window.__inviteDome.celebrate())
   check('dome: no loop while off screen', (await domeStats(page))?.animating === false)

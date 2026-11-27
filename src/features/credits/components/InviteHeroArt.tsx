@@ -13,7 +13,7 @@ const SLOT_Y = [38.1, 56.4] as const
 /** Time between two capsules dropping in, here and in the progress strip. */
 export const CAPSULE_STAGGER_MS = 140
 /**
- * `pending`: the dome picture is painted (empty wells) while the 3D dome's chunk loads; `webgl`: the real-time dome
+ * `pending`: the fixed dome box stays empty while the 3D dome's first frame loads; `webgl`: the real-time dome
  * draws; `fallback` (no WebGL, a lost context, the chunk failed): the picture with the capsule pictures dropping in.
  */
 type RenderMode = 'pending' | 'webgl' | 'fallback'
@@ -28,8 +28,7 @@ const exposeDome = import.meta.env.DEV
   : undefined
 
 /**
- * While the 3D loads, the picture's wells stay empty this long, then show the counted capsules seated. A 3D dome ready
- * before then plays the entry drop; a later one takes over with them already seated (they never drop twice).
+ * Skip the entry drop after a slow load, so the count is immediately readable when the dome appears.
  */
 const PENDING_REVEAL_MS = 1000
 
@@ -45,7 +44,7 @@ const CHEER_BITS = [
  * the count is written out beside it.
  *
  * The dome is real-time 3D (invite-dome-scene.ts, its own lazy chunk sharing three.js with the other scenes) between
- * the two 2D mascots; the picture of the dome is painted first and stays as the fallback (RenderMode).
+ * the two 2D mascots; the picture is reserved for the fallback (RenderMode).
  */
 export function InviteHeroArt({ filled, enterFrom, cheer }: {
   /** Capsules in the dome, 0–10. */
@@ -92,14 +91,14 @@ export function InviteHeroArt({ filled, enterFrom, cheer }: {
           pointerTarget: artElement.closest('section') ?? artElement,
           reducedMotion: latest.current.reduced,
           onContextFailure: () => setMode('fallback'),
+          onFirstFrame: () => { if (!cancelled) setMode('webgl') },
         })
         dome.current = scene
-        // Everything already counted drops in now, unless the picture has shown it seated already (PENDING_REVEAL_MS).
+        // After a slow load, show the counted capsules seated as the dome fades in.
         const late = performance.now() - mountedAt >= PENDING_REVEAL_MS
         scene.setFilled(latest.current.filled, late ? latest.current.filled : 0)
         updateRunning()
         exposeDome?.(scene)
-        setMode('webgl')
       })
       .catch(() => {
         if (!cancelled) setMode('fallback')
@@ -153,7 +152,6 @@ export function InviteHeroArt({ filled, enterFrom, cheer }: {
       ref={art}
       className="invite-art"
       data-render={mode}
-      style={{ '--pending-reveal': `${PENDING_REVEAL_MS}ms` } as CSSProperties}
       aria-hidden="true"
     >
       <span className="invite-art-glow" />

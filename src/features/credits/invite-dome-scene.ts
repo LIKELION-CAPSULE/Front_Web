@@ -1,7 +1,7 @@
 import {
   AdditiveBlending, AmbientLight, BufferAttribute, BufferGeometry, Color, CylinderGeometry, DirectionalLight, DoubleSide,
   ExtrudeGeometry, Group, LatheGeometry, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial,
-  NoToneMapping, PerspectiveCamera, PlaneGeometry, PMREMGenerator, RingGeometry, Scene, Shape, SphereGeometry,
+  NoToneMapping, PerspectiveCamera, PlaneGeometry, PMREMGenerator, Scene, Shape, SphereGeometry,
   SRGBColorSpace, TorusGeometry, Vector2, WebGLRenderer,
 } from 'three'
 import type { Material, Texture } from 'three'
@@ -30,6 +30,8 @@ export type InviteDomeSceneOptions = {
   reducedMotion: boolean
   /** The WebGL context was lost: the page shows the picture instead. */
   onContextFailure?: () => void
+  /** Fires only after the first successful draw, never merely after creating the canvas. */
+  onFirstFrame?: () => void
 }
 
 export type InviteDomeStats = { triangles: number; calls: number; dpr: number; animating: boolean }
@@ -87,10 +89,10 @@ function baseProfile() {
 
 /** Glass dome profile: straight walls from the base lip, then a flattened cap. */
 function domeProfile() {
-  const points: Vector2[] = [new Vector2(3.14, BASE_TOP), new Vector2(3.14, 4.6)]
+  const points: Vector2[] = [new Vector2(3.14, BASE_TOP), new Vector2(3.14, 4.0)]
   for (let step = 1; step <= 18; step++) {
     const angle = (step / 18) * (Math.PI / 2)
-    points.push(new Vector2(3.14 * Math.cos(angle), 4.6 + 1.45 * Math.sin(angle)))
+    points.push(new Vector2(3.14 * Math.cos(angle), 4.0 + 2.05 * Math.sin(angle)))
   }
   return points
 }
@@ -126,6 +128,7 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   let disposed = false
   let contextLost = false
   let raf = 0
+  let firstFrame = true
 
   const canvas = document.createElement('canvas')
   canvas.setAttribute('aria-hidden', 'true')
@@ -177,7 +180,7 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   tilt.add(model)
 
   // ── Base: lathed metal, the capsule emblem on its front ──
-  const metal = own(new MeshStandardMaterial({ color: LAVENDER_METAL, metalness: 0.5, roughness: 0.3 }))
+  const metal = own(new MeshStandardMaterial({ color: LAVENDER_METAL, metalness: 0.42, roughness: 0.24 }))
   const base = new Mesh(keep(new LatheGeometry(baseProfile(), 72)), metal)
   model.add(base)
 
@@ -186,7 +189,7 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   const emblemRing = new Mesh(keep(new TorusGeometry(0.66, 0.075, 12, 48)), own(new MeshStandardMaterial({ color: '#E4DEFA', metalness: 0.6, roughness: 0.25 })))
   const emblemDisc = new Mesh(
     keep(new CylinderGeometry(0.6, 0.6, 0.1, 48).rotateX(Math.PI / 2)),
-    own(new MeshPhysicalMaterial({ color: VIOLET, emissive: VIOLET_DEEP, emissiveIntensity: 0.55, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.1 })),
+    own(new MeshPhysicalMaterial({ color: VIOLET, emissive: VIOLET_DEEP, emissiveIntensity: 1.3, roughness: 0.16, clearcoat: 1, clearcoatRoughness: 0.1 })),
   )
   const iconGeometry = keep(capsuleGeometry(-0.5, 0.5, new Color('#ffffff'), new Color('#ffffff'), 20))
   const icon = new Mesh(iconGeometry, own(new MeshBasicMaterial({ color: '#F7F4FF' })))
@@ -197,7 +200,7 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
     keep(new PlaneGeometry(2.4, 2.4)),
     own(new MeshBasicMaterial({ map: own2Texture(radialGlowTexture([[0, 'rgba(255,255,255,0.7)'], [0.45, 'rgba(255,255,255,0.18)'], [1, 'rgba(255,255,255,0)']])), color: VIOLET, blending: AdditiveBlending, transparent: true, depthWrite: false })),
   )
-  emblemGlow.position.z = 0.02
+  emblemGlow.position.z = 0.14
   emblem.add(emblemGlow, emblemRing, emblemDisc, icon)
   model.add(emblem)
 
@@ -215,14 +218,14 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   floorPool.position.y = 0.005
   floorPool.renderOrder = 1
   const floorRing = new Mesh(
-    keep(new RingGeometry(3.78, 3.92, 96).rotateX(-Math.PI / 2)),
-    own(new MeshBasicMaterial({ color: '#D2C2FF', blending: AdditiveBlending, transparent: true, depthWrite: false, side: DoubleSide })),
+    keep(new PlaneGeometry(9.2, 9.2).rotateX(-Math.PI / 2)),
+    own(new MeshBasicMaterial({ map: own2Texture(radialGlowTexture([[0, 'rgba(255,255,255,0)'], [0.78, 'rgba(255,255,255,0)'], [0.81, 'rgba(255,255,255,0.35)'], [0.835, 'rgba(255,255,255,1)'], [0.855, 'rgba(255,255,255,0.35)'], [0.91, 'rgba(255,255,255,0)'], [1, 'rgba(255,255,255,0)']])), color: '#D2C2FF', blending: AdditiveBlending, transparent: true, depthWrite: false, side: DoubleSide })),
   )
   floorRing.position.y = 0.01
   floorRing.renderOrder = 2
   const floorHalo = new Mesh(
-    keep(new RingGeometry(3.6, 4.3, 96).rotateX(-Math.PI / 2)),
-    own(new MeshBasicMaterial({ color: VIOLET, opacity: 0.42, blending: AdditiveBlending, transparent: true, depthWrite: false, side: DoubleSide })),
+    keep(new PlaneGeometry(10, 10).rotateX(-Math.PI / 2)),
+    own(new MeshBasicMaterial({ map: own2Texture(radialGlowTexture([[0, 'rgba(255,255,255,0)'], [0.62, 'rgba(255,255,255,0)'], [0.76, 'rgba(255,255,255,0.65)'], [0.85, 'rgba(255,255,255,0.2)'], [1, 'rgba(255,255,255,0)']])), color: VIOLET, opacity: 0.9, blending: AdditiveBlending, transparent: true, depthWrite: false, side: DoubleSide })),
   )
   floorHalo.position.y = 0.008
   floorHalo.renderOrder = 1
@@ -230,12 +233,15 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
 
   // ── Slot panel: two rows of five wells with a lavender rim and a dark smoky glass inside ──
   const rimShape = stadiumShape(0.8, 1.56)
-  rimShape.holes.push(stadiumShape(0.64, 1.4))
+  rimShape.holes.push(stadiumShape(0.69, 1.45))
   const rimGeometry = keep(new ExtrudeGeometry(rimShape, { depth: 0.1, bevelEnabled: true, bevelSize: 0.025, bevelThickness: 0.025, bevelSegments: 2, curveSegments: 14 }))
-  const rimMaterial = own(new MeshStandardMaterial({ color: '#CDC2F7', metalness: 0.35, roughness: 0.32 }))
+  const rimMaterial = own(new MeshStandardMaterial({ color: '#AD99DC', emissive: '#7053A5', emissiveIntensity: 0.22, metalness: 0.25, roughness: 0.22 }))
   const wellGeometry = keep(new ExtrudeGeometry(stadiumShape(0.66, 1.42), { depth: 0.04, bevelEnabled: false, curveSegments: 14 }))
   // Opaque, so the wells draw before the additive capsules in front of them (which write no depth).
-  const wellMaterial = own(new MeshStandardMaterial({ color: '#1F1736', metalness: 0.3, roughness: 0.12 }))
+  const wellMaterial = own(new MeshStandardMaterial({ color: '#302344', emissive: '#5A368D', emissiveIntensity: 0.28, metalness: 0.2, roughness: 0.2 }))
+  // A shared soft light card per well approximates bloom without a full-screen post-process.
+  const wellGlowGeometry = keep(new PlaneGeometry(1.25, 2.05))
+  const wellGlowMaterial = own(new MeshBasicMaterial({ map: own2Texture(radialGlowTexture([[0, 'rgba(255,255,255,0.32)'], [0.52, 'rgba(255,255,255,0.14)'], [1, 'rgba(255,255,255,0)']])), color: '#A77AFF', blending: AdditiveBlending, transparent: true, depthWrite: false }))
   const slots: { x: number; y: number }[] = []
   for (const y of DOME_SLOTS.rowY) {
     for (let column = 0; column < DOME_SLOTS.columns; column++) {
@@ -245,7 +251,10 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
       rimMesh.position.set(x, y, DOME_SLOTS.z - 0.05)
       const well = new Mesh(wellGeometry, wellMaterial)
       well.position.set(x, y, DOME_SLOTS.z - 0.06)
-      model.add(well, rimMesh)
+      const glow = new Mesh(wellGlowGeometry, wellGlowMaterial)
+      glow.position.set(x, y, DOME_SLOTS.z + 0.12)
+      glow.renderOrder = 3
+      model.add(well, rimMesh, glow)
     }
   }
   // The violet glow inside the dome, behind and below the wells.
@@ -274,7 +283,7 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   // ── Top: the collar, the glossy knob, the pole and its pennant ──
   const collar = new Mesh(keep(new CylinderGeometry(0.7, 0.74, 0.2, 48)), metal)
   collar.position.y = 6.03
-  const knobMaterial = own(new MeshPhysicalMaterial({ color: VIOLET, emissive: VIOLET_DEEP, emissiveIntensity: 0.25, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08 }))
+  const knobMaterial = own(new MeshPhysicalMaterial({ color: VIOLET, emissive: VIOLET_DEEP, emissiveIntensity: 0.55, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.08 }))
   const knob = new Mesh(keep(new SphereGeometry(0.5, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2)), knobMaterial)
   knob.position.y = 6.13
   const pole = new Mesh(keep(new CylinderGeometry(0.045, 0.05, 0.95, 12)), metal)
@@ -283,7 +292,7 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   ball.position.y = 7.52
   const flagGeo = keep(flagGeometry())
   const flagRest = Float32Array.from(flagGeo.getAttribute('position').array as Float32Array)
-  const flag = new Mesh(flagGeo, own(new MeshPhysicalMaterial({ color: '#8A5CFF', emissive: VIOLET_DEEP, emissiveIntensity: 0.35, roughness: 0.35, clearcoat: 0.6, side: DoubleSide })))
+  const flag = new Mesh(flagGeo, own(new MeshPhysicalMaterial({ color: '#8A5CFF', emissive: VIOLET_DEEP, emissiveIntensity: 0.5, roughness: 0.16, metalness: 0.25, clearcoat: 1, side: DoubleSide })))
   flag.position.set(0.04, 7.16, 0)
   model.add(collar, knob, pole, ball, flag)
 
@@ -303,7 +312,7 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   }
 
   // ── The glass dome (drawn last: additive, double-sided) ──
-  const glass = forAlphaCanvas(fresnelGlassMaterial({ tint: new Color('#B094FF'), body: 0.045, rim: 0.75, streak: 0.62 }))
+  const glass = forAlphaCanvas(fresnelGlassMaterial({ tint: new Color('#C1A7FF'), body: 0.035, rim: 0.38, streak: 1.25 }))
   materials.push(glass)
   const dome = new Mesh(keep(new LatheGeometry(domeProfile(), 72)), glass)
   dome.renderOrder = 10
@@ -410,6 +419,10 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
     } else moving = true
     tilt.rotation.set(tilted.x, tilted.y, 0)
     renderer.render(scene, camera)
+    if (firstFrame) {
+      firstFrame = false
+      options.onFirstFrame?.()
+    }
     return moving
   }
 
