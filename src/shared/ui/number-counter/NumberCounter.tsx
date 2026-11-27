@@ -51,10 +51,12 @@ export function NumberCounter({ value, delay = 0, duration = 1.8, instant = fals
     const trigger = ScrollTrigger.create({
       trigger: root,
       scroller: root.closest('[data-counter-scroller]') ?? undefined,
-      start: 'top 85%',
+      start: 'top 99%',
       once: true,
       onEnter: play,
+      onEnterBack: play,
     })
+    if (!played.current && trigger.progress > 0) play()
     return () => { startTween?.kill(); trigger.kill() }
   }, { scope: rootRef, dependencies: [target, delay, instant, reduced], revertOnUpdate: true })
 
