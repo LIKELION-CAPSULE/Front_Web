@@ -1,3 +1,5 @@
+import { reviewIdFromWindowName } from './review-window-name.ts'
+
 /**
  * Paths accessible on mobile phones even when SCR-40 (Mobile Access Notice) is active.
  * Password reset links may be opened from email on a phone.
@@ -46,7 +48,7 @@ export function isMobileNoticeReviewId(id: string | null | undefined): boolean {
 export function isReviewMobileNoticeForced(): boolean {
   if (!import.meta.env.DEV || typeof window === 'undefined') return false
   if (isMobileNoticeReviewId(document.documentElement.dataset.reviewScenario)) return true
-  if (window.name.startsWith('capsule-ui-review:') && isMobileNoticeReviewId(window.name.slice('capsule-ui-review:'.length))) return true
+  if (isMobileNoticeReviewId(reviewIdFromWindowName())) return true
   try {
     return isMobileNoticeReviewId(new URLSearchParams(window.location.search).get('__review'))
   } catch {
