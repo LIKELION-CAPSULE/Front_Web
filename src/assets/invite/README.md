@@ -5,7 +5,7 @@
 | 파일 | 크기 | 쓰는 곳 |
 |---|---|---|
 | `invite-dome.webp` | 840×891 | 히어로 가운데: 빈 자리 10개(2줄×5)가 있는 캡슐 돔 |
-| `invite-capsule.webp` | 120×236 | 돔 자리에 들어가는 캡슐, 초대 현황 줄의 캡슐(비어 있는 자리는 같은 그림을 어둡게) |
+| `invite-capsule.webp` | 120×236 | 돔 폴백 그림(WebGL이 없을 때)의 자리에 들어가는 캡슐. 초대 현황 줄은 2026-11-28부터 공용 3D 캡슐 정지 렌더(`src/assets/capsule/capsule-filled.webp`·`capsule-empty.webp`)를 쓴다 |
 | `invite-mascot-left.webp` | 400×504 | 히어로 왼쪽 마스코트(윙크, 주먹) |
 | `invite-mascot-right.webp` | 400×504 | 히어로 오른쪽 마스코트(눈웃음, 만세) |
 

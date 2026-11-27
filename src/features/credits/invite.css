@@ -214,18 +214,15 @@
   height: 56px;
 }
 
-/* The capsule lies diagonally; an empty place is the same capsule, dark and unlit. */
+/*
+ * The brand capsule (still renders of the canonical 3D capsule, src/assets/capsule), lying diagonally: lit for an
+ * invited friend, dark smoky glass for a place still empty.
+ */
 .invite-progress-capsules img {
-  height: 50px;
-  width: auto;
-  rotate: 58deg;
-  filter: saturate(0.45) brightness(0.36);
-  opacity: 0.85;
-}
-
-.invite-progress-capsules li[data-filled] img {
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 75%, transparent));
-  opacity: 1;
+  width: 56px;
+  height: 56px;
+  max-width: 100%;
+  object-fit: contain;
 }
 
 .invite-progress-capsules li[data-enter] img {
@@ -233,9 +230,9 @@
 }
 
 @keyframes invite-capsule-pop {
-  0% { filter: saturate(0.45) brightness(0.36); transform: scale(0.8); }
-  55% { filter: brightness(1.5) drop-shadow(0 0 14px color-mix(in srgb, var(--color-primary) 90%, transparent)); transform: scale(1.18); }
-  100% { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 75%, transparent)); transform: scale(1); }
+  0% { filter: brightness(0.4); transform: scale(0.8); }
+  55% { filter: brightness(1.45); transform: scale(1.18); }
+  100% { filter: none; transform: scale(1); }
 }
 
 .invite-progress-goal {
@@ -519,7 +516,8 @@
   }
 
   .invite-progress-capsules img {
-    height: 34px;
+    width: 40px;
+    height: 40px;
   }
 
   .invite-progress-goal {

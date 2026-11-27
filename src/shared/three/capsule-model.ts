@@ -387,7 +387,7 @@ const FIGURE = {
 } as const satisfies Record<CapsuleFigureState, { glow: number; weight: number; halo: number; core: number; keepsake: number }>
 
 /** The open pose: the tinted half lifted along the axis and tilted, the light between the halves. */
-const OPEN_POSE = { lift: 0.3, tilt: 0.38, coreAt: 0.16 } as const
+const OPEN_POSE = { lift: 0.2, tilt: 0.34, coreAt: 0.12 } as const
 
 function saturate(hex: string, amount: number) {
   const color = new Color(hex)

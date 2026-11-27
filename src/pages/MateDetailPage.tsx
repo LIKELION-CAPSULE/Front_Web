@@ -15,6 +15,7 @@ import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { MatePreview } from '@/features/mates/components/MatePreview'
 import { VoiceSampleButton } from '@/features/mates/components/VoiceSampleButton'
 import NotFoundPage from './NotFoundPage'
+import capsuleOpen from '@/assets/capsule/capsule-open.webp'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
 import '@/features/mates/mate-detail.css'
@@ -131,10 +132,8 @@ export default function MateDetailPage() {
         {/* The mate, large and floating: Live2D that only follows the cursor (still portrait until it loads). */}
         <div className="mate-hero-figure">
           <div className="mate-hero-glow" aria-hidden="true" />
-          <svg className="mate-hero-capsules" viewBox="0 0 220 220" aria-hidden="true">
-            <rect className="mate-hero-capsule mate-hero-capsule--a" x="62" y="20" width="96" height="180" rx="48" />
-            <rect className="mate-hero-capsule mate-hero-capsule--b" x="62" y="20" width="96" height="180" rx="48" />
-          </svg>
+          {/* The brand capsule (canonical 3D model, still render) opening beside the mate. */}
+          <img className="mate-hero-capsules" src={capsuleOpen} width={500} height={500} alt="" aria-hidden="true" draggable={false} />
           <div className="mate-hero-stage">
             <MatePreview
               mateId={mate.id}
