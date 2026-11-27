@@ -93,7 +93,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     // The hero's attendance path: its box keeps the art's clear right margin, so the arrow comes in at the road's start
     // (lower left) and the line sits over the empty space beside it, leaving the pads and the day-7 capsule in view.
     marks: [{ targets: ['[data-tour="home-attendance"]'], at: { x: 0.08, y: 0.86 }, action: 'hover' }],
-    say: '매일 출석하면 크레딧을 받고 발판을 한 칸씩 건너. 7일째엔 캡슐 선물이 기다려.',
+    say: '매일 출석하면 1,500 크레딧을 받고 발판을 한 칸씩 건너. 7일을 채우면 캡슐이 열려.',
   },
   // 메이트 상세
   {

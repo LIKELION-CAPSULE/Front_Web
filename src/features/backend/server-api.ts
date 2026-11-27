@@ -1,6 +1,6 @@
 import type { ApiClient } from '../../shared/api/client.ts'
 import type {
-  ChatRoomResponse, CreditSummaryResponse, CreditTransactionFilter, CreditTransactionsResponse, EnterReferralRequest,
+  AttendanceCheckInResponse, AttendanceStatusResponse, ChatRoomResponse, CreditSummaryResponse, CreditTransactionFilter, CreditTransactionsResponse, EnterReferralRequest,
   FeedbackCreated, FeedbackRequest, LoginMatesResponse, MateDetailResponse, MeResponse, MessageRatingRequest,
   MessageReportRequest, MessageReportResponse, MyMatesResponse, NotificationList, RecordsRange, RecordsResponse,
   ReferralEntered, ReferralStatus, Unread, UpdateMeRequest, UserSettings, UserSettingsPatch,
@@ -64,6 +64,12 @@ export const getMyReferral = (client: Client) => client.request<ReferralStatus>(
 export const enterReferral = (client: Client, body: EnterReferralRequest) => client.request<ReferralEntered>('/referrals', { method: 'POST', body })
 /** [39] Public (no login). 404 `REFERRAL_CODE_NOT_FOUND`. Does not check own code, the 7 days or an earlier entry. */
 export const checkReferral = (client: Client, code: string) => client.request<ReferralEntered>(`/referrals/${segment(code.trim())}`, { auth: false })
+
+// ── Attendance (PROPOSED 2026-11-27, not on the server yet; used only when attendance-source.ts says so) ──
+/** Today's check-in and the 7-day cycle. */
+export const getAttendance = (client: Client) => client.request<AttendanceStatusResponse>('/attendance')
+/** Grants today's 1,500. 201 with the new credit summary; 409 `ALREADY_CHECKED_IN`. */
+export const checkInAttendance = (client: Client) => client.request<AttendanceCheckInResponse>('/attendance/check-in', { method: 'POST' })
 
 // ── Records ──
 /** [38] `range` is required; `date` is `YYYY-MM-DD` (default: today from 05:00 KST). */

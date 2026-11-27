@@ -198,6 +198,8 @@ const errorMessages: Record<string, string> = {
   REFERRAL_CODE_NOT_FOUND: '확인할 수 없는 초대 코드예요.', REFERRAL_SELF: '내 초대 코드는 입력할 수 없어요.',
   REFERRAL_EXPIRED: '초대 코드는 가입 후 7일 안에만 입력할 수 있어요.', REFERRAL_SAME_DEVICE: '같은 기기에서 가입한 계정의 코드는 입력할 수 없어요.',
   REFERRAL_ALREADY_ENTERED: '이미 초대 코드를 입력했어요.',
+  // Attendance (proposed 2026-11-27)
+  ALREADY_CHECKED_IN: '오늘은 이미 출석했어요.',
 }
 
 export const api = new ApiClient()

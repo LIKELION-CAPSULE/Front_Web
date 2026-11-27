@@ -4,7 +4,7 @@ import { mateLine } from '../mates/mate-lines'
 import { localAvatarImage, localAvatarItems, resolveLocalAvatarThumbnails } from './local-avatars'
 import terms from '../auth/data/legal/terms.md?raw'
 import privacy from '../auth/data/legal/privacy.md?raw'
-import { LOCAL_AFFINITY, LOCAL_MATES, type LocalBetaStore, type LocalMate } from './store'
+import { LOCAL_AFFINITY, LOCAL_FRIEND_NAMES, LOCAL_MATES, type LocalBetaStore, type LocalMate } from './store'
 import { LOCAL_V2_MODELS } from './local-asset-urls'
 import { LOCAL_VOICE_TONE_MP3, localVoicePieces } from './voice-tone'
 import type {
@@ -224,6 +224,8 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
     const referralCheck = path.match(/^\/referrals\/([^/]+)$/)
     if (referralCheck && referralCheck[1] !== 'me' && method === 'GET') {
       const code = decodeURIComponent(referralCheck[1]!).trim().toUpperCase()
+      // 39 does not check whose code it is for (own code: 36 refuses it with REFERRAL_SELF).
+      if (code === store.data.invitation.code) return reply({ inviterNickname: store.data.nickname, rewardOnFirstConnection: 1000 })
       return code === 'FRIEND1000' || code === 'CAPSULE2026' ? reply({ inviterNickname: '민수', rewardOnFirstConnection: 1000 }) : error('REFERRAL_CODE_NOT_FOUND', 404)
     }
     if (!store.data.authenticated) return error('UNAUTHORIZED', 401)
@@ -273,17 +275,39 @@ export function createLocalTransport(store: LocalBetaStore, original: typeof fet
       return reply({ ...store.credits(), todayUsed: store.data.wallet.usedToday, invitedFriends: store.data.invitation.invitedCount })
     }
     if (path === '/credits/transactions') {
+      // Newest first; `cursor` is the last id of the page before (ids grow with time); `size` 1–50 (default 20).
       const filter = url.searchParams.get('filter') ?? 'ALL'
-      if (!['ALL', 'ATTENDANCE', 'USE', 'INVITE'].includes(filter)) return error('INVALID_REQUEST', 400)
+      const size = Number(url.searchParams.get('size') ?? 20)
+      const cursor = url.searchParams.get('cursor')
+      if (!['ALL', 'ATTENDANCE', 'USE', 'INVITE'].includes(filter) || !Number.isInteger(size) || size < 1 || size > 50 || (cursor !== null && !/^\d+$/.test(cursor))) {
+        return error('INVALID_REQUEST', 400)
+      }
       const items: CreditTransaction[] = store.data.wallet.entries.map((entry, index) => ({ id: store.data.wallet.entries.length - index, type: ENTRY_TYPES[entry.kind],
         title: entry.description, change: entry.change, balanceAfter: entry.balance, createdAt: new Date(entry.at).toISOString() }))
-      return reply({ items: filter === 'ALL' ? items : items.filter(item => item.type === filter), nextCursor: null })
+      const matching = items.filter(item => (filter === 'ALL' || item.type === filter) && (cursor === null || item.id! < Number(cursor)))
+      const page = matching.slice(0, size)
+      return reply({ items: page, nextCursor: matching.length > size ? String(page.at(-1)!.id) : null })
     }
     if (path === '/referrals/me') {
       const invitation = store.data.invitation
+      // 35 `friends`, newest first: those who entered my code and have not finished a connection, then the rewarded ones.
+      const day = 86_400_000, now = Date.now()
+      const joined = Array.from({ length: invitation.joinedCount ?? 0 }, (_, index) => ({
+        nickname: LOCAL_FRIEND_NAMES[(invitation.invitedCount + index) % LOCAL_FRIEND_NAMES.length], status: 'JOINED', rewarded: false,
+        joinedAt: new Date(now - (index + 1) * 3_600_000).toISOString() }))
+      const rewarded = Array.from({ length: invitation.invitedCount }, (_, index) => ({
+        nickname: LOCAL_FRIEND_NAMES[index % LOCAL_FRIEND_NAMES.length], status: 'QUALIFIED', rewarded: true,
+        joinedAt: new Date(now - (invitation.invitedCount - index + 1) * 2 * day).toISOString() })).reverse()
       return reply({ code: invitation.code, link: new URL(`/i/${invitation.code}`, origin).href, rewardedCount: invitation.invitedCount, maxRewards: 10,
-        rewardedCredits: invitation.rewardedCredits, friends: [], canEnterCode: invitation.canRedeem && !store.data.details.referralRegistered,
+        rewardedCredits: invitation.rewardedCredits, friends: [...joined, ...rewarded], canEnterCode: invitation.canRedeem && !store.data.details.referralRegistered,
         codeInputDeadline: invitation.canRedeem ? new Date(Date.now() + 7 * 86_400_000).toISOString() : null })
+    }
+    // Proposed attendance API (attendance-source.ts): answered only when the local server plays it; otherwise 404 as now.
+    if (path === '/attendance' && method === 'GET') return store.attendanceApi ? reply(store.attendanceStatus()) : error('NOT_FOUND', 404)
+    if (path === '/attendance/check-in' && method === 'POST') {
+      if (!store.attendanceApi) return error('NOT_FOUND', 404)
+      const result = store.checkInAttendance()
+      return result ? reply(result, 201) : error('ALREADY_CHECKED_IN', 409)
     }
     if (path === '/referrals' && method === 'POST') {
       if (typeof body.code !== 'string' || !deviceOk) return error('INVALID_REQUEST', 400)
