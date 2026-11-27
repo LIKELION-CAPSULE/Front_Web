@@ -15,6 +15,7 @@ import { CapsuleDayDetail, DayRemainderRow, RecordConnectionRow } from '@/featur
 import { defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-calendar'
 import { connectionDayKey } from '@/features/records/connection-day'
 import { CapsuleBoard } from '@/features/records/capsule-board/CapsuleBoard'
+import { RecordsEmptyJar } from '@/features/records/empty-jar/RecordsEmptyJar'
 import { ContributionGrid, ContributionLegend } from '@/features/records/ContributionGrid'
 import { BoardViewSwitch } from '@/features/records/BoardViewSwitch'
 import { SatinBackdrop } from '@/features/records/satin-backdrop/SatinBackdrop'
@@ -111,6 +112,9 @@ export default function RecordsPage() {
   const [boardViews, setBoardViews] = useState<StoredBoardViews>(readStoredBoardViews)
   const [stageWidth, setStageWidth] = useState(0)
   const [boardFallback, setBoardFallback] = useState(() => !supportsWebGL())
+  // The empty page's capsule hops when 「메이트 만나러 가기」 is pointed at or focused.
+  const [emptyHop, setEmptyHop] = useState(0)
+  const hopEmptyCapsule = useCallback(() => setEmptyHop((count) => count + 1), [])
   const emphasisControl = useRef<BoardEmphasisControl | null>(null)
   const onEmphasisControl = useCallback((control: BoardEmphasisControl | null) => {
     emphasisControl.current = control
@@ -352,9 +356,10 @@ export default function RecordsPage() {
       <RecordsWindowFrame>
         {mateCommentView}
         <div className="records-block records-empty-box">
+          <RecordsEmptyJar hop={emptyHop} />
           <p className="records-empty-title">아직 함께한 기록이 없어요.</p>
           <p className="records-empty-sub">메이트와 연결하면 여기에 쌓여요.</p>
-          <ButtonLink to="/">메이트 만나러 가기</ButtonLink>
+          <ButtonLink to="/" onPointerEnter={hopEmptyCapsule} onFocus={hopEmptyCapsule}>메이트 만나러 가기</ButtonLink>
         </div>
       </RecordsWindowFrame>
     )

@@ -81,7 +81,52 @@
   height: 100%;
 }
 
-/* A capsule per invited friend, standing in its slot. */
+/*
+ * The real-time 3D dome (InviteHeroArt, invite-dome-scene.ts) over the same box, a little larger so the ±4° tilt is not
+ * cut. The picture is painted first and fades out when the 3D draws: its wells stay empty for --pending-reveal, then
+ * show the counted capsules seated (a slow 3D takes over with them seated). Without WebGL it stays, capsules dropping in.
+ */
+.invite-dome-3d {
+  position: absolute;
+  inset: -4% -8%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 360ms ease-out;
+}
+
+.invite-dome-3d canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.invite-dome-picture {
+  transition: opacity 360ms ease-out;
+}
+
+.invite-art[data-render='webgl'] .invite-dome-3d {
+  opacity: 1;
+}
+
+.invite-art[data-render='webgl'] .invite-dome-picture {
+  opacity: 0;
+}
+
+.invite-art[data-render='fallback'] .invite-dome-3d,
+.invite-art[data-render='webgl'] .invite-dome-capsule {
+  display: none;
+}
+
+.invite-art[data-render='pending'] .invite-dome-capsule {
+  animation: invite-dome-capsule-reveal 220ms ease-out var(--pending-reveal, 1000ms) both;
+}
+
+@keyframes invite-dome-capsule-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* A capsule per invited friend, standing in its slot (the picture fallback). */
 .invite-dome-capsule {
   position: absolute;
   height: 13.6%;
@@ -214,18 +259,15 @@
   height: 56px;
 }
 
-/* The capsule lies diagonally; an empty place is the same capsule, dark and unlit. */
+/*
+ * The brand capsule (still renders of the canonical 3D capsule, src/assets/capsule), lying diagonally: lit for an
+ * invited friend, dark smoky glass for a place still empty.
+ */
 .invite-progress-capsules img {
-  height: 50px;
-  width: auto;
-  rotate: 58deg;
-  filter: saturate(0.45) brightness(0.36);
-  opacity: 0.85;
-}
-
-.invite-progress-capsules li[data-filled] img {
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 75%, transparent));
-  opacity: 1;
+  width: 56px;
+  height: 56px;
+  max-width: 100%;
+  object-fit: contain;
 }
 
 .invite-progress-capsules li[data-enter] img {
@@ -233,9 +275,9 @@
 }
 
 @keyframes invite-capsule-pop {
-  0% { filter: saturate(0.45) brightness(0.36); transform: scale(0.8); }
-  55% { filter: brightness(1.5) drop-shadow(0 0 14px color-mix(in srgb, var(--color-primary) 90%, transparent)); transform: scale(1.18); }
-  100% { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 75%, transparent)); transform: scale(1); }
+  0% { filter: brightness(0.4); transform: scale(0.8); }
+  55% { filter: brightness(1.45); transform: scale(1.18); }
+  100% { filter: none; transform: scale(1); }
 }
 
 .invite-progress-goal {
@@ -519,7 +561,8 @@
   }
 
   .invite-progress-capsules img {
-    height: 34px;
+    width: 40px;
+    height: 40px;
   }
 
   .invite-progress-goal {
@@ -540,7 +583,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .invite-dome-3d,
+  .invite-dome-picture {
+    transition: none;
+  }
+
   .invite-dome-capsule[data-enter],
+  .invite-art[data-render='pending'] .invite-dome-capsule,
   .invite-progress-capsules li[data-enter] img,
   .invite-mascot {
     animation: none;

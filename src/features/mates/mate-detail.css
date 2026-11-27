@@ -1,6 +1,6 @@
 /*
  * Mate detail (MateDetailPage.tsx): a character hero. A night-sky backdrop with the mate's name set huge in outline,
- * the Live2D mate large and floating on the right over a soft glow and two neon capsules, and the name, story,
+ * the Live2D mate large and floating on the right over a soft glow and the brand capsule, and the name, story,
  * info tiles and the connect button on the left. One screen on desktop. Colours come from the design tokens only.
  */
 .mate-hero {
@@ -98,34 +98,15 @@
   filter: blur(36px);
 }
 
-/* Two neon capsules (the brand shape) beside the mate. */
+/* The brand capsule beside the mate: a still render of the canonical 3D capsule, opening (src/assets/capsule). */
 .mate-hero-capsules {
   position: absolute;
   top: 9%;
   right: 5%;
   width: clamp(150px, 15vw, 250px);
-  overflow: visible;
-}
-
-.mate-hero-capsule {
-  fill: none;
-  stroke-width: 3;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.mate-hero-capsule--a {
-  stroke: var(--color-text-accent);
-  rotate: -28deg;
-  filter: drop-shadow(0 0 8px var(--color-primary));
-}
-
-.mate-hero-capsule--b {
-  stroke: var(--color-affection);
-  rotate: -10deg;
-  scale: 0.82;
-  opacity: 0.85;
-  filter: drop-shadow(0 0 8px var(--color-affection));
+  height: auto;
+  pointer-events: none;
+  user-select: none;
 }
 
 .mate-hero-stage {
@@ -360,13 +341,8 @@
     animation: mate-hero-rise 900ms cubic-bezier(.22, 1, .36, 1) 120ms both;
   }
 
-  .mate-hero-capsule--a,
-  .mate-hero-capsule--b {
+  .mate-hero-capsules {
     animation: mate-hero-float 6s ease-in-out infinite alternate;
-  }
-
-  .mate-hero-capsule--b {
-    animation-delay: -2.4s;
   }
 
   .mate-hero-copy > * {
