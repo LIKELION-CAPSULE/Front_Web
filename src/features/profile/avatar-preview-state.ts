@@ -18,6 +18,8 @@ export type PreviewView<E extends PreviewEntry> = {
   leaving: E[]
   /** Key of the current model once it is drawn and faded in, or once it failed: the stand-in still is gone. */
   settled: string | null
+  /** Increments every time `current` changes so stale callbacks/retry handlers from earlier mounts are ignored. */
+  generation: number
 }
 
 /** How long the previous model takes to fade out before it is released (avatar-dial.css). */
@@ -32,7 +34,12 @@ export function waitingPhase(elapsedMs: number): 'quiet' | 'pulse' | 'still' {
   return elapsedMs >= AVATAR_STILL_FALLBACK_MS ? 'still' : elapsedMs >= AVATAR_WAIT_PULSE_MS ? 'pulse' : 'quiet'
 }
 
-export const emptyPreview = <E extends PreviewEntry>(current: E | null = null): PreviewView<E> => ({ current, leaving: [], settled: null })
+export const emptyPreview = <E extends PreviewEntry>(current: E | null = null): PreviewView<E> => ({
+  current,
+  leaving: [],
+  settled: null,
+  generation: 0,
+})
 
 /** The current model is mounted (nothing is leaving any more). */
 export const currentMounted = <E extends PreviewEntry>(view: PreviewView<E>) => view.current !== null && view.leaving.length === 0
@@ -40,10 +47,11 @@ export const currentMounted = <E extends PreviewEntry>(view: PreviewView<E>) => 
 /** The choice changed (`instant`: reduced motion — no fade, the previous model is released at once). */
 export function choosePreview<E extends PreviewEntry>(view: PreviewView<E>, current: E | null, instant: boolean): PreviewView<E> {
   if (view.current?.key === current?.key) return view
-  if (instant) return { current, leaving: [], settled: null }
+  const generation = view.generation + 1
+  if (instant) return { current, leaving: [], settled: null, generation }
   // The model on screen (mounted current) fades out; one that never got mounted is just dropped.
   const outgoing = currentMounted(view) && view.current ? [view.current] : []
-  return { current, leaving: [...view.leaving, ...outgoing], settled: null }
+  return { current, leaving: [...view.leaving, ...outgoing], settled: null, generation }
 }
 
 /** A leaving model has faded out: release it. */

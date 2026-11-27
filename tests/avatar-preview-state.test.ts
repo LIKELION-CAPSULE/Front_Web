@@ -73,6 +73,20 @@ test('a failed model: its own still and 「다시 시도」 take over (the stand
   assert.equal(previewReleased(view, 'Z'), view)
 })
 
+test('preview generation advances on A -> B -> A so stale retry handlers from an earlier mount cannot match', () => {
+  let view: PreviewView<E> = emptyPreview(A)
+  const firstGen = view.generation
+  view = previewFailed(view, 'A')
+  view = choosePreview(view, B, false)
+  assert.ok(view.generation > firstGen)
+  view = previewReleased(view, 'A')
+  view = choosePreview(view, A, false)
+  assert.ok(view.generation > firstGen + 1)
+  view = previewReleased(view, 'B')
+  assert.equal(view.current?.key, 'A')
+  assert.notEqual(view.generation, firstGen)
+})
+
 test('waiting for a model: only the light first, a pulse after 0.6 s, the still only after 4 s (a fallback)', async () => {
   const { waitingPhase, AVATAR_WAIT_PULSE_MS, AVATAR_STILL_FALLBACK_MS, awaitingModel, emptyPreview, choosePreview, previewShown, previewReleased } = await import('../src/features/profile/avatar-preview-state.ts')
   assert.equal(AVATAR_WAIT_PULSE_MS, 600); assert.equal(AVATAR_STILL_FALLBACK_MS, 4000)

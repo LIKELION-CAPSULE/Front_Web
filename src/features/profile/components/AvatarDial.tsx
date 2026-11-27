@@ -101,8 +101,19 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   // The previous model fades out and is released before the chosen one mounts; meanwhile the chosen avatar's still
   // stands in (avatar-preview-state.ts). Never two avatars visible; at most two models exist at once.
   const [view, setView] = useState<PreviewView<PreviewEntry>>(() => emptyPreview(current))
+  const [failedPreview, setFailedPreview] = useState<{ key: string; generation: number; retry: () => void } | null>(null)
   const nextView = choosePreview(view, current, reduced)
-  if (nextView !== view) setView(nextView)
+  if (nextView !== view) {
+    setView(nextView)
+    if (failedPreview) setFailedPreview(null)
+  }
+  const previewGeneration = nextView.generation
+  const currentFailed = current
+    && nextView.leaving.length === 0
+    && failedPreview?.key === current.key
+    && failedPreview.generation === previewGeneration
+    ? failedPreview
+    : null
   const previews = mountedPreviews(nextView).map(({ entry, leaving }) => ({ entry: !leaving && current && entry.key === current.key ? current : entry, leaving }))
   const standIn = Boolean(current) && standInVisible(nextView)
   // Waiting for the chosen model: only the light at first, a soft pulse after AVATAR_WAIT_PULSE_MS, and the avatar's
@@ -236,9 +247,6 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   }
   const fade = reduced ? { duration: 0 } : { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }
 
-  const [failedPreview, setFailedPreview] = useState<{ key: string; retry: () => void } | null>(null)
-  const currentFailed = current && failedPreview?.key === current.key ? failedPreview : null
-
   const stage = <div className="avatar-picker-stage" data-no-native-drag data-draggable={!disabled && choices.length > 1 || undefined} data-waiting={pulsing || undefined} {...swipe}>
       {/* Keyed so the light swells once on every change (CSS; none under reduced motion). */}
       <div key={selected?.id ?? 'none'} className="avatar-picker-halo" aria-hidden="true" />
@@ -252,11 +260,13 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
             {previews.map(({ entry, leaving }) => <AvatarModelPreview key={entry.key} avatarKey={entry.key} model={entry.model} leaving={leaving}
               still={leaving ? undefined : <AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} />}
               onShown={() => {
-                setFailedPreview(previous => previous?.key === entry.key ? null : previous)
+                if (leaving) return
+                setFailedPreview(previous => previous?.key === entry.key && previous.generation === previewGeneration ? null : previous)
                 setView(previous => previewShown(previous, entry.key))
               }}
               onFailed={retry => {
-                setFailedPreview({ key: entry.key, retry })
+                if (leaving) return
+                setFailedPreview({ key: entry.key, generation: previewGeneration, retry })
                 setView(previous => previewFailed(previous, entry.key))
               }} />)}
           </>
