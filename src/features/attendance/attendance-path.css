@@ -131,19 +131,31 @@
     left: var(--feet-x);
     z-index: 5;
     width: max-content;
-    max-width: 40cqw;
+    max-width: 44cqw;
     transform: translateX(calc(var(--bubble-shift, 50%) * -1));
     pointer-events: none;
   }
   .attendance-path-walker[data-bubble='start'] .attendance-path-dialogue { --bubble-shift: 22%; }
-  .attendance-path-walker[data-bubble='end'] .attendance-path-dialogue { --bubble-shift: 84%; }
+  .attendance-path-walker[data-bubble='left'] .attendance-path-dialogue { --bubble-shift: 80%; }
+  .attendance-path-walker[data-bubble='before-capsule'] .attendance-path-dialogue { --bubble-shift: 104%; }
+  .attendance-path-walker[data-bubble='end'] .attendance-path-dialogue { --bubble-shift: 86%; }
   .attendance-path-dialogue .login-dialogue { border-radius: 14px; padding: 14px 16px 10px; }
   .attendance-path-dialogue .login-dialogue-name { left: 14px; padding: 1px 10px; font-size: 12px; line-height: 18px; }
-  .attendance-path-dialogue .login-dialogue-text { font-size: max(12px, 1.6cqw); line-height: 1.55; }
+  .attendance-path-dialogue .login-dialogue-text {
+    font-size: max(12px, 1.6cqw);
+    line-height: 1.55;
+    word-break: keep-all;
+    text-wrap: balance;
+  }
   /* No "next" mark here: the line is not part of a conversation that goes on. */
   .attendance-path-dialogue .login-dialogue-next { display: none; }
+  @container (max-width: 640px) {
+    .attendance-path-dialogue { max-width: 52cqw; }
+    .attendance-path-dialogue .login-dialogue { padding: 12px 14px 9px; }
+    .attendance-path-walker[data-bubble='left'] .attendance-path-dialogue { --bubble-shift: 84%; }
+  }
   @media (max-width: 767px) {
-    .attendance-path-dialogue { max-width: 46cqw; }
+    .attendance-path-dialogue { max-width: 56cqw; }
     .attendance-path-dialogue .login-dialogue { padding: 12px 12px 8px; }
   }
 
