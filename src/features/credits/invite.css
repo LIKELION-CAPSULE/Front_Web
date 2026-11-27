@@ -81,7 +81,44 @@
   height: 100%;
 }
 
-/* A capsule per invited friend, standing in its slot. */
+/*
+ * The real-time 3D dome (InviteHeroArt, invite-dome-scene.ts) over the same box, a little larger so the ±4° tilt is not
+ * cut. The picture is painted first (its wells empty while the 3D loads) and fades out when the 3D draws; without
+ * WebGL it stays with the capsule pictures below.
+ */
+.invite-dome-3d {
+  position: absolute;
+  inset: -4% -8%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 360ms ease-out;
+}
+
+.invite-dome-3d canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.invite-dome-picture {
+  transition: opacity 360ms ease-out;
+}
+
+.invite-art[data-render='webgl'] .invite-dome-3d {
+  opacity: 1;
+}
+
+.invite-art[data-render='webgl'] .invite-dome-picture {
+  opacity: 0;
+}
+
+.invite-art[data-render='fallback'] .invite-dome-3d,
+.invite-art[data-render='webgl'] .invite-dome-capsule,
+.invite-art[data-render='pending'] .invite-dome-capsule {
+  display: none;
+}
+
+/* A capsule per invited friend, standing in its slot (the picture fallback). */
 .invite-dome-capsule {
   position: absolute;
   height: 13.6%;
@@ -538,6 +575,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .invite-dome-3d,
+  .invite-dome-picture {
+    transition: none;
+  }
+
   .invite-dome-capsule[data-enter],
   .invite-progress-capsules li[data-enter] img,
   .invite-mascot {
