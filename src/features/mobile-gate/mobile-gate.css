@@ -203,16 +203,17 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    min-height: 100svh;
+    /* Just under a screen: the first screen's buttons end 62px+ above its bottom, so at the end of the page only that strip shows and the buttons are off screen. Spare height collects below the notice, above the bar. */
+    min-height: calc(100svh - 56px);
     /* Room under the AI notice for the fixed bar, so it never covers the legal links. */
     padding: 40px var(--mg-gutter) calc(var(--mg-dock-h) + 16px);
     background: linear-gradient(180deg, var(--color-canvas), var(--color-panel) 60%, var(--color-canvas));
     outline: none;
   }
-  /* The PC-only line, the legal links and the AI notice end the page together, right above the bar. */
+  /* The PC-only line, the legal links and the AI notice follow the cards; any spare height ends up below them. */
   .mg-features > .mg-pc-only {
-    margin-top: auto;
-    padding-top: 8px;
+    margin-top: 0;
+    padding-top: 16px;
   }
   .mg-section-title {
     margin: 0;
