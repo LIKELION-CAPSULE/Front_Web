@@ -34,6 +34,7 @@
 - `server/review-copy.ts`: Vite 개발 서버 전용 문구 수집. `GET /__review/copy`; 환경파일은 읽지 않는다.
 - `dialog-design/`: 모달·팝업 디자인 시안(2026-11-26) A 캡슐 유리·B 밤하늘·C 메이트와 함께, B 발전안 B2 픽셀 프레임·B3 픽셀 액센트(`pixel-art.ts`의 픽셀 그림). `dialog-design-a|b|c|b2|b3` 시나리오가 홈 위에 그리며, 아래 막대나 `?dd=all|confirm|credit|unlock|toast|large`로 종류를 고른다. 공용 `Dialog`를 그대로 쓰고 클래스·장식만 덧붙이므로 실제 화면의 모달은 바뀌지 않는다. 검토 진입점에서만 불러와 운영 번들에 들어가지 않는다.
 - `call-ui/`: 통화 화면 UI 시안(2026-11-27) C1 대사창·C2 말풍선 무대·C3 분할 정돈. `call-ui-c1|c2|c3` 시나리오는 앱을 띄우지 않고 통화 화면 배치를 단독으로 그린다(정지 이미지 무대·가상 대화, 서버 요청 없음). 왼쪽 아래 막대나 `?cu-scene=idle|speaking|waiting|unread&cu-chat=open|closed`로 장면을 고르고 `cu-bar=0`이면 막대를 숨긴다. 실제 `ConnectionPage`와 하위 컴포넌트는 바꾸지 않으며 `TypingMessage`·`TypingIndicator`·픽셀 공용 요소만 그대로 가져다 쓴다. 너비 프리셋에 900을 추가했다.
+- 모바일 접속 안내(SCR-40): 시안 M2 「스크롤 소개」가 실제 화면이 됐다(2026-11-27, `src/features/mobile-gate`). `mobile-notice`(초대 링크)·`mobile-notice-plain`·`mobile-notice-inviter` 시나리오가 실제 앱을 띄워 휴대폰 안내를 강제로 보여 주고, 너비는 휴대폰(390)으로 열린다. 시안 전용 `mobile-gate/`와 M1·M2 시나리오는 지웠으며 예전 링크(`mobile-gate-m1|m2[-invite]`)는 `restoredReviewIds`로 이어진다.
 
 새 상태는 catalog에 추가하고 fixtures의 필요한 분기를 연결한다. 새로운 페이지 파일을 만들면 catalog에도 경로를 추가한다. 문구 검색은 소스를 매번 읽으므로 별도 문구 파일을 동기화할 필요가 없다.
 
