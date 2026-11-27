@@ -21,9 +21,82 @@ export function groupChatLines<T extends ChatGroupLine>(lines: readonly T[]): Ch
   return groups
 }
 
-const timeFormat = new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit' })
-/** A line's time as shown on hover (「오후 3:05」). */
-export const chatLineTime = (at: number) => timeFormat.format(at)
+/**
+ * The log as the call screen shows it (P1 「픽셀 대화 기록」, 2026-11-28): runs of lines (above), day dividers and the
+ * app's own notes (a stage-up line) in time order.
+ * - A divider (「오늘 23:39」) opens the log and comes again when the day changes or 30 quiet minutes pass, counted
+ *   between items with known times.
+ * - A note goes after the last line not newer than it (lines without a time — a reply still streaming in — are newest)
+ *   and ends the run it falls in.
+ */
+export const CHAT_SESSION_GAP_MS = 30 * 60_000
+
+export type ChatNote = { id: string; at: number }
+export type ChatTimelineItem<T extends ChatGroupLine, N extends ChatNote> =
+  | { kind: 'divider'; key: string; at: number }
+  | { kind: 'note'; key: string; note: N }
+  | ({ kind: 'group' } & ChatGroup<T>)
+
+const dayKey = (at: number) => {
+  const date = new Date(at)
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+}
+
+export function chatTimeline<T extends ChatGroupLine, N extends ChatNote>(lines: readonly T[], notes: readonly N[] = []): ChatTimelineItem<T, N>[] {
+  const items: ChatTimelineItem<T, N>[] = []
+  const waiting = [...notes].sort((a, b) => a.at - b.at)
+  // Closures change these, so they live in one object (control-flow narrowing would not see the changes).
+  const at: { last: number | null; run: ({ kind: 'group' } & ChatGroup<T>) | null } = { last: null, run: null }
+  const divide = (time: number | undefined, key: string) => {
+    if (time === undefined) return
+    if (at.last === null || time - at.last >= CHAT_SESSION_GAP_MS || dayKey(time) !== dayKey(at.last)) {
+      items.push({ kind: 'divider', key: `divider:${key}`, at: time })
+      at.run = null
+    }
+    at.last = time
+  }
+  const flush = (until: number) => {
+    while (waiting.length && waiting[0]!.at <= until) {
+      const note = waiting.shift()!
+      divide(note.at, note.id)
+      items.push({ kind: 'note', key: `note:${note.id}`, note })
+      at.run = null
+    }
+  }
+  for (const line of lines) {
+    if (line.createdAt !== undefined) flush(line.createdAt)
+    divide(line.createdAt, line.id)
+    const run = at.run
+    const previous = run?.lines.at(-1)
+    const apart = previous?.createdAt !== undefined && line.createdAt !== undefined && line.createdAt - previous.createdAt > CHAT_GROUP_GAP_MS
+    if (run && previous && run.sender === line.sender && !apart) run.lines.push(line)
+    else {
+      at.run = { kind: 'group', key: line.id, sender: line.sender, lines: [line] }
+      items.push(at.run)
+    }
+  }
+  flush(Infinity)
+  return items
+}
+
+const clockFormat = new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+const dateFormat = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric' })
+const yearDateFormat = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+
+/** A line's time, 24-hour (「23:39」): the run's last line shows it, the others on hover / focus. */
+export const chatClock = (at: number) => clockFormat.format(at)
+
+/** A divider's words against `now`: 「오늘 23:39」, 「어제 22:10」, 「11월 25일 21:00」 (another year: with the year). */
+export function chatDividerLabel(at: number, now = Date.now()) {
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const day = dayKey(at) === dayKey(now)
+    ? '오늘'
+    : dayKey(at) === dayKey(yesterday.getTime())
+      ? '어제'
+      : new Date(at).getFullYear() === new Date(now).getFullYear() ? dateFormat.format(at) : yearDateFormat.format(at)
+  return `${day} ${chatClock(at)}`
+}
 
 /**
  * 「새 메시지 ↓」: how many of her lines arrived at the end of the chat since `previousLastId` while the reader was not
