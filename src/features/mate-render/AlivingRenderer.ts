@@ -210,7 +210,9 @@ export class AlivingRenderer implements MateRenderer {
     player.running = true
     player.last = performance.now()
     this.loopWindow = win
-    const tick = (now: number) => {
+    const tick = () => {
+      // The player was created in this realm; keep its clock when PiP schedules frames.
+      const now = performance.now()
       if (!player.running || this.destroyed || this.loopWindow !== win) return
       try {
         // A voice playing drives the mouth: `track` holds a value for a moment only, so it is sent every frame.

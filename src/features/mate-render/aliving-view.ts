@@ -69,6 +69,7 @@ export function computePointerGaze(input: {
   stageWidth: number
   stageHeight: number
 }): { x: number; y: number } {
+  if (!Object.values(input).every(Number.isFinite) || input.stageWidth <= 0 || input.stageHeight <= 0) return { x: 0, y: 0 }
   const denomX = Math.max(1, input.stageWidth) * 0.6
   const denomY = Math.max(1, input.stageHeight) * 0.6
   return {
