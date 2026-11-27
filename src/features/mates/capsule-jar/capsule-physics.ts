@@ -29,7 +29,8 @@ const GRAVITY = 34
 // Small steps and a speed cap so a falling capsule moves less than its radius per step (the smallest, 0.2 long, has
 // a radius of 0.044): nothing tunnels through the fixed pile or the inner walls.
 const STEP = 1 / 180
-const MAX_STEPS = 8
+// Covers the scene's max frame dt (0.05 s) without silently dropping physics time.
+const MAX_STEPS = 10
 const MAX_SPEED = 7
 const SPHERES = 3
 
@@ -43,7 +44,15 @@ export type CapsulePhysics = {
   /** Puts a capsule at rest (asleep) at a pose. */
   place(index: number, pose: BodyPose): void
   read(index: number, out: BodyPose): void
+  readVelocity(index: number, out: Vec): void
+  readAngularVelocity(index: number, out: Vec): void
   isHeld(index: number): boolean
+  /** True while the capsule is in the world and still falling / settling (not yet static). */
+  isDynamic(index: number): boolean
+  /** True when the capsule rests on the floor or a static capsule below it. */
+  isSupported(index: number): boolean
+  /** True when every in-world capsule has settled into the static pile. */
+  isSettled(): boolean
   /** Advances by `dt` seconds of real time (fixed sub-steps). Returns whether anything is still moving. */
   step(dt: number): boolean
   /** Everything stops where it is and sleeps. */
@@ -120,6 +129,58 @@ export function createCapsulePhysics({
   const AIR = { linear: 0.12, angular: 0.6 }
   const LANDED = { linear: 0.6, angular: 0.99 }
   const massOf = new WeakMap<Body, number>()
+  const radiusOf = new WeakMap<Body, number>()
+  const stallTime = new WeakMap<Body, number>()
+  const restTime = new WeakMap<Body, number>()
+  const anchorOf = new WeakMap<Body, { x: number; y: number }>()
+
+  /**
+   * True when `body` actually rests on the floor or on a settled (static) capsule in the pile — never on a vertical
+   * wall alone and never in empty mid-air. Prevents sleeping / turning static while hanging in mid-air or against a
+   * wall with nothing underneath.
+   */
+  const bodySupported = (body: Body): boolean => {
+    const radius = radiusOf.get(body) ?? 0.05
+    if (body.position.y <= radius + 0.04) return true
+    for (const contact of world.contacts) {
+      if (contact.bi !== body && contact.bj !== body) continue
+      const other = contact.bi === body ? contact.bj : contact.bi
+      if (walls.has(other) || other.type !== Body.STATIC) continue
+      if (other === floor) return true
+      // In cannon-es `ni` points out of `bi` toward `bj`, so the upward normal into `body` is `-ni.y` when `bi === body`.
+      const upward = contact.bi === body ? -contact.ni.y : contact.ni.y
+      if (upward > 0.05 || other.position.y <= body.position.y + radius * 0.5) return true
+    }
+    return false
+  }
+
+  /** Restores free-fall damping and rotation to unstick a body that stalled without vertical support. */
+  const releaseAir = (body: Body) => {
+    landed.delete(body)
+    body.linearDamping = AIR.linear
+    body.angularDamping = AIR.angular
+    body.angularFactor.set(0, 0, 1)
+    stallTime.set(body, 0)
+    restTime.set(body, 0)
+    anchorOf.delete(body)
+  }
+
+  const applyLanded = (body: Body, impactSpeed?: number) => {
+    if (landed.has(body)) return
+    landed.add(body)
+    body.linearDamping = LANDED.linear
+    body.angularDamping = LANDED.angular
+    body.angularFactor.set(0, 0, 0)
+    body.angularVelocity.set(0, 0, 0)
+    if (impactSpeed !== undefined) {
+      landListener?.(indexOf.get(body) ?? -1, impactSpeed, {
+        x: body.position.x,
+        y: body.position.y,
+        z: body.position.z,
+      })
+    }
+  }
+
   /** Fixed in place (part of the pile): no gravity, nothing pushes it. */
   const makeStatic = (body: Body) => {
     if (body.type === Body.STATIC) return
@@ -127,6 +188,9 @@ export function createCapsulePhysics({
     body.type = Body.STATIC
     body.mass = 0
     body.updateMassProperties()
+    stallTime.set(body, 0)
+    restTime.set(body, 0)
+    anchorOf.delete(body)
   }
   const makeDynamic = (body: Body) => {
     if (body.type === Body.DYNAMIC) return
@@ -135,21 +199,22 @@ export function createCapsulePhysics({
     body.updateMassProperties()
   }
   const listenLanding = (body: Body) => {
-    body.addEventListener('sleep', () => makeStatic(body))
-    body.addEventListener('collide', (event: { body: Body; contact: { getImpactVelocityAlongNormal(): number } }) => {
-      // Landing is touching the floor, the fixed pile or a capsule that has landed — not a wall, not another capsule
-      // still in the air (that would damp both mid-air and let them jam in a narrow bin).
-      if (landed.has(body) || walls.has(event.body) || (event.body.type !== Body.STATIC && !landed.has(event.body))) return
-      landed.add(body)
-      body.linearDamping = LANDED.linear
-      body.angularDamping = LANDED.angular
-      body.angularFactor.set(0, 0, 0)
-      body.angularVelocity.set(0, 0, 0)
-      landListener?.(indexOf.get(body) ?? -1, Math.abs(event.contact.getImpactVelocityAlongNormal()), {
-        x: body.position.x,
-        y: body.position.y,
-        z: body.position.z,
-      })
+    body.addEventListener('sleep', () => {
+      if (body.type !== Body.DYNAMIC) return
+      if (bodySupported(body) || (restTime.get(body) ?? 0) >= 0.08) {
+        makeStatic(body)
+        return
+      }
+      // Never lock an unsupported capsule static in mid-air: wake it up and let step() finish the drop.
+      body.wakeUp()
+    })
+    body.addEventListener('collide', (event: { body: Body; contact: { bi: Body; bj: Body; ni: Vec3; getImpactVelocityAlongNormal(): number } }) => {
+      // Walls never count as landing; hitting the floor or another capsule already on/near the pile does.
+      if (landed.has(body) || walls.has(event.body)) return
+      if (event.body.type !== Body.STATIC && !landed.has(event.body)) return
+      const upward = event.contact.bi === body ? -event.contact.ni.y : event.contact.ni.y
+      if (event.body !== floor && upward <= 0.1) return
+      applyLanded(body, Math.abs(event.contact.getImpactVelocityAlongNormal()))
     })
   }
 
@@ -204,6 +269,7 @@ export function createCapsulePhysics({
       }
       indexOf.set(body, index)
       massOf.set(body, mass)
+      radiusOf.set(body, spec.radius)
       setPose(body, poses[index]!)
       makeStatic(body)
       ensureIn(body)
@@ -226,11 +292,8 @@ export function createCapsulePhysics({
     setPose(body, pose)
     body.velocity.set(velocity.x, velocity.y, velocity.z)
     body.angularVelocity.set(spin.x, spin.y, spin.z)
-    body.linearDamping = AIR.linear
-    body.angularDamping = AIR.angular
-    body.angularFactor.set(0, 0, 1)
+    releaseAir(body)
     makeDynamic(body)
-    landed.delete(body)
     ensureIn(body)
     held.delete(index)
     body.wakeUp()
@@ -258,8 +321,30 @@ export function createCapsulePhysics({
     out.quaternion.w = body.quaternion.w
   }
 
+  function readVelocity(index: number, out: Vec) {
+    const body = bodies[index]
+    if (!body) {
+      out.x = out.y = out.z = 0
+      return
+    }
+    out.x = body.velocity.x
+    out.y = body.velocity.y
+    out.z = body.velocity.z
+  }
+
+  function readAngularVelocity(index: number, out: Vec) {
+    const body = bodies[index]
+    if (!body) {
+      out.x = out.y = out.z = 0
+      return
+    }
+    out.x = body.angularVelocity.x
+    out.y = body.angularVelocity.y
+    out.z = body.angularVelocity.z
+  }
+
   function anyAwake() {
-    for (const body of world.bodies) if (body.mass > 0 && body.sleepState !== Body.SLEEPING) return true
+    for (const body of world.bodies) if (body.mass > 0 && (body.sleepState !== Body.SLEEPING || body.type === Body.DYNAMIC)) return true
     return false
   }
 
@@ -272,14 +357,48 @@ export function createCapsulePhysics({
     while (accumulator >= STEP) {
       world.step(STEP)
       accumulator -= STEP
-      // A body squeezed out of an overlap must not shoot away.
+      // A body squeezed out of an overlap must not shoot away, and nothing may stall in mid-air or against a wall.
       for (const body of world.bodies) {
-        if (body.mass === 0 || body.sleepState === Body.SLEEPING) continue
+        if (body.mass === 0 || body.type !== Body.DYNAMIC) continue
         const speed = body.velocity.length()
         if (speed > MAX_SPEED) body.velocity.scale(MAX_SPEED / speed, body.velocity)
         if (body.position.y < -0.5) {
           body.position.y = 0.3
           still(body)
+        }
+        const supported = bodySupported(body)
+        if (supported) {
+          if (!landed.has(body)) applyLanded(body)
+          stallTime.set(body, 0)
+          const anchor = anchorOf.get(body)
+          const moved = anchor ? Math.hypot(body.position.x - anchor.x, body.position.y - anchor.y) : Infinity
+          if (moved < 0.05) {
+            const nextRest = (restTime.get(body) ?? 0) + STEP
+            if (nextRest >= 0.25) makeStatic(body)
+            else restTime.set(body, nextRest)
+          } else {
+            anchorOf.set(body, { x: body.position.x, y: body.position.y })
+            restTime.set(body, 0)
+          }
+        } else {
+          if (body.sleepState === Body.SLEEPING) body.wakeUp()
+          const nextStall = (stallTime.get(body) ?? 0) + STEP
+          if (nextStall >= 0.05) {
+            restTime.set(body, 0)
+            anchorOf.delete(body)
+          }
+          if (speed < 0.25) {
+            if (nextStall >= 0.3) {
+              releaseAir(body)
+              body.wakeUp()
+              body.velocity.y = Math.min(body.velocity.y, -1.5)
+              body.angularVelocity.z += (body.position.x >= 0 ? 1 : -1) * 2.5
+            } else {
+              stallTime.set(body, nextStall)
+            }
+          } else {
+            stallTime.set(body, 0)
+          }
         }
       }
     }
@@ -315,7 +434,18 @@ export function createCapsulePhysics({
     launch,
     place,
     read,
+    readVelocity,
+    readAngularVelocity,
     isHeld: (index) => held.has(index),
+    isDynamic: (index) => {
+      const body = bodies[index]
+      return Boolean(body && inWorld.has(body) && body.type === Body.DYNAMIC)
+    },
+    isSupported: (index) => {
+      const body = bodies[index]
+      return Boolean(body && inWorld.has(body) && (body.type === Body.STATIC || bodySupported(body)))
+    },
+    isSettled: () => !anyAwake(),
     step,
     freeze,
     kick,
