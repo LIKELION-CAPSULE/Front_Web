@@ -24,9 +24,6 @@ export const CAPSULE_STILLS = [
   { file: 'src/assets/capsule/capsule-upright.webp', query: 'state=filled&w=320&h=320&roll=104&yaw=-12&fill=0.82&glow=1.6' },
   // Mate detail hero: the capsule beside the mate, opening (tinted half lifted), at the old neon capsule's angle.
   { file: 'src/assets/capsule/capsule-open.webp', query: 'state=open&w=500&h=500&roll=118&yaw=-16&fill=0.8&glow=1.6' },
-  // Home attendance path, day 7: the reward over the last pad, seen from above like the isometric road
-  // (same frame as the cut-out layer it replaces: 208×244 at 2×).
-  { file: 'src/assets/attendance/path/reward-capsule.webp', query: 'state=reward&w=416&h=488&roll=40&yaw=20&pitch=-16&fill=1.04&glow=1.9&sat=1.15' },
 ]
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]

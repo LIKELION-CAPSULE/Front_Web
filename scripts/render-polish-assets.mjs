@@ -1,5 +1,5 @@
-/* global document, window */
-import { mkdir, writeFile } from 'node:fs/promises'
+/* global document */
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const origin = process.argv[2] ?? 'http://127.0.0.1:53187'
@@ -13,11 +13,5 @@ try {
     await page.goto(`${origin}/src/assets/connection/handset-render.html?color=${encodeURIComponent(color)}`)
     await page.waitForFunction(() => document.title === 'rendered')
     await page.locator('canvas').screenshot({ path: `${out}/${name}-after.png`, omitBackground: true })
-  }
-  for (let frame = 0; frame < 12; frame++) {
-    await page.goto(`${origin}/src/assets/capsule/capsule-render.html?state=open&w=416&h=488&roll=40&yaw=20&pitch=-16&fill=0.85&glow=1.25&rewardDecor=1&rewardTime=${frame / 11}`)
-    await page.waitForFunction(() => document.title === 'ready')
-    const data = await page.evaluate(() => window.__capsuleStill.webp)
-    await writeFile(`${out}/reward-${String(frame).padStart(2,'0')}.webp`, Buffer.from(data.split(',')[1], 'base64'))
   }
 } finally { await browser.close() }
