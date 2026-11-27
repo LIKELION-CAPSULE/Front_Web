@@ -1096,6 +1096,7 @@ export default function ConnectionPage() {
             <div
               ref={messageList}
               className="connection-messages"
+              data-empty={chatEmpty || undefined}
               role="log"
               aria-label={`${withParticle(mate.name, '과', '와')} 대화`}
               aria-live="polite"
