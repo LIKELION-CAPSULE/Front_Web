@@ -554,6 +554,22 @@
   padding: 0;
 }
 
+.connection-chat-head.desktop-window-titlebar {
+  position: relative;
+  padding-top: 14px;
+}
+/* The roof strip sits on the panel's top edge (border radius clips it with the panel). */
+.connection-chat-head .px-roof-strip { z-index: 0; }
+.connection-chat-head > :not(.px-roof-strip) { position: relative; z-index: 1; }
+
+.connection-log-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
 .connection-messages {
   flex: 1;
   min-height: 0;
@@ -562,39 +578,33 @@
   padding: 18px 14px;
 }
 
-.connection-messages article {
-  margin-bottom: 18px;
-}
+/* Lines in runs: chat-log.css (ChatLogGroups). */
 
-.connection-messages article small {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--color-subtle);
-  font-size: 12px;
+/* 「새 메시지 ↓」: her new lines while the chat is scrolled up; one click goes to the newest. */
+.connection-new-pill {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  left: 50%;
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 0 14px;
+  background: var(--color-floating);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 40%);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 700;
+  transform: translateX(-50%);
 }
-
-.connection-messages article p {
-  width: fit-content;
-  max-width: 90%;
-  padding: 11px 15px;
-  border-radius: 0 14px 14px;
-  background: var(--color-canvas);
-  font-size: 14px;
-  line-height: 1.65;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+.connection-new-pill:hover { background: var(--color-floating-hover); }
+.connection-new-pill:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .connection-new-pill { animation: connection-new-pill-in 220ms steps(3, jump-end) backwards; }
 }
-
-.connection-messages article[data-sender='user'] {
-  display: grid;
-  justify-items: end;
-}
-
-.connection-messages article[data-sender='user'] p {
-  border-radius: 14px 0 14px 14px;
-  background: var(--color-primary);
-  color: var(--color-on-solid);
-}
+@keyframes connection-new-pill-in { from { opacity: 0; transform: translate(-50%, 6px); } }
 
 .connection-chat-error {
   flex: none;

@@ -17,12 +17,11 @@ import { ConnectionPip } from '@/features/mates/components/ConnectionPip'
 import { useDocumentPip } from '@/features/mates/use-document-pip'
 import AccountSettingsDialog from '@/features/profile/components/AccountSettingsDialog'
 import { withParticle } from '@/shared/lib/korean'
-import { CALL_STAGE_GRADIENT, mateCallBackground, mateHeroPortrait, matePortrait } from '@/features/mates/artwork'
+import { CALL_STAGE_GRADIENT, mateAvatar, mateCallBackground, mateHeroPortrait, matePortrait } from '@/features/mates/artwork'
 import { Live2DFigure } from '@/features/live2d/components/Live2DFigure'
 import { useExpressionDirector } from '@/features/live2d/use-live2d'
 import { useNow } from '@/features/session/use-now'
 import { ChatComposer } from '@/features/session/components/ChatComposer'
-import { TypingIndicator } from '@/features/session/components/TypingIndicator'
 import { TypingMessage } from '@/features/session/components/TypingMessage'
 import { CharacterSpeechBubble } from '@/features/session/components/CharacterSpeechBubble'
 import { Button, ButtonLink } from '@/shared/ui/Button'
@@ -53,6 +52,9 @@ import { playHangup, whenRendered, type HangupPlayback } from '@/features/mates/
 import { takePickup } from '@/features/mates/pickup-sequence'
 import { useChatHistory } from '@/features/mates/use-chat-history'
 import { ChatHistoryStatus } from '@/features/mates/components/ChatHistoryStatus'
+import { ChatLogGroups } from '@/features/mates/components/ChatLogGroups'
+import { unreadArrivals } from '@/features/mates/chat-groups'
+import { PixelRoofStrip } from '@/shared/ui/pixel/PixelFrame'
 import { ReplyActions, ReportedReply } from '@/features/mates/components/ReplyActions'
 import { CreditShortNotice } from '@/features/mates/components/CreditShortNotice'
 import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback } from '@/features/mates/credit-notice'
@@ -99,6 +101,9 @@ function SttPrivacy({ onShown }: { onShown: () => void }) {
 const VOICE_UNAVAILABLE = '이 브라우저에서는 메이트 음성을 재생할 수 없어요'
 const modeAppliedFor = new Set<string>()
 
+/** A chat line's top within the chat list's visible area (the older-page anchor). */
+const lineTop = (node: HTMLElement, article: HTMLElement) => article.getBoundingClientRect().top - node.getBoundingClientRect().top
+
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
   typeof window.matchMedia === 'function' &&
@@ -142,7 +147,13 @@ export default function ConnectionPage() {
   const hangup = useRef<HangupPlayback | null>(null)
   useEffect(() => () => { hangup.current?.cancel(); hangup.current = null }, [])
   const now = useNow()
-  const [chatOpen, setChatOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth > 960 : true))
+  const [chatOpen, setChatOpenState] = useState(() => (typeof window !== 'undefined' ? window.innerWidth > 960 : true))
+  /** 「새 메시지 ↓」's count (below); opening or closing the chat clears it. */
+  const [unread, setUnread] = useState(0)
+  const setChatOpen = (next: boolean | ((open: boolean) => boolean)) => {
+    setChatOpenState(next)
+    setUnread(0)
+  }
   const stageWrapRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   // A tap on the mate (mate-tap.ts): her face for a moment, a nod and one of her lines; no server, no credits.
@@ -220,7 +231,8 @@ export default function ConnectionPage() {
       const key = event.code === 'KeyC' ? 'c' : event.key.toLowerCase()
       if (key === 'c') {
         event.preventDefault()
-        setChatOpen(value => !value)
+        setChatOpenState(value => !value)
+        setUnread(0)
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -418,16 +430,16 @@ export default function ConnectionPage() {
   const messages = chat.messages
   /**
    * Reached the top of the chat: the older page. The first line in view stays where it was when the page lands (lines
-   * can land above it and, out of order, below it). Articles follow `messages` one to one.
+   * can land above it and, out of order, below it). Lines are found by `article[data-message-id]` (ChatLogGroups puts
+   * them in runs); the offset is measured against the list's own top.
    */
   const olderAnchor = useRef<{ id: string; offset: number } | null>(null)
   const loadOlderMessages = async () => {
     const node = messageList.current
     if (!node || olderAnchor.current) return
-    const articles = [...node.querySelectorAll<HTMLElement>(':scope > article')]
-    const index = articles.findIndex(article => article.offsetTop + article.offsetHeight > node.scrollTop)
-    const id = index >= 0 ? messages[index]?.id : undefined
-    if (id) olderAnchor.current = { id, offset: articles[index]!.offsetTop - node.scrollTop }
+    const article = [...node.querySelectorAll<HTMLElement>('article[data-message-id]')].find(value => lineTop(node, value) + value.offsetHeight > 0)
+    const id = article?.dataset.messageId
+    if (article && id) olderAnchor.current = { id, offset: lineTop(node, article) }
     await chat.loadOlder()
     // The page lands in a render after this; the layout effect below uses the anchor, this frame drops a leftover.
     requestAnimationFrame(() => { olderAnchor.current = null })
@@ -437,9 +449,24 @@ export default function ConnectionPage() {
     const node = messageList.current, anchor = olderAnchor.current
     if (!node || !anchor) return
     olderAnchor.current = null
-    const article = node.querySelectorAll<HTMLElement>(':scope > article')[messages.findIndex(message => message.id === anchor.id)]
-    if (article) node.scrollTop = article.offsetTop - anchor.offset
-  }, [firstMessageId]) // eslint-disable-line react-hooks/exhaustive-deps -- only when lines land above
+    const article = [...node.querySelectorAll<HTMLElement>('article[data-message-id]')].find(value => value.dataset.messageId === anchor.id)
+    if (article) node.scrollTop += lineTop(node, article) - anchor.offset
+  }, [firstMessageId]) // only when lines land above
+  /** 「새 메시지 ↓」: her lines that arrived while the chat was scrolled up (chat-groups.ts `unreadArrivals`). */
+  const lastMessageId = messages.at(-1)?.id
+  const seenLastId = useRef(lastMessageId)
+  useEffect(() => {
+    const previous = seenLastId.current
+    seenLastId.current = lastMessageId
+    const arrived = chatOpen ? unreadArrivals(messages, previous, followMessages.current) : 0
+    if (arrived) setUnread(count => count + arrived)
+  }, [lastMessageId]) // eslint-disable-line react-hooks/exhaustive-deps -- only when a line lands at the end
+  const jumpToLatest = () => {
+    const node = messageList.current
+    followMessages.current = true
+    setUnread(0)
+    node?.scrollTo({ top: node.scrollHeight, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  }
   // 고급 모드 short of credits (409 CREDIT_INSUFFICIENT): the line that did not go, to send again in 기본 모드.
   const [creditShort, setCreditShort] = useState<{ text: string; inputType: 'TEXT' | 'QUICK'; credits: number | null } | null>(null)
   const [voiceNote, setVoiceNote] = useState<'none' | 'shown' | 'done'>('none')
@@ -506,6 +533,7 @@ export default function ConnectionPage() {
   async function send(text: string, inputType: 'TEXT' | 'QUICK' = 'TEXT') {
     if (!mate || sending || speaking || finishing || !text.trim()) return false
     followMessages.current = true
+    setUnread(0)
     setSending(true)
     setError('')
     // A new reply is on its way: the voice before it stops, and this reply's voice (if asked) starts as it arrives.
@@ -983,7 +1011,9 @@ export default function ConnectionPage() {
 
         {chatOpen && (
           <aside id="connection-chat" className="connection-chat desktop-window" aria-labelledby="connection-chat-title">
-            <header className="desktop-window-titlebar mate-window-titlebar-static">
+            {/* The pixel set's dithered roof strip and capsule over the chat's head (shared with the modals). */}
+            <header className="desktop-window-titlebar mate-window-titlebar-static connection-chat-head">
+              <PixelRoofStrip />
               <div className="desktop-window-title-left">
                 <h2 id="connection-chat-title">{withParticle(mate.name, '과', '와')} 대화</h2>
               </div>
@@ -993,6 +1023,7 @@ export default function ConnectionPage() {
                 </Button>
               </div>
             </header>
+            <div className="connection-log-wrap">
             <div
               ref={messageList}
               className="connection-messages"
@@ -1003,36 +1034,46 @@ export default function ConnectionPage() {
               onScroll={() => {
                 const node = messageList.current
                 if (node) followMessages.current = node.scrollHeight - node.scrollTop - node.clientHeight < 64
+                if (followMessages.current) setUnread(0)
                 if (node && node.scrollTop < 48 && chat.room.nextCursor && !chat.room.failed) void loadOlderMessages()
               }}
             >
               <ChatHistoryStatus room={chat.room} onRetry={chat.retry} />
-              {messages.map(message => (
-                <article key={message.id} data-sender={message.sender}>
-                  <small>{message.sender === 'user' ? state.profile.name : mate.name}</small>
-                  <p>
-                    {message.sender === 'character' && message.requestId && chat.room.reported.has(message.requestId) ? (
-                      <ReportedReply text={message.text} />
-                    ) : message.sender === 'character' && chat.localIds.has(message.id) ? (
-                      <TypingMessage
-                        id={message.id}
-                        text={message.text}
-                        seen={seenMessages}
-                        onProgress={scrollLatest}
-                        onTypingChange={reportTyping}
-                      />
-                    ) : (
-                      message.text
-                    )}
-                  </p>
-                  {/* 40 · 41 on a confirmed reply (not in the PIP window). */}
-                  {message.sender === 'character' && message.requestId && message.delivery !== 'pending' && state.profile.userId !== undefined &&
-                    !chat.room.reported.has(message.requestId) && (
+              <ChatLogGroups
+                lines={messages}
+                mateName={mate.name}
+                mateFace={mateAvatar(mate.id, mate.image)}
+                userName={state.profile.name}
+                typing={sending && messages.at(-1)?.sender !== 'character'}
+                renderText={message => (
+                  message.sender === 'character' && message.requestId && chat.room.reported.has(message.requestId) ? (
+                    <ReportedReply text={message.text} />
+                  ) : message.sender === 'character' && chat.localIds.has(message.id) ? (
+                    <TypingMessage
+                      id={message.id}
+                      text={message.text}
+                      seen={seenMessages}
+                      onProgress={scrollLatest}
+                      onTypingChange={reportTyping}
+                    />
+                  ) : (
+                    message.text
+                  )
+                )}
+                // 40 · 41 on a confirmed reply (not in the PIP window).
+                renderActions={message => (
+                  message.sender === 'character' && message.requestId && message.delivery !== 'pending' && state.profile.userId !== undefined &&
+                    !chat.room.reported.has(message.requestId) ? (
                       <ReplyActions userId={state.profile.userId} characterId={mate.characterId} requestId={message.requestId} rating={chat.room.ratings[message.requestId] ?? null} />
-                    )}
-                </article>
-              ))}
-              {sending && messages.at(-1)?.sender !== 'character' && <TypingIndicator name={mate.name} />}
+                    ) : null
+                )}
+              />
+            </div>
+            {unread > 0 && (
+              <button type="button" className="connection-new-pill" onClick={jumpToLatest}>
+                새 메시지{unread > 1 ? ` ${unread}개` : ''}<span aria-hidden="true"> ↓</span>
+              </button>
+            )}
             </div>
             {creditShort && (
               <CreditShortNotice

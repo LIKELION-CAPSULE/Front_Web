@@ -3,7 +3,9 @@ import { Navigate, useLocation, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
 import { availableMates } from '@/features/mates/catalog'
-import { CALL_STAGE_GRADIENT, mateCallBackground, matePortrait } from '@/features/mates/artwork'
+import { CALL_STAGE_GRADIENT, mateAvatar, mateCallBackground, matePortrait } from '@/features/mates/artwork'
+import { ChatLogGroups } from '@/features/mates/components/ChatLogGroups'
+import { PixelRoofStrip } from '@/shared/ui/pixel/PixelFrame'
 import { mateLine, mateLineForState } from '@/features/mates/mate-lines'
 import { getDefaultLineForState } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
 import { CREDIT_PRICING } from '@/features/credits/credit-utils'
@@ -143,18 +145,14 @@ export default function TourCallPage() {
           </div>
 
           <aside id="tour-call-chat" className="connection-chat desktop-window" aria-labelledby="tour-call-chat-title">
-            <header className="desktop-window-titlebar mate-window-titlebar-static">
+            <header className="desktop-window-titlebar mate-window-titlebar-static connection-chat-head">
+              <PixelRoofStrip />
               <div className="desktop-window-title-left">
                 <h2 id="tour-call-chat-title">{withParticle(mate.name, '과', '와')} 대화</h2>
               </div>
             </header>
             <div className="connection-messages" role="log" aria-label={`${withParticle(mate.name, '과', '와')} 대화`}>
-              {messages.map((message) => (
-                <article key={message.id} data-sender={message.sender}>
-                  <small>{message.sender === 'user' ? state.profile.name : mate.name}</small>
-                  <p>{message.text}</p>
-                </article>
-              ))}
+              <ChatLogGroups lines={messages} mateName={mate.name} mateFace={mateAvatar(mate.id, mate.image)} userName={state.profile.name} typing={false} />
             </div>
             <div data-tour="call-composer">
               {/* Sending does nothing here: the practice never reaches the message API. */}
