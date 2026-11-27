@@ -1,13 +1,15 @@
 // Renders the link-preview images (1200×630 JPEG) from scripts/og/og-card.html into public/og/:
 //   og-default.jpg  — every page (index.html og:image)
-//   og-invite.jpg   — invite links /i/<code> (server/og-meta.ts), the same card with the 「친구 초대」 badge
+//   og-invite.jpg   — invite links /i/<code> (server/og-meta.ts), the same card with 「친구 초대」 and the reward line
 //
 // The scene on the left (dozing Chaerin, laptop with the CAPSULE logo, mug, desk) is not redrawn here: it is captured
 // from the real login screen (DozeMateStage / DozeDesk), so lid perspective, logo keystone and props stay identical to
 // it. Step 1 opens the login page of a running dev server with reduced motion (the still path: no Live2D, no nod, no
-// heatmap shader), widens the stage to the whole viewport, hides everything but the stage and drops its UI (「z z Z」,
-// the 「깨워 보세요」 bubble, buttons), and screenshots the stage with a transparent background. Step 2 places that
-// picture on the card (og-card.html) over the blurred room, with the copy on the right.
+// heatmap shader), widens the stage to the whole viewport, hides everything but the stage and drops its UI (the
+// 「깨워 보세요」 bubble, buttons), and screenshots the stage with a transparent background twice: the scene without the
+// 「z z Z」, then the 「z z Z」 alone (the still staircase of reduced motion, same shape, place and size as on the login
+// screen). Step 2 places the scene on the card (og-card.html) over the blurred room, and the 「z z Z」 above the card's
+// scrim so they keep the login screen's white and halo, with the copy on the right.
 //
 // Needs Playwright (not a project dependency) and the dev server (mock data is enough):
 //
@@ -40,6 +42,10 @@ const SCENE = { width: 2000, height: 665, scale: 2 }
 /** Where her centre line and the desk top land on the 1200×630 card (copy starts at x 690). */
 const CARD = { mateCx: 335, deskTop: 552 }
 
+/** Style toggles for the two shots of the stage: the scene without the 「z z Z」, then the 「z z Z」 alone. */
+const SCENE_ONLY = '.doze-zz { visibility: hidden !important; }'
+const ZZ_ONLY = '.doze-stage-root * { visibility: hidden !important; } .doze-stage-root .doze-zz, .doze-stage-root .doze-zz * { visibility: visible !important; }'
+
 const pixels = Object.fromEntries(['capsule', 'coin'].map(name => {
   const art = PIXEL_ART[name]
   const { width, height } = pixelArtSize(art, 1)
@@ -66,7 +72,7 @@ try {
   await browser.close()
 }
 
-/** Screenshot of the login stage (transparent background) and where it goes on the card. */
+/** Screenshots of the login stage (transparent background): the scene and the 「z z Z」, and where they go on the card. */
 async function captureLoginScene() {
   const page = await browser.newPage({
     viewport: { width: SCENE.width, height: SCENE.height },
@@ -80,7 +86,7 @@ async function captureLoginScene() {
       content: `
         html, body, #root, .login-variant-root { background: transparent !important; }
         .login-variant-root { --login-stage-right: 0px !important; }
-        .doze-zz, .doze-call, .doze-hit, .doze-replay-btn, .doze-stage-root .sr-only { display: none !important; }
+        .doze-call, .doze-hit, .doze-replay-btn, .doze-stage-root .sr-only { display: none !important; }
         * { transition: none !important; animation: none !important; }
       `,
     })
@@ -109,9 +115,16 @@ async function captureLoginScene() {
     if (!box || Math.round(box.width) !== SCENE.width || Math.round(box.height) !== SCENE.height) {
       throw new Error(`login stage is ${box?.width}×${box?.height}, expected ${SCENE.width}×${SCENE.height} (layout changed?)`)
     }
-    const png = await page.locator('.doze-stage-root').screenshot({ type: 'png', omitBackground: true })
+    const stage = page.locator('.doze-stage-root')
+    const shoot = async css => {
+      const toggle = await page.addStyleTag({ content: css })
+      const png = await stage.screenshot({ type: 'png', omitBackground: true })
+      await toggle.evaluate(node => node.remove())
+      return `data:image/png;base64,${png.toString('base64')}`
+    }
     return {
-      url: `data:image/png;base64,${png.toString('base64')}`,
+      url: await shoot(SCENE_ONLY),
+      zzUrl: await shoot(ZZ_ONLY),
       width: SCENE.width,
       height: SCENE.height,
       left: CARD.mateCx - expected.mate.cx,
