@@ -6,6 +6,7 @@ import { getCredits } from '@/features/backend/server-api'
 import { noteServerCredits, serverCreditsAge, useServerCredits } from '@/features/backend/server-credits'
 import { api } from '@/shared/api/client'
 import { useCreditReward } from './credit-reward'
+import { balanceShownAwayFromHome, markAttendanceReceived } from './attendance-service'
 
 /** 33 is read again at most this often (on entry and when the tab shows again); 8 · 16 · 19 · 20 · 28 keep it current between. */
 const CREDITS_REFRESH_MS = 60_000
@@ -15,11 +16,20 @@ const CREDITS_REFRESH_MS = 60_000
  * can be spent now, attendance part + invitation part (docs/BACKEND_API.md Credits `todayRemaining`), always the
  * server's summary (server-credits.ts: 8 `/me`, 16, 19, 20 · 28, 33; the local mock answers the same paths). Today's
  * attendance grant is held back while the home path is about to play it, and counts up when it lands
- * (credit-reward.ts). `null` while there is no balance to show.
+ * (credit-reward.ts). `null` while there is no balance to show. Shown on another screen first, that grant counts as
+ * received, so the home page does not take it back out of the chip later (attendance-service.ts).
  */
 export function useCreditDisplay() {
   const { me } = useBackend()
-  const server = useServerCredits(me?.userId)
+  const userId = me?.userId
+  const server = useServerCredits(userId)
+  const { pathname, search } = useLocation()
+  const touring = new URLSearchParams(search).has('tour')
+  const shown = typeof server?.todayRemaining === 'number'
+  useEffect(() => {
+    if (userId === undefined || !shown) return
+    if (balanceShownAwayFromHome(pathname, touring, serverCreditsAge(userId))) markAttendanceReceived(userId)
+  }, [userId, shown, pathname, touring, server])
   const { held, landing } = useCreditReward()
   const base = server?.todayRemaining ?? null
   const total = base === null ? null : Math.max(0, base - held)
