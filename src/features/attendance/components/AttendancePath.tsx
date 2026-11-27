@@ -16,8 +16,6 @@ type Speech = { id: number; text: string }
 /** Centre of each pad's top face, in % of the path art (top-left origin). Day 7 is the reward pad. */
 const PADS: readonly Pad[] = padData.pads
 const LAST = PADS.length - 1
-/** The reward capsule's own layer, cut from the art at (1169, 14)–(1377, 258) of 1600×1000. */
-const CAPSULE = { left: 73.0625, top: 1.4, width: 13, height: 24.4 } as const
 /** Walking from one pad to the next. */
 const WALK_MS = 900
 /** Stars that fly out of the opened capsule. */
@@ -198,13 +196,13 @@ export function AttendancePath({ streak, checkedInToday, className }: {
       <div
         ref={capsule}
         className="attendance-path-capsule"
-        style={{ left: `${CAPSULE.left}%`, top: `${CAPSULE.top}%`, width: `${CAPSULE.width}%` }}
+        data-tour-overflow
         aria-hidden="true"
       >
         <img ref={capsuleImage} src={capsuleArt} width={208} height={244} alt="" draggable={false} />
       </div>
 
-      <div ref={walker} className="attendance-path-walker" data-bubble={bubbleAlign} style={spot(stand)}>
+      <div ref={walker} className="attendance-path-walker" data-bubble={bubbleAlign} data-near-reward={stand.x > 55 || undefined} style={spot(stand)}>
         <span ref={shadow} className="attendance-path-shadow" aria-hidden="true" />
         {/* Over her head, so it goes where she goes; it stays still while she breathes or hops. */}
         <div className="attendance-path-dialogue">

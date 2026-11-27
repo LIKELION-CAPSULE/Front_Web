@@ -103,7 +103,8 @@ function findTarget(targets: readonly string[]): Element | null {
 /** The box lighting `elements` (their joint box plus the padding), or null when none is drawn. */
 function spotOf(elements: readonly Element[]): SpotRect | null {
   let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity
-  for (const element of elements) {
+  // Include marked art that extends beyond its target, such as the day-seven reward.
+  for (const element of elements.flatMap(element => [element, ...element.querySelectorAll('[data-tour-overflow]')])) {
     const rect = element.getBoundingClientRect()
     if (!rect.width && !rect.height) continue
     left = Math.min(left, rect.left); top = Math.min(top, rect.top); right = Math.max(right, rect.right); bottom = Math.max(bottom, rect.bottom)

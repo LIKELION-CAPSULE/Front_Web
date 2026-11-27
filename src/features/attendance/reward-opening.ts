@@ -26,10 +26,14 @@ export async function openRewardCapsule({ capsule, capsuleImage, burst, sparks, 
   if (!box || !image) return
   // The glow colour is the capsule's resolved `color` (attendance-path.css), so it follows the tokens.
   const glow = getComputedStyle(box).color
+  // Aim the enlarged layer's centre at the flash, independent of its responsive size.
+  const path = box.parentElement!
+  const travelX = path.clientWidth * 0.666 - box.offsetLeft - box.offsetWidth / 2
+  const travelY = path.clientHeight * 0.135 - box.offsetTop - box.offsetHeight / 2
   // Out from behind her into the open sky on her left, tilting as it goes.
   await play(box, [
     { transform: 'translate(0, 0) rotate(0deg)' },
-    { transform: 'translate(-100%, -8%) rotate(-10deg)' },
+    { transform: `translate(${travelX}px, ${travelY}px) rotate(-10deg)` },
   ], { duration: CAPSULE_MS.out, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' })
   if (!isLive()) return
   // Something inside wants out: it shakes, and light leaks around it.
