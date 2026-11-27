@@ -6,7 +6,7 @@ import { PasswordRecoveryForm } from '@/features/auth/components/PasswordRecover
 /**
  * The security tab: password reset, then 회원탈퇴 with its confirmation already open (user decision 2026-11-25: no
  * folded summary to unfold). Nothing takes the focus when the tab opens — the confirmation field is never focused by
- * itself, so nothing is typed into it by accident. 「취소」 clears what was typed (there is nothing to fold).
+ * itself, so nothing is typed into it by accident. 「입력 지우기」 clears what was typed (there is nothing to fold or cancel).
  */
 export function AccountSecurityPanel({
   busy,

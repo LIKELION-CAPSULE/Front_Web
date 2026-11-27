@@ -59,15 +59,34 @@
 .notification-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 8px 10px; }
 .notification-items { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .notification-item {
-  display: grid;
+  display: flex;
   width: 100%;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
   border-radius: var(--radius-control);
   padding: 10px 10px 10px 12px;
   text-align: left;
 }
-button.notification-item:hover { background: color-mix(in srgb, var(--color-ink) 6%, transparent); }
+.notification-item-text { display: grid; min-width: 0; flex: 1; gap: 2px; }
+/* A notification that goes somewhere (UX review 8-2): a chevron at its end, a clear hover fill and the pointer. One that
+   only informs has neither. */
+button.notification-item { cursor: pointer; transition: background-color 140ms ease; }
+button.notification-item:hover { background: color-mix(in srgb, var(--color-ink) 10%, transparent); }
 button.notification-item:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+.notification-item-go { display: inline-flex; flex: none; color: var(--color-subtle); transition: color 140ms ease, transform 140ms ease; }
+button.notification-item:hover .notification-item-go,
+button.notification-item:focus-visible .notification-item-go { color: var(--color-ink); transform: translateX(2px); }
+.notification-panel-actions { display: flex; align-items: center; gap: 2px; margin-right: -6px; }
+.notification-close {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: var(--radius-control);
+  color: var(--color-subtle);
+}
+.notification-close:hover { background: var(--color-control); color: var(--color-ink); }
+.notification-close:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
 .notification-item-title { display: flex; align-items: center; gap: 6px; color: var(--color-ink); font-size: var(--text-body-compact); line-height: var(--text-body-compact--line-height); font-weight: 600; }
 li:not([data-unread]) .notification-item-title { color: var(--color-muted); font-weight: 500; }
 .notification-item-dot { width: 6px; height: 6px; flex: none; border-radius: 999px; background: var(--color-danger-solid); }
@@ -82,5 +101,7 @@ li:not([data-unread]) .notification-item-title { color: var(--color-muted); font
 .notification-more { margin: 6px 0 0; color: var(--color-subtle); font-size: var(--text-caption); text-align: center; }
 
 @media (prefers-reduced-motion: reduce) {
-  .notification-bell-button { transition: none; }
+  .notification-bell-button, button.notification-item, .notification-item-go { transition: none; }
+  button.notification-item:hover .notification-item-go,
+  button.notification-item:focus-visible .notification-item-go { transform: none; }
 }

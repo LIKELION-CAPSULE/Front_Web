@@ -60,6 +60,7 @@ import type { VoiceTurn } from '@/features/mates/voice-player'
 import { voiceMayPlayNow, voiceRequested, voiceStopsForListening, voiceStopsWhenHidden } from '@/features/mates/voice-reply'
 import hangupHandset from '@/assets/connection/hangup-handset-3d.webp'
 import hangupHandsetRed from '@/assets/connection/hangup-handset-3d-red.webp'
+import { useCreditDisplay } from '@/features/attendance/use-credit-display'
 
 type ViewTransitionDocument = Document & {
   startViewTransition?: (callback: () => void | Promise<void>) => { finished: Promise<void> }
@@ -107,6 +108,7 @@ export default function ConnectionPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const backend = useBackend()
+  const creditDisplay = useCreditDisplay()
   const { showPipSpeech, settings, updateSettings, modeConfirmed = true } = useConnectionPreferences()
   // 「말 걸기 빈도」 on the stage: a short note of what the choice means, for a moment after choosing.
   const [talkNote, setTalkNote] = useState('')
@@ -625,6 +627,7 @@ export default function ConnectionPage() {
   const showAffinity = mateFeatures.affinity
   const isAdvanced = backend.connectionMode === 'advanced'
   const canSwitchMode = !finishing
+  const credits = creditDisplay.value
   const creditInsufficient = Boolean(
     backend.wallet &&
     backend.betaSettings &&
@@ -783,11 +786,13 @@ export default function ConnectionPage() {
               <span className="sr-only">친밀도 {relation?.stage ?? 0}단계</span>
             </span>
           )}
-          {backend.wallet && (
-            <span className="connection-titlebar-chip connection-credit-chip" title="오늘 남은 크레딧">
-              <Icon name="coin" size={14} />
-              <span className="connection-chip-caption">오늘 남은</span>
-              <span className="connection-chip-value">{(backend.wallet.attendance + backend.wallet.invitation).toLocaleString('ko-KR')}</span>
+          {/* 「남은 크레딧」: the whole balance that can be spent now (server `todayRemaining`; use-credit-display.ts). */}
+          {credits !== null && (
+            <span className="connection-titlebar-chip connection-credit-chip" title="남은 크레딧">
+              <Icon name="coin" size={14} className="credit-coin" />
+              <span className="connection-chip-caption">남은</span>
+              <span className="connection-chip-value">{credits.toLocaleString('ko-KR')}</span>
+              <span className="sr-only">크레딧</span>
             </span>
           )}
           <div ref={infoMenuRef} className="connection-titlebar-more-wrap">
@@ -809,10 +814,10 @@ export default function ConnectionPage() {
                     <strong>{relation?.stageName || '—'}</strong>
                   </div>
                 )}
-                {backend.wallet && (
+                {credits !== null && (
                   <div className="connection-titlebar-more-item">
-                    <span>오늘 남은 크레딧</span>
-                    <strong>{(backend.wallet.attendance + backend.wallet.invitation).toLocaleString('ko-KR')}</strong>
+                    <span>남은 크레딧</span>
+                    <strong>{credits.toLocaleString('ko-KR')}</strong>
                   </div>
                 )}
               </div>

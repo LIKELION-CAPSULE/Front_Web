@@ -28,12 +28,34 @@
   justify-content: center;
 }
 
-.mobile-notice-window.desktop-window {
+/* The modal pixel frame (shared/ui/pixel/pixel-frame.css `.app-dialog[data-frame='header']`, same values): stepped
+   16 / 8 / 4px corners cut with clip-path, the dithered night roof (56px) over `dialog-surface` → `panel`, no outline. */
+.mobile-notice-window {
+  --px-roof-h: 56px;
+  --px-night: var(--color-dialog-roof-dither);
+  --px-dither-50: conic-gradient(from 90deg at 2px 2px, var(--px-night) 0 25%, transparent 0 50%, var(--px-night) 0 75%, transparent 0);
+  --px-dither-25: conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--px-night) 0 75%, transparent 0);
   position: relative;
-  left: auto;
-  top: auto;
+  isolation: isolate;
   width: min(390px, 100%);
   overflow: hidden;
+  padding-top: 36px;
+  clip-path: polygon(
+    0 16px, 4px 16px, 4px 8px, 8px 8px, 8px 4px, 16px 4px, 16px 0,
+    calc(100% - 16px) 0, calc(100% - 16px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 16px, 100% 16px,
+    100% calc(100% - 16px), calc(100% - 4px) calc(100% - 16px), calc(100% - 4px) calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) calc(100% - 4px), calc(100% - 16px) calc(100% - 4px), calc(100% - 16px) 100%,
+    16px 100%, 16px calc(100% - 4px), 8px calc(100% - 4px), 8px calc(100% - 8px), 4px calc(100% - 8px), 4px calc(100% - 16px), 0 calc(100% - 16px)
+  );
+  background:
+    linear-gradient(var(--color-dialog-roof) 0 14px, var(--px-night) 14px 28px, transparent 28px) 0 0 / 100% 28px no-repeat,
+    var(--px-dither-50) 0 28px / 4px 4px repeat-x,
+    var(--px-dither-50) 0 32px / 4px 4px repeat-x,
+    var(--px-dither-25) 0 36px / 4px 4px repeat-x,
+    var(--px-dither-25) 2px 40px / 4px 4px repeat-x,
+    var(--px-dither-25) 0 44px / 8px 4px repeat-x,
+    var(--px-dither-25) 4px 48px / 8px 4px repeat-x,
+    linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
+  user-select: text;
 }
 
 .mobile-notice-body {
@@ -41,13 +63,8 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 20px 22px 18px;
+  padding: 20px 22px 22px;
   text-align: center;
-  background: linear-gradient(
-    155deg,
-    color-mix(in srgb, var(--color-surface-raised) 96%, transparent),
-    color-mix(in srgb, var(--color-panel) 98%, transparent)
-  );
 }
 
 .mobile-notice-brand {
@@ -64,7 +81,6 @@
   height: 148px;
   border-radius: 999px;
   overflow: hidden;
-  border: 1px solid rgba(196, 185, 243, 0.24);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
 }
 
@@ -107,8 +123,7 @@
 .mobile-notice-invite {
   width: 100%;
   border-radius: 14px;
-  border: 1px solid rgba(196, 185, 243, 0.22);
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  background: var(--color-surface);
   padding: 12px 16px;
   text-align: left;
 }

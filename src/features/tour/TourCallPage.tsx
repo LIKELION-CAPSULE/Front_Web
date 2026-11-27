@@ -7,6 +7,7 @@ import { CALL_STAGE_GRADIENT, mateCallBackground, matePortrait } from '@/feature
 import { mateLine, mateLineForState } from '@/features/mates/mate-lines'
 import { getDefaultLineForState } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
 import { CREDIT_PRICING } from '@/features/credits/credit-utils'
+import { useCreditDisplay } from '@/features/attendance/use-credit-display'
 import { CharacterSpeechBubble } from '@/features/session/components/CharacterSpeechBubble'
 import { ChatComposer } from '@/features/session/components/ChatComposer'
 import { GlassDock, type GlassDockItem } from '@/shared/ui/dock/GlassDock'
@@ -40,6 +41,8 @@ export default function TourCallPage() {
   const [draft, setDraft] = useState('')
   const [bgFailed, setBgFailed] = useState(false)
   const stageWrapRef = useRef<HTMLDivElement>(null)
+  // The call screen's 「남은 크레딧」 chip, from the same balance (use-credit-display.ts); nothing is asked for here.
+  const credits = useCreditDisplay().value
   const mate = availableMates(backend.home).find((value) => value.id === mateId)
   if (!new URLSearchParams(location.search).get('tour') || !mate) return <Navigate to="/" replace />
 
@@ -50,7 +53,6 @@ export default function TourCallPage() {
     { id: 'practice-2', sender: 'user' as const, text: '오늘은 영어 단어 외울 거야' },
     { id: 'practice-3', sender: 'character' as const, text: second },
   ]
-  const credits = backend.wallet ? backend.wallet.attendance + backend.wallet.invitation : null
   const dockItems: GlassDockItem[] = [
     { key: 'microphone', label: '누르고 말하기', tooltip: '누르고 말하기', icon: 'microphone', onAction: NOOP },
     { key: 'camera', label: '카메라 켜기', tooltip: '카메라 켜기', icon: 'videoOff', device: true, onAction: NOOP },
@@ -86,8 +88,8 @@ export default function TourCallPage() {
           <div className="connection-titlebar-right">
             {credits !== null && (
               <span className="connection-titlebar-chip connection-credit-chip">
-                <Icon name="coin" size={14} />
-                <span className="connection-chip-caption">오늘 남은</span>
+                <Icon name="coin" size={14} className="credit-coin" />
+                <span className="connection-chip-caption">남은</span>
                 <span className="connection-chip-value">{credits.toLocaleString('ko-KR')}</span>
               </span>
             )}

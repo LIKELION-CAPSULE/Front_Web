@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNod
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
 import { Button } from '@/shared/ui/Button'
+import { ScrollMoreHint } from '@/shared/ui/ScrollMoreHint'
 import { FormField } from '@/shared/ui/FormField'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { AvatarIllustration } from '@/shared/ui/AvatarIllustration'
@@ -68,6 +69,7 @@ export function ProfileEditor({
   const avatarId = picked ? picked.id : currentAvatar
   const [busy, setBusy] = useState(false)
   const pending = useRef(false)
+  const scroller = useRef<HTMLDivElement>(null)
   const [error, setError] = useState('')
   /** 「저장했어요」 after a successful save; any later edit clears it. */
   const [saved, setSaved] = useState(false)
@@ -83,7 +85,7 @@ export function ProfileEditor({
 
   return (
     <section aria-labelledby={headingId} className="profile-editor" data-rail={lowHeight ? 'row' : 'arc'}>
-      <div className="profile-editor-scroll">
+      <div ref={scroller} className="profile-editor-scroll">
         <form
           id={formId}
           noValidate
@@ -212,6 +214,8 @@ export function ProfileEditor({
 
         {narrowFooter && <div className="account-settings-mobile-logout">{narrowFooter}</div>}
       </div>
+      {/* Stacked (narrow dialog): the nickname and 「프로필 저장」 below the avatar say they are there (UX review 7-2). */}
+      <ScrollMoreHint target={scroller} />
     </section>
   )
 }

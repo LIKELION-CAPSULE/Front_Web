@@ -7,6 +7,7 @@ import { useConnectionPreferences } from '@/features/mates/connection-preference
 import { mateVoiceOn, mateVoicePatch, TALK_OPTIONS } from '@/features/mates/connection-preferences'
 import { speechRecognitionFactory } from '@/features/mates/push-to-talk'
 import { CREDIT_PRICING } from '@/features/credits/credit-utils'
+import { Icon } from '@/shared/ui/Icon'
 
 /**
  * Account settings 「설정」 tab: every item of PRD §7.9 (T-1…T-10), one row each — label on the left, control on the
@@ -17,15 +18,18 @@ import { CREDIT_PRICING } from '@/features/credits/credit-utils'
 
 type Option<T extends string> = { value: T; label: string }
 
-function Segment<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: readonly Option<T>[]; onChange: (value: T) => void }) {
+const VOICE_OFF_HINT = '메이트 음성을 켜면 바꿀 수 있어요'
+
+function Segment<T extends string>({ label, value, options, onChange, disabled = false, describedBy }: { label: string; value: T; options: readonly Option<T>[]; onChange: (value: T) => void; disabled?: boolean; describedBy?: string }) {
   return (
-    <div className="settings-segment" role="radiogroup" aria-label={label}>
+    <div className="settings-segment" role="radiogroup" aria-label={label} aria-disabled={disabled || undefined} aria-describedby={describedBy}>
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           role="radio"
           aria-checked={option.value === value}
+          disabled={disabled}
           tabIndex={option.value === value ? 0 : -1}
           className="settings-segment-option"
           onClick={() => onChange(option.value)}
@@ -63,9 +67,9 @@ function Switch({ labelledBy, describedBy, checked, onChange }: { labelledBy: st
   )
 }
 
-function Row({ id, label, hint, children }: { id: string; label: string; hint?: ReactNode; children: ReactNode }) {
+function Row({ id, label, hint, disabled = false, children }: { id: string; label: string; hint?: ReactNode; disabled?: boolean; children: ReactNode }) {
   return (
-    <li className="settings-row">
+    <li className="settings-row" data-disabled={disabled || undefined}>
       <div className="settings-row-text">
         <span id={id} className="settings-row-label">
           {label}
@@ -85,6 +89,7 @@ export function ConnectionSettingsPanel() {
   const [attempt, setAttempt] = useState(0)
   const [speechSupported] = useState(() => typeof window !== 'undefined' && speechRecognitionFactory(window) !== null)
   const id = useId()
+  const voiceOn = mateVoiceOn(settings)
 
   useEffect(() => {
     let current = true
@@ -180,13 +185,16 @@ export function ConnectionSettingsPanel() {
           reply; text only when credits are short). The volume is played here; the speed is the server's TTS speed. */}
       {section('voice', '메이트 음성', (
         <ul className="settings-rows">
-          {/* T-2 */}
+          {/* T-2: the cost shows before turning it on too (UX review 7-1), with the credit coin (gold, exception 2). */}
           <Row id={`${id}-voice`} label="메이트 음성"
-            hint={mateVoiceOn(settings) ? `답장마다 음성 ${CREDIT_PRICING.voice} 크레딧이 들어요. 크레딧이 모자라면 글로만 답해요` : '켜면 메이트가 목소리로 답해요'}>
-            <Switch labelledBy={`${id}-voice`} describedBy={`${id}-voice-hint`} checked={mateVoiceOn(settings)} onChange={(on) => updateSettings(mateVoicePatch(on))} />
+            hint={<>
+              <span className="settings-credit-cost"><Icon name="coin" size={13} className="credit-coin" />답장마다 음성 {CREDIT_PRICING.voice} 크레딧</span>{' '}
+              {voiceOn ? '크레딧이 모자라면 글로만 답해요' : '켜면 메이트가 목소리로 답해요'}
+            </>}>
+            <Switch labelledBy={`${id}-voice`} describedBy={`${id}-voice-hint`} checked={voiceOn} onChange={(on) => updateSettings(mateVoicePatch(on))} />
           </Row>
-          {/* T-3 */}
-          <Row id={`${id}-volume`} label="음성 볼륨">
+          {/* T-3 · T-4 only matter while the voice is on: off, they read (and are) disabled and keep their values. */}
+          <Row id={`${id}-volume`} label="음성 볼륨" disabled={!voiceOn} hint={voiceOn ? undefined : VOICE_OFF_HINT}>
             <div className="settings-slider">
               <input
                 type="range"
@@ -194,17 +202,19 @@ export function ConnectionSettingsPanel() {
                 max={100}
                 step={1}
                 value={settings.volume}
+                disabled={!voiceOn}
                 aria-labelledby={`${id}-volume`}
-                aria-valuetext={`${settings.volume}`}
+                aria-describedby={voiceOn ? undefined : `${id}-volume-hint`}
+                aria-valuetext={`${settings.volume}%`}
                 style={{ '--value': `${settings.volume}%` } as CSSProperties}
                 onChange={(event) => updateSettings({ volume: Number(event.target.value) })}
               />
-              <output className="settings-slider-value" aria-hidden="true">{settings.volume}</output>
+              <output className="settings-slider-value" aria-hidden="true">{settings.volume}%</output>
             </div>
           </Row>
-          {/* T-4 */}
-          <Row id={`${id}-speed`} label="음성 속도">
-            <Segment label="음성 속도" value={settings.speed} onChange={(speed) => updateSettings({ speed })}
+          <Row id={`${id}-speed`} label="음성 속도" disabled={!voiceOn} hint={voiceOn ? undefined : VOICE_OFF_HINT}>
+            <Segment label="음성 속도" value={settings.speed} onChange={(speed) => updateSettings({ speed })} disabled={!voiceOn}
+              describedBy={voiceOn ? undefined : `${id}-speed-hint`}
               options={[{ value: 'slow', label: '느리게' }, { value: 'normal', label: '보통' }, { value: 'fast', label: '빠르게' }]} />
           </Row>
         </ul>

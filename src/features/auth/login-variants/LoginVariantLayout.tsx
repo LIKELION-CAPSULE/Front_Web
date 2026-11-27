@@ -13,6 +13,7 @@ import { getLoginMates } from '@/features/backend/server-api'
 import { api } from '@/shared/api/client'
 import { REACTION_PRIORITY, getDefaultLineForState } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
 import { Dialog } from '@/shared/ui/Dialog'
+import { ScrollMoreHint } from '@/shared/ui/ScrollMoreHint'
 import { chaerinArtwork } from '@/features/mates/artwork'
 import DozeMateStage from './doze/DozeMateStage'
 import { MateDialogue } from './MateDialogue'
@@ -262,6 +263,8 @@ export default function LoginVariantLayout() {
                 </Suspense>
               </div>
             </div>
+            {/* A long form (회원가입: terms and the button below the fields) says there is more (UX review 1-4). */}
+            <ScrollMoreHint target={formRef} />
           </section>
         </main>
 

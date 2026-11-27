@@ -27,7 +27,7 @@ export function shouldNoteVoiceFallback(input: { requestedVoice: boolean; voice:
 
 export const CREDIT_NOTICE_COPY = {
   title: '크레딧이 부족해요',
-  body: '고급 대화를 하기엔 오늘 남은 크레딧이 모자라요. 기본 모드는 크레딧 없이 대화할 수 있어요.',
+  body: '고급 대화를 하기엔 남은 크레딧이 모자라요. 기본 모드는 크레딧 없이 대화할 수 있어요.',
   remaining: (credits: number) => `남은 크레딧 ${credits.toLocaleString('ko-KR')}`,
   basic: '기본 모드로 계속',
   invite: '친구 초대로 받기',

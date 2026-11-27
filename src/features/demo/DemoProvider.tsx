@@ -37,6 +37,7 @@ import { checkedMateDetail } from '@/features/mates/mate-contract'
 import { engineAllowlist } from '@/features/mate-render/engine-allowlist'
 import { forgetAllChatRooms, forgetChatRoom } from '@/features/mates/chat-room'
 import type { BetaFeaturePort, BetaFeatureSnapshot } from '@/features/backend/beta-feature-port'
+import { clearServerCredits, noteServerCredits } from '@/features/backend/server-credits'
 
 type Meta = Pick<BackendContextValue, 'status' | 'loadingStage' | 'error' | 'signedOutNotice' | 'me' | 'accountDetails' | 'home' | 'homeContentVersion' | 'mateDetails' | 'mateContentVersion' | 'wallet' | 'invitation' | 'redeemInvitation' | 'activeSummary' | 'avatars' | 'terms' | 'visuals' | 'affinities'>
 /**
@@ -175,6 +176,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     queries.current = new QueryCache()
     homeRevision.current++
     pending.current = new Set()
+    clearServerCredits()
     failedMessages.current.clear()
     mateVersions.current.clear()
     mateReads.current.clear()
@@ -216,6 +218,8 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
       homeData.catch(() => { /* Reported below when it is used. */ })
       const me = await api.request<MeResponse>('/me')
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
+      // 8 also grants the day's attendance credits: the header chip's balance starts here (server-credits.ts).
+      noteServerCredits(me.credits, me.userId)
       const userProfile = adapt.profile(me)
       const accountDetails = accountPort ? checkedAccountDetails(await accountPort.read(me.userId!, me)) : null
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
@@ -421,6 +425,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     const me = await api.request<MeResponse>('/me', { method: 'PATCH', body: { nickname: nickname.trim(), ...(avatarId === undefined ? {} : { avatarId }) } })
     if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
     if (me.userId !== userId) throw new ApiError('프로필 응답을 확인하지 못했어요.', 502)
+    noteServerCredits(me.credits, me.userId)
     patch({ profile: { ...adapt.profile(me, stateRef.current.profile), ...(avatarId === undefined ? {} : { avatarId }) } })
     setMeta(previous => ({ ...previous, me }))
   }, [patch])
@@ -642,6 +647,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
       if (generation !== epoch.current) throw new ApiError('로그인 상태가 변경됐어요.', 401)
       if (dto.mate?.id !== mateId) throw new ApiError('요청을 처리하지 못했어요.', 502)
       adapt.id(dto.connectionId)
+      noteServerCredits(dto.credits)
       pendingSession.current = dto
       invalidateSessionQueries()
       // A late start response can still be resumed, but must not load a model on the screen the user left for.
@@ -767,6 +773,8 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
         alive: live,
       }))
       if (result.requestId !== requestId || adapt.id(result.characterId) !== characterId || !result.content) throw new ApiError('답장 응답을 확인하지 못했어요.', 502)
+      // The balance after this turn (고급 모드 · 메이트 음성), for the chips (server-credits.ts).
+      if (generation === epoch.current) noteServerCredits(result.credits)
       if (!live()) return result
       // `done` holds the final text; it also creates the bubble when no `reply` came (fallback line, or a resend that
       // waited for the original request and gets its stored reply with no expression and affinity delta 0).
