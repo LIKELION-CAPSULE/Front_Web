@@ -143,8 +143,6 @@ export default function ConnectionPage() {
   useEffect(() => () => { hangup.current?.cancel(); hangup.current = null }, [])
   const now = useNow()
   const [chatOpen, setChatOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth > 960 : true))
-  const [infoMenuOpen, setInfoMenuOpen] = useState(false)
-  const infoMenuRef = useRef<HTMLDivElement>(null)
   const stageWrapRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   // A tap on the mate (mate-tap.ts): her face for a moment, a nod and one of her lines; no server, no credits.
@@ -210,22 +208,6 @@ export default function ConnectionPage() {
     document.addEventListener('fullscreenchange', onFullscreenChange)
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
   }, [])
-  useEffect(() => {
-    if (!infoMenuOpen) return
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node
-      if (!infoMenuRef.current?.contains(target)) setInfoMenuOpen(false)
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setInfoMenuOpen(false)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [infoMenuOpen])
   useEffect(() => {
     if (!active) return
     const onKeyDown = (event: KeyboardEvent) => {
@@ -768,7 +750,23 @@ export default function ConnectionPage() {
           <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
         </div>
 
-        <div className="connection-titlebar-center">
+        {/* The info bar, all open (no 「⋯」, user decision 2026-11-27): ? | 친밀도 · 대화 모드 · 남은 크레딧 | 연결 시간.
+            Narrow windows (≤ 1100px) shorten the chips to their icons (the full words stay in the tooltip and for screen
+            readers); the mode is always shown. */}
+        <div className="connection-titlebar-right">
+          <DevicePrivacyInfo label="연결 화면 안내" className="connection-titlebar-help">
+            <ConnectionHelpNote />
+          </DevicePrivacyInfo>
+          {showAffinity && (
+            <span className="connection-titlebar-chip connection-affinity-chip" title={`친밀도 · ${relation?.stageName || '—'}`}>
+              <Icon name="heart" size={13} />
+              <span className="connection-chip-value connection-chip-long">{relation?.stageName || '—'}</span>
+              <span className="connection-affinity-steps" aria-hidden="true">
+                {Array.from({ length: AFFINITY_STAGE_COUNT }, (_, index) => <span key={index} data-on={index < (relation?.stage ?? 0) || undefined} />)}
+              </span>
+              <span className="sr-only">친밀도 {relation?.stage ?? 0}단계</span>
+            </span>
+          )}
           <div className="connection-mode-segment" role="group" aria-label="대화 모드">
             <button
               type="button"
@@ -778,9 +776,9 @@ export default function ConnectionPage() {
               disabled={!canSwitchMode}
               onClick={() => chooseMode('basic')}
               // The mode itself is free; her voice (the dock's button) is counted apart, so say so while it is on.
-              title={voiceOn ? `기본 모드는 크레딧 없이 대화해요. 메이트 음성은 답장마다 ${CREDIT_PRICING.voice} 크레딧이 따로 들어요` : undefined}
+              title={voiceOn ? `기본 모드는 크레딧 없이 대화해요. 메이트 음성은 답장마다 ${CREDIT_PRICING.voice} 크레딧이 따로 들어요` : '기본 모드 · 크레딧 없음'}
             >
-              기본 · 크레딧 없음
+              기본<span className="connection-mode-detail"> · 크레딧 없음</span>
             </button>
             <button
               type="button"
@@ -789,63 +787,20 @@ export default function ConnectionPage() {
               aria-pressed={isAdvanced}
               disabled={!canSwitchMode}
               onClick={() => chooseMode('advanced')}
+              title={`고급 모드 · 1턴에 ${CREDIT_PRICING.advanced} 크레딧`}
             >
-              고급 · 1턴 {CREDIT_PRICING.advanced}
+              고급<span className="connection-mode-detail"> · 1턴 {CREDIT_PRICING.advanced}</span>
             </button>
           </div>
-        </div>
-
-        <div className="connection-titlebar-right">
-          <DevicePrivacyInfo label="연결 화면 안내" className="connection-titlebar-help">
-            <ConnectionHelpNote />
-          </DevicePrivacyInfo>
-          {showAffinity && (
-            <span className="connection-titlebar-chip connection-affinity-chip" title="친밀도">
-              <Icon name="heart" size={13} />
-              <span className="connection-chip-value">{relation?.stageName || '—'}</span>
-              <span className="connection-affinity-steps" aria-hidden="true">
-                {Array.from({ length: AFFINITY_STAGE_COUNT }, (_, index) => <span key={index} data-on={index < (relation?.stage ?? 0) || undefined} />)}
-              </span>
-              <span className="sr-only">친밀도 {relation?.stage ?? 0}단계</span>
-            </span>
-          )}
           {/* 「남은 크레딧」: the whole balance that can be spent now (server `todayRemaining`; use-credit-display.ts). */}
           {credits !== null && (
-            <span className="connection-titlebar-chip connection-credit-chip" title="남은 크레딧">
+            <span className="connection-titlebar-chip connection-credit-chip" title={`남은 크레딧 · ${credits.toLocaleString('ko-KR')}`}>
               <Icon name="coin" size={14} className="credit-coin" />
-              <span className="connection-chip-caption">남은</span>
+              <span className="connection-chip-caption connection-chip-long">남은</span>
               <span className="connection-chip-value">{credits.toLocaleString('ko-KR')}</span>
               <span className="sr-only">크레딧</span>
             </span>
           )}
-          <div ref={infoMenuRef} className="connection-titlebar-more-wrap">
-            <button
-              type="button"
-              className="mate-menu-trigger connection-titlebar-more"
-              aria-label="연결 정보 더보기"
-              aria-haspopup="menu"
-              aria-expanded={infoMenuOpen}
-              onClick={() => setInfoMenuOpen(open => !open)}
-            >
-              <Icon name="more" size={16} />
-            </button>
-            {infoMenuOpen && (
-              <div role="menu" aria-label="연결 정보" className="mate-menu-panel connection-titlebar-more-menu">
-                {showAffinity && (
-                  <div className="connection-titlebar-more-item">
-                    <span>친밀도</span>
-                    <strong>{relation?.stageName || '—'}</strong>
-                  </div>
-                )}
-                {credits !== null && (
-                  <div className="connection-titlebar-more-item">
-                    <span>남은 크레딧</span>
-                    <strong>{credits.toLocaleString('ko-KR')}</strong>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
           {/* The call time at the right end (hang-up, PIP and full screen live in the dock). */}
           <time className="connection-timer" aria-label="연결 시간">
             <AnimatedClock value={clock(sessionStudySeconds(shown, ending?.at ?? now))} />

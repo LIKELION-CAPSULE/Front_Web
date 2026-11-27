@@ -80,17 +80,16 @@ export default function TourCallPage() {
             <span className="desktop-mate-dot" aria-hidden="true" />
             <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
           </div>
-          <div className="connection-titlebar-center">
-            <div className="connection-mode-segment" role="group" aria-label="대화 모드" data-tour="call-mode">
-              <button type="button" className="connection-mode-option" data-active aria-pressed onClick={NOOP}>기본 · 크레딧 없음</button>
-              <button type="button" className="connection-mode-option" aria-pressed={false} onClick={NOOP}>고급 · 1턴 {CREDIT_PRICING.advanced}</button>
-            </div>
-          </div>
+          {/* The call screen's info bar (ConnectionPage): 대화 모드 · 남은 크레딧 · 연결 시간, all open. */}
           <div className="connection-titlebar-right">
+            <div className="connection-mode-segment" role="group" aria-label="대화 모드" data-tour="call-mode">
+              <button type="button" className="connection-mode-option" data-active aria-pressed onClick={NOOP}>기본<span className="connection-mode-detail"> · 크레딧 없음</span></button>
+              <button type="button" className="connection-mode-option" aria-pressed={false} onClick={NOOP}>고급<span className="connection-mode-detail"> · 1턴 {CREDIT_PRICING.advanced}</span></button>
+            </div>
             {credits !== null && (
               <span className="connection-titlebar-chip connection-credit-chip">
                 <Icon name="coin" size={14} className="credit-coin" />
-                <span className="connection-chip-caption">남은</span>
+                <span className="connection-chip-caption connection-chip-long">남은</span>
                 <span className="connection-chip-value">{credits.toLocaleString('ko-KR')}</span>
               </span>
             )}
