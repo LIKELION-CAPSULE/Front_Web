@@ -232,7 +232,7 @@
 }
 
 .invite-progress-unit {
-  margin-left: 6px;
+  margin-left: 0;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.04em;

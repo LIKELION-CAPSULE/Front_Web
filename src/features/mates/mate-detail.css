@@ -134,13 +134,15 @@
 }
 
 .mate-hero-orbit--a {
+  --orbit-angle: -28deg;
   stroke: var(--color-text-accent);
-  rotate: -28deg;
+  transform: rotate(var(--orbit-angle));
 }
 
 .mate-hero-orbit--b {
+  --orbit-angle: 16deg;
   stroke: var(--color-primary);
-  rotate: 16deg;
+  transform: rotate(var(--orbit-angle));
   scale: 0.85;
 }
 
@@ -150,8 +152,8 @@
 }
 
 @keyframes mate-orbit-sway {
-  from { transform: translateY(-5px) rotate(-5deg); opacity: 0.65; }
-  to { transform: translateY(5px) rotate(8deg); opacity: 1; }
+  from { transform: translateY(-5px) rotate(calc(var(--orbit-angle) - 5deg)); opacity: 0.65; }
+  to { transform: translateY(5px) rotate(calc(var(--orbit-angle) + 8deg)); opacity: 1; }
 }
 
 .mate-hero-stage {

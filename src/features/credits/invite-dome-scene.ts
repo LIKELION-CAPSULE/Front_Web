@@ -62,7 +62,7 @@ const VIEW = { centerY: 3.25, height: 9.62 } as const
 const BASE_TOP = 1.7
 const LAVENDER_METAL = '#D9D1F7'
 /** Light of a seated capsule (1 = as in 내 메이트). */
-const CAPSULE_GLOW = 3.2
+const CAPSULE_GLOW = 2.5
 const VIOLET = '#7B4DF2'
 const VIOLET_DEEP = '#5A2FD0'
 
