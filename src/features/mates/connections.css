@@ -470,41 +470,135 @@
   z-index: 25;
 }
 
-/* Right Chat Desktop Window */
+/*
+ * Right chat panel, P1 「픽셀 대화 기록」 (user decision 2026-11-28; the review draft chat-panel-p1): the dialogue box's
+ * material and 12px stepped corners on the whole panel (a clip-path frame behind it: no border, no shadow), the dithered
+ * roof with the capsule, her mini profile, stepped quick replies, box and send button. DESIGN_SYSTEM allows stepped
+ * corners on modals, the call's dialogue box and this panel with its bubbles. Lines in runs: chat-log.css.
+ */
 .connection-chat.desktop-window {
   position: relative;
   left: auto;
   top: auto;
+  isolation: isolate;
   width: 100%;
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  border-radius: 16px;
-  background: var(--color-surface);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.connection-chat.desktop-window::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
+  clip-path: polygon(
+    0 12px, 4px 12px, 4px 8px, 8px 8px, 8px 4px, 12px 4px, 12px 0,
+    calc(100% - 12px) 0, calc(100% - 12px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 12px, 100% 12px,
+    100% calc(100% - 12px), calc(100% - 4px) calc(100% - 12px), calc(100% - 4px) calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) calc(100% - 4px), calc(100% - 12px) calc(100% - 4px), calc(100% - 12px) 100%,
+    12px 100%, 12px calc(100% - 4px), 8px calc(100% - 4px), 8px calc(100% - 8px), 4px calc(100% - 8px), 4px calc(100% - 12px), 0 calc(100% - 12px)
+  );
 }
 
+/* Head: the roof (28px, its top corners stepped with the panel's) and her mini profile under it. */
+.connection-chat-head {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding: 34px 10px 10px 14px;
+}
+.connection-chat-head > .px-roof-strip {
+  height: 28px;
+  background:
+    linear-gradient(var(--color-dialog-roof) 0 10px, var(--px-night) 10px 18px, transparent 18px) 0 0 / 100% 100% no-repeat,
+    var(--px-dither-50) 0 18px / 4px 4px repeat-x,
+    var(--px-dither-25) 0 22px / 4px 4px repeat-x;
+  clip-path: polygon(0 12px, 4px 12px, 4px 8px, 8px 8px, 8px 4px, 12px 4px, 12px 0, calc(100% - 12px) 0, calc(100% - 12px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 12px, 100% 12px, 100% 100%, 0 100%);
+}
+.connection-chat-head > .px-roof-strip > .px-image { top: 4px; }
+.connection-chat-avatar {
+  position: relative;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  place-items: center;
+  color: var(--color-muted);
+}
+.connection-chat-avatar::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--color-control);
+  clip-path: var(--chat-steps-4);
+}
+.connection-chat-avatar > img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  object-position: center top;
+  clip-path: var(--chat-steps-4);
+}
+/* The call is on: the green dot (square, the pixel set's), cut out of the panel by its own background. */
+.connection-chat-status-dot {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 12px;
+  height: 12px;
+  background: var(--color-success);
+  box-shadow: 0 0 0 2px var(--color-dialog-surface);
+}
+.connection-chat-who { display: grid; min-width: 0; flex: 1; }
 .connection-chat h2 {
   margin: 0;
-  font-size: 13.5px;
-  font-weight: 600;
+  overflow: hidden;
   color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-.connection-chat-close.ui-button {
-  min-height: 28px;
-  width: 28px;
-  padding: 0;
+.connection-chat-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
 }
-
-.connection-chat-head.desktop-window-titlebar {
-  position: relative;
-  padding-top: 14px;
+.connection-chat-typing { display: inline-flex; gap: 3px; color: var(--color-success); }
+.connection-chat-typing > span { width: 4px; height: 4px; background: currentColor; }
+@media (prefers-reduced-motion: no-preference) {
+  .connection-chat-typing > span { animation: chat-log-dot 900ms steps(2, jump-none) infinite; }
+  .connection-chat-typing > span:nth-child(2) { animation-delay: 150ms; }
+  .connection-chat-typing > span:nth-child(3) { animation-delay: 300ms; }
 }
-/* The roof strip sits on the panel's top edge (border radius clips it with the panel). */
-.connection-chat-head .px-roof-strip { z-index: 0; }
-.connection-chat-head > :not(.px-roof-strip) { position: relative; z-index: 1; }
+.connection-chat-close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  place-items: center;
+  border-radius: 4px;
+  color: var(--color-muted);
+  transition: background-color 140ms ease, color 140ms ease;
+}
+.connection-chat-close:hover { background: var(--color-control); color: var(--color-ink); }
+.connection-chat-close:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 
 .connection-log-wrap {
   position: relative;
@@ -514,36 +608,56 @@
   flex-direction: column;
 }
 
+/* A short log sits by the composer (an empty top, not a hole above the input); a long one scrolls as before. Lines fade
+   under the head as they scroll away (no divider line). */
 .connection-messages {
+  display: flex;
   flex: 1;
   min-height: 0;
+  flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 18px 14px;
+  padding: 16px 14px 8px;
+  mask-image: linear-gradient(180deg, transparent 0, black 14px);
 }
+.connection-messages::before { content: ''; flex: 1 0 0; }
+.connection-messages > * { flex: none; }
 
-/* Lines in runs: chat-log.css (ChatLogGroups). */
+/* Nothing said yet: the capsule with a few quiet stars, one line, the first words (stepped chips). */
+.connection-chat-empty { display: grid; justify-items: center; gap: 10px; padding: 8px 4px 20px; text-align: center; }
+.connection-chat-empty-art { position: relative; display: grid; width: 120px; height: 64px; place-items: center; }
+.connection-chat-empty-star { position: absolute; opacity: 0.7; }
+.connection-chat-empty-star:nth-child(2) { top: 6px; left: 10px; }
+.connection-chat-empty-star:nth-child(3) { top: 2px; right: 14px; }
+.connection-chat-empty-star:nth-child(4) { right: 4px; bottom: 8px; }
+.connection-chat-empty-text { margin: 0; color: var(--color-ink); font-size: 14px; font-weight: 700; line-height: 22px; }
+.connection-chat-starters { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+@media (prefers-reduced-motion: no-preference) {
+  .connection-chat-empty-star { animation: connection-chat-twinkle 2.6s steps(3, jump-none) infinite alternate; }
+  .connection-chat-empty-star:nth-child(3) { animation-delay: -0.9s; }
+  .connection-chat-empty-star:nth-child(4) { animation-delay: -1.7s; }
+}
+@keyframes connection-chat-twinkle { from { opacity: 0.2; } to { opacity: 0.9; } }
 
-/* 「새 메시지 ↓」: her new lines while the chat is scrolled up; one click goes to the newest. */
+/* 「새 메시지 ↓」: her new lines while the chat is scrolled up; one click goes to the newest. A stepped tag. */
 .connection-new-pill {
   position: absolute;
   z-index: 2;
   bottom: 10px;
   left: 50%;
+  isolation: isolate;
   display: inline-flex;
   height: 32px;
   align-items: center;
   gap: 4px;
-  border-radius: 999px;
   padding: 0 14px;
-  background: var(--color-floating);
-  box-shadow: 0 8px 22px rgb(0 0 0 / 40%);
   color: var(--color-ink);
   font-size: 13px;
   font-weight: 700;
   transform: translateX(-50%);
 }
-.connection-new-pill:hover { background: var(--color-floating-hover); }
+.connection-new-pill::before { content: ''; position: absolute; z-index: -1; inset: 0; background: var(--color-dialog-roof); clip-path: var(--chat-steps-4); }
+.connection-new-pill:hover::before { background: color-mix(in srgb, var(--color-dialog-roof) 80%, var(--color-ink)); }
 .connection-new-pill:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 @media (prefers-reduced-motion: no-preference) {
   .connection-new-pill { animation: connection-new-pill-in 220ms steps(3, jump-end) backwards; }
@@ -554,18 +668,76 @@
   flex: none;
   padding: 0 12px 6px;
 }
+/* The voice-fallback chip over the composer: a stepped tag here too. */
+.connection-chat > .voice-fallback-note { border-radius: 0; clip-path: var(--chat-steps-4); }
 
-/* The chat box (ChatComposer): quick replies, the box with 누르고 말하기 inside, the key hint. */
+/* The chat box (ChatComposer, shared with the study screen: styled here for the call only): stepped quick replies,
+   the stepped box with 누르고 말하기 inside (its focus ring a stepped 2px line), a stepped send button, the key hint. */
 .connection-chat .session-chat-composer-wrap {
   flex: none;
-  padding: 6px 12px 12px;
+  padding: 6px 12px 14px;
 }
+.connection-chat :is(.session-chat-quick, .connection-chat-starters) > button {
+  position: relative;
+  isolation: isolate;
+  height: 30px;
+  border-radius: 0;
+  padding: 0 12px;
+  background: none;
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.connection-chat :is(.session-chat-quick, .connection-chat-starters) > button::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--color-surface);
+  clip-path: var(--chat-steps-4);
+}
+.connection-chat :is(.session-chat-quick, .connection-chat-starters) > button:not(:disabled):hover { background: none; }
+.connection-chat :is(.session-chat-quick, .connection-chat-starters) > button:not(:disabled):hover::before { background: var(--color-control); }
+.connection-chat :is(.session-chat-quick, .connection-chat-starters) > button:disabled { color: var(--color-text-disabled); }
+.connection-chat-starters > button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 .connection-chat .session-chat-composer {
-  background: var(--color-canvas);
+  position: relative;
+  isolation: isolate;
+  border-radius: 0;
+  background: none;
   box-shadow: none;
 }
-.connection-chat .session-chat-composer:focus-within { box-shadow: 0 0 0 2px var(--color-focus-ring); }
+.connection-chat .session-chat-composer::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--color-canvas);
+  clip-path: var(--chat-steps-8);
+}
+.connection-chat .session-chat-composer:focus-within,
 .connection-chat .session-chat-composer:has(button:focus-visible) { box-shadow: none; }
+/* Focus: a stepped 2px ring (the frame in the ring colour, the box 2px inside it). */
+.connection-chat .session-chat-composer:focus-within:not(:has(button:focus-visible))::before { background: var(--color-focus-ring); }
+.connection-chat .session-chat-composer:focus-within:not(:has(button:focus-visible))::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 2px;
+  background: var(--color-canvas);
+  clip-path: var(--chat-steps-8);
+}
+.connection-chat .session-chat-talk { border-radius: 4px; }
+.connection-chat .session-chat-send { position: relative; isolation: isolate; border-radius: 0; background: none; }
+.connection-chat .session-chat-send::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--chat-steps-4); }
+.connection-chat .session-chat-send[data-state] { background: none; }
+.connection-chat .session-chat-send[data-state='ready']::before { background: var(--color-primary); }
+.connection-chat .session-chat-send[data-state='ready']:hover::before { background: var(--color-primary-hover); }
+.connection-chat .session-chat-send[data-state='ready']:active::before { background: var(--color-primary-active); }
+.connection-chat .session-chat-send[data-state='off']::before { background: var(--color-disabled); }
+.connection-chat .session-chat-send[data-state='waiting']::before { background: var(--color-primary-soft); }
+.connection-chat .session-chat-hint { padding: 0 4px; font-size: 11.5px; }
+.connection-chat .session-chat-hint kbd { border-radius: 2px; background: var(--color-surface); }
 
 /* Leave Confirmation Mate Quote */
 .connection-leave-quote {

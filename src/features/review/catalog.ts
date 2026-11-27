@@ -38,6 +38,8 @@ export type ReviewScenario = {
   dialogDesign?: 'a' | 'b' | 'c' | 'b2' | 'b3' | 'toast'
   /** Call-screen UI draft (call-ui/). Mounted on its own instead of the app; never part of the product. */
   callUi?: 'c1' | 'c2' | 'c3'
+  /** Call-screen chat panel draft (chat-panel/): the C1 stage with the real dialogue box and a draft panel. Review only. */
+  chatPanel?: 'p1' | 'p2' | 'p3'
   /** A phone-only screen (the mobile access notice, SCR-40): the workbench opens it at the phone width. */
   phone?: boolean
 }
@@ -131,6 +133,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'connection-model-ended-retry', group: '메이트·연결', title: '연결 · 모델 실패 뒤 서버 종료', path: '/connect/chaerin', fault: 'model-ended-retry', steps: [click('연결하기')], note: '모델 실패 뒤 재개하면 SESSION_ENDED. 종료된 임시 연결 제거·기록 조회·새 ID로 연결' },
   { id: 'connection-camera-error', group: '메이트·연결', title: '연결 · 카메라 거절', path: '/connect/chaerin', steps: [click('연결하기'), click('카메라 켜기')], note: '카메라 권한 거절 후 연결 유지' },
   { id: 'connection-chat-history', group: '메이트·연결', title: '연결 · 지난 대화 불러오기', path: '/connect/chaerin', fault: 'chat-history', steps: [click('연결하기')], note: '32: 채팅을 열면 지난 대화 첫 페이지(20줄), 맨 위로 올리면 이전 페이지. 답장에 마우스를 올리면 👍·👎·신고' },
+  { id: 'connection-chat-empty', group: '메이트·연결', title: '연결 · 채팅 빈 상태', path: '/connect/chaerin', empty: true, steps: [click('연결하기')], note: '2026-11-28 채팅 P1: 처음 만난 메이트(지난 대화 없음). 캡슐·별 장식과 「채린에게 먼저 말 걸어 볼까요?」, 첫마디 칩(빠른 답장이 입력창 위에서 이리로 옮겨 옴). 첫마디를 누르면 내 말·사각 점 3개 답장 대기·머리 「입력 중」' },
   { id: 'connection-reply-report', group: '메이트·연결', title: '연결 · 답장 신고', path: '/connect/chaerin', fault: 'chat-history', steps: [click('연결하기'), { click: '신고', selector: '.reply-action' }], note: '41: 사유 4개(기타는 300자 이하 직접 입력)·이미 신고한 답장은 409 뒤 접힘 처리' },
   { id: 'connection-credit-short', group: '메이트·연결', title: '연결 · 고급 모드 크레딧 부족', path: '/connect/chaerin', fault: 'credit-short', steps: [click('연결하기'), { click: '고급 ·', includes: true }, fill('textarea', '검토 메시지'), click('메시지 보내기')], note: '409 CREDIT_INSUFFICIENT: 「크레딧이 부족해요」·기본 모드로 계속(입력 그대로 다시 보냄)·친구 초대로 받기' },
   { id: 'connection-voice-off', group: '메이트·연결', title: '연결 · 메이트 음성 꺼짐(기본)', path: '/connect/chaerin', steps: [click('연결하기')], note: '서버 voiceEnabled 기본값이 켜짐이어도 직접 켜기 전엔 꺼짐: 도크 「메이트 음성 켜기」(헤드폰, aria-pressed false), 메시지는 tts: false' },
@@ -238,6 +241,9 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'call-ui-c1', group: '디자인 시안', title: '통화 화면 시안 C1 · 대사창', path: '/connect/chaerin', callUi: 'c1', note: '2026-11-27 시안: 무대 아래 게임식 대사창(계단형 픽셀 모서리·디더링 띠·이름표에 「말하는 중」), 채팅이 열려 있어도 자막 표시. 채팅은 기록 보관용 「대화 기록」. 아래 막대나 ?cu-scene=idle|speaking|waiting|unread·cu-chat=open|closed로 전환' },
   { id: 'call-ui-c2', group: '디자인 시안', title: '통화 화면 시안 C2 · 말풍선 무대', path: '/connect/chaerin', callUi: 'c2', note: '2026-11-27 시안: 머리 옆 말풍선(계단형 꼬리)과 후광, 채팅이 닫혀 있을 때만. 채팅은 무대 위 반투명 오버레이, 상단 정보는 무대 위에 떠 있음' },
   { id: 'call-ui-c3', group: '디자인 시안', title: '통화 화면 시안 C3 · 분할 정돈', path: '/connect/chaerin', callUi: 'c3', note: '2026-11-27 시안(보수안): 지금 배치 유지. 무대 아래 자막 띠(채팅 열림이면 한 줄), 무대 초록 테두리·이름 칩, 묶음 말풍선·한 줄 정보 바·도크 그룹' },
+  { id: 'chat-panel-p1', group: '디자인 시안', title: '채팅 패널 시안 P1 · 픽셀 대화 기록', path: '/connect/chaerin', chatPanel: 'p1', note: '2026-11-27 시안(규칙 확장 필요: 계단형 모서리를 채팅 말풍선까지): 대사창과 같은 계단형 모서리 패널·말풍선과 픽셀 꼬리, 디더링 머리 띠, 「오늘 23:39」 구분선, 메이트 이름표. 아래 막대나 ?cp-state=empty|few|long로 비어 있음·대화 몇 개·긴 대화' },
+  { id: 'chat-panel-p2', group: '디자인 시안', title: '채팅 패널 시안 P2 · 무드 패널', path: '/connect/chaerin', chatPanel: 'p2', note: '2026-11-27 시안: 패널 뒤에 방 그림을 흐리게 이어 방 조명처럼, 빈 상태는 캡슐·별과 「채린에게 먼저 말 걸어 볼까요?」·첫마디 버튼, 새 말풍선이 떠오르는 등장, 친밀도·함께한 시간 시스템 줄(?cp-state=empty|few|long)' },
+  { id: 'chat-panel-p3', group: '디자인 시안', title: '채팅 패널 시안 P3 · 메신저형 정돈', path: '/connect/chaerin', chatPanel: 'p3', note: '2026-11-27 시안: 머리에 메이트 미니 프로필(상태 점·「통화 중」/「입력 중」), 묶음마다 시각 한 번, 내 마지막 말에 「읽음」, 빠른 답장은 입력창 위 가로 스크롤, 보내기 버튼 강조(?cp-state=empty|few|long)' },
   { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대 링크', path: '/?ref=CAP-7K2Q', phone: true, note: '휴대폰 접속 시 안내(시안 M2 「스크롤 소개」 적용, 2026-11-27). 초대 링크로 들어온 상태: 첫 화면 버튼 위 초대 카드 「초대 코드 CAP-7K2Q가 저장됐어요 · PC에서 가입하고 첫 연결을 마치면 둘 다 1,000 크레딧」. 내려서 첫 화면 버튼이 사라지면 아래 고정 막대(PC로 링크 보내기·복사 아이콘). 기능 카드 아래 「PC에서 이렇게 시작해요」 3단계, 초대 링크라 3단계에 「초대 코드는 자동으로 들어가요」' },
   { id: 'mobile-notice-plain', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/', phone: true, note: '휴대폰 접속 시 안내: 조는 채린 장면·헤드라인·소개·「PC로 링크 보내기」·「링크 복사」, 「캡슐 둘러보기」로 기능 카드 3장·「PC에서 이렇게 시작해요」 3단계(초대 문구 없음)·약관(모달)·AI 고지. 스크롤하면 아래 고정 막대. 공유 기능이 없는 브라우저는 「링크 복사」만' },
   { id: 'mobile-notice-inviter', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대한 사람 이름', path: '/?ref=CAP-7K2Q&inviter=민수', phone: true, note: '초대한 사람 이름을 아는 초대 링크: 「민수님의 초대 코드가 저장됐어요」와 코드 한 줄. 3단계에 「초대 코드는 자동으로 들어가요」' },
