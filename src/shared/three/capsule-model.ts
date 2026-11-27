@@ -343,6 +343,70 @@ export function starMaterial(glow: Color) {
   })
 }
 
+/**
+ * Clear glass around the capsules (the empty records jar, the invite dome), drawn additively like the capsule shell:
+ * a faint body tint, a fresnel rim and the studio's soft boxes as streaks of reflected light — no refraction, no
+ * caustics. Draw it double-sided after the opaque parts; it never writes depth.
+ */
+export function fresnelGlassMaterial(options: { tint: Color; body?: number; rim?: number; streak?: number }) {
+  return new ShaderMaterial({
+    uniforms: {
+      uTint: { value: options.tint },
+      uBody: { value: options.body ?? 0.05 },
+      uRim: { value: options.rim ?? 0.55 },
+      uStreak: { value: options.streak ?? 0.5 },
+      uStrength: { value: 1 },
+      uSweep: { value: -2 },
+    },
+    vertexShader: /* glsl */ `
+      varying vec3 vN;
+      varying vec3 vV;
+      varying vec3 vWorld;
+      void main() {
+        vec4 world = modelMatrix * vec4(position, 1.0);
+        vec4 mv = viewMatrix * world;
+        vN = normalize(mat3(modelViewMatrix) * normal);
+        vV = normalize(-mv.xyz);
+        vWorld = world.xyz;
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uTint;
+      uniform float uBody;
+      uniform float uRim;
+      uniform float uStreak;
+      uniform float uStrength;
+      uniform float uSweep;
+      varying vec3 vN;
+      varying vec3 vV;
+      varying vec3 vWorld;
+      void main() {
+        vec3 n = normalize(vN);
+        vec3 v = normalize(vV);
+        if (!gl_FrontFacing) n = -n;
+        float facing = clamp(abs(dot(n, v)), 0.0, 1.0);
+        float fresnel = pow(1.0 - facing, 2.6);
+        // The studio's soft boxes reflected: a tall one on the left, a narrow one on the right, one above.
+        vec3 r = reflect(-v, n);
+        float boxes = smoothstep(0.3, 0.62, -r.x) * smoothstep(0.85, 0.25, abs(r.y)) * 0.9
+          + smoothstep(0.62, 0.86, r.x) * smoothstep(0.7, 0.2, abs(r.y)) * 0.45
+          + smoothstep(0.62, 0.92, r.y) * 0.35;
+        // A highlight passing over the glass once (uSweep: its position across the world x, −2 = parked off the glass).
+        float sweep = exp(-pow((vWorld.x + vWorld.y * 0.45 - uSweep) / 0.18, 2.0)) * 0.6;
+        vec3 color = uTint * (uBody + uRim * fresnel) + vec3(1.0, 0.98, 1.0) * (boxes * uStreak * (0.3 + 0.7 * fresnel) + sweep * (0.25 + fresnel));
+        float side = gl_FrontFacing ? 1.0 : 0.5;
+        gl_FragColor = vec4(color * uStrength * side, 1.0);
+        ${ALPHA_CANVAS_OUTPUT}
+      }
+    `,
+    transparent: false,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    side: DoubleSide,
+  })
+}
+
 // ── A single capsule ──────────────────────────────────────────────────────────
 
 /**
