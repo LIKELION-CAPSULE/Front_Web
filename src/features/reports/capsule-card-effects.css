@@ -27,7 +27,6 @@
   }
   .capsule-card-stage .capsule-card-header { transform: translateZ(calc(var(--capsule-depth) * 14px)); }
   .capsule-card-stage .share-portrait { transform: translateZ(calc(var(--capsule-depth) * 30px)); }
-  .capsule-card-stage .capsule-study-amount { transform: translateZ(calc(var(--capsule-depth) * 32px)); }
   .capsule-card-stage .capsule-share-card > p:not(.capsule-study-amount) { transform: translateZ(calc(var(--capsule-depth) * 12px)); }
   .capsule-card-stage .capsule-share-card > .badge { transform: translateZ(calc(var(--capsule-depth) * 22px)); }
   .capsule-card-stage .capsule-share-card > :not(.capsule-card-effects) { transition: transform 250ms cubic-bezier(.2,.8,.2,1); }

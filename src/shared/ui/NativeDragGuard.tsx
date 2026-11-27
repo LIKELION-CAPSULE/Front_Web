@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 
 const visualControls = [
   '.site-header-brand', '.app-navigation', '.detail-breadcrumb', '.ui-button',
-  '.payment-receipt[data-phase="ready"] .receipt-paper',
   '[data-no-native-drag]',
 ].join(', ')
 

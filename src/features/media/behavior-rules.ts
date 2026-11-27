@@ -8,9 +8,6 @@ export type BehaviorKind = 'away' | 'drowsy' | 'yawn' | 'headTurn' | 'phone' | '
 
 /** Highest first; used for the overlay order and for choosing which detection the friend reacts to. */
 export const behaviorPriority: readonly BehaviorKind[] = ['away', 'drowsy', 'phone', 'headTurn', 'yawn', 'wave']
-export const behaviorLabels: Record<BehaviorKind, string> = {
-  away: '자리 비움', drowsy: '졸음', yawn: '하품', headTurn: '고개 돌림', phone: '핸드폰', wave: '손 흔들기',
-}
 
 export type Point = { x: number; y: number }
 /** Face Landmarker output for one frame; yaw is in degrees. */

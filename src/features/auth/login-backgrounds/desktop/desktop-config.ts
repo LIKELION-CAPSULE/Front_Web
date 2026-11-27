@@ -1,9 +1,4 @@
 import { capsuleLogo } from '@/shared/design/brand-logo'
-import fallbackDawnUrl from './static-wallpapers/fallback/dawn.webp'
-import fallbackMorningUrl from './static-wallpapers/fallback/morning.webp'
-import fallbackDayUrl from './static-wallpapers/fallback/day.webp'
-import fallbackSunsetUrl from './static-wallpapers/fallback/sunset.webp'
-import fallbackNightUrl from './static-wallpapers/fallback/night.webp'
 import { chaerinArtwork } from '@/features/mates/artwork'
 
 export type MateReactionState =
@@ -28,102 +23,6 @@ export type MateReactionState =
   | 'onboardingDone'
 
 export type TimeOfDayMode = 'auto' | 'dawn' | 'morning' | 'day' | 'sunset' | 'night'
-export type TimeOfDayBand = Exclude<TimeOfDayMode, 'auto'>
-
-export function resolveTimeBand(mode: TimeOfDayMode = 'auto'): TimeOfDayBand {
-  if (mode !== 'auto') return mode
-  const h = new Date().getHours()
-  if (h < 5) return 'dawn'
-  if (h < 10) return 'morning'
-  if (h < 17) return 'day'
-  if (h < 20) return 'sunset'
-  return 'night'
-}
-
-export interface TimePalette {
-  top: string
-  mid: string
-  bottom: string
-  glow: string
-  tubeBase: string
-  tubeSpec: string
-  rimColor: string
-  defaultLightAngle: number
-  /** Subtle extra tube contrast boost for dark night/dawn bands so tubes don't vanish. */
-  tubeContrastBoost: number
-}
-
-/** Time-of-day wallpaper palettes: night matches matte-silk violet reference (#5b2bd6 / #b9a3ff / #d6c8ff / #120a26),
- * while morning (cool blue-lavender), day (bright airy lavender), sunset (warm rose-peach), and dawn are clearly distinct. */
-export const TIME_OF_DAY_PALETTES: Record<TimeOfDayBand, TimePalette> = {
-  dawn: {
-    top: '#150f29',
-    mid: '#231945',
-    bottom: '#342661',
-    glow: '#7858c2',
-    tubeBase: '#5c3fa3',
-    tubeSpec: '#c7b5f2',
-    rimColor: '#e2d7ff',
-    defaultLightAngle: 48,
-    tubeContrastBoost: 6,
-  },
-  morning: {
-    top: '#1a2444',
-    mid: '#2b3b69',
-    bottom: '#42568c',
-    glow: '#84a8f0',
-    tubeBase: '#5c72c4',
-    tubeSpec: '#bed4ff',
-    rimColor: '#e3eeff',
-    defaultLightAngle: 72,
-    tubeContrastBoost: 0,
-  },
-  day: {
-    top: '#4e417d',
-    mid: '#7465ab',
-    bottom: '#9d90d4',
-    glow: '#d9d0ff',
-    tubeBase: '#8778c9',
-    tubeSpec: '#ebe5ff',
-    rimColor: '#ffffff',
-    defaultLightAngle: 112,
-    tubeContrastBoost: 0,
-  },
-  sunset: {
-    top: '#1d0f24',
-    mid: '#341942',
-    bottom: '#56265c',
-    glow: '#e878a4',
-    tubeBase: '#7a3b8f',
-    tubeSpec: '#ff9fb8',
-    rimColor: '#ffc8a8',
-    defaultLightAngle: 152,
-    tubeContrastBoost: 0,
-  },
-  night: {
-    top: '#120a26',
-    mid: '#170d30',
-    bottom: '#0e081f',
-    glow: '#5b2bd6',
-    tubeBase: '#5b2bd6',
-    tubeSpec: '#b9a3ff',
-    rimColor: '#d6c8ff',
-    defaultLightAngle: 205,
-    tubeContrastBoost: 8,
-  },
-}
-
-/**
- * ② Fallback static wallpapers (tubes + capsules, NO shiny) — shown ONLY when 3D is NOT mounted
- * (WebGL2 unavailable or prefers-reduced-motion).
- */
-export const STATIC_FALLBACK_WALLPAPERS: Record<TimeOfDayBand, string> = {
-  dawn: fallbackDawnUrl,
-  morning: fallbackMorningUrl,
-  day: fallbackDayUrl,
-  sunset: fallbackSunsetUrl,
-  night: fallbackNightUrl,
-}
 
 /** Default bottom-center subtitle bubble framing (guaranteed below the upper 55% face region). */
 export const DEFAULT_BUBBLE_POSITION = {

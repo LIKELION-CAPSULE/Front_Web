@@ -127,29 +127,6 @@ export function reactionBubbleDurationMs(text: string): number {
   return Math.min(8000, Math.max(4000, 3400 + len * 120))
 }
 
-/** Minimum cooldown before the same state can emit another speech bubble automatically. */
-export const REACTION_COOLDOWN_MS: Record<MateReactionState, number> = {
-  idle: 0,
-  greet: Number.POSITIVE_INFINITY,
-  emailFocus: Number.POSITIVE_INFINITY, // once per visit
-  passwordFocus: 12_000,
-  idleLong: 25_000,
-  error: 4_000,
-  success: 0,
-  dragged: 9_000,
-  iconOpen: 1_500,
-  legalReading: Number.POSITIVE_INFINITY, // once per visit
-  secretFound: 6_000,
-  shinyFound: 6_000,
-  photosPeek: 0,
-  photosOpen: 0,
-  onboardingGreet: Number.POSITIVE_INFINITY, // once on open
-  avatarPicked: 5_000,
-  nicknameSet: 2_000,
-  referralValid: 4_000,
-  onboardingDone: 0,
-}
-
 export function buildExpressionRequestForState(
   state: MateReactionState,
   mapping: ExpressionMapping,
