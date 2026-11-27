@@ -3,9 +3,10 @@
   Link-preview card (1200×630) of capsule.ai.kr: the login screen's 「노트북 앞에서 조는 채린」 scene, the CAPSULE logo and
   「나만의 메이트가 기다리고 있어요」. Rendered by scripts/og/render-og-images.mjs into public/og/. `?variant=invite` adds the
   「친구 초대」 badge and the reward line (the fixed image of invite links, server/og-meta.ts).
-  Only repository assets (relative paths); no 「AI 캐릭터」 tag here (PM 2026-11-26: the tag stays on the login screen).
-  The desk is a simplified copy of src/features/auth/login-variants/doze/DozeDesk.tsx with the same model geometry
-  (doze-view.ts DOZE_FRAMING, renders.json chaerin-v2-hero).
+  The scene (Chaerin, laptop, mug, desk) is a screenshot of the login stage (DozeMateStage / DozeDesk) that the render
+  script hands over as window.OG_SCENE, so it matches the login screen exactly; this file only adds the room behind it,
+  the scrim and the copy. Only repository assets otherwise (relative paths); no 「AI 캐릭터」 tag here (PM 2026-11-26:
+  the tag stays on the login screen).
 -->
 <html lang="ko">
 <head>
@@ -25,21 +26,13 @@
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 30% 40%;
     filter: blur(6px) brightness(0.62) saturate(1.1); transform: scale(1.06);
   }
-  .glow {
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse 360px 300px at var(--face-x) var(--face-y), rgba(214, 205, 255, 0.16), transparent 70%);
-  }
+  .scene { position: absolute; max-width: none; user-select: none; }
   .scrim {
     position: absolute; inset: 0;
     background:
       linear-gradient(90deg, rgba(15, 14, 23, 0) 34%, rgba(15, 14, 23, 0.7) 56%, rgba(15, 14, 23, 0.92) 100%),
       linear-gradient(0deg, rgba(15, 14, 23, 0.5) 0%, rgba(15, 14, 23, 0) 24%);
   }
-  .mate { position: absolute; user-select: none; }
-  .desk { position: absolute; inset: 0; }
-  .zz { position: absolute; font-weight: 800; color: #f0eff5; line-height: 1; text-shadow: 0 0 18px rgba(214, 205, 255, 0.55); }
-  .zz.big { font-size: 92px; transform: rotate(8deg); }
-  .zz.small { font-size: 34px; opacity: 0.78; transform: rotate(-6deg); }
 
   .copy {
     position: absolute; left: 690px; top: 0; bottom: 0; width: 460px;
@@ -69,11 +62,7 @@
 <body>
 <div class="card" id="card">
   <img class="room" src="../../src/assets/characters/chaerin-call-bg/chaerin-call-bg-landscape.webp" alt="" />
-  <div class="glow"></div>
-  <img class="mate" id="mate" src="../../src/assets/characters/chaerin-v2/chaerin-v2-doze.webp" alt="" />
-  <svg class="desk" id="desk" width="1200" height="630" viewBox="0 0 1200 630"></svg>
-  <span class="zz big" id="zBig">Z</span>
-  <span class="zz small" id="zSmall">z</span>
+  <img class="scene" id="scene" alt="" />
   <div class="scrim"></div>
 
   <div class="copy">
@@ -99,75 +88,15 @@
     el.style.backgroundImage = art.url
   }
 
-  // Model geometry (doze-view.ts / renders.json): the hero still covers model y 31..769 at 1520×1800 around x 640.
-  const HEAD_TOP = 40, DESK_TOP = 714, LID_TOP = 612, LID_W = 400, CENTER_X = 640, EYES_Y = 300
-  const still = { w: 1520, h: 1800, modelTop: 31, modelH: 738 }
-  const mateCx = 335, headY = 40, deskY = 552
-  const k = (deskY - headY) / (DESK_TOP - HEAD_TOP)
-  const X = mx => mateCx + (mx - CENTER_X) * k
-  const Y = my => headY + (my - HEAD_TOP) * k
-  const u = v => v * k
-
-  const mate = document.getElementById('mate')
-  const stillScale = (still.modelH * k) / still.h
-  Object.assign(mate.style, { width: `${still.w * stillScale}px`, height: `${still.h * stillScale}px`, left: `${mateCx - (still.w * stillScale) / 2}px`, top: `${Y(still.modelTop)}px` })
-  const card = document.getElementById('card')
-  card.style.setProperty('--face-x', `${mateCx}px`)
-  card.style.setProperty('--face-y', `${Y(EYES_Y)}px`)
-  Object.assign(document.getElementById('zBig').style, { left: `${X(CENTER_X + 175)}px`, top: `${Y(70)}px` })
-  Object.assign(document.getElementById('zSmall').style, { left: `${X(CENTER_X + 140)}px`, top: `${Y(230)}px` })
-
-  const deskTop = Y(DESK_TOP)
-  const surfaceTop = deskTop - u(20), frontEdge = deskTop + u(34), lipBottom = frontEdge + u(15)
-  const lidBottom = deskTop - u(5), lidTop = Y(LID_TOP)
-  const lidBottomW = u(LID_W) * 0.95, lidTopW = lidBottomW * 1.06, cx = X(CENTER_X)
-  const lid = [
-    [cx - lidTopW / 2, lidTop], [cx + lidTopW / 2, lidTop], [cx + lidBottomW / 2, lidBottom], [cx - lidBottomW / 2, lidBottom],
-  ].map(p => p.join(',')).join(' ')
-  const logoSize = u(54), logoY = lidTop + (lidBottom - lidTop) * 0.44 - logoSize / 2
-  const mug = { x: cx + lidBottomW / 2 + u(70), y: deskTop - u(34), w: u(48), h: u(56) }
-  const book = { x: cx - lidBottomW / 2 - u(150), y: deskTop + u(2) }
-
-  document.getElementById('desk').innerHTML = `
-    <defs>
-      <linearGradient id="top" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f1815"/><stop offset="1" stop-color="#32261f"/></linearGradient>
-      <linearGradient id="lip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2d25"/><stop offset=".35" stop-color="#261d18"/><stop offset="1" stop-color="#130f0d"/></linearGradient>
-      <linearGradient id="under" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f0d10"/><stop offset="1" stop-color="#0f0e17"/></linearGradient>
-      <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffd9b8" stop-opacity=".42"/><stop offset=".35" stop-color="#f3dccb" stop-opacity=".22"/><stop offset="1" stop-color="#d9d5f1" stop-opacity=".08"/></linearGradient>
-      <linearGradient id="contact" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
-      <radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffc996" stop-opacity=".55"/><stop offset=".45" stop-color="#ffb87a" stop-opacity=".16"/><stop offset="1" stop-color="#ffb87a" stop-opacity="0"/></radialGradient>
-      <linearGradient id="lidFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4855"/><stop offset=".5" stop-color="#34323d"/><stop offset="1" stop-color="#24232c"/></linearGradient>
-      <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e6deff" stop-opacity="0"/><stop offset=".5" stop-color="#e6deff" stop-opacity=".75"/><stop offset="1" stop-color="#e6deff" stop-opacity="0"/></linearGradient>
-      <linearGradient id="mugFill" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#403e4b"/><stop offset=".38" stop-color="#8f8d9c"/><stop offset=".55" stop-color="#a4a3b0"/><stop offset="1" stop-color="#2f2d38"/></linearGradient>
-      <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${Math.max(2, u(6))}"/></filter>
-    </defs>
-    <rect x="0" y="${surfaceTop}" width="1200" height="${frontEdge - surfaceTop}" fill="url(#top)"/>
-    <rect x="0" y="${surfaceTop}" width="1200" height="${u(16)}" fill="url(#contact)"/>
-    <ellipse cx="${cx - u(330)}" cy="${deskTop + u(10)}" rx="${u(320)}" ry="${u(38)}" fill="url(#pool)" style="mix-blend-mode:screen"/>
-    <rect x="0" y="${frontEdge}" width="1200" height="${lipBottom - frontEdge}" fill="url(#lip)"/>
-    <rect x="0" y="${frontEdge}" width="1200" height="${Math.max(1, u(2))}" fill="url(#edge)"/>
-    <rect x="0" y="${lipBottom}" width="1200" height="${630 - lipBottom}" fill="url(#under)"/>
-
-    <polygon points="${book.x},${book.y + u(22)} ${book.x + u(150)},${book.y + u(22)} ${book.x + u(134)},${book.y} ${book.x + u(14)},${book.y}" fill="#d4cbc0" opacity=".85"/>
-    <line x1="${book.x + u(75)}" y1="${book.y}" x2="${book.x + u(75)}" y2="${book.y + u(22)}" stroke="#a69d93" stroke-width="${u(2)}"/>
-    <rect x="${book.x + u(92)}" y="${book.y + u(9)}" width="${u(70)}" height="${u(4)}" rx="${u(2)}" fill="#7e54f6" transform="rotate(-6 ${book.x + u(92)} ${book.y + u(9)})"/>
-
-    <ellipse cx="${cx}" cy="${lidBottom + u(8)}" rx="${lidBottomW * 0.56}" ry="${u(10)}" fill="#000" opacity=".55" filter="url(#soft)"/>
-    <rect x="${cx - lidBottomW * 0.53}" y="${lidBottom}" width="${lidBottomW * 1.06}" height="${u(9)}" rx="${u(4)}" fill="#2a2932"/>
-    <polygon points="${lid}" fill="url(#lidFill)"/>
-    <rect x="${cx - lidTopW / 2 + u(6)}" y="${lidTop}" width="${lidTopW - u(12)}" height="${Math.max(1.2, u(2.2))}" fill="url(#rim)"/>
-    <rect x="${cx - logoSize / 2}" y="${logoY}" width="${logoSize}" height="${logoSize * 0.96}" rx="${logoSize * 0.24}" fill="#5e5c69" opacity=".9"/>
-    <image href="../../design/brand/capsule-logo-2026-11-22-v2/capsule-glyph-white.svg" x="${cx - logoSize * 0.36}" y="${logoY + logoSize * 0.2}" width="${logoSize * 0.72}" height="${logoSize * 0.57}" opacity=".9"/>
-    <g transform="rotate(7 ${cx + lidBottomW * 0.3} ${lidTop + u(30)})">
-      <rect x="${cx + lidBottomW * 0.22}" y="${lidTop + u(14)}" width="${u(58)}" height="${u(54)}" fill="#e1e0e8" opacity=".92"/>
-      <path d="M ${cx + lidBottomW * 0.22 + u(10)} ${lidTop + u(36)} q ${u(14)} ${-u(8)} ${u(36)} 0" stroke="#807e8d" stroke-width="${u(2)}" fill="none"/>
-    </g>
-
-    <rect x="${mug.x}" y="${mug.y}" width="${mug.w}" height="${mug.h}" rx="${u(6)}" fill="url(#mugFill)"/>
-    <ellipse cx="${mug.x + mug.w / 2}" cy="${mug.y + u(2)}" rx="${mug.w / 2}" ry="${u(5)}" fill="#1a1922"/>
-    <path d="M ${mug.x + mug.w} ${mug.y + u(14)} q ${u(20)} 0 ${u(18)} ${u(18)} q ${-u(2)} ${u(14)} ${-u(18)} ${u(12)}" stroke="#5e5c69" stroke-width="${u(6)}" fill="none"/>
-    <path d="M ${mug.x + u(18)} ${mug.y - u(8)} q ${-u(8)} ${-u(14)} 0 ${-u(26)} q ${u(8)} ${-u(12)} 0 ${-u(24)}" stroke="#f0eff5" stroke-opacity=".28" stroke-width="${u(3)}" fill="none" stroke-linecap="round"/>
-  `
+  // The login screen's stage (DozeMateStage + DozeDesk), captured by the render script; see render-og-images.mjs.
+  const scene = window.OG_SCENE
+  const sceneEl = document.getElementById('scene')
+  if (scene) {
+    Object.assign(sceneEl.style, { left: `${scene.left}px`, top: `${scene.top}px`, width: `${scene.width}px`, height: `${scene.height}px` })
+    sceneEl.src = scene.url
+  } else {
+    sceneEl.remove()
+  }
   document.fonts.ready.then(() => { document.body.dataset.ready = 'true' })
 </script>
 </body>
