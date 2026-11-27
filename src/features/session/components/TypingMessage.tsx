@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import type { RefObject } from 'react'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
+import { letterPace } from '../speech-pace'
 import '../typing-message.css'
 
 export function TypingMessage({ id, text, seen, onProgress, onTypingChange }: { id: string; text: string; seen: RefObject<Set<string>>; onProgress: () => void; onTypingChange: (id: string, typing: boolean) => void }) {
@@ -35,7 +36,7 @@ export function TypingMessage({ id, text, seen, onProgress, onTypingChange }: { 
       node.textContent = letters.slice(0, from).join('')
       node.dataset.typing = 'true'
       const start = performance.now()
-      const pace = Math.max(15, Math.min(32, 2500 / letters.length))
+      const pace = letterPace(text)
       let visible = -1
       function tick(now: number) {
         const count = Math.min(letters.length, from + Math.floor((now - start) / pace) + 1)

@@ -23,7 +23,6 @@ import { useExpressionDirector } from '@/features/live2d/use-live2d'
 import { useNow } from '@/features/session/use-now'
 import { ChatComposer } from '@/features/session/components/ChatComposer'
 import { TypingMessage } from '@/features/session/components/TypingMessage'
-import { CharacterSpeechBubble } from '@/features/session/components/CharacterSpeechBubble'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
 import { GlassDock, type GlassDockItem } from '@/shared/ui/dock/GlassDock'
@@ -53,7 +52,8 @@ import { takePickup } from '@/features/mates/pickup-sequence'
 import { useChatHistory } from '@/features/mates/use-chat-history'
 import { ChatHistoryStatus } from '@/features/mates/components/ChatHistoryStatus'
 import { ChatLogGroups } from '@/features/mates/components/ChatLogGroups'
-import { CallSpeakerChip } from '@/features/mates/components/CallSpeakerChip'
+import { CallDialogueBox } from '@/features/mates/components/CallDialogueBox'
+import { pickStageLine } from '@/features/mates/call-dialogue'
 import { unreadArrivals } from '@/features/mates/chat-groups'
 import { PixelRoofStrip } from '@/shared/ui/pixel/PixelFrame'
 import { ReplyActions, ReportedReply } from '@/features/mates/components/ReplyActions'
@@ -168,8 +168,10 @@ export default function ConnectionPage() {
   const [speech, setSpeech] = useState({ id: 0, at: 0, text: '' })
   const [speakingMessages, setSpeakingMessages] = useState<ReadonlySet<string>>(new Set())
   const speaking = speakingMessages.size > 0
-  /** The event bubble's line is typing (CharacterSpeechBubble: on while letters appear, off when done/skipped/gone). */
-  const [bubbleTyping, setBubbleTyping] = useState(false)
+  /** The dialogue box is typing a line (CallDialogueBox: on while letters appear, off when a page is shown or it goes). */
+  const [lineTyping, setLineTyping] = useState(false)
+  /** The dialogue box's line that closed (timed out, turned past, or the user sent a line): it does not come back. */
+  const [lineDone, setLineDone] = useState<string | null>(null)
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [privacySeen, setPrivacySeen] = useState(false)
@@ -244,6 +246,8 @@ export default function ConnectionPage() {
   const messageList = useRef<HTMLDivElement>(null)
   const followMessages = useRef(true)
   const seenMessages = useRef(new Set(state.messages.map(message => message.id)))
+  /** Lines already here when the page opened (a reload): the dialogue box never replays them. */
+  const [openingIds] = useState(() => new Set(state.messages.map(message => message.id)))
   const scrollLatest = useCallback(() => {
     if (followMessages.current && messageList.current) messageList.current.scrollTop = messageList.current.scrollHeight
   }, [])
@@ -290,10 +294,10 @@ export default function ConnectionPage() {
   // The connection ending stops a press and drops what was being heard.
   const cancelTalk = pushToTalk.cancel
   useEffect(() => { if (finishing) cancelTalk() }, [finishing, cancelTalk])
-  // The mouth moves exactly while a line is typing on screen: a chat reply (also while it streams in) or the event
-  // bubble. v2 stages only; Cubism stages have no `setTalking`. While her voice plays, the voice moves the mouth
+  // The mouth moves exactly while a line is typing on screen: a chat reply (also while it streams in) or the dialogue
+  // box. v2 stages only; Cubism stages have no `setTalking`. While her voice plays, the voice moves the mouth
   // instead (its level, every frame; Cubism and v2), so the typing motion steps aside.
-  const talking = speaking || bubbleTyping
+  const talking = speaking || lineTyping
   useEffect(() => {
     const stage = backend.live2dStage
     stage?.setTalking?.(talking && !voicePlaying)
@@ -377,15 +381,15 @@ export default function ConnectionPage() {
   // The stage no longer changes its layout on a click (user decision): a click on the mate herself is a tap.
   const onStageClick = (event: MouseEvent<HTMLDivElement>) => {
     const target = event.target as Element
-    // The speech bubble (skips typing) and any control keep their own click.
-    if (target.closest('button, a, input, textarea, select, .connection-speech-slot')) return
+    // The dialogue box (shows / turns its page) and any control keep their own click.
+    if (target.closest('button, a, input, textarea, select, .call-dialogue-slot')) return
     const section = target.closest('.connection-mate')
     if (!section || !onMate(section.getBoundingClientRect(), event.clientX, event.clientY)) return
     tapMate()
   }
   const onStagePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const section = (event.target as Element).closest('.connection-mate')
-    const over = Boolean(section && !(event.target as Element).closest('button, a, .connection-speech-slot') && onMate(section.getBoundingClientRect(), event.clientX, event.clientY))
+    const over = Boolean(section && !(event.target as Element).closest('button, a, .call-dialogue-slot') && onMate(section.getBoundingClientRect(), event.clientX, event.clientY))
     event.currentTarget.toggleAttribute('data-over-mate', over)
   }
   const serverEnded = useCallback(() => {
@@ -403,7 +407,7 @@ export default function ConnectionPage() {
     // 「먼저 말 걸기」 (idle-talk.ts): quiet counts from the end of the last talk; the event line typing, the user's voice
     // and the hang-up also hold it.
     idleTalk: true,
-    holdIdleTalk: bubbleTyping || finishing || (pushToTalk.snapshot.status !== 'idle' && pushToTalk.snapshot.status !== 'unsent'),
+    holdIdleTalk: lineTyping || finishing || (pushToTalk.snapshot.status !== 'idle' && pushToTalk.snapshot.status !== 'unsent'),
     onExpression: cue,
     onReaction: (result, event, voiceTicket) => {
       const reply = result.characters?.find(value => String(value.characterId) === mate?.characterId)
@@ -423,6 +427,15 @@ export default function ConnectionPage() {
     onEnded: () => { if (!hangup.current) serverEnded() },
   })
   const localMessages = state.messages.filter(message => message.characterId === mate?.characterId && /^\d+$/.test(message.sessionId))
+  // The dialogue box (C1 「대사창」): her newest line of this call — a reply (typing in as it streams) or an event line
+  // (반응·먼저 말 걸기·탭) — until it closes; nothing while hanging up. Event lines are not in the chat log, so the box
+  // has them read; a reply only while the chat (the log) is closed, once it is complete.
+  const liveReply = active ? localMessages.findLast(message => message.sender === 'character' && message.sessionId === active.id && !openingIds.has(message.id)) : undefined
+  const stageLine = ending ? null : pickStageLine([
+    liveReply ? { key: liveReply.id, text: liveReply.text, at: liveReply.createdAt ?? 0 } : null,
+    speech.text ? { key: `event:${speech.id}`, text: speech.text, at: speech.at } : null,
+  ], lineDone)
+  const stageLineRead = !stageLine ? '' : stageLine.key !== liveReply?.id ? stageLine.text : !chatOpen && liveReply.delivery !== 'pending' ? stageLine.text : ''
   // 32: the server's history in the chat; the running connection's lines stay this browser's (use-chat-history.ts).
   const chat = useChatHistory({
     userId: state.profile.userId, characterId: mate?.characterId, open: chatOpen && Boolean(shown), local: localMessages, activeConnectionId: active?.id ?? null,
@@ -535,6 +548,8 @@ export default function ConnectionPage() {
     if (!mate || sending || speaking || finishing || !text.trim()) return false
     followMessages.current = true
     setUnread(0)
+    // Her line on the stage gives way to 「답장 준비 중」 (the dialogue box's waiting state).
+    if (stageLine) setLineDone(stageLine.key)
     setSending(true)
     setError('')
     // A new reply is on its way: the voice before it stops, and this reply's voice (if asked) starts as it arrives.
@@ -908,22 +923,6 @@ export default function ConnectionPage() {
                   <img key={stillBounce} data-bounce={stillBounce > 0 || undefined} src={matePortrait(mate.id, mate.image)} width={800} height={600} alt="" className="connection-mate-fallback-img" />
                 )}
               </div>
-              {/* 「말하는 중」 / 「답장 준비 중」: a name chip, not a frame (no outlines). Not while hanging up. */}
-              {!ending && (talking || voicePlaying || sending) && (
-                <CallSpeakerChip name={mate.name} state={talking || voicePlaying ? 'speaking' : 'waiting'} />
-              )}
-              {speech.text && (
-                <div className="connection-speech-slot">
-                  <CharacterSpeechBubble
-                    key={speech.id}
-                    name={mate.name}
-                    text={speech.text}
-                    expanded
-                    variant="pill"
-                    onTypingChange={setBubbleTyping}
-                  />
-                </div>
-              )}
             </section>
 
             <section className="connection-self desktop-window" aria-label="내 화면">
@@ -951,6 +950,39 @@ export default function ConnectionPage() {
                 )}
               </div>
             </section>
+            {/* The dialogue box (C1 「대사창」) over the dock, chat open or closed; 「누르고 말하기」's heard text,
+                the sentence before it goes out and its notices stack over it. */}
+            <CallDialogueBox
+              name={mate.name}
+              line={stageLine}
+              waiting={sending && !ending}
+              speaking={talking || voicePlaying}
+              linger={voicePlaying}
+              announce={stageLineRead}
+              onTypingChange={setLineTyping}
+              onDone={setLineDone}
+              above={(pushToTalk.snapshot.status !== 'idle' || pushToTalk.snapshot.notice || (pushToTalk.privacy && !pip.window)) && (
+                <div className="connection-stt" data-status={pushToTalk.snapshot.status} role="status" aria-live="polite">
+                  {/* The first-use notice shows where the user is talking: here, or in the PIP window while it is open. */}
+                  {pushToTalk.privacy && !pip.window && <SttPrivacy onShown={pushToTalk.privacyShown} />}
+                  {pushToTalk.snapshot.status !== 'idle' && (
+                    <p className="connection-stt-text">
+                      <span className="connection-stt-label">{STT_LABEL[pushToTalk.snapshot.status]}</span>
+                      {pushToTalk.snapshot.text || (pushToTalk.snapshot.status === 'listening' ? '말해 보세요…' : '')}
+                    </p>
+                  )}
+                  {pushToTalk.snapshot.status === 'unsent' && (
+                    <p className="connection-stt-actions">
+                      <button type="button" className="connection-stt-retry" onClick={pushToTalk.retry}>다시 보내기</button>
+                      <button type="button" className="connection-stt-dismiss" onClick={pushToTalk.dismiss}>지우기</button>
+                    </p>
+                  )}
+                  {pushToTalk.snapshot.notice && (
+                    <p className="connection-stt-notice" data-tone={pushToTalk.snapshot.noticeTone}>{pushToTalk.snapshot.notice}</p>
+                  )}
+                </div>
+              )}
+            />
           </div>
 
           {(creditInsufficient || floatingErrors.length > 0 || (showAffinity && sync.stageUp) || voice.status === 'blocked' || voiceIntro || (voiceOn && voiceUnavailable) || (voiceNote === 'shown' && !chatOpen)) && (
@@ -987,29 +1019,6 @@ export default function ConnectionPage() {
                   <FeedbackMessage tone="error">{message}</FeedbackMessage>
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* 「누르고 말하기」: what is being heard, the sentence before it goes out, notices; above the dock. */}
-          {(pushToTalk.snapshot.status !== 'idle' || pushToTalk.snapshot.notice || (pushToTalk.privacy && !pip.window)) && (
-            <div className="connection-stt" data-status={pushToTalk.snapshot.status} role="status" aria-live="polite">
-              {/* The first-use notice shows where the user is talking: here, or in the PIP window while it is open. */}
-              {pushToTalk.privacy && !pip.window && <SttPrivacy onShown={pushToTalk.privacyShown} />}
-              {pushToTalk.snapshot.status !== 'idle' && (
-                <p className="connection-stt-text">
-                  <span className="connection-stt-label">{STT_LABEL[pushToTalk.snapshot.status]}</span>
-                  {pushToTalk.snapshot.text || (pushToTalk.snapshot.status === 'listening' ? '말해 보세요…' : '')}
-                </p>
-              )}
-              {pushToTalk.snapshot.status === 'unsent' && (
-                <p className="connection-stt-actions">
-                  <button type="button" className="connection-stt-retry" onClick={pushToTalk.retry}>다시 보내기</button>
-                  <button type="button" className="connection-stt-dismiss" onClick={pushToTalk.dismiss}>지우기</button>
-                </p>
-              )}
-              {pushToTalk.snapshot.notice && (
-                <p className="connection-stt-notice" data-tone={pushToTalk.snapshot.noticeTone}>{pushToTalk.snapshot.notice}</p>
-              )}
             </div>
           )}
 
