@@ -132,8 +132,14 @@ export default function MateDetailPage() {
         {/* The mate, large and floating: Live2D that only follows the cursor (still portrait until it loads). */}
         <div className="mate-hero-figure">
           <div className="mate-hero-glow" aria-hidden="true" />
-          {/* The brand capsule (canonical 3D model, still render) opening beside the mate. */}
-          <img className="mate-hero-capsules" src={capsuleOpen} width={500} height={500} alt="" aria-hidden="true" draggable={false} />
+          {/* Luminous capsule orbits surround the canonical capsule render. */}
+          <div className="mate-hero-capsules" aria-hidden="true">
+            <svg className="mate-hero-orbits" viewBox="0 0 220 220">
+              <rect className="mate-hero-orbit mate-hero-orbit--a" x="62" y="20" width="96" height="180" rx="48" />
+              <rect className="mate-hero-orbit mate-hero-orbit--b" x="62" y="20" width="96" height="180" rx="48" />
+            </svg>
+            <img src={capsuleOpen} width={500} height={500} alt="" draggable={false} />
+          </div>
           <div className="mate-hero-stage">
             <MatePreview
               mateId={mate.id}
