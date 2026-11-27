@@ -180,7 +180,7 @@ export default function AccountSettingsDialog({
                   disabled={busy}
                   data-account-view={menu.id}
                   className="account-settings-tab"
-                  onClick={() => selectView(menu.id, false)}
+                  onClick={(event) => selectView(menu.id, event.detail === 0)}
                   onKeyDown={(event) => navigate(event, index)}
                 >
                   <Icon name={menu.icon} size={18} />
