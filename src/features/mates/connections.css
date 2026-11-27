@@ -812,12 +812,11 @@
   }
 }
 
-/* ≤ 1100px (900 included): the info bar keeps one line by shortening — the affinity chip to its heart and steps, the
-   credit chip to the coin and the number, the mode to 「기본 · 고급」. The words stay for screen readers (sr-only, not
-   display: none) and in the tooltip (title). */
+/* ≤ 1100px (900 included): keep affinity stage name and paid advanced cost visible while trimming only redundant
+   captions (「남은」, 「· 크레딧 없음」) so the info bar stays on one line with room to spare. */
 @media (max-width: 1100px) {
-  .connection-titlebar-right .connection-chip-long,
-  .connection-mode-detail {
+  .connection-credit-chip .connection-chip-long,
+  .connection-mode-detail--free {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -827,6 +826,20 @@
   }
   .connection-titlebar-right { gap: 6px; }
   .connection-timer { font-size: 17px; min-width: max-content; padding-left: 10px; white-space: nowrap; }
+}
+
+/* ≤ 760px: shorten the remaining chip labels when horizontal space actually runs tight. Full words stay for screen
+   readers (sr-only, not display: none) and in the tooltip (title). */
+@media (max-width: 760px) {
+  .connection-titlebar-right .connection-chip-long,
+  .connection-mode-detail {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 /* 861px ~ 960px (960 half-screen): chat sits side-by-side without covering stage or dock;

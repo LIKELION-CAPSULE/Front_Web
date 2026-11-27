@@ -841,8 +841,8 @@ export default function ConnectionPage() {
         </div>
 
         {/* The info bar, all open (no 「⋯」, user decision 2026-11-27): ? | 친밀도 · 대화 모드 · 남은 크레딧 | 연결 시간.
-            Narrow windows (≤ 1100px) shorten the chips to their icons (the full words stay in the tooltip and for screen
-            readers); the mode is always shown. */}
+            Mid-width windows (≤ 1100px, incl. 900px) keep affinity stage name and paid cost visible while trimming only
+            redundant captions; narrow windows (≤ 760px) shorten the rest (full words stay sr-only and in title). */}
         <div className="connection-titlebar-right">
           <DevicePrivacyInfo label="연결 화면 안내" className="connection-titlebar-help">
             <ConnectionHelpNote />
@@ -868,7 +868,7 @@ export default function ConnectionPage() {
               // The mode itself is free; her voice (the dock's button) is counted apart, so say so while it is on.
               title={voiceOn ? `기본 모드는 크레딧 없이 대화해요. 메이트 음성은 답장마다 ${CREDIT_PRICING.voice} 크레딧이 따로 들어요` : '기본 모드 · 크레딧 없음'}
             >
-              <span>기본<span className="connection-mode-detail"> · 크레딧 없음</span></span>
+              <span>기본<span className="connection-mode-detail connection-mode-detail--free"> · 크레딧 없음</span></span>
             </button>
             <button
               type="button"
