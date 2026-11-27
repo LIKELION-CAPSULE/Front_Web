@@ -54,7 +54,7 @@ export function StageUpNotice({ stageUp, world, mateId, mateName, inLog = false 
 
 /**
  * The stage-up line in the call's chat log (P1 「픽셀 대화 기록」 + P2's system line, 2026-11-28): 「♡ 친밀도가
- * 올랐어요 · 3단계 친구」 in the affection pink on a small stepped tag, and the world it opened under it (world feature).
+ * 올랐어요 · 3단계 친구」 in the affection pink on a round pill with the pixel heart, and the world it opened under it (world feature).
  * Logged where the stage-up arrived (21 heartbeat `stageUp`); this browser's line, not the server's history.
  */
 export function StageUpLine({ stage, stageName, unlocked, world, mateId, mateName }: {

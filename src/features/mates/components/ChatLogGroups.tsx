@@ -11,7 +11,7 @@ function MateFace({ src }: { src?: string }) {
   </span>
 }
 
-/** Her reply on its way: three square dots (the dialogue box's), read as a status. */
+/** Her reply on its way: three square dots (the dialogue box's, a pixel point kept on purpose), read as a status. */
 function PixelDots({ name }: { name: string }) {
   return <span role="status" className="chat-log-dots">
     <span aria-hidden="true"><span /><span /><span /></span>
@@ -20,10 +20,10 @@ function PixelDots({ name }: { name: string }) {
 }
 
 /**
- * The call screen's chat log, P1 「픽셀 대화 기록」 (2026-11-28; chat-groups.ts `chatTimeline`): day dividers
- * (「오늘 23:39」), her runs with a pixel-framed face and a name tag once, mine on the right with my name for screen
- * readers only; stepped bubbles, a pixel tail on a run's first one; the run's last line shows its time (the others on
- * hover / focus); the app's notes (`notes` + `renderNote`: the stage-up line) in time order; while her reply is on its way,
+ * The call screen's chat log (2026-11-28; chat-groups.ts `chatTimeline`; P1 toned down to pixel points): day dividers
+ * (「오늘 23:39」), her runs with a round face and her name once (small text), mine on the right with my name for screen
+ * readers only; round bubbles with C3's run corners (no tail); the run's last line shows its time (the others on hover /
+ * focus); the app's notes (`notes` + `renderNote`: the stage-up line) in time order; while her reply is on its way,
  * three square dots in her run. Each line is one `article[data-message-id]` (the older-page anchor finds lines by it).
  * `renderText` and `renderActions` keep the page's own parts (typing, reported replies, 👍 / 👎 / 신고).
  */
