@@ -120,7 +120,7 @@ function RecordHeader({ titleId, mateName, modeLabel, endedAt, levelUp, stats }:
         </p>
         {ratio !== null && (
           <div className="capsule-record-ring">
-            <ProgressRing value={ratio} label={`${COPY.togetherRing} 비율`} size={64} />
+            <ProgressRing value={ratio} label={COPY.togetherRing} size={64} />
             <span>{COPY.togetherRing}</span>
           </div>
         )}

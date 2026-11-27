@@ -306,6 +306,10 @@
   word-break: keep-all;
 }
 
+.records-stat-sub-value {
+  white-space: nowrap;
+}
+
 /* 「함께 쌓은 시간」 board block (the board itself: src/features/records/capsule-board/capsule-board.css). */
 .records-board-block {
   margin-top: 12px;

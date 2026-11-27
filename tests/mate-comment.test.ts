@@ -9,6 +9,7 @@ import {
   dohyunVoice,
   collectPeriodFacts,
   commentHighlight,
+  mateCommentFromFacts,
   mateCommentKinds,
   timeBand,
   times,
@@ -245,3 +246,17 @@ test('late lines light the late days (night or dawn), a single band its own days
   assert.deepEqual(commentHighlight('late', facts).days, ['2026-11-23'])
   assert.deepEqual(commentHighlight('lateBand', facts).days, ['2026-11-23'])
 })
+
+test('all-mates scope names the speaker ("나랑") so own counts never contradict the combined totals', () => {
+  const range = getRecordRange('week', FRIDAY)
+  const facts = collectPeriodFacts({ range, offset: 0, now: FRIDAY, records: patternRecords('steady', FRIDAY) })
+  for (const voice of [chaerinVoice, dohyunVoice]) {
+    for (let seed = 0; seed < 12; seed++) {
+      const line = mateCommentFromFacts(facts, { range, seedKey: `u-${seed}`, voice, scope: 'all' })
+      assert.ok(line)
+      assert.match(line.text, /나랑/)
+      assert.ok(line.text.length <= MAX_LENGTH, `${line.text.length}: ${line.text}`)
+    }
+  }
+})
+

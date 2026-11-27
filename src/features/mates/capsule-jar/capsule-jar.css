@@ -172,7 +172,7 @@
 .capsule-jar-list-item:hover { background: var(--color-surface-hover); }
 .capsule-jar-list-text { flex: 1; min-width: 0; color: var(--color-muted); }
 .capsule-jar-list-duration { flex: none; color: var(--color-ink); font-variant-numeric: tabular-nums lining-nums; }
-.capsule-jar-list-empty { margin: 24px 0; text-align: center; color: var(--color-subtle); }
+.capsule-jar-list-empty { min-height: 220px; padding: 32px 16px; }
 
 @keyframes capsule-jar-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes capsule-jar-fade-out { from { opacity: 1; } to { opacity: 0; } }

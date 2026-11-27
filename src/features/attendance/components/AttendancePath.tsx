@@ -154,8 +154,17 @@ export function AttendancePath({ streak, checkedInToday, className }: {
 
   const label = characterLabel(days)
   const stand = padFor(days)
-  // Near either end of the path the line leans inwards so it stays inside the path's box.
-  const bubbleAlign = stand.x > 70 ? 'end' : stand.x < 30 ? 'start' : undefined
+  // Keep the bubble inside the path and clear of the day 7 reward capsule (left: 73.06%) while the capsule is shown.
+  const bubbleAlign =
+    stand.x < 30
+      ? 'start'
+      : !complete && stand.x >= 70
+        ? 'before-capsule'
+        : !complete && stand.x >= 55
+          ? 'left'
+          : stand.x > 70
+            ? 'end'
+            : undefined
 
   return (
     <div className={cn('attendance-path', className)} data-complete={complete || undefined}>

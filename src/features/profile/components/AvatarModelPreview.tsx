@@ -16,18 +16,17 @@ export const AVATAR_PREVIEW_DELAY_MS = 160
  * starts fading in), so the picker fades the stand-in still out under it. `leaving`: the model fades out quickly
  * before the picker releases it (never on screen with the next avatar).
  */
-export function AvatarModelPreview({ model, name, avatarKey, leaving = false, still, onShown, onFailed }: {
+export function AvatarModelPreview({ model, avatarKey, leaving = false, still, onShown, onFailed }: {
   model: ModelInfo
   /** Which choice this is (`data-avatar`, for checks that two avatars are never visible together). */
   avatarKey?: string
-  name: string
   /** The model being replaced: kept drawn (no status UI) until the new one is shown. */
   leaving?: boolean
   /** This avatar's still (thumbnail or default image), shown when the model fails to load. */
   still?: ReactNode
   onShown?: () => void
-  /** The model failed: the picker releases the model it was keeping on screen. */
-  onFailed?: () => void
+  /** The model failed: the picker releases the model it was keeping on screen and surfaces retry under the name. */
+  onFailed?: (retry: () => void) => void
 }) {
   const { stage, status, retry } = useAvatarModel(model, '', undefined, AVATAR_PREVIEW_DELAY_MS)
   const failed = status === 'error'
@@ -46,18 +45,13 @@ export function AvatarModelPreview({ model, name, avatarKey, leaving = false, st
   }, [status, leaving])
 
   useEffect(() => {
-    if (failed && !leaving) failedRef.current?.()
-  }, [failed, leaving])
+    if (failed && !leaving) failedRef.current?.(retry)
+  }, [failed, leaving, retry])
 
   return <div className="avatar-picker-model" data-status={status} data-leaving={leaving || undefined} data-avatar={avatarKey} aria-busy={status === 'loading'}>
     {failed && !leaving && still && <div className="avatar-picker-still" aria-hidden="true">{still}</div>}
     {stage && <Live2DFigure stage={stage} />}
-    {!leaving && (failed
-      ? <div className="avatar-picker-model-status" data-failed="true" role="status">
-        <p>움직이는 모습을 불러오지 못했어요.</p>
-        <button type="button" className="avatar-picker-retry" aria-label={`${name} 다시 불러오기`} onClick={retry}>다시 시도</button>
-      </div>
-      // Loading shows nothing on the stage but its light (AvatarDial pulses it when slow); said to screen readers.
-      : !stage && <div className="sr-only" role="status">아바타를 불러오고 있어요.</div>)}
+    {/* Loading shows nothing on the stage but its light (AvatarDial pulses it when slow); said to screen readers. */}
+    {!leaving && !failed && !stage && <div className="sr-only" role="status">아바타를 불러오고 있어요.</div>}
   </div>
 }
