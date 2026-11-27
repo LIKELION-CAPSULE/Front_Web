@@ -530,7 +530,13 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   }
   function pillarLayoutOf(tile: BoardTile) {
     const { maxHeight, radius } = dims()
-    return pillarLayout(tile.capsules, tile.day.connectionSeconds, { scaleHours: scaleHours(), maxHeight, radius })
+    const year = mode() === 'year'
+    // The overview has 365 tiles: give a recorded day a visible floor, while preserving
+    // the time ordering above it. Week/month retain their exact linear scale.
+    const seconds = year && tile.day.connectionSeconds > 0
+      ? Math.max(tile.day.connectionSeconds, scaleHours() * 3600 * 0.24)
+      : tile.day.connectionSeconds
+    return pillarLayout(tile.capsules, seconds, { scaleHours: scaleHours(), maxHeight: year ? 2.8 : maxHeight, radius })
   }
 
   /** Strength the guide lines are drawn at now (before the 2D share), 0 without lines. */
@@ -1054,6 +1060,14 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     const pad = 1.12
     const upp = Math.max(((maxX - minX) * pad) / width, ((maxY - minY) * pad) / height, 1e-4)
     const center = right.clone().multiplyScalar((minX + maxX) / 2).add(up.clone().multiplyScalar((minY + maxY) / 2))
+    if (mode() === 'year' && targetFlat < 1) {
+      const recorded = model.tiles.filter((tile) => tile.day.connectionSeconds > 0)
+      if (recorded.length) {
+        const focus = recorded.reduce((sum, tile) => sum.add(new Vector3(tile.x, columnHeight(tile) / 2, tile.z)), new Vector3()).divideScalar(recorded.length)
+        // A slight optical bias, keeping every month in view and selectable.
+        center.lerp(focus, 0.045 * (1 - targetFlat))
+      }
+    }
     return { azimuth, elevation, center, upp }
   }
 
@@ -1117,6 +1131,9 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
             ? TILE_COLOR.emptyYear
             : TILE_COLOR.empty
       color.copy(base)
+      if (mode() === 'year' && !tile.capsules.length && !tile.day.isFuture) {
+        color.lerp(TILE_COLOR.filled, 0.035 + (tile.month % 3) * 0.035)
+      }
       if (entry.emphasis > 0.01) color.lerp(TILE_COLOR.emphasis, entry.emphasis)
       if (entry.key === selectedKey && mode() !== 'year') color.copy(TILE_COLOR.selected)
       else if (isLit(entry, hovered) || isLit(entry, active)) color.lerp(TILE_COLOR.hover, 0.85)
