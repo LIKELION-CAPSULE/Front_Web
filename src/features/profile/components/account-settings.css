@@ -581,9 +581,13 @@
 .settings-slider input[type='range']:disabled::-moz-range-progress { background: var(--color-floating-hover); }
 .settings-slider input[type='range']:disabled::-moz-range-thumb { background: var(--color-text-disabled); }
 .settings-row[data-disabled] .settings-slider-value { color: var(--color-text-disabled); }
+.settings-row[data-disabled] .settings-segment { opacity: 0.72; }
 .settings-segment-option:disabled { cursor: not-allowed; color: var(--color-text-disabled); }
 .settings-segment-option:disabled:hover { color: var(--color-text-disabled); }
-.settings-segment-option[aria-checked='true']:disabled { background: var(--color-control); color: var(--color-muted); }
+.settings-segment-option[aria-checked='true']:disabled {
+  background: color-mix(in srgb, var(--color-control) 42%, transparent);
+  color: var(--color-text-disabled);
+}
 
 @media (max-width: 719px) {
   .settings-row { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 14px; }
