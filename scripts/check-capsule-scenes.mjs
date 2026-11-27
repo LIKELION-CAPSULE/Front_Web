@@ -83,6 +83,8 @@ async function change(page, selector, waitMs) {
 /** Mean pixel change (0…255) below which a region counts as still: the page behind the transparent canvas may shift faintly. */
 const STILL = 0.25
 const ART = '.invite-art'
+/** Draw calls of the dome without capsules. */
+const DOME_CALLS = 40
 const INVITE = (scenario) => `/credits/invite?__review=${scenario}`
 
 // ── Invite dome ──
@@ -147,7 +149,9 @@ for (const [scenario, filled] of [['invite-empty', 0], ['invite-three', 3], ['in
   const ready = await waitForMode(page, ART, 'webgl')
   await page.waitForTimeout(2600)
   const strip = await page.locator('.invite-progress-capsules li[data-filled]').count()
-  check(`dome: ${scenario} draws (${filled} capsules, strip ${strip})`, ready && strip === filled)
+  // Each seated capsule is three draws (shell, inner light, halo) over the dome's own.
+  const calls = (await domeStats(page))?.calls
+  check(`dome: ${scenario} draws ${filled} capsules in 3D and in the strip`, ready && strip === filled && calls === DOME_CALLS + 3 * filled, `strip ${strip}, draw calls ${calls}`)
   await shot(page, `invite-${filled}`)
   await context.close()
 }

@@ -83,8 +83,8 @@
 
 /*
  * The real-time 3D dome (InviteHeroArt, invite-dome-scene.ts) over the same box, a little larger so the ±4° tilt is not
- * cut. The picture is painted first (its wells empty while the 3D loads) and fades out when the 3D draws; without
- * WebGL it stays with the capsule pictures below.
+ * cut. The picture is painted first and fades out when the 3D draws: its wells stay empty for --pending-reveal, then
+ * show the counted capsules seated (a slow 3D takes over with them seated). Without WebGL it stays, capsules dropping in.
  */
 .invite-dome-3d {
   position: absolute;
@@ -113,9 +113,17 @@
 }
 
 .invite-art[data-render='fallback'] .invite-dome-3d,
-.invite-art[data-render='webgl'] .invite-dome-capsule,
-.invite-art[data-render='pending'] .invite-dome-capsule {
+.invite-art[data-render='webgl'] .invite-dome-capsule {
   display: none;
+}
+
+.invite-art[data-render='pending'] .invite-dome-capsule {
+  animation: invite-dome-capsule-reveal 220ms ease-out var(--pending-reveal, 1000ms) both;
+}
+
+@keyframes invite-dome-capsule-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* A capsule per invited friend, standing in its slot (the picture fallback). */
@@ -581,6 +589,7 @@
   }
 
   .invite-dome-capsule[data-enter],
+  .invite-art[data-render='pending'] .invite-dome-capsule,
   .invite-progress-capsules li[data-enter] img,
   .invite-mascot {
     animation: none;

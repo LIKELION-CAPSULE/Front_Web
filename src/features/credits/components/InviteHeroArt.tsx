@@ -27,6 +27,12 @@ const exposeDome = import.meta.env.DEV
     }
   : undefined
 
+/**
+ * While the 3D loads, the picture's wells stay empty this long, then show the counted capsules seated. A 3D dome ready
+ * before then plays the entry drop; a later one takes over with them already seated (they never drop twice).
+ */
+const PENDING_REVEAL_MS = 1000
+
 /** Sparkles and hearts that burst over the mascots when a friend joins. */
 const CHEER_BITS = [
   { x: 14, y: 22, kind: 'star' }, { x: 6, y: 40, kind: 'heart' }, { x: 26, y: 12, kind: 'star' },
@@ -70,6 +76,7 @@ export function InviteHeroArt({ filled, enterFrom, cheer }: {
     if (failed || !hostElement || !artElement) return
     let cancelled = false
     let onScreen = true
+    const mountedAt = performance.now()
     const updateRunning = () => dome.current?.setRunning(onScreen && document.visibilityState === 'visible')
     const observer = new IntersectionObserver((entries) => {
       onScreen = entries.some((entry) => entry.isIntersecting)
@@ -87,8 +94,9 @@ export function InviteHeroArt({ filled, enterFrom, cheer }: {
           onContextFailure: () => setMode('fallback'),
         })
         dome.current = scene
-        // Everything already counted drops in now (the picture showed empty wells until here).
-        scene.setFilled(latest.current.filled, 0)
+        // Everything already counted drops in now, unless the picture has shown it seated already (PENDING_REVEAL_MS).
+        const late = performance.now() - mountedAt >= PENDING_REVEAL_MS
+        scene.setFilled(latest.current.filled, late ? latest.current.filled : 0)
         updateRunning()
         exposeDome?.(scene)
         setMode('webgl')
@@ -141,7 +149,13 @@ export function InviteHeroArt({ filled, enterFrom, cheer }: {
   }, [cheer, reduced])
 
   return (
-    <div ref={art} className="invite-art" data-render={mode} aria-hidden="true">
+    <div
+      ref={art}
+      className="invite-art"
+      data-render={mode}
+      style={{ '--pending-reveal': `${PENDING_REVEAL_MS}ms` } as CSSProperties}
+      aria-hidden="true"
+    >
       <span className="invite-art-glow" />
       <div className="invite-dome">
         <img className="invite-dome-picture" src={domeArt} width={840} height={891} alt="" draggable={false} />
