@@ -53,6 +53,7 @@ import { takePickup } from '@/features/mates/pickup-sequence'
 import { useChatHistory } from '@/features/mates/use-chat-history'
 import { ChatHistoryStatus } from '@/features/mates/components/ChatHistoryStatus'
 import { ChatLogGroups } from '@/features/mates/components/ChatLogGroups'
+import { CallSpeakerChip } from '@/features/mates/components/CallSpeakerChip'
 import { unreadArrivals } from '@/features/mates/chat-groups'
 import { PixelRoofStrip } from '@/shared/ui/pixel/PixelFrame'
 import { ReplyActions, ReportedReply } from '@/features/mates/components/ReplyActions'
@@ -884,7 +885,7 @@ export default function ConnectionPage() {
             <section
               className="connection-mate"
               aria-label={mate.name}
-              data-speaking={speaking || undefined}
+              data-speaking={talking || voicePlaying || undefined}
               style={{ background: CALL_STAGE_GRADIENT }}
             >
               {!bgFailed && (
@@ -907,6 +908,10 @@ export default function ConnectionPage() {
                   <img key={stillBounce} data-bounce={stillBounce > 0 || undefined} src={matePortrait(mate.id, mate.image)} width={800} height={600} alt="" className="connection-mate-fallback-img" />
                 )}
               </div>
+              {/* 「말하는 중」 / 「답장 준비 중」: a name chip, not a frame (no outlines). Not while hanging up. */}
+              {!ending && (talking || voicePlaying || sending) && (
+                <CallSpeakerChip name={mate.name} state={talking || voicePlaying ? 'speaking' : 'waiting'} />
+              )}
               {speech.text && (
                 <div className="connection-speech-slot">
                   <CharacterSpeechBubble
