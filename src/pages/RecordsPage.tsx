@@ -294,10 +294,11 @@ export default function RecordsPage() {
     })()
   const speakerCatalog = speaker ? catalogMates.find((m) => m.characterId === speaker.characterId) : undefined
   const speakerMet = speaker ? myMates.byMate.get(speaker.id) : undefined
+  const commentScope = !activeMate && (summary?.mates ?? 0) >= 2 ? 'all' : 'mate'
   const mateComment = speaker && data.data && !stale
     ? mateCommentFromFacts(
         collectRecordsFacts({ range, offset, view: views?.[speaker.id] ?? null, met: Boolean(speakerMet), firstMetAt: speakerMet?.firstMetAt ?? null }),
-        { range, seedKey: `${state.profile.userId ?? 'guest'}|${speaker.characterId}`, voice: voiceFor(speakerCatalog?.id) },
+        { range, seedKey: `${state.profile.userId ?? 'guest'}|${speaker.characterId}`, voice: voiceFor(speakerCatalog?.id), scope: commentScope },
       )
     : null
   const onCommentProgress = useCallback((progress: number, finished: boolean) => {
@@ -487,7 +488,11 @@ export default function RecordsPage() {
             <section className="records-stat-card records-stat-card--primary">
               <BlockTitle icon="clock">{summary.primaryLabel}</BlockTitle>
               <p className="records-stat-value">{stat(duration(summary.primarySeconds))}</p>
-              {!stale && summary.cameraSeconds > 0 && <p className="records-stat-sub">카메라로 함께한 시간 {duration(summary.cameraSeconds)}</p>}
+              {!stale && summary.cameraSeconds > 0 && (
+                <p className="records-stat-sub">
+                  카메라로 함께한 시간 <span className="records-stat-sub-value">{duration(summary.cameraSeconds)}</span>
+                </p>
+              )}
             </section>
             <section className="records-stat-card">
               <BlockTitle icon="check">함께한 날</BlockTitle>
