@@ -33,6 +33,7 @@
 - `ReviewMessagesPanel.tsx`, `messages.ts`, `capture-messages.ts`: 상태 문구 필터·상황 연결·현재 피드백 수집. 미리보기를 가린 탭에서도 문구를 유지하며, 모달이 열리면 모달 내부를 우선한다.
 - `server/review-copy.ts`: Vite 개발 서버 전용 문구 수집. `GET /__review/copy`; 환경파일은 읽지 않는다.
 - `dialog-design/`: 모달·팝업 디자인 시안(2026-11-26) A 캡슐 유리·B 밤하늘·C 메이트와 함께, B 발전안 B2 픽셀 프레임·B3 픽셀 액센트(`pixel-art.ts`의 픽셀 그림). `dialog-design-a|b|c|b2|b3` 시나리오가 홈 위에 그리며, 아래 막대나 `?dd=all|confirm|credit|unlock|toast|large`로 종류를 고른다. 공용 `Dialog`를 그대로 쓰고 클래스·장식만 덧붙이므로 실제 화면의 모달은 바뀌지 않는다. 검토 진입점에서만 불러와 운영 번들에 들어가지 않는다.
+- `call-ui/`: 통화 화면 UI 시안(2026-11-27) C1 대사창·C2 말풍선 무대·C3 분할 정돈. `call-ui-c1|c2|c3` 시나리오는 앱을 띄우지 않고 통화 화면 배치를 단독으로 그린다(정지 이미지 무대·가상 대화, 서버 요청 없음). 왼쪽 아래 막대나 `?cu-scene=idle|speaking|waiting|unread&cu-chat=open|closed`로 장면을 고르고 `cu-bar=0`이면 막대를 숨긴다. 실제 `ConnectionPage`와 하위 컴포넌트는 바꾸지 않으며 `TypingMessage`·`TypingIndicator`·픽셀 공용 요소만 그대로 가져다 쓴다. 너비 프리셋에 900을 추가했다.
 
 새 상태는 catalog에 추가하고 fixtures의 필요한 분기를 연결한다. 새로운 페이지 파일을 만들면 catalog에도 경로를 추가한다. 문구 검색은 소스를 매번 읽으므로 별도 문구 파일을 동기화할 필요가 없다.
 

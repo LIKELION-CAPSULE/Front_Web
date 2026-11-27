@@ -20,6 +20,7 @@ const sizePresets: readonly SizePreset[] = [
   { key: '1440', width: 1440, label: '1440 · 데스크톱' },
   { key: '1280', width: 1280, label: '1280 · 데스크톱' },
   { key: '960', width: 960, label: '960 · 반쪽 화면' },
+  { key: '900', width: 900, label: '900 · 좁은 창' },
   { key: '720', width: 720, label: '720 · 반쪽 화면' },
   { key: '640', width: 640, label: '640 · 반쪽 화면' },
   { key: 'mobile', width: 390, label: '휴대폰 · 접속 안내', scenarioId: 'mobile-notice' },
