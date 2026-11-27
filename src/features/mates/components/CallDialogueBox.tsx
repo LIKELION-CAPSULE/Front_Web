@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
-import { PixelRoofStrip } from '@/shared/ui/pixel/PixelFrame'
+import { StageDialogueBox } from './StageDialogueBox'
 import { dialogueCapacity, dialogueHold, dialoguePages, letterPace, type StageLine } from '../call-dialogue'
 import '../call-dialogue.css'
 
@@ -80,11 +80,9 @@ export function CallDialogueBox({ name, line, waiting = false, speaking, linger 
           tour={tour}
         />
       ) : waiting ? (
-        <div className="call-dialogue" data-phase="waiting" data-calm={calm || undefined} aria-hidden="true">
-          <span className="call-dialogue-frame"><PixelRoofStrip /></span>
-          <span className="call-dialogue-name">{name}</span>
-          <p className="call-dialogue-text"><span className="call-dialogue-dots"><span /><span /><span /></span></p>
-        </div>
+        <StageDialogueBox name={name} data-phase="waiting" data-calm={calm || undefined} aria-hidden="true">
+          <span className="call-dialogue-dots"><span /><span /><span /></span>
+        </StageDialogueBox>
       ) : null}
       <p className="sr-only" role="status" aria-live="polite">{announce}</p>
     </div>
@@ -212,18 +210,25 @@ function DialogueBox({ lineKey, name, text, capacity, speaking, linger, persist,
   const more = !last && phase === 'shown'
   return (
     // The whole box takes a click (show the page / turn it); the ▼ button is its keyboard way (its click bubbles here).
-    <div ref={box} className="call-dialogue" data-phase={phase} data-calm={calm || undefined} data-tour={tour} onClick={() => action.current()}>
-      <span className="call-dialogue-frame" aria-hidden="true"><PixelRoofStrip /></span>
-      <span className="call-dialogue-name" aria-hidden="true">{name}{speaking && <SpeakingMark />}</span>
-      <p className="call-dialogue-text" aria-hidden="true">
-        {/* The page's full text keeps the box at its final size while it types. */}
-        <span className="call-dialogue-measure">{pageText}</span>
-        <span ref={typed} className="call-dialogue-typed" />
-      </p>
-      <button type="button" className="call-dialogue-next" data-more={more || undefined}>
-        <span className="sr-only">{phase === 'typing' ? '대사 바로 보기' : last ? '대사창 닫기' : '다음 대사'}</span>
-        <span className="call-dialogue-arrow" aria-hidden="true" />
-      </button>
-    </div>
+    <StageDialogueBox
+      boxRef={box}
+      name={name}
+      nameExtras={speaking && <SpeakingMark />}
+      hideTextFromSR
+      data-phase={phase}
+      data-calm={calm || undefined}
+      data-tour={tour}
+      onClick={() => action.current()}
+      footer={(
+        <button type="button" className="call-dialogue-next" data-more={more || undefined}>
+          <span className="sr-only">{phase === 'typing' ? '대사 바로 보기' : last ? '대사창 닫기' : '다음 대사'}</span>
+          <span className="call-dialogue-arrow" aria-hidden="true" />
+        </button>
+      )}
+    >
+      {/* The page's full text keeps the box at its final size while it types. */}
+      <span className="call-dialogue-measure">{pageText}</span>
+      <span ref={typed} className="call-dialogue-typed" />
+    </StageDialogueBox>
   )
 }

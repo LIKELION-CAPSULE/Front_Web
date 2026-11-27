@@ -4,15 +4,6 @@
  * only), the dithered roof strip with the pixel capsule, her name tag on the roof. Green (`success`) is the speaking
  * state. Moving parts animate transform / opacity only, in steps (pixel set); nothing moves under reduced motion.
  */
-.call-dialogue-slot,
-.login-stage-dialogue {
-  --call-dialogue-steps: polygon(
-    0 12px, 4px 12px, 4px 8px, 8px 8px, 8px 4px, 12px 4px, 12px 0,
-    calc(100% - 12px) 0, calc(100% - 12px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 12px, 100% 12px,
-    100% calc(100% - 12px), calc(100% - 4px) calc(100% - 12px), calc(100% - 4px) calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) calc(100% - 4px), calc(100% - 12px) calc(100% - 4px), calc(100% - 12px) 100%,
-    12px 100%, 12px calc(100% - 4px), 8px calc(100% - 4px), 8px calc(100% - 8px), 4px calc(100% - 8px), 4px calc(100% - 12px), 0 calc(100% - 12px)
-  );
-}
 .call-dialogue-slot {
   container: call-dialogue / inline-size;
   position: absolute;
@@ -42,6 +33,12 @@
 }
 
 .call-dialogue {
+  --call-dialogue-steps: polygon(
+    0 12px, 4px 12px, 4px 8px, 8px 8px, 8px 4px, 12px 4px, 12px 0,
+    calc(100% - 12px) 0, calc(100% - 12px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 12px, 100% 12px,
+    100% calc(100% - 12px), calc(100% - 4px) calc(100% - 12px), calc(100% - 4px) calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) calc(100% - 4px), calc(100% - 12px) calc(100% - 4px), calc(100% - 12px) 100%,
+    12px 100%, 12px calc(100% - 4px), 8px calc(100% - 4px), 8px calc(100% - 8px), 4px calc(100% - 8px), 4px calc(100% - 12px), 0 calc(100% - 12px)
+  );
   position: relative;
   isolation: isolate;
   width: min(760px, 100%);
@@ -52,6 +49,10 @@
   cursor: pointer;
   contain: layout;
   pointer-events: auto;
+}
+.call-dialogue--passive {
+  padding-right: 28px;
+  cursor: default;
 }
 .call-dialogue[data-phase='waiting'] { width: auto; min-width: 260px; cursor: default; pointer-events: none; }
 .call-dialogue-frame {
