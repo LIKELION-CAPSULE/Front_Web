@@ -11,8 +11,6 @@ export const AFFINITY_STAGES = [
   { stage: 5, name: '단짝', hours: 40 },
 ] as const
 
-export const AFFINITY_STAGE_NAMES: readonly string[] = AFFINITY_STAGES.map((item) => item.name)
-
 /** "3단계 · 친구" */
 export function affinityStageLabel(stage: number, name: string) {
   return `${stage}단계 · ${name}`

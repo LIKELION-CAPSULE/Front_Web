@@ -1,4 +1,4 @@
-import { timeBand, timeBandLabels, type TimeBand } from '../../records/mate-comment.ts'
+import { timeBand, type TimeBand } from '../../records/mate-comment.ts'
 import type { CapsuleRecord } from './capsule-jar-types.ts'
 
 /**
@@ -20,7 +20,6 @@ import type { CapsuleRecord } from './capsule-jar-types.ts'
 export const CAPSULE_MILESTONE_HOURS = [1, 3, 5, 10, 20, 30, 50, 100] as const
 
 export type { TimeBand }
-export const capsuleBandLabels = timeBandLabels
 
 /** Time band of a connection by its start (the records' rule). */
 export function capsuleBand(capsule: Pick<CapsuleRecord, 'startedAt'>): TimeBand {

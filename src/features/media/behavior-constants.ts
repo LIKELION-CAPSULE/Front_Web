@@ -3,9 +3,6 @@
  * Times are milliseconds; ratios are relative to the user's hand size (wrist → middle-finger base).
  */
 
-/** Shows the detected rule names over the user's own tile. Turn off for demos. */
-export const SHOW_BEHAVIOR_OVERLAY = true
-
 // Inference cadence while a study session is running. The prepare screen keeps its 5 fps face check.
 export const FACE_INTERVAL_MS = 100
 export const GESTURE_INTERVAL_MS = 1000 / 15
@@ -38,12 +35,3 @@ export const WAVE_COOLDOWN_MS = 3000
 
 /** How long a momentary detection (yawn, wave) stays on the overlay. */
 export const MOMENT_DISPLAY_MS = 2000
-
-// Friend reactions in the LLM chat.
-export const BEHAVIOR_KIND_COOLDOWN_MS = 60_000
-export const BEHAVIOR_GLOBAL_COOLDOWN_MS = 20_000
-/** Detections from this far back are sent as context with ordinary chat messages. */
-export const BEHAVIOR_RECENT_MS = 5 * 60_000
-export const BEHAVIOR_RECENT_LIMIT = 6
-/** Matches the text limit in server/openai-chat.ts; context is dropped rather than cutting the user's words. */
-export const CHAT_TEXT_LIMIT = 500

@@ -9,8 +9,6 @@ import { useReducedMotion } from '@/shared/lib/use-reduced-motion'
  * clicks through the rail). The model already on screen covers the wait.
  */
 export const AVATAR_PREVIEW_DELAY_MS = 160
-/** The new model fades in (with a slight grow) for this long (avatar-dial.css). */
-export const AVATAR_PREVIEW_FADE_MS = 280
 
 /**
  * Owns one avatar's Live2D preview; it never borrows the study companion's model. Mounted with a key per avatar, so

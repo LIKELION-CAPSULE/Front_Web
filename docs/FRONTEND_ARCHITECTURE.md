@@ -32,7 +32,7 @@ src/
 ├── pages/                            URL 단위 화면 조합
 ├── shared/
 │   ├── lib/                          cn(tailwind-merge), 날짜·시간·숫자
-│   └── ui/                           Button/Link·Avatar·Badge·Tabs·Dialog 등
+│   └── ui/                           Button/Link·Avatar·Tabs·Dialog 등
 └── styles/index.css                  Tailwind 테마·레이아웃·반응형
 
 tests/demo-reducer.test.ts             Node 내장 테스트 러너로 상태 검증

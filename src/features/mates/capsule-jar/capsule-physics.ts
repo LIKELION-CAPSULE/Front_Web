@@ -335,5 +335,3 @@ export function createCapsulePhysics({
     },
   }
 }
-
-export const PHYSICS = { gravity: GRAVITY } as const
