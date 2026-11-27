@@ -232,16 +232,17 @@ export default function MyMatesPage() {
   // Affinity: the server's stage when it sends one, sample data in development (mate-features.ts decides). Production
   // without a server stage: a mate never met starts at 「1단계 · 처음 만남」 with every world locked; a mate met but
   // sent no stage shows no card (nothing is guessed).
-  // The stage is put on the one stage table (affinity-stages.ts) by its name.
+  // The stage is put on the one stage table (affinity-stages.ts) by its name; a stage sent without names (37 `stageName:
+  // null`) takes the table's names, its times and progress staying the server's.
   // Development only: `?affinity=1…5` puts the page at that stage with sample progress (the local mock tool sets it).
-  const serverStage = normalizeAffinityStage(mine?.relation?.stage, mine?.relation?.stageName)
+  const serverStage = normalizeAffinityStage(mine?.relation?.stage, mine?.relation?.stageName, mine?.relation?.nextStageName)
   const devStage = import.meta.env.DEV ? Number(searchParams.get('affinity')) : Number.NaN
   const neverMet = !previewMate && (mine?.connectionCount ?? 0) === 0
   const relation: (Partial<StudySettlement> & { stage: number; stageName: string }) | null = features.affinity
     ? import.meta.env.DEV && devSamples && Number.isInteger(devStage) && devStage >= 1 && devStage <= 5
       ? devSamples.sampleRelation(devSamples.sampleSecondsForStage(devStage))
       : serverStage && !previewMate
-      ? { ...mine?.relation, ...serverStage }
+      ? { ...mine?.relation, ...serverStage, nextStageName: serverStage.nextStageName ?? undefined }
       : import.meta.env.DEV
         ? (devSamples?.sampleRelation(totalSeconds) ?? null)
         : neverMet

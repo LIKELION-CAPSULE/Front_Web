@@ -247,8 +247,8 @@ test('affinity stages: one table of five stage names and conditions', () => {
   assert.equal(affinityStageLabel(3, '친구'), '3단계 · 친구')
   assert.equal(affinityUnlockCondition(4), '4단계 · 친한 친구에서 열려요')
   // A source counting from another base is put on the table by the stage name.
-  assert.deepEqual(normalizeAffinityStage(2, '친구'), { stage: 3, stageName: '친구' })
-  assert.deepEqual(normalizeAffinityStage(7, '새 단계'), { stage: 7, stageName: '새 단계' })
+  assert.deepEqual(normalizeAffinityStage(2, '친구'), { stage: 3, stageName: '친구', nextStageName: '친한 친구' })
+  assert.deepEqual(normalizeAffinityStage(7, '새 단계'), { stage: 7, stageName: '새 단계', nextStageName: null })
   assert.equal(normalizeAffinityStage(undefined, undefined), null)
 })
 
