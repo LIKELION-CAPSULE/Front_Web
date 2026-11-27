@@ -1,12 +1,13 @@
 import {
-  AdditiveBlending, AmbientLight, BackSide, BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, Color,
-  DirectionalLight, DoubleSide, DynamicDrawUsage, Euler, Group, InstancedBufferAttribute, InstancedMesh, LatheGeometry,
-  Matrix4, Mesh, MeshBasicMaterial, NoToneMapping, OrthographicCamera, PlaneGeometry, PMREMGenerator, PointLight, Points,
-  Quaternion, Raycaster, Scene, ShaderMaterial, Sphere, Sprite, SpriteMaterial, SRGBColorSpace, Vector2, Vector3,
-  WebGLRenderer,
+  AdditiveBlending, AmbientLight, BufferAttribute, BufferGeometry, Color, DirectionalLight, DynamicDrawUsage, Euler, Group,
+  InstancedBufferAttribute, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, NoToneMapping, OrthographicCamera,
+  PlaneGeometry, PMREMGenerator, PointLight, Points, Quaternion, Raycaster, Scene, ShaderMaterial, Sphere, Sprite,
+  SpriteMaterial, SRGBColorSpace, Vector2, Vector3, WebGLRenderer,
 } from 'three'
 import type { Material, Object3D, Texture } from 'three'
-import { CAPSULE_ASPECT, CAPSULE_SEAM_OFFSET } from './capsule-jar-layout.ts'
+import {
+  CAPSULE_SEAM_X, capsuleGeometry, capsuleStudioEnvironment, coreMaterial, haloMaterial, radialGlowTexture, shellMaterial,
+} from '../../../shared/three/capsule-model.ts'
 import { PILE, pileBinAt, type FloorLayout } from './capsule-floor-layout.ts'
 import { carryByIds, isStillPresent, planPour, POUR } from './capsule-pour.ts'
 import type { CapsuleJarTheme } from './capsule-jar-types.ts'
@@ -82,275 +83,8 @@ export type JarSceneController = {
   dispose(): void
 }
 
-// ── Geometry ──────────────────────────────────────────────────────────────────
-
-const UNIT_RADIUS = CAPSULE_ASPECT / 2
-/** Seam position on the unit-length capsule axis (+x is the tinted half). */
-const SEAM_X = CAPSULE_SEAM_OFFSET * 0.5
-/** Radius of the unit-length stadium capsule at axis position x (−0.5…0.5). */
-export function capsuleRadiusAt(x: number) {
-  const straight = 0.5 - UNIT_RADIUS
-  const beyond = Math.abs(x) - straight
-  return beyond <= 0 ? UNIT_RADIUS : Math.sqrt(Math.max(0, UNIT_RADIUS * UNIT_RADIUS - beyond * beyond))
-}
-
-/**
- * The part [fromX, toX] of the unit-length capsule, lying along +x. Vertex colours: frosted half below the seam,
- * tinted half above it (logo v2 two tones).
- */
-export function capsuleGeometry(fromX: number, toX: number, frosted: Color, tint: Color) {
-  const straight = 0.5 - UNIT_RADIUS
-  const samples = new Set<number>([fromX, toX, SEAM_X - 0.004, SEAM_X + 0.004, -straight, straight])
-  for (let step = 0; step <= 14; step++) {
-    const angle = (step / 14) * (Math.PI / 2)
-    samples.add(-straight - UNIT_RADIUS * Math.cos(angle))
-    samples.add(straight + UNIT_RADIUS * Math.cos(angle))
-  }
-  for (let step = 1; step < 6; step++) samples.add(-straight + (2 * straight * step) / 6)
-  const ys = [...samples].filter((x) => x >= fromX - 1e-9 && x <= toX + 1e-9).sort((a, b) => a - b)
-  const geometry = new LatheGeometry(ys.map((x) => new Vector2(capsuleRadiusAt(x), x)), 32)
-  geometry.rotateZ(-Math.PI / 2)
-  const position = geometry.getAttribute('position')
-  const colors = new Float32Array(position.count * 3)
-  for (let index = 0; index < position.count; index++) {
-    const color = position.getX(index) < SEAM_X ? frosted : tint
-    colors.set([color.r, color.g, color.b], index * 3)
-  }
-  geometry.setAttribute('color', new BufferAttribute(colors, 3))
-  return geometry
-}
-
-/** Dark studio with a few soft boxes: glass on a dark page shows crisp highlights, not a bright room. */
-function studioEnvironment() {
-  const environment = new Scene()
-  environment.add(new Mesh(new BoxGeometry(12, 12, 12), new MeshBasicMaterial({ color: '#0c0b13', side: BackSide })))
-  const softBox = (w: number, h: number, x: number, y: number, z: number, intensity: number, tint = '#ffffff') => {
-    const panel = new Mesh(
-      new PlaneGeometry(w, h),
-      new MeshBasicMaterial({ color: new Color(tint).multiplyScalar(intensity), side: DoubleSide }),
-    )
-    panel.position.set(x, y, z)
-    panel.lookAt(0, 0, 0)
-    environment.add(panel)
-  }
-  softBox(1.4, 7, -4.5, 0.5, 2.5, 2.4)
-  softBox(0.7, 7, 4.8, 0.5, -0.8, 1.4, '#d9d5f1')
-  softBox(3, 0.8, 0, 5.2, 0.5, 0.7)
-  return environment
-}
-
-function radialTexture(stops: readonly [number, string][]) {
-  const size = 128
-  const canvas = document.createElement('canvas')
-  canvas.width = canvas.height = size
-  const context = canvas.getContext('2d')!
-  const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
-  for (const [offset, color] of stops) gradient.addColorStop(offset, color)
-  context.fillStyle = gradient
-  context.fillRect(0, 0, size, size)
-  const texture = new CanvasTexture(canvas)
-  texture.colorSpace = SRGBColorSpace
-  return texture
-}
-
-// ── Materials ─────────────────────────────────────────────────────────────────
-
-/**
- * Glass shell of a capsule, drawn additively: frosted / pale violet glass that is clear in the middle and catches
- * light at the rim, a faint band of light along the seam, lit from inside by its core. Low gloss on purpose.
- * Drawn in the opaque pass (additive, no depth write).
- */
-export function shellMaterial(instanced: boolean, glow: Color) {
-  return new ShaderMaterial({
-    defines: instanced ? {} : { SINGLE_CAPSULE: '' },
-    vertexColors: true,
-    uniforms: {
-      uGlowColor: { value: glow },
-      uLight: { value: new Color('#ffffff') },
-      uTint: { value: new Color('#ffffff') },
-      uKeepsake: { value: 0 },
-      uSeamX: { value: SEAM_X },
-      uStrength: { value: 1 },
-      uOpacity: { value: 1 },
-      uGlow: { value: 1 },
-      uWeight: { value: 0.6 },
-    },
-    vertexShader: /* glsl */ `
-      uniform float uSeamX;
-      #ifdef SINGLE_CAPSULE
-        uniform float uGlow;
-        uniform float uWeight;
-        uniform vec3 uGlowColor;
-        uniform vec3 uLight;
-        uniform vec3 uTint;
-        uniform float uKeepsake;
-      #else
-        attribute float instanceGlow;
-        attribute float instanceWeight;
-        attribute vec3 instanceLight;
-        attribute vec3 instanceTint;
-        attribute vec3 instanceGlowColor;
-        attribute float instanceKeepsake;
-      #endif
-      varying vec3 vN;
-      varying vec3 vV;
-      varying vec3 vCol;
-      varying vec3 vGlowColor;
-      varying float vX;
-      varying float vAngle;
-      varying float vGlow;
-      varying float vWeight;
-      varying float vKeepsake;
-      void main() {
-        // Each capsule's two tones and light: its connection's time band (vertex colours only mark the halves).
-        #ifdef SINGLE_CAPSULE
-          mat4 m = modelViewMatrix;
-          vGlow = uGlow;
-          vWeight = uWeight;
-          vCol = position.x < uSeamX ? uLight : uTint;
-          vGlowColor = uGlowColor;
-          vKeepsake = uKeepsake;
-        #else
-          mat4 m = modelViewMatrix * instanceMatrix;
-          vGlow = instanceGlow;
-          vWeight = instanceWeight;
-          vCol = position.x < uSeamX ? instanceLight : instanceTint;
-          vGlowColor = instanceGlowColor;
-          vKeepsake = instanceKeepsake;
-        #endif
-        vec4 mv = m * vec4(position, 1.0);
-        vN = normalize(mat3(m) * normal);
-        vV = normalize(-mv.xyz);
-        vX = position.x;
-        vAngle = atan(position.z, position.y);
-        gl_Position = projectionMatrix * mv;
-      }
-    `,
-    fragmentShader: /* glsl */ `
-      uniform float uSeamX;
-      uniform float uStrength;
-      uniform float uOpacity;
-      varying vec3 vN;
-      varying vec3 vV;
-      varying vec3 vCol;
-      varying vec3 vGlowColor;
-      varying float vX;
-      varying float vAngle;
-      varying float vGlow;
-      varying float vWeight;
-      varying float vKeepsake;
-      void main() {
-        vec3 n = normalize(vN);
-        vec3 v = normalize(vV);
-        float facing = abs(dot(n, v));
-        float fresnel = pow(max(0.0, 1.0 - facing), 2.4);
-        vec3 body = vCol * (0.03 + 0.36 * fresnel);
-        vec3 inner = mix(vCol, vGlowColor, 0.5) * (0.04 + 0.2 * vWeight) * pow(clamp(facing, 0.0, 1.0), 1.4);
-        float seam = exp(-pow((vX - uSeamX) / 0.018, 2.0));
-        vec3 seamLight = vGlowColor * seam * (0.12 + 0.22 * vWeight);
-        // Keepsake: a wider band of light along the seam with five small white stars on it.
-        float band = exp(-pow((vX - uSeamX) / 0.05, 2.0));
-        float stars = pow(max(0.0, cos(vAngle * 5.0)), 28.0) * exp(-pow((vX - uSeamX) / 0.03, 2.0));
-        vec3 keepsakeLight = vKeepsake * (vGlowColor * band * 0.45 + vec3(1.0, 0.98, 1.0) * stars * 1.3);
-        vec3 h = normalize(normalize(vec3(-0.45, 0.75, 0.5)) + v);
-        float gloss = pow(max(dot(n, h), 0.0), 40.0) * 0.12;
-        float side = gl_FrontFacing ? 1.0 : 0.45;
-        vec3 color = ((body + inner + seamLight + keepsakeLight) * vGlow * uStrength + vec3(gloss)) * side * uOpacity;
-        gl_FragColor = vec4(color, 1.0);
-      }
-    `,
-    transparent: false,
-    depthWrite: false,
-    blending: AdditiveBlending,
-    side: DoubleSide,
-  })
-}
-
-/**
- * The small light inside each capsule: a soft star whose size and brightness grow clearly with the time spent
- * together. It breathes very slowly (`uBreath` = 0 when motion is reduced).
- */
-export function coreMaterial(glow: Color) {
-  return new ShaderMaterial({
-    uniforms: { uGlowColor: { value: glow }, uTime: { value: 0 }, uBreath: { value: 1 }, uStrength: { value: 1 } },
-    vertexShader: /* glsl */ `
-      attribute float instanceGlow;
-      attribute float instanceWeight;
-      attribute vec3 instanceGlowColor;
-      uniform float uTime;
-      uniform float uBreath;
-      varying vec2 vUv;
-      varying float vIntensity;
-      varying float vWeight;
-      varying vec3 vGlowColor;
-      void main() {
-        vUv = uv;
-        vWeight = instanceWeight;
-        vGlowColor = instanceGlowColor;
-        float breath = 1.0 + uBreath * 0.14 * sin(uTime * 0.85 + float(gl_InstanceID) * 2.399);
-        vIntensity = (0.3 + 1.3 * instanceWeight) * instanceGlow * breath;
-        vec4 center = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-        float size = length(instanceMatrix[0].xyz) * (0.3 + 0.55 * instanceWeight) * (0.95 + 0.05 * breath);
-        center.xy += position.xy * size;
-        gl_Position = projectionMatrix * center;
-      }
-    `,
-    fragmentShader: /* glsl */ `
-      uniform float uStrength;
-      varying vec2 vUv;
-      varying float vIntensity;
-      varying float vWeight;
-      varying vec3 vGlowColor;
-      void main() {
-        float d = length(vUv - 0.5) * 2.0;
-        float core = exp(-d * d * 26.0) * 0.95 + pow(max(0.0, 1.0 - d), 3.0) * 0.3;
-        vec3 color = mix(vGlowColor, vec3(1.0, 0.98, 1.0), exp(-d * d * 70.0) * (0.5 + 0.5 * vWeight));
-        gl_FragColor = vec4(color * core * vIntensity * uStrength, 1.0);
-      }
-    `,
-    transparent: false,
-    depthWrite: false,
-    blending: AdditiveBlending,
-  })
-}
-
-/** Soft light around every capsule (camera-facing quads sharing the capsules' instance matrices). */
-export function haloMaterial(glow: Color) {
-  return new ShaderMaterial({
-    uniforms: { glowColor: { value: glow }, strength: { value: 0.16 } },
-    vertexShader: /* glsl */ `
-      attribute float instanceGlow;
-      attribute vec3 instanceGlowColor;
-      varying vec2 vUv;
-      varying float vGlow;
-      varying vec3 vGlowColor;
-      void main() {
-        vUv = uv;
-        vGlow = instanceGlow;
-        vGlowColor = instanceGlowColor;
-        vec4 center = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-        float size = length(instanceMatrix[0].xyz) * 1.25;
-        center.xy += position.xy * size;
-        gl_Position = projectionMatrix * center;
-      }
-    `,
-    fragmentShader: /* glsl */ `
-      uniform float strength;
-      varying vec2 vUv;
-      varying float vGlow;
-      varying vec3 vGlowColor;
-      void main() {
-        float d = length(vUv - 0.5) * 2.0;
-        float falloff = pow(max(0.0, 1.0 - d), 2.4);
-        float value = falloff * strength * vGlow;
-        gl_FragColor = vec4(vGlowColor * value, value);
-      }
-    `,
-    transparent: false,
-    depthWrite: false,
-    blending: AdditiveBlending,
-  })
-}
+// Geometry and materials: the canonical capsule (src/shared/three/capsule-model.ts), shared with the records board,
+// the empty records jar, the invite dome and the still renders.
 
 /** Faint motes of light drifting slowly above the floor (one draw call; positions move in the shader). */
 function motesMaterial(glow: Color) {
@@ -455,7 +189,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
 
   const scene = new Scene()
   const pmrem = new PMREMGenerator(renderer)
-  const studio = studioEnvironment()
+  const studio = capsuleStudioEnvironment()
   // Kept so its render target (not only the texture) is released in `dispose`.
   const environmentTarget = pmrem.fromScene(studio, 0.03)
   const environment = environmentTarget.texture
@@ -490,7 +224,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   const backLight = new Mesh(
     new PlaneGeometry(12, 7),
     new MeshBasicMaterial({
-      map: radialTexture([[0, 'rgba(255,255,255,0.5)'], [0.5, 'rgba(255,255,255,0.12)'], [1, 'rgba(255,255,255,0)']]),
+      map: radialGlowTexture([[0, 'rgba(255,255,255,0.5)'], [0.5, 'rgba(255,255,255,0.12)'], [1, 'rgba(255,255,255,0)']]),
       color: glowColor.clone().lerp(new Color('#ffffff'), 0.2),
       depthWrite: false,
       blending: AdditiveBlending,
@@ -504,7 +238,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   floorGroup.add(backLight)
 
   const floorGlowMaterial = new MeshBasicMaterial({
-    map: radialTexture([[0, 'rgba(255,255,255,0.7)'], [0.4, 'rgba(255,255,255,0.2)'], [1, 'rgba(255,255,255,0)']]),
+    map: radialGlowTexture([[0, 'rgba(255,255,255,0.7)'], [0.4, 'rgba(255,255,255,0.2)'], [1, 'rgba(255,255,255,0)']]),
     color: glowColor,
     depthWrite: false,
     blending: AdditiveBlending,
@@ -652,13 +386,13 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   const openShader = shellMaterial(false, glowColor)
   const openLight = new Group()
   const openTint = new Group()
-  const openLightGeometry = capsuleGeometry(-0.5, SEAM_X, frostedColor, tintColor)
-  const openTintGeometry = capsuleGeometry(SEAM_X, 0.5, frostedColor, tintColor)
+  const openLightGeometry = capsuleGeometry(-0.5, CAPSULE_SEAM_X, frostedColor, tintColor)
+  const openTintGeometry = capsuleGeometry(CAPSULE_SEAM_X, 0.5, frostedColor, tintColor)
   openLight.add(new Mesh(openLightGeometry, openShader))
   openTint.add(new Mesh(openTintGeometry, openShader))
   for (const group of [openLight, openTint]) for (const child of group.children) child.renderOrder = 12
   const burstMaterial = new SpriteMaterial({
-    map: radialTexture([[0, 'rgba(255,255,255,1)'], [0.2, 'rgba(255,255,255,0.5)'], [0.55, 'rgba(255,255,255,0.12)'], [1, 'rgba(255,255,255,0)']]),
+    map: radialGlowTexture([[0, 'rgba(255,255,255,1)'], [0.2, 'rgba(255,255,255,0.5)'], [0.55, 'rgba(255,255,255,0.12)'], [1, 'rgba(255,255,255,0)']]),
     color: glowColor.clone().lerp(new Color('#ffffff'), 0.3),
     transparent: true,
     depthWrite: false,
@@ -673,7 +407,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   scene.add(burst, burstLight)
 
   // Small puffs of light where capsules land.
-  const puffTexture = radialTexture([[0, 'rgba(255,255,255,0.9)'], [0.3, 'rgba(255,255,255,0.3)'], [1, 'rgba(255,255,255,0)']])
+  const puffTexture = radialGlowTexture([[0, 'rgba(255,255,255,0.9)'], [0.3, 'rgba(255,255,255,0.3)'], [1, 'rgba(255,255,255,0)']])
   const puffs = Array.from({ length: 10 }, () => {
     const material = new SpriteMaterial({
       map: puffTexture,

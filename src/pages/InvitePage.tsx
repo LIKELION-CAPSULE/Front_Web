@@ -7,7 +7,8 @@ import { CopyIcon, LinkIcon, UsersIcon } from '@/features/credits/components/Inv
 import { CREDIT_PRICING } from '@/features/credits/credit-utils'
 import { referralRefusal, type ReferralFriendView } from '@/features/credits/credits-data'
 import { useReferralStatus } from '@/features/credits/use-credits'
-import capsuleArt from '@/assets/invite/invite-capsule.webp'
+import capsuleFilled from '@/assets/capsule/capsule-filled.webp'
+import capsuleEmpty from '@/assets/capsule/capsule-empty.webp'
 import { api } from '@/shared/api/client'
 import { deviceHash } from '@/shared/api/device-hash'
 import { Button } from '@/shared/ui/Button'
@@ -247,7 +248,7 @@ export default function InvitePage() {
                 data-enter={(on && index >= fill.enterFrom) || undefined}
                 style={{ '--enter-delay': `${(index - fill.enterFrom) * CAPSULE_STAGGER_MS}ms` } as CSSProperties}
               >
-                <img src={capsuleArt} width={120} height={236} alt="" draggable={false} />
+                <img src={on ? capsuleFilled : capsuleEmpty} width={224} height={224} alt="" draggable={false} />
                 <span className="sr-only">{on ? `${index + 1}번째 친구 초대 완료` : `${index + 1}번째 자리 비어 있음`}</span>
               </li>
             )

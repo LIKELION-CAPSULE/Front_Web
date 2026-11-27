@@ -36,7 +36,7 @@
 
 .account-settings-dialog .form-input {
   border-color: transparent;
-  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 82%, transparent);
 }
 
 .account-settings-window {

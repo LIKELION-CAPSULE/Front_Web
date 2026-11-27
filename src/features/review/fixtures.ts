@@ -52,6 +52,7 @@ function seedCredits(store: LocalBetaStore, scenario: ReviewScenario) {
   }
   if (scenario.id === 'invite-full') { invitation.invitedCount = 10; invitation.rewardedCredits = 10000; invitation.joinedCount = 0; invitation.canRedeem = false; wallet.invitation = 10000 }
   if (scenario.id === 'invite-empty') { invitation.invitedCount = 0; invitation.rewardedCredits = 0; invitation.joinedCount = 0 }
+  if (scenario.id === 'invite-three') { invitation.invitedCount = 3; invitation.rewardedCredits = 3000; wallet.invitation = 3000 }
   if (scenario.id === 'connection-record-credit-out') { wallet.attendance = 0; wallet.invitation = 0; wallet.entries = [] }
   // The home path, server as it is: today's 1,500 already granted; 「received」 already pressed in this browser.
   if (scenario.id === 'home-attendance-done') {

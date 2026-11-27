@@ -5,8 +5,9 @@ import {
   ShaderMaterial, SRGBColorSpace, TorusGeometry, Vector2, Vector3, WebGLRenderer,
 } from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
-import { capsuleGeometry, capsuleRadiusAt, coreMaterial, haloMaterial, shellMaterial } from '../../mates/capsule-jar/capsule-jar-scene.ts'
-import { CAPSULE_ASPECT, CAPSULE_SEAM_OFFSET } from '../../mates/capsule-jar/capsule-jar-layout.ts'
+import {
+  CAPSULE_ASPECT, CAPSULE_SEAM_OFFSET, capsuleGeometry, capsuleRadiusAt, coreMaterial, haloMaterial, shellMaterial,
+} from '../../../shared/three/capsule-model.ts'
 import { CHAERIN_JAR_THEME } from '../../mates/capsule-jar/capsule-jar-theme.ts'
 import { BOARD, boardRiseTiming, isMonthSelectable, type BoardCapsule, type BoardLabel, type BoardTile, type CapsuleBoardModel } from './capsule-board-layout.ts'
 import {

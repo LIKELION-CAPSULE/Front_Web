@@ -1,16 +1,18 @@
+import { BRAND_CAPSULE_COLORS } from '../../../shared/three/capsule-shape.ts'
 import type { CapsuleJarTheme } from './capsule-jar-types.ts'
 import type { TimeBand } from './capsule-moments.ts'
 
 /**
  * 채린 follows the two tones of the logo v2 capsule (design/brand/capsule-logo-2026-11-22-v2/README.md: white → #D4C3FA
- * body, #B397FC → #8053F2 seam) as frosted and pale violet glass, glowing from a core inside.
+ * body, #B397FC → #8053F2 seam) as frosted and pale violet glass, glowing from a core inside. Its glass tones are the
+ * brand capsule every other screen draws (BRAND_CAPSULE_COLORS).
  */
 export const CHAERIN_JAR_THEME: CapsuleJarTheme = {
-  lightHalf: '#EEE9FF',
+  lightHalf: BRAND_CAPSULE_COLORS.lightHalf,
   lightHalfShade: '#D9CEFB',
-  tintHalf: '#C4B0FF',
+  tintHalf: BRAND_CAPSULE_COLORS.tintHalf,
   tintHalfShade: '#9878F6',
-  glow: '#B9A3FB',
+  glow: BRAND_CAPSULE_COLORS.glow,
   rim: '#C4B9F3',
 }
 
