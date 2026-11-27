@@ -49,6 +49,19 @@ export type JarBenchmark = { fps: number; frameMsP50: number; frameMsP95: number
 
 export type IntroKind = 'enter' | 'switch' | 'arrival'
 
+export type JarBodySnapshot = {
+  index: number
+  id: string
+  x: number
+  y: number
+  vx: number
+  vy: number
+  speed: number
+  dynamic: boolean
+  held: boolean
+  supported: boolean
+}
+
 export type JarSceneController = {
   /** New capsules / records. Poses of capsules that stay are kept; an opened bundle that is gone is closed. */
   setLayout(layout: SceneLayout): void
@@ -80,6 +93,8 @@ export type JarSceneController = {
   setBeside(beside: boolean): void
   close(): Promise<void>
   benchmark(durationMs: number): Promise<JarBenchmark>
+  /** Read-only snapshot of every capsule's pose, velocity and physics state (diagnostics / verification). */
+  inspectBodies(): JarBodySnapshot[]
   dispose(): void
 }
 
@@ -164,12 +179,16 @@ const SPLIT = 0.75
 const REVEAL_AT = 0.95
 const CLOSE_TIME = 0.7
 
+/** Safety cap after the last capsule launches (normal physics settles in ~1.2–2 s). */
+const MAX_SETTLE_SECONDS = 6
+
 type Pending = { start: number; fall: number; isNew: boolean }
 type IntroState = {
   kind: IntroKind
   start: number
   pourEnd: number
   end: number
+  maxEnd: number
   pending: Map<number, Pending>
 }
 
@@ -593,6 +612,9 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     quaternion: { x: rotations[index]!.x, y: rotations[index]!.y, z: rotations[index]!.z, w: rotations[index]!.w },
   })
 
+  const tmpVelocity = { x: 0, y: 0, z: 0 }
+  const tmpSpin = { x: 0, y: 0, z: 0 }
+
   function setLayout(next: FloorLayout) {
     const previous = placements
     const previousPositions = positions
@@ -600,6 +622,19 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     const previousIndex = indexById
     // A new panel shape moves the bins: everything takes its new resting place.
     const reshaped = layout !== null && layout.width !== next.width
+    // Preserve velocity of capsules still falling so a mid-pour layout update never freezes them in mid-air.
+    const previousDynamic = new Map<string, { velocity: { x: number; y: number; z: number }; spin: { x: number; y: number; z: number } }>()
+    if (physics && !reshaped) {
+      for (let index = 0; index < previous.length; index++) {
+        if (!physics.isDynamic(index)) continue
+        physics.readVelocity(index, tmpVelocity)
+        physics.readAngularVelocity(index, tmpSpin)
+        previousDynamic.set(previous[index]!.id, {
+          velocity: { x: tmpVelocity.x, y: tmpVelocity.y, z: tmpVelocity.z },
+          spin: { x: tmpSpin.x, y: tmpSpin.y, z: tmpSpin.z },
+        })
+      }
+    }
     layout = next
     placements = next.placements
     firstCapsuleBoost = placements.length <= 8 ? 0.35 : 0
@@ -647,6 +682,15 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
       placements.map((_, index) => poseOf(index)),
     )
     if (intro) for (const index of intro.pending.keys()) physics?.hold(index)
+    if (physics && previousDynamic.size > 0) {
+      for (const [index, placement] of placements.entries()) {
+        if (intro?.pending.has(index)) continue
+        const motion = previousDynamic.get(placement.id)
+        if (!motion) continue
+        physics.launch(index, poseOf(index), motion.velocity, motion.spin)
+        physicsActive = true
+      }
+    }
 
     const pileHeight = Math.max(0.6, next.topHeight)
     floorGlow.scale.set(next.width * 1.3, pileHeight * 2.6, 1)
@@ -662,6 +706,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
   // ── Intro: the pour ──
   function intro_(kind: IntroKind, newGroups: readonly string[]) {
     if (!layout) return
+    if (intro) finishIntro()
     for (const id of newGroups) newGroupIds.add(id)
     isNewPiece = placements.map((placement) => newGroupIds.has(placement.groupId))
     for (let index = 0; index < placements.length; index++) updateGlow(index)
@@ -696,6 +741,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
       start: clock,
       pourEnd: clock + timing.pourMs / 1000,
       end: clock + (timing.pourMs + timing.settleMs) / 1000,
+      maxEnd: clock + timing.pourMs / 1000 + MAX_SETTLE_SECONDS,
       pending,
     }
     composeAll()
@@ -711,7 +757,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     const bin = pileBinAt(placement.x, (layout?.width ?? 2 * PILE.defaultHalfWidth) / 2)
     const low = bin.from + placement.length / 2 + 0.01
     const high = bin.to - placement.length / 2 - 0.01
-    const startX = Math.max(low, Math.min(high, placement.x + (local() - 0.5) * 0.6))
+    const startX = low <= high ? Math.max(low, Math.min(high, placement.x + (local() - 0.5) * 0.6)) : (bin.from + bin.to) / 2
     const fall = pending.fall
     const dy = placement.y + 0.15 - top
     // Reaches its spot at about `fall` seconds, then bounces and rolls on from there.
@@ -743,8 +789,8 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
         placements.map((_, index) => poseOf(index)),
       )
     } else {
-      for (const index of state.pending.keys()) {
-        const placement = placements[index]!
+      for (const [index, placement] of placements.entries()) {
+        if (!state.pending.has(index) && !physics?.isDynamic(index)) continue
         positions[index]!.set(placement.x, placement.y, placement.z)
         rotations[index]!.copy(restQuaternion(placement))
         physics?.place(index, poseOf(index))
@@ -769,14 +815,24 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
         physicsActive = true
       }
     }
-    if (clock >= state.end && state.pending.size === 0) {
-      intro = null
-      physics?.freeze()
-      readPhysics()
-      physicsActive = false
-      composeAll()
-      options.onIntroEnd?.(state.kind)
+    if (state.pending.size > 0) return
+    const settled = !physics || !physicsActive || physics.isSettled()
+    if (!settled && clock < state.maxEnd) return
+    if (physics && !settled) {
+      // Safety cap: ground any dynamic capsule still unsupported after MAX_SETTLE_SECONDS.
+      for (const [index, placement] of placements.entries()) {
+        if (!physics.isDynamic(index) || physics.isSupported(index)) continue
+        positions[index]!.set(placement.x, placement.y, placement.z)
+        rotations[index]!.copy(restQuaternion(placement))
+        physics.place(index, poseOf(index))
+      }
     }
+    intro = null
+    physics?.freeze()
+    readPhysics()
+    physicsActive = false
+    composeAll()
+    options.onIntroEnd?.(state.kind)
   }
 
   function readPhysics() {
@@ -1277,6 +1333,28 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     })
   }
 
+  function inspectBodies(): JarBodySnapshot[] {
+    const velocity = { x: 0, y: 0, z: 0 }
+    return placements.map((placement, index) => {
+      const pos = positions[index]!
+      physics?.readVelocity(index, velocity)
+      const vx = physics ? velocity.x : 0
+      const vy = physics ? velocity.y : 0
+      return {
+        index,
+        id: placement.id,
+        x: Math.round(pos.x * 1000) / 1000,
+        y: Math.round(pos.y * 1000) / 1000,
+        vx: Math.round(vx * 1000) / 1000,
+        vy: Math.round(vy * 1000) / 1000,
+        speed: Math.round(Math.hypot(vx, vy) * 1000) / 1000,
+        dynamic: physics ? physics.isDynamic(index) : false,
+        held: physics ? physics.isHeld(index) : false,
+        supported: physics ? physics.isSupported(index) : true,
+      }
+    })
+  }
+
   function dispose() {
     if (disposed) return
     cancelOpen()
@@ -1337,6 +1415,7 @@ export function createCapsuleJarScene(options: JarSceneOptions): JarSceneControl
     setBeside,
     close,
     benchmark,
+    inspectBodies,
     dispose,
   }
 }

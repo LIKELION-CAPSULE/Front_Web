@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { availableMates, mateCatalogIdMap, selectedCatalogMate } from '../src/features/mates/catalog.ts'
+import { availableMates, launchMateId, selectedCatalogMate } from '../src/features/mates/catalog.ts'
 import {
   capsuleBandTheme,
   capsuleJarTheme,
@@ -37,12 +37,16 @@ for (const [source, cards] of [
 }
 
 test('records board includes all server aliases and keeps registered mate colours', () => {
-  const ids = mateCatalogIdMap([
+  const launch = [
     { id: 'chaerin', characterId: '4', serverIds: [4] },
     { id: 'dohyun', characterId: '2', serverIds: [2, 3] },
-  ])
+  ]
+  const ids = { get: (id: string) => launchMateId({ id }, launch) }
   assert.deepEqual(capsuleJarTheme(ids.get('4')), CHAERIN_JAR_THEME)
   for (const id of ['2', '3', 'dohyun']) assert.deepEqual(capsuleJarTheme(ids.get(id)), mateThemeFromHue(230))
+  // Non-launch server mates (말포이 id 1) map to nothing, by id or by name.
+  assert.equal(launchMateId({ id: 1, name: '말포이' }, launch), undefined)
+  assert.equal(launchMateId({ id: '1' }, launch), undefined)
   assert.deepEqual(capsuleJarTheme('1', '채린'), CHAERIN_JAR_THEME)
   assert.deepEqual(capsuleJarTheme('4', '채린'), CHAERIN_JAR_THEME)
   assert.deepEqual(capsuleJarTheme(undefined, '채린'), CHAERIN_JAR_THEME)
@@ -98,4 +102,11 @@ test('채린 dawn capsules stay distinct from 서도현 blue-violet, and mateCol
   // Server id + name also yields the canonical CSS variables.
   assert.deepEqual(mateColorStyle('4', '채린'), chaerinStyle)
   assert.deepEqual(mateColorStyle('2', '서진'), dohyunStyle)
+
+  // Non-launch server mates (e.g. 말포이 id 1) never borrow 채린's or 서도현's registered colours.
+  for (const [id, name] of [['1', '말포이'], [undefined, '말포이'], ['99', '테스트']] as const) {
+    const theme = capsuleJarTheme(id, name)
+    assert.notDeepEqual(theme, CHAERIN_JAR_THEME)
+    assert.notDeepEqual(theme, dohyunBase)
+  }
 })

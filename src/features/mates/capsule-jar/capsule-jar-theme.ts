@@ -1,7 +1,7 @@
 import { BRAND_CAPSULE_COLORS } from '../../../shared/three/capsule-shape.ts'
 import type { CapsuleJarTheme } from './capsule-jar-types.ts'
 import type { TimeBand } from './capsule-moments.ts'
-import { mateProfile, mateProfileByName } from '../catalog.ts'
+import { launchMateId } from '../catalog.ts'
 
 /**
  * 채린 follows the two tones of the logo v2 capsule (design/brand/capsule-logo-2026-11-22-v2/README.md: white → #D4C3FA
@@ -64,17 +64,17 @@ const MATE_JAR_THEMES: Readonly<Record<string, CapsuleJarTheme>> = {
   dohyun: mateThemeFromHue(230),
 }
 
-/** Hues for mates without a registered colour: inside the range and clear of 채린's violet. */
-export const MATE_FALLBACK_HUES = [230, 284, 298, 312] as const
+/** Hues for mates without a registered colour: inside the range and clear of 채린 (~255°) and 서도현 (230°). */
+export const MATE_FALLBACK_HUES = [284, 298, 312] as const
 
 /**
  * Returns the mate's colours: the registered ones, else a calm tint from `MATE_FALLBACK_HUES` picked by the mate's id,
  * so every mate keeps its own colour without anyone hand-picking it first — and never leaves the violet family.
  */
 export function capsuleJarTheme(mateId: string | undefined, mateName?: string): CapsuleJarTheme {
-  const catalogId = mateProfile(mateId)?.id ?? mateProfileByName(mateName ?? mateId)?.id
+  const catalogId = launchMateId({ id: mateId, name: mateName ?? mateId })
   if (catalogId && MATE_JAR_THEMES[catalogId]) return MATE_JAR_THEMES[catalogId]
-  const hue = MATE_FALLBACK_HUES[hashString(mateId ?? 'mate') % MATE_FALLBACK_HUES.length]!
+  const hue = MATE_FALLBACK_HUES[hashString(mateId ?? mateName ?? 'mate') % MATE_FALLBACK_HUES.length]!
   return mateThemeFromHue(hue)
 }
 

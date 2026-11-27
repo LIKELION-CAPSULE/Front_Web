@@ -155,7 +155,13 @@ test('a connection becomes a bundle: one capsule per 10 minutes, 3 to 18', () =>
     [5, 30, 60, 75, 120, 180, 400].map((minutes) => capsulesForConnection(minutes * 60)),
     [3, 3, 6, 8, 12, 18, 18],
   )
-  assert.deepEqual(CAPSULE_COUNT, { minutesPerCapsule: 10, min: 3, max: 18 })
+  assert.deepEqual(CAPSULE_COUNT, { minSeconds: 60, minutesPerCapsule: 10, min: 3, max: 18 })
+})
+
+test('a connection under a minute (「0분」, e.g. cancelled at once) leaves no capsule', () => {
+  assert.deepEqual([0, 1, 30, 59, 60, 61].map(capsulesForConnection), [0, 0, 0, 0, 3, 3])
+  assert.equal(capsulesForConnection(NaN), 0)
+  assert.equal(capsulesForConnection(-5), 0)
 })
 
 test('pile: bundles by connection, flat in the screen plane, inside the panel and inside one bin each, most beside the mate', () => {

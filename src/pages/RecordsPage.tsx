@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
 import type { StudyRecord } from '@/features/demo/types'
-import { availableMates, mateCatalogIdMap, mateProfileByName } from '@/features/mates/catalog'
+import { availableMates, launchMateId } from '@/features/mates/catalog'
 import { useMyMates } from '@/features/mates/use-my-mates'
 import { useRecordsData } from '@/features/records/use-records-data'
 import { isDayRecord, recordsSummary, type RecordsMate } from '@/features/records/records-source'
@@ -208,21 +208,23 @@ export default function RecordsPage() {
 
   // The board: mate colours with 「전체」 (mate by mate in a column), the chosen mate's time-band tints otherwise.
   const yearColumns = yearColumnsFor(stageWidth || 1200)
-  const mateIdByCharId = useMemo(() => mateCatalogIdMap(connectedMates ?? []), [connectedMates])
+  // Records are already launch mates only (records-source.ts `loadRecordsScope`); unknown ids keep their own key.
+  const mateIdOf = useCallback(
+    (record: StudyRecord, name?: string) =>
+      launchMateId({ id: record.characterIds[0], name: name ?? record.characterName ?? record.serverReport?.mate?.name }, connectedMates ?? []),
+    [connectedMates],
+  )
   const board = useMemo(
     () =>
       buildCapsuleBoard(periodRecords, shownRange, {
         keepsakes,
-        mateOf: (record: StudyRecord) =>
-          mateIdByCharId.get(record.characterIds[0] ?? '') ??
-          mateProfileByName(record.characterName ?? record.serverReport?.mate?.name)?.id ??
-          'chaerin',
+        mateOf: (record: StudyRecord) => mateIdOf(record) ?? (record.characterIds[0] || 'unknown'),
         mateOrder: (connectedMates ?? []).map((mate) => mate.id),
         mateNames: new Map((connectedMates ?? []).map((mate) => [mate.id, mate.name])),
         colorMode: shownMate ? 'band' : 'mate',
         yearColumns,
       }),
-    [shownMate, connectedMates, keepsakes, mateIdByCharId, periodRecords, shownRange, yearColumns],
+    [shownMate, connectedMates, keepsakes, mateIdOf, periodRecords, shownRange, yearColumns],
   )
   const capsuleCalendar = board.calendar
 
@@ -256,7 +258,7 @@ export default function RecordsPage() {
   const dayCardRecord = dayCard ? dayCardRecords[Math.min(dayCard.index, dayCardRecords.length - 1)] : undefined
   const dayCardCapsule = dayCardRecord ? capsuleFromStudyRecord(dayCardRecord) : null
   const dayCardMateId = dayCardRecord
-    ? mateIdByCharId.get(dayCardRecord.characterIds[0] ?? '') ?? mateProfileByName(mateNameOf(dayCardRecord))?.id
+    ? mateIdOf(dayCardRecord, mateNameOf(dayCardRecord))
     : undefined
   // The same keepsakes as the mate's capsules in 내 메이트: milestones of all that mate's connections.
   const dayCardKeepsake = dayCardCapsule ? keepsakes.get(dayCardCapsule.id)?.hours : undefined

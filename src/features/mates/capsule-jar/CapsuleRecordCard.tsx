@@ -9,7 +9,6 @@ import '@/features/reports/capsule-card-effects.css'
 import { formatCapsuleClockRange, formatCapsuleDate, formatTogether, withParticle } from './capsule-jar-data.ts'
 import { capsulesForConnection } from './capsule-floor-layout.ts'
 import { capsuleBandTheme, capsuleJarTheme } from './capsule-jar-theme.ts'
-import { mateProfileByName } from '../catalog.ts'
 import { capsuleBand, keepsakeTitle } from './capsule-moments.ts'
 import type { CapsuleRecord } from './capsule-jar-types.ts'
 import './capsule-record-card.css'
@@ -167,7 +166,7 @@ export function CapsuleRecordCard({
 
   // The mate's colours in this connection's time band (the same tint as its capsules in the pile).
   const theme = capsuleBandTheme(
-    capsuleJarTheme(mateId ?? mateProfileByName(mateName)?.id ?? 'chaerin', mateName),
+    capsuleJarTheme(mateId, mateName),
     capsuleBand(capsule),
   )
   const themeStyle = {

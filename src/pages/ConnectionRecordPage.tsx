@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useServerReport } from '@/features/backend/use-server-report'
 import { useDemo } from '@/features/demo/demo-context'
-import { availableMates, mateProfileByName } from '@/features/mates/catalog'
+import { availableMates, launchMateId, mateProfile } from '@/features/mates/catalog'
 import { ConnectMateButton } from '@/features/mates/components/ConnectMateButton'
 import { MatePreview } from '@/features/mates/components/MatePreview'
 import { matePortrait } from '@/features/mates/artwork'
@@ -38,14 +38,16 @@ export default function ConnectionRecordPage() {
   const [devLevelUp, setDevLevelUp] = useState<boolean | null>(null)
 
   const mates = availableMates(backend.home)
+  // A non-launch server mate (「말포이」) maps to none: the page shows no mate rather than 채린 (catalog.ts `launchMateId`).
+  const recordMateId = record
+    ? launchMateId({ id: record.characterIds[0], name: record.characterName ?? record.serverReport?.mate?.name }, mates)
+    : undefined
   const matchedMate = record
-    ? mates.find((value) => record.characterIds.includes(value.characterId))
+    ? mates.find((value) => value.id === recordMateId)
     : mates.length === 1
       ? mates[0]
       : undefined
-  const profile = record
-    ? matchedMate ?? mateProfileByName(record.characterName ?? record.serverReport?.mate?.name)
-    : matchedMate
+  const profile = record ? matchedMate ?? mateProfile(recordMateId) : matchedMate
 
   const mateId = matchedMate?.id
   const detail = mateId ? backend.mateDetails[mateId] : undefined
