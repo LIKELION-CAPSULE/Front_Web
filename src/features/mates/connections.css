@@ -600,17 +600,8 @@
   .connection-chat-typing > span:nth-child(3) { animation-delay: 300ms; }
 }
 .connection-chat-close {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  flex: none;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--color-muted);
-  transition: background-color 140ms ease, color 140ms ease;
+  margin: -3px -4px -3px 0;
 }
-.connection-chat-close:hover { background: var(--color-control); color: var(--color-ink); }
-.connection-chat-close:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 
 .connection-log-wrap {
   position: relative;

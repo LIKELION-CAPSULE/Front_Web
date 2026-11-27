@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef } from 'react'
 import type { MouseEvent, PointerEvent, ReactNode } from 'react'
 import { cn } from '@/shared/lib/cn'
-import { Icon } from './Icon'
+import { CloseButton } from './CloseButton'
 import { PixelRoofStrip, PixelSnowfall, PixelToneIcon, type PixelTone } from './pixel/PixelFrame'
 
 export type DialogTone = PixelTone
@@ -138,14 +138,13 @@ export function Dialog({
           <h2 id={titleId} className={cn(presentation === 'modal' ? 'type-dialog-title' : 'type-card-title', titleAlign === 'center' && 'text-center', titleAlign === 'center' && showCloseButton && 'px-12')}>
             {title}
           </h2>
-          {showCloseButton && dismissible && <button
-            type="button"
-            onClick={dismiss}
-            aria-label={closeLabel}
-            className={cn('app-dialog-close flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-subtle transition-colors hover:bg-control-hover', titleAlign === 'center' && 'absolute right-[var(--px-pad)]')}
-          >
-            <Icon name="close" size={20} />
-          </button>}
+          {showCloseButton && dismissible && (
+            <CloseButton
+              onClick={dismiss}
+              label={closeLabel}
+              className={cn('app-dialog-close', titleAlign === 'center' && 'absolute right-[var(--px-pad)]')}
+            />
+          )}
         </div>
         <div className="app-dialog-body">{children}</div>
       </> : <>

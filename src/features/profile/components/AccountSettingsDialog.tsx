@@ -3,6 +3,7 @@ import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
 import { Avatar } from '@/shared/ui/Avatar'
 import { Button } from '@/shared/ui/Button'
+import { CloseButton } from '@/shared/ui/CloseButton'
 import { Dialog } from '@/shared/ui/Dialog'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { Icon, type IconName } from '@/shared/ui/Icon'
@@ -149,9 +150,7 @@ export default function AccountSettingsDialog({
       className="account-settings-dialog"
     >
       <div ref={windowRef} className="account-settings-window" tabIndex={-1} data-dialog-initial-focus>
-        <button type="button" disabled={busy} className="account-settings-close" aria-label="계정 설정 닫기" onClick={onClose}>
-          <Icon name="close" size={20} />
-        </button>
+        <CloseButton disabled={busy} className="account-settings-close" label="계정 설정 닫기" onClick={onClose} />
 
         <div className="account-settings-layout">
           <aside className="account-settings-sidebar">

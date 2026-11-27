@@ -60,23 +60,6 @@
   z-index: 2;
   top: 30px;
   right: 16px;
-  display: inline-grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 7px;
-  color: var(--color-subtle);
-  transition: color 140ms ease, background-color 140ms ease;
-}
-
-.account-settings-close:hover:not(:disabled) {
-  background: var(--color-control);
-  color: var(--color-ink);
-}
-
-.account-settings-close:disabled {
-  cursor: wait;
-  opacity: 0.45;
 }
 
 .account-settings-layout {
