@@ -45,6 +45,7 @@ import { mateVoiceOn, mateVoicePatch, PIP_WINDOW_SIZE, TALK_OPTIONS, voiceIntroK
 import { usePushToTalk } from '@/features/mates/use-push-to-talk'
 import { PUSH_TO_TALK_TEXT } from '@/features/mates/push-to-talk'
 import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate-features'
+import { normalizeAffinityStage } from '@/features/mates/affinity-stages'
 import { DevicePrivacyInfo } from '@/features/media/components/DevicePrivacyInfo'
 import { Brand } from '@/shared/ui/Brand'
 import { MateTap, onMate } from '@/features/mates/mate-tap'
@@ -619,10 +620,14 @@ export default function ConnectionPage() {
     )
   }
 
-  const relation = backend.affinities[Number(mate.characterId)]
   // The affinity chip follows the affinity feature; with no server stage it shows 「—」 and no lit steps.
   const mateFeatures = resolveMateFeatures(import.meta.env.DEV, null)
   const showAffinity = mateFeatures.affinity
+  // A stage reached during this call (21 `stageUp`) shows in the chip at once, with its notice, not after the next
+  // relation refresh: the chip never says less than the notice next to it.
+  const savedRelation = backend.affinities[Number(mate.characterId)]
+  const reached = sync.stageUp ? normalizeAffinityStage(sync.stageUp.stage, sync.stageUp.stageName) : null
+  const relation = reached && reached.stage > (savedRelation?.stage ?? 0) ? reached : savedRelation
   const isAdvanced = backend.connectionMode === 'advanced'
   const canSwitchMode = !finishing
   const creditInsufficient = Boolean(
@@ -633,6 +638,14 @@ export default function ConnectionPage() {
       backend.wallet.attendance + backend.wallet.invitation,
   )
   const floatingErrors = [sync.error, devices.camera.error, pip.error].filter(Boolean)
+  // Her reply came as text because the credits ran short for 메이트 음성: over the composer, or among the stage's
+  // notices while the chat is closed (the voice is used most with the chat closed).
+  const voiceFallbackNote = (
+    <p className="voice-fallback-note" role="status" onAnimationEnd={(event) => { if (event.target === event.currentTarget) setVoiceNote('done') }}>
+      <Icon name="headphones" size={14} />
+      <span>{CREDIT_NOTICE_COPY.voiceFallback}</span>
+    </p>
+  )
   const leaveQuote = selectLeaveQuote(backend.mateDetails[mate.id], mate)
   const cameraBusy = devices.camera.status === 'requesting'
   const dockItems: GlassDockItem[] = [
@@ -680,10 +693,12 @@ export default function ConnectionPage() {
       onAction: toggleVoice,
     },
     {
+      // Picture-in-picture artwork (a small window over a large one), not 「minimize」, which reads as 「exit full screen」.
+      // While the window is open the button brings it forward (DocumentPip.open focuses it).
       key: 'pip',
-      label: 'PIP로 띄우기',
-      tooltip: 'PIP로 띄우기',
-      icon: 'shrink',
+      label: pip.status === 'open' ? 'PIP 창으로 가기' : 'PIP로 띄우기',
+      tooltip: pip.status === 'open' ? 'PIP 창으로 가기' : 'PIP로 띄우기 · 작은 창으로 곁에 두기',
+      icon: 'pip',
       pressed: pip.status === 'open',
       disabled: pip.status === 'opening',
       busy: pip.status === 'opening',
@@ -831,6 +846,8 @@ export default function ConnectionPage() {
             {/* 「말 걸기 빈도」 (= settings T-1, kept in sync): short labels; what each means in its tooltip and, for a
                 moment after choosing, below. Only the choice is violet. */}
             <div className="connection-talk" role="radiogroup" aria-label="말 걸기 빈도">
+              {/* What the three words choose: how often she speaks first (the group's name says it to screen readers). */}
+              <span className="connection-talk-label" aria-hidden="true"><Icon name="chat" size={13} />말 걸기</span>
               {TALK_OPTIONS.map((option) => (
                 <button
                   key={option.value}
@@ -926,8 +943,9 @@ export default function ConnectionPage() {
             </section>
           </div>
 
-          {(creditInsufficient || floatingErrors.length > 0 || (showAffinity && sync.stageUp) || voice.status === 'blocked' || voiceIntro || (voiceOn && voiceUnavailable)) && (
+          {(creditInsufficient || floatingErrors.length > 0 || (showAffinity && sync.stageUp) || voice.status === 'blocked' || voiceIntro || (voiceOn && voiceUnavailable) || (voiceNote === 'shown' && !chatOpen)) && (
             <div className="connection-floating-notices" aria-live="polite">
+              {voiceNote === 'shown' && !chatOpen && voiceFallbackNote}
               {/* 메이트 음성 is on but this browser could not prepare the audio: no voice is asked for (or paid). */}
               {voiceOn && voiceUnavailable && (
                 <div className="connection-notice-card connection-voice-unavailable" role="status">
@@ -1060,9 +1078,7 @@ export default function ConnectionPage() {
                 }}
               />
             )}
-            {voiceNote === 'shown' && (
-              <p className="voice-fallback-note" role="status" onAnimationEnd={() => setVoiceNote('done')}>{CREDIT_NOTICE_COPY.voiceFallback}</p>
-            )}
+            {voiceNote === 'shown' && voiceFallbackNote}
             {error && (
               <div className="connection-chat-error">
                 <FeedbackMessage tone="error">{error}</FeedbackMessage>

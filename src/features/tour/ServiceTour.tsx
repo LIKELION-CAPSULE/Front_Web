@@ -249,6 +249,10 @@ export default function ServiceTour() {
   const way: 1 | -1 = (location.state as { tourWay?: 1 | -1 } | null)?.tourWay === -1 ? -1 : 1
   const [target, setTarget] = useState<{ id: string; element: Element } | null>(null)
   const element = target?.id === step.id ? target.element : null
+  // 채린's line: `sayFallback` when the first mark landed on a stand-in for its own target (on a narrow practice call
+  // the dock folds 「PIP로 띄우기」 into ⋯), so the line names where the thing is (UX review 9-2).
+  const firstSelector = step.marks[0]?.targets[0]
+  const say = element && step.sayFallback && firstSelector && !element.matches(firstSelector) ? step.sayFallback : step.say
   /** 채린's line (the cursor label) when a press shows its preview: the preview sits next to it. */
   const [label, setLabel] = useState<{ left: number; top: number; bottom: number } | null>(null)
   /** The label's side around the arrow, chosen when the cursor is about to land (per mark). */
@@ -437,8 +441,8 @@ export default function ServiceTour() {
   const cursors: CursorConfig[] = useMemo(() => {
     if (reduced) return []
     if (!ready) return [{ ...CURSOR, start, script: [] }]
-    return [buildScript({ step, marks, next, go, light, start, stepAt, place: setPlaced, visit: setVisiting, showLine: setLineFor })]
-  }, [reduced, ready, step, marks, next, go, light, start, stepAt])
+    return [buildScript({ step: say === step.say ? step : { ...step, say }, marks, next, go, light, start, stepAt, place: setPlaced, visit: setVisiting, showLine: setLineFor })]
+  }, [reduced, ready, step, say, marks, next, go, light, start, stepAt])
 
   /** A visual press: the visited mark's preview next to 채린's line (measured now, and again only on a scroll). */
   const onPress = useCallback(() => {
@@ -466,7 +470,7 @@ export default function ServiceTour() {
     }
   }, [])
 
-  const live = `${index + 1}/${steps.length}, ${SCREEN_LABELS[step.screen]}. 채린: ${step.say}${step.screen === 'outro' ? ' 메이트 만나러 가기 또는 다시 보기를 고를 수 있어요.' : ''}`
+  const live = `${index + 1}/${steps.length}, ${SCREEN_LABELS[step.screen]}. 채린: ${say}${step.screen === 'outro' ? ' 메이트 만나러 가기 또는 다시 보기를 고를 수 있어요.' : ''}`
   const side: LabelSide = placed?.id === step.id ? placed.side : preferredSide(step)
   const lift = placed?.id === step.id ? placed.lift : 0
   const shift = placed?.id === step.id ? placed.shift : 0
@@ -544,7 +548,7 @@ export default function ServiceTour() {
       {reduced && ready && (
         <div ref={lineRef} className="service-tour-line" aria-hidden="true" style={lineStyle}>
           <img src={mateAvatar('chaerin')} alt="" width={24} height={24} />
-          <span><b>채린</b>{step.say}</span>
+          <span><b>채린</b>{say}</span>
         </div>
       )}
 
@@ -559,7 +563,9 @@ export default function ServiceTour() {
           {step.screen !== 'outro' && <Button variant="ghost" size="sm" data-tour-skip onClick={skip}>그만보기</Button>}
           {/* The rest of this screen's steps: on to the next screen's first step. */}
           {nextScreen && next && next.screen === step.screen && (
-            <Button variant="ghost" size="sm" data-tour-skip-screen onClick={() => go(nextScreen, 1)}>이 화면 건너뛰기</Button>
+            <Button variant="ghost" size="sm" data-tour-skip-screen aria-label="이 화면 건너뛰기" onClick={() => go(nextScreen, 1)}>
+              <span className="service-tour-wide">이 화면 </span>건너뛰기
+            </Button>
           )}
           {previous && <Button variant="ghost" size="sm" onClick={() => go(previous, -1)}>이전</Button>}
           {step.screen === 'outro' ? (

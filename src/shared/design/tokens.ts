@@ -53,10 +53,10 @@ export const designColors = {
   "dialog-roof-dither": "#30246B",
   "dialog-surface": "#1E1A31",
   "records-grid-0": "#272630",
-  "records-grid-1": "#312F40",
-  "records-grid-2": "#423F55",
-  "records-grid-3": "#57526E",
-  "records-grid-4": "#6B6587"
+  "records-grid-1": "#3F3B51",
+  "records-grid-2": "#585470",
+  "records-grid-3": "#746D91",
+  "records-grid-4": "#9189B5"
 } as const
 
 export const designPalette = {

@@ -92,8 +92,11 @@ export function MateTimeColumn({
   onOpen: (id: string) => void
   /** The pointer / focus is on a connection in the list (null: left). */
   onPoint: (id: string | null) => void
-  /** 「목록으로 보기」: in the recent block's title row. */
-  listToggle?: ReactNode
+  /**
+   * 「목록으로 보기」 in the recent block's title row, given how many listed connections the column could not show (the
+   * column never scrolls), so the button can say there are more.
+   */
+  listToggle?: (hidden: number) => ReactNode
   actions: ReactNode
 }) {
   const [pointed, setPointed] = useState<string | null>(null)
@@ -139,7 +142,7 @@ export function MateTimeColumn({
           // The count right after the title (all connections, not only the newest listed); the toggle alone at the far right.
           count={total > 0 ? total : undefined}
           countLabel={`전체 ${total}개`}
-          note={listToggle}
+          note={listToggle?.(connections.length - recent.length)}
         >
           최근 캡슐
         </BlockLabel>

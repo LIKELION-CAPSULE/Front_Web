@@ -593,7 +593,11 @@ export default function RecordsPage() {
                     mateNameOf={mateNameOf}
                     renderRecord={(record) =>
                       isDayRecord(record) ? (
-                        <DayRemainderRow record={record} mateName={mateNameOf(record)} />
+                        <DayRemainderRow
+                          record={record}
+                          mateName={mateNameOf(record)}
+                          alone={selectedDay.records.every((item) => isDayRecord(item))}
+                        />
                       ) : (
                         <RecordConnectionRow record={record} mateName={mateNameOf(record)} />
                       )

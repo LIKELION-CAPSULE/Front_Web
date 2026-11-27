@@ -57,7 +57,7 @@ export default function TourCallPage() {
     { key: 'chat', label: '채팅 닫기', tooltip: '채팅 닫기', icon: 'chat', pressed: true, expanded: true, controls: 'tour-call-chat', onAction: NOOP },
     // 「메이트 음성」 shown as on the call screen (off, its default); nothing is asked for here.
     { key: 'voice', label: '메이트 음성 켜기', tooltip: '메이트 음성 켜기', icon: 'headphones', pressed: false, onAction: NOOP },
-    { key: 'pip', label: 'PIP로 띄우기', tooltip: 'PIP로 띄우기', icon: 'shrink', dividerBefore: true, secondary: true, onAction: NOOP },
+    { key: 'pip', label: 'PIP로 띄우기', tooltip: 'PIP로 띄우기 · 작은 창으로 곁에 두기', icon: 'pip', dividerBefore: true, secondary: true, onAction: NOOP },
     { key: 'fullscreen', label: '전체화면 전환', tooltip: '전체화면', icon: 'expand', secondary: true, onAction: NOOP },
     { key: 'settings', label: '설정', tooltip: '설정', icon: 'sliders', secondary: true, onAction: NOOP },
     { key: 'leave', label: '연결 끊기', tooltip: '연결 끊기', icon: 'phoneOff', tone: 'danger', dividerBefore: true, onAction: NOOP },
@@ -101,6 +101,7 @@ export default function TourCallPage() {
           <div ref={stageWrapRef} className="connection-stage-wrap">
             <div className="connection-stage" data-layout="mate">
               <div className="connection-talk" role="radiogroup" aria-label="말 걸기 빈도" data-tour="call-talk">
+                <span className="connection-talk-label" aria-hidden="true"><Icon name="chat" size={13} />말 걸기</span>
                 {TALK_OPTIONS.map((option) => (
                   <button key={option.value} type="button" role="radio" aria-checked={option.value === 'sometimes'} title={option.description} className="connection-talk-option" onClick={NOOP}>
                     {option.label}

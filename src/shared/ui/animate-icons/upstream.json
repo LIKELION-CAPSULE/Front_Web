@@ -219,6 +219,12 @@
       "originalSha256": "edcf43ffe5ead628a13939ce72797a8f2eb22acef9e71d3b6b62e9b19a7ba6cf"
     },
     {
+      "name": "pip",
+      "icon": "picture-in-picture",
+      "path": "icons/lucide/picture-in-picture-icon.tsx",
+      "originalSha256": "37fd8f3acbab4d06a77f7508f9a29e745fb480b58d93bd3a1ae8f25604579084"
+    },
+    {
       "name": "moon",
       "icon": "moon",
       "path": "icons/lucide/moon-icon.tsx",
