@@ -1,17 +1,42 @@
 @layer components {
-  .session-chat-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; border-radius: 32px; background: var(--color-surface); padding: 9px 10px 9px 16px; box-shadow: 0 3px 14px #0002; transition: border-radius 180ms, box-shadow 180ms; }
-  .session-chat-composer > textarea { width: 100%; min-width: 0; height: 24px; min-height: 24px; max-height: 120px; resize: none; overflow-y: auto; border: 0; outline: 0; background: transparent; padding: 0; color: var(--color-ink); font-size: var(--text-control); line-height: var(--text-control--line-height); overscroll-behavior: contain; scrollbar-width: thin; }
+  /* One row: [누르고 말하기] [the text, growing to 120px] [send]. The box shows focus with a ring (no outline lines). */
+  .session-chat-composer { display: flex; align-items: flex-end; gap: 4px; border-radius: 22px; background: var(--color-surface); padding: 4px; box-shadow: 0 3px 14px #0002; }
+  .session-chat-composer > textarea { flex: 1; width: 100%; min-width: 0; height: 24px; min-height: 24px; max-height: 120px; margin: 6px 4px 6px 10px; resize: none; overflow-y: auto; border: 0; outline: 0; background: transparent; padding: 0; color: var(--color-ink); font-size: var(--text-control); line-height: var(--text-control--line-height); overscroll-behavior: contain; scrollbar-width: thin; }
+  .session-chat-composer > .session-chat-talk + textarea { margin-left: 2px; }
   .session-chat-composer > textarea::placeholder { color: var(--color-placeholder); }
-  .session-chat-composer-tools { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
-  .session-chat-composer-tools > button { display: grid; width: 32px; height: 32px; flex: none; place-items: center; border: 0; border-radius: 50%; background: var(--color-control); color: var(--color-ink); }
-  .session-chat-composer-tools > .session-chat-send { background: var(--color-primary); color: var(--color-on-solid); }
-  .session-chat-send > .app-icon { rotate: -90deg; }
-  .session-chat-composer:focus-within, .session-chat-composer[data-has-text] { border-radius: 22px; padding: 14px; }
-  .session-chat-composer:focus-within > textarea, .session-chat-composer[data-has-text] > textarea { grid-column: 1 / -1; }
-  .session-chat-composer:focus-within .session-chat-composer-tools, .session-chat-composer[data-has-text] .session-chat-composer-tools { grid-column: 1 / -1; margin-top: 8px; }
   .session-chat-composer:focus-within { box-shadow: 0 0 0 2px var(--color-focus-ring); }
-  .session-chat-composer-tools > .session-chat-send:not(:disabled):hover { background: var(--color-primary-hover); }
-  .session-chat-composer-tools > .session-chat-send:not(:disabled):active { background: var(--color-primary-active); }
-  .session-chat-composer-tools > button:disabled, .session-chat-composer-tools > .session-chat-send:disabled { background: var(--color-disabled); color: var(--color-text-disabled); opacity: 1; }
-  @media (prefers-reduced-motion: reduce) { .session-chat-composer { transition: none; } }
+  /* A button inside the box has its own focus ring: no second ring around the box then. */
+  .session-chat-composer:has(button:focus-visible) { box-shadow: 0 3px 14px #0002; }
+  .session-chat-composer-tools { display: flex; flex: none; align-items: center; justify-content: flex-end; gap: 6px; }
+
+  .session-chat-talk,
+  .session-chat-composer-tools > button { display: grid; width: 36px; height: 36px; flex: none; place-items: center; border: 0; border-radius: 50%; }
+  .session-chat-talk { background: transparent; color: var(--color-muted); transition: background-color 140ms ease, color 140ms ease; }
+  .session-chat-talk:not(:disabled):hover { background: var(--color-control); color: var(--color-ink); }
+  /* Listening: the speaking green (as the dock's listening state reads as 「켜져 있음」, not a choice). */
+  .session-chat-talk[data-listening] { background: var(--color-success-bg); color: var(--color-success); }
+  .session-chat-talk:disabled { color: var(--color-text-disabled); }
+  .session-chat-talk:focus-visible,
+  .session-chat-composer-tools > button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+
+  /* Send: violet when ready (an action); grey when there is nothing to send or it cannot go; soft violet with a
+     spinner while her reply is on its way. */
+  .session-chat-send > .app-icon { rotate: -90deg; }
+  .session-chat-send[data-state='ready'] { background: var(--color-primary); color: var(--color-on-solid); }
+  .session-chat-send[data-state='ready']:hover { background: var(--color-primary-hover); }
+  .session-chat-send[data-state='ready']:active { background: var(--color-primary-active); }
+  .session-chat-send[data-state='off'] { background: var(--color-disabled); color: var(--color-text-disabled); opacity: 1; }
+  .session-chat-send[data-state='waiting'] { background: var(--color-primary-soft); color: var(--color-text-accent); opacity: 1; cursor: progress; }
+  .session-chat-send-spinner { width: 18px; height: 18px; }
+
+  /* The call screen's extras around the box: quick replies above, the key hint below. */
+  .session-chat-composer-wrap { display: grid; gap: 8px; }
+  .session-chat-quick { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .session-chat-quick > button { flex: none; height: 30px; border: 0; border-radius: 999px; padding: 0 12px; background: var(--color-canvas); color: var(--color-ink); font-size: 13px; font-weight: 500; transition: background-color 140ms ease; }
+  .session-chat-quick > button:not(:disabled):hover { background: var(--color-control); }
+  .session-chat-quick > button:disabled { color: var(--color-text-disabled); }
+  .session-chat-quick > button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+  .session-chat-hint { margin: 0; padding: 0 8px; color: var(--color-subtle); font-size: 12px; line-height: 18px; }
+  .session-chat-hint kbd { border-radius: 4px; padding: 0 4px; background: var(--color-canvas); color: var(--color-muted); font-family: inherit; font-size: 11.5px; }
+  @media (prefers-reduced-motion: reduce) { .session-chat-talk, .session-chat-quick > button { transition: none; } }
 }

@@ -3,7 +3,9 @@ import { Navigate, useLocation, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
 import { availableMates } from '@/features/mates/catalog'
-import { CALL_STAGE_GRADIENT, mateCallBackground, matePortrait } from '@/features/mates/artwork'
+import { CALL_STAGE_GRADIENT, mateAvatar, mateCallBackground, matePortrait } from '@/features/mates/artwork'
+import { ChatLogGroups } from '@/features/mates/components/ChatLogGroups'
+import { PixelRoofStrip } from '@/shared/ui/pixel/PixelFrame'
 import { mateLine, mateLineForState } from '@/features/mates/mate-lines'
 import { getDefaultLineForState } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
 import { CREDIT_PRICING } from '@/features/credits/credit-utils'
@@ -14,7 +16,7 @@ import { GlassDock, type GlassDockItem } from '@/shared/ui/dock/GlassDock'
 import { AnimatedClock } from '@/shared/ui/AnimatedClock'
 import { Icon } from '@/shared/ui/Icon'
 import { Brand } from '@/shared/ui/Brand'
-import { TALK_OPTIONS } from '@/features/mates/connection-preferences'
+import { QUICK_REPLIES, TALK_OPTIONS } from '@/features/mates/connection-preferences'
 import { clock } from '@/shared/lib/format'
 import { withParticle } from '@/shared/lib/korean'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
@@ -53,16 +55,17 @@ export default function TourCallPage() {
     { id: 'practice-2', sender: 'user' as const, text: '오늘은 영어 단어 외울 거야' },
     { id: 'practice-3', sender: 'character' as const, text: second },
   ]
+  // The call screen's dock groups (ConnectionPage): 대화 | 기기 | 화면 | 끊기.
   const dockItems: GlassDockItem[] = [
-    { key: 'microphone', label: '누르고 말하기', tooltip: '누르고 말하기', icon: 'microphone', onAction: NOOP },
-    { key: 'camera', label: '카메라 켜기', tooltip: '카메라 켜기', icon: 'videoOff', device: true, onAction: NOOP },
-    { key: 'chat', label: '채팅 닫기', tooltip: '채팅 닫기', icon: 'chat', pressed: true, expanded: true, controls: 'tour-call-chat', onAction: NOOP },
+    { group: '대화', key: 'microphone', label: '누르고 말하기', tooltip: '누르고 말하기', icon: 'microphone', onAction: NOOP },
+    { group: '대화', key: 'chat', label: '채팅 닫기', tooltip: '채팅 닫기', icon: 'chat', pressed: true, expanded: true, controls: 'tour-call-chat', onAction: NOOP },
     // 「메이트 음성」 shown as on the call screen (off, its default); nothing is asked for here.
-    { key: 'voice', label: '메이트 음성 켜기', tooltip: '메이트 음성 켜기', icon: 'headphones', pressed: false, onAction: NOOP },
-    { key: 'pip', label: 'PIP로 띄우기', tooltip: 'PIP로 띄우기 · 작은 창으로 곁에 두기', icon: 'pip', dividerBefore: true, secondary: true, onAction: NOOP },
-    { key: 'fullscreen', label: '전체화면 전환', tooltip: '전체화면', icon: 'expand', secondary: true, onAction: NOOP },
-    { key: 'settings', label: '설정', tooltip: '설정', icon: 'sliders', secondary: true, onAction: NOOP },
-    { key: 'leave', label: '연결 끊기', tooltip: '연결 끊기', icon: 'phoneOff', tone: 'danger', dividerBefore: true, onAction: NOOP },
+    { group: '대화', key: 'voice', label: '메이트 음성 켜기', tooltip: '메이트 음성 켜기', icon: 'headphones', pressed: false, onAction: NOOP },
+    { group: '기기', key: 'camera', label: '카메라 켜기', tooltip: '카메라 켜기', icon: 'videoOff', device: true, onAction: NOOP },
+    { group: '화면', key: 'pip', label: 'PIP로 띄우기', tooltip: 'PIP로 띄우기 · 작은 창으로 곁에 두기', icon: 'pip', secondary: true, onAction: NOOP },
+    { group: '화면', key: 'fullscreen', label: '전체화면 전환', tooltip: '전체화면', icon: 'expand', secondary: true, onAction: NOOP },
+    { group: '화면', key: 'settings', label: '설정', tooltip: '설정', icon: 'sliders', secondary: true, onAction: NOOP },
+    { group: '끊기', key: 'leave', label: '연결 끊기', tooltip: '연결 끊기', icon: 'phoneOff', tone: 'danger', onAction: NOOP },
   ]
 
   return (
@@ -79,17 +82,16 @@ export default function TourCallPage() {
             <span className="desktop-mate-dot" aria-hidden="true" />
             <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
           </div>
-          <div className="connection-titlebar-center">
-            <div className="connection-mode-segment" role="group" aria-label="대화 모드" data-tour="call-mode">
-              <button type="button" className="connection-mode-option" data-active aria-pressed onClick={NOOP}>기본 · 크레딧 없음</button>
-              <button type="button" className="connection-mode-option" aria-pressed={false} onClick={NOOP}>고급 · 1턴 {CREDIT_PRICING.advanced}</button>
-            </div>
-          </div>
+          {/* The call screen's info bar (ConnectionPage): 대화 모드 · 남은 크레딧 · 연결 시간, all open. */}
           <div className="connection-titlebar-right">
+            <div className="connection-mode-segment" role="group" aria-label="대화 모드" data-tour="call-mode">
+              <button type="button" className="connection-mode-option" data-active aria-pressed onClick={NOOP}><span>기본<span className="connection-mode-detail"> · 크레딧 없음</span></span></button>
+              <button type="button" className="connection-mode-option" aria-pressed={false} onClick={NOOP}><span>고급<span className="connection-mode-detail"> · 1턴 {CREDIT_PRICING.advanced}</span></span></button>
+            </div>
             {credits !== null && (
               <span className="connection-titlebar-chip connection-credit-chip">
                 <Icon name="coin" size={14} className="credit-coin" />
-                <span className="connection-chip-caption">남은</span>
+                <span className="connection-chip-caption connection-chip-long">남은</span>
                 <span className="connection-chip-value">{credits.toLocaleString('ko-KR')}</span>
               </span>
             )}
@@ -143,22 +145,28 @@ export default function TourCallPage() {
           </div>
 
           <aside id="tour-call-chat" className="connection-chat desktop-window" aria-labelledby="tour-call-chat-title">
-            <header className="desktop-window-titlebar mate-window-titlebar-static">
+            <header className="desktop-window-titlebar mate-window-titlebar-static connection-chat-head">
+              <PixelRoofStrip />
               <div className="desktop-window-title-left">
                 <h2 id="tour-call-chat-title">{withParticle(mate.name, '과', '와')} 대화</h2>
               </div>
             </header>
             <div className="connection-messages" role="log" aria-label={`${withParticle(mate.name, '과', '와')} 대화`}>
-              {messages.map((message) => (
-                <article key={message.id} data-sender={message.sender}>
-                  <small>{message.sender === 'user' ? state.profile.name : mate.name}</small>
-                  <p>{message.text}</p>
-                </article>
-              ))}
+              <ChatLogGroups lines={messages} mateName={mate.name} mateFace={mateAvatar(mate.id, mate.image)} userName={state.profile.name} typing={false} />
             </div>
             <div data-tour="call-composer">
               {/* Sending does nothing here: the practice never reaches the message API. */}
-              <ChatComposer name={mate.name} text={draft} onChange={setDraft} onSend={async () => false} sendDisabled />
+              <ChatComposer
+                name={mate.name}
+                text={draft}
+                onChange={setDraft}
+                onSend={async () => false}
+                sendDisabled
+                hint
+                quickReplies={QUICK_REPLIES}
+                onQuickReply={NOOP}
+                talk={{ supported: true, listening: false, disabled: false, label: '누르고 말하기', onPressStart: NOOP, onPressEnd: NOOP }}
+              />
             </div>
           </aside>
         </div>

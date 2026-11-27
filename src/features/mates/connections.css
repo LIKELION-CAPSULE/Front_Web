@@ -100,7 +100,6 @@
 }
 
 .connection-titlebar-left,
-.connection-titlebar-center,
 .connection-titlebar-right {
   display: flex;
   align-items: center;
@@ -138,11 +137,6 @@
   text-align: right;
   padding-left: 12px;
   border-left: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
-}
-
-.connection-titlebar-center {
-  flex: none;
-  justify-content: center;
 }
 
 .connection-mode-segment {
@@ -188,7 +182,7 @@
 }
 
 .connection-titlebar-right {
-  flex: 1 1 0;
+  flex: none;
   justify-content: flex-end;
   gap: 8px;
 }
@@ -303,15 +297,7 @@
   display: block;
 }
 
-.connection-mate[data-speaking]::after {
-  position: absolute;
-  z-index: 20;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 2px var(--color-success);
-  pointer-events: none;
-  content: '';
-}
+/* 「말하는 중」 is a name chip on the stage (CallSpeakerChip), no longer a green frame (no outlines, 2026-11-27). */
 
 /* Bottom-center pill speech bubble (strictly above floating glass dock, below tie knot, clear of self tile) */
 .connection-speech-slot {
@@ -560,6 +546,22 @@
   padding: 0;
 }
 
+.connection-chat-head.desktop-window-titlebar {
+  position: relative;
+  padding-top: 14px;
+}
+/* The roof strip sits on the panel's top edge (border radius clips it with the panel). */
+.connection-chat-head .px-roof-strip { z-index: 0; }
+.connection-chat-head > :not(.px-roof-strip) { position: relative; z-index: 1; }
+
+.connection-log-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
 .connection-messages {
   flex: 1;
   min-height: 0;
@@ -568,56 +570,50 @@
   padding: 18px 14px;
 }
 
-.connection-messages article {
-  margin-bottom: 18px;
-}
+/* Lines in runs: chat-log.css (ChatLogGroups). */
 
-.connection-messages article small {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--color-subtle);
-  font-size: 12px;
+/* 「새 메시지 ↓」: her new lines while the chat is scrolled up; one click goes to the newest. */
+.connection-new-pill {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  left: 50%;
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 0 14px;
+  background: var(--color-floating);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 40%);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 700;
+  transform: translateX(-50%);
 }
-
-.connection-messages article p {
-  width: fit-content;
-  max-width: 90%;
-  padding: 11px 15px;
-  border-radius: 0 14px 14px;
-  background: var(--color-canvas);
-  font-size: 14px;
-  line-height: 1.65;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+.connection-new-pill:hover { background: var(--color-floating-hover); }
+.connection-new-pill:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .connection-new-pill { animation: connection-new-pill-in 220ms steps(3, jump-end) backwards; }
 }
-
-.connection-messages article[data-sender='user'] {
-  display: grid;
-  justify-items: end;
-}
-
-.connection-messages article[data-sender='user'] p {
-  border-radius: 14px 0 14px 14px;
-  background: var(--color-primary);
-  color: var(--color-on-solid);
-}
+@keyframes connection-new-pill-in { from { opacity: 0; transform: translate(-50%, 6px); } }
 
 .connection-chat-error {
   flex: none;
   padding: 0 12px 6px;
 }
 
-.connection-chat .session-chat-composer {
+/* The chat box (ChatComposer): quick replies, the box with 누르고 말하기 inside, the key hint. */
+.connection-chat .session-chat-composer-wrap {
   flex: none;
-  margin: 0 12px 12px;
-  border: 1px solid var(--color-divider);
+  padding: 6px 12px 12px;
+}
+.connection-chat .session-chat-composer {
   background: var(--color-canvas);
+  box-shadow: none;
 }
-
-.connection-chat .session-chat-composer:focus-within {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 1px;
-}
+.connection-chat .session-chat-composer:focus-within { box-shadow: 0 0 0 2px var(--color-focus-ring); }
+.connection-chat .session-chat-composer:has(button:focus-visible) { box-shadow: none; }
 
 /* Leave Confirmation Mate Quote */
 .connection-leave-quote {
@@ -709,37 +705,28 @@
   }
 }
 
-.connection-titlebar-more-wrap {
-  position: relative;
-  display: none;
-  align-items: center;
-}
-
-.connection-titlebar-more-menu {
-  min-width: 196px;
-  padding: 8px 10px;
-}
-
-.connection-titlebar-more-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 6px 4px;
-  font-size: 12.5px;
-  color: var(--color-muted);
-}
-
-.connection-titlebar-more-item strong {
-  color: var(--color-ink);
-  font-weight: 600;
-}
-
 @media (max-width: 1120px) {
   .connection-titlebar-chip {
     padding: 3px 8px;
     font-size: 11px;
   }
+}
+
+/* ≤ 1100px (900 included): the info bar keeps one line by shortening — the affinity chip to its heart and steps, the
+   credit chip to the coin and the number, the mode to 「기본 · 고급」. The words stay for screen readers (sr-only, not
+   display: none) and in the tooltip (title). */
+@media (max-width: 1100px) {
+  .connection-titlebar-right .connection-chip-long,
+  .connection-mode-detail {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .connection-titlebar-right { gap: 6px; }
+  .connection-timer { font-size: 17px; min-width: max-content; padding-left: 10px; white-space: nowrap; }
 }
 
 /* 861px ~ 960px (960 half-screen): chat sits side-by-side without covering stage or dock;
@@ -808,16 +795,9 @@
 }
 
 @media (max-width: 720px) {
-  .connection-titlebar-chip {
-    display: none;
-  }
-  .connection-titlebar-more-wrap {
-    display: inline-flex;
-  }
-  .connection-titlebar-center {
-    order: 3;
-    width: 100%;
-    justify-content: flex-start;
+  .connection-titlebar-right {
+    flex-wrap: wrap;
+    row-gap: 4px;
   }
 }
 
@@ -979,11 +959,7 @@
   opacity: 1;
 }
 
-/* The line is down: no speaking ring, and the live dot goes offline at once. */
-.connection-page[data-hangup] .connection-mate[data-speaking]::after {
-  display: none;
-}
-
+/* The line is down: the live dot goes offline at once (the speaking chip is not drawn while hanging up). */
 .connection-page[data-hangup] .connection-titlebar .desktop-mate-dot {
   background: var(--color-subtle);
   box-shadow: none;

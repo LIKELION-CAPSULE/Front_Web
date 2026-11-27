@@ -1,0 +1,53 @@
+/*
+ * CallSpeakerChip: a glass chip at the top middle of the call stage (left under 「말 걸기」 on a narrow stage). Green
+ * (`success`) is the speaking state (docs/DESIGN_SYSTEM.md 「말하는 중」); the bars and dots move in steps (pixel set),
+ * transform / opacity only; still under reduced motion.
+ */
+.call-speaker-chip {
+  position: absolute;
+  z-index: 21;
+  top: 14px;
+  left: 50%;
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+.call-speaker-sep { width: 1px; height: 12px; background: color-mix(in srgb, var(--color-ink) 24%, transparent); }
+.call-speaker-state { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; }
+.call-speaker-chip[data-state='speaking'] .call-speaker-state { color: var(--color-success); }
+.call-speaker-chip[data-state='waiting'] .call-speaker-state { color: var(--color-muted); }
+.call-speaker-bars { display: inline-flex; height: 12px; align-items: flex-end; gap: 2px; }
+.call-speaker-bars > span { width: 3px; height: 12px; background: currentColor; transform-origin: bottom; }
+.call-speaker-dots { display: inline-flex; align-items: center; gap: 4px; }
+.call-speaker-dots > span { width: 5px; height: 5px; background: currentColor; }
+@container connection-stage (max-width: 720px) {
+  .call-speaker-chip { top: 56px; left: 14px; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .call-speaker-chip { animation: call-speaker-in 200ms steps(3, jump-end) backwards; }
+  .call-speaker-bars > span { animation: call-speaker-bar 600ms steps(4, jump-none) infinite alternate; }
+  .call-speaker-bars > span:nth-child(2) { animation-delay: -300ms; animation-duration: 520ms; }
+  .call-speaker-bars > span:nth-child(3) { animation-delay: -150ms; animation-duration: 680ms; }
+  .call-speaker-dots > span { animation: call-speaker-dot 900ms steps(2, jump-none) infinite; }
+  .call-speaker-dots > span:nth-child(2) { animation-delay: 150ms; }
+  .call-speaker-dots > span:nth-child(3) { animation-delay: 300ms; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .call-speaker-bars > span:nth-child(2) { transform: scaleY(0.6); }
+  .call-speaker-bars > span:nth-child(3) { transform: scaleY(0.8); }
+}
+@keyframes call-speaker-in { from { opacity: 0; } }
+@keyframes call-speaker-bar { from { transform: scaleY(0.3); } to { transform: scaleY(1); } }
+@keyframes call-speaker-dot { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
