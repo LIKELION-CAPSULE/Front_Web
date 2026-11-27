@@ -1,15 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useBackend } from '@/features/backend/backend-context'
 import { CreditsAppWindow } from '@/features/credits/components/CreditsAppWindow'
+import { CAPSULE_STAGGER_MS, InviteHeroArt } from '@/features/credits/components/InviteHeroArt'
+import { CopyIcon, LinkIcon, UsersIcon } from '@/features/credits/components/InviteIcons'
 import { CREDIT_PRICING } from '@/features/credits/credit-utils'
+import capsuleArt from '@/assets/invite/invite-capsule.webp'
 import { Button } from '@/shared/ui/Button'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
+import { Icon } from '@/shared/ui/Icon'
 import { number } from '@/shared/lib/format'
 import {
   ReferralCodeField,
   type ReferralFieldValidationState,
 } from '@/features/auth/components/ReferralCodeField'
 import { clearStoredReferralCode, normalizeReferralCode } from '@/features/auth/referral-code'
+import '@/features/credits/invite.css'
+
+const GOAL = CREDIT_PRICING.inviteMaxCount
 
 function isReviewInviteLoading(): boolean {
   return (
@@ -19,6 +26,12 @@ function isReviewInviteLoading(): boolean {
   )
 }
 
+/**
+ * What the capsules show: how many are filled, the first one that should drop in (all of them on the first load, only
+ * the new ones after that) and a count of friends who joined while the page was open, for the mascots' cheer.
+ */
+type CapsuleFill = { filled: number; enterFrom: number; ready: boolean; joined: number }
+
 export default function InvitePage() {
   const { invitation, status, reload, redeemInvitation, accountDetails, validateReferralCode } = useBackend()
   const [code, setCode] = useState('')
@@ -27,7 +40,20 @@ export default function InvitePage() {
   const [busy, setBusy] = useState(false)
   const [copiedKey, setCopiedKey] = useState<'code' | 'url' | null>(null)
   const [copyStatus, setCopyStatus] = useState('')
+  const [redeemed, setRedeemed] = useState(0)
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  // Follow the invited count as it changes (render-time update, so the new capsules animate on the same paint).
+  const filled = invitation ? Math.max(0, Math.min(GOAL, invitation.invitedCount)) : 0
+  const [fill, setFill] = useState<CapsuleFill>({ filled: 0, enterFrom: 0, ready: false, joined: 0 })
+  if (invitation && (!fill.ready || fill.filled !== filled)) {
+    setFill({
+      filled,
+      enterFrom: Math.min(fill.filled, filled),
+      ready: true,
+      joined: fill.ready && filled > fill.filled ? fill.joined + 1 : fill.joined,
+    })
+  }
 
   useEffect(() => {
     void import('@/pages/CreditsPage')
@@ -39,17 +65,17 @@ export default function InvitePage() {
 
   if (loading) {
     return (
-      <CreditsAppWindow page="invite" loadingScreen="invite">
+      <CreditsAppWindow page="invite" loadingScreen="invite" dashboard>
         <div className="credits-skeleton-stack" aria-busy="true">
           <span className="sr-only" role="status">
             초대 정보를 불러오고 있어요.
           </span>
-          <span className="skeleton-line credits-skeleton-line credits-skeleton-line--mid" aria-hidden="true" />
-          <div className="invite-grid" aria-hidden="true">
+          <span className="skeleton-line credits-skeleton-hero" aria-hidden="true" />
+          <span className="skeleton-line credits-skeleton-line credits-skeleton-line--wide" aria-hidden="true" />
+          <div className="credits-skeleton-row" aria-hidden="true">
             <span className="skeleton-line credits-skeleton-card" />
             <span className="skeleton-line credits-skeleton-card" />
           </div>
-          <span className="skeleton-line credits-skeleton-line credits-skeleton-line--wide" aria-hidden="true" />
         </div>
       </CreditsAppWindow>
     )
@@ -74,8 +100,7 @@ export default function InvitePage() {
 
   const alreadyRegistered =
     Boolean(accountDetails?.referralRegistered) || invitation.canRedeem === false
-  const filledCapsules = Math.max(0, Math.min(CREDIT_PRICING.inviteMaxCount, invitation.invitedCount))
-  const inviteFull = invitation.invitedCount >= CREDIT_PRICING.inviteMaxCount
+  const remaining = Math.max(0, GOAL - invitation.invitedCount)
 
   async function handleCopy(kind: 'code' | 'url', value: string) {
     setError('')
@@ -92,7 +117,7 @@ export default function InvitePage() {
     }
   }
 
-  /** 「초대 링크 공유」: the share sheet where the browser has one, otherwise the link is copied. */
+  /** 「초대 링크 공유하기」: the share sheet where the browser has one, otherwise the link is copied. */
   async function handleShare() {
     if (!invitation?.url) return
     if (!canNativeShare) {
@@ -151,6 +176,7 @@ export default function InvitePage() {
       clearStoredReferralCode()
       setCode('')
       setValidation({ status: 'idle' })
+      setRedeemed((value) => value + 1)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '요청을 처리하지 못했어요.')
     } finally {
@@ -159,121 +185,146 @@ export default function InvitePage() {
   }
 
   return (
-    <CreditsAppWindow page="invite">
-      <div className="invite-grid">
-        {/* ② My code: copy it, or share the invite link */}
-        <section className="invite-card" aria-labelledby="invite-mine-title">
-          <h2 id="invite-mine-title">
-            친구를 초대하면 둘 다 크레딧 {number(CREDIT_PRICING.inviteReward)}을 받아요
+    <CreditsAppWindow page="invite" dashboard>
+      {/* ① The event: the pitch on the left, the capsule dome filling with friends on the right */}
+      <section className="invite-hero" aria-labelledby="invite-hero-title">
+        <div className="invite-hero-copy">
+          <h2 id="invite-hero-title" className="invite-hero-title">
+            친구와 함께,
+            <br />더 많은 <span>캡슐을</span>!
           </h2>
-          <p className="invite-card-sub">친구가 첫 연결을 마치면 들어와요. 초대 크레딧은 사라지지 않아요.</p>
-          {invitation.code ? (
-            <>
-              <div className="invite-code-row">
-                <span className="invite-code-box" aria-label={`내 초대 코드 ${invitation.code}`}>{invitation.code}</span>
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    void handleCopy('code', invitation.code)
-                  }}
-                >
-                  {copiedKey === 'code' ? '복사했어요' : '코드 복사'}
-                </Button>
-                {invitation.url && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      void handleShare()
-                    }}
-                  >
-                    {copiedKey === 'url' ? '링크를 복사했어요' : '초대 링크 공유'}
-                  </Button>
-                )}
-              </div>
-              <span role="status" className="sr-only">
-                {copyStatus}
-              </span>
-            </>
-          ) : (
-            <p className="invite-code-pending">초대 코드를 준비하고 있어요.</p>
-          )}
-        </section>
-
-        {/* ③ A code I received (for anyone who skipped it while signing up) */}
-        <section className="invite-card" aria-labelledby="invite-received-title">
-          <h2 id="invite-received-title">초대 코드를 받았나요?</h2>
-          {alreadyRegistered ? (
-            <p className="invite-registered-note">등록된 초대 코드가 있어요.</p>
-          ) : (
-            <form
-              className="invite-redeem-form"
-              onSubmit={(event) => {
-                event.preventDefault()
-                void redeem()
-              }}
-            >
-              <div className="invite-redeem-row">
-                <ReferralCodeField
-                  label="받은 초대 코드"
-                  showHelp={false}
-                  value={code}
-                  validation={validation}
-                  disabled={!invitation.canRedeem || !redeemInvitation || busy}
-                  onChange={(nextVal) => {
-                    setCode(nextVal)
-                    setValidation({ status: 'idle' })
-                  }}
-                  onBlurValidate={() => {
-                    if (normalizeReferralCode(code)) void validateCode(code)
-                  }}
-                />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  loading={busy}
-                  disabled={!invitation.canRedeem || !redeemInvitation || !code.trim()}
-                >
-                  받기
-                </Button>
-              </div>
-              <p className="invite-card-note">가입 후 7일 안에 1번만 입력할 수 있어요.</p>
-            </form>
-          )}
-        </section>
-      </div>
-
-      {/* ④ Progress: n / 10 friends and the credits they brought */}
-      <section className="invite-card invite-progress-card" aria-labelledby="invite-progress-title">
-        <h2 id="invite-progress-title">
-          초대 현황 · {number(invitation.invitedCount)} / {CREDIT_PRICING.inviteMaxCount}명 · 받은 크레딧{' '}
-          {number(invitation.rewardedCredits)}
-        </h2>
-        <div
-          className="invite-capsule-slots"
-          role="img"
-          aria-label={`초대한 친구 ${filledCapsules}명 / ${CREDIT_PRICING.inviteMaxCount}명`}
-        >
-          {Array.from({ length: CREDIT_PRICING.inviteMaxCount }, (_, index) => (
-            <span
-              key={index}
-              className="invite-capsule-slot"
-              data-filled={index < filledCapsules ? 'true' : 'false'}
-              aria-hidden="true"
-            />
-          ))}
-        </div>
-        {inviteFull && (
-          <p className="invite-progress-complete">
-            초대 보상을 모두 받았어요. 친구 초대는 계속할 수 있어요.
+          <p className="invite-hero-sub">
+            친구를 초대하고 둘 다 <strong>{number(CREDIT_PRICING.inviteReward)} CR</strong>을 받아보세요.
           </p>
+        </div>
+        <InviteHeroArt filled={filled} enterFrom={fill.enterFrom} cheer={fill.joined + redeemed} />
+      </section>
+
+      {/* ② Progress: n / 10 friends as capsules */}
+      <section className="invite-progress" aria-labelledby="invite-progress-title">
+        <h2 id="invite-progress-title" className="sr-only">초대 현황</h2>
+        <p className="invite-progress-count">
+          <strong>{number(invitation.invitedCount)}</strong>
+          <span className="invite-progress-goal-count"> / {GOAL}</span>
+          <span className="invite-progress-unit">FRIENDS</span>
+        </p>
+        <ol className="invite-progress-capsules" aria-label={`초대한 친구 ${filled}명 / ${GOAL}명`}>
+          {Array.from({ length: GOAL }, (_, index) => {
+            const on = index < filled
+            return (
+              <li
+                key={index}
+                data-filled={on || undefined}
+                data-enter={(on && index >= fill.enterFrom) || undefined}
+                style={{ '--enter-delay': `${(index - fill.enterFrom) * CAPSULE_STAGGER_MS}ms` } as CSSProperties}
+              >
+                <img src={capsuleArt} width={120} height={236} alt="" draggable={false} />
+                <span className="sr-only">{on ? `${index + 1}번째 친구 초대 완료` : `${index + 1}번째 자리 비어 있음`}</span>
+              </li>
+            )
+          })}
+        </ol>
+        {/* What the invites have brought so far (the server's total). */}
+        <p className="invite-progress-goal">
+          <Icon name="coin" size={18} />
+          <span>
+            {remaining > 0 ? '지금까지 ' : '목표 달성! '}
+            <strong>{number(invitation.rewardedCredits)} CR</strong> 받았어요
+          </span>
+        </p>
+      </section>
+
+      {/* ③ My code: copy it, or share the invite link */}
+      <section className="invite-panel invite-code-panel" aria-labelledby="invite-mine-title">
+        <h2 id="invite-mine-title" className="invite-panel-title">
+          <Icon name="coin" size={18} />
+          나의 초대 코드
+        </h2>
+        {invitation.code ? (
+          <div className="invite-code-row">
+            {/* The code with its copy button inside the box, on the right. */}
+            <div className="invite-code-box">
+              <span className="invite-code-text" aria-label={`내 초대 코드 ${invitation.code}`}>{invitation.code}</span>
+              <button
+                type="button"
+                className="invite-code-copy"
+                data-copied={copiedKey === 'code' || undefined}
+                aria-label={copiedKey === 'code' ? '초대 코드를 복사했어요' : '초대 코드 복사'}
+                title={copiedKey === 'code' ? '복사했어요' : '복사하기'}
+                onClick={() => {
+                  void handleCopy('code', invitation.code)
+                }}
+              >
+                {copiedKey === 'code' ? <Icon name="check" size={22} /> : <CopyIcon size={22} />}
+              </button>
+            </div>
+            {invitation.url && (
+              <Button
+                className="invite-code-share"
+                onClick={() => {
+                  void handleShare()
+                }}
+              >
+                <LinkIcon />
+                {copiedKey === 'url' ? '링크를 복사했어요' : '초대 링크 공유하기'}
+              </Button>
+            )}
+            <span role="status" className="sr-only">
+              {copyStatus}
+            </span>
+          </div>
+        ) : (
+          <p className="invite-panel-note">초대 코드를 준비하고 있어요.</p>
+        )}
+        <p className="invite-panel-note">친구가 첫 연결을 마치면 들어와요. 초대 크레딧은 사라지지 않아요.</p>
+      </section>
+
+      {/* ④ A code I received (for anyone who skipped it while signing up) */}
+      <section className="invite-panel invite-redeem" aria-labelledby="invite-received-title">
+        <span className="invite-redeem-icon" aria-hidden="true"><UsersIcon size={26} /></span>
+        <div className="invite-redeem-copy">
+          <h2 id="invite-received-title">초대 코드 입력하기</h2>
+          <p>
+            {alreadyRegistered
+              ? '등록된 초대 코드가 있어요.'
+              : '친구가 공유한 초대 코드를 입력하고 크레딧을 받아보세요! 가입 후 7일 안에 1번만 입력할 수 있어요.'}
+          </p>
+        </div>
+        {!alreadyRegistered && (
+          <form
+            className="invite-redeem-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void redeem()
+            }}
+          >
+            <ReferralCodeField
+              label="받은 초대 코드"
+              showHelp={false}
+              value={code}
+              validation={validation}
+              disabled={!invitation.canRedeem || !redeemInvitation || busy}
+              onChange={(nextVal) => {
+                setCode(nextVal)
+                setValidation({ status: 'idle' })
+              }}
+              onBlurValidate={() => {
+                if (normalizeReferralCode(code)) void validateCode(code)
+              }}
+            />
+            <Button
+              type="submit"
+              variant="secondary"
+              loading={busy}
+              disabled={!invitation.canRedeem || !redeemInvitation || !code.trim()}
+            >
+              받기
+            </Button>
+          </form>
         )}
       </section>
 
-      {error && (
-        <FeedbackMessage tone="error" className="mt-5">
-          {error}
-        </FeedbackMessage>
-      )}
+      {error && <FeedbackMessage tone="error">{error}</FeedbackMessage>}
     </CreditsAppWindow>
   )
 }
