@@ -94,7 +94,7 @@ export function InviteHeroArt({ filled, enterFrom, cheer }: {
           onFirstFrame: () => { if (!cancelled) setMode('webgl') },
         })
         dome.current = scene
-        // Everything already counted drops in now, unless the picture has shown it seated already (PENDING_REVEAL_MS).
+        // After a slow load, show the counted capsules seated as the dome fades in.
         const late = performance.now() - mountedAt >= PENDING_REVEAL_MS
         scene.setFilled(latest.current.filled, late ? latest.current.filled : 0)
         updateRunning()
@@ -152,7 +152,6 @@ export function InviteHeroArt({ filled, enterFrom, cheer }: {
       ref={art}
       className="invite-art"
       data-render={mode}
-      style={{ '--pending-reveal': `${PENDING_REVEAL_MS}ms` } as CSSProperties}
       aria-hidden="true"
     >
       <span className="invite-art-glow" />
