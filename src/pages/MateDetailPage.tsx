@@ -1,3 +1,4 @@
+import { mateColorStyle } from '@/features/mates/capsule-jar/capsule-jar-theme'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react'
 import { useBackend } from '@/features/backend/backend-context'
@@ -114,7 +115,7 @@ export default function MateDetailPage() {
           )
         }
       />
-      <main id="main-content" tabIndex={-1} className="mate-hero focus:outline-none">
+      <main id="main-content" tabIndex={-1} className="mate-hero focus:outline-none" style={mateColorStyle(mate.id, mate.name) as CSSProperties}>
         {/* Space backdrop: soft nebulae, faint stars, and the mate's name set huge in outline behind everything. */}
         <div className="mate-hero-backdrop" aria-hidden="true" style={{ '--outline-count': nameLetters.length } as CSSProperties}>
           {nameLetters.map((letter, index) => (

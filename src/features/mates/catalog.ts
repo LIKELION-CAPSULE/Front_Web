@@ -141,6 +141,18 @@ export function mateByName(name: string | undefined, mates: readonly AvailableMa
   return profile ? mates.find(mate => mate.id === profile.id) : undefined
 }
 
+/** Accept catalogue links and server IDs without falling through to the most recent mate. */
+export function selectedCatalogMate(id: string | null, mates: readonly AvailableMate[]) {
+  return mates.find(mate => mate.id === id || mate.characterId === id || mate.roomId === id)
+    ?? mateByName(id ?? undefined, mates)
+}
+
+/** Include every server alias: one persona can own several connection IDs. */
+export function mateCatalogIdMap(mates: readonly { id: string; characterId: string; serverIds?: readonly number[] }[]) {
+  return new Map(mates.flatMap(mate => [mate.id, mate.characterId, ...(mate.serverIds ?? []).map(String)]
+    .map(id => [id, mate.id] as const)))
+}
+
 /** The mate with the coming-soon state a page decided (31 over the /home card), for the connect action. */
 export function withComingSoon(mate: AvailableMate, comingSoon: boolean): AvailableMate {
   return Boolean(mate.comingSoon) === comingSoon ? mate : { ...mate, comingSoon }

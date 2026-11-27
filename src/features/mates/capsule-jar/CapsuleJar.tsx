@@ -117,7 +117,7 @@ export default function CapsuleJar({
   onListViewChange,
   ref,
 }: CapsuleJarProps) {
-  const theme = useMemo(() => themeOverride ?? capsuleJarTheme(mateId), [themeOverride, mateId])
+  const theme = useMemo(() => themeOverride ?? capsuleJarTheme(mateId, mateName), [themeOverride, mateId, mateName])
   const systemReduced = useMediaQuery('(prefers-reduced-motion: reduce)')
   const reducedMotion = forceReducedMotion || systemReduced
   // The pile spans the panel's width (in scene units, the panel is PILE.viewHeight high): measured from the stage.

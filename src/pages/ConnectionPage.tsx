@@ -1,4 +1,5 @@
-import { startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { mateColorStyle } from '@/features/mates/capsule-jar/capsule-jar-theme'
+import { startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useSessionSync } from '@/features/backend/use-session-sync'
@@ -826,6 +827,7 @@ export default function ConnectionPage() {
       id="main-content"
       tabIndex={-1}
       className="connection-page focus:outline-none"
+      style={mateColorStyle(mate.id, mate.name) as CSSProperties}
       data-hangup={ending ? '' : undefined}
     >
       <ConnectionNotice />

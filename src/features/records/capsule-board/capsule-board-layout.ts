@@ -415,7 +415,10 @@ export function buildCapsuleBoard(
   }
   const mates = [...seenMates]
     .sort(byMateOrder)
-    .map((mateId) => ({ mateId, name: options.mateNames?.get(mateId) ?? mateId, color: capsuleJarTheme(mateId).tintHalfShade }))
+    .map((mateId) => {
+      const name = options.mateNames?.get(mateId)
+      return { mateId, name: name ?? mateId, color: capsuleJarTheme(mateId, name).tintHalfShade }
+    })
   const dayMates = new Map<string, BoardDayMate[]>()
   for (const tile of tiles) {
     if (tile.day.isFuture) continue

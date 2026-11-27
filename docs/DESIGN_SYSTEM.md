@@ -1,6 +1,6 @@
 # CAPSULE 통합 디자인 기준
 
-버전 **1.0.27** · 기준일 **2026-11-28 (Asia/Seoul)** · 상태 **Front_Web 전체 화면에 코드 적용**
+버전 **1.0.28** · 기준일 **2026-11-28 (Asia/Seoul)** · 상태 **Front_Web 전체 화면에 코드 적용**
 
 후속 검수의 스타일 충돌 **7건과 개선안 6개를 반영**했다. [수정 결과와 검증](STYLE_CASCADE_AUDIT_2026-11-03.md#수정-결과와-검증)을 함께 확인한다. 사용자 요청으로 공부 화면 독은 디자인 시스템 적용 전의 유리 재질·색·원형 버튼을 유지하는 명시적 예외다. 또 금색·주황을 쓰지 않는 원칙에는 명시적 예외가 두 개 있다. **예외 1**(2026-11-25 사용자 결정): 홈 출석 보상 위젯(`src/features/attendance/`, 홈에서는 `src/features/home/components/HomeMateSection.tsx`가 표시)의 보상 강조에 한정해 금색을 쓴다. 대상은 `attendance.css`의 `.att-sparkle`·`.att-slot-ring`·`.att-gold-*`(마일스톤 배지 글자)·`.att-slot[data-milestone] .att-slot-capsule-float img`(특별 보상일 캡슐의 금빛 그림자)·`.att-reward-flight`(+N 크레딧), `AttendanceEffects.tsx`의 `SPARK_COLORS`·`CONFETTI_COLORS` 금색 값, 그리고 `check_coin.webp`·`milestone_badge.webp` 그림이다. 이 위젯(`AttendanceWidget`과 위 CSS·효과·그림)은 홈에서 쓰지 않아 2026-11-28 정리에서 삭제했다. 지금 홈의 출석 표시는 출석 길(`AttendancePath`, `attendance-path.css`)이며, 출석 보상 강조에 다시 금색을 쓸 때 이 예외를 따른다. 다른 화면에서는 금색·주황을 쓰지 않는다. **예외 2**(2026-11-26 사용자 결정): 크레딧 표시. 크레딧 아이콘·「남은 크레딧 N」 칩·크레딧 부족 안내의 픽셀 동전(`src/shared/ui/pixel/pixel-art.ts`의 `coin`, `warning` 계열 `#F4B95F`·`#352A18`과 동전 음영 `#8A6430`·`#FFE3B0`)에 금색·주황을 쓴다. 그 밖의 장식에는 계속 쓰지 않는다. 경고 상태색(`warning`)은 의미가 있을 때 아이콘과 함께 쓰는 기존 규칙을 따른다. 또 **계단형 픽셀 모서리**의 예외 범위는 **「모달 + 통화 대사창 + 로그인 무대 대사창(통화 대사창과 같은 컴포넌트) + 모바일 접속 안내 화면」**이다(모달 2026-11-26, 통화 대사창 2026-11-27, 모바일 접속 안내 화면 2026-11-28 사용자 승인). 모달에는 같은 픽셀 프레임을 쓰는 알림·토스트·크레딧 부족 안내가 포함되고, 통화 대사창은 통화 화면 무대 아래 `CallDialogueBox` 하나, 모바일 접속 안내 화면은 SCR-40(`src/features/mobile-gate/`)의 초대 카드·기능 카드·아이콘 타일과 그 화면 안의 픽셀 장식이다([4.1 모달 픽셀 프레임](#모달-픽셀-프레임-2026-11-26), [통화 대사창](#통화-대사창-2026-11-27), [모바일 접속 안내 화면](#모바일-접속-안내-화면-2026-11-28)). 그 밖의 카드·버튼·말풍선에는 쓰지 않는다.
 
@@ -682,3 +682,23 @@ AnimatedClock은 Pretendard의 숫자 폭을 고정하고, 숫자 셀은 `1ch` �
 | 캡슐 카드 | 캐릭터 이미지 기본 끌기와 버튼 문구 선택 | 카드 텍스트 복사, 이미지 저장·공유·다음 약속 입력 |
 
 [NativeDragGuard.tsx](../src/shared/ui/NativeDragGuard.tsx)는 `dragstart`만 선택적으로 취소하며 `pointerdown`·`pointermove`·터치·휠·우클릭을 막지 않는다. 스타일은 [selection.css](../src/styles/selection.css)에서 관리한다. 입력창·편집 가능한 영역은 항상 선택을 허용한다. 새 컨트롤에 `data-no-native-drag`를 붙이면 기본 끌기와 선택을 막을 수 있고, 콘텐츠에 `data-selectable`을 붙이면 상위 조작부 안에서도 글자 선택을 허용한다. 실제 HTML drag-and-drop을 구현하는 영역은 `draggable="true"` 또는 `data-native-drag="allow"`로 예외를 지정한다.
+
+## 메이트 색 · 2026-11-28 (1.0.28)
+
+메이트 정체성 색은 `src/features/mates/capsule-jar/capsule-jar-theme.ts`의 `capsuleJarTheme` 한 곳에서 정한다. 채린은 브랜드 보라(`CHAERIN_JAR_THEME`), 서도현은 230° 청보라(`mateThemeFromHue(230)`)를 쓰며, 미등록 메이트는 `MATE_FALLBACK_HUES` 범위 안에서 ID 해시로 정한다. 서버 ID와 서버 이름 별칭은 `catalog.ts`의 `mateProfile`·`mateProfileByName`·`selectedCatalogMate`·`mateCatalogIdMap`으로 catalog ID(`chaerin`/`dohyun`)에 정규화해, 중복 서버 ID도 같은 인물의 색을 따른다. 시간대별 명도·색조 변화(`TIME_BAND_SHIFT`)는 유지하되, 채린의 새벽 색조가 서도현의 230° 청보라와 겹치지 않도록 보라 계열 안에 머문다.
+
+CSS에서 쓰는 포인트 색은 `mateColorStyle`이 내려 주는 `--mate-tint`, `--mate-glow`, `--mate-color-rotation` 변수 한 곳에서만 받는다.
+
+- **쓰는 곳**
+  - 내 메이트: 바닥 3D 캡슐, 시간 열 캡슐 아이콘, 연결 기록 카드
+  - 내 기록: 「전체」 보드의 메이트별 캡슐·범례
+  - 메이트 상세: 오른쪽 떠다니는 3D 캡슐과 둘레의 네온 링 장식. 공용 정지 렌더(`capsule-open.webp`)에 `hue-rotate(var(--mate-color-rotation))`를 적용해 반사광·투명도·질감과 링의 빛 번짐을 유지한다.
+  - 홈 메이트 카드: 카드 바닥과 상단의 옅은 빛 그라데이션에만 은은하게 넣는다(외곽선 금지).
+  - 통화 화면: 대화 패널·대사창 지붕 띠의 캡슐, 대사창 이름표, 대화 패널 미니 프로필 링에만 쓴다. 채린은 브랜드 보라라 기존과 거의 같고, 서도현에서만 차이가 드러난다.
+- **쓰지 않는 곳**
+  - 보내기·연결하기 등 행동 버튼과 포커스 링의 보라(`--color-primary`, `--color-focus-ring`)
+  - 친밀도 막대의 분홍, 온라인·말하는 중 상태 점의 초록(`--color-success`)
+  - 홈 카드의 상시 외곽선과 통화 화면 안의 모달(`app-dialog`)
+
+메이트 색 적용 범위가 늘어나면 디자인 시스템 버전을 올리고 이 절을 함께 갱신한다.
+

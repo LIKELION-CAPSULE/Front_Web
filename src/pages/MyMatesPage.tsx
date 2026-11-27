@@ -3,7 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Link, useSearchParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
-import { availableMates, type AvailableMate } from '@/features/mates/catalog'
+import { availableMates, selectedCatalogMate, type AvailableMate } from '@/features/mates/catalog'
 import { chaerinArtwork, mateArtwork, matePortrait } from '@/features/mates/artwork'
 import { formatFirstMetDate } from '@/features/mates/my-mates-utils'
 import { capsulesFromConnections, estimatedCapsuleCount, useMyMates } from '@/features/mates/use-my-mates'
@@ -119,7 +119,7 @@ export default function MyMatesPage() {
 
   const requestedMateId = searchParams.get('mate')
   const previewMate = import.meta.env.DEV ? previewMates?.find((mate) => mate.id === requestedMateId) : undefined
-  const selectedMate = (requestedMateId ? mates.find((mate) => mate.id === requestedMateId) : undefined) ?? mates[0]
+  const selectedMate = selectedCatalogMate(requestedMateId, mates) ?? mates[0]
   const selectedId = previewMate?.id ?? selectedMate?.id
   const detail = selectedMate ? mateDetails[selectedMate.id] : undefined
   const mine = selectedMate ? server.byMate.get(selectedMate.id) : undefined
@@ -372,7 +372,7 @@ export default function MyMatesPage() {
           worlds={worlds}
           worldKey={`${selectedId}:${relation?.stage ?? 0}`}
           mateName={mateName}
-          theme={capsuleJarTheme(selectedId)}
+          theme={capsuleJarTheme(selectedId, mateName)}
           onOpen={(id) => jarRef.current?.openCapsule(id)}
           onPoint={(id) => jarRef.current?.highlight(id)}
           listToggle={listToggle}
