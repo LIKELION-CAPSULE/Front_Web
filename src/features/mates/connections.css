@@ -90,14 +90,21 @@
   color: var(--color-ink);
 }
 
+/* One space around the bar's row: above the chips, below them to the stage and chat, and at the sides (the logo
+   lines up with the stage's left edge, the timer with the chat's right edge). The content adds no top padding. The
+   `.app-surface` form out-ranks the app surface's titlebar (app-surfaces.css: min-height 64px, padding 16px 24px),
+   which used to leave 16px above the 32px chips but 16 + 14 = 30px below, and the logo 8px in from the stage. */
 .connection-titlebar.desktop-window-titlebar {
   flex: none;
-  height: 41px;
-  padding: 0 16px;
+  height: auto;
+  min-height: 0;
+  padding: 16px;
   gap: 12px;
   border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
   background: color-mix(in srgb, var(--color-panel) 94%, transparent);
 }
+/* Only the spacing out-ranks the app surface; its look (no rule under the bar, no fill) stays. */
+.app-surface .connection-titlebar.desktop-window-titlebar { min-height: 0; padding: 16px; }
 
 .connection-titlebar-left,
 .connection-titlebar-right {
@@ -230,7 +237,7 @@
   gap: 0;
   flex: 1;
   min-height: 0;
-  padding: 14px 16px 16px;
+  padding: 0 16px 16px;
 }
 
 .connection-content[data-chat] {
@@ -677,18 +684,17 @@
 /* 861px ~ 960px (960 half-screen): chat sits side-by-side without covering stage or dock;
    GlassDock switches to compact mode (⋯) automatically when stage width < 700px. */
 @media (max-width: 960px) {
-  .connection-titlebar.desktop-window-titlebar {
-    height: auto;
-    min-height: 41px;
+  .connection-titlebar.desktop-window-titlebar,
+  .app-surface .connection-titlebar.desktop-window-titlebar {
     flex-wrap: wrap;
-    padding: 5px 12px;
+    padding: 12px;
     gap: 8px;
   }
   .connection-content {
     position: relative;
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
-    padding: 10px 12px 12px;
+    padding: 0 12px 12px;
   }
   .connection-content[data-chat] {
     grid-template-columns: minmax(0, 1fr) clamp(280px, 31vw, 312px);
@@ -704,7 +710,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 10px 12px 12px;
+    padding: 0 12px 12px;
   }
   .connection-stage-wrap {
     flex: 1 1 0;
