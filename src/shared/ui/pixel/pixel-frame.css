@@ -53,15 +53,15 @@
     top: 0;
     right: 0;
     left: 0;
-    height: 20px;
+    height: 30px;
     pointer-events: none;
     background:
-      linear-gradient(var(--color-dialog-roof) 0 4px, var(--px-night) 4px 8px, transparent 8px) 0 0 / 100% 8px no-repeat,
-      var(--px-dither-50) 0 8px / 4px 4px repeat-x,
-      var(--px-dither-25) 0 12px / 4px 4px repeat-x,
-      var(--px-dither-25) 0 16px / 8px 4px repeat-x;
+      linear-gradient(var(--color-dialog-roof) 0 10px, var(--px-night) 10px 18px, transparent 18px) 0 0 / 100% 100% no-repeat,
+      var(--px-dither-50) 0 18px / 4px 4px repeat-x,
+      var(--px-dither-25) 0 22px / 4px 4px repeat-x,
+      var(--px-dither-25) 4px 26px / 8px 4px repeat-x;
   }
-  .px-roof-strip > .px-image { position: absolute; top: 0; left: 50%; margin-left: -20px; }
+  .px-roof-strip > .px-image { position: absolute; top: 5px; left: 50%; margin-left: -20px; }
   .app-dialog[open] .px-roof-strip > .px-image { animation: px-drop 240ms steps(3, jump-end) 180ms backwards; }
   @media (min-width: 640px) {
     .app-dialog { --px-pad: 32px; }

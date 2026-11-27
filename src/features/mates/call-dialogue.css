@@ -44,7 +44,7 @@
   width: min(760px, 100%);
   /* Room for the name tag that stands 16px over the top edge. */
   margin-top: 16px;
-  padding: 30px 52px 18px 28px;
+  padding: 36px 52px 18px 28px;
   color: var(--color-ink);
   cursor: pointer;
   contain: layout;
@@ -129,7 +129,8 @@
 
 /* A narrow stage (≈ 900px window with the chat open): a little smaller (call-dialogue.ts `dialogueCapacity`). */
 @container call-dialogue (max-width: 559px) {
-  .call-dialogue { padding: 28px 44px 16px 22px; }
+  .call-dialogue { padding: 34px 44px 16px 22px; }
+  .call-dialogue--passive { padding-right: 22px; }
   .call-dialogue-text { min-height: 56px; font-size: 17px; line-height: 28px; }
 }
 /* ≤ 860px the dock leaves the stage (below it): the box sits on the stage's bottom edge. */
