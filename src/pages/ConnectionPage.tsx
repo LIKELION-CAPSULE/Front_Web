@@ -55,6 +55,7 @@ import { ChatLogGroups } from '@/features/mates/components/ChatLogGroups'
 import { CallDialogueBox } from '@/features/mates/components/CallDialogueBox'
 import { CallMateTitle } from '@/features/mates/components/CallMateTitle'
 import { callWorld } from '@/features/mates/call-world'
+import { callIntimacy, recallCallIntimacy, rememberCallIntimacy } from '@/features/mates/call-intimacy'
 import { pickStageLine } from '@/features/mates/call-dialogue'
 import { unreadArrivals } from '@/features/mates/chat-groups'
 import { PixelImage, PixelRoofStrip } from '@/shared/ui/pixel/PixelFrame'
@@ -464,6 +465,19 @@ export default function ConnectionPage() {
     setStageNotes([...stageNotes, { id: reachedId, at: now, stage: reachedNow.stage, stageName: reachedNow.stageName, unlocked: sync.stageUp?.unlocked }])
   }
   const callNotes = active ? stageNotes.filter(note => note.id.startsWith(`stage:${active.id}:`)) : []
+  // The titlebar's intimacy chip (친밀도 1–5, call-intimacy.ts): this connection's 16 `relation`, raised by a 21
+  // `stageUp` at once (the same stage as the log's line and the stage's card). 20 / 28 `affinity` (호감도) is not used.
+  // 17 resume has no relation: the stage this tab last showed for the connection (session storage) keeps the chip.
+  const visuals = backend.visuals
+  const startRelation = active && visuals && 'relation' in visuals && String(visuals.connectionId) === active.id ? visuals.relation : null
+  const liveIntimacy = active ? callIntimacy(startRelation, sync.stageUp) : null
+  const relation = active ? callIntimacy(liveIntimacy, recallCallIntimacy(active.id)) : null
+  const relationStage = relation?.stage ?? 0
+  const relationName = relation?.stageName
+  const activeId = active?.id
+  useEffect(() => {
+    if (activeId && relationStage && relationName) rememberCallIntimacy(activeId, { stage: relationStage, stageName: relationName })
+  }, [activeId, relationStage, relationName])
   /**
    * Reached the top of the chat: the older page. The first line in view stays where it was when the page lands (lines
    * can land above it and, out of order, below it). Lines are found by `article[data-message-id]` (ChatLogGroups puts
@@ -688,11 +702,6 @@ export default function ConnectionPage() {
   const replyOnItsWay = (sending || speaking) && !ending
   // The empty chat: nothing said and nothing on its way, once the first read is done (or failed: the status says so).
   const chatEmpty = messages.length === 0 && !sending && !chat.room.failed && !(chat.room.loading.latest && !chat.room.loaded)
-  // A stage reached during this call (21 `stageUp`) shows in the chip at once, with its notice, not after the next
-  // relation refresh: the chip never says less than the notice next to it.
-  const savedRelation = backend.affinities[Number(mate.characterId)]
-  const reached = sync.stageUp ? normalizeAffinityStage(sync.stageUp.stage, sync.stageUp.stageName) : null
-  const relation = reached && reached.stage > (savedRelation?.stage ?? 0) ? reached : savedRelation
   const isAdvanced = backend.connectionMode === 'advanced'
   const canSwitchMode = !finishing
   const credits = creditDisplay.value

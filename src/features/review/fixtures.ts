@@ -200,8 +200,11 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     log(response.status)
     // The call stage of the review is a still image (image-stage.ts), not the dev model bundle.
     if (method === 'POST' && path === '/connections' && response.ok || operation === 'resume' && response.ok) {
-      const wire = await response.json() as { data: { mate?: { id: number; name: string; profileImageUrl?: string | null } } }
+      const wire = await response.json() as { data: { mate?: { id: number; name: string; profileImageUrl?: string | null }; relation?: { stage?: number; stageName?: string | null } } }
       const mate = wire.data.mate
+      // The stage-up preview starts the call at 16 `relation` 2단계 · 아는 사이 (name left out, as 37 sends it), so the
+      // titlebar chip reads 「아는 사이」 and moves to 「친구」 with the heartbeat's stageUp.
+      if (fault === 'stage-up' && wire.data.relation) wire.data.relation = { stage: 2, stageName: null }
       if (mate) {
         const id = LOCAL_MATES.find(value => value.characterId === mate.id)?.mateId ?? 'chaerin'
         const still = mateHeroPortrait(id)
