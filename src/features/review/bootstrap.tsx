@@ -22,6 +22,13 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     parent.postMessage({ type: 'capsule-review:ready', id: scenario.id }, location.origin)
     return
   }
+  // Chat panel drafts (review only): the call stage with the real dialogue box and a draft panel; no app.
+  if (scenario.chatPanel) {
+    const { ChatPanelPreview } = await import('./chat-panel/ChatPanelPreview')
+    createRoot(root).render(<StrictMode><ChatPanelPreview variant={scenario.chatPanel} /></StrictMode>)
+    parent.postMessage({ type: 'capsule-review:ready', id: scenario.id }, location.origin)
+    return
+  }
   const local = createReviewStorage(), session = createReviewStorage()
   Object.defineProperty(window, 'localStorage', { configurable: true, value: local })
   Object.defineProperty(window, 'sessionStorage', { configurable: true, value: session })
