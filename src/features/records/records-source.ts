@@ -1,6 +1,6 @@
 import type { StudyRecord } from '../demo/types.ts'
 import type { RecordsRange, ReportResponse } from '../../shared/api/types.ts'
-import type { RecordsConnectionView, RecordsView } from '../backend/records-adapters.ts'
+import { mergeRecords, type RecordsConnectionView, type RecordsView } from '../backend/records-adapters.ts'
 import type { RecordRange } from '../reports/record-period.ts'
 import { connectionDayKey } from './connection-day.ts'
 
@@ -53,6 +53,21 @@ export function recordsRequests(range: RecordRange): { range: RecordsRange; date
     months.push({ range: 'MONTH', date: date < range.startDay ? range.startDay : date })
   }
   return months.length ? months : [{ range: 'MONTH', date: range.startDay }]
+}
+
+/** An empty 38 view for a range when the user has not met any launch mate yet. */
+export function emptyRecordsView(range: RecordRange): RecordsView {
+  return {
+    from: range.startDay,
+    to: range.endDay,
+    totalPresentSeconds: 0,
+    totalConnectedSeconds: 0,
+    connectedDays: 0,
+    connectionCount: 0,
+    buckets: [],
+    mates: [],
+    recent: [],
+  }
 }
 
 const NOON = 'T12:00:00+09:00'
@@ -119,6 +134,40 @@ export function boardRecords(parts: readonly { mate: RecordsMate; view: RecordsV
     }
   }
   return result.sort((a, b) => a.startedAt - b.startedAt || a.id.localeCompare(b.id))
+}
+
+/**
+ * Loads the records scope strictly from launch mates (never an unfiltered `/records` read without `mateId`), so
+ * non-launch server mates (such as legacy test entries) can never leak into 「전체」 totals, buckets or recent items.
+ */
+export async function loadRecordsScope(
+  range: RecordRange,
+  mates: readonly RecordsMate[],
+  selected: RecordsMate | null,
+  readMate: (mate: RecordsMate) => Promise<RecordsView>,
+): Promise<RecordsData> {
+  const scopeMates = selected ? [selected] : mates
+  const parts = await Promise.all(scopeMates.map(async mate => ({ mate, view: await readMate(mate) })))
+  const totals = parts.length === 0
+    ? emptyRecordsView(range)
+    : parts.length === 1
+      ? parts[0]!.view
+      : mergeRecords(parts.map(part => part.view), { samePeriod: true })
+  const mateOf = (serverId: number) => scopeMates.find(mate => mate.serverIds.includes(serverId))
+  const recent = totals.recent
+    .map(connection => {
+      const mate = mateOf(connection.mateId)
+      return mate ? connectionRecord(connection, mate) : null
+    })
+    .filter((item): item is StudyRecord => item !== null)
+  return {
+    range,
+    mateId: selected?.id ?? null,
+    totals,
+    records: boardRecords(parts, recent),
+    matesInRange: parts.filter(part => part.view.totalConnectedSeconds > 0).length,
+    views: Object.fromEntries(parts.map(part => [part.mate.id, part.view])),
+  }
 }
 
 /** The summary row of the records page from 38's sums. */

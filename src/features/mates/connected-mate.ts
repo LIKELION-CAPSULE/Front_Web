@@ -1,13 +1,14 @@
 import { withParticle } from '../../shared/lib/korean.ts'
-import { mateByName, type AvailableMate } from './catalog.ts'
+import { launchMateId, type AvailableMate } from './catalog.ts'
 
 /**
- * The launch mate a server mate is shown as: the /home card with that id, else the launch profile its server name maps
- * to (catalog.ts `sourceNames`). The server may list one persona twice (서진 id 2 and 3): /home's card stands for one of
- * them, and a connection with the other one is still that mate's.
+ * The launch mate a server mate is shown as (catalog.ts `launchMateId`: the /home card with that id, else the launch
+ * profile its server name maps to). The server may list one persona twice (서진 id 2 and 3): /home's card stands for one
+ * of them, and a connection with the other one is still that mate's. A non-launch server mate (「말포이」): undefined.
  */
 export function frontMateOf(characterId: string | undefined, serverName: string | undefined, mates: readonly AvailableMate[]): AvailableMate | undefined {
-  return mates.find(value => value.characterId === characterId) ?? mateByName(serverName, mates)
+  const id = launchMateId({ id: characterId, name: serverName }, mates)
+  return id ? mates.find(value => value.id === id) : undefined
 }
 
 /**

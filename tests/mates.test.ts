@@ -28,17 +28,15 @@ test('empty, unavailable and malformed server IDs cannot create locally simulate
   }
 })
 
-test('the temporary Chaerin mapping retains the existing Malfoy server identity without changing its response', () => {
+test('legacy non-launch test mates (말포이) are excluded and never map to Chaerin', () => {
   const home = { mates: [{ id: 1, name: '말포이', cardImageUrl: '/existing.webp' }] }
   const before = structuredClone(home)
   const mates = availableMates(home)
-  assert.equal(mates.length, 1)
-  assert.equal(mates[0]?.name, '채린')
-  assert.equal(mates[0]?.characterId, '1')
-  assert.equal(mates[0]?.image, '/existing.webp')
-  assert.equal(mateByName(' 말포이 TS ', mates)?.id, 'chaerin')
-  assert.equal(mateByName('말포이', mates)?.id, 'chaerin')
-  assert.equal(mateProfileByName('말포이TS')?.name, '채린')
+  assert.deepEqual(mates, [])
+  assert.equal(mateProfileByName('말포이'), undefined)
+  assert.equal(mateProfileByName('말포이 TS'), undefined)
+  assert.equal(mateProfileByName('말포이TS'), undefined)
+  assert.equal(mateByName('말포이', availableMates({ mates: [{ id: 4, name: '채린' }] })), undefined)
   assert.equal(mateByName('수아', mates), undefined)
   assert.deepEqual(home, before)
 })

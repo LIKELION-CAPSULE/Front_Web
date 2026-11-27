@@ -65,15 +65,17 @@ test('resume continues from the last heartbeat totals; malformed totals are refu
 })
 
 test('report values and closing line come from the server; the settlement view scales progress to 0–1', () => {
-  const dto = { connectionId: 512, mate: { id: 42, name: '말포이' }, startedAt, endedAt: serverTime, connectedSeconds: 2, presentSeconds: 1, awaySeconds: 1, returnCount: 0, messageCount: 3, closingLine: '서버 완료 대사',
+  const dto = { connectionId: 512, mate: { id: 42, name: '서진' }, startedAt, endedAt: serverTime, connectedSeconds: 2, presentSeconds: 1, awaySeconds: 1, returnCount: 0, messageCount: 3, closingLine: '서버 완료 대사',
     relation: { stageBefore: 2, stageAfter: 3, stageName: '친구', stageUp: true, nextStageSeconds: 3600, stageProgress: 40 } }
   const result = report(dto)
   assert.equal(result.id, '512')
   assert.equal(result.studySeconds, 2)
   assert.equal(result.focusSeconds, 1)
-  assert.equal(result.characterName, '채린', 'display mapping only')
+  assert.equal(result.characterName, '서도현', 'display mapping only')
   assert.equal(result.serverReport, dto)
-  assert.equal(result.serverReport?.mate?.name, '말포이')
+  assert.equal(result.serverReport?.mate?.name, '서진')
+  // A non-launch server mate keeps its own name: never shown as 채린.
+  assert.equal(report({ ...dto, mate: { id: 1, name: '말포이' } }).characterName, '말포이')
   assert.deepEqual(settlement(dto.relation), { stage: 3, stageName: '친구', nextLevelSeconds: 3600, stageProgress: 0.4, levelUp: true })
   assert.deepEqual(settlement({ stage: 5, stageName: '단짝', nextStageName: null, nextStageSeconds: null, stageProgress: 100 }), { stage: 5, stageName: '단짝', stageProgress: 1 })
   assert.throws(() => report({ ...dto, mate: undefined }))

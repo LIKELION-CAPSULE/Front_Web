@@ -10,7 +10,7 @@ import { checkedMateDetail } from '../src/features/mates/mate-contract.ts'
 import { availableMates, serverAgeRating } from '../src/features/mates/catalog.ts'
 import { capsulesFromConnections, estimatedCapsuleCount, myMatesByLaunchMate } from '../src/features/mates/my-mates-source.ts'
 import { mateWorldsForStage, worldContentFromServer } from '../src/features/mates/mate-worlds.ts'
-import { boardRecords, connectionRecord, isDayRecord, recordsRequests, recordsSummary, type RecordsMate } from '../src/features/records/records-source.ts'
+import { boardRecords, connectionRecord, isDayRecord, loadRecordsScope, recordsRequests, recordsSummary, type RecordsMate } from '../src/features/records/records-source.ts'
 import { getRecordRange } from '../src/features/reports/record-period.ts'
 
 // Examples built from docs/BACKEND_API.md (11-25) 37 · 38 · 31 · 48 tables (the document has no JSON examples).
@@ -90,6 +90,43 @@ test('37: the two 서진 entries are one 서도현 (sums, widest dates, newest r
   assert.equal(mergeMyMates([dohyun]), dohyun)
 })
 
+test('37 production shape: non-launch test mate 「말포이」 (id 1, 34 connections) never merges into 채린 (id 4, 3 connections)', () => {
+  const production37: MyMatesResponse = {
+    mates: [
+      {
+        id: 4, name: '채린', cardImageUrl: 'https://cdn.example/chaerin/card.webp',
+        firstMetAt: '2026-11-27T10:00:00Z', lastConnectedAt: '2026-11-28T01:00:00Z',
+        connectionCount: 3, totalPresentSeconds: 1200, totalConnectedSeconds: 1800,
+        relation: { stage: 1, stageName: '처음', nextStageName: '아는 사이', nextStageSeconds: 1800, stageProgress: 50 },
+        recent: [
+          { connectionId: 403, endedAt: '2026-11-28T01:00:00Z', presentSeconds: 600, connectedSeconds: 900 },
+          { connectionId: 402, endedAt: '2026-11-27T14:00:00Z', presentSeconds: 600, connectedSeconds: 600 },
+          { connectionId: 401, endedAt: '2026-11-27T10:05:00Z', presentSeconds: 0, connectedSeconds: 300 },
+        ],
+      },
+      {
+        id: 1, name: '말포이', cardImageUrl: null,
+        firstMetAt: '2026-11-05T18:00:00Z', lastConnectedAt: '2026-11-20T09:00:00Z',
+        connectionCount: 34, totalPresentSeconds: 10000, totalConnectedSeconds: 20400,
+        relation: { stage: 3, stageName: '친구', stageProgress: 20 },
+        recent: [
+          { connectionId: 105, endedAt: '2026-11-20T09:00:00Z', presentSeconds: 300, connectedSeconds: 600 },
+        ],
+      },
+    ],
+  }
+  const mates = availableMates({ mates: [{ id: 1, name: '말포이' }, { id: 2, name: '서진' }, { id: 4, name: '채린' }] })
+  const byMate = myMatesByLaunchMate(myMates(production37), mates)
+  assert.deepEqual([...byMate.keys()], ['chaerin'])
+  const chaerin = byMate.get('chaerin')!
+  assert.deepEqual(chaerin.serverIds, [4])
+  assert.equal(chaerin.connectionCount, 3, 'must NOT add 말포이 34 connections')
+  assert.equal(chaerin.totalConnectedSeconds, 1800)
+  assert.equal(chaerin.firstMetAt, Date.parse('2026-11-27T10:00:00Z'), 'must NOT take 말포이 2026-11-05 firstMetAt')
+  assert.equal(estimatedCapsuleCount(chaerin), 9)
+  assert.deepEqual(chaerin.recent.map(item => item.connectionId), ['403', '402', '401'])
+})
+
 test('37 → my-mates page: capsules from recent, an estimated capsule total, the five worlds (old unlock types ignored)', () => {
   const chaerin = myMates(myMatesExample)[0]!
   const capsules = capsulesFromConnections(chaerin.recent)
@@ -163,6 +200,34 @@ test('38 → board: day records for older time, the newest connections real, day
   assert.equal(board[1]!.serverReport?.connectionId, 201)
   const summary = recordsSummary(records(recordsExample), getRecordRange('week', Date.parse('2026-11-25T12:00:00+09:00')), true, 1)
   assert.deepEqual([summary.primaryLabel, summary.primarySeconds, summary.cameraSeconds, summary.activeDays, summary.sessions], ['이번 주 함께한 시간', 7200, 2400, 2, 3])
+})
+
+test('38 scope: 「전체」 reads only launch mates by mateId and excludes non-launch server mates', async () => {
+  const range = getRecordRange('week', Date.parse('2026-11-25T12:00:00+09:00'))
+  const chaerin: RecordsMate = { id: 'chaerin', characterId: '4', name: '채린', serverIds: [4] }
+  const queried: string[] = []
+  const data = await loadRecordsScope(range, [chaerin], null, async mate => {
+    queried.push(mate.id)
+    return records({
+      ...recordsExample,
+      // Even if a server response sneaks in a non-launch mateId in recent[], it must be ignored.
+      recent: [
+        ...recordsExample.recent!,
+        { connectionId: 999, mateId: 1, mateName: '말포이', endedAt: '2026-11-24T04:00:00Z', presentSeconds: 0, connectedSeconds: 1800 },
+      ],
+    })
+  })
+  assert.deepEqual(queried, ['chaerin'])
+  assert.equal(data.totals.connectionCount, 3)
+  assert.equal(data.records.some(item => item.id === '999'), false)
+  assert.equal(data.matesInRange, 1)
+
+  // No launch mates met yet: empty scope without any unfiltered read.
+  const empty = await loadRecordsScope(range, [], null, async () => {
+    throw new Error('must not query without launch mates')
+  })
+  assert.equal(empty.totals.connectionCount, 0)
+  assert.deepEqual(empty.records, [])
 })
 
 test('31: ageRating, comingSoon and hasConversation reach the detail (checked); 11 · 31 ageRating mapping', () => {
