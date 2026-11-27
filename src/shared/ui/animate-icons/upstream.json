@@ -11,7 +11,8 @@
     "Shared Icon adapter adds whole-control pointer and keyboard focus triggers; disabled/inert controls stay static.",
     "Shared adapter supports data-icon-trigger input groups and group clicks; SVG overflow stays visible for translated paths.",
     "Use the shared live reduced-motion subscription so icons mounted with reduced motion can animate after the preference is switched off.",
-    "Heart artwork optionally auto-repeats its original heartbeat (0.8s motion + 0.7s delay). The current-affection Icon opts in and skips interaction triggers; reduced motion sets the normal pose."
+    "Heart artwork optionally auto-repeats its original heartbeat (0.8s motion + 0.7s delay). The current-affection Icon opts in and skips interaction triggers; reduced motion sets the normal pose.",
+    "X (close) artwork drops its 90° rotation on hover/focus (2026-11-27); only the scale pulse remains."
   ],
   "icons": [
     {

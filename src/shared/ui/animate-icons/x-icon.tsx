@@ -83,10 +83,10 @@ const XIcon = forwardRef<XIconHandle, XIconProps>(
    [controls, onMouseLeave],
   );
 
+  // CAPSULE: no quarter turn on close icons (2026-11-27); the gentle pulse stays.
   const crossVariants: Variants = {
-   normal: { rotate: 0, scale: 1, transition: { duration: 0 } },
+   normal: { scale: 1, transition: { duration: 0 } },
    animate: {
-    rotate: [0, 90],
     scale: [1, 1.2, 1],
     transition: { duration: 0.5 * duration, ease: "easeInOut" },
    },
