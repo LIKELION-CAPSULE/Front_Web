@@ -3,6 +3,7 @@ import type { RecordsRange, ReportResponse } from '../../shared/api/types.ts'
 import { mergeRecords, type RecordsConnectionView, type RecordsView } from '../backend/records-adapters.ts'
 import type { RecordRange } from '../reports/record-period.ts'
 import { connectionDayKey } from './connection-day.ts'
+import { leavesCapsules } from '../mates/capsule-jar/capsule-floor-layout.ts'
 
 /**
  * 38 내 기록 → what the records page draws. 38 gives sums, a bucket per day (a YEAR answer: per month, so the year is
@@ -118,6 +119,8 @@ export function boardRecords(parts: readonly { mate: RecordsMate; view: RecordsV
     const left = new Map(view.buckets.filter(bucket => bucket.key.length === 10).map(bucket => [bucket.key, { connected: bucket.connectedSeconds, present: bucket.presentSeconds, real: 0 }]))
     for (const item of recent) {
       if (item.characterIds[0] !== mate.characterId) continue
+      // Under a minute (「0분」, a start cancelled at once): no capsule, not listed (CAPSULE_COUNT.minSeconds).
+      if (!leavesCapsules(item.studySeconds)) continue
       const day = left.get(connectionDayKey(item))
       // No bucket (another range) or no room for it there (the server counted it on another day): its time is in the
       // buckets already, so it is not shown on its own. One second of slack for the server's rounding.
@@ -128,8 +131,8 @@ export function boardRecords(parts: readonly { mate: RecordsMate; view: RecordsV
       result.push(item)
     }
     for (const [key, day] of left) {
-      // The day's time beyond its listed connections (older ones of the same day). A rounding second is not a capsule.
-      if (!(day.connected > 0) || (day.connected < 60 && day.real)) continue
+      // The day's time beyond its listed connections (older ones of the same day). Under a minute is not a capsule.
+      if (!leavesCapsules(day.connected)) continue
       result.push(record(`day:${mate.id}:${key}`, mate, Date.parse(`${key}${NOON}`), day.connected, day.present))
     }
   }

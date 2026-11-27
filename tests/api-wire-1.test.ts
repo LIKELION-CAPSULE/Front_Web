@@ -127,6 +127,28 @@ test('37 production shape: non-launch test mate 「말포이」 (id 1, 34 connec
   assert.deepEqual(chaerin.recent.map(item => item.connectionId), ['403', '402', '401'])
 })
 
+test('0-second / 0-minute connections leave no capsule: dropped from 37 capsules, 38 board and the estimated total', () => {
+  // 「11.28 (토) · 새벽 0분 · 캡슐 3개」: a connection cancelled at once must not show up with capsules.
+  const recent = [
+    { connectionId: '503', endedAt: Date.parse('2026-11-27T15:30:00Z'), presentSeconds: 0, connectedSeconds: 0 },
+    { connectionId: '502', endedAt: Date.parse('2026-11-27T15:20:00Z'), presentSeconds: 0, connectedSeconds: 45 },
+    { connectionId: '501', endedAt: Date.parse('2026-11-27T10:00:00Z'), presentSeconds: 600, connectedSeconds: 1800 },
+  ]
+  assert.deepEqual(capsulesFromConnections(recent).map(capsule => capsule.id), ['501'])
+  assert.equal(estimatedCapsuleCount({ connectionCount: 3, totalConnectedSeconds: 1845, recent }), 3)
+
+  const range = getRecordRange('week', Date.parse('2026-11-28T12:00:00+09:00'))
+  const chaerin: RecordsMate = { id: 'chaerin', characterId: '4', name: '채린', serverIds: [4] }
+  const view = records({
+    from: range.startDay, to: range.endDay, totalPresentSeconds: 600, totalConnectedSeconds: 1845, connectedDays: 1, connectionCount: 3,
+    buckets: [{ key: '2026-11-27', presentSeconds: 600, connectedSeconds: 1845 }],
+    mates: [{ mateId: 4, name: '채린', presentSeconds: 600, connectedSeconds: 1845, connectionCount: 3, stage: 1 }],
+    recent: recent.map(item => ({ ...item, connectionId: Number(item.connectionId), endedAt: new Date(item.endedAt).toISOString(), mateId: 4, mateName: '채린' })),
+  })
+  const board = boardRecords([{ mate: chaerin, view }], view.recent.map(item => connectionRecord(item, chaerin)))
+  assert.deepEqual(board.map(item => item.id), ['501'], 'no 0-second or 45-second capsule, and no day remainder for 45 s')
+})
+
 test('37 → my-mates page: capsules from recent, an estimated capsule total, the five worlds (old unlock types ignored)', () => {
   const chaerin = myMates(myMatesExample)[0]!
   const capsules = capsulesFromConnections(chaerin.recent)

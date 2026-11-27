@@ -27,16 +27,27 @@ import { capsuleBand, capsuleKeepsakes, type TimeBand } from './capsule-moments.
 
 /** How many capsules one connection becomes. The single place for this rule. */
 export const CAPSULE_COUNT = {
+  /**
+   * Below this a connection leaves no capsule and is not listed (shown as 「0분」: a start cancelled at once). The records
+   * board uses the same line (records-source.ts `boardRecords`, where under a minute was already not a capsule).
+   */
+  minSeconds: 60,
   /** One capsule per this many minutes of connection time. */
   minutesPerCapsule: 10,
-  /** Even a short connection leaves a small handful. */
+  /** Even a short connection (a minute or more) leaves a small handful. */
   min: 3,
   /** A very long one stays a large handful, not a heap of its own (3 h and more). */
   max: 18,
 } as const
 
+/** Whether a connection leaves capsules at all (a minute or more; see `CAPSULE_COUNT.minSeconds`). */
+export function leavesCapsules(durationSeconds: number) {
+  return Number.isFinite(durationSeconds) && durationSeconds >= CAPSULE_COUNT.minSeconds
+}
+
 export function capsulesForConnection(durationSeconds: number) {
-  const count = Math.round(Math.max(0, durationSeconds) / 60 / CAPSULE_COUNT.minutesPerCapsule)
+  if (!leavesCapsules(durationSeconds)) return 0
+  const count = Math.round(durationSeconds / 60 / CAPSULE_COUNT.minutesPerCapsule)
   return Math.min(CAPSULE_COUNT.max, Math.max(CAPSULE_COUNT.min, count))
 }
 
