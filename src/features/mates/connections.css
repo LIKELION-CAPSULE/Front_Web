@@ -611,17 +611,17 @@
   padding: 0 12px 6px;
 }
 
-.connection-chat .session-chat-composer {
+/* The chat box (ChatComposer): quick replies, the box with 누르고 말하기 inside, the key hint. */
+.connection-chat .session-chat-composer-wrap {
   flex: none;
-  margin: 0 12px 12px;
-  border: 1px solid var(--color-divider);
+  padding: 6px 12px 12px;
+}
+.connection-chat .session-chat-composer {
   background: var(--color-canvas);
+  box-shadow: none;
 }
-
-.connection-chat .session-chat-composer:focus-within {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 1px;
-}
+.connection-chat .session-chat-composer:focus-within { box-shadow: 0 0 0 2px var(--color-focus-ring); }
+.connection-chat .session-chat-composer:has(button:focus-visible) { box-shadow: none; }
 
 /* Leave Confirmation Mate Quote */
 .connection-leave-quote {

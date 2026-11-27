@@ -40,7 +40,7 @@ import '@/features/mates/connections.css'
 import { useConnectionPreferences } from '@/features/mates/connection-preferences-context'
 import { startModeToApply } from '@/features/mates/connection-start-mode'
 import { withConnectionCharacter } from '@/features/mates/connected-mate'
-import { mateVoiceOn, mateVoicePatch, PIP_WINDOW_SIZE, TALK_OPTIONS, voiceIntroKey } from '@/features/mates/connection-preferences'
+import { mateVoiceOn, mateVoicePatch, PIP_WINDOW_SIZE, QUICK_REPLIES, TALK_OPTIONS, voiceIntroKey } from '@/features/mates/connection-preferences'
 import { usePushToTalk } from '@/features/mates/use-push-to-talk'
 import { PUSH_TO_TALK_TEXT } from '@/features/mates/push-to-talk'
 import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate-features'
@@ -553,7 +553,9 @@ export default function ConnectionPage() {
       // Asked for voice but it came as text (credits short): said once.
       if (shouldNoteVoiceFallback({ requestedVoice: tts, voice: result.voice, noted: voiceNote !== 'none' })) setVoiceNote('shown')
       if (result.characterId) cue({ characterId: result.characterId, expression: result.expression, event: 'MESSAGE', stage: 'speech', text: result.content })
-      setDraft('')
+      // The box empties when a typed line goes (sendTyped); a line sent another way (누르고 말하기, a quick reply, the
+      // credit notice's retry) clears it only if the box still holds that very line.
+      setDraft(current => (current === text ? '' : current))
       return true
     } catch (reason) {
       if (mounted.current) {
@@ -565,6 +567,13 @@ export default function ConnectionPage() {
       return false
     }
     finally { if (mounted.current) setSending(false) }
+  }
+  /** The chat box's send: the box empties at once (typing goes on while her reply is on its way) and gets the line back if it did not go. */
+  async function sendTyped(text: string) {
+    setDraft('')
+    const sent = await send(text)
+    if (!sent && mounted.current) setDraft(current => current || text)
+    return sent
   }
   function toggleCamera() {
     if (camera) { flushFocus(); controller.stop('camera') }
@@ -1093,7 +1102,26 @@ export default function ConnectionPage() {
                 <FeedbackMessage tone="error">{error}</FeedbackMessage>
               </div>
             )}
-            <ChatComposer name={mate.name} text={draft} onChange={setDraft} onSend={send} sendDisabled={sending || speaking || finishing} />
+            <ChatComposer
+              name={mate.name}
+              text={draft}
+              onChange={setDraft}
+              onSend={sendTyped}
+              sendDisabled={sending || speaking || finishing}
+              waiting={sending}
+              hint
+              quickReplies={QUICK_REPLIES}
+              onQuickReply={(text) => { void send(text, 'QUICK') }}
+              // The same 누르고 말하기 as the dock's button (one press at a time, usePushToTalk).
+              talk={{
+                supported: pushToTalk.supported,
+                listening: pushToTalk.snapshot.status === 'listening',
+                disabled: finishing,
+                label: !pushToTalk.supported ? PUSH_TO_TALK_TEXT.unsupported : pushToTalk.snapshot.status === 'listening' ? '듣는 중 · 떼면 보내요' : '누르고 말하기',
+                onPressStart: () => pushToTalk.press('composer', window),
+                onPressEnd: () => pushToTalk.release('composer'),
+              }}
+            />
           </aside>
         )}
       </div>

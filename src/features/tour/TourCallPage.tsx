@@ -16,7 +16,7 @@ import { GlassDock, type GlassDockItem } from '@/shared/ui/dock/GlassDock'
 import { AnimatedClock } from '@/shared/ui/AnimatedClock'
 import { Icon } from '@/shared/ui/Icon'
 import { Brand } from '@/shared/ui/Brand'
-import { TALK_OPTIONS } from '@/features/mates/connection-preferences'
+import { QUICK_REPLIES, TALK_OPTIONS } from '@/features/mates/connection-preferences'
 import { clock } from '@/shared/lib/format'
 import { withParticle } from '@/shared/lib/korean'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
@@ -156,7 +156,17 @@ export default function TourCallPage() {
             </div>
             <div data-tour="call-composer">
               {/* Sending does nothing here: the practice never reaches the message API. */}
-              <ChatComposer name={mate.name} text={draft} onChange={setDraft} onSend={async () => false} sendDisabled />
+              <ChatComposer
+                name={mate.name}
+                text={draft}
+                onChange={setDraft}
+                onSend={async () => false}
+                sendDisabled
+                hint
+                quickReplies={QUICK_REPLIES}
+                onQuickReply={NOOP}
+                talk={{ supported: true, listening: false, disabled: false, label: '누르고 말하기', onPressStart: NOOP, onPressEnd: NOOP }}
+              />
             </div>
           </aside>
         </div>
