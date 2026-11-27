@@ -26,13 +26,37 @@
   .scroll-more-hint:hover { background: var(--color-floating-hover); }
   .scroll-more-hint-icon { transform: rotate(90deg); }
 
+  /* Dedicated slot under a scroll container: never overlaps rows, keeps height while scrolling to avoid jumps. */
+  .scroll-more-hint-footer {
+    flex: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 16px 12px;
+  }
+  .scroll-more-hint[data-placement='footer'] {
+    position: static;
+    transform: none;
+    box-shadow: none;
+    animation: scroll-more-hint-footer-in 220ms ease-out both;
+    transition: opacity 160ms ease, background-color 140ms ease;
+  }
+  .scroll-more-hint-footer[data-hidden] .scroll-more-hint {
+    opacity: 0;
+    pointer-events: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .scroll-more-hint { animation: none; }
+    .scroll-more-hint,
+    .scroll-more-hint[data-placement='footer'] { animation: none; transition: none; }
   }
 }
 
 @keyframes scroll-more-hint-in {
   from { opacity: 0; transform: translate(-50%, 6px); }
+}
+@keyframes scroll-more-hint-footer-in {
+  from { opacity: 0; transform: translateY(4px); }
 }
 @keyframes scroll-more-hint-nudge {
   0%, 30%, 100% { transform: translate(-50%, 0); }

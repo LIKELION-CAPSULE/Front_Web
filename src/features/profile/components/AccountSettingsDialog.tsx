@@ -113,9 +113,11 @@ export default function AccountSettingsDialog({
   function selectView(next: AccountView, focusTab = false) {
     setView(next)
     main.current?.scrollTo({ top: 0 })
-    // 보안 keeps the focus on its tab: the withdrawal field below is open from the start and must never take it.
-    if (focusTab || next === 'security') {
+    // Keyboard tabbing keeps focus on the chosen tab; mouse selection keeps focus off the withdrawal field without painting a focus ring on the tab.
+    if (focusTab) {
       document.getElementById(`${prefix}-tab-${next}`)?.focus({ preventScroll: true })
+    } else if (next === 'security') {
+      windowRef.current?.focus({ preventScroll: true })
     } else if (document.activeElement instanceof HTMLElement && document.activeElement.getAttribute('role') === 'tab') {
       document.activeElement.blur()
     }
@@ -146,7 +148,7 @@ export default function AccountSettingsDialog({
       dismissible={!busy && !locked}
       className="account-settings-dialog"
     >
-      <div ref={windowRef} className="account-settings-window">
+      <div ref={windowRef} className="account-settings-window" tabIndex={-1} data-dialog-initial-focus>
         <button type="button" disabled={busy} className="account-settings-close" aria-label="계정 설정 닫기" onClick={onClose}>
           <Icon name="close" size={20} />
         </button>
@@ -177,7 +179,6 @@ export default function AccountSettingsDialog({
                   tabIndex={view === menu.id ? 0 : -1}
                   disabled={busy}
                   data-account-view={menu.id}
-                  data-dialog-initial-focus={menu.id === initialView || undefined}
                   className="account-settings-tab"
                   onClick={() => selectView(menu.id, false)}
                   onKeyDown={(event) => navigate(event, index)}
@@ -232,8 +233,8 @@ export default function AccountSettingsDialog({
                   {view === 'security' && <AccountSecurityPanel busy={busy} onBusyChange={setBusy} />}
                 </section>
               </div>
-              {/* The rows below the fold (마이크 · 카메라, PIP; 회원탈퇴) say they are there (UX review 7-2). */}
-              <ScrollMoreHint key={view} target={main} />
+              {/* The rows below the fold (마이크 · 카메라, PIP; 회원탈퇴) say they are there in a dedicated footer slot (never covering rows). */}
+              <ScrollMoreHint key={view} target={main} placement="footer" />
             </div>
           </div>
         </div>
