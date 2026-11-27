@@ -1,9 +1,10 @@
 import { Link, useNavigate, useParams } from 'react-router'
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
 import { ageRatingLabel, availableMates, withComingSoon } from '@/features/mates/catalog'
 import { ConnectMateButton } from '@/features/mates/components/ConnectMateButton'
+import { AgeRatingMark, VoiceWaveIcon } from '@/features/mates/components/MateDetailMarks'
 import { MateAlertButton } from '@/features/mates/components/MateAlertButton'
 import { matePortrait } from '@/features/mates/artwork'
 import { HeaderAccount } from '@/app/components/HeaderAccount'
@@ -57,15 +58,14 @@ export default function MateDetailPage() {
 
   const introduction = detail?.introduction ?? mate.introduction
   const description = detail?.description ?? mate.description
-  const role = detail?.role ?? mate.role
   const intro = detail?.intro ?? mate.intro
   // 31 wins over the /home card (it is read for this page): coming soon closes the connection, the rating is the server's.
   // The connect button gets the same value (a card still marked coming soon must not stop a mate 31 says is open).
   const comingSoon = detail?.comingSoon ?? Boolean(mate.comingSoon)
   const ageRating = detail?.ageRating ?? mate.ageRating
-  // The outline name behind the hero is set in two staggered halves (채 / 린).
-  const nameHead = mate.name.slice(0, Math.ceil(mate.name.length / 2))
-  const nameTail = mate.name.slice(nameHead.length)
+  // The outline name behind the hero: one letter per step down a diagonal (채 / 린, 서 / 도 / 현), so letters never
+  // sit on top of each other however long the name is. Longer names get smaller letters (mate-detail.css).
+  const nameLetters = Array.from(mate.name)
 
   function handleBackToHome(event: MouseEvent<HTMLAnchorElement>) {
     if (
@@ -115,9 +115,17 @@ export default function MateDetailPage() {
       />
       <main id="main-content" tabIndex={-1} className="mate-hero focus:outline-none">
         {/* Space backdrop: soft nebulae, faint stars, and the mate's name set huge in outline behind everything. */}
-        <div className="mate-hero-backdrop" aria-hidden="true">
-          <span className="mate-hero-outline mate-hero-outline--head">{nameHead}</span>
-          {nameTail && <span className="mate-hero-outline mate-hero-outline--tail">{nameTail}</span>}
+        <div className="mate-hero-backdrop" aria-hidden="true" style={{ '--outline-count': nameLetters.length } as CSSProperties}>
+          {nameLetters.map((letter, index) => (
+            <span
+              key={index}
+              className="mate-hero-outline"
+              data-tone={index % 2 ? 'deep' : 'light'}
+              style={{ '--outline-index': index } as CSSProperties}
+            >
+              {letter}
+            </span>
+          ))}
         </div>
 
         {/* The mate, large and floating: Live2D that only follows the cursor (still portrait until it loads). */}
@@ -151,13 +159,12 @@ export default function MateDetailPage() {
             {intro && <p className="mate-hero-situation" data-tour="mate-detail-intro">{intro}</p>}
             {mate.firstLine && <p className="mate-hero-description mate-hero-first-line">“{mate.firstLine}”</p>}
             {description && <p className="mate-hero-description">{description}</p>}
-            {role && <p className="mate-hero-role">내 역할 · {role}</p>}
 
             <div className="mate-hero-tiles">
               <div className="mate-hero-tile-group" data-tour="mate-detail-age">
                 <span className="mate-hero-tile-caption">연령 등급</span>
                 <div className="mate-hero-tile">
-                  <Icon name="check" size={30} />
+                  <AgeRatingMark rating={ageRating} />
                   <strong>{ageRatingLabel(ageRating)}</strong>
                 </div>
               </div>
@@ -168,7 +175,7 @@ export default function MateDetailPage() {
                   url={detail?.voiceSampleUrl}
                   disabled={false}
                   idleLabel="목소리 듣기"
-                  idleIcon="headphones"
+                  idleArt={<VoiceWaveIcon size={38} />}
                   iconSize={30}
                 />
               </div>
