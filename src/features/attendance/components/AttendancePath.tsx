@@ -16,8 +16,12 @@ type Speech = { id: number; text: string }
 /** Centre of each pad's top face, in % of the path art (top-left origin). Day 7 is the reward pad. */
 const PADS: readonly Pad[] = padData.pads
 const LAST = PADS.length - 1
+/** The reward capsule's own layer, cut from the art at (1169, 14)–(1377, 258) of 1600×1000. */
+const CAPSULE = { left: 73.0625, top: 1.4, width: 13, height: 24.4 } as const
 /** Walking from one pad to the next. */
 const WALK_MS = 900
+/** Day 7: the capsule floats out from behind her, shakes with light, then bursts open into stars. */
+const CAPSULE_MS = { out: 650, shake: 800, open: 450 } as const
 /** Stars that fly out of the opened capsule. */
 const SPARKS = Array.from({ length: 10 }, (_, index) => {
   const angle = (index / 10) * Math.PI * 2 - Math.PI / 2
@@ -29,6 +33,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 /** The pad the character stands on: the last day attended, or day 1 before the first check-in. */
 const padFor = (streak: number) => PADS[clamp(streak - 1, 0, LAST)]!
 const spot = (pad: Pad) => ({ left: `${pad.x}%`, top: `${pad.y}%` })
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 /** What she says where she stands: the day's line once it is reached, a nudge while today is still open. */
 function lineFor(days: number, checkedInToday: boolean) {
@@ -108,10 +113,7 @@ export function AttendancePath({ streak, checkedInToday, className }: {
       return animation.finished.then(() => undefined, () => undefined)
     }
     const capsuleBox = capsule.current
-    const capsulePicture = capsuleImage.current
     const opening = days === PADS.length
-    // Only a successful day-seven transition downloads this offline sequence.
-    const rewardSequence = opening ? import('../reward-opening').catch(() => null) : Promise.resolve(null)
     if (opening && capsuleBox) capsuleBox.dataset.opening = ''
 
     const start = padFor(from)
@@ -119,6 +121,54 @@ export function AttendancePath({ streak, checkedInToday, className }: {
     const moving = start !== end
     if (moving) root.dataset.pose = 'walk'
 
+    async function openCapsule() {
+      const box = capsule.current
+      const image = capsuleImage.current
+      if (!box || !image) return
+      // The glow colour is the capsule's resolved `color` (attendance-path.css), so it follows the tokens.
+      const glow = getComputedStyle(box).color
+      // Out from behind her into the open sky on her left, tilting as it goes.
+      await play(box, [
+        { transform: 'translate(0, 0) rotate(0deg)' },
+        { transform: 'translate(-100%, -8%) rotate(-10deg)' },
+      ], { duration: CAPSULE_MS.out, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' })
+      if (!live) return
+      // Something inside wants out: it shakes, and light leaks around it.
+      await play(image, [
+        { transform: 'rotate(0deg) scale(1)', filter: 'brightness(1) drop-shadow(0 0 0 transparent)' },
+        { transform: 'rotate(-7deg) scale(1.03)', filter: `brightness(1.1) drop-shadow(0 0 8px ${glow})`, offset: 0.2 },
+        { transform: 'rotate(6deg) scale(1.05)', filter: `brightness(1.2) drop-shadow(0 0 12px ${glow})`, offset: 0.4 },
+        { transform: 'rotate(-5deg) scale(1.07)', filter: `brightness(1.3) drop-shadow(0 0 16px ${glow})`, offset: 0.6 },
+        { transform: 'rotate(4deg) scale(1.09)', filter: `brightness(1.4) drop-shadow(0 0 20px ${glow})`, offset: 0.8 },
+        { transform: 'rotate(0deg) scale(1.1)', filter: `brightness(1.5) drop-shadow(0 0 24px ${glow})` },
+      ], { duration: CAPSULE_MS.shake, easing: 'ease-in-out', fill: 'forwards' })
+      if (!live) return
+      // It bursts open: a flash, stars flying out, and the capsule itself dissolving into the light.
+      void play(burst.current, [
+        { opacity: 0, transform: 'translate(-50%, -50%) scale(0.3)' },
+        { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.3 },
+        { opacity: 0, transform: 'translate(-50%, -50%) scale(1.8)' },
+      ], { duration: 1300, easing: 'ease-out' })
+      for (const [index, star] of Array.from(sparks.current?.children ?? []).entries()) {
+        const { x, y } = SPARKS[index]!
+        void play(star, [
+          { opacity: 0, transform: 'translate(-50%, -50%) scale(0.3) rotate(0deg)' },
+          { opacity: 1, transform: `translate(calc(-50% + ${x * 0.4}cqw), calc(-50% + ${y * 0.4}cqw)) scale(1) rotate(40deg)`, offset: 0.25 },
+          { opacity: 0, transform: `translate(calc(-50% + ${x}cqw), calc(-50% + ${y + 3}cqw)) scale(0.6) rotate(140deg)` },
+        ], { duration: 1100 + (index % 3) * 150, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' })
+      }
+      await play(image, [
+        { transform: 'rotate(0deg) scale(1.1)', opacity: 1, filter: `brightness(1.5) drop-shadow(0 0 24px ${glow})` },
+        { transform: 'rotate(0deg) scale(1.45)', opacity: 0, filter: `brightness(2.4) drop-shadow(0 0 32px ${glow})` },
+      ], { duration: CAPSULE_MS.open, easing: 'ease-out', fill: 'forwards' })
+      if (!live) return
+      // Gone for the rest of the week: hide it, then drop the held frames so it is whole again next week.
+      delete box.dataset.opening
+      for (const animation of [...box.getAnimations(), ...image.getAnimations()]) {
+        if (!(animation instanceof CSSAnimation)) animation.cancel()
+      }
+      await wait(350)
+    }
 
     void Promise.all([
       moving ? play(root, [spot(start), spot(end)], { duration: WALK_MS, easing: 'ease-in-out' }) : null,
@@ -134,11 +184,7 @@ export function AttendancePath({ streak, checkedInToday, className }: {
     ]).then(async () => {
       if (!live) return
       delete root.dataset.pose
-      if (opening) {
-        const reward = await rewardSequence
-        if (live && reward) await reward.openRewardCapsule({ capsule, capsuleImage, burst, sparks, play, isLive: () => live, starOffsets: SPARKS })
-        else if (capsuleBox) delete capsuleBox.dataset.opening
-      }
+      if (opening) await openCapsule()
       if (live) say(line())
     })
 
@@ -148,7 +194,6 @@ export function AttendancePath({ streak, checkedInToday, className }: {
       for (const animation of running) animation.cancel()
       delete root.dataset.pose
       if (capsuleBox) delete capsuleBox.dataset.opening
-      if (capsulePicture) capsulePicture.src = capsuleArt
     }
   }, [days, reduced, say])
 
@@ -205,13 +250,13 @@ export function AttendancePath({ streak, checkedInToday, className }: {
       <div
         ref={capsule}
         className="attendance-path-capsule"
-        data-tour-overflow
+        style={{ left: `${CAPSULE.left}%`, top: `${CAPSULE.top}%`, width: `${CAPSULE.width}%` }}
         aria-hidden="true"
       >
         <img ref={capsuleImage} src={capsuleArt} width={208} height={244} alt="" draggable={false} />
       </div>
 
-      <div ref={walker} className="attendance-path-walker" data-bubble={bubbleAlign} data-near-reward={stand.x > 55 || undefined} style={spot(stand)}>
+      <div ref={walker} className="attendance-path-walker" data-bubble={bubbleAlign} style={spot(stand)}>
         <span ref={shadow} className="attendance-path-shadow" aria-hidden="true" />
         {/* Over her head, so it goes where she goes; it stays still while she breathes or hops. */}
         <div className="attendance-path-dialogue">

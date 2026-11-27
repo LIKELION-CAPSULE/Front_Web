@@ -1,7 +1,6 @@
 @layer components {
   /* ---- The hero's attendance path (AttendancePath): art 1600×1000, pads and character placed in % of it ---- */
   .attendance-path {
-    --reward-scale: 1.5;
     position: relative;
     width: 100%;
     aspect-ratio: 1600 / 1000;
@@ -85,10 +84,6 @@
    */
   .attendance-path-capsule {
     position: absolute;
-    /* Keep the original bottom centre (79.5625%, 25.8%) over day seven. */
-    left: calc(79.5625% - 6.5% * var(--reward-scale));
-    top: calc(25.8% - 24.4% * var(--reward-scale));
-    width: calc(13% * var(--reward-scale));
     color: color-mix(in srgb, var(--color-primary) 65%, var(--color-on-solid));
     pointer-events: none;
     animation: attendance-path-float 3.2s ease-in-out infinite;
@@ -154,12 +149,6 @@
   }
   /* No "next" mark here: the line is not part of a conversation that goes on. */
   .attendance-path-dialogue .login-dialogue-next { display: none; }
-  @media (min-width: 768px) and (max-width: 1023px) {
-    .attendance-path { --reward-scale: 1.4; }
-    .attendance-path-walker[data-near-reward] .attendance-path-dialogue {
-      transform: translateX(calc(var(--bubble-shift, 50%) * -1 - 6cqw));
-    }
-  }
   @container (max-width: 640px) {
     .attendance-path-dialogue { max-width: 52cqw; }
     .attendance-path-dialogue .login-dialogue { padding: 12px 14px 9px; }

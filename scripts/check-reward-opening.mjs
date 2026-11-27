@@ -1,4 +1,4 @@
-/* global document */
+/* global document, getComputedStyle */
 import assert from 'node:assert/strict'
 import {mkdir} from 'node:fs/promises'
 import {join} from 'node:path'
@@ -15,6 +15,16 @@ try{for(const reducedMotion of ['no-preference','reduce']){
  assert.equal(downloads.length,0,'no sequence before the check-in')
  await p.getByRole('button',{name:'7일차 출석 받기'}).click()
  if(reducedMotion==='reduce'){await p.waitForTimeout(500);assert.equal(downloads.length,0,'reduced motion skips the module and image')}
- else{await p.waitForFunction(()=>document.querySelector('.attendance-path-capsule img')?.src.includes('reward-opening.webp')).catch(async e=>{console.error('downloads',downloads);console.error(await p.locator('.attendance-path-capsule').evaluate(x=>x.outerHTML));throw e});await p.waitForTimeout(500);await p.screenshot({path:join(out,'attendance-opening.png')});assert.ok(downloads.some(x=>x.includes('.webp')));await p.waitForTimeout(1200);assert.equal(await p.locator('.attendance-path-capsule[data-opening]').count(),0,'opening layer cleaned up')}
- console.log(`ok reward ${reducedMotion}: lazy asset, motion policy and cleanup`);await p.close()
+ else{
+  await p.waitForSelector('.attendance-path-capsule[data-opening]')
+  await p.waitForTimeout(1800)
+  assert.ok((await p.locator('.attendance-path-capsule img').getAttribute('src')).includes('reward-capsule.webp'),'original cutout during opening')
+  await p.screenshot({path:join(out,'attendance-opening.png')})
+ }
+ await p.waitForFunction(()=>{
+  const capsule=document.querySelector('.attendance-path-capsule')
+  return document.querySelector('.attendance-path[data-complete]')&&!capsule.hasAttribute('data-opening')&&getComputedStyle(capsule).display==='none'
+ })
+ assert.equal(downloads.length,0,'retired 3D sequence is never requested')
+ console.log(`ok reward ${reducedMotion}: original art, motion policy and cleanup`);await p.close()
 }}finally{await b.close()}
