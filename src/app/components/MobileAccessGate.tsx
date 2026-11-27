@@ -12,8 +12,8 @@ import { CALL_STAGE_GRADIENT, chaerinArtwork } from '@/features/mates/artwork'
 import { isMobileGateAllowedPath, isPhoneDevice, isReviewMobileNoticeForced } from '@/shared/lib/mobile-gate'
 import { Button } from '@/shared/ui/Button'
 import { Dialog } from '@/shared/ui/Dialog'
+import { PixelSnowfall } from '@/shared/ui/pixel/PixelFrame'
 import './mobile-notice.css'
-import '@/features/auth/login-backgrounds/desktop/desktop.css'
 
 function readInviteInfo(search: string): { code: string | null; inviter: string | null } {
   const params = new URLSearchParams(search)
@@ -115,20 +115,10 @@ function MobileNoticeScreen() {
       )}
 
       <main id="main-content" tabIndex={-1} className="mobile-notice-main focus:outline-none">
-        <section
-          className="desktop-window desktop-window--active mobile-notice-window"
-          aria-labelledby={headingId}
-        >
-          <header className="desktop-window-titlebar mate-window-titlebar-static">
-            <div className="desktop-window-title-left">CAPSULE</div>
-            <div className="desktop-window-title-right">
-              <div className="desktop-window-controls" aria-hidden="true">
-                <span className="desktop-window-dot" />
-                <span className="desktop-window-dot" />
-                <span className="desktop-window-dot" />
-              </div>
-            </div>
-          </header>
+        {/* The modal pixel frame (DESIGN_SYSTEM.md 4.1, UX review 10-1) instead of the old desktop window with its
+            three title-bar dots: stepped corners, the dithered roof with the 8-bit capsule, a little pixel snow. */}
+        <section className="mobile-notice-window" aria-labelledby={headingId}>
+          <PixelSnowfall />
 
           <div className="mobile-notice-body">
             <p className="mobile-notice-brand">CAPSULE</p>

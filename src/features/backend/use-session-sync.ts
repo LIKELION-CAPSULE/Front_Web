@@ -16,6 +16,7 @@ import { IDLE_TALK_EVENT, IdleTalkTimer } from './idle-talk'
 import { flushSessionOutbox } from './session-outbox'
 import { isConnectionEnded } from './ended-connection'
 import { minorDeadlineOf } from '../mates/minor-limit'
+import { noteServerCredits } from './server-credits'
 
 export type SessionTotals = ConnectionTotals
 const totalsBySession = new Map<string, () => SessionTotals>()
@@ -109,6 +110,8 @@ export function useSessionSync(input: Input) {
       const result = await api.request<ReactionResponse>(`${connectionPath(current.sessionId)}/events/${eventId}/reaction`, {
         method: 'POST', body: { requestId, ...(event === 'AWAY' ? { intensity: intensity ?? 1 } : {}), tts: latest.current.tts === true } satisfies ReactionRequest,
       })
+      // With `tts` the line's summary comes back (20 when its voice was made): the chips follow it (server-credits.ts).
+      noteServerCredits(result.credits)
       const pending: Pending = { result, event, revision, turn, voiceTicket }
       if (result.requestId !== requestId || !stillCurrent(current, pending)) return
       if (latest.current.busy || current.held.length) { if (!idle) current.held.push({ value: pending, heldAt: Date.now() }) }

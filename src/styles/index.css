@@ -152,6 +152,10 @@
   .credit-chip:hover {
     color: var(--color-ink);
   }
+  /* The credit coin in the header and call screen chips: credit gold (DESIGN_SYSTEM.md exception 2, `warning` #F4B95F). */
+  .credit-coin {
+    color: var(--color-warning);
+  }
   .app-main {
     padding-block: 36px 56px;
     min-height: calc(100dvh - 170px);
@@ -419,11 +423,11 @@
     position: relative;
     display: inline-flex;
     padding: 4px 10px;
-    border: 1px solid var(--color-primary);
+    border: 0;
     border-radius: 999px;
-    /* Near-white lavender: a tenth of the brand violet over white. */
-    background: color-mix(in srgb, var(--color-primary) 10%, #fff);
-    color: var(--color-primary);
+    /* The dark system's soft violet (no white fill, no outline: UX review 1-5 · 10-1). text-accent on primary-soft. */
+    background: var(--color-primary-soft);
+    color: var(--color-text-accent);
     font-size: 11px;
     font-weight: 600;
     line-height: 1.5;
@@ -438,8 +442,6 @@
     left: 50%;
     width: 8px;
     height: 8px;
-    border-right: 1px solid var(--color-primary);
-    border-bottom: 1px solid var(--color-primary);
     background: inherit;
     transform: translateX(-50%) rotate(45deg);
   }
@@ -527,9 +529,9 @@
 }
 
 @keyframes kakao-signup-emphasis {
-  0%, 18%, 100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 #ff6b5700; }
-  36% { transform: translateY(-4px) scale(1.025); box-shadow: 0 0 0 6px #ff6b571a; }
-  52% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 #ff6b5700; }
+  0%, 18%, 100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 #7e54f600; }
+  36% { transform: translateY(-4px) scale(1.025); box-shadow: 0 0 0 6px #7e54f62e; }
+  52% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 #7e54f600; }
   66% { transform: translateY(-2px) scale(1.01); }
 }
 

@@ -224,6 +224,7 @@
 
   /* ── Arc layout (onboarding): the stills on a vertical arc at the screen's left edge, a big stage beside it ── */
   .avatar-picker[data-layout='arc'] {
+    position: relative;
     --arc-r: 560px;
     --arc-step: 13deg;
     --arc-bulge: 100px;
@@ -330,8 +331,10 @@
    * Name and greeting on the avatar's legs (user decision 2026-11-26; onboarding and the account settings profile tab
    * alike): 22% of the stage height below its centre, i.e. at 72% of the stage — the knees of a full-body avatar, the
    * faded lower body of a waist-up one. The stage is `min(100cqh, 125cqw)` tall, so the place follows its size; the
-   * Live2D credit stays at the very bottom, well apart. The stage's fade reaches the name earlier here, and a soft dark
-   * glow of the page colour behind the lines keeps them readable on the model.
+   * Live2D credit stays at the very bottom, well apart. The stage's fade reaches the name earlier here, and a neutral
+   * scrim of the page colour behind the two lines keeps them readable on a light outfit (UX review 1-3: DESIGN_SYSTEM.md
+   * §7, text over an image gets a neutral scrim; 4.5:1 for the greeting on the lightest cardigan): dense right behind
+   * the words, fading out well before the edges so it reads as shade, not a box.
    */
   .avatar-picker[data-layout='arc'] .avatar-picker-caption {
     position: absolute;
@@ -346,10 +349,48 @@
   .avatar-picker[data-layout='arc'] .avatar-picker-caption::before {
     position: absolute;
     z-index: -1;
-    inset: -84px 0 -64px;
-    background: radial-gradient(closest-side, color-mix(in srgb, var(--color-canvas) 70%, transparent), color-mix(in srgb, var(--color-canvas) 44%, transparent) 42%, color-mix(in srgb, var(--color-canvas) 14%, transparent) 74%, transparent);
+    inset: -40px 0 -36px;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--color-canvas) 88%, transparent), color-mix(in srgb, var(--color-canvas) 80%, transparent) 50%, color-mix(in srgb, var(--color-canvas) 46%, transparent) 78%, transparent);
     content: '';
   }
+  .avatar-picker[data-layout='arc'] .avatar-picker-name,
+  .avatar-picker[data-layout='arc'] .avatar-picker-greeting { text-shadow: 0 1px 2px color-mix(in srgb, var(--color-canvas) 80%, transparent); }
+
+  /* The arc's how-to, once (AvatarDial `railHint`, UX review 1-3): a small floating note right of the choice, its tail
+     pointing at it. Floating fill, no outline (DESIGN_SYSTEM.md 4.1 popover). */
+  .avatar-arc-hint {
+    position: absolute;
+    z-index: 4;
+    top: 50%;
+    left: calc(var(--arc-bulge) + var(--arc-size) / 2 + 16px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: max-content;
+    max-width: 240px;
+    margin: -24px 0 0;
+    border-radius: 14px;
+    background: var(--color-floating);
+    padding: 8px 12px 8px 10px;
+    color: var(--color-ink);
+    font-size: 12.5px;
+    line-height: 18px;
+    font-weight: 600;
+    word-break: keep-all;
+    box-shadow: var(--popover-shadow);
+    pointer-events: none;
+  }
+  .avatar-arc-hint::before {
+    position: absolute;
+    top: 50%;
+    left: -5px;
+    width: 10px;
+    height: 10px;
+    background: inherit;
+    transform: translateY(-50%) rotate(45deg);
+    content: '';
+  }
+  .avatar-arc-hint-icon { flex: none; color: var(--color-text-accent); animation: avatar-arc-hint-nudge 1.6s ease-in-out infinite; }
   .avatar-picker[data-layout='arc'] .avatar-picker-figure {
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 64%, rgb(0 0 0 / 0.62) 80%, transparent 96%);
     mask-image: linear-gradient(to bottom, #000 0%, #000 64%, rgb(0 0 0 / 0.62) 80%, transparent 96%);
@@ -363,12 +404,18 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .avatar-arc-hint-icon { animation: none; }
     .avatar-picker-halo, .avatar-picker-stage[data-waiting] .avatar-picker-halo { animation: none; }
     .avatar-picker-model .live2d-host[data-status='ready'] { animation: none; }
     .avatar-picker-track, .avatar-picker-thumb, .avatar-arc-thumb { transition: none; }
   }
 }
 
+@keyframes avatar-arc-hint-nudge {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-2px); }
+  70% { transform: translateY(2px); }
+}
 @keyframes avatar-halo-swell {
   from { opacity: 0.55; transform: translateX(-50%) scale(0.92); }
   to { opacity: 1; transform: translateX(-50%) scale(1); }
