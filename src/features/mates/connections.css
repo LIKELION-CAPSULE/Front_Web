@@ -297,63 +297,7 @@
   display: block;
 }
 
-/* 「말하는 중」 is a name chip on the stage (CallSpeakerChip), no longer a green frame (no outlines, 2026-11-27). */
-
-/* Bottom-center pill speech bubble (strictly above floating glass dock, below tie knot, clear of self tile) */
-.connection-speech-slot {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: clamp(92px, 11.5%, 108px);
-  z-index: 12;
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
-  transition: transform 180ms cubic-bezier(.2, .8, .2, 1);
-}
-
-/* Shift speech bubble upward while dock is hovered or keyboard-focused so tooltips never obscure it */
-.connection-stage-wrap:has(.connection-controls:hover) .connection-speech-slot,
-.connection-stage-wrap:has(.connection-controls button:focus-visible) .connection-speech-slot {
-  transform: translateY(-44px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .connection-speech-slot {
-    transition: none;
-  }
-}
-
-.connection-stage .connection-speech-slot .character-speech-bubble--pill {
-  max-width: min(460px, calc(100% - 26% - 48px));
-}
-
-.connection-speech-slot .character-speech-bubble--pill {
-  position: static;
-  top: auto;
-  right: auto;
-  left: auto;
-  margin: 0;
-  max-width: min(560px, 100%);
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: 1px solid rgba(250, 250, 253, 0.16);
-  background: rgba(15, 14, 23, 0.84);
-  backdrop-filter: blur(14px) saturate(140%);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
-  color: var(--color-ink);
-  font-size: 14px;
-  line-height: 1.45;
-  pointer-events: auto;
-}
-
-.connection-speech-slot .character-speech-bubble--pill::before {
-  display: none;
-}
-
-.connection-speech-slot .character-speech-bubble--pill .character-speech-bubble-text {
-  text-shadow: none;
-}
+/* 「말하는 중」 and her lines are on the dialogue box over the dock (CallDialogueBox, call-dialogue.css). */
 
 /* "나" Self Tile = Mini Desktop Window */
 .connection-self.desktop-window {
@@ -417,15 +361,16 @@
 
 .connection-stage-wrap { container: connection-stage / inline-size; }
 
-/* The 「나」 tile sits on the dock's baseline (bottom 16px) beside it; a stage too narrow to keep them apart lifts
-   the tile above the dock instead (container query below). */
+/* The 「나」 tile sits in the stage's top-right corner (call UI step 2, 2026-11-27), across from 「말 걸기」 on the
+   left; the bottom belongs to the dialogue box and the dock. Its height is shared with the notices under it. */
+.connection-stage-wrap { --connection-self-h: clamp(118px, 19%, 160px); }
 .connection-stage .connection-self.desktop-window {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
+  top: 12px;
+  right: 12px;
   z-index: 15;
   width: clamp(160px, 21%, 220px);
-  height: clamp(118px, 19%, 160px);
+  height: var(--connection-self-h);
 }
 
 .connection-avatar {
@@ -446,11 +391,11 @@
   border-radius: inherit;
 }
 
-/* Floating Desktop Notices (top-right over stage) */
+/* Floating notices: top-right over the stage, under the 「나」 tile (12px + its height + 10px). */
 .connection-floating-notices {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: calc(22px + var(--connection-self-h));
+  right: 12px;
   z-index: 22;
   display: flex;
   flex-direction: column;
@@ -786,12 +731,6 @@
     width: 100%;
     box-shadow: none;
   }
-  .connection-speech-slot {
-    bottom: 12px;
-  }
-  .connection-stage .connection-self.desktop-window {
-    bottom: 12px;
-  }
 }
 
 @media (max-width: 720px) {
@@ -802,25 +741,13 @@
 }
 
 @media (max-width: 680px) {
+  .connection-stage-wrap { --connection-self-h: 96px; }
   .connection-stage .connection-self.desktop-window {
-    right: 12px;
-    bottom: 12px;
     width: 120px;
-    height: 96px;
   }
   .connection-self.desktop-window .connection-avatar {
     width: 44px;
     height: 44px;
-  }
-  .connection-stage .connection-speech-slot {
-    left: 12px;
-    right: 144px;
-    justify-content: flex-start;
-  }
-  .connection-stage .connection-speech-slot .character-speech-bubble--pill {
-    max-width: 100%;
-    padding: 8px 14px;
-    font-size: 13px;
   }
 }
 
@@ -1014,9 +941,6 @@
   cursor: pointer;
 }
 
-.connection-stage .connection-speech-slot {
-  cursor: auto;
-}
 
 
 
@@ -1073,20 +997,12 @@
   .connection-stt > p { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 }
 
-/* Too narrow for the tile beside the centred dock (dock ≈ 330px + the tile + gaps): the tile goes above the dock. */
-@container connection-stage (max-width: 860px) {
-  .connection-stage .connection-self.desktop-window {
-    bottom: 92px;
-  }
-}
-/* A narrow stage (≈ 900px window with the chat open): the full-size tile would sit on the mate's name tag and touch the
-   dock's tooltips, so it gets smaller and keeps a gap above the dock. */
+/* A narrow stage (≈ 900px window with the chat open): a smaller tile, clear of 「말 걸기」 on the left. */
 @container connection-stage (max-width: 640px) {
+  .connection-stage,
+  .connection-floating-notices { --connection-self-h: 98px; }
   .connection-stage .connection-self.desktop-window {
-    right: 12px;
-    bottom: 100px;
     width: 128px;
-    height: 98px;
   }
   .connection-self.desktop-window .connection-avatar {
     width: 44px;

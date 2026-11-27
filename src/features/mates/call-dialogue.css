@@ -1,0 +1,155 @@
+/*
+ * CallDialogueBox (C1 「대사창」, call UI step 2, 2026-11-27): a game dialogue box low on the call stage, over the dock.
+ * Stepped pixel corners (4px steps, clip-path: no shadow, no outline — DESIGN_SYSTEM allows them on modals and this box
+ * only), the dithered roof strip with the pixel capsule, her name tag on the roof. Green (`success`) is the speaking
+ * state. Moving parts animate transform / opacity only, in steps (pixel set); nothing moves under reduced motion.
+ */
+.call-dialogue-slot {
+  --call-dialogue-steps: polygon(
+    0 12px, 4px 12px, 4px 8px, 8px 8px, 8px 4px, 12px 4px, 12px 0,
+    calc(100% - 12px) 0, calc(100% - 12px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 12px, 100% 12px,
+    100% calc(100% - 12px), calc(100% - 4px) calc(100% - 12px), calc(100% - 4px) calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) calc(100% - 4px), calc(100% - 12px) calc(100% - 4px), calc(100% - 12px) 100%,
+    12px 100%, 12px calc(100% - 4px), 8px calc(100% - 4px), 8px calc(100% - 8px), 4px calc(100% - 8px), 4px calc(100% - 12px), 0 calc(100% - 12px)
+  );
+  container: call-dialogue / inline-size;
+  position: absolute;
+  z-index: 24;
+  right: 24px;
+  /* Over the dock (bottom 16px + 64px) with a 12px gap; the dock's tooltips draw over it (z 25). */
+  bottom: 92px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  outline: none;
+  pointer-events: none;
+}
+/* The dock's tooltips rise over the box: it steps up while the dock is hovered or keyboard-focused. */
+.connection-stage-wrap:has(.connection-controls:hover) .call-dialogue-slot,
+.connection-stage-wrap:has(.connection-controls button:focus-visible) .call-dialogue-slot {
+  translate: 0 -44px;
+}
+/* 누르고 말하기's heard text sits in the slot's column, over the box, instead of on it. */
+.call-dialogue-slot > .connection-stt {
+  position: static;
+  width: max-content;
+  max-width: min(520px, 100%);
+  transform: none;
+}
+
+.call-dialogue {
+  position: relative;
+  isolation: isolate;
+  width: min(760px, 100%);
+  /* Room for the name tag that stands 16px over the top edge. */
+  margin-top: 16px;
+  padding: 30px 52px 18px 28px;
+  color: var(--color-ink);
+  cursor: pointer;
+  contain: layout;
+  pointer-events: auto;
+}
+.call-dialogue[data-phase='waiting'] { width: auto; min-width: 260px; cursor: default; pointer-events: none; }
+.call-dialogue-frame {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-dialog-surface) 96%, transparent) 0%, color-mix(in srgb, var(--color-panel) 94%, transparent) 100%);
+  clip-path: var(--call-dialogue-steps);
+  pointer-events: none;
+}
+.call-dialogue-name {
+  position: absolute;
+  top: -16px;
+  left: 20px;
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  background: var(--color-dialog-roof);
+  clip-path: polygon(0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px, 100% 100%, 0 100%);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.call-dialogue-text {
+  position: relative;
+  min-height: 60px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 30px;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.call-dialogue-measure { visibility: hidden; }
+.call-dialogue-typed { position: absolute; inset: 0; }
+.call-dialogue[data-phase='waiting'] .call-dialogue-text { display: flex; min-height: 30px; align-items: center; color: var(--color-muted); }
+
+/* 「말하는 중」 on the name tag (her mouth moves or her voice plays). */
+.call-dialogue-speaking { display: inline-flex; align-items: center; gap: 8px; color: var(--color-success); font-size: 12px; }
+.call-dialogue-sep { width: 1px; height: 12px; background: color-mix(in srgb, var(--color-ink) 28%, transparent); }
+.call-dialogue-bars { display: inline-flex; height: 12px; align-items: flex-end; gap: 2px; }
+.call-dialogue-bars > span { width: 3px; height: 12px; background: currentColor; transform-origin: bottom; }
+.call-dialogue-dots { display: inline-flex; align-items: center; gap: 5px; }
+.call-dialogue-dots > span { width: 6px; height: 6px; background: currentColor; }
+
+/* ▼: blinks while another page waits; on the last page it is still the keyboard's way to close the box. */
+.call-dialogue-next {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.call-dialogue-next:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+.call-dialogue-arrow {
+  width: 12px;
+  height: 8px;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 0, 100% 25%, 83% 25%, 83% 50%, 67% 50%, 67% 75%, 50% 75%, 50% 100%, 50% 100%, 50% 75%, 33% 75%, 33% 50%, 17% 50%, 17% 25%, 0 25%);
+  opacity: 0;
+}
+.call-dialogue-next[data-more] .call-dialogue-arrow,
+.call-dialogue-next:focus-visible .call-dialogue-arrow { opacity: 1; }
+.call-dialogue[data-phase='leaving'] { opacity: 0; }
+
+/* A narrow stage (≈ 900px window with the chat open): a little smaller (call-dialogue.ts `dialogueCapacity`). */
+@container call-dialogue (max-width: 559px) {
+  .call-dialogue { padding: 28px 44px 16px 22px; }
+  .call-dialogue-text { min-height: 56px; font-size: 17px; line-height: 28px; }
+}
+/* ≤ 860px the dock leaves the stage (below it): the box sits on the stage's bottom edge. */
+@media (max-width: 860px) {
+  .call-dialogue-slot { right: 12px; bottom: 12px; left: 12px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .call-dialogue-slot { transition: translate 160ms steps(3, jump-end); }
+  .call-dialogue:not([data-calm]) { animation: call-dialogue-in 240ms steps(4, jump-start) backwards; }
+  .call-dialogue[data-phase='leaving'] { transition: opacity 200ms steps(3, jump-end); }
+  .call-dialogue-next[data-more] .call-dialogue-arrow { animation: call-dialogue-blink 800ms steps(2, jump-none) infinite; }
+  .call-dialogue-bars > span { animation: call-dialogue-bar 600ms steps(4, jump-none) infinite alternate; }
+  .call-dialogue-bars > span:nth-child(2) { animation-delay: -300ms; animation-duration: 520ms; }
+  .call-dialogue-bars > span:nth-child(3) { animation-delay: -150ms; animation-duration: 680ms; }
+  .call-dialogue-dots > span { animation: call-dialogue-dot 900ms steps(2, jump-none) infinite; }
+  .call-dialogue-dots > span:nth-child(2) { animation-delay: 150ms; }
+  .call-dialogue-dots > span:nth-child(3) { animation-delay: 300ms; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .call-dialogue-bars > span:nth-child(2) { transform: scaleY(0.6); }
+  .call-dialogue-bars > span:nth-child(3) { transform: scaleY(0.8); }
+}
+@keyframes call-dialogue-in { from { opacity: 0; transform: translateY(12px); } }
+@keyframes call-dialogue-blink { from { opacity: 1; } to { opacity: 0.2; } }
+@keyframes call-dialogue-bar { from { transform: scaleY(0.3); } to { transform: scaleY(1); } }
+@keyframes call-dialogue-dot { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }

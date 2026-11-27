@@ -10,7 +10,7 @@ import { mateLine, mateLineForState } from '@/features/mates/mate-lines'
 import { getDefaultLineForState } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
 import { CREDIT_PRICING } from '@/features/credits/credit-utils'
 import { useCreditDisplay } from '@/features/attendance/use-credit-display'
-import { CharacterSpeechBubble } from '@/features/session/components/CharacterSpeechBubble'
+import { CallDialogueBox } from '@/features/mates/components/CallDialogueBox'
 import { ChatComposer } from '@/features/session/components/ChatComposer'
 import { GlassDock, type GlassDockItem } from '@/shared/ui/dock/GlassDock'
 import { AnimatedClock } from '@/shared/ui/AnimatedClock'
@@ -42,6 +42,8 @@ export default function TourCallPage() {
   const { state } = useDemo()
   const [draft, setDraft] = useState('')
   const [bgFailed, setBgFailed] = useState(false)
+  // 「말하는 중」 on the box's name tag while her greeting types (as on the call screen).
+  const [greeting, setGreeting] = useState(false)
   const stageWrapRef = useRef<HTMLDivElement>(null)
   // The call screen's 「남은 크레딧」 chip, from the same balance (use-credit-display.ts); nothing is asked for here.
   const credits = useCreditDisplay().value
@@ -119,11 +121,9 @@ export default function TourCallPage() {
                 <div className="connection-mate-figure">
                   <img src={matePortrait(mate.id, mate.image)} width={800} height={600} alt="" className="connection-mate-fallback-img" />
                 </div>
-                <div className="connection-speech-slot">
-                  <CharacterSpeechBubble name={mate.name} text={greet} expanded variant="pill" />
-                </div>
               </section>
-              {/* `call-self`: kept clear by 채린's line (tour subjects, ServiceTour avoidAround). */}
+              {/* `call-self` (top-right) and `call-line` (the dialogue box): kept clear by 채린's line (tour subjects,
+                  ServiceTour avoidAround). */}
               <section className="connection-self desktop-window" aria-label="내 화면" data-tour="call-self">
                 <div className="connection-self-titlebar">
                   <span className="connection-self-title">나</span>
@@ -138,6 +138,8 @@ export default function TourCallPage() {
                   </div>
                 </div>
               </section>
+              {/* The call screen's dialogue box (CallDialogueBox) with her greeting: types once, then stays. */}
+              <CallDialogueBox name={mate.name} line={{ key: 'practice-greet', text: greet, at: 0 }} speaking={greeting} onTypingChange={setGreeting} persist tour="call-line" />
             </div>
             <div className="tour-call-dock" data-tour="call-dock">
               <GlassDock className="connection-controls" ariaLabel="연결 컨트롤" containerRef={stageWrapRef} items={dockItems} moreLabel="추가 도구" moreMenuLabel="추가 연결 도구" />

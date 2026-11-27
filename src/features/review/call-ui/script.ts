@@ -75,26 +75,8 @@ export const QUICK_REPLIES: readonly string[] = ['응', '잠깐만', '오늘 뭐
 /** What the draft's 「누르고 말하기」 pretends to have heard. */
 export const SPOKEN_SAMPLE = '이제 31쪽 풀게'
 
-/** Splits a line into subtitle pages of about `max` letters at sentence ends, then at spaces. */
-export function subtitlePages(text: string, max: number): string[] {
-  const sentences = text.match(/[.!?…]*[^.!?…]+[.!?…]*\s*/g)?.map(part => part.trim()).filter(Boolean) ?? [text]
-  const pages: string[] = []
-  let current = ''
-  const push = (part: string) => {
-    if (!current) current = part
-    else if (Array.from(current).length + 1 + Array.from(part).length <= max) current = `${current} ${part}`
-    else { pages.push(current); current = part }
-  }
-  for (const sentence of sentences) {
-    if (Array.from(sentence).length <= max) { push(sentence); continue }
-    for (const word of sentence.split(' ')) push(word)
-  }
-  if (current) pages.push(current)
-  return pages
-}
-
-/** The chat's letter pace (TypingMessage): ms per letter for the whole line. Subtitles type at the same speed. */
-export const letterPace = (text: string) => Math.max(15, Math.min(32, 2500 / Array.from(text).length))
+/** Subtitle pages and the chat's letter pace: the call screen's dialogue box rules (call-dialogue.ts). */
+export { dialoguePages as subtitlePages, letterPace } from '../../mates/call-dialogue.ts'
 
 const timeFormat = new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Seoul' })
 export const messageTime = (at: number) => timeFormat.format(at)
