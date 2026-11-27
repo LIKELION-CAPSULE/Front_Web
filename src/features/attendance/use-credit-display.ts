@@ -1,16 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
 import { animate, useReducedMotion } from 'motion/react'
+import { useLocation } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
+import { getCredits } from '@/features/backend/server-api'
+import { noteServerCredits, serverCreditsAge, useServerCredits } from '@/features/backend/server-credits'
+import { api } from '@/shared/api/client'
 import { useCreditReward } from './credit-reward'
 
+/** 33 is read again at most this often (on entry and when the tab shows again); 8 · 16 · 19 · 20 · 28 keep it current between. */
+const CREDITS_REFRESH_MS = 60_000
+
 /**
- * The credit balance as every surface should show it (header chip, activity summary): the wallet plus rewards
- * earned on this page, counting up when an attendance reward lands. `null` when there is no wallet to show.
+ * The credit balance as every surface should show it (header chip, call screen chip, 내 크레딧): 「남은 크레딧」 — what
+ * can be spent now, attendance part + invitation part (docs/BACKEND_API.md Credits `todayRemaining`), always the
+ * server's summary (server-credits.ts: 8 `/me`, 16, 19, 20 · 28, 33; the local mock answers the same paths). Today's
+ * attendance grant is held back while the home path is about to play it, and counts up when it lands
+ * (credit-reward.ts). `null` while there is no balance to show.
  */
 export function useCreditDisplay() {
-  const { wallet } = useBackend()
-  const { bonus, landing } = useCreditReward()
-  const total = wallet ? wallet.attendance + wallet.invitation + bonus : null
+  const { me } = useBackend()
+  const server = useServerCredits(me?.userId)
+  const { held, landing } = useCreditReward()
+  const base = server?.todayRemaining ?? null
+  const total = base === null ? null : Math.max(0, base - held)
   const [counting, setCounting] = useState<number | null>(null)
   const reduced = useReducedMotion()
   const landed = useRef(landing?.id)
@@ -32,4 +44,32 @@ export function useCreditDisplay() {
   }, [total, landing, reduced])
 
   return { value: total === null ? null : counting ?? total, landing }
+}
+
+/**
+ * Keeps the server balance fresh where the header shows it: 33 `/credits` on entry and when the tab shows again, at most
+ * once a minute (a friend's invitation reward or the 5 a.m. reset arrive with no response of ours). Not during the
+ * service tour (nothing about credits is asked for there).
+ */
+export function useServerCreditsRefresh() {
+  const { status, me } = useBackend()
+  const { search } = useLocation()
+  const userId = me?.userId
+  const touring = new URLSearchParams(search).has('tour')
+  useEffect(() => {
+    if (status !== 'ready' || touring || userId === undefined) return
+    let alive = true
+    const refresh = () => {
+      if (document.visibilityState !== 'visible' || serverCreditsAge(userId) < CREDITS_REFRESH_MS) return
+      getCredits(api)
+        .then((credits) => { if (alive) noteServerCredits(credits, userId) })
+        .catch(() => { /* Keep the last balance; the next chance tries again. */ })
+    }
+    refresh()
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      alive = false
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [status, touring, userId])
 }

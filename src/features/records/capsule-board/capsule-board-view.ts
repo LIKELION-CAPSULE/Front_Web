@@ -82,14 +82,21 @@ export function yearColumnsFor(stageWidth: number) {
  */
 export const BOARD_MORPH_MS = 850
 
-/** Stage height limits (px), the same as capsule-board.css (`min-height`, `max-height`). */
-export const BOARD_STAGE_LIMITS = { min: 200, max: 600, floor: 320, chrome: 380, narrowYearMax: 1100 } as const
+/**
+ * Stage height limits (px), the same as capsule-board.css (`min-height`, `max-height`). `chrome` is what sits above the
+ * stage (page header, period bar, summaries, block title); the wide week also keeps the selected day's line under the
+ * board on the first screen (`weekChrome`: review [6-2], 1440 × 900).
+ */
+export const BOARD_STAGE_LIMITS = { min: 200, max: 600, floor: 320, chrome: 380, weekChrome: 550, narrowYearMax: 1100 } as const
 
-/** Tallest the stage may be: under the page header and the block title, so the whole board shows at once. */
+/**
+ * Tallest the stage may be: under the page header and the block title, so the whole board shows at once — and in the
+ * wide week, with the selected day's summary under it (the week's single row of days keeps reading well lower).
+ */
 export function boardStageCap(viewportHeight: number, mode: BoardMode, narrow: boolean) {
-  const { max, floor, chrome, narrowYearMax } = BOARD_STAGE_LIMITS
+  const { max, floor, chrome, weekChrome, narrowYearMax } = BOARD_STAGE_LIMITS
   if (narrow && mode === 'year') return narrowYearMax
-  return Math.min(max, Math.max(floor, viewportHeight - chrome))
+  return Math.min(max, Math.max(floor, viewportHeight - (mode === 'week' && !narrow ? weekChrome : chrome)))
 }
 
 /**

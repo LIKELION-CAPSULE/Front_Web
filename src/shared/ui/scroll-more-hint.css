@@ -1,0 +1,40 @@
+/* ScrollMoreHint: 「아래로 더 있어요」 at the bottom of a scroll area while content is hidden below (UX review 1-4 · 7-2).
+   A floating pill (floating fill, no outline), over the area's own bottom fade. */
+@layer components {
+  .scroll-more-hint {
+    position: absolute;
+    z-index: 3;
+    bottom: 12px;
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--color-floating);
+    padding: 5px 10px 5px 12px;
+    color: var(--color-ink);
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: var(--popover-shadow, 0 12px 32px #00000066, 0 3px 10px #00000033);
+    transform: translateX(-50%);
+    cursor: pointer;
+    animation: scroll-more-hint-in 220ms ease-out both, scroll-more-hint-nudge 2.4s ease-in-out 1.2s 2;
+  }
+  .scroll-more-hint:hover { background: var(--color-floating-hover); }
+  .scroll-more-hint-icon { transform: rotate(90deg); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-more-hint { animation: none; }
+  }
+}
+
+@keyframes scroll-more-hint-in {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+}
+@keyframes scroll-more-hint-nudge {
+  0%, 30%, 100% { transform: translate(-50%, 0); }
+  15% { transform: translate(-50%, 3px); }
+}

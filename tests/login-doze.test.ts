@@ -121,8 +121,8 @@ test('scene: laptop lid between chest and desk, tap target over head and chest, 
 })
 
 test('the tap bubble names her with the right particle, and sits on her chest below the face', () => {
-  assert.equal(dozeCallLine('채린'), '채린이를 톡 눌러서 깨워 봐')
-  assert.equal(dozeCallLine('도하'), '도하를 톡 눌러서 깨워 봐')
+  assert.equal(dozeCallLine('채린'), '채린을 눌러 깨워 보세요')
+  assert.equal(dozeCallLine('도하'), '도하를 눌러 깨워 보세요')
   const scene = computeDozeScene(893, 900)
   assert.ok(scene.call.y > scene.face.y + 80 * scene.k, 'below the face')
   assert.ok(scene.call.y < scene.lid.top - 40, 'above the laptop')

@@ -122,6 +122,7 @@
   );
   left: calc(var(--dialogue-cx) - var(--dialogue-half));
   width: calc(2 * var(--dialogue-half));
+  /* The box itself (no outline, the character speech glass) is mate-dialogue.css, shared with the attendance path. */
 }
 
 /* ---------- Form panel (right) ---------- */
@@ -152,16 +153,18 @@
 .login-variant-panel-wrap > * {
   pointer-events: auto;
 }
-/* No fill / blur / shadow: a thin line marks the edge and the scrim does the separating. */
+/* No outline (DESIGN_SYSTEM.md §4.2, UX review 10-1): the panel is a `panel` surface over the page's dark scrim, the
+   same face as the other large groups. */
 .login-variant-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: min(var(--login-panel-width), 100%);
   max-height: calc(100dvh - 64px);
   overflow: hidden;
-  border: 1px solid rgba(250, 250, 253, 0.2);
+  border: 0;
   border-radius: 20px;
-  background: transparent;
+  background: var(--color-panel);
   user-select: text;
 }
 
@@ -173,9 +176,15 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 36px 40px 38px;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
+  /* Soft edges only where content is out of view (useScrollHint marks them); below, a deeper fade with the
+     「아래로 더 있어요」 pill (ScrollMoreHint), so a long form never looks finished at its first fields (UX review 1-4). */
+  --fade-top: 0px;
+  --fade-bottom: 0px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
 }
+.login-variant-panel-scroll[data-more-above] { --fade-top: 26px; }
+.login-variant-panel-scroll[data-more-below] { --fade-bottom: 72px; }
 
 /* ---------- Form scale (login panel only) ----------
  * The form is one step larger than the app's defaults. Only the type / spacing tokens are re-declared, and only

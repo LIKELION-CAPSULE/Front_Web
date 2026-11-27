@@ -49,8 +49,12 @@
       var(--px-dither-25) 4px 48px / 8px 4px repeat-x,
       linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
   }
-  /* Dialogs that draw their own layout (계정 설정): a thin roof strip over the top edge, the capsule in its middle. */
+  /* Dialogs that draw their own layout (계정 설정), and the call screen's chat head: a thin roof strip over the top
+     edge, the capsule in its middle. Its dither is its own, so it also works outside a dialog. */
   .px-roof-strip {
+    --px-night: var(--color-dialog-roof-dither);
+    --px-dither-50: conic-gradient(from 90deg at 2px 2px, var(--px-night) 0 25%, transparent 0 50%, var(--px-night) 0 75%, transparent 0);
+    --px-dither-25: conic-gradient(from 90deg at 2px 2px, transparent 0 50%, var(--px-night) 0 75%, transparent 0);
     position: absolute;
     z-index: 1;
     top: 0;

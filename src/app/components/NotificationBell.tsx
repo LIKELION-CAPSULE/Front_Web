@@ -9,6 +9,7 @@ import {
 } from '@/features/notifications/notifications'
 import { api } from '@/shared/api/client'
 import { Button } from '@/shared/ui/Button'
+import { Icon } from '@/shared/ui/Icon'
 import '@/features/notifications/notification-bell.css'
 
 const PAGE_SIZE = 20
@@ -27,6 +28,10 @@ function BellIcon() {
  * shows as read (44 with their ids; 「모두 읽음」 without ids); the dots of the newly read stay for this opening. The list
  * pages with `nextBefore` as it scrolls. The unread count is read on entry, when the tab shows again and at most every
  * five minutes while it stays visible — never while hidden.
+ *
+ * Keyboard (UX review 8-2): opening moves the focus into the list (its close button, then Tab reaches the items); Esc or
+ * the close button returns it to the bell, and tabbing out of the list closes it. A notification that goes somewhere
+ * is a button with a chevron and a hover fill; one that only informs is plain text.
  */
 export function NotificationBell() {
   const { status } = useBackend()
@@ -43,6 +48,7 @@ export function NotificationBell() {
   const [now, setNow] = useState(0)
   const root = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
+  const closeButton = useRef<HTMLButtonElement>(null)
   const panelId = useId()
   const count = unread.userId === userId ? unread.count : 0
   /** Out-of-order answers (43 · 44) cannot put an older unread count back. */
@@ -122,6 +128,17 @@ export function NotificationBell() {
     void loadFirst()
   }
 
+  // Opening puts the keyboard in the list (UX review 8-2): its close button, the first stop inside it.
+  useEffect(() => {
+    if (!open) return
+    const frame = requestAnimationFrame(() => closeButton.current?.focus({ preventScroll: true }))
+    return () => cancelAnimationFrame(frame)
+  }, [open])
+  function close() {
+    setOpen(false)
+    trigger.current?.focus({ preventScroll: true })
+  }
+
   // Outside click and Esc close the list; Esc returns the focus to the bell.
   useEffect(() => {
     if (!open) return
@@ -134,7 +151,12 @@ export function NotificationBell() {
 
   if (userId === undefined) return null
   return (
-    <div ref={root} className="notification-bell">
+    <div
+      ref={root}
+      className="notification-bell"
+      // Tabbing out of the open list closes it (the focus has left; nothing to give back).
+      onBlur={event => { if (open && event.relatedTarget instanceof Node && !event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}
+    >
       <button
         ref={trigger}
         type="button"
@@ -153,9 +175,14 @@ export function NotificationBell() {
         <div id={panelId} role="dialog" aria-label={NOTIFICATION_COPY.title} className="notification-panel" data-notification-panel>
           <div className="notification-panel-head">
             <h2 className="notification-panel-title">{NOTIFICATION_COPY.title}</h2>
-            {list.items.some(item => !item.read) || count > 0 ? (
-              <button type="button" className="notification-read-all" onClick={() => void readAll()}>{NOTIFICATION_COPY.readAll}</button>
-            ) : null}
+            <div className="notification-panel-actions">
+              {list.items.some(item => !item.read) || count > 0 ? (
+                <button type="button" className="notification-read-all" onClick={() => void readAll()}>{NOTIFICATION_COPY.readAll}</button>
+              ) : null}
+              <button ref={closeButton} type="button" className="notification-close" aria-label="알림 닫기" onClick={close}>
+                <Icon name="close" size={16} />
+              </button>
+            </div>
           </div>
           <div
             className="notification-list"
@@ -187,19 +214,22 @@ export function NotificationBell() {
                 {list.items.map(item => {
                   const isNew = list.fresh.has(item.id) || !item.read
                   const content = (
-                    <>
+                    <span className="notification-item-text">
                       <span className="notification-item-title">
                         {isNew && <span className="notification-item-dot" aria-label={NOTIFICATION_COPY.unreadMark} role="img" />}
                         {item.title}
                       </span>
                       {item.body && <span className="notification-item-body">{item.body}</span>}
                       <time className="notification-item-time" dateTime={new Date(item.createdAt).toISOString()}>{relativeTime(item.createdAt, now)}</time>
-                    </>
+                    </span>
                   )
                   return (
                     <li key={item.id} data-unread={isNew || undefined}>
                       {item.link ? (
-                        <button type="button" className="notification-item" onClick={() => { setOpen(false); navigate(item.link!) }}>{content}</button>
+                        <button type="button" className="notification-item" data-link onClick={() => { setOpen(false); navigate(item.link!) }}>
+                          {content}
+                          <span className="notification-item-go" aria-hidden="true"><Icon name="chevron" size={16} /></span>
+                        </button>
                       ) : (
                         <div className="notification-item">{content}</div>
                       )}

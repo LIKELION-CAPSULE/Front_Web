@@ -37,6 +37,12 @@
   transition: none;
 }
 
+/* Wide week: lower, so the selected day's summary under the board is on the first screen too (`weekChrome`). The cap
+   eases with the ratio (same time, same curve), so moving to or from the month does not jump. */
+.capsule-board[data-mode='week']:not([data-narrow]) .capsule-board-stage {
+  max-height: min(600px, max(320px, calc(100vh - 550px)));
+}
+
 /* Narrow year (2 × 6 month boards): taller than the screen is fine, the page scrolls. */
 .capsule-board[data-narrow][data-mode='year'] .capsule-board-stage {
   max-height: 1100px;
@@ -95,6 +101,12 @@
   white-space: nowrap;
   pointer-events: none;
   transform: translate(-50%, calc(-100% - 6px));
+}
+/* The year: in the board's top-left corner (over the stage's faded edge, clear of the months), not over the day. */
+.capsule-board-marker--corner {
+  top: 12px;
+  left: 12px;
+  transform: none;
 }
 
 .capsule-board--fallback {

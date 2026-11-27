@@ -19,6 +19,7 @@ import happyStillUrl from '@/assets/characters/chaerin-v2/expressions-bust/happy
 import shyStillUrl from '@/assets/characters/chaerin-v2/expressions-bust/shy.webp'
 import {
   dozeCallLine,
+  DOZE_KEY_LINE,
   DOZE_GREETING,
   DOZE_STILL_POSE,
   DOZE_TIMINGS_MS,
@@ -680,7 +681,7 @@ export default function DozeMateStage({
               fill="currentColor"
             />
           </svg>
-          <span>{hint === 'keyboard' ? 'Enter 키로 깨워 봐' : dozeCallLine(mate.name)}</span>
+          <span>{hint === 'keyboard' ? DOZE_KEY_LINE : dozeCallLine(mate.name)}</span>
         </div>
       )}
 

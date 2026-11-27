@@ -161,9 +161,15 @@ export function clearStoredReferralCode(storage: StorageLike | null = defaultSto
   }
 }
 
+/** The invite link's own address (35 `link`: `https://capsule.ai.kr/i/<code>`) opens the invitation screen. */
+export const INVITE_LINK_TARGET = '/invite'
+const INVITE_LINK_PATH = /^\/i\/([^/]+)\/?$/
+
 /**
- * Synchronously captures ?ref=<code> before React renders, stores it for 7 days,
- * and removes `ref` from the browser URL via history.replaceState.
+ * Synchronously captures the invite link's code before React renders — `/i/<code>` (35 `link`) or `?ref=<code>` —
+ * stores it for 7 days (whose code it is is checked with 39 where it is used: signup, onboarding, 친구 초대) and
+ * cleans the browser URL via history.replaceState: `ref` is removed; `/i/<code>` becomes `/invite` (a guest signs in
+ * or up first and comes back to it, post-auth.ts `isSharedLink`).
  */
 export function captureReferralFromLocation(
   loc: Pick<Location, 'pathname' | 'search' | 'hash'> | undefined = typeof window !== 'undefined'
@@ -175,7 +181,23 @@ export function captureReferralFromLocation(
   storage: StorageLike | null = defaultStorage(),
   now = Date.now(),
 ): { code: string } | null {
-  if (!loc || !loc.search) return null
+  if (!loc) return null
+  const linkPath = INVITE_LINK_PATH.exec(loc.pathname)
+  if (linkPath) {
+    let raw = linkPath[1]!
+    try { raw = decodeURIComponent(raw) } catch { /* Kept as typed. */ }
+    const code = normalizeReferralCode(raw)
+    if (code) saveStoredReferralCode(code, undefined, storage, now)
+    const rest = new URLSearchParams(loc.search)
+    rest.delete('ref')
+    try {
+      hist?.replaceState(typeof window !== 'undefined' ? window.history.state : null, '', `${INVITE_LINK_TARGET}${rest.size ? `?${rest}` : ''}${loc.hash}`)
+    } catch {
+      // Ignore restricted history APIs
+    }
+    return code ? { code } : null
+  }
+  if (!loc.search) return null
   const params = new URLSearchParams(loc.search)
   const rawRef = params.get('ref')
   if (!rawRef) return null

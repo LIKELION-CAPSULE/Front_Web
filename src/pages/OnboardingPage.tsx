@@ -499,6 +499,7 @@ export default function OnboardingPage() {
             onChange={handleAvatarChange}
             disabled={!!busy}
             layout="arc"
+            railHint
             fallback={<AvatarIllustration settings={state.profile.avatar} />}
             greeting={greeting}
           />

@@ -8,9 +8,10 @@ import { WITHDRAWAL_CONFIRMATION } from '../withdrawal-confirmation'
 
 /**
  * 회원탈퇴 confirmation (the security tab's panel, open from the start: AccountSecurityPanel): the exact phrase, then
- * the withdrawal (a connection still running is refused with a message; success signs out). 「취소」 clears what was
- * typed and any error; `onCancel` is told as well. The former modal wrapper (`AccountWithdrawalDialog`) had no users and
- * was removed.
+ * the withdrawal (a connection still running is refused with a message; success signs out). 「입력 지우기」 (only while
+ * something is typed) clears it and any error and puts the focus back in the field; `onCancel` is told as well. It was
+ * 「취소」, which read as closing the settings (UX review 7-3): the card is always open, so there is nothing to cancel.
+ * The former modal wrapper (`AccountWithdrawalDialog`) had no users and was removed.
  */
 export function AccountWithdrawalContent({ onCancel, onBusyChange }: { onCancel?: () => void; onBusyChange?: (busy: boolean) => void }) {
   const { withdrawAccount } = useBackend()
@@ -19,6 +20,7 @@ export function AccountWithdrawalContent({ onCancel, onBusyChange }: { onCancel?
   const [confirmation, setConfirmation] = useState('')
   const warningId = useId()
   const pending = useRef(false)
+  const field = useRef<HTMLInputElement>(null)
 
   async function withdraw() {
     if (pending.current || confirmation !== WITHDRAWAL_CONFIRMATION) return
@@ -38,11 +40,11 @@ export function AccountWithdrawalContent({ onCancel, onBusyChange }: { onCancel?
     <p className="mt-3 text-body-compact text-muted">탈퇴하면 개인정보와 대화 기록, 친밀도가 삭제돼요. 남은 크레딧(초대분 포함)도 사라져요.</p>
     <p id={warningId} className="mt-2 text-body-compact text-danger">삭제된 정보는 되돌릴 수 없어요.</p>
     <FormField className="mt-5" label={`확인을 위해 “${WITHDRAWAL_CONFIRMATION}”를 입력해 주세요.`}>
-      <input className="form-input" name="withdrawalConfirmation" data-withdraw-confirmation autoComplete="off" spellCheck={false} readOnly={busy} aria-describedby={warningId} placeholder={WITHDRAWAL_CONFIRMATION} value={confirmation} onChange={event => { setConfirmation(event.target.value); setError('') }} />
+      <input ref={field} className="form-input" name="withdrawalConfirmation" data-withdraw-confirmation autoComplete="off" spellCheck={false} readOnly={busy} aria-describedby={warningId} placeholder={WITHDRAWAL_CONFIRMATION} value={confirmation} onChange={event => { setConfirmation(event.target.value); setError('') }} />
     </FormField>
     {error && <FeedbackMessage tone="error" className="mt-4">{error}</FeedbackMessage>}
     <div className="mt-6 flex flex-wrap justify-end gap-3">
-      <Button variant="ghost" disabled={busy} onClick={() => { setConfirmation(''); setError(''); onCancel?.() }}>취소</Button>
+      {(confirmation || error) && <Button variant="ghost" disabled={busy} onClick={() => { setConfirmation(''); setError(''); onCancel?.(); field.current?.focus() }}>입력 지우기</Button>}
       <Button type="submit" variant="danger-solid" loading={busy} disabled={confirmation !== WITHDRAWAL_CONFIRMATION}>회원탈퇴</Button>
     </div>
   </form>

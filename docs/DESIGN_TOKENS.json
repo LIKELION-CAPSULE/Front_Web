@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.21",
-  "updatedAt": "2026-11-26",
+  "version": "1.0.24",
+  "updatedAt": "2026-11-27",
   "status": "implemented-in-web-code",
   "cssCascade": {
     "layerOrder": ["properties", "theme", "base", "components", "utilities"],
@@ -348,29 +348,29 @@
     },
     "records-grid-1": {
       "ref": "derived",
-      "derivedFrom": "violet.300 14% over neutral.900 (under 30 min)",
-      "value": "#312F40",
+      "derivedFrom": "violet.300 22% over neutral.900 (under 30 min)",
+      "value": "#3F3B51",
       "cssVariable": "--color-records-grid-1",
       "usage": "내 기록 잔디의 데이터 진하기 단계 (보라 예외: 옅은 보라 계열)"
     },
     "records-grid-2": {
       "ref": "derived",
-      "derivedFrom": "violet.300 24% over neutral.900 (30 min+)",
-      "value": "#423F55",
+      "derivedFrom": "violet.300 37% over neutral.900 (30 min+)",
+      "value": "#585470",
       "cssVariable": "--color-records-grid-2",
       "usage": "내 기록 잔디의 데이터 진하기 단계 (보라 예외: 옅은 보라 계열)"
     },
     "records-grid-3": {
       "ref": "derived",
-      "derivedFrom": "violet.300 36% over neutral.900 (1 h+)",
-      "value": "#57526E",
+      "derivedFrom": "violet.300 53% over neutral.900 (1 h+)",
+      "value": "#746D91",
       "cssVariable": "--color-records-grid-3",
       "usage": "내 기록 잔디의 데이터 진하기 단계 (보라 예외: 옅은 보라 계열)"
     },
     "records-grid-4": {
       "ref": "derived",
-      "derivedFrom": "violet.300 48% over neutral.900 (2 h+)",
-      "value": "#6B6587",
+      "derivedFrom": "violet.300 70% over neutral.900 (2 h+)",
+      "value": "#9189B5",
       "cssVariable": "--color-records-grid-4",
       "usage": "내 기록 잔디의 데이터 진하기 단계 (보라 예외: 옅은 보라 계열)"
     }
@@ -1565,8 +1565,8 @@
         "foreground": "ink",
         "background": "records-grid-1",
         "foregroundHex": "#FAFAFD",
-        "backgroundHex": "#312F40",
-        "ratio": 12.510552303097292,
+        "backgroundHex": "#3F3B51",
+        "ratio": 10.306719122897448,
         "minimum": 4.5,
         "passes": true,
         "expectedPass": true
@@ -1576,8 +1576,8 @@
         "foreground": "ink",
         "background": "records-grid-2",
         "foregroundHex": "#FAFAFD",
-        "backgroundHex": "#423F55",
-        "ratio": 9.719903750722356,
+        "backgroundHex": "#585470",
+        "ratio": 6.910224811311372,
         "minimum": 4.5,
         "passes": true,
         "expectedPass": true
@@ -1587,19 +1587,19 @@
         "foreground": "ink",
         "background": "records-grid-3",
         "foregroundHex": "#FAFAFD",
-        "backgroundHex": "#57526E",
-        "ratio": 7.104377946811636,
+        "backgroundHex": "#746D91",
+        "ratio": 4.645717455003394,
         "minimum": 4.5,
         "passes": true,
         "expectedPass": true
       },
       {
-        "name": "ink / records-grid-4",
-        "foreground": "ink",
+        "name": "canvas / records-grid-4",
+        "foreground": "canvas",
         "background": "records-grid-4",
-        "foregroundHex": "#FAFAFD",
-        "backgroundHex": "#6B6587",
-        "ratio": 5.254133893471863,
+        "foregroundHex": "#0F0E17",
+        "backgroundHex": "#9189B5",
+        "ratio": 5.887226511744614,
         "minimum": 4.5,
         "passes": true,
         "expectedPass": true

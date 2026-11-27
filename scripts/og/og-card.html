@@ -1,0 +1,103 @@
+<!doctype html>
+<!--
+  Link-preview card (1200×630) of capsule.ai.kr: the login screen's 「노트북 앞에서 조는 채린」 scene, the CAPSULE logo and
+  「나만의 메이트가 기다리고 있어요」. Rendered by scripts/og/render-og-images.mjs into public/og/. `?variant=invite` puts
+  「친구 초대」 right above the headline and the reward line right under it, so the three read as one paragraph (the fixed
+  image of invite links, server/og-meta.ts).
+  The scene (Chaerin, laptop, mug, desk) and the 「z z Z」 are screenshots of the login stage (DozeMateStage / DozeDesk)
+  that the render script hands over as window.OG_SCENE, so they match the login screen exactly; this file only adds the
+  room behind them, the scrim and the copy. The 「z z Z」 sit above the scrim, as on the login screen nothing dims them. Only repository assets otherwise (relative paths); no 「AI 캐릭터」 tag here (PM 2026-11-26:
+  the tag stays on the login screen).
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>CAPSULE OG card</title>
+<style>
+  @font-face {
+    font-family: 'Pretendard';
+    font-weight: 100 900;
+    src: url('../../src/assets/brand/PretendardVariable.woff2') format('woff2');
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; background: #0f0e17; }
+  body { font-family: 'Pretendard', sans-serif; color: #fafafd; -webkit-font-smoothing: antialiased; }
+  .card { position: relative; width: 1200px; height: 630px; overflow: hidden; isolation: isolate; }
+  .room {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 30% 40%;
+    filter: blur(6px) brightness(0.62) saturate(1.1); transform: scale(1.06);
+  }
+  .scene { position: absolute; max-width: none; user-select: none; }
+  .scrim {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(90deg, rgba(15, 14, 23, 0) 34%, rgba(15, 14, 23, 0.7) 56%, rgba(15, 14, 23, 0.92) 100%),
+      linear-gradient(0deg, rgba(15, 14, 23, 0.5) 0%, rgba(15, 14, 23, 0) 24%);
+  }
+
+  .copy {
+    position: absolute; left: 690px; top: 0; bottom: 0; width: 460px;
+    display: flex; flex-direction: column; justify-content: center; gap: 26px;
+  }
+  .logo { width: 272px; height: auto; display: block; }
+  h1 { font-size: 54px; line-height: 1.24; font-weight: 800; letter-spacing: -0.02em; word-break: keep-all; }
+  .sub { font-size: 25px; line-height: 1.45; color: #cac9d4; font-weight: 500; word-break: keep-all; }
+  .sub strong { color: #fafafd; font-weight: 700; }
+  .domain { position: absolute; left: 690px; bottom: 44px; font-size: 20px; color: #a4a3b0; font-weight: 600; letter-spacing: 0.02em; }
+
+  .px { display: inline-block; background-size: 100% 100%; image-rendering: pixelated; flex: none; }
+  .invite { display: none; }
+  [data-variant='invite'] .sub-default { display: none; }
+  [data-variant='invite'] .invite { display: flex; }
+  em { font-style: normal; color: #f4b95f; }
+
+  /* 「친구 초대」 as an eyebrow right above the headline, the reward right under it: one paragraph, one left edge. */
+  .invite-eyebrow { align-items: center; gap: 10px; font-size: 22px; font-weight: 800; color: #c4b9f3; letter-spacing: 0.01em; }
+  .invite-reward { align-items: center; gap: 10px; font-size: 25px; font-weight: 700; color: #fafafd; }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <img class="room" src="../../src/assets/characters/chaerin-call-bg/chaerin-call-bg-landscape.webp" alt="" />
+  <img class="scene" id="scene" alt="" />
+  <div class="scrim"></div>
+  <img class="scene" id="zz" alt="" />
+
+  <div class="copy">
+    <img class="logo" src="../../design/brand/capsule-logo-2026-11-22-v2/capsule-horizontal-color.svg" alt="CAPSULE" />
+    <div class="stack">
+      <p class="invite invite-eyebrow"><span class="px" data-px="capsule" data-scale="2"></span>친구 초대</p>
+      <h1>나만의 메이트가<br />기다리고 있어요</h1>
+      <p class="invite invite-reward"><span class="px" data-px="coin" data-scale="3"></span><span>함께 가입하면 둘 다 <em>1,000 크레딧</em></span></p>
+    </div>
+    <p class="sub sub-default">노트북 앞의 시간을 <strong>함께</strong> 보내요</p>
+  </div>
+  <p class="domain">capsule.ai.kr</p>
+</div>
+<script>
+  const params = new URLSearchParams(location.search)
+  document.getElementById('card').dataset.variant = params.get('variant') === 'invite' ? 'invite' : 'default'
+
+  // Pixel pictures from src/shared/ui/pixel/pixel-art.ts, handed over by the render script.
+  for (const el of document.querySelectorAll('[data-px]')) {
+    const art = (window.OG_PIXELS || {})[el.dataset.px]
+    if (!art) { el.remove(); continue }
+    const scale = Number(el.dataset.scale) || 3
+    el.style.width = `${art.width * scale}px`
+    el.style.height = `${art.height * scale}px`
+    el.style.backgroundImage = art.url
+  }
+
+  // The login screen's stage (DozeMateStage + DozeDesk), captured by the render script; see render-og-images.mjs.
+  const scene = window.OG_SCENE
+  for (const [id, key] of [['scene', 'url'], ['zz', 'zzUrl']]) {
+    const el = document.getElementById(id)
+    if (!scene) { el.remove(); continue }
+    Object.assign(el.style, { left: `${scene.left}px`, top: `${scene.top}px`, width: `${scene.width}px`, height: `${scene.height}px` })
+    el.src = scene[key]
+  }
+  document.fonts.ready.then(() => { document.body.dataset.ready = 'true' })
+</script>
+</body>
+</html>

@@ -3,19 +3,36 @@
  * Sizes are whole CSS pixels; positions are measured from the top-left of a slot column unless noted.
  */
 
+/**
+ * The attendance rules still open (user, 2026-11-27: the beta runs 14 days; 7 days twice or 14 once, and how missed
+ * days count, are decided later). Change them here only:
+ * - `CYCLE_DAYS`: days in one cycle (the home path's art has 7 pads; a 14-day cycle needs new art or two laps).
+ * - `ATTENDANCE_COUNTING`: `'cumulative'` (the mock rule: missing a day changes nothing, progress waits) or
+ *   `'consecutive'` (a missed day starts the cycle again from day 1).
+ * The `credits` source counts the cycle from 34 with these (attendance-model.ts `attendanceFromDays`); with the
+ * attendance API the server counts it (the local mock with these).
+ */
 export const CYCLE_DAYS = 7
+export type AttendanceCounting = 'cumulative' | 'consecutive'
+export const ATTENDANCE_COUNTING: AttendanceCounting = 'cumulative'
 /** Days shown side by side by default; a widget can show more (see `visibleSlots`). */
 export const SLOTS_PER_PAGE = 3
 
-/** Mock rewards until the server sends its own. Days 3 and 7 (the reward capsule at the end of the path) are milestones. */
+/** Every day's attendance reward (docs/BACKEND_API.md 4.5; user decision 2026-11-27): 1,500, the same each day. */
+export const DAILY_ATTENDANCE_CREDIT = 1500
+
+/**
+ * The cycle's days. The reward is the same every day; days 3 and 7 (the reward capsule at the end of the path) stay
+ * milestones for the path's decoration only — no different amount is ever shown for them.
+ */
 export const DEFAULT_REWARDS = [
-  { day: 1, credit: 300, milestone: false },
-  { day: 2, credit: 100, milestone: false },
-  { day: 3, credit: 500, milestone: true },
-  { day: 4, credit: 100, milestone: false },
-  { day: 5, credit: 700, milestone: false },
-  { day: 6, credit: 100, milestone: false },
-  { day: 7, credit: 1000, milestone: true },
+  { day: 1, credit: DAILY_ATTENDANCE_CREDIT, milestone: false },
+  { day: 2, credit: DAILY_ATTENDANCE_CREDIT, milestone: false },
+  { day: 3, credit: DAILY_ATTENDANCE_CREDIT, milestone: true },
+  { day: 4, credit: DAILY_ATTENDANCE_CREDIT, milestone: false },
+  { day: 5, credit: DAILY_ATTENDANCE_CREDIT, milestone: false },
+  { day: 6, credit: DAILY_ATTENDANCE_CREDIT, milestone: false },
+  { day: 7, credit: DAILY_ATTENDANCE_CREDIT, milestone: true },
 ] as const
 
 export const ATTENDANCE_COPY = {
@@ -36,7 +53,7 @@ export const ATTENDANCE_PATH_LINES = {
     '우리 꽤 오래 봤다?',
     '네가 오는 시간, 이제 기다려지더라.',
     '내일이면 일주일이야. 꼭 와야 해!',
-    '일주일 내내 와 줬구나! 캡슐 속 선물, 너한테 줄게.',
+    '일주일 내내 와 줬구나! 오늘도 1,500 크레딧, 캡슐에 담아 줄게.',
   ],
   /** Before the first check-in of the week. */
   start: '안녕! 오늘 출석하면 첫 발판으로 갈 수 있어.',

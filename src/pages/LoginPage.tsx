@@ -161,7 +161,7 @@ export default function LoginPage() {
   const formContent = (
     <div key={view} ref={panel} className="my-auto w-full shrink-0">
       {view === 'welcome' && (
-        <Link to={authPath()} className="block w-fit" onClick={() => setSignupDraft(null)}>
+        <Link to={authPath()} className="block w-fit" aria-label="CAPSULE 시작 화면" onClick={() => setSignupDraft(null)}>
           <DesktopBrand />
         </Link>
       )}
@@ -218,7 +218,7 @@ export default function LoginPage() {
             <p className="mt-4 text-subtle">노트북 앞의 시간을 함께 보내요.</p>
             <div className="mt-7 flex flex-col items-center gap-3">
               <span id="kakao-signup-note" className="kakao-signup-note">
-                5초만에 빠른 회원가입
+                5초 만에 빠른 회원가입
               </span>
               <Button
                 onClick={kakao}
