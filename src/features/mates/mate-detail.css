@@ -114,7 +114,9 @@
   width: 100%;
   height: auto;
   scale: 0.72;
-  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--color-primary) 65%, transparent));
+  filter:
+    hue-rotate(var(--mate-color-rotation, 0deg))
+    drop-shadow(0 0 18px color-mix(in srgb, var(--mate-tint, var(--color-primary)) 65%, transparent));
 }
 
 .mate-hero-orbits {
@@ -130,18 +132,20 @@
   stroke-width: 2.5;
   transform-box: fill-box;
   transform-origin: center;
-  filter: drop-shadow(0 0 5px var(--color-primary)) drop-shadow(0 0 14px var(--color-primary));
+  filter:
+    drop-shadow(0 0 5px var(--mate-tint, var(--color-primary)))
+    drop-shadow(0 0 14px var(--mate-tint, var(--color-primary)));
 }
 
 .mate-hero-orbit--a {
   --orbit-angle: -28deg;
-  stroke: var(--color-text-accent);
+  stroke: var(--mate-glow, var(--color-text-accent));
   transform: rotate(var(--orbit-angle));
 }
 
 .mate-hero-orbit--b {
   --orbit-angle: 16deg;
-  stroke: var(--color-primary);
+  stroke: var(--mate-tint, var(--color-primary));
   transform: rotate(var(--orbit-angle));
   scale: 0.85;
 }

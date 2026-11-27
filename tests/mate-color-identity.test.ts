@@ -5,6 +5,7 @@ import {
   capsuleBandTheme,
   capsuleJarTheme,
   CHAERIN_JAR_THEME,
+  mateColorStyle,
   mateThemeFromHue,
 } from '../src/features/mates/capsule-jar/capsule-jar-theme.ts'
 import { buildCapsuleBoard } from '../src/features/records/capsule-board/capsule-board-layout.ts'
@@ -80,8 +81,21 @@ test('records board includes all server aliases and keeps registered mate colour
   )
 })
 
-test('채린 dawn capsules stay distinct from 서도현 blue-violet', () => {
+test('채린 dawn capsules stay distinct from 서도현 blue-violet, and mateColorStyle exposes CSS variables', () => {
   const chaerinDawn = capsuleBandTheme(CHAERIN_JAR_THEME, 'dawn')
   const dohyunBase = mateThemeFromHue(230)
   assert.notEqual(chaerinDawn.tintHalfShade, dohyunBase.tintHalfShade)
+
+  const chaerinStyle = mateColorStyle('chaerin', '채린')
+  const dohyunStyle = mateColorStyle('dohyun', '서도현')
+  assert.equal(chaerinStyle['--mate-tint'], CHAERIN_JAR_THEME.tintHalfShade)
+  assert.equal(chaerinStyle['--mate-glow'], CHAERIN_JAR_THEME.glow)
+  assert.equal(chaerinStyle['--mate-color-rotation'], '0deg')
+
+  assert.equal(dohyunStyle['--mate-tint'], dohyunBase.tintHalfShade)
+  assert.equal(dohyunStyle['--mate-glow'], dohyunBase.glow)
+  assert.notEqual(dohyunStyle['--mate-color-rotation'], '0deg')
+  // Server id + name also yields the canonical CSS variables.
+  assert.deepEqual(mateColorStyle('4', '채린'), chaerinStyle)
+  assert.deepEqual(mateColorStyle('2', '서진'), dohyunStyle)
 })

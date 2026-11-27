@@ -78,6 +78,17 @@ export function capsuleJarTheme(mateId: string | undefined, mateName?: string): 
   return mateThemeFromHue(hue)
 }
 
+/** Decorative accents only; action and semantic status tokens keep their own colours. */
+export function mateColorStyle(mateId: string, mateName?: string) {
+  const theme = capsuleJarTheme(mateId, mateName)
+  const brandHue = hexToHsl(CHAERIN_JAR_THEME.tintHalf).hue
+  return {
+    '--mate-tint': theme.tintHalfShade,
+    '--mate-glow': theme.glow,
+    '--mate-color-rotation': `${hexToHsl(theme.tintHalf).hue - brandHue}deg`,
+  }
+}
+
 function hexToHsl(hex: string) {
   const value = Number.parseInt(hex.slice(1), 16)
   const r = ((value >> 16) & 255) / 255
