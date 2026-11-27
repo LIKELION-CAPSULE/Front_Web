@@ -36,6 +36,8 @@ export type ReviewScenario = {
   steps?: ReviewStep[]
   /** Modal/popup design draft (dialog-design/). Renders over the real page; never part of the product. */
   dialogDesign?: 'a' | 'b' | 'c' | 'b2' | 'b3' | 'toast'
+  /** Call-screen UI draft (call-ui/). Mounted on its own instead of the app; never part of the product. */
+  callUi?: 'c1' | 'c2' | 'c3'
 }
 
 const click = (text: string): ReviewStep => ({ click: text })
@@ -216,6 +218,9 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'dialog-design-b3', group: '디자인 시안', title: '모달 시안 B3 · 픽셀 액센트', path: '/', dialogDesign: 'b3', note: '2026-11-26 B 발전안(절제): 둥근 모서리 유지, 픽셀은 제목 앞 아이콘·머리 아래 한 줄 별자리·주요 버튼 hover 반짝임 세 곳만. 본문은 차분하게' },
   { id: 'dialog-design-toast', group: '디자인 시안', title: '토스트 후보 · 픽셀 프레임', path: '/', dialogDesign: 'toast', note: '2026-11-26 앱 전체 B2 적용 때 토스트 후보 3개 비교: T1 위쪽 디더링 줄(운영 적용)·T2 왼쪽 세로 픽셀 띠·T3 아이콘 밤하늘 타일. 실제 NotificationStack 사용' },
   { id: 'dialog-design-c', group: '디자인 시안', title: '모달 시안 C · 메이트와 함께', path: '/', dialogDesign: 'c', note: '2026-11-26 시안: 모서리에서 메이트 얼굴(정지 이미지)이 고개를 내밀고 말풍선 꼬리로 안내. 확인 창은 버튼에 따라 표정이 바뀜' },
+  { id: 'call-ui-c1', group: '디자인 시안', title: '통화 화면 시안 C1 · 대사창', path: '/connect/chaerin', callUi: 'c1', note: '2026-11-27 시안: 무대 아래 게임식 대사창(계단형 픽셀 모서리·디더링 띠·이름표에 「말하는 중」), 채팅이 열려 있어도 자막 표시. 채팅은 기록 보관용 「대화 기록」. 아래 막대나 ?cu-scene=idle|speaking|waiting|unread·cu-chat=open|closed로 전환' },
+  { id: 'call-ui-c2', group: '디자인 시안', title: '통화 화면 시안 C2 · 말풍선 무대', path: '/connect/chaerin', callUi: 'c2', note: '2026-11-27 시안: 머리 옆 말풍선(계단형 꼬리)과 후광, 채팅이 닫혀 있을 때만. 채팅은 무대 위 반투명 오버레이, 상단 정보는 무대 위에 떠 있음' },
+  { id: 'call-ui-c3', group: '디자인 시안', title: '통화 화면 시안 C3 · 분할 정돈', path: '/connect/chaerin', callUi: 'c3', note: '2026-11-27 시안(보수안): 지금 배치 유지. 무대 아래 자막 띠(채팅 열림이면 한 줄), 무대 초록 테두리·이름 칩, 묶음 말풍선·한 줄 정보 바·도크 그룹' },
   { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/?ref=CAP-7K2Q', note: '휴대폰 접속 시 PC 안내 창·초대 코드 유지·약관 열기' },
 ]
 

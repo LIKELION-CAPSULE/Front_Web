@@ -15,6 +15,13 @@ export async function mountReview(root: HTMLElement, id: string | null) {
   if (id !== scenario.id) history.replaceState(null, '', reviewPreviewUrl(scenario))
   window.name = `capsule-ui-review:${scenario.id}`
   document.documentElement.dataset.reviewScenario = scenario.id
+  // Call-screen drafts (review only): a stand-alone copy of the call screen, so the app is not mounted at all.
+  if (scenario.callUi) {
+    const { CallUiPreview } = await import('./call-ui/CallUiPreview')
+    createRoot(root).render(<StrictMode><CallUiPreview variant={scenario.callUi} /></StrictMode>)
+    parent.postMessage({ type: 'capsule-review:ready', id: scenario.id }, location.origin)
+    return
+  }
   const local = createReviewStorage(), session = createReviewStorage()
   Object.defineProperty(window, 'localStorage', { configurable: true, value: local })
   Object.defineProperty(window, 'sessionStorage', { configurable: true, value: session })
