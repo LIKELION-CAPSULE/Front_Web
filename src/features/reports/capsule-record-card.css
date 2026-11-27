@@ -150,7 +150,9 @@
   display: grid;
   place-items: center;
   min-height: var(--capsule-record-height);
-  padding: clamp(28px, 4vw, 72px) clamp(24px, 4vw, 80px) clamp(28px, 4vw, 72px) clamp(8px, 1vw, 24px);
+  /* The vertical room follows the screen's height (the card is centred; this only counts once it fills the column),
+     so the stage-up card with its world line still ends inside a 1440 × 900 screen. */
+  padding: clamp(20px, 3vh, 72px) clamp(24px, 4vw, 80px) clamp(20px, 3vh, 72px) clamp(8px, 1vw, 24px);
 }
 
 /* A soft purple glow behind the card so it floats. */
@@ -272,9 +274,10 @@
   font-weight: 600;
 }
 
+/* Purple like the rest of the stage-up (gold is kept for attendance rewards and credits, docs/DESIGN_SYSTEM.md). */
 .capsule-record-star {
-  color: var(--color-warning);
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-warning) 55%, transparent));
+  color: var(--color-text-accent-hover);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 85%, transparent));
 }
 
 /* ① Header */
@@ -704,6 +707,44 @@
   font-size: 16px;
   font-weight: 600;
   color: var(--color-on-solid);
+}
+
+/*
+ * Stage-up on wide screens: a tighter rhythm than the regular record, so the taller card (stage pills, LEVEL UP!,
+ * progress and the world that opened) fits a 1440 × 900 screen with its actions. Shorter screens scroll the page
+ * (the mate stays put).
+ */
+@media (min-width: 1024px) {
+  .capsule-record-card--levelup .capsule-record-head {
+    margin-top: 14px;
+  }
+
+  .capsule-record-card--levelup .capsule-record-ring {
+    margin-top: 2px;
+  }
+
+  .capsule-record-card--levelup .capsule-record-stats {
+    margin-top: 16px;
+    padding: 16px 0;
+  }
+
+  .capsule-record-card--levelup .capsule-record-levelup-block {
+    margin-top: 18px;
+  }
+
+  .capsule-record-card--levelup .capsule-record-levelup,
+  .capsule-record-card--levelup .capsule-record-levelup-progress,
+  .capsule-record-card--levelup .capsule-record-unlock {
+    margin-top: 12px;
+  }
+
+  .capsule-record-card--levelup .capsule-record-unlock {
+    padding-block: 12px;
+  }
+
+  .capsule-record-card--levelup .capsule-record-actions {
+    margin-top: 20px;
+  }
 }
 
 /* Loading and error share the frame. */
