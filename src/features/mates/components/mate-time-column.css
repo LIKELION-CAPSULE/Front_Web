@@ -104,7 +104,7 @@
   font-weight: 700;
   white-space: nowrap;
 }
-.mate-game-empty { margin: 0; font-size: 13px; line-height: 18px; color: var(--color-subtle); }
+.mate-game-empty-state { height: 100%; padding: 4px 0; }
 
 /* Short windows (1280×720 and the like): tighter blocks so the recent list still gets two or three rows. */
 @media (min-width: 960px) and (max-height: 800px) {
@@ -112,6 +112,7 @@
   .mate-game-block { padding: 10px 16px; }
   .mate-game-total-value { font-size: 22px; line-height: 28px; }
   .mate-game-slot { height: 34px; }
+  .mate-game-empty-state .capsule-empty-state-art { width: 40px; height: 40px; }
 }
 
 /* Narrow screens: the column follows its content; the list gets room for four rows. */

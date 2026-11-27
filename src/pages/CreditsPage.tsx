@@ -7,7 +7,8 @@ import { useCreditActivity, useCreditSummary } from '@/features/credits/use-cred
 import type { CreditTransactionFilter } from '@/shared/api/types'
 import { useCreditDisplay } from '@/features/attendance/use-credit-display'
 import { useNow } from '@/features/session/use-now'
-import { Button } from '@/shared/ui/Button'
+import { Button, ButtonLink } from '@/shared/ui/Button'
+import { CapsuleEmptyState } from '@/shared/ui/CapsuleEmptyState'
 import { Icon, type IconName } from '@/shared/ui/Icon'
 import { Tabs } from '@/shared/ui/Tabs'
 import { clock, number } from '@/shared/lib/format'
@@ -146,11 +147,23 @@ export default function CreditsPage() {
             <Button size="sm" variant="secondary" onClick={activity.retry}>다시 시도</Button>
           </div>
         ) : activity.entries.length === 0 ? (
-          <p className="credits-empty-box">
-            {filter === 'ALL'
-              ? `아직 내역이 없어요. 매일 출석하면 ${number(CREDIT_PRICING.dailyAttendance)} 크레딧이 들어와요.`
-              : '선택한 항목의 내역이 없어요.'}
-          </p>
+          <CapsuleEmptyState
+            className="credits-empty-box"
+            message={
+              filter === 'ALL'
+                ? `아직 내역이 없어요. 매일 출석하면 ${number(CREDIT_PRICING.dailyAttendance)} 크레딧이 들어와요.`
+                : '선택한 항목의 내역이 없어요.'
+            }
+            action={
+              filter === 'ALL' ? (
+                <ButtonLink to="/" size="sm" variant="secondary">홈에서 출석하기</ButtonLink>
+              ) : filter === 'INVITE' ? (
+                <ButtonLink to="/credits/invite" size="sm" variant="secondary">친구 초대하기</ButtonLink>
+              ) : (
+                <Button size="sm" variant="secondary" onClick={() => setFilter('ALL')}>전체 내역 보기</Button>
+              )
+            }
+          />
         ) : (
           <>
             <ol className="credits-days">

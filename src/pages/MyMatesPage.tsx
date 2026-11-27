@@ -25,6 +25,7 @@ import type { StudySettlement } from '@/shared/api/types'
 import { capsuleVisitKey } from '@/features/mates/capsule-jar/capsule-jar-visit'
 import { useCapsuleVisit } from '@/features/mates/capsule-jar/use-capsule-visit'
 import { Button, ButtonLink } from '@/shared/ui/Button'
+import { CapsuleEmptyState } from '@/shared/ui/CapsuleEmptyState'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { useConnectMate } from '@/features/mates/use-connect-mate'
 import { MateMenu } from '@/features/mates/components/MateMenu'
@@ -217,10 +218,11 @@ export default function MyMatesPage() {
   if (!selectedMate || !selectedId) {
     return (
       <MyMatesWindowFrame>
-        <div className="my-mates-empty-box">
-          <p className="my-mates-empty-title">아직 만날 수 있는 메이트가 없어요.</p>
-          <ButtonLink to="/">홈으로 가기</ButtonLink>
-        </div>
+        <CapsuleEmptyState
+          className="my-mates-empty-box"
+          message="아직 만날 수 있는 메이트가 없어요."
+          action={<ButtonLink to="/">홈으로 가기</ButtonLink>}
+        />
       </MyMatesWindowFrame>
     )
   }
@@ -374,6 +376,13 @@ export default function MyMatesPage() {
           onOpen={(id) => jarRef.current?.openCapsule(id)}
           onPoint={(id) => jarRef.current?.highlight(id)}
           listToggle={listToggle}
+          emptyAction={
+            import.meta.env.DEV && previewMate ? undefined : (
+              <Button size="sm" variant="secondary" loading={meet.busy} onClick={() => void meet.connect({ pickup: true })}>
+                첫 연결 시작하기
+              </Button>
+            )
+          }
           actions={actions}
         />
       </div>

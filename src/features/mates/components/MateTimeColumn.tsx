@@ -8,6 +8,7 @@ import type { AffinityProgressView } from '@/features/mates/affinity-progress'
 import type { MateWorld } from '@/features/mates/mate-worlds'
 import { NumberCounter } from '@/shared/ui/number-counter/NumberCounter'
 import { AnimatedDuration } from '@/shared/ui/number-counter/AnimatedDuration'
+import { CapsuleEmptyState } from '@/shared/ui/CapsuleEmptyState'
 import { AffinityWorldCard } from './AffinityWorldCard'
 import { BlockLabel } from './BlockLabel'
 import { CapsuleGlyph } from './game-glyphs'
@@ -70,6 +71,7 @@ export function MateTimeColumn({
   onOpen,
   onPoint,
   listToggle,
+  emptyAction,
   actions,
 }: {
   totalSeconds: number
@@ -97,6 +99,8 @@ export function MateTimeColumn({
    * column never scrolls), so the button can say there are more.
    */
   listToggle?: (hidden: number) => ReactNode
+  /** Single action shown inside the empty recent-capsules state (capsule still + one line + one action). */
+  emptyAction?: ReactNode
   actions: ReactNode
 }) {
   const [pointed, setPointed] = useState<string | null>(null)
@@ -148,7 +152,12 @@ export function MateTimeColumn({
         </BlockLabel>
         <div ref={roomRef} className="mate-game-inventory-room">
           {recent.length === 0 ? (
-            <p className="mate-game-empty">연결을 마치면 여기에 쌓여요.</p>
+            <CapsuleEmptyState
+              size="sm"
+              className="mate-game-empty-state"
+              message="연결을 마치면 캡슐이 여기에 쌓여요."
+              action={emptyAction}
+            />
           ) : (
             <ul className="mate-game-inventory">
               {recent.map((connection) => {

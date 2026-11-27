@@ -15,6 +15,8 @@ import { capsuleBandTheme, capsuleJarTheme } from './capsule-jar-theme.ts'
 import { keepsakeTitle } from './capsule-moments.ts'
 import type { CapsuleJarTheme, CapsuleRecord } from './capsule-jar-types.ts'
 import type { JarBenchmark, JarSceneController, JarScenePoint } from './capsule-jar-scene.ts'
+import { Button } from '@/shared/ui/Button'
+import { CapsuleEmptyState } from '@/shared/ui/CapsuleEmptyState'
 import { CapsuleRecordCard } from './CapsuleRecordCard.tsx'
 import './capsule-jar.css'
 
@@ -461,7 +463,15 @@ export default function CapsuleJar({
         {listView && (
           <div className="capsule-jar-list">
             {days.length === 0 ? (
-              <p className="capsule-jar-list-empty">아직 기록이 없어요.</p>
+              <CapsuleEmptyState
+                className="capsule-jar-list-empty"
+                message="아직 모인 캡슐이 없어요."
+                action={
+                  <Button size="sm" variant="secondary" onClick={() => setListView(false)}>
+                    장면으로 돌아가기
+                  </Button>
+                }
+              />
             ) : (
               days.map((group) => (
                 <section key={group.day} className="capsule-jar-list-day" aria-label={group.day}>
