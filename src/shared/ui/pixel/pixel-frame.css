@@ -5,7 +5,8 @@
  *   50 / 25 / 12.5%), with the 8-bit capsule in the middle. Pure background layers: painted once.
  * - Snow: a few pixel flakes fall from the roof over the body behind the text and fade out around the middle (mask).
  * - Motion (user decision 2026-11-28): the frame and its text come in as one, smooth — opacity and a slight scale
- *   (0.98 → 1) over 150ms ease-out, readable from the first frame; leaving is the same back over 120ms. Only the
+ *   (0.98 → 1) over 150ms ease-out, readable from the first frame; closing is instant (no exit animation, so the layout never
+ *   shows a changing frame while it leaves). Only the
  *   decoration stays pixel: the capsule and tone icon drop (px-drop), the sparks blink (px-blink), the snow falls
  *   (px-fall) in steps. Reduced motion: shown and closed at once, the snow stands still.
  *   (It used to fill downward in 5 steps through the clip polygon and fade the text in 4: it read as loading jerkily.)
@@ -28,12 +29,6 @@
     /* The clip cuts any outer shadow; the dark overlay behind separates the frame instead. */
     box-shadow: none;
     background: linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
-    /* Leaving (`[open]` removed): fades and settles back to 98% over 120ms. */
-    transition:
-      opacity 120ms ease-in,
-      transform 120ms ease-in,
-      overlay 120ms allow-discrete,
-      display 120ms allow-discrete;
   }
   /* Roof: background layers of the dialog itself (they never scroll: with a header the body is the scroller). */
   .app-dialog[data-frame='header'] {
@@ -70,18 +65,6 @@
   .app-dialog[open] .px-roof-strip > .px-image { animation: px-drop 240ms steps(3, jump-end) 180ms backwards; }
   @media (min-width: 640px) {
     .app-dialog { --px-pad: 32px; }
-  }
-  .app-dialog:not([open]) {
-    opacity: 0;
-    transform: scale(0.98);
-    pointer-events: none;
-  }
-  .app-dialog::backdrop {
-    transition: opacity 120ms ease-in, overlay 120ms allow-discrete, display 120ms allow-discrete;
-  }
-  .app-dialog:not([open])::backdrop {
-    opacity: 0;
-    pointer-events: none;
   }
   .app-dialog[open] {
     animation: px-dialog-in 150ms ease-out backwards;
