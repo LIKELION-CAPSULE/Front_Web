@@ -25,6 +25,12 @@ export type MateProfile = {
   /** Home card: relationship style and a one-line introduction (no tagline: the introduction). */
   relationTag?: string
   tagline?: string
+  /**
+   * The call header's short relation line next to her name (about 10 characters, 2026-11-28). Front-end copy: the
+   * server's 31 `oneLiner` is the long introduction, `world` the setting text and `myRole` the user's own role, so
+   * none of them says in a few words who she is to the user.
+   */
+  callTag?: string
 }
 
 export const AGE_RATING_LABELS: Readonly<Record<MateAgeRating, string>> = { all: '전연령', adult: '성인', 15: '15세 이용가' }
@@ -54,6 +60,7 @@ export const launchMates: readonly MateProfile[] = [{
   tags: [],
   ageRating: 'all',
   relationTag: '짝꿍형',
+  callTag: '같은 반 짝꿍',
 }, {
   // Model bundle `seojin` (local-assets/seojin, src/assets/characters/seojin); the persona's name is 서도현.
   id: 'dohyun',
@@ -67,6 +74,7 @@ export const launchMates: readonly MateProfile[] = [{
   tags: [],
   ageRating: 'all',
   relationTag: '소꿉친구형',
+  callTag: '오랜 소꿉친구',
 }]
 
 /** The launch profile of a mate id (unknown ids: undefined). */

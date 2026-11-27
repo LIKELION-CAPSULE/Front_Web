@@ -53,6 +53,8 @@ import { useChatHistory } from '@/features/mates/use-chat-history'
 import { ChatHistoryStatus } from '@/features/mates/components/ChatHistoryStatus'
 import { ChatLogGroups } from '@/features/mates/components/ChatLogGroups'
 import { CallDialogueBox } from '@/features/mates/components/CallDialogueBox'
+import { CallMateTitle } from '@/features/mates/components/CallMateTitle'
+import { callWorld } from '@/features/mates/call-world'
 import { pickStageLine } from '@/features/mates/call-dialogue'
 import { unreadArrivals } from '@/features/mates/chat-groups'
 import { PixelImage, PixelRoofStrip } from '@/shared/ui/pixel/PixelFrame'
@@ -825,8 +827,8 @@ export default function ConnectionPage() {
         <div className="connection-titlebar-left">
           <span className="connection-titlebar-brand"><Brand /></span>
           <span className="connection-titlebar-divider" aria-hidden="true" />
-          <span className="desktop-mate-dot" aria-hidden="true" title="연결 중" />
-          <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
+          {/* Her name, a short relation line and the world the call is in (when it is known: call-world.ts). */}
+          <CallMateTitle name={mate.name} tag={mate.callTag} world={callWorld()} dotTitle="연결 중" />
         </div>
 
         {/* The info bar, all open (no 「⋯」, user decision 2026-11-27): ? | 친밀도 · 대화 모드 · 남은 크레딧 | 연결 시간.

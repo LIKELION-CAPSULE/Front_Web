@@ -11,6 +11,8 @@ import { getDefaultLineForState } from '@/features/auth/login-backgrounds/deskto
 import { CREDIT_PRICING } from '@/features/credits/credit-utils'
 import { useCreditDisplay } from '@/features/attendance/use-credit-display'
 import { CallDialogueBox } from '@/features/mates/components/CallDialogueBox'
+import { CallMateTitle } from '@/features/mates/components/CallMateTitle'
+import { callWorld } from '@/features/mates/call-world'
 import { ChatComposer } from '@/features/session/components/ChatComposer'
 import { GlassDock, type GlassDockItem } from '@/shared/ui/dock/GlassDock'
 import { AnimatedClock } from '@/shared/ui/AnimatedClock'
@@ -81,8 +83,7 @@ export default function TourCallPage() {
           <div className="connection-titlebar-left">
             <span className="connection-titlebar-brand"><Brand /></span>
             <span className="connection-titlebar-divider" aria-hidden="true" />
-            <span className="desktop-mate-dot" aria-hidden="true" />
-            <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
+            <CallMateTitle name={mate.name} tag={mate.callTag} world={callWorld()} />
           </div>
           {/* The call screen's info bar (ConnectionPage): 대화 모드 · 남은 크레딧 · 연결 시간, all open. */}
           <div className="connection-titlebar-right">
