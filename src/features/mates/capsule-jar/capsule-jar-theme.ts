@@ -1,6 +1,7 @@
 import { BRAND_CAPSULE_COLORS } from '../../../shared/three/capsule-shape.ts'
 import type { CapsuleJarTheme } from './capsule-jar-types.ts'
 import type { TimeBand } from './capsule-moments.ts'
+import { mateProfile, mateProfileByName } from '../catalog.ts'
 
 /**
  * 채린 follows the two tones of the logo v2 capsule (design/brand/capsule-logo-2026-11-22-v2/README.md: white → #D4C3FA
@@ -70,8 +71,9 @@ export const MATE_FALLBACK_HUES = [230, 284, 298, 312] as const
  * Returns the mate's colours: the registered ones, else a calm tint from `MATE_FALLBACK_HUES` picked by the mate's id,
  * so every mate keeps its own colour without anyone hand-picking it first — and never leaves the violet family.
  */
-export function capsuleJarTheme(mateId: string | undefined): CapsuleJarTheme {
-  if (mateId && MATE_JAR_THEMES[mateId]) return MATE_JAR_THEMES[mateId]
+export function capsuleJarTheme(mateId: string | undefined, mateName?: string): CapsuleJarTheme {
+  const catalogId = mateProfile(mateId)?.id ?? mateProfileByName(mateName ?? mateId)?.id
+  if (catalogId && MATE_JAR_THEMES[catalogId]) return MATE_JAR_THEMES[catalogId]
   const hue = MATE_FALLBACK_HUES[hashString(mateId ?? 'mate') % MATE_FALLBACK_HUES.length]!
   return mateThemeFromHue(hue)
 }
@@ -97,7 +99,9 @@ function hexToHsl(hex: string) {
  * apart side by side, never a different colour. Saturation stays at most 86 (no gold, no rainbow, no glare).
  */
 export const TIME_BAND_SHIFT: Readonly<Record<TimeBand, { hue: number; saturation: number; lightness: number }>> = {
-  dawn: { hue: -20, saturation: -4, lightness: -3 },
+  // -20° made 채린's dawn ~236°, nearly the same blue as 서도현 (230°).
+  // Keep the darker dawn glass, with only a small move inside her violet identity.
+  dawn: { hue: -6, saturation: -4, lightness: -3 },
   morning: { hue: -6, saturation: 0, lightness: 4 },
   day: { hue: 0, saturation: -10, lightness: 6 },
   evening: { hue: 18, saturation: 2, lightness: 0 },
