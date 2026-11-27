@@ -1,9 +1,9 @@
 // Regression check for the collectible record card of a capsule (CapsuleRecordCard): its 「연결 기록 보기」 link,
 // 「닫기」 and the day pager must take real clicks, Enter and Space — also while the card is tilted under the pointer
-// (the 3D card once let its empty wrapper catch the clicks) and under reduced motion. Opens the card from the
-// my-mates recent list and from the records board (「함께 쌓은 시간」): in 2D (the contribution grid, the default) by
-// keyboard (the day's cell, Enter) and by a real click on the cell, and in 2.5D by a real click on the day's pillar in
-// the WebGL scene.
+// (the 3D card once let its empty wrapper catch the clicks) and under reduced motion — and Esc must close it at once.
+// Opens the card from the my-mates recent list and from the records board (「함께 쌓은 시간」): in 2D (the contribution
+// grid, the default) by keyboard (the day's cell, Enter) and by a real click on the cell, and in 2.5D by a real click
+// on the day's pillar in the WebGL scene.
 //
 // Needs the dev server in local mock mode and Playwright (not a project dependency):
 //
@@ -141,6 +141,10 @@ async function recordsCalendar() {
     await page.waitForTimeout(500)
     check('records: Enter on a grid day opens the card', (await openCount(page)) > 0)
     await page.keyboard.press('Escape')
+    // Review 590ce6e [10-2]: Esc leaves the modal state at once (the card only fades), and the focus is back on the day.
+    await page.waitForTimeout(80)
+    check('records: Esc closes the card at once (no modal left while it folds)', (await openCount(page)) === 0)
+    check('records: Esc puts the focus back on the day', await page.evaluate((key) => document.activeElement?.getAttribute('data-grid-day') === key, target))
     await page.waitForTimeout(600)
     // Pointer: a real click on the cell.
     await page.mouse.click(...centre(await page.locator(`[data-grid-day="${target}"]`).boundingBox()))

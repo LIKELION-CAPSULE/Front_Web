@@ -41,6 +41,12 @@ export type VoiceContext = {
 /** `idle`: nothing to play · `playing`: a voice is playing (or decoding) · `blocked`: the browser holds it until a user gesture. */
 export type VoicePlaybackStatus = 'idle' | 'playing' | 'blocked'
 
+/**
+ * Whether this browser can play the voice, from really preparing it (`prepare()`): the audio context made and its graph
+ * (analyser → gain → speakers) connected. `pending` until tried; voice (`tts: true`, paid) is asked only when `ready`.
+ */
+export type VoiceAvailability = 'pending' | 'ready' | 'unavailable'
+
 export type VoiceTurn = {
   /** A 28 `audio` piece (`seq`, base64 `data`). */
   push(audio: MessageStreamAudio): void
@@ -89,6 +95,9 @@ export class VoicePlayer {
   private gain: ReturnType<VoiceContext['createGain']> | null = null
   private turn: Turn | null = null
   private status: VoicePlaybackStatus = 'idle'
+  private availability: VoiceAvailability = 'pending'
+  /** Bumped by `cut()`: a voice asked for before it (a reaction line on its way) is dropped when it arrives. */
+  private generation = 0
   private volume = 1
   private readonly listeners = new Set<() => void>()
   private readonly createContext: () => VoiceContext | null
@@ -107,6 +116,29 @@ export class VoicePlayer {
 
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   getSnapshot = () => this.status
+  getAvailability = () => this.availability
+
+  /**
+   * Prepares the audio context now (it may start suspended until a gesture; `unlock()` resumes it) and reports whether
+   * the voice can play here. Called when the call screen opens, so a paid voice is never asked for when it cannot play.
+   */
+  prepare(): boolean {
+    return this.ensureContext() !== null
+  }
+
+  /** The current generation, taken when a voice is asked for; `play(data, ticket)` drops it after a `cut()`. */
+  ticket(): number {
+    return this.generation
+  }
+
+  /**
+   * Stops the voice because the call no longer wants it (voice turned off, the user talking, the tab hidden without PiP,
+   * the call ending): unlike a new reply replacing it, a voice asked for before this moment never plays.
+   */
+  cut() {
+    this.generation++
+    this.stop()
+  }
 
   /** 0–1 (T-3 음성 볼륨). The speed (T-4) is the server's TTS speed, so playback always runs at 1×. */
   setVolume(volume: number) {
@@ -114,10 +146,19 @@ export class VoicePlayer {
     if (this.gain) this.gain.gain.value = this.volume
   }
 
+  private setAvailability(next: VoiceAvailability) {
+    if (next === this.availability) return
+    this.availability = next
+    for (const listener of this.listeners) listener()
+  }
+
   private ensureContext(): VoiceContext | null {
-    if (this.context || !this.supported) return this.context
-    const context = this.createContext()
-    if (!context) return null
+    if (this.context?.state === 'closed') this.dropContext()
+    if (this.context) return this.context
+    if (!this.supported) { this.setAvailability('unavailable'); return null }
+    let context: VoiceContext | null = null
+    try { context = this.createContext() } catch { context = null }
+    if (!context) { this.setAvailability('unavailable'); return null }
     try {
       const analyser = context.createAnalyser()
       analyser.fftSize = this.samples.length
@@ -129,11 +170,24 @@ export class VoicePlayer {
       this.analyser = analyser
       this.gain = gain
     } catch {
-      void context.close().catch(() => {})
+      this.analyser = null
+      this.gain = null
+      void Promise.resolve().then(() => context.close()).catch(() => {})
+      this.setAvailability('unavailable')
       return null
     }
     context.addEventListener?.('statechange', this.refresh)
     this.context = context
+    this.setAvailability('ready')
+    return context
+  }
+
+  private dropContext() {
+    const context = this.context
+    this.context = null
+    this.analyser = null
+    this.gain = null
+    context?.removeEventListener?.('statechange', this.refresh)
     return context
   }
 
@@ -167,8 +221,9 @@ export class VoicePlayer {
     }
   }
 
-  /** One whole mp3 (19 `audioBase64`). */
-  play(data: string) {
+  /** One whole mp3 (19 `audioBase64`). With `ticket` (taken when it was asked for): dropped if `cut()` came since. */
+  play(data: string, ticket?: number) {
+    if (ticket !== undefined && ticket !== this.generation) return
     const turn = this.begin()
     turn.push({ seq: 0, data })
     turn.end({ chunks: 1, complete: true })
@@ -208,11 +263,8 @@ export class VoicePlayer {
   /** Stops and closes the audio context (the call screen going away); a later voice opens a new one. */
   release() {
     this.stop()
-    const context = this.context
-    this.context = null
-    this.analyser = null
-    this.gain = null
-    context?.removeEventListener?.('statechange', this.refresh)
+    const context = this.dropContext()
+    this.setAvailability('pending')
     void context?.close().catch(() => {})
   }
 

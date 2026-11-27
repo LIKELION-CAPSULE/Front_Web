@@ -231,6 +231,24 @@ export default function OnboardingPage() {
     return () => observer.disconnect()
   }, [])
 
+  // Stacked layout (≤959px, onboarding.css): the avatar stage sits above the panel, and step 2's panel is taller than
+  // step 1's, so its 시작하기 would start below the first screen. Once the panel has its new height, scroll just enough
+  // to bring the panel's bottom into view, never past its top under the header (UX review 1-2).
+  useEffect(() => {
+    if (step !== 2 || typeof window.matchMedia !== 'function' || !window.matchMedia('(max-width: 959px)').matches) return
+    const timer = window.setTimeout(() => {
+      const panel = panelInner.current?.closest<HTMLElement>('.onboarding-panel')
+      if (!panel) return
+      const rect = panel.getBoundingClientRect()
+      const headerBottom = document.querySelector<HTMLElement>('.site-header')?.getBoundingClientRect().bottom ?? 0
+      const shortBy = rect.bottom + 16 - window.innerHeight
+      const room = rect.top - headerBottom - 8
+      const by = Math.min(shortBy, room)
+      if (by > 0) window.scrollBy({ top: by, behavior: reducedMotion ? 'auto' : 'smooth' })
+    }, 320)
+    return () => window.clearTimeout(timer)
+  }, [step, reducedMotion])
+
   useEffect(() => {
     if (!desktopShell) return
     desktopShell.setWindowConfig({

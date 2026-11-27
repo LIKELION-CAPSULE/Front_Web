@@ -40,7 +40,17 @@ export type MyMateUnlockView = {
   unlocked: boolean | null
   unlockedAt: number | null
 }
-export type MyMateConnection = { connectionId: string; endedAt: number; presentSeconds: number; connectedSeconds: number }
+export type MyMateConnection = {
+  connectionId: string
+  endedAt: number
+  presentSeconds: number
+  connectedSeconds: number
+  /**
+   * The server's start, when it sends one (requested, optional): it decides the day. Without it the start is only
+   * estimated (end minus connected time — cut-off time is not in the connected time), so it never decides a day total.
+   */
+  startedAt?: number
+}
 export type MyMateView = {
   /** Server mate id(s): one persona may come twice (서진 id 2 · 3, merged by the caller). */
   serverIds: readonly number[]
@@ -61,9 +71,12 @@ export type MyMateView = {
 function recentConnection(value: MyMateRecent, what: string): MyMateConnection {
   const endedAt = time(value?.endedAt)
   if (!isId(value?.connectionId) || endedAt === null || !isSeconds(value.connectedSeconds)) throw invalid(what)
+  // Optional: a malformed start, or one after the end, is left out (the estimate stays), never fatal.
+  const startedAt = time(value.startedAt)
   return {
     connectionId: String(value.connectionId), endedAt, connectedSeconds: value.connectedSeconds,
     presentSeconds: isSeconds(value.presentSeconds) ? value.presentSeconds : 0,
+    ...(startedAt !== null && startedAt > 0 && startedAt <= endedAt ? { startedAt } : {}),
   }
 }
 

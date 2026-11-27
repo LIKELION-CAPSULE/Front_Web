@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { chooseLabelSide, chooseLineBox, cost, labelBox, overlap } from '../src/features/tour/tour-placement.ts'
+import { chooseLabelSide, chooseLineBox, chooseRestingPlace, cost, labelBox, labelShift, overlap } from '../src/features/tour/tour-placement.ts'
+import { insideScreen } from '../src/features/tour/tour-spotlight.ts'
 
 const viewport = { width: 1440, height: 900 }
 const size = { width: 240, height: 30 }
@@ -67,4 +68,46 @@ test('reduced motion: a small target at the right of its card gets the line endi
   const box = chooseLineBox(spot, line, avoid)
   assert.equal(box.right, 380)
   assert.equal(cost(box, avoid), 0)
+})
+
+test('UX 9-1: a label past the screen side slides back inside, above or below the arrow row', () => {
+  const tip = { x: 1380, y: 400 }
+  // Right of the tip would end at 1639: slid left to end 16px inside the 1440 screen.
+  assert.equal(labelShift('right-down', tip, size, viewport.width), 1440 - 16 - 240 - 1399)
+  assert.deepEqual(labelBox('right-down', tip, size, 0, viewport.width), { left: 1184, top: 427, right: 1424, bottom: 457 })
+  // Left of a tip at the left edge slides right; inside the screen nothing moves.
+  assert.equal(labelBox('left-up', { x: 60, y: 400 }, size, 0, viewport.width).left, 16)
+  assert.equal(labelShift('right-down', { x: 500, y: 400 }, size, viewport.width), 0)
+  // Without the screen width (the old callers) the box stays where the anchor puts it.
+  assert.equal(labelBox('right-down', tip, size).left, 1399)
+})
+
+test('UX 9-1: among places covering no control, the one leaving the subjects (target, other targets, headings) clear wins', () => {
+  const tip = { x: 1300, y: 340 }
+  // The affinity title just under the 함께한 시간 card (a subject, no control): below-left would cover it.
+  const affinity = { left: 930, top: 380, right: 1320, bottom: 440 }
+  const side = chooseLabelSide(tip, size, { controls: [], subjects: [affinity], viewport }, 'left-down', 40)
+  assert.equal(overlap(labelBox(side, tip, size, 40, viewport.width), affinity), 0)
+  // A control still costs first: a subject never pushes the line onto a control.
+  const control = { left: 1000, top: 250, right: 1440, bottom: 300 }
+  const forced = chooseLabelSide(tip, size, { controls: [control], subjects: [affinity], viewport }, 'left-down', 40)
+  assert.equal(overlap(labelBox(forced, tip, size, 40, viewport.width), control), 0)
+})
+
+test('UX 9-1: the outro line rests where it covers neither the hero subject nor the panel', () => {
+  const hero = { left: 585, top: 155, right: 1440, bottom: 695 }
+  const panel = { left: 475, top: 815, right: 965, bottom: 875 }
+  const points = [{ x: 720, y: 378 }, { x: 432, y: 675 }]
+  const { tip, side } = chooseRestingPlace(points, { width: 180, height: 36 }, { controls: [], panel, subjects: [hero], viewport })
+  assert.deepEqual(tip, { x: 432, y: 675 })
+  assert.equal(overlap(labelBox(side, tip, { width: 180, height: 36 }, 0, viewport.width), hero), 0)
+  // Nothing in the way: the first point (the middle) keeps the line.
+  assert.deepEqual(chooseRestingPlace(points, { width: 180, height: 36 }, { controls: [], viewport }).tip, { x: 720, y: 378 })
+})
+
+test('UX 9-1: the lit area stays inside the screen sides so its ring shows (home hero path past the right edge)', () => {
+  assert.deepEqual(insideScreen({ left: 577, top: 147, width: 900, height: 556 }, 1440), { left: 577, top: 147, width: 1434 - 577, height: 556 })
+  assert.deepEqual(insideScreen({ left: -20, top: 0, width: 200, height: 50 }, 1440), { left: 6, top: 0, width: 174, height: 50 })
+  const inside = { left: 100, top: 100, width: 300, height: 80 }
+  assert.deepEqual(insideScreen(inside, 1440), inside)
 })

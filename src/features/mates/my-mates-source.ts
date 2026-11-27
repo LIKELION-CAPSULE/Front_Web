@@ -16,12 +16,15 @@ export function myMatesByLaunchMate(views: readonly MyMateView[], mates: readonl
   return new Map([...groups].map(([id, entries]) => [id, mergeMyMates(entries)]))
 }
 
-/** 37 `recent[]` as the capsule jar's capsules, oldest first (it stacks them in time order). */
+/**
+ * 37 `recent[]` as the capsule jar's capsules, oldest first (it stacks them in time order). The start is the server's
+ * when sent (`startedAt`, requested), else estimated as the end minus the connected time (cut-off time is not in it).
+ */
 export function capsulesFromConnections(connections: readonly MyMateConnection[]): CapsuleRecord[] {
   return connections
     .map(connection => ({
       id: connection.connectionId,
-      startedAt: connection.endedAt - connection.connectedSeconds * 1000,
+      startedAt: connection.startedAt ?? connection.endedAt - connection.connectedSeconds * 1000,
       endedAt: connection.endedAt,
       durationSeconds: connection.connectedSeconds,
       connectionId: connection.connectionId,

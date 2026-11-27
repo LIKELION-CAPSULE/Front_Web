@@ -50,6 +50,8 @@
 
 /* Targets at the right edge (credits, profile): the label opens to the left of the arrow. */
 .service-tour-pointer--label-left .showcase-pointer-cursor-label-anchor { right: 8px; left: auto; }
+/* Slid sideways to stay on screen (tour-placement.ts labelShift; above or below the arrow's row, never over it). */
+.service-tour-pointer .showcase-pointer-cursor-label-anchor { translate: var(--service-tour-label-shift, 0px) 0; }
 
 /* What the real hover / press would show, driven by the cursor's state attributes. */
 a.mate-card[data-cursor-hover] { transform: translateY(-4px); }

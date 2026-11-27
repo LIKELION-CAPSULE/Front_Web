@@ -26,9 +26,11 @@ export type CapsuleRecordPager = { index: number; count: number; onPrevious: () 
  * turning in as it grows into the middle of the window, then one sweep of light across it.
  *
  * A native modal `<dialog>` (like the shared Dialog): the page behind it is inert, Tab stays inside, focus starts on
- * 「닫기」, Esc / a click outside the card / 닫기 close it — also while it is folding away — and the opener restores
- * focus. The dialog covers its frame (the scene, `frame="parent"`) or the whole window (`frame="viewport"`), so the
- * card can still unfold beside the pile.
+ * 「닫기」, Esc / a click outside the card / 닫기 close it, and the opener restores focus. Esc is taken on `keydown`
+ * (the browser's own close request — `cancel` — stays as a fallback, e.g. a back gesture), and closing leaves the modal
+ * state at once: while the card folds away the page already takes clicks and keys again, and focus is back on the
+ * opener. Opened again while folding, it is modal again. The dialog covers its frame (the scene, `frame="parent"`) or
+ * the whole window (`frame="viewport"`), so the card can still unfold beside the pile.
  *
  * Reused by the records calendar (a day's connections, with `pager`) through `capsuleFromStudyRecord`.
  */
@@ -69,6 +71,12 @@ export function CapsuleRecordCard({
   const dialogRef = useRef<HTMLDialogElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const onCloseRef = useRef(onClose)
+  const phaseRef = useRef(phase)
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose
+    phaseRef.current = phase
+  })
 
   // Show as a modal over the frame's rect; follow the frame when it moves or resizes.
   useLayoutEffect(() => {
@@ -89,8 +97,6 @@ export function CapsuleRecordCard({
       })
     }
     place()
-    if (!dialog.open) dialog.showModal()
-    closeButtonRef.current?.focus({ preventScroll: true })
     const observer = frameElement && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(place) : null
     if (frameElement) observer?.observe(frameElement)
     window.addEventListener('resize', place)
@@ -102,6 +108,40 @@ export function CapsuleRecordCard({
       if (dialog.open) dialog.close()
     }
   }, [frame])
+
+  // Open: modal, focus on 닫기. Closing: out of the modal state now (not after the fold), still drawn where it was while
+  // it fades (capsule-record-card.css keeps it painted, without taking the pointer).
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    if (phase === 'open') {
+      dialog.style.removeProperty('translate')
+      if (!dialog.open) {
+        dialog.showModal()
+        closeButtonRef.current?.focus({ preventScroll: true })
+      } else if (!dialog.contains(document.activeElement)) closeButtonRef.current?.focus({ preventScroll: true })
+      return
+    }
+    if (!dialog.open) return
+    const before = dialog.getBoundingClientRect()
+    dialog.close()
+    // Out of the top layer a transformed or filtered ancestor may place a fixed box elsewhere: keep it where it was.
+    const after = dialog.getBoundingClientRect()
+    if (before.left !== after.left || before.top !== after.top) dialog.style.translate = `${before.left - after.left}px ${before.top - after.top}px`
+  }, [phase])
+
+  // Esc on keydown (focus anywhere in the dialog, or on the page behind while it is open): closes through the parent.
+  useEffect(() => {
+    if (phase !== 'open') return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return
+      // Handled here: the browser does not also run its own close request (which may skip `cancel`).
+      event.preventDefault()
+      onCloseRef.current()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [phase])
 
   // The card comes out of the light: measure where it rests and start from the opened capsule.
   useLayoutEffect(() => {
@@ -143,11 +183,19 @@ export function CapsuleRecordCard({
       data-animated={animated ? 'true' : 'false'}
       data-keepsake={keepsakeHours ? 'true' : undefined}
       aria-labelledby={titleId}
+      // Folding away: the page behind takes clicks and focus again (also under the card itself).
+      inert={phase === 'closing'}
       style={themeStyle}
       onCancel={(event) => {
-        // Esc: close through the parent (also while folding, when it is a no-op), never the browser's own close.
+        // The browser's close request (Esc not taken on keydown, a back gesture): close through the parent, never the
+        // browser's own close.
         event.preventDefault()
         onClose()
+      }}
+      onClose={(event) => {
+        // Closed by the browser anyway (a close request it would not let be cancelled): tell the parent. The event comes
+        // a task later: a dialog shown again since (opened again, a remount) is left alone.
+        if (phaseRef.current === 'open' && !event.currentTarget.open) onCloseRef.current()
       }}
       onPointerDown={(event) => {
         if (event.target === event.currentTarget) onClose()

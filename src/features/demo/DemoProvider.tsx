@@ -10,7 +10,7 @@ import { normalizeFocusTotals } from '@/features/session/focus'
 import { api, ApiError } from '@/shared/api/client'
 import { QueryCache } from '@/shared/api/query-cache'
 import { removeAccountSnapshots } from '@/features/auth/account-storage'
-import type { ActiveConnectionSummary, AffinityChange, AvatarsResponse, EndType, HomeResponse, MeResponse, LoginResponse, StartRequest, StartResponse, ResumeResponse, EndRequest, MessageStreamAudio, MessageStreamAudioEnd, ReportResponse, TermsResponse } from '@/shared/api/types'
+import type { ActiveConnectionSummary, AffinityChange, AvatarsResponse, ConnectionTotals, EndType, HomeResponse, MeResponse, LoginResponse, StartRequest, StartResponse, ResumeResponse, EndRequest, MessageStreamAudio, MessageStreamAudioEnd, ReportResponse, TermsResponse } from '@/shared/api/types'
 import { BackendContext } from '@/features/backend/backend-context'
 import { streamMessage } from '@/features/backend/message-stream'
 import { accountScope } from '@/features/backend/account-scope'
@@ -679,7 +679,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     patch({ activeSession: connection })
     return connection
   }, [meta.home, meta.activeSummary, startSession, resumeSession, patch])
-  const finishSession = useCallback(async (options: { acceptUnknownPresence?: boolean; endType?: EndType } = {}) => {
+  const finishSession = useCallback(async (options: { acceptUnknownPresence?: boolean; endType?: EndType; totals?: ConnectionTotals } = {}) => {
     const operations = pending.current
     if (operations.has('end')) throw new ApiError('연결을 마무리하고 있어요.', 409)
     const current = stateRef.current.activeSession
@@ -689,7 +689,7 @@ export function DemoProvider({ children, modelFactory = createLive2DStage, accou
     operations.add('end')
     try {
       await account.wait(flushSessionEvents(current.id))
-      const body: EndRequest = { ...getSessionTotals(current), endType: options.endType ?? 'NORMAL' }
+      const body: EndRequest = { ...(options.totals ?? getSessionTotals(current)), endType: options.endType ?? 'NORMAL' }
       const dto = await account.wait(api.request<ReportResponse>(`/connections/${adapt.numericId(current.id)}/end`, { method: 'POST', body }))
       if (String(dto.connectionId) !== current.id || String(dto.mate?.id) !== current.characterIds[0]) throw new ApiError('연결 기록을 확인하지 못했어요.', 502)
       const record = adapt.report(dto)
