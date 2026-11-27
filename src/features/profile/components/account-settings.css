@@ -58,25 +58,8 @@
 .account-settings-close {
   position: absolute;
   z-index: 2;
-  top: 12px;
-  right: 12px;
-  display: inline-grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 7px;
-  color: var(--color-subtle);
-  transition: color 140ms ease, background-color 140ms ease;
-}
-
-.account-settings-close:hover:not(:disabled) {
-  background: var(--color-control);
-  color: var(--color-ink);
-}
-
-.account-settings-close:disabled {
-  cursor: wait;
-  opacity: 0.45;
+  top: 30px;
+  right: 16px;
 }
 
 .account-settings-layout {
@@ -94,7 +77,7 @@
   flex-direction: column;
   overflow-y: auto;
   background: color-mix(in srgb, var(--color-canvas) 42%, transparent);
-  padding: 18px 14px 16px;
+  padding: 34px 14px 16px;
   overscroll-behavior: contain;
 }
 
@@ -215,11 +198,11 @@
   min-height: 0;
 }
 
-/* Settings and security: a fixed title row (clear of the close button at the top right), then the scrolling rows. */
+/* Settings and security: a fixed title row (clear of the roof strip and close button at the top right), then the scrolling rows. */
 .account-settings-title.account-settings-main-title {
   flex: none;
   margin: 0;
-  padding: 28px 76px 14px 32px;
+  padding: 38px 76px 14px 32px;
 }
 
 .account-settings-main-scroll {
@@ -598,9 +581,13 @@
 .settings-slider input[type='range']:disabled::-moz-range-progress { background: var(--color-floating-hover); }
 .settings-slider input[type='range']:disabled::-moz-range-thumb { background: var(--color-text-disabled); }
 .settings-row[data-disabled] .settings-slider-value { color: var(--color-text-disabled); }
+.settings-row[data-disabled] .settings-segment { opacity: 0.72; }
 .settings-segment-option:disabled { cursor: not-allowed; color: var(--color-text-disabled); }
 .settings-segment-option:disabled:hover { color: var(--color-text-disabled); }
-.settings-segment-option[aria-checked='true']:disabled { background: var(--color-control); color: var(--color-muted); }
+.settings-segment-option[aria-checked='true']:disabled {
+  background: color-mix(in srgb, var(--color-control) 42%, transparent);
+  color: var(--color-text-disabled);
+}
 
 @media (max-width: 719px) {
   .settings-row { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 14px; }
@@ -684,7 +671,7 @@
 
   .account-settings-sidebar {
     overflow: visible;
-    padding: 12px 64px 12px 14px;
+    padding: 34px 64px 12px 14px;
   }
 
   .account-settings-identity,

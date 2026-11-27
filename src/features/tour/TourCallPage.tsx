@@ -88,7 +88,7 @@ export default function TourCallPage() {
           {/* The call screen's info bar (ConnectionPage): 대화 모드 · 남은 크레딧 · 연결 시간, all open. */}
           <div className="connection-titlebar-right">
             <div className="connection-mode-segment" role="group" aria-label="대화 모드" data-tour="call-mode">
-              <button type="button" className="connection-mode-option" data-active aria-pressed onClick={NOOP}><span>기본<span className="connection-mode-detail"> · 크레딧 없음</span></span></button>
+              <button type="button" className="connection-mode-option" data-active aria-pressed onClick={NOOP}><span>기본<span className="connection-mode-detail connection-mode-detail--free"> · 크레딧 없음</span></span></button>
               <button type="button" className="connection-mode-option" aria-pressed={false} onClick={NOOP}><span>고급<span className="connection-mode-detail"> · 1턴 {CREDIT_PRICING.advanced}</span></span></button>
             </div>
             {credits !== null && (

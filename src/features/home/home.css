@@ -224,12 +224,11 @@
   .home-mate-badge--soon { color: var(--color-muted); }
   .home-mate-badge--soon::before { width: 7px; height: 7px; border-radius: 999px; background: currentColor; opacity: 0.7; content: ''; }
 
-  .home-mate-card-copy { position: relative; z-index: 1; padding: 20px 68px 20px 20px; }
-  /* A connectable card keeps a row under the copy for 「바로 연결」; the line itself runs the full width. */
-  .home-mate-card:has(> .home-mate-card-enter) .home-mate-card-copy { padding: 20px 20px 64px; }
-  .home-mate-card[data-coming-soon] .home-mate-card-copy { padding-right: 20px; }
-  .home-mate-card-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  .home-mate-card-name h3 { margin: 0; font-size: 20px; font-weight: 700; }
+  /* Every card in a row reserves the same bottom slot (for 「바로 연결」) and 2-line description height, so sibling
+     mate names align horizontally across connectable, coming-soon, and mystery cards. */
+  .home-mate-card-copy { position: relative; z-index: 1; padding: 20px 20px 64px; }
+  .home-mate-card-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 28px; }
+  .home-mate-card-name h3 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 700; }
   .home-mate-tag {
     display: inline-flex;
     align-items: center;
@@ -242,7 +241,17 @@
     font-weight: 600;
   }
   .home-mate-tag svg { color: currentColor; }
-  .home-mate-card-copy p { margin: 8px 0 0; color: var(--color-muted); font-size: var(--text-body-compact); line-height: 1.5; }
+  .home-mate-card-copy > p:first-of-type {
+    margin: 8px 0 0;
+    min-height: 3em;
+    color: var(--color-muted);
+    font-size: var(--text-body-compact);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
 
   .home-round-button {
     display: inline-flex;
@@ -298,9 +307,8 @@
     line-height: 1;
     translate: -50% -50%;
   }
-  .home-mate-mystery-name { color: var(--color-subtle); font-size: 20px; font-weight: 700; letter-spacing: 0.08em; }
-  .home-mate-card--mystery .home-mate-card-copy { padding-right: 20px; }
-  .home-mate-card--mystery .home-mate-card-copy p { color: var(--color-subtle); }
+  .home-mate-mystery-name { color: var(--color-subtle); font-size: 20px; line-height: 28px; font-weight: 700; letter-spacing: 0.08em; }
+  .home-mate-card--mystery .home-mate-card-copy > p:first-of-type { color: var(--color-subtle); }
 
   .home-mate-card--failed { align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; }
   .home-mate-card--failed p { color: var(--color-muted); }

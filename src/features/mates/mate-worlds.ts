@@ -92,8 +92,9 @@ export function worldLabel(world: Pick<MateWorld, 'episode' | 'place' | 'placeho
   return world.placeholder ? episodeLabel(world.episode) : `${episodeLabel(world.episode)}${separator}${world.place}`
 }
 
-/** 「Lv.4에서 열려요」 */
-export const worldLockedCaption = (unlockStage: number) => `Lv.${unlockStage}에서 열려요`
+/** 「4단계에서 열려요」 (1단계 세계관이 잠겨 있다면 아직 첫 연결 전이므로 「첫 연결 후 열려요」). */
+export const worldLockedCaption = (unlockStage: number) =>
+  unlockStage <= 1 ? '첫 연결 후 열려요' : `${unlockStage}단계에서 열려요`
 
 /**
  * The five worlds for an affinity stage. `met`: the user has connected with the mate at least once (a mate never met,

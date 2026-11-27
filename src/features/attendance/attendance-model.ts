@@ -13,6 +13,8 @@ export type AttendanceState = {
    * source): the header chip holds them back on the home page until they land. 0 or absent otherwise.
    */
   pendingCredit?: number
+  /** The business day (`YYYY-MM-DD`) that `pendingCredit` was granted for. */
+  pendingDay?: string
 }
 
 /** The cycle as last checked in. Missing a day changes nothing: progress simply waits (days attended, not in a row). */
@@ -79,5 +81,7 @@ export function attendanceFromDays(days: Iterable<string>, today: string, option
   // The cycle before today: the last check-in was some earlier day.
   const stored: StoredAttendance = { cycleDay: before === 0 ? 0 : ((before - 1) % CYCLE_DAYS) + 1, lastCheckedOn: before === 0 ? null : 'earlier', totalDays: earlier.size }
   if (serverToday && options.received) return { ...applyCheckIn(stored, today, rewards).state, pendingCredit: 0 }
-  return { ...resolveAttendance(stored, today, rewards), pendingCredit: serverToday ? credit : 0 }
+  return serverToday
+    ? { ...resolveAttendance(stored, today, rewards), pendingCredit: credit, pendingDay: today }
+    : { ...resolveAttendance(stored, today, rewards), pendingCredit: 0 }
 }

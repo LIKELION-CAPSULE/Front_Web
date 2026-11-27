@@ -317,7 +317,7 @@
     );
     width: calc(2 * var(--dialogue-half));
     margin: 0 0 0 calc(var(--dialogue-cx) - var(--dialogue-half));
-    padding: 28px 44px 16px 22px;
+    padding: 34px 22px 16px 22px;
   }
   .login-dialogue-layer .call-dialogue-text {
     font-size: 17px;

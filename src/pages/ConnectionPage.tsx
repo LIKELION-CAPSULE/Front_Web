@@ -47,6 +47,7 @@ import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate
 import { normalizeAffinityStage } from '@/features/mates/affinity-stages'
 import { DevicePrivacyInfo } from '@/features/media/components/DevicePrivacyInfo'
 import { Brand } from '@/shared/ui/Brand'
+import { CloseButton } from '@/shared/ui/CloseButton'
 import { MateTap, onMate } from '@/features/mates/mate-tap'
 import { playHangup, whenRendered, type HangupPlayback } from '@/features/mates/hangup-sequence'
 import { takePickup } from '@/features/mates/pickup-sequence'
@@ -99,15 +100,6 @@ const STT_LABEL: Record<string, string> = { listening: '듣는 중', finishing: 
 function SttPrivacy({ onShown }: { onShown: () => void }) {
   useEffect(() => { onShown() }, [onShown])
   return <p className="connection-stt-privacy">{PUSH_TO_TALK_TEXT.privacy}</p>
-}
-
-/** The chat's close button: a still X (the X does not turn, 2026-11-28). */
-function StillClose() {
-  return (
-    <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden="true" className="connection-chat-close-glyph">
-      <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  )
 }
 
 /** A stage-up of this call, logged as a chat note where it arrived (StageUpLine). */
@@ -843,8 +835,8 @@ export default function ConnectionPage() {
         </div>
 
         {/* The info bar, all open (no 「⋯」, user decision 2026-11-27): ? | 친밀도 · 대화 모드 · 남은 크레딧 | 연결 시간.
-            Narrow windows (≤ 1100px) shorten the chips to their icons (the full words stay in the tooltip and for screen
-            readers); the mode is always shown. */}
+            Mid-width windows (≤ 1100px, incl. 900px) keep affinity stage name and paid cost visible while trimming only
+            redundant captions; narrow windows (≤ 760px) shorten the rest (full words stay sr-only and in title). */}
         <div className="connection-titlebar-right">
           <DevicePrivacyInfo label="연결 화면 안내" className="connection-titlebar-help">
             <ConnectionHelpNote />
@@ -870,7 +862,7 @@ export default function ConnectionPage() {
               // The mode itself is free; her voice (the dock's button) is counted apart, so say so while it is on.
               title={voiceOn ? `기본 모드는 크레딧 없이 대화해요. 메이트 음성은 답장마다 ${CREDIT_PRICING.voice} 크레딧이 따로 들어요` : '기본 모드 · 크레딧 없음'}
             >
-              <span>기본<span className="connection-mode-detail"> · 크레딧 없음</span></span>
+              <span>기본<span className="connection-mode-detail connection-mode-detail--free"> · 크레딧 없음</span></span>
             </button>
             <button
               type="button"
@@ -1090,14 +1082,13 @@ export default function ConnectionPage() {
                     : `통화 중 · ${callMinutes < 1 ? '방금 시작' : `함께 ${callMinutes}분`}`}
                 </p>
               </div>
-              <button type="button" onClick={() => setChatOpen(false)} aria-label="대화창 닫기" className="connection-chat-close">
-                <StillClose />
-              </button>
+              <CloseButton onClick={() => setChatOpen(false)} label="채팅 닫기" className="connection-chat-close" />
             </header>
             <div className="connection-log-wrap">
             <div
               ref={messageList}
               className="connection-messages"
+              data-empty={chatEmpty || undefined}
               role="log"
               aria-label={`${withParticle(mate.name, '과', '와')} 대화`}
               aria-live="polite"
