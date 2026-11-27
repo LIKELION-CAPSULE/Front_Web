@@ -20,7 +20,7 @@ import {
  * Motion: on entry the first `filled` capsules drop into their wells 140 ms apart and bounce a little (one fixed
  * path); a new invite drops one capsule, sweeps a highlight over the glass and waves the flag; the whole dome tilts
  * up to ±4° with the pointer. Renders only while something moves, only on screen; under reduced motion one still frame
- * with every capsule seated. Units: 1 = 100 px of the reference art, y up from the floor.
+ * with every capsule seated. Units: 1 = 100 px of the reference art, y up from the floor (y = (770 − py) / 100).
  */
 
 export type InviteDomeSceneOptions = {
@@ -46,16 +46,18 @@ export type InviteDomeSceneController = {
   dispose(): void
 }
 
-export const DOME_SLOTS = { columns: 5, rows: 2, pitchX: 0.9, rowY: [4.62, 2.98], z: 0.55 } as const
+export const DOME_SLOTS = { columns: 5, rows: 2, pitchX: 0.9, rowY: [4.32, 2.68], z: 0.55 } as const
 /** The drop: 140 ms apart, a fall from at most `height` above the well (never from above the glass), a small bounce. */
-export const DOME_DROP = { staggerMs: 140, fallMs: 330, settleMs: 230, height: 2.1, ceiling: 5.55 } as const
+export const DOME_DROP = { staggerMs: 140, fallMs: 330, settleMs: 230, height: 2.1, ceiling: 5.25 } as const
 const MAX_DPR = 1.75
 const TILT_MAX = (4 * Math.PI) / 180
 const SWEEP_MS = 1100
 const WAVE_MS = 1700
 /** View of the art box: what the canvas shows, in model units (the host is a little larger than the art box). */
-const VIEW = { centerY: 3.55, height: 9.62 } as const
+const VIEW = { centerY: 3.25, height: 9.62 } as const
 
+/** Height of the base's top (where the dome stands). */
+const BASE_TOP = 1.7
 const LAVENDER_METAL = '#D9D1F7'
 /** Light of a seated capsule (1 = as in 내 메이트). */
 const CAPSULE_GLOW = 2.5
@@ -80,15 +82,15 @@ function baseProfile() {
     [0, 0], [3.42, 0], [3.52, 0.04], [3.56, 0.14], [3.56, 0.36], [3.5, 0.44], [3.38, 0.48], [3.38, 0.54], [3.44, 0.58],
     [3.47, 0.66], [3.47, 1.46], [3.42, 1.54], [3.32, 1.58], [3.32, 1.64], [3.38, 1.68], [3.4, 1.76], [3.4, 1.9],
     [3.34, 1.98], [3.2, 2.0], [0, 2.0],
-  ].map(([x, y]) => new Vector2(x, y))
+  ].map(([x, y]) => new Vector2(x!, y! * BASE_TOP / 2))
 }
 
 /** Glass dome profile: straight walls from the base lip, then a flattened cap. */
 function domeProfile() {
-  const points: Vector2[] = [new Vector2(3.14, 2.0), new Vector2(3.14, 4.9)]
+  const points: Vector2[] = [new Vector2(3.14, BASE_TOP), new Vector2(3.14, 4.6)]
   for (let step = 1; step <= 18; step++) {
     const angle = (step / 18) * (Math.PI / 2)
-    points.push(new Vector2(3.14 * Math.cos(angle), 4.9 + 1.45 * Math.sin(angle)))
+    points.push(new Vector2(3.14 * Math.cos(angle), 4.6 + 1.45 * Math.sin(angle)))
   }
   return points
 }
@@ -150,7 +152,8 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   scene.environment = environmentTarget.texture
   scene.environmentIntensity = 1.25
 
-  const camera = new PerspectiveCamera(17, 1, 1, 80)
+  // A long lens: the reference is nearly orthographic (a short one swells the base's front and pushes it down).
+  const camera = new PerspectiveCamera(10, 1, 1, 140)
   scene.add(new AmbientLight('#ffffff', 0.9))
   const key = new DirectionalLight('#ffffff', 1.6)
   key.position.set(-4, 7, 8)
@@ -167,10 +170,10 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
 
   /** Everything that tilts with the pointer turns around the dome's middle. */
   const tilt = new Group()
-  tilt.position.y = 3.6
+  tilt.position.y = 3.3
   scene.add(tilt)
   const model = new Group()
-  model.position.y = -3.6
+  model.position.y = -3.3
   tilt.add(model)
 
   // ── Base: lathed metal, the capsule emblem on its front ──
@@ -179,7 +182,7 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   model.add(base)
 
   const emblem = new Group()
-  emblem.position.set(0, 0.92, 3.47)
+  emblem.position.set(0, 0.82, 3.6)
   const emblemRing = new Mesh(keep(new TorusGeometry(0.66, 0.075, 12, 48)), own(new MeshStandardMaterial({ color: '#E4DEFA', metalness: 0.6, roughness: 0.25 })))
   const emblemDisc = new Mesh(
     keep(new CylinderGeometry(0.6, 0.6, 0.1, 48).rotateX(Math.PI / 2)),
@@ -212,14 +215,14 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   floorPool.position.y = 0.005
   floorPool.renderOrder = 1
   const floorRing = new Mesh(
-    keep(new RingGeometry(3.8, 3.9, 96).rotateX(-Math.PI / 2)),
-    own(new MeshBasicMaterial({ color: '#B49CFF', blending: AdditiveBlending, transparent: true, depthWrite: false, side: DoubleSide })),
+    keep(new RingGeometry(3.78, 3.92, 96).rotateX(-Math.PI / 2)),
+    own(new MeshBasicMaterial({ color: '#D2C2FF', blending: AdditiveBlending, transparent: true, depthWrite: false, side: DoubleSide })),
   )
   floorRing.position.y = 0.01
   floorRing.renderOrder = 2
   const floorHalo = new Mesh(
-    keep(new RingGeometry(3.62, 4.12, 96).rotateX(-Math.PI / 2)),
-    own(new MeshBasicMaterial({ color: VIOLET, opacity: 0.22, blending: AdditiveBlending, transparent: true, depthWrite: false, side: DoubleSide })),
+    keep(new RingGeometry(3.6, 4.3, 96).rotateX(-Math.PI / 2)),
+    own(new MeshBasicMaterial({ color: VIOLET, opacity: 0.42, blending: AdditiveBlending, transparent: true, depthWrite: false, side: DoubleSide })),
   )
   floorHalo.position.y = 0.008
   floorHalo.renderOrder = 1
@@ -251,37 +254,37 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
     own(new MeshBasicMaterial({ map: own2Texture(radialGlowTexture([[0, 'rgba(255,255,255,0.55)'], [0.5, 'rgba(255,255,255,0.16)'], [1, 'rgba(255,255,255,0)']])), color: VIOLET, blending: AdditiveBlending, transparent: true, depthWrite: false })),
   )
   innerGlow.scale.set(6.4, 4.6, 1)
-  innerGlow.position.set(0, 3.2, -0.6)
+  innerGlow.position.set(0, 2.9, -0.6)
   innerGlow.renderOrder = 2
   const domeFloorGlow = new Mesh(
     keep(new PlaneGeometry(1, 1).rotateX(-Math.PI / 2)),
     own(new MeshBasicMaterial({ map: own2Texture(radialGlowTexture([[0, 'rgba(255,255,255,0.5)'], [0.6, 'rgba(255,255,255,0.16)'], [1, 'rgba(255,255,255,0)']])), color: '#8E66FF', blending: AdditiveBlending, transparent: true, depthWrite: false })),
   )
   domeFloorGlow.scale.set(6.2, 1, 6.2)
-  domeFloorGlow.position.y = 2.03
+  domeFloorGlow.position.y = BASE_TOP + 0.03
   domeFloorGlow.renderOrder = 2
   // The floor under the glass: violet, glossy, lit by the glow (not the bare metal top of the base).
   const domeFloor = new Mesh(
     keep(new CylinderGeometry(3.14, 3.14, 0.02, 72)),
     own(new MeshStandardMaterial({ color: '#5C47A8', emissive: '#2B1A66', emissiveIntensity: 0.6, metalness: 0.1, roughness: 0.18 })),
   )
-  domeFloor.position.y = 2.01
+  domeFloor.position.y = BASE_TOP + 0.01
   model.add(domeFloor, innerGlow, domeFloorGlow)
 
   // ── Top: the collar, the glossy knob, the pole and its pennant ──
   const collar = new Mesh(keep(new CylinderGeometry(0.7, 0.74, 0.2, 48)), metal)
-  collar.position.y = 6.33
+  collar.position.y = 6.03
   const knobMaterial = own(new MeshPhysicalMaterial({ color: VIOLET, emissive: VIOLET_DEEP, emissiveIntensity: 0.25, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08 }))
   const knob = new Mesh(keep(new SphereGeometry(0.5, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2)), knobMaterial)
-  knob.position.y = 6.43
+  knob.position.y = 6.13
   const pole = new Mesh(keep(new CylinderGeometry(0.045, 0.05, 0.95, 12)), metal)
-  pole.position.y = 7.3
+  pole.position.y = 7.0
   const ball = new Mesh(keep(new SphereGeometry(0.09, 16, 12)), metal)
-  ball.position.y = 7.82
+  ball.position.y = 7.52
   const flagGeo = keep(flagGeometry())
   const flagRest = Float32Array.from(flagGeo.getAttribute('position').array as Float32Array)
   const flag = new Mesh(flagGeo, own(new MeshPhysicalMaterial({ color: '#8A5CFF', emissive: VIOLET_DEEP, emissiveIntensity: 0.35, roughness: 0.35, clearcoat: 0.6, side: DoubleSide })))
-  flag.position.set(0.04, 7.46, 0)
+  flag.position.set(0.04, 7.16, 0)
   model.add(collar, knob, pole, ball, flag)
 
   // ── The capsules (canonical model), upright in their wells ──
@@ -300,12 +303,12 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   }
 
   // ── The glass dome (drawn last: additive, double-sided) ──
-  const glass = forAlphaCanvas(fresnelGlassMaterial({ tint: new Color('#B094FF'), body: 0.07, rim: 0.72, streak: 0.6 }))
+  const glass = forAlphaCanvas(fresnelGlassMaterial({ tint: new Color('#B094FF'), body: 0.045, rim: 0.75, streak: 0.62 }))
   materials.push(glass)
   const dome = new Mesh(keep(new LatheGeometry(domeProfile(), 72)), glass)
   dome.renderOrder = 10
   const domeLip = new Mesh(keep(new TorusGeometry(3.16, 0.05, 8, 96).rotateX(Math.PI / 2)), own(new MeshStandardMaterial({ color: '#E2DAFF', metalness: 0.4, roughness: 0.25 })))
-  domeLip.position.y = 2.04
+  domeLip.position.y = BASE_TOP + 0.04
   model.add(domeLip, dome)
 
   // ── State ──
@@ -323,7 +326,7 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
     camera.aspect = width / height
     // Fit VIEW.height at the dome's middle, seen a little from above (the base's top shows as an ellipse).
     const distance = VIEW.height / 2 / Math.tan((camera.fov * Math.PI) / 360)
-    const elevation = (6.5 * Math.PI) / 180
+    const elevation = (4 * Math.PI) / 180
     camera.position.set(0, VIEW.centerY + Math.sin(elevation) * distance, Math.cos(elevation) * distance)
     camera.lookAt(0, VIEW.centerY, 0)
     camera.updateProjectionMatrix()
