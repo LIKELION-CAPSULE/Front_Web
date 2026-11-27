@@ -112,15 +112,18 @@ test('every line is one or two sentences in 채린’s 반말, read long enough,
     'mates-capsules': ['캡슐', '함께한 시간', '친밀도'],
     'mates-recent': ['최근 캡슐', '기록 카드', '친밀도', '세계관', '화살표'],
     records: ['기간', '보드', '날짜'],
-    account: ['프로필', '설정', '보안'],
+    account: ['프로필', '설정', '메이트 음성', 'PIP', '보안'],
   }
+  // The line on a narrow practice call, where the dock folds PIP into ⋯ (UX review 9-2).
+  const fallbackFeatures: Record<string, readonly string[]> = { 'call-end': ['PIP', '⋯', '끝낼', '연결 기록'] }
   for (const step of TOUR_STEPS) {
-    for (const line of [step.say, step.sayWithout].filter((value): value is string => Boolean(value))) {
+    for (const line of [step.say, step.sayWithout, step.sayFallback].filter((value): value is string => Boolean(value))) {
       const sentences = line.split(/(?<=[.!?])\s+/).filter(Boolean)
       assert.ok(sentences.length >= 1 && sentences.length <= 2, `${step.id}: ${line}`)
       for (const sentence of sentences) assert.doesNotMatch(sentence, /(요|니다)[.!?]?$/, `${step.id}: ${sentence}`)
     }
     for (const word of features[step.id] ?? []) assert.ok(step.say.includes(word), `${step.id} names ${word}`)
+    for (const word of fallbackFeatures[step.id] ?? []) assert.ok(step.sayFallback?.includes(word), `${step.id} (narrow) names ${word}`)
   }
   assert.equal(TOUR_STEPS.at(-1)!.say, '이제 만나러 가 볼까?')
 })

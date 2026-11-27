@@ -96,6 +96,12 @@
   pointer-events: none;
   transform: translate(-50%, calc(-100% - 6px));
 }
+/* The year: in the board's top-left corner (over the stage's faded edge, clear of the months), not over the day. */
+.capsule-board-marker--corner {
+  top: 12px;
+  left: 12px;
+  transform: none;
+}
 
 .capsule-board--fallback {
   display: grid;

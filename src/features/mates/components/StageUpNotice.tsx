@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { normalizeAffinityStage } from '@/features/mates/affinity-stages'
+import { affinityStageLabel, normalizeAffinityStage } from '@/features/mates/affinity-stages'
 import { worldOpenedAt, worldStageUpLine } from '@/features/mates/mate-worlds'
 import { useMateWorldContent } from '@/features/mates/use-mate-worlds'
 import type { StageUp } from '@/shared/api/types'
@@ -9,9 +9,10 @@ import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 const STAGE_UP_NOTICE_MS = 12_000
 
 /**
- * 통화 중 친밀도 단계 상승 (21 heartbeat `stageUp`): one quiet card among the call's floating notices — the new level
- * and, with the world feature, the world it opened (「새 세계관이 열렸어요 · EP.03 도서관」; seen in 내 메이트 after the
- * call). Shown once per stage. The call's own background and outfit do not change (not decided).
+ * 통화 중 친밀도 단계 상승 (21 heartbeat `stageUp`): one quiet card among the call's floating notices — the new stage
+ * (「친밀도 3단계 · 친구」, the words every other screen uses; the titlebar chip moves to it at once) and, with the
+ * world feature, the world it opened (「새 세계관이 열렸어요 · EP.03 도서관」; seen in 내 메이트 after the call).
+ * Shown once per stage. The call's own background and outfit do not change (not decided).
  */
 export function StageUpNotice({ stageUp, world, mateId, mateName }: {
   stageUp: StageUp | null
@@ -35,7 +36,7 @@ export function StageUpNotice({ stageUp, world, mateId, mateName }: {
     <div className="connection-notice-card connection-stage-up" data-stage={stage.stage}>
       <FeedbackMessage tone="success">
         <span className="connection-stage-up-copy">
-          <strong>친밀도 Lv.{stage.stage} · {stage.stageName}</strong>
+          <strong>친밀도 {affinityStageLabel(stage.stage, stage.stageName)}</strong>
           {opened && <span>{worldStageUpLine(opened)}</span>}
         </span>
       </FeedbackMessage>

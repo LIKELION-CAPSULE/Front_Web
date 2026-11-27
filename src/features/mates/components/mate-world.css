@@ -71,7 +71,18 @@ button.mate-world-tile:focus-visible { outline: 2px solid var(--color-focus-ring
 /* ── Detail ── */
 .mate-world-scene { position: relative; overflow: hidden; margin: 0 0 16px; border-radius: 18px; aspect-ratio: 16 / 10; }
 .mate-world-scene-backdrop { position: absolute; inset: 0; }
-.mate-world-outfit { position: absolute; right: 6%; bottom: 0; height: 96%; width: auto; object-fit: contain; object-position: bottom; }
+/* The outfit still ends above the knees (its hem and hands are the picture's last ~12%): drawn larger and set below the
+   frame so that edge never shows — she stands in the scene, cut by the frame, instead of floating over its floor —
+   and the frame's foot fades softly (::after). */
+.mate-world-outfit { position: absolute; right: 6%; bottom: -14%; height: 112%; width: auto; object-fit: contain; object-position: bottom; }
+.mate-world-scene::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 26%;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-canvas) 55%, transparent));
+  pointer-events: none;
+}
 .mate-world-facts { display: grid; gap: 12px; margin: 0; }
 .mate-world-facts > div { display: grid; gap: 2px; }
 .mate-world-facts dt { color: var(--color-subtle); font-size: 13px; line-height: 18px; font-weight: 600; }

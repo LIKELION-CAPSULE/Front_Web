@@ -296,10 +296,11 @@ export default function MyMatesPage() {
   const capsuleCount = previewMate || !mine
     ? capsules.reduce((sum, capsule) => sum + capsulesForConnection(capsule.durationSeconds), 0)
     : estimatedCapsuleCount(mine)
-  // The list toggle sits in the recent block's title row; the main action takes the column's full width.
-  const listToggle = (
+  // The list toggle sits in the recent block's title row; the main action takes the column's full width. While the
+  // column holds fewer rows than the list has, it says how many more the list shows (the column never scrolls).
+  const listToggle = (hidden: number) => (
     <button type="button" className="my-mates-list-toggle" aria-pressed={listView} onClick={() => setListView(!listView)}>
-      {listView ? '장면으로 보기' : '목록으로 보기'}
+      {listView ? '장면으로 보기' : hidden > 0 ? `나머지 ${hidden}개 · 목록 보기` : '목록으로 보기'}
     </button>
   )
   const actions = (

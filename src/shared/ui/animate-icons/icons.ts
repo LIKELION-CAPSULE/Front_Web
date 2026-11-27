@@ -33,6 +33,7 @@ import { UserRoundIcon } from './user-round-icon'
 import { SlidersHorizontalIcon } from './sliders-horizontal-icon'
 import { MaximizeIcon } from './maximize-icon'
 import { MinimizeIcon } from './minimize-icon'
+import { PictureInPictureIcon } from './picture-in-picture-icon'
 import { MoonIcon } from './moon-icon'
 import { CoffeeIcon } from './coffee-icon'
 import { LockKeyholeIcon } from './lock-keyhole-icon'
@@ -77,6 +78,7 @@ export const animatedIcons = {
   sliders: SlidersHorizontalIcon,
   expand: MaximizeIcon,
   shrink: MinimizeIcon,
+  pip: PictureInPictureIcon,
   moon: MoonIcon,
   coffee: CoffeeIcon,
   lock: LockKeyholeIcon,

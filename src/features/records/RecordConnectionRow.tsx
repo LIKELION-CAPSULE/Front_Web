@@ -43,14 +43,15 @@ export function RecordConnectionRow({ record, mateName }: { record: StudyRecord;
 
 /**
  * The part of a day that 38 does not list as connections (older ones of that day): its time, no time of day and no
- * link (there is no single connection record behind it).
+ * link (there is no single connection record behind it). `alone`: no connection of that day is listed, so the row is
+ * the whole day (「이날 연결 합계」); otherwise it is what the listed ones leave (「그 밖의 연결 합계」).
  */
-export function DayRemainderRow({ record, mateName }: { record: StudyRecord; mateName?: string }) {
+export function DayRemainderRow({ record, mateName, alone = false }: { record: StudyRecord; mateName?: string; alone?: boolean }) {
   const cameraSeconds = record.cameraFocus ? focusDetectedSeconds(record) : 0
   return (
     <div className="records-row records-row--remainder">
       <span className="records-row-meta">
-        <span className="records-row-when">그 밖의 연결</span>
+        <span className="records-row-when">{alone ? '이날 연결 합계' : '그 밖의 연결 합계'}</span>
         {mateName && (
           <span className="records-row-part">
             <span className="records-row-sep" aria-hidden="true">·</span>
