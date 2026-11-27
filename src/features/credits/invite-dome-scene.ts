@@ -30,6 +30,8 @@ export type InviteDomeSceneOptions = {
   reducedMotion: boolean
   /** The WebGL context was lost: the page shows the picture instead. */
   onContextFailure?: () => void
+  /** Fires only after the first successful draw, never merely after creating the canvas. */
+  onFirstFrame?: () => void
 }
 
 export type InviteDomeStats = { triangles: number; calls: number; dpr: number; animating: boolean }
@@ -126,6 +128,7 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
   let disposed = false
   let contextLost = false
   let raf = 0
+  let firstFrame = true
 
   const canvas = document.createElement('canvas')
   canvas.setAttribute('aria-hidden', 'true')
@@ -410,6 +413,10 @@ export function createInviteDomeScene(options: InviteDomeSceneOptions): InviteDo
     } else moving = true
     tilt.rotation.set(tilted.x, tilted.y, 0)
     renderer.render(scene, camera)
+    if (firstFrame) {
+      firstFrame = false
+      options.onFirstFrame?.()
+    }
     return moving
   }
 

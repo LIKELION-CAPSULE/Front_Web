@@ -236,7 +236,7 @@ export default function InvitePage() {
         <p className="invite-progress-count">
           <strong>{number(invitation.rewardedCount)}</strong>
           <span className="invite-progress-goal-count"> / {GOAL}</span>
-          <span className="invite-progress-unit">FRIENDS</span>
+          <span className="invite-progress-unit">명</span>
         </p>
         <ol className="invite-progress-capsules" aria-label={`초대한 친구 ${filled}명 / ${GOAL}명`}>
           {Array.from({ length: GOAL }, (_, index) => {
