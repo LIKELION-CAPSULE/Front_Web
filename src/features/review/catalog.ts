@@ -127,7 +127,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'home-first', group: '온보딩·홈', title: '홈 · 첫 방문', path: '/', note: '캡슐 메이트 탐색·서버 출시 메이트 목록' },
   { id: 'home-tutorial', group: '온보딩·홈', title: '홈 · 새 3단계 사용법', path: '/?tutorial=1', note: '최종 문서의 메이트 고르기·연결하기·연결 기록. 임의 대사와 미연동 기능 안내 없음' },
   { id: 'home-resume', group: '온보딩·홈', title: '홈 · 다시 연결', path: '/', session: 'recover', note: '진행 중인 연결이 있는 홈' },
-  { id: 'home-empty', group: '온보딩·홈', title: '홈 · 메이트 없음', path: '/', empty: true, note: '서버 목록을 로컬 룸으로 채우지 않는 빈 상태' },
+  { id: 'home-empty', group: '온보딩·홈', title: '홈 · 메이트 없음', path: '/', empty: true, note: '11 mates가 빈 응답: 메이트 자리에 「메이트를 불러오지 못했어요」·「다시 시도」 카드(로컬 룸이나 가짜 카드로 채우지 않음)' },
   { id: 'mate-detail', group: '메이트·연결', title: '메이트 상세', path: '/mates/chaerin', note: '세계관·내 역할·인트로와 직접 연결' },
   { id: 'connection-entry', group: '메이트·연결', title: '연결 · 직접 방문', path: '/connect/chaerin', note: '주소 방문만으로 세션을 만들지 않고 연결 버튼 제공' },
   { id: 'connection-active', group: '메이트·연결', title: '연결 중 · 채린', path: '/connect/chaerin', steps: [click('연결하기')], note: '준비·목표 시간 없이 기본 채팅·카메라·보기 전환' },

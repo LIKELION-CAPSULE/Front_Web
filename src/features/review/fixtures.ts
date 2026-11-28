@@ -1,5 +1,5 @@
 import { mateHeroPortrait } from '@/features/mates/artwork'
-import { LOCAL_CHARACTER_ID, LOCAL_LEDGER_TITLES, LOCAL_MATES, LOCAL_USER_ID, LocalBetaStore } from '@/features/local-demo/store'
+import { LOCAL_CHARACTER_ID, LOCAL_DOHYUN_CHARACTER_ID, LOCAL_LEDGER_TITLES, LOCAL_MATES, LOCAL_USER_ID, LocalBetaStore, localIntimacy } from '@/features/local-demo/store'
 import { ATTENDANCE_SOURCE_QA_KEY } from '@/features/attendance/attendance-source'
 import { businessDay } from '@/shared/lib/format'
 import { createLocalTransport } from '@/features/local-demo/transport'
@@ -60,6 +60,72 @@ function seedCredits(store: LocalBetaStore, scenario: ReviewScenario) {
   }
 }
 
+/** 내 기록 scenarios with the full 12-record set: five weeks, this week three days twice a day. */
+const RECORDS_SET = new Set(['records', 'records-two-mates', 'records-grid-month', 'records-grid-year', 'records-25d-year'])
+/** Each record's connected time in that set (seconds), newest first. */
+const RECORDS_SECONDS = [1500, 2100, 3000, 2400, 2700, 3600, 1800, 3000, 4500, 2400, 3300, 3900]
+const HOUR = 3_600_000, DAY = 86_400_000
+
+/** Where record `index` of the scenario starts (ms) and how long it ran (seconds). */
+function recordSlot(scenario: ReviewScenario, index: number, now: number): { startedAt: number; seconds: number } {
+  if (RECORDS_SET.has(scenario.id)) {
+    // This week (from Monday 05:00, the records page's day line) three days, two a day, then six over the four weeks before.
+    const today = new Date(now)
+    const weekday = (today.getDay() + 6) % 7
+    const day = index < 6 ? Math.min(Math.floor(index / 2), weekday) : weekday + [2, 5, 9, 13, 20, 27][index - 6]!
+    const midday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - day, index < 6 && index % 2 ? 19 : 9).getTime()
+    return { startedAt: Math.min(midday, now - 2 * HOUR - index * HOUR), seconds: RECORDS_SECONDS[index] ?? 1500 }
+  }
+  // 1분 미만: the first record is a start cancelled after 45 seconds (no capsule), the second a 25-minute one.
+  if (scenario.id === 'my-mates-short-connection') return { startedAt: now - (index + 1) * 3 * HOUR, seconds: index === 0 ? 45 : 1500 }
+  // 지난주 기록 없음: every record this week (today), so last week is really empty.
+  if (scenario.id === 'records-past-empty') return { startedAt: now - (index + 1) * 2 * HOUR - 1500_000, seconds: 1500 * (index + 1) }
+  const seconds = 1500 * (index + 1)
+  return { startedAt: now - (index + 1) * DAY - seconds * 1000, seconds }
+}
+
+/**
+ * Finished connections the scenario opens (`reports`, and the one its address opens: /connections/:id), oldest last.
+ * A scenario that names its records shows exactly those: the local server's generated 「steady」 history is cleared.
+ */
+function seedRecords(store: LocalBetaStore, scenario: ReviewScenario) {
+  if (scenario.reports?.length) store.setRecordPattern('none')
+  const opened = Number(scenario.path.match(/^\/connections\/(\d+)/)?.[1])
+  const recordIds = [...new Set([...(scenario.reports ?? []), ...(Number.isSafeInteger(opened) ? [opened] : [])])]
+  const now = Date.now()
+  const camOff = (id: number) => scenario.id.includes('nocam') || scenario.id.includes('camoff') || RECORDS_SET.has(scenario.id) && (id === 9004 || id === 9007)
+  for (const [index, id] of recordIds.entries()) {
+    if (scenario.session && id === REVIEW_SESSION_ID) continue
+    const { startedAt, seconds } = recordSlot(scenario, index, now)
+    // Two mates: every third record is 서도현's (the server name 「서진」, mapped by the app).
+    const characterId = scenario.id === 'records-two-mates' && index % 3 === 1 ? LOCAL_DOHYUN_CHARACTER_ID : LOCAL_CHARACTER_ID
+    store.data.nextSessionId = id
+    store.start(characterId).startedAt = startedAt
+    const camera = camOff(id) ? 0 : Math.round(seconds * 0.92)
+    const report = store.finish({ connectedSeconds: seconds, presentSeconds: camera, cameraOnSeconds: camera, pipSeconds: 0 })
+    const record = store.data.records.find(value => value.id === String(id))
+    report.endedAt = new Date(startedAt + seconds * 1000).toISOString()
+    // 친밀도 단계 상승 (아는 사이 → 친구): the level-up record, and one record of the 12-record set.
+    if (scenario.id === 'connection-record-levelup' || RECORDS_SET.has(scenario.id) && id === 9003) {
+      report.relation = { ...localIntimacy(true), stageBefore: 2, stageAfter: 3, stageName: '친구' }
+    }
+    // 카메라 없음: no closing line and no relation values (the record hides both).
+    if (scenario.id === 'connection-record-nocam') { report.closingLine = null; report.relation = null }
+    if (record) Object.assign(record, { endedAt: Date.parse(report.endedAt), focusSeconds: camera, serverReport: report })
+  }
+  store.data.records.sort((a, b) => b.endedAt - a.endedAt)
+}
+
+/** An image that cannot be decoded (no request): the call stage's model fails at once. */
+const BROKEN_STILL = 'data:image/png;base64,AAAA'
+
+/** A JSON answer of the local server with its `data` changed. */
+async function rewrite<T>(response: Response, change: (data: T) => void) {
+  const body = await response.json() as { data?: T }
+  if (body.data) change(body.data)
+  return new Response(JSON.stringify(body), { status: response.status, headers: { 'content-type': 'application/json' } })
+}
+
 export function createReviewTransport(scenario: ReviewScenario, original: typeof fetch): typeof fetch {
   // The proposed attendance API (attendance-source.ts), before the store reads the switch.
   if (scenario.fault === 'attendance-api') try { sessionStorage.setItem(ATTENDANCE_SOURCE_QA_KEY, 'attendance-api') } catch { /* In memory. */ }
@@ -68,19 +134,7 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
   else if (scenario.empty) store.reset('empty')
   if (scenario.onboarding) { store.data.authenticated = true; store.data.onboardingRequired = true }
   if (!scenario.guest) store.data.authenticated = true
-  // Connection records the scenario opens (`reports`): finished connections with those ids, oldest first.
-  // …and the one its address opens (/connections/:id).
-  const opened = Number(scenario.path.match(/^\/connections\/(\d+)/)?.[1])
-  const recordIds = [...new Set([...(scenario.reports ?? []), ...(Number.isSafeInteger(opened) ? [opened] : [])])]
-  for (const [index, id] of recordIds.entries()) {
-    if (scenario.session && id === REVIEW_SESSION_ID) continue
-    const seconds = 1500 * (index + 1)
-    store.data.nextSessionId = id
-    const started = store.start(LOCAL_CHARACTER_ID)
-    started.startedAt = Date.now() - (index + 1) * 86_400_000 - seconds * 1000
-    const camera = scenario.id.includes('nocam') ? 0 : Math.round(seconds * 0.92)
-    store.finish({ connectedSeconds: seconds, presentSeconds: camera, cameraOnSeconds: camera, pipSeconds: 0 })
-  }
+  seedRecords(store, scenario)
   if (scenario.session) {
     store.data.nextSessionId = REVIEW_SESSION_ID
     store.start(LOCAL_CHARACTER_ID)
@@ -113,7 +167,14 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     }
   }
   seedCredits(store, scenario)
-  const local = createLocalTransport(store, original, location.origin)
+  // The dev-only model and avatar files (local-assets/, absent in a clean worktree): the review never loads them, so
+  // their checks (the local server's avatar thumbnails) answer as missing without a request.
+  const isLocalAsset = (input: RequestInfo | URL) => {
+    const target = new URL(input instanceof Request ? input.url : String(input), location.href)
+    return target.origin === location.origin && target.pathname.startsWith('/__local-assets/')
+  }
+  const guarded: typeof fetch = (input, init) => isLocalAsset(input) ? Promise.resolve(new Response(null, { status: 404 })) : original(input, init)
+  const local = createLocalTransport(store, guarded, location.origin)
   let syncFailures = scenario.fault === 'sync' ? 1 : 0
   let reportFailures = scenario.fault === 'server-ended-report' ? 1 : 0
 
@@ -124,7 +185,7 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     const method = (options?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase()
     if (!url.pathname.startsWith('/api/')) {
       if (method !== 'GET' && method !== 'HEAD') throw new TypeError('Review mode blocks external mutations')
-      return original(input, options)
+      return guarded(input, options)
     }
     const path = url.pathname.replace(/^\/api\/backend/, '')
     const log = (status: number) => parent.postMessage({ type: 'capsule-review:request', method, path, status }, location.origin)
@@ -196,8 +257,21 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     if (path === '/referrals/me' && fault === 'invite-error') return fail(500)
     if (path === '/referrals' && method === 'POST' && fault && REFERRAL_FAULTS[fault]) return fail(REFERRAL_FAULTS[fault][1], REFERRAL_FAULTS[fault][0])
 
+    // 연결 · 모델 실패 뒤 서버 종료: the connection whose model failed has ended on the server by the time it is resumed.
+    if (operation === 'resume' && fault === 'model-ended-retry') return ended()
+
     const response = await local(input, options)
     log(response.status)
+    // 홈 · 메이트 없음: 11 answers with no mates (the home's mate load failure card).
+    if (path === '/home' && scenario.id === 'home-empty' && response.ok) return rewrite(response, (data: { mates?: unknown[] }) => { data.mates = [] })
+    // Mate detail (31) and the login mates (48) carry the dev model bundle (local-assets/); the review shows the stills
+    // instead, as the call stage does, so a clean worktree loads no engine.
+    if (method === 'GET' && (/^\/mates\/\d+$/.test(path) || path === '/login-mates') && response.ok) {
+      return rewrite(response, (data: { model?: unknown; mates?: { model?: unknown }[] }) => {
+        if ('model' in data) data.model = null
+        for (const mate of data.mates ?? []) mate.model = null
+      })
+    }
     // The call stage of the review is a still image (image-stage.ts), not the dev model bundle.
     if (method === 'POST' && path === '/connections' && response.ok || operation === 'resume' && response.ok) {
       const wire = await response.json() as { data: { mate?: { id: number; name: string; profileImageUrl?: string | null }; relation?: { stage?: number; stageName?: string | null } } }
@@ -209,7 +283,7 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
         const id = LOCAL_MATES.find(value => value.characterId === mate.id)?.mateId ?? 'chaerin'
         const still = mateHeroPortrait(id)
         wire.data.mate = { id: mate.id, name: mate.name, profileImageUrl: mate.profileImageUrl ?? still,
-          ...(fault === 'model-missing' ? {} : { modelJsonUrl: still }), ...(scenario.farewellLine ? { farewellLine: scenario.farewellLine } : {}) } as typeof mate
+          ...(fault === 'model-missing' ? {} : { modelJsonUrl: fault === 'model-ended-retry' ? BROKEN_STILL : still }), ...(scenario.farewellLine ? { farewellLine: scenario.farewellLine } : {}) } as typeof mate
       }
       return new Response(JSON.stringify(wire), { status: response.status, headers: { 'content-type': 'application/json' } })
     }
