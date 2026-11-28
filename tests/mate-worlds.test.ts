@@ -150,7 +150,7 @@ test('세계관 adapter: an item with its own place makes `title` the name; with
 })
 
 test('세계관 examples (development only): 채린 and 서도현 follow their planning tables, each with its own places', () => {
-  const chaerin = sampleMateWorlds('chaerin', { background: '/bg.webp', outfit: '/full.webp' })
+  const chaerin = sampleMateWorlds('chaerin', { outfit: '/full.webp' })
   assert.deepEqual(chaerin.map((world) => [episodeLabel(world.episode), world.title, world.place, world.outfit, world.sampleLine]), [
     ['EP.01', '노을 진 방과 후 교실', '교실', '교복', '창밖 좀 봐. …노을 지네. 뭐, 그렇다고.'],
     ['EP.02', '단둘이 남은 야자실', '야자실', '체육복', '쉿, 감독 쌤 지나간다. …됐다, 갔어.'],
@@ -158,10 +158,14 @@ test('세계관 examples (development only): 채린 and 서도현 follow their p
     ['EP.04', '불 켜진 학교 도서관', '학교 도서관', '트랙 져지', '쉿, 사서 쌤 쳐다본다. …너 때문에 웃음 참느라 죽는 줄.'],
     ['EP.05', '하얀 채린의 방', '채린의 방', '아이보리 긴팔티, 트레이닝 팬츠', '뭐 봐? 아, 저 선반…. 됐어, 다 봤으니까 어쩔 수 없지. 귀엽긴 하잖아.'],
   ])
-  // EP.01 is still the classroom: the app's classroom background and her full still (uniform) stay on it alone.
-  assert.deepEqual([chaerin[0]!.backgroundUrl, chaerin[0]!.outfitPreviewUrl, chaerin[1]!.backgroundUrl], ['/bg.webp', '/full.webp', undefined])
+  // Every world has its own background (landscape + portrait); her full still (uniform) is EP.01 교실's outfit alone.
+  chaerin.forEach((world, index) => {
+    assert.match(world.backgroundUrl ?? '', new RegExp(`/assets/worlds/chaerin/ep0${index + 1}-landscape\\.webp$`))
+    assert.match(world.backgroundPortraitUrl ?? '', new RegExp(`/assets/worlds/chaerin/ep0${index + 1}-portrait\\.webp$`))
+  })
+  assert.deepEqual([chaerin[0]!.outfitPreviewUrl, chaerin[1]!.outfitPreviewUrl], ['/full.webp', undefined])
 
-  const dohyun = sampleMateWorlds('dohyun', { background: '/bg.webp', outfit: '/full.webp' })
+  const dohyun = sampleMateWorlds('dohyun', { outfit: '/full.webp' })
   assert.deepEqual(dohyun.map((world) => [episodeLabel(world.episode), world.title, world.place, world.outfit, world.sampleLine]), [
     ['EP.01', '도서관에서', '도서관', '후드티', '아, 이 부분 왜 이렇게 안 읽히냐.'],
     ['EP.02', '나 알바 중인데', '편의점', '편의점 유니폼 조끼, 검은 반팔', '이거 새로 들어온 건데 맛있으려나.'],
@@ -169,8 +173,11 @@ test('세계관 examples (development only): 채린 and 서도현 follow their p
     ['EP.04', '한 판만 더', 'PC방', '검은 후드집업, 게이밍 헤드셋', '아니, 방금 그건 좀 억울한데. …라면이나 시킬까.'],
     ['EP.05', '서도현의 방', '서도현의 방', '편안한 잠옷', '아, 뒤에 침대 있으니까 자꾸 눕고 싶다.'],
   ])
-  // His still is a school uniform and the call background a classroom: neither is one of his worlds.
-  for (const world of dohyun) assert.deepEqual([world.backgroundUrl, world.outfitPreviewUrl], [undefined, undefined])
+  // His own backgrounds; his still is a school uniform, which none of his worlds wears (no outfit preview).
+  dohyun.forEach((world, index) => {
+    assert.match(world.backgroundUrl ?? '', new RegExp(`/assets/worlds/dohyun/ep0${index + 1}-landscape\\.webp$`))
+    assert.equal(world.outfitPreviewUrl, undefined)
+  })
   for (const world of [...chaerin, ...dohyun]) {
     assert.ok(world.summary, `${world.title}: an introduction`)
     for (const key of ['prompt', 'mood', 'time']) assert.ok(!(key in world), key)

@@ -33,8 +33,10 @@ export type MateWorld = {
   unlockStage: number
   unlocked: boolean
   unlockedAt?: number
-  /** The place's background picture. */
+  /** The place's background picture (landscape: the cards and the detail). */
   backgroundUrl?: string
+  /** The same place for a tall frame (portrait), for a screen that needs one (not used yet: e.g. a narrow call stage). */
+  backgroundPortraitUrl?: string
   /** A still of the mate in that place's outfit. */
   outfitPreviewUrl?: string
   /** One line the mate might say there. */
@@ -53,6 +55,7 @@ export type MateWorldContent = {
   summary?: string
   unlockStage?: number
   backgroundUrl?: string
+  backgroundPortraitUrl?: string
   outfitPreviewUrl?: string
   sampleLine?: string
   unlockedAt?: number
@@ -144,6 +147,7 @@ export function mateWorldsForStage(
       unlocked,
       ...(unlocked && item?.unlockedAt !== undefined ? { unlockedAt: item.unlockedAt } : {}),
       ...(item?.backgroundUrl ? { backgroundUrl: item.backgroundUrl } : {}),
+      ...(item?.backgroundPortraitUrl ? { backgroundPortraitUrl: item.backgroundPortraitUrl } : {}),
       ...(item?.outfitPreviewUrl ? { outfitPreviewUrl: item.outfitPreviewUrl } : {}),
       ...(item?.sampleLine ? { sampleLine: item.sampleLine } : {}),
       placeholder: !place,

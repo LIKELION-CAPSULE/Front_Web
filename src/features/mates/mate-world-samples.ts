@@ -6,13 +6,24 @@ import type { MateWorldContent } from './mate-worlds.ts'
  * and the talk's prompt are the backend's; only what a screen shows is here (the world's name, place and outfit in
  * short form, one line of introduction and the sample line about the place) — no prompt, mood or time of day.
  *
- * Pictures: only what the app already has, and only where it matches — 채린's EP.01 교실 gets the classroom call
- * background and her full still (school uniform). 서도현's still is a school uniform too, which none of his worlds
- * wears, so his worlds show the soft placeholder. A mate without examples gets none (「준비 중」).
+ * Pictures: each world's own background (src/assets/worlds/<mate>/ep0N-{landscape,portrait}.webp, 2026-11-28; no
+ * one in them, the lower middle left free for the Live2D mate). They are referenced only from here, so like the rest
+ * of this module they stay out of production bundles. The mate's full still (school uniform) is the outfit preview of
+ * 채린's EP.01 교실 alone; 서도현's still is a uniform none of his worlds wears. A mate without examples gets none.
  */
 type SampleWorld = Required<Pick<MateWorldContent, 'title' | 'place' | 'outfit' | 'summary' | 'sampleLine'>> & {
-  /** The app's classroom background and the mate's full still belong to this world. */
+  /** The mate's full still is this world's outfit. */
   appArt?: true
+}
+
+/** The world backgrounds by mate and episode (landscape 1600 × 1200, portrait 1200 × 1600). */
+function worldBackground(mateId: string, episode: number) {
+  if (mateId !== 'chaerin' && mateId !== 'dohyun') return {}
+  const name = `ep${String(episode).padStart(2, '0')}`
+  return {
+    backgroundUrl: new URL(`../../assets/worlds/${mateId}/${name}-landscape.webp`, import.meta.url).href,
+    backgroundPortraitUrl: new URL(`../../assets/worlds/${mateId}/${name}-portrait.webp`, import.meta.url).href,
+  }
 }
 
 const WORLDS: Readonly<Record<string, readonly SampleWorld[]>> = {
@@ -96,12 +107,12 @@ const WORLDS: Readonly<Record<string, readonly SampleWorld[]>> = {
 /** EP.N opens at affinity Lv.N (the order of the list). */
 export function sampleMateWorlds(
   mateId: string,
-  art: { background?: string; outfit?: string } = {},
+  art: { outfit?: string } = {},
 ): MateWorldContent[] {
   return (WORLDS[mateId] ?? []).map(({ appArt, ...world }, index) => ({
     episode: index + 1,
     ...world,
+    ...worldBackground(mateId, index + 1),
     ...(appArt && art.outfit ? { outfitPreviewUrl: art.outfit } : {}),
-    ...(appArt && art.background ? { backgroundUrl: art.background } : {}),
   }))
 }

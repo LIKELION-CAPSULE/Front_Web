@@ -1,0 +1,593 @@
+{
+  "schema_version": "1.0",
+  "service": "CAPSULE",
+  "character": "chaerin",
+  "asset_group": "original world backgrounds ep01-ep05",
+  "created_at": "2026-11-28T10:09:49.639982+00:00",
+  "generation": {
+    "tool": "image_gen.imagegen",
+    "mode": "built-in",
+    "transparent_background": false,
+    "model": null,
+    "model_status": "not_exposed_by_tool",
+    "seed": null,
+    "seed_status": "not_exposed_or_configurable_by_tool",
+    "reproducibility_note": "Actual full prompts and reference hashes recorded; model and seed unavailable. No separate API key or CLI fallback used.",
+    "sequence": [
+      "generate all landscape masters, prioritizing chaerin ep01-ep05",
+      "generate each portrait with its landscape PNG as reference"
+    ]
+  },
+  "art_direction": {
+    "camera": "seated laptop webcam height, frontal horizontal view",
+    "style": "original painterly anime background with soft shallow-depth-of-field treatment",
+    "palette": {
+      "base": [
+        "#0F0E17",
+        "#2A1F4A"
+      ],
+      "accent": "#7E54F6",
+      "scene_light": "sunset, daylight, neutral fluorescent or evening electric task lights depending on scene; white room deliberately brighter"
+    },
+    "character_safe_area": {
+      "description": "central lower region kept low-detail and free of foreground props for an upper-body Live2D overlay",
+      "approx_normalized_bounds": {
+        "left": 0.28,
+        "top": 0.35,
+        "right": 0.72,
+        "bottom": 1.0
+      }
+    },
+    "style_reference": {
+      "file": "../../characters/chaerin-call-bg/chaerin-call-bg-landscape.webp",
+      "role": "visually inspected style and safe-area guide; not supplied as generation image input"
+    },
+    "excluded": [
+      "people",
+      "faces",
+      "silhouettes",
+      "readable text",
+      "logos",
+      "brands",
+      "real locations",
+      "watermarks"
+    ],
+    "notes": [
+      "Central lower foreground has no props; low-detail architectural lines and window sill may remain in background.",
+      "Chaerin ep05 uses faceless abstract original shelf ornaments instead of figurative character merchandise to honor no-character constraint."
+    ]
+  },
+  "visual_review": {
+    "reviewed": true,
+    "people_absent": true,
+    "readable_text_and_logos_absent": true,
+    "central_lower_foreground_props_absent": true,
+    "same_room_landmarks_match": true,
+    "requested_webp_dimensions_verified": true,
+    "all_images_at_or_below_150000_bytes": true,
+    "review_method": "visual inspection of every generated image plus programmatic final size and format verification"
+  },
+  "outputs": [
+    {
+      "file": "ep01-landscape.webp",
+      "scene": "ep01",
+      "orientation": "landscape",
+      "usage": "world card thumbnail, detail dialog, future Live2D call background",
+      "width": 1600,
+      "height": 1200,
+      "aspect_ratio": "4:3",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 64586,
+      "sha256": "6a2bed010d3114b4b2a937e407fe3d5ea62ba9f83c9467578a131c44e96b9002",
+      "prompt": "Use case: stylized-concept. Generate one original painterly anime background only, landscape 4:3, full bleed, no people. Scene: empty contemporary high-school second-year classroom by the windows on a late spring afternoon after school, orange sunset entering left rectangular windows, erased chalk smudges on blank board at upper right, desks only at outer edges. Camera at seated laptop webcam height looking straight horizontally into classroom. Soft painted edges and gentle shallow depth of field. Dominant navy violet shadows #0F0E17 #2A1F4A with restrained #7E54F6 accents and orange daylight; never gold-dominated. Crucial Live2D overlay composition: x28–72%, y35–100% must be calm low-detail empty wall/floor tones, absolutely no desks, chairs or props within this central lower rectangle; peripheral classroom furniture frames the empty center naturally. No literal cutout. No text, letters, logos, brands, real locations, watermarks, people, faces, silhouettes, characters or animals. Blank board and book covers. Single scene only.",
+      "generated_at": "2026-11-28T09:56:40.493Z",
+      "generation_timestamp_note": "tool completion observed at this time; server timestamp not exposed",
+      "model": null,
+      "seed": null,
+      "reference": null,
+      "generated_source": {
+        "file": "exec-6b419cd7-30b4-409c-9b40-3d4d8aafa698.png",
+        "width": 1448,
+        "height": 1086,
+        "sha256": "70882f77e6345db19104db880397895d13a323838c289ddcac619b9ea6100c28"
+      },
+      "postprocessing": {
+        "tool": "Pillow",
+        "version": "11.3.0",
+        "quality": 85,
+        "method": 6,
+        "resize": {
+          "width": 1600,
+          "height": 1200
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      },
+      "visual_review": {
+        "reviewed": true,
+        "people_faces_silhouettes_absent": true,
+        "readable_text_and_logos_absent": true,
+        "central_lower_foreground_props_absent": true,
+        "same_room_landmarks_match": null
+      }
+    },
+    {
+      "file": "ep01-portrait.webp",
+      "scene": "ep01",
+      "orientation": "portrait",
+      "usage": "world card thumbnail, detail dialog, future Live2D call background",
+      "width": 1200,
+      "height": 1600,
+      "aspect_ratio": "3:4",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 73270,
+      "sha256": "55bf45dadde2991f7f373faf5bdf4d959ed1254bcd9f20c3e62a6555b7e3637d",
+      "prompt": "Use case: stylized-concept, reference-guided companion. Generate one PORTRAIT 3:4 full-bleed original painterly anime background of the EXACT SAME interior as the reference landscape master. Reference is scene/layout/lighting/style continuity source. Recompose for taller frame, preserving distinctive windows, furnishing designs, left/right arrangement, palette and time of day; no new room. Seated laptop-webcam height horizontal frontal view, soft painted edges, gentle depth-of-field. CRUCIAL: keep normalized x28-72%, y35-100% empty low-detail wall/floor and free of ALL furniture/props; peripheral objects remain outside this rectangle even in portrait. No cutout. No people, faces, silhouettes, animals, letters, text, digits, logos, real places, watermarks, brands, border or collage. Screens/packaging/books blank or abstract. Navy violet shadows with scene lighting, never gold dominated. Scene continuity: Late spring sunset empty high-school classroom, left windows and orange daylight, blank erased chalkboard at upper right, edge desks, same space.",
+      "generated_at": "2026-11-28T10:03:22.880Z",
+      "generation_timestamp_note": "tool completion observed at this time; server timestamp not exposed",
+      "model": null,
+      "seed": null,
+      "reference": {
+        "source": "landscape master generation PNG",
+        "file": "exec-6b419cd7-30b4-409c-9b40-3d4d8aafa698.png",
+        "sha256": "70882f77e6345db19104db880397895d13a323838c289ddcac619b9ea6100c28",
+        "corresponding_final_asset": "ep01-landscape.webp",
+        "purpose": "same-space layout, lighting, palette and style continuity"
+      },
+      "generated_source": {
+        "file": "exec-506eaf30-13d5-4126-95d1-ac2a87425360.png",
+        "width": 1086,
+        "height": 1448,
+        "sha256": "c92382bd14f2ff0a02deb8779ebefb2303d6668174af3ddcfee6477044d51fb5"
+      },
+      "postprocessing": {
+        "tool": "Pillow",
+        "version": "11.3.0",
+        "quality": 85,
+        "method": 6,
+        "resize": {
+          "width": 1200,
+          "height": 1600
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      },
+      "visual_review": {
+        "reviewed": true,
+        "people_faces_silhouettes_absent": true,
+        "readable_text_and_logos_absent": true,
+        "central_lower_foreground_props_absent": true,
+        "same_room_landmarks_match": true
+      }
+    },
+    {
+      "file": "ep02-landscape.webp",
+      "scene": "ep02",
+      "orientation": "landscape",
+      "usage": "world card thumbnail, detail dialog, future Live2D call background",
+      "width": 1600,
+      "height": 1200,
+      "aspect_ratio": "4:3",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 54602,
+      "sha256": "fe413db1468b152a4e13591b2751a323c181b31ce7acc535e91cc21be6e70cd8",
+      "prompt": "Use case: stylized-concept. One original painterly anime background, landscape 4:3 full bleed. Empty contemporary fictional interior, seated laptop webcam eye height, straight frontal horizontal view, soft painted edges and gentle shallow depth-of-field. Navy violet shadows #0F0E17 #2A1F4A, restrained purple #7E54F6 accents plus scene lighting, never gold dominated. CRUCIAL character overlay safety: normalized x28-72%, y35-100% is empty low-detail wall/floor, absolutely no furniture or props in this central lower rectangle. Place all furnishings at the outer edges. Natural continuous room, no cutout. No people, faces, silhouettes, animals, text, letters, logos, brands, real places, watermarks, borders or collage. All packaging, screens, book covers blank or abstract. Scene: Night self-study classroom, rows of partitioned study desks at left and right edges, empty seats, black night outside rectangular windows, cool fluorescent ceiling lighting, simple wall clock high above safe area using ticks only, quiet late study atmosphere.",
+      "generated_at": "2026-11-28T09:57:16.621Z",
+      "generation_timestamp_note": "tool completion observed at this time; server timestamp not exposed",
+      "model": null,
+      "seed": null,
+      "reference": null,
+      "generated_source": {
+        "file": "exec-57af385e-0543-4394-a012-f63692770cb9.png",
+        "width": 1448,
+        "height": 1086,
+        "sha256": "cbd5e72692f31012a953fb542a90c529d9b3ef91d6764d5c4d2627cdb686eb0f"
+      },
+      "postprocessing": {
+        "tool": "Pillow",
+        "version": "11.3.0",
+        "quality": 85,
+        "method": 6,
+        "resize": {
+          "width": 1600,
+          "height": 1200
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      },
+      "visual_review": {
+        "reviewed": true,
+        "people_faces_silhouettes_absent": true,
+        "readable_text_and_logos_absent": true,
+        "central_lower_foreground_props_absent": true,
+        "same_room_landmarks_match": null
+      }
+    },
+    {
+      "file": "ep02-portrait.webp",
+      "scene": "ep02",
+      "orientation": "portrait",
+      "usage": "world card thumbnail, detail dialog, future Live2D call background",
+      "width": 1200,
+      "height": 1600,
+      "aspect_ratio": "3:4",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 54332,
+      "sha256": "279b82a31071f592cde3806775b6bb5cf4ca35671fd54d6d9817ab4640b5f5eb",
+      "prompt": "Use case: stylized-concept, reference-guided companion. Generate one PORTRAIT 3:4 full-bleed original painterly anime background of the EXACT SAME interior as the reference landscape master. Reference is scene/layout/lighting/style continuity source. Recompose for taller frame, preserving distinctive windows, furnishing designs, left/right arrangement, palette and time of day; no new room. Seated laptop-webcam height horizontal frontal view, soft painted edges, gentle depth-of-field. CRUCIAL: keep normalized x28-72%, y35-100% empty low-detail wall/floor and free of ALL furniture/props; peripheral objects remain outside this rectangle even in portrait. No cutout. No people, faces, silhouettes, animals, letters, text, digits, logos, real places, watermarks, brands, border or collage. Screens/packaging/books blank or abstract. Navy violet shadows with scene lighting, never gold dominated. Scene continuity: Night self-study classroom, rows of partitioned study desks at left and right edges, empty seats, black night outside rectangular windows, cool fluorescent ceiling lighting, simple wall clock high above safe area using ticks only, quiet late study atmosphere.",
+      "generated_at": "2026-11-28T10:04:00.965Z",
+      "generation_timestamp_note": "tool completion observed at this time; server timestamp not exposed",
+      "model": null,
+      "seed": null,
+      "reference": {
+        "source": "landscape master generation PNG",
+        "file": "exec-57af385e-0543-4394-a012-f63692770cb9.png",
+        "sha256": "cbd5e72692f31012a953fb542a90c529d9b3ef91d6764d5c4d2627cdb686eb0f",
+        "corresponding_final_asset": "ep02-landscape.webp",
+        "purpose": "same-space layout, lighting, palette and style continuity"
+      },
+      "generated_source": {
+        "file": "exec-92c3eca5-cab6-4392-b2c3-be763c7c6472.png",
+        "width": 1086,
+        "height": 1448,
+        "sha256": "303b876976d2e981645ab87a4836c7a0de87843eec9dbf157a59a1bec5de76cb"
+      },
+      "postprocessing": {
+        "tool": "Pillow",
+        "version": "11.3.0",
+        "quality": 85,
+        "method": 6,
+        "resize": {
+          "width": 1200,
+          "height": 1600
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      },
+      "visual_review": {
+        "reviewed": true,
+        "people_faces_silhouettes_absent": true,
+        "readable_text_and_logos_absent": true,
+        "central_lower_foreground_props_absent": true,
+        "same_room_landmarks_match": true
+      }
+    },
+    {
+      "file": "ep03-landscape.webp",
+      "scene": "ep03",
+      "orientation": "landscape",
+      "usage": "world card thumbnail, detail dialog, future Live2D call background",
+      "width": 1600,
+      "height": 1200,
+      "aspect_ratio": "4:3",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 142064,
+      "sha256": "f25ba84af2ddf5fc9ad6d8b22feb7246bb3eb8876c1c5bea9daecd228eec239d",
+      "prompt": "Use case: stylized-concept. One original painterly anime background, landscape 4:3 full bleed. Empty contemporary fictional interior, seated laptop webcam eye height, straight frontal horizontal view, soft painted edges and gentle shallow depth-of-field. Navy violet shadows #0F0E17 #2A1F4A, restrained purple #7E54F6 accents plus scene lighting, never gold dominated. CRUCIAL character overlay safety: normalized x28-72%, y35-100% is empty low-detail wall/floor, absolutely no furniture or props in this central lower rectangle. Place all furnishings at the outer edges. Natural continuous room, no cutout. No people, faces, silhouettes, animals, text, letters, logos, brands, real places, watermarks, borders or collage. All packaging, screens, book covers blank or abstract. Scene: Weekend afternoon cafe, wood furniture and potted plants at edges, large sunlit window at left, secluded window corner seat, strawberry latte in clear glass and a slice of cake on the extreme left table edge. Warm daylight over violet shadows, inviting late spring mood.",
+      "generated_at": "2026-11-28T09:57:55.373Z",
+      "generation_timestamp_note": "tool completion observed at this time; server timestamp not exposed",
+      "model": null,
+      "seed": null,
+      "reference": null,
+      "generated_source": {
+        "file": "exec-bcf7e57e-2c79-4be4-8dca-06deccaada93.png",
+        "width": 1448,
+        "height": 1086,
+        "sha256": "764d7767a36b2be8ae262eb000e558b6ad391064ed7b865992ed67e546c318a3"
+      },
+      "postprocessing": {
+        "tool": "Pillow",
+        "version": "11.3.0",
+        "quality": 85,
+        "method": 6,
+        "resize": {
+          "width": 1600,
+          "height": 1200
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      },
+      "visual_review": {
+        "reviewed": true,
+        "people_faces_silhouettes_absent": true,
+        "readable_text_and_logos_absent": true,
+        "central_lower_foreground_props_absent": true,
+        "same_room_landmarks_match": null
+      }
+    },
+    {
+      "file": "ep03-portrait.webp",
+      "scene": "ep03",
+      "orientation": "portrait",
+      "usage": "world card thumbnail, detail dialog, future Live2D call background",
+      "width": 1200,
+      "height": 1600,
+      "aspect_ratio": "3:4",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 147232,
+      "sha256": "a08cd84ad7d2c446cd28cdee86ed5a91a6af4e72fc0b6265b1a9ee3803f7223d",
+      "prompt": "Use case: stylized-concept, reference-guided companion. Generate one PORTRAIT 3:4 full-bleed original painterly anime background of the EXACT SAME interior as the reference landscape master. Reference is scene/layout/lighting/style continuity source. Recompose for taller frame, preserving distinctive windows, furnishing designs, left/right arrangement, palette and time of day; no new room. Seated laptop-webcam height horizontal frontal view, soft painted edges, gentle depth-of-field. CRUCIAL: keep normalized x28-72%, y35-100% empty low-detail wall/floor and free of ALL furniture/props; peripheral objects remain outside this rectangle even in portrait. No cutout. No people, faces, silhouettes, animals, letters, text, digits, logos, real places, watermarks, brands, border or collage. Screens/packaging/books blank or abstract. Navy violet shadows with scene lighting, never gold dominated. Scene continuity: Weekend afternoon cafe, wood furniture and potted plants at edges, large sunlit window at left, secluded window corner seat, strawberry latte in clear glass and a slice of cake on the extreme left table edge. Warm daylight over violet shadows, inviting late spring mood.",
+      "generated_at": "2026-11-28T10:04:36.012Z",
+      "generation_timestamp_note": "tool completion observed at this time; server timestamp not exposed",
+      "model": null,
+      "seed": null,
+      "reference": {
+        "source": "landscape master generation PNG",
+        "file": "exec-bcf7e57e-2c79-4be4-8dca-06deccaada93.png",
+        "sha256": "764d7767a36b2be8ae262eb000e558b6ad391064ed7b865992ed67e546c318a3",
+        "corresponding_final_asset": "ep03-landscape.webp",
+        "purpose": "same-space layout, lighting, palette and style continuity"
+      },
+      "generated_source": {
+        "file": "exec-0307f5de-6bb6-4356-8e45-2e46faf32436.png",
+        "width": 1086,
+        "height": 1448,
+        "sha256": "28e8abfd4770b852c4602e0d74f2ed73e6bd55506cbf643aaec252e97d51c463"
+      },
+      "postprocessing": {
+        "tool": "Pillow",
+        "version": "11.3.0",
+        "quality": 85,
+        "method": 6,
+        "resize": {
+          "width": 1200,
+          "height": 1600
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      },
+      "visual_review": {
+        "reviewed": true,
+        "people_faces_silhouettes_absent": true,
+        "readable_text_and_logos_absent": true,
+        "central_lower_foreground_props_absent": true,
+        "same_room_landmarks_match": true
+      }
+    },
+    {
+      "file": "ep04-landscape.webp",
+      "scene": "ep04",
+      "orientation": "landscape",
+      "usage": "world card thumbnail, detail dialog, future Live2D call background",
+      "width": 1600,
+      "height": 1200,
+      "aspect_ratio": "4:3",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 96616,
+      "sha256": "c556d08b0f413ab7d7db1d44687a299b4c054e979fa36dccc2bfe6e247e344d2",
+      "prompt": "Use case: stylized-concept. One original painterly anime background, landscape 4:3 full bleed. Empty contemporary fictional interior, seated laptop webcam eye height, straight frontal horizontal view, soft painted edges and gentle shallow depth-of-field. Navy violet shadows #0F0E17 #2A1F4A, restrained purple #7E54F6 accents plus scene lighting, never gold dominated. CRUCIAL character overlay safety: normalized x28-72%, y35-100% is empty low-detail wall/floor, absolutely no furniture or props in this central lower rectangle. Place all furnishings at the outer edges. Natural continuous room, no cutout. No people, faces, silhouettes, animals, text, letters, logos, brands, real places, watermarks, borders or collage. All packaging, screens, book covers blank or abstract. Scene: School library on weekday evening, tall bookshelves framing left and right edges, long reading counter beneath rectangular window, warm electric desk lamps only at edges, streetlight glow beyond dark window. Blank unmarked books.",
+      "generated_at": "2026-11-28T09:58:38.166Z",
+      "generation_timestamp_note": "tool completion observed at this time; server timestamp not exposed",
+      "model": null,
+      "seed": null,
+      "reference": null,
+      "generated_source": {
+        "file": "exec-46c59f37-6744-46e0-a0d7-2149ce0ae8f2.png",
+        "width": 1448,
+        "height": 1086,
+        "sha256": "23d51c90d18f15e808374ea66401b5a90939f973ae12c4640a1964ece6862187"
+      },
+      "postprocessing": {
+        "tool": "Pillow",
+        "version": "11.3.0",
+        "quality": 85,
+        "method": 6,
+        "resize": {
+          "width": 1600,
+          "height": 1200
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      },
+      "visual_review": {
+        "reviewed": true,
+        "people_faces_silhouettes_absent": true,
+        "readable_text_and_logos_absent": true,
+        "central_lower_foreground_props_absent": true,
+        "same_room_landmarks_match": null
+      }
+    },
+    {
+      "file": "ep04-portrait.webp",
+      "scene": "ep04",
+      "orientation": "portrait",
+      "usage": "world card thumbnail, detail dialog, future Live2D call background",
+      "width": 1200,
+      "height": 1600,
+      "aspect_ratio": "3:4",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 93716,
+      "sha256": "0f97c6b890efc1cfc0371796f7c51bbbe74f2b33279846775c8dd06a87b7c2a5",
+      "prompt": "Use case: stylized-concept, reference-guided companion. Generate one PORTRAIT 3:4 full-bleed original painterly anime background of the EXACT SAME interior as the reference landscape master. Reference is scene/layout/lighting/style continuity source. Recompose for taller frame, preserving distinctive windows, furnishing designs, left/right arrangement, palette and time of day; no new room. Seated laptop-webcam height horizontal frontal view, soft painted edges, gentle depth-of-field. CRUCIAL: keep normalized x28-72%, y35-100% empty low-detail wall/floor and free of ALL furniture/props; peripheral objects remain outside this rectangle even in portrait. No cutout. No people, faces, silhouettes, animals, letters, text, digits, logos, real places, watermarks, brands, border or collage. Screens/packaging/books blank or abstract. Navy violet shadows with scene lighting, never gold dominated. Scene continuity: School library on weekday evening, tall bookshelves framing left and right edges, long reading counter beneath rectangular window, warm electric desk lamps only at edges, streetlight glow beyond dark window. Blank unmarked books.",
+      "generated_at": "2026-11-28T10:05:26.745Z",
+      "generation_timestamp_note": "tool completion observed at this time; server timestamp not exposed",
+      "model": null,
+      "seed": null,
+      "reference": {
+        "source": "landscape master generation PNG",
+        "file": "exec-46c59f37-6744-46e0-a0d7-2149ce0ae8f2.png",
+        "sha256": "23d51c90d18f15e808374ea66401b5a90939f973ae12c4640a1964ece6862187",
+        "corresponding_final_asset": "ep04-landscape.webp",
+        "purpose": "same-space layout, lighting, palette and style continuity"
+      },
+      "generated_source": {
+        "file": "exec-edc750e9-bdbf-491e-ac2d-ebb021492e1f.png",
+        "width": 1086,
+        "height": 1448,
+        "sha256": "f535fd7efbf3cbbffef41793cf1eea15df0ea53b50970d95c444c9c2056ed2c1"
+      },
+      "postprocessing": {
+        "tool": "Pillow",
+        "version": "11.3.0",
+        "quality": 85,
+        "method": 6,
+        "resize": {
+          "width": 1200,
+          "height": 1600
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      },
+      "visual_review": {
+        "reviewed": true,
+        "people_faces_silhouettes_absent": true,
+        "readable_text_and_logos_absent": true,
+        "central_lower_foreground_props_absent": true,
+        "same_room_landmarks_match": true
+      }
+    },
+    {
+      "file": "ep05-landscape.webp",
+      "scene": "ep05",
+      "orientation": "landscape",
+      "usage": "world card thumbnail, detail dialog, future Live2D call background",
+      "width": 1600,
+      "height": 1200,
+      "aspect_ratio": "4:3",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 68644,
+      "sha256": "0f6e58df453f69889442634fa90b0b6e4c11ec322f3ea19638d6dde14987fb00",
+      "prompt": "Use case: stylized-concept. One original painterly anime background, landscape 4:3 full bleed. Empty contemporary fictional interior, seated laptop webcam eye height, straight frontal horizontal view, soft painted edges and gentle shallow depth-of-field. Navy violet shadows #0F0E17 #2A1F4A, restrained purple #7E54F6 accents plus scene lighting, never gold dominated. CRUCIAL character overlay safety: normalized x28-72%, y35-100% is empty low-detail wall/floor, absolutely no furniture or props in this central lower rectangle. Place all furnishings at the outer edges. Natural continuous room, no cutout. No people, faces, silhouettes, animals, text, letters, logos, brands, real places, watermarks, borders or collage. All packaging, screens, book covers blank or abstract. Scene: Tidy white bedroom of Chaerin: white desk far left, white curtains over right rectangular window, white bedding far right, soft daytime sunlight between curtains. Small original abstract decorative collectibles on upper shelf, geometric nonfigurative shapes with no faces, no recognizable characters. White surfaces with lavender shaded walls, calm empty middle.",
+      "generated_at": "2026-11-28T09:59:12.406Z",
+      "generation_timestamp_note": "tool completion observed at this time; server timestamp not exposed",
+      "model": null,
+      "seed": null,
+      "reference": null,
+      "generated_source": {
+        "file": "exec-70825a74-a13c-4903-8253-c8ff5c0cc2b5.png",
+        "width": 1448,
+        "height": 1086,
+        "sha256": "a721b8065d4e8b4b072412176696473ce812ef0d051538c6c07423af443c310d"
+      },
+      "postprocessing": {
+        "tool": "Pillow",
+        "version": "11.3.0",
+        "quality": 85,
+        "method": 6,
+        "resize": {
+          "width": 1600,
+          "height": 1200
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      },
+      "visual_review": {
+        "reviewed": true,
+        "people_faces_silhouettes_absent": true,
+        "readable_text_and_logos_absent": true,
+        "central_lower_foreground_props_absent": true,
+        "same_room_landmarks_match": null
+      }
+    },
+    {
+      "file": "ep05-portrait.webp",
+      "scene": "ep05",
+      "orientation": "portrait",
+      "usage": "world card thumbnail, detail dialog, future Live2D call background",
+      "width": 1200,
+      "height": 1600,
+      "aspect_ratio": "3:4",
+      "mime_type": "image/webp",
+      "color_mode": "RGB",
+      "byte_size": 70730,
+      "sha256": "ed651ea94b11e13d1e6032bca0ae5a64e2f06a97c1bf8f7700933e7fad2562b9",
+      "prompt": "Use case: stylized-concept, reference-guided companion. Generate one PORTRAIT 3:4 full-bleed original painterly anime background of the EXACT SAME interior as the reference landscape master. Reference is scene/layout/lighting/style continuity source. Recompose for taller frame, preserving distinctive windows, furnishing designs, left/right arrangement, palette and time of day; no new room. Seated laptop-webcam height horizontal frontal view, soft painted edges, gentle depth-of-field. CRUCIAL: keep normalized x28-72%, y35-100% empty low-detail wall/floor and free of ALL furniture/props; peripheral objects remain outside this rectangle even in portrait. No cutout. No people, faces, silhouettes, animals, letters, text, digits, logos, real places, watermarks, brands, border or collage. Screens/packaging/books blank or abstract. Navy violet shadows with scene lighting, never gold dominated. Scene continuity: Tidy white bedroom of Chaerin: white desk far left, white curtains over right rectangular window, white bedding far right, soft daytime sunlight between curtains. Small original abstract decorative collectibles on upper shelf, geometric nonfigurative shapes with no faces, no recognizable characters. White surfaces with lavender shaded walls, calm empty middle.",
+      "generated_at": "2026-11-28T10:06:00.749Z",
+      "generation_timestamp_note": "tool completion observed at this time; server timestamp not exposed",
+      "model": null,
+      "seed": null,
+      "reference": {
+        "source": "landscape master generation PNG",
+        "file": "exec-70825a74-a13c-4903-8253-c8ff5c0cc2b5.png",
+        "sha256": "a721b8065d4e8b4b072412176696473ce812ef0d051538c6c07423af443c310d",
+        "corresponding_final_asset": "ep05-landscape.webp",
+        "purpose": "same-space layout, lighting, palette and style continuity"
+      },
+      "generated_source": {
+        "file": "exec-f1ecb531-5aa8-4eaa-80f4-fa8edb660528.png",
+        "width": 1086,
+        "height": 1448,
+        "sha256": "44d9ddd79a0e406ebefb09bc152a1c10a26ed796337dcda56525387e4b0c44ce"
+      },
+      "postprocessing": {
+        "tool": "Pillow",
+        "version": "11.3.0",
+        "quality": 85,
+        "method": 6,
+        "resize": {
+          "width": 1200,
+          "height": 1600
+        },
+        "crop": false,
+        "aspect_ratio_preserved": true,
+        "upscaled_from_generated_source": true,
+        "operations": [
+          "resize to requested dimensions",
+          "encode as WebP"
+        ]
+      },
+      "visual_review": {
+        "reviewed": true,
+        "people_faces_silhouettes_absent": true,
+        "readable_text_and_logos_absent": true,
+        "central_lower_foreground_props_absent": true,
+        "same_room_landmarks_match": true
+      }
+    }
+  ],
+  "uncompleted_scenes": []
+}

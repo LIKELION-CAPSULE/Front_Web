@@ -44,7 +44,6 @@ export function useMateWorldContent({
   if (!import.meta.env.DEV || !enabled || !samples || !module || !mateId || !mateName) return null
   return module.sampleMateWorlds(mateId, {
     outfit: mateArtwork(mateId)?.full ?? mateHeroPortrait(mateId, mateImage ?? undefined),
-    background: mateArtwork(mateId)?.callBackground.landscape,
   })
 }
 
