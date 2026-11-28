@@ -9,6 +9,7 @@ import { localScenarios, type LocalBetaStore, type LocalScenario } from './store
 import { recordPatternLabels, recordPatterns, type RecordPattern } from './record-patterns'
 import { CUBISM_TO_V2_EXPRESSION, V2_EXPRESSIONS, toV2ExpressionName } from '../mate-render/expression-map'
 import { forEachPreviewRenderer } from '../mate-render/preview-registry'
+import { listenReviewShortcut, REVIEW_WORKBENCH_PATH } from '@/features/review/shortcut'
 import './local-demo.css'
 
 const PANEL_OPEN_STORAGE_KEY = LOCAL_PANEL_OPEN_KEY
@@ -51,15 +52,8 @@ export function LocalControls({ store, stages }: { store: LocalBetaStore; stages
       // Ignore storage errors
     }
   }, [open])
-  useEffect(() => {
-    const openReview = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.code === 'KeyD') {
-        event.preventDefault(); window.open('/__review', '_blank', 'noopener,noreferrer')
-      }
-    }
-    window.addEventListener('keydown', openReview)
-    return () => window.removeEventListener('keydown', openReview)
-  }, [])
+  // Ctrl/⌘+Shift+D: the same listener as the api mode's ReviewLauncher.
+  useEffect(() => listenReviewShortcut(), [])
   useEffect(() => {
     const timer = setInterval(() => store.expireAttendance(), 15_000)
     return () => clearInterval(timer)
@@ -106,7 +100,7 @@ export function LocalControls({ store, stages }: { store: LocalBetaStore; stages
       <label>모델 표정 파일<select aria-label="미리보기 표정 파일" value={expression} onChange={event => { setExpression(event.target.value); store.setPreviewExpression(event.target.value || null); applyPreviewExpression(stages, event.target.value || null) }}><option value="">기본</option>{expressionFiles.map((file, i) => <option key={file} value={file}>expression{i + 1} · v2 {v2Label(file)}</option>)}</select></label>
       <p>표정 번호는 원본(Cubism) 파일명이에요. 메이트 미리보기의 새 모델(v2)에는 같은 표정으로 바꿔 적용해요.</p>
       <p>이메일 로그인: 형식에 맞는 임의 입력 · 인증번호: 123456</p>
-      <a href="/__review" target="_blank" rel="noopener noreferrer">UI 검토 패널 열기</a>
+      <a href={REVIEW_WORKBENCH_PATH} target="_blank" rel="noopener noreferrer">UI 검토 패널 열기</a>
       {!store.storageAvailable && <p role="alert">저장 공간을 사용할 수 없어 이번 실행에서만 유지돼요.</p>}
       <button type="button" onClick={() => { store.reset('normal'); location.assign('/') }}>일반 상태로 초기화</button>
     </div>}

@@ -2,3 +2,11 @@
 .review-launcher small { color: #bca6ff; font-size: 10px; }
 .review-launcher:hover { background: #36245b; }
 .review-launcher:focus-visible { outline: 3px solid #bca6ff; outline-offset: 3px; }
+/* The call screen: a small faded handle in the very corner, clear of the chat's send button and input hint; it opens up
+   on hover or keyboard focus. */
+body:has(.connection-page) .review-launcher { right: 6px; bottom: 6px; padding: 4px 8px; gap: 6px; opacity: .6; font-size: 12px; }
+body:has(.connection-page) .review-launcher-label { display: none; }
+body:has(.connection-page) .review-launcher:hover, body:has(.connection-page) .review-launcher:focus-visible { opacity: 1; }
+body:has(.connection-page) .review-launcher:hover .review-launcher-label, body:has(.connection-page) .review-launcher:focus-visible .review-launcher-label { display: inline; }
+/* The phone-only access notice keeps its own fixed dock (as the local demo controls do). */
+body[data-mobile-notice='true'] .review-launcher { display: none; }
