@@ -20,7 +20,7 @@ function WorldBackdrop({ world, className }: { world: MateWorld; className?: str
 }
 
 /**
- * One world: the background thumbnail, 「EP.03 · 도서관」 and, open, the sample line (locked: a lock and 「Lv.4에서
+ * One world: the background thumbnail, 「EP.01 · 도서관에서」 (its name, or 「EP.03 · 도서관」 by its place) and, open, the sample line (locked: a lock and 「Lv.4에서
  * 열려요」 — the place stays visible so there is something to look forward to). An open world is a button that opens
  * its detail (`onOpen`); a locked one is not interactive. `layout`: `row` (the affinity card) or `card` (the strip).
  * Reuse: the worlds from `useMateWorlds` (use-mate-worlds.ts), each as `<MateWorldTile world={w} layout="card"
@@ -31,7 +31,7 @@ export function MateWorldTile({ world, layout, onOpen }: { world: MateWorld; lay
     <>
       <WorldBackdrop world={world} className="mate-world-thumb" />
       <span className="mate-world-text">
-        <span className="mate-world-label" data-placeholder={world.placeholder || undefined}>{worldLabel(world)}</span>
+        <span className="mate-world-label" data-placeholder={world.placeholder || undefined} title={worldLabel(world)}>{worldLabel(world)}</span>
         {world.unlocked ? (
           <span className="mate-world-line">
             {world.sampleLine ? `「${world.sampleLine}」` : WORLD_COPY.placeholderLine}
@@ -54,7 +54,10 @@ export function MateWorldTile({ world, layout, onOpen }: { world: MateWorld; lay
   )
 }
 
-/** A world's detail: the background large, the outfit still (when there is one), the place and the sample line. */
+/**
+ * A world's detail: 「EP.01 · 도서관에서」 as its title, the background large, the outfit still (when there is one),
+ * its one-line introduction, then the place, the outfit and the sample line (each when known).
+ */
 export function MateWorldDialog({ world, mateName, onClose }: { world: MateWorld; mateName: string; onClose: () => void }) {
   return (
     <Dialog open onClose={onClose} title={worldLabel(world)} tone="celebrate" className="mate-world-dialog">
@@ -67,18 +70,27 @@ export function MateWorldDialog({ world, mateName, onClose }: { world: MateWorld
       {world.placeholder ? (
         <p className="mate-world-dialog-note">{WORLD_COPY.placeholderLine}</p>
       ) : (
-        <dl className="mate-world-facts">
-          <div>
-            <dt>장소</dt>
-            <dd>{world.place}</dd>
-          </div>
-          {world.sampleLine && (
+        <>
+          {world.summary && <p className="mate-world-summary">{world.summary}</p>}
+          <dl className="mate-world-facts">
             <div>
-              <dt>{WORLD_COPY.sampleLine}</dt>
-              <dd className="mate-world-quote">「{world.sampleLine}」</dd>
+              <dt>{WORLD_COPY.place}</dt>
+              <dd>{world.place}</dd>
             </div>
-          )}
-        </dl>
+            {world.outfit && (
+              <div>
+                <dt>{WORLD_COPY.outfitWords}</dt>
+                <dd>{world.outfit}</dd>
+              </div>
+            )}
+            {world.sampleLine && (
+              <div>
+                <dt>{WORLD_COPY.sampleLine}</dt>
+                <dd className="mate-world-quote">「{world.sampleLine}」</dd>
+              </div>
+            )}
+          </dl>
+        </>
       )}
     </Dialog>
   )

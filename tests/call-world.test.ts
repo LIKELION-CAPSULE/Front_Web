@@ -15,6 +15,13 @@ test('a chosen world shows as 「EP.05 채린이네 집」', () => {
   assert.equal(callWorldLabel(world), 'EP.05 채린이네 집')
 })
 
+test('a world with a name shows its name: 「EP.05 하얀 채린의 방」 (not the place)', () => {
+  const world = callWorld({ selected: { episode: 5, place: '채린의 방', title: '하얀 채린의 방', placeholder: false } })
+  assert.ok(world)
+  assert.equal(callWorldLabel(world), 'EP.05 하얀 채린의 방')
+  assert.equal(callWorldLabel({ episode: 4, place: 'PC방', title: '  ', placeholder: false }), 'EP.04 PC방')
+})
+
 test('a placeholder or broken world is never shown', () => {
   assert.equal(callWorld({ selected: { episode: 3, place: '준비 중', placeholder: true } }), null)
   assert.equal(callWorld({ selected: { episode: 3, place: '  ', placeholder: false } }), null)
