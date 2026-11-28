@@ -605,6 +605,9 @@ export default function DozeMateStage({
                 data-nodding={(name === 'doze' && phase === 'dozing' && !reducedMotion) || undefined}
                 draggable={false}
                 decoding="async"
+                // The doze still is /login's LCP picture: high priority, and fetched in CORS mode like its preload
+                // (index.html, server/login-still-preload.ts) and the screen light's CSS mask, so it downloads once.
+                {...(name === 'doze' ? { fetchPriority: 'high' as const, crossOrigin: 'anonymous' as const } : {})}
                 style={box(scene.still)}
               />
             ))}
