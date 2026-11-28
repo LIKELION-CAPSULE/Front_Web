@@ -57,6 +57,8 @@ import { ChatLogGroups } from '@/features/mates/components/ChatLogGroups'
 import { CallDialogueBox } from '@/features/mates/components/CallDialogueBox'
 import { CallMateTitle } from '@/features/mates/components/CallMateTitle'
 import { callWorld } from '@/features/mates/call-world'
+import { serverItemsFromUnlocked, worldContentFromServer } from '@/features/mates/mate-worlds'
+import { useMateWorldContent } from '@/features/mates/use-mate-worlds'
 import { callIntimacy, recallCallIntimacy, rememberCallIntimacy } from '@/features/mates/call-intimacy'
 import { pickStageLine } from '@/features/mates/call-dialogue'
 import { unreadArrivals } from '@/features/mates/chat-groups'
@@ -467,6 +469,13 @@ export default function ConnectionPage() {
   const relation = active ? callIntimacy(liveIntimacy, recallCallIntimacy(active.id)) : null
   const relationStage = relation?.stage ?? 0
   const relationName = relation?.stageName
+  // The titlebar's world chip (call-world.ts): the newest world that stage has opened, with 내 메이트's content (the
+  // local mock's examples in development; in api/production a 21 stageUp's `unlocked` until the server sends worlds).
+  const worldsOn = resolveMateFeatures(import.meta.env.DEV, null).world
+  const worldSamples = useMateWorldContent({ enabled: worldsOn, mateId: mate?.id, mateName: mate?.name, mateImage: mate?.image })
+  const headerWorld = worldsOn
+    ? callWorld({ stage: relation?.stage, content: worldSamples ?? worldContentFromServer(serverItemsFromUnlocked(sync.stageUp?.unlocked)) })
+    : null
   const activeId = active?.id
   useEffect(() => {
     if (activeId && relationStage && relationName) rememberCallIntimacy(activeId, { stage: relationStage, stageName: relationName })
@@ -831,7 +840,7 @@ export default function ConnectionPage() {
           <span className="connection-titlebar-brand"><Brand /></span>
           <span className="connection-titlebar-divider" aria-hidden="true" />
           {/* Her name, a short relation line and the world the call is in (when it is known: call-world.ts). */}
-          <CallMateTitle name={mate.name} tag={mate.callTag} world={callWorld()} dotTitle="연결 중" />
+          <CallMateTitle name={mate.name} tag={mate.callTag} world={headerWorld} dotTitle="연결 중" />
         </div>
 
         {/* The info bar, all open (no 「⋯」, user decision 2026-11-27): ? | 친밀도 · 대화 모드 · 남은 크레딧 | 연결 시간.
