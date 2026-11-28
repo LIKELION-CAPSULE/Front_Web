@@ -34,12 +34,8 @@ export type ReviewScenario = {
   /** A Kakao sign-up ticket in the preview's session storage (the consent screen's entry): live, or already expired. */
   kakaoSignup?: 'active' | 'expired'
   steps?: ReviewStep[]
-  /** Modal/popup design draft (dialog-design/). Renders over the real page; never part of the product. */
-  dialogDesign?: 'a' | 'b' | 'c' | 'b2' | 'b3' | 'toast'
-  /** Call-screen UI draft (call-ui/). Mounted on its own instead of the app; never part of the product. */
-  callUi?: 'c1' | 'c2' | 'c3'
-  /** Call-screen chat panel draft (chat-panel/): the C1 stage with the real dialogue box and a draft panel. Review only. */
-  chatPanel?: 'p1' | 'p2' | 'p3'
+  /** The shared component showcase (ComponentShowcase.tsx): the real Dialog and NotificationStack, no app. */
+  showcase?: boolean
   /** A phone-only screen (the mobile access notice, SCR-40): the workbench opens it at the phone width. */
   phone?: boolean
 }
@@ -233,18 +229,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'notifications-empty', group: '계정·공통', title: '알림 · 없음', path: '/', fault: 'notifications-empty', steps: [click('알림')], note: '알림 0개: 점 없음·빈 상태 문구' },
   { id: 'notifications-error', group: '계정·공통', title: '알림 · 불러오기 실패', path: '/', fault: 'notifications-error', steps: [click('알림')], note: '43 실패: 오류 안내·다시 시도' },
   { id: 'not-found', group: '계정·공통', title: '없는 주소 · 홈 안내', path: '/review-not-found', note: '홈으로 이동·우측 상단 알림·한 번만 안내' },
-  { id: 'dialog-design-a', group: '디자인 시안', title: '모달 시안 A · 캡슐 유리', path: '/', dialogDesign: 'a', note: '2026-11-26 시안: 위쪽 캡슐 알약이 열리며 빛이 쏟아지고 창이 펼쳐짐. 확인·안내(크레딧 부족·세계관 열림)·토스트·큰 창 머리. 아래 막대로 전환·다시 재생(?dd=confirm|credit|unlock|toast|large|all)' },
-  { id: 'dialog-design-b', group: '디자인 시안', title: '모달 시안 B · 밤하늘', path: '/', dialogDesign: 'b', note: '2026-11-26 시안: 어두운 보라 그라데이션 위 픽셀 별·눈송이(내 메이트 PixelSnow 스프라이트), 위쪽 가장자리를 흐르는 빛' },
-  { id: 'dialog-design-b2', group: '디자인 시안', title: '모달 시안 B2 · 픽셀 프레임', path: '/', dialogDesign: 'b2', note: '2026-11-26 B 발전안: 계단형 픽셀 모서리(clip-path, 선 없음)·디더링 머리 띠·8비트 로고 캡슐·머리 띠 안에서만 천천히 내리는 픽셀 눈·steps() 5단계로 차오르는 등장. 세계관 열림은 「새 세계관이 열렸어요 · EP.03 도서관」' },
-  { id: 'dialog-design-b3', group: '디자인 시안', title: '모달 시안 B3 · 픽셀 액센트', path: '/', dialogDesign: 'b3', note: '2026-11-26 B 발전안(절제): 둥근 모서리 유지, 픽셀은 제목 앞 아이콘·머리 아래 한 줄 별자리·주요 버튼 hover 반짝임 세 곳만. 본문은 차분하게' },
-  { id: 'dialog-design-toast', group: '디자인 시안', title: '토스트 후보 · 픽셀 프레임', path: '/', dialogDesign: 'toast', note: '2026-11-26 앱 전체 B2 적용 때 토스트 후보 3개 비교: T1 위쪽 디더링 줄(운영 적용)·T2 왼쪽 세로 픽셀 띠·T3 아이콘 밤하늘 타일. 실제 NotificationStack 사용' },
-  { id: 'dialog-design-c', group: '디자인 시안', title: '모달 시안 C · 메이트와 함께', path: '/', dialogDesign: 'c', note: '2026-11-26 시안: 모서리에서 메이트 얼굴(정지 이미지)이 고개를 내밀고 말풍선 꼬리로 안내. 확인 창은 버튼에 따라 표정이 바뀜' },
-  { id: 'call-ui-c1', group: '디자인 시안', title: '통화 화면 시안 C1 · 대사창', path: '/connect/chaerin', callUi: 'c1', note: '2026-11-27 시안: 무대 아래 게임식 대사창(계단형 픽셀 모서리·디더링 띠·이름표에 「말하는 중」), 채팅이 열려 있어도 자막 표시. 채팅은 기록 보관용 「대화 기록」. 아래 막대나 ?cu-scene=idle|speaking|waiting|unread·cu-chat=open|closed로 전환' },
-  { id: 'call-ui-c2', group: '디자인 시안', title: '통화 화면 시안 C2 · 말풍선 무대', path: '/connect/chaerin', callUi: 'c2', note: '2026-11-27 시안: 머리 옆 말풍선(계단형 꼬리)과 후광, 채팅이 닫혀 있을 때만. 채팅은 무대 위 반투명 오버레이, 상단 정보는 무대 위에 떠 있음' },
-  { id: 'call-ui-c3', group: '디자인 시안', title: '통화 화면 시안 C3 · 분할 정돈', path: '/connect/chaerin', callUi: 'c3', note: '2026-11-27 시안(보수안): 지금 배치 유지. 무대 아래 자막 띠(채팅 열림이면 한 줄), 무대 초록 테두리·이름 칩, 묶음 말풍선·한 줄 정보 바·도크 그룹' },
-  { id: 'chat-panel-p1', group: '디자인 시안', title: '채팅 패널 시안 P1 · 픽셀 대화 기록', path: '/connect/chaerin', chatPanel: 'p1', note: '2026-11-27 시안(규칙 확장 필요: 계단형 모서리를 채팅 말풍선까지): 대사창과 같은 계단형 모서리 패널·말풍선과 픽셀 꼬리, 디더링 머리 띠, 「오늘 23:39」 구분선, 메이트 이름표. 아래 막대나 ?cp-state=empty|few|long로 비어 있음·대화 몇 개·긴 대화' },
-  { id: 'chat-panel-p2', group: '디자인 시안', title: '채팅 패널 시안 P2 · 무드 패널', path: '/connect/chaerin', chatPanel: 'p2', note: '2026-11-27 시안: 패널 뒤에 방 그림을 흐리게 이어 방 조명처럼, 빈 상태는 캡슐·별과 「채린에게 먼저 말 걸어 볼까요?」·첫마디 버튼, 새 말풍선이 떠오르는 등장, 친밀도·함께한 시간 시스템 줄(?cp-state=empty|few|long)' },
-  { id: 'chat-panel-p3', group: '디자인 시안', title: '채팅 패널 시안 P3 · 메신저형 정돈', path: '/connect/chaerin', chatPanel: 'p3', note: '2026-11-27 시안: 머리에 메이트 미니 프로필(상태 점·「통화 중」/「입력 중」), 묶음마다 시각 한 번, 내 마지막 말에 「읽음」, 빠른 답장은 입력창 위 가로 스크롤, 보내기 버튼 강조(?cp-state=empty|few|long)' },
+  { id: 'component-showcase', group: '공용 컴포넌트', title: '공용 컴포넌트 · 확인 창·알림', path: '/', showcase: true, note: '실제 공용 Dialog(톤 없음·danger·info·credit·celebrate)와 NotificationStack(성공·안내·주의·오류)을 한 화면에서. 버튼으로 창을 열고, ?dialog=plain|danger|info|credit|celebrate로 처음부터 연 상태로 공유. 2026-11-28 모달 시안(dialog-design-*)·토스트 후보를 대신함' },
   { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대 링크', path: '/?ref=CAP-7K2Q', phone: true, note: '휴대폰 접속 시 안내(시안 M2 「스크롤 소개」 적용, 2026-11-27). 초대 링크로 들어온 상태: 첫 화면 버튼 위 초대 카드 「초대 코드 CAP-7K2Q가 저장됐어요 · PC에서 가입하고 첫 연결을 마치면 둘 다 1,000 크레딧」. 내려서 첫 화면 버튼이 사라지면 아래 고정 막대(PC로 링크 보내기·복사 아이콘). 기능 카드 아래 「PC에서 이렇게 시작해요」 3단계, 초대 링크라 3단계에 「초대 코드는 자동으로 들어가요」' },
   { id: 'mobile-notice-plain', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/', phone: true, note: '휴대폰 접속 시 안내: 조는 채린 장면·헤드라인·소개·「PC로 링크 보내기」·「링크 복사」, 「캡슐 둘러보기」로 기능 카드 3장·「PC에서 이렇게 시작해요」 3단계(초대 문구 없음)·약관(모달)·AI 고지. 스크롤하면 아래 고정 막대. 공유 기능이 없는 브라우저는 「링크 복사」만' },
   { id: 'mobile-notice-inviter', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대한 사람 이름', path: '/?ref=CAP-7K2Q&inviter=민수', phone: true, note: '초대한 사람 이름을 아는 초대 링크: 「민수님의 초대 코드가 저장됐어요」와 코드 한 줄. 3단계에 「초대 코드는 자동으로 들어가요」' },
@@ -270,6 +255,19 @@ const restoredReviewIds: Readonly<Record<string, string>> = {
   'mobile-gate-m1-invite': 'mobile-notice',
   'mobile-gate-m2': 'mobile-notice-plain',
   'mobile-gate-m2-invite': 'mobile-notice',
+  // 2026-11-28: the applied design drafts are gone (call C1 · chat panel P1–P3 · modal B2 · toast T1 are the real screens).
+  'call-ui-c1': 'connection-active',
+  'call-ui-c2': 'connection-active',
+  'call-ui-c3': 'connection-active',
+  'chat-panel-p1': 'connection-active',
+  'chat-panel-p2': 'connection-chat-empty',
+  'chat-panel-p3': 'connection-active',
+  'dialog-design-a': 'component-showcase',
+  'dialog-design-b': 'component-showcase',
+  'dialog-design-b2': 'component-showcase',
+  'dialog-design-b3': 'component-showcase',
+  'dialog-design-c': 'component-showcase',
+  'dialog-design-toast': 'component-showcase',
 }
 
 const reviewGroupOrder = [
@@ -281,7 +279,7 @@ const reviewGroupOrder = [
   '내 기록',
   '크레딧·초대',
   '계정·공통',
-  '디자인 시안',
+  '공용 컴포넌트',
 ] as const
 
 export const reviewGroups = [...new Set(reviewScenarios.map(scenario => scenario.group))].sort((a, b) => {

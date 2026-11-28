@@ -16,17 +16,10 @@ export async function mountReview(root: HTMLElement, id: string | null) {
   if (id !== scenario.id) history.replaceState(null, '', reviewPreviewUrl(scenario))
   rememberReviewIdInWindowName(scenario.id)
   document.documentElement.dataset.reviewScenario = scenario.id
-  // Call-screen drafts (review only): a stand-alone copy of the call screen, so the app is not mounted at all.
-  if (scenario.callUi) {
-    const { CallUiPreview } = await import('./call-ui/CallUiPreview')
-    createRoot(root).render(<StrictMode><CallUiPreview variant={scenario.callUi} /></StrictMode>)
-    parent.postMessage({ type: 'capsule-review:ready', id: scenario.id }, location.origin)
-    return
-  }
-  // Chat panel drafts (review only): the call stage with the real dialogue box and a draft panel; no app.
-  if (scenario.chatPanel) {
-    const { ChatPanelPreview } = await import('./chat-panel/ChatPanelPreview')
-    createRoot(root).render(<StrictMode><ChatPanelPreview variant={scenario.chatPanel} /></StrictMode>)
+  // The shared component showcase (review only): the product's Dialog and NotificationStack on their own; no app.
+  if (scenario.showcase) {
+    const { ComponentShowcase } = await import('./ComponentShowcase')
+    createRoot(root).render(<StrictMode><ComponentShowcase /></StrictMode>)
     parent.postMessage({ type: 'capsule-review:ready', id: scenario.id }, location.origin)
     return
   }
@@ -112,14 +105,6 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     if (scenario.id === 'my-mates-full' || scenario.id === 'connection-record-levelup') return port({ attendance: 980, invitation: 200, usedToday: 320 })
     return undefined
   })()
-  // Modal design drafts (review only): drawn over the real page, never imported by the product entry.
-  const design = scenario.dialogDesign
-  const DialogDesign = design && design !== 'toast' ? (await import('./dialog-design/DialogDesignPreview')).DialogDesignPreview : undefined
-  const ToastCandidates = design === 'toast' ? (await import('./dialog-design/ToastCandidates')).ToastCandidates : undefined
-  const extra = <>
-    <ReviewSetup scenario={scenario} />
-    {DialogDesign && design && design !== 'toast' && <DialogDesign variant={design} />}
-    {ToastCandidates && <ToastCandidates />}
-  </>
+  const extra = <ReviewSetup scenario={scenario} />
   mountApp(root, extra, scenario.session && scenario.session !== 'recover' ? <ReviewStudyGate /> : undefined, createReviewImageStage, accountPort, matePort, featurePort)
 }
