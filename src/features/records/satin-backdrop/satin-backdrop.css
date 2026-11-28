@@ -1,14 +1,18 @@
-/* 내 기록 backdrop (SatinBackdrop). Fixed behind the page content: the app shell becomes its own stacking context
-   on this page only, so the backdrop (z-index −1) sits above the shell's canvas colour and under everything else,
-   including the opaque site header. Colours: satin-config.ts. */
-.app-shell:has(.satin-backdrop) {
-  isolation: isolate;
-}
+/* 내 기록 backdrop (SatinBackdrop). Between the site header and footer only (2026-11-28 user decision), by the same
+   rule as 내 메이트's pixel snow (pixel-snow.css): the layer fills the page's <main> (from under the header to the
+   footer, so it scrolls with the page) and reaches out to the window edges; the app shell clips the overflow, so no
+   horizontal scroll appears. The header and footer keep the other tabs' background. Colours: satin-config.ts. */
+.app-shell:has(.app-main > .satin-backdrop) { overflow-x: clip; }
+.app-main:has(> .satin-backdrop) { position: relative; isolation: isolate; }
+.app-main:has(> .satin-backdrop) > :not(.satin-backdrop) { position: relative; z-index: 1; }
 
 .satin-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  z-index: 0;
   overflow: hidden;
   background: var(--color-canvas);
   pointer-events: none;
