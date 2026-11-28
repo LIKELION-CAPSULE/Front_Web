@@ -1,0 +1,7 @@
+/* Shared component showcase (review only, ComponentShowcase.tsx): page layout around the product's own components. */
+.review-showcase { min-height: 100dvh; display: grid; align-content: start; gap: 32px; padding: 40px 48px; background: var(--color-canvas); color: var(--color-ink); }
+.review-showcase header { display: grid; gap: 8px; }
+.review-showcase section { display: grid; gap: 16px; justify-items: start; }
+.review-showcase-buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+.review-showcase-stack { position: relative; width: min(100%, 420px); min-height: 420px; }
+@media (max-width: 720px) { .review-showcase { padding: 24px 16px; } }

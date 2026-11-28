@@ -7,8 +7,9 @@ import { AFFINITY_STAGES } from './affinity-stages.ts'
  *
  * The API is not ready, so this module is the one boundary every screen goes through:
  * - The lock state of the five comes from the affinity stage alone (the server's stage in production).
- * - What the world is (place, background, outfit, sample line) comes from `MateWorldContent` by episode; a world
- *   without content shows the 「준비 중」 placeholder. Production has no content source yet; development and the local
+ * - What the world is (its name, place, outfit, one-line introduction, background, outfit still, sample line) comes
+ *   from `MateWorldContent` by episode; a world without content shows the 「준비 중」 placeholder. The name is what
+ *   the screens call it (「EP.01 · 도서관에서」); without one they fall back to the place (「EP.03 · 도서관」). Production has no content source yet; development and the local
  *   mock pass the planning examples (mate-world-samples.ts, never bundled in production).
  * - When the API arrives: name its unlock type in `WORLD_UNLOCK_TYPES` and map its fields in `worldContentFromServer`.
  * - 「고른 세계관으로 만나기」 (not decided): a choice would be a `MateWorld['id']` kept per mate; nothing stores it yet.
@@ -22,12 +23,20 @@ export type MateWorld = {
   episode: number
   /** The place: 「도서관」 (「준비 중」 until there is content). */
   place: string
+  /** The world's name: 「도서관에서」 (none: the screens name it by its place). */
+  title?: string
+  /** What the mate wears there, in words: 「후드티」. */
+  outfit?: string
+  /** One line of introduction: 「공부 중인 도현과 각자의 시간을 보내는 조용한 통화.」 */
+  summary?: string
   /** Affinity stage that opens it (Lv.N). */
   unlockStage: number
   unlocked: boolean
   unlockedAt?: number
-  /** The place's background picture. */
+  /** The place's background picture (landscape: the cards and the detail). */
   backgroundUrl?: string
+  /** The same place for a tall frame (portrait), for a screen that needs one (not used yet: e.g. a narrow call stage). */
+  backgroundPortraitUrl?: string
   /** A still of the mate in that place's outfit. */
   outfitPreviewUrl?: string
   /** One line the mate might say there. */
@@ -41,8 +50,12 @@ export type MateWorldContent = {
   episode: number
   id?: string
   place?: string
+  title?: string
+  outfit?: string
+  summary?: string
   unlockStage?: number
   backgroundUrl?: string
+  backgroundPortraitUrl?: string
   outfitPreviewUrl?: string
   sampleLine?: string
   unlockedAt?: number
@@ -59,6 +72,10 @@ export type ServerUnlockItem = {
   assetUrl: string | null
   unlocked: boolean | null
   unlockedAt: number | null
+  /** Not in the 37 contract yet: a world item that names its place apart from its `title` (the world's name). */
+  place?: string | null
+  outfit?: string | null
+  summary?: string | null
 }
 
 export const WORLD_COUNT = AFFINITY_STAGES.length
@@ -80,6 +97,8 @@ export const WORLD_COPY = {
   next: '다음 세계관',
   open: '세계관 자세히 보기',
   outfit: '이 장소의 의상',
+  place: '장소',
+  outfitWords: '의상',
   sampleLine: '이런 말을 해요',
   stageUp: '새 세계관이 열렸어요',
 } as const
@@ -87,9 +106,12 @@ export const WORLD_COPY = {
 /** 「EP.03」 */
 export const episodeLabel = (episode: number) => `EP.${String(episode).padStart(2, '0')}`
 
-/** 「EP.03 · 도서관」 (the placeholder shows the episode alone). */
-export function worldLabel(world: Pick<MateWorld, 'episode' | 'place' | 'placeholder'>, separator = ' · '): string {
-  return world.placeholder ? episodeLabel(world.episode) : `${episodeLabel(world.episode)}${separator}${world.place}`
+/** What a world is called: its name (「도서관에서」), or its place when it has none. */
+export const worldName = (world: Pick<MateWorld, 'place' | 'title'>) => world.title?.trim() || world.place
+
+/** 「EP.01 · 도서관에서」, or 「EP.03 · 도서관」 without a name (the placeholder shows the episode alone). */
+export function worldLabel(world: Pick<MateWorld, 'episode' | 'place' | 'placeholder' | 'title'>, separator = ' · '): string {
+  return world.placeholder ? episodeLabel(world.episode) : `${episodeLabel(world.episode)}${separator}${worldName(world)}`
 }
 
 /** 「4단계에서 열려요」 (1단계 세계관이 잠겨 있다면 아직 첫 연결 전이므로 「첫 연결 후 열려요」). */
@@ -110,14 +132,22 @@ export function mateWorldsForStage(
     const unlockStage = item?.unlockStage ?? episode
     const unlocked = item?.unlocked ?? unlockStage <= reached
     const place = item?.place?.trim()
+    const title = item?.title?.trim()
+    const outfit = item?.outfit?.trim()
+    const summary = item?.summary?.trim()
     return {
       id: item?.id ?? `world-${episode}`,
       episode,
       place: place || WORLD_COPY.placeholderPlace,
+      // A name, outfit or introduction belongs to a place: the placeholder carries none.
+      ...(place && title ? { title } : {}),
+      ...(place && outfit ? { outfit } : {}),
+      ...(place && summary ? { summary } : {}),
       unlockStage,
       unlocked,
       ...(unlocked && item?.unlockedAt !== undefined ? { unlockedAt: item.unlockedAt } : {}),
       ...(item?.backgroundUrl ? { backgroundUrl: item.backgroundUrl } : {}),
+      ...(item?.backgroundPortraitUrl ? { backgroundPortraitUrl: item.backgroundPortraitUrl } : {}),
       ...(item?.outfitPreviewUrl ? { outfitPreviewUrl: item.outfitPreviewUrl } : {}),
       ...(item?.sampleLine ? { sampleLine: item.sampleLine } : {}),
       placeholder: !place,
@@ -141,7 +171,8 @@ export function worldCount(worlds: readonly MateWorld[]) {
 /**
  * 37 `unlocks[]` → world content. EXPRESSION / VOICE_LINE (and anything not in `types`) is ignored, never an error.
  * The mapping is a guess until the API is fixed: `title` → place, `unlockStage` → episode and Lv, `assetUrl` →
- * background. The outfit still and the sample line have no field yet.
+ * background; optional `place` / `outfit` / `summary`, when an item sends them, make `title` the world's name and
+ * `place` the place. The outfit still and the sample line have no field yet.
  */
 export function worldContentFromServer(
   unlocks: readonly ServerUnlockItem[] | null | undefined,
@@ -150,11 +181,18 @@ export function worldContentFromServer(
   return (unlocks ?? []).flatMap((item) => {
     if (LEGACY_UNLOCK_TYPES.includes(item.type) || !types.includes(item.type)) return []
     if (item.unlockStage === null || item.unlockStage < 1 || item.unlockStage > WORLD_COUNT) return []
+    const title = text(item.title)
+    const place = text(item.place)
+    const outfit = text(item.outfit)
+    const summary = text(item.summary)
     return [{
       id: item.id,
       episode: item.unlockStage,
       unlockStage: item.unlockStage,
-      ...(item.title ? { place: item.title } : {}),
+      // With its own place the item's `title` is the world's name; without one it is the place (the old guess).
+      ...(place ? { place, ...(title ? { title } : {}) } : title ? { place: title } : {}),
+      ...(outfit ? { outfit } : {}),
+      ...(summary ? { summary } : {}),
       ...(item.assetUrl ? { backgroundUrl: item.assetUrl } : {}),
       ...(item.unlocked !== null ? { unlocked: item.unlocked } : {}),
       ...(item.unlockedAt !== null ? { unlockedAt: item.unlockedAt } : {}),
@@ -162,15 +200,31 @@ export function worldContentFromServer(
   })
 }
 
+const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : undefined)
+
+/** Only the fields that hold text (a missing one stays missing). */
+function optionalText<K extends string>(fields: Record<K, unknown>): Partial<Record<K, string>> {
+  const out: Partial<Record<K, string>> = {}
+  for (const key of Object.keys(fields) as K[]) {
+    const value = text(fields[key])
+    if (value) out[key] = value
+  }
+  return out
+}
+
 /**
  * 21 `stageUp.unlocked[]` / 22 · 23 `relation.unlocked[]` (no ids) in the 37 item shape, for `worldContentFromServer`.
  */
 export function serverItemsFromUnlocked(
-  items: readonly { type?: string; title?: string; unlockStage?: number; assetUrl?: string | null }[] | null | undefined,
+  items:
+    | readonly { type?: string; title?: string; unlockStage?: number; assetUrl?: string | null; place?: unknown; outfit?: unknown; summary?: unknown }[]
+    | null
+    | undefined,
 ): ServerUnlockItem[] {
   return (Array.isArray(items) ? items : []).flatMap((item, index) =>
     typeof item?.type === 'string' && item.type
       ? [{
+          ...optionalText({ place: item.place, outfit: item.outfit, summary: item.summary }),
           id: `unlocked-${index}`,
           type: item.type,
           title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : null,
@@ -194,7 +248,7 @@ export function worldOpenedAt(
   return mateWorldsForStage(stage, { content: server.length ? server : content }).find((world) => world.unlockStage === stage) ?? null
 }
 
-/** 「새 세계관이 열렸어요 · EP.03 도서관」 */
-export function worldStageUpLine(world: Pick<MateWorld, 'episode' | 'place' | 'placeholder'>): string {
+/** 「새 세계관이 열렸어요 · EP.01 도서관에서」 (or 「… · EP.03 도서관」 without a name) */
+export function worldStageUpLine(world: Pick<MateWorld, 'episode' | 'place' | 'placeholder' | 'title'>): string {
   return `${WORLD_COPY.stageUp} · ${worldLabel(world, ' ')}`
 }

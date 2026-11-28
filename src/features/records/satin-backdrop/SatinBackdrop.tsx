@@ -12,7 +12,7 @@ import './satin-backdrop.css'
 let enteredBefore = false
 
 /**
- * 내 기록's page backdrop: slow violet satin ribbons behind the content (under the site header, which stays opaque),
+ * 내 기록's page backdrop: slow violet satin ribbons behind the content, between the site header and footer (as 내 메이트's pixel snow),
  * seen through the glass blocks. Decorative only (hidden from assistive technology, never takes the pointer). Without
  * WebGL a still CSS gradient of the same colours stands in. On every entry the ribbons rise slowly out of the canvas
  * after the content (satin-config.ts `reveal`); the CSS stand-in fades in the same way; reduced motion: at once.

@@ -9,7 +9,7 @@ import type { MateWorld } from '@/features/mates/mate-worlds'
 import { NumberCounter } from '@/shared/ui/number-counter/NumberCounter'
 import { AnimatedDuration } from '@/shared/ui/number-counter/AnimatedDuration'
 import { CapsuleEmptyState } from '@/shared/ui/CapsuleEmptyState'
-import { AffinityWorldCard } from './AffinityWorldCard'
+import { AffinityCard, WorldCard } from './AffinityWorldCard'
 import { BlockLabel } from './BlockLabel'
 import { CapsuleGlyph } from './game-glyphs'
 import './mate-time-column.css'
@@ -51,8 +51,8 @@ function useFittingRows(fallback: number) {
 
 /**
  * 「함께한 시간」 column beside the mate panel. Plain blocks on the report panel's glass (my-mates.css), one title style
- * (small icon + title): the total with one line of counts, the affinity card (the stage, one progress bar, what is
- * left, and the five worlds under it; AffinityWorldCard) when the affinity feature is on, the latest connections
+ * (small icon + title): the total with one line of counts, the 친밀도 card (the stage, one progress bar, what is left)
+ * and the 세계관 card (the five worlds), each when its feature is on (AffinityWorldCard.tsx), the latest connections
  * (each opens its record card and lights its capsules in the scene; its title row holds 「목록으로 보기」) and the main
  * action.
  * No badges, ribbons or stickers.
@@ -84,7 +84,7 @@ export function MateTimeColumn({
   newIds: readonly string[]
   /** Null: no affinity data (feature off) — the block is left out. */
   affinity: AffinityProgressView | null
-  /** The five worlds under the affinity (feature on; null: the card shows the affinity alone). */
+  /** The five worlds (feature on): their own card; null: no 세계관 card. */
   worlds?: readonly MateWorld[] | null
   mateName: string
   /** The card shows the current world again when this changes (the mate and its stage). */
@@ -128,15 +128,10 @@ export function MateTimeColumn({
         </p>
       </section>
 
-      {affinity && (
-        <AffinityWorldCard
-          className="mate-game-block mate-game-affinity"
-          affinity={affinity}
-          worlds={worlds}
-          mateName={mateName}
-          resetKey={worldKey}
-          tour={{ affinity: 'my-mates-affinity', world: 'my-mates-world' }}
-        />
+      {affinity && <AffinityCard className="mate-game-block mate-game-affinity" affinity={affinity} tour="my-mates-affinity" />}
+
+      {worlds && worlds.length > 0 && (
+        <WorldCard className="mate-game-block mate-game-world" worlds={worlds} mateName={mateName} resetKey={worldKey} tour="my-mates-world" />
       )}
 
       <section className="mate-game-block mate-game-recent" data-tour="my-mates-recent" aria-labelledby="my-mates-recent-label">

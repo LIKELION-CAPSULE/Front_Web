@@ -17,7 +17,6 @@ import {
   previewFailed,
   previewReleased,
   previewShown,
-  standInVisible,
   type PreviewView,
 } from '../avatar-preview-state'
 import './avatar-dial.css'
@@ -25,6 +24,8 @@ import './avatar-dial.css'
 /** Shown wherever the Live2D sample avatars can be picked (Live2D free material license, attribution duty). */
 /** No avatar to choose (an empty `GET /avatars`): the server gives the default avatar. */
 const EMPTY_AVATARS = '선택할 수 있는 아바타가 없어요. 기본 아바타로 시작해요.'
+/** While `GET /avatars` is on its way (read by screen readers only; the rail keeps its empty place). */
+const LOADING_AVATARS = '고를 수 있는 아바타를 불러오고 있어요.'
 
 export const LIVE2D_CREDIT = '본 서비스의 아바타 캐릭터에는 주식회사 Live2D의 저작물이 이용되었습니다.'
 
@@ -58,15 +59,16 @@ function AvatarPortrait({ avatar, fallback, className = 'avatar-picker-image' }:
  *
  * - Only the chosen avatar loads Live2D; the row is still images. Two avatars are never on the stage together: the
  *   previous model fades out quickly and is released, the stage keeps only its light while the chosen model loads
- *   (a soft pulse after 0.6 s, the avatar's still only after 4 s or on failure), and the model fades in with a slight
- *   grow (avatar-preview-state.ts). The neighbours' model files are prefetched while idle (live2d/model-prefetch.ts).
+ *   (a soft pulse after 0.6 s) and the model fades in with a slight grow (avatar-preview-state.ts). What was shown is
+ *   never swapped: the still appears only once the model is given up — it failed, or it was still not drawn after 10 s
+ *   (then that avatar stays its still while the dialog is open) — or the model is not used (reduced motion, none). The neighbours' model files are prefetched while idle (live2d/model-prefetch.ts).
  * - Arrow keys / Home / End on the row, a click on any still, or a horizontal swipe on the preview or the row.
  * - Reduced motion: the row and the preview switch instantly, and the preview is the still image (no live model)
  *   whenever one exists.
  * - The model itself is never recoloured, filtered or reshaped (license); only the light behind it and the fade at
  *   the bottom edge belong to the stage.
  */
-export function AvatarDial({ avatars, value, onChange, disabled = false, size = 'large', layout = 'row', previewActive = true, fallback, greeting, railHint = false }: {
+export function AvatarDial({ avatars, value, onChange, disabled = false, size = 'large', layout = 'row', previewActive = true, fallback, greeting, railHint = false, loading = false }: {
   avatars: readonly AvatarItem[]
   value?: number
   onChange: (id: number) => void
@@ -88,6 +90,11 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
    * a few seconds or at the first change (onboarding, where the arc is met first).
    */
   railHint?: boolean
+  /**
+   * The choices are still being read (account settings opens before `GET /avatars` answers): the name is a placeholder
+   * and an empty list is not called empty yet (no 「선택할 수 있는 아바타가 없어요」 that turns into the list).
+   */
+  loading?: boolean
 }) {
   const reduced = useReducedMotion()
   const choices = avatars.filter((avatar): avatar is AvatarItem & { id: number } => typeof avatar.id === 'number')
@@ -96,7 +103,10 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   const selected = choices[selectedIndex]
   const model = selected?.model
   const previewKey = JSON.stringify([selected?.id, model?.modelJsonUrl, model?.scale, model?.offsetX, model?.offsetY])
-  const live = Boolean(model?.modelJsonUrl) && previewActive && !(reduced && selected?.thumbnailUrl)
+  // A model too slow to come (AVATAR_STILL_FALLBACK_MS) is given up for this opening: that avatar stays its still, never
+  // swapped for the model later (user decision 2026-11-28: what was shown is not replaced).
+  const [stillKeys, setStillKeys] = useState<ReadonlySet<string>>(() => new Set())
+  const live = Boolean(model?.modelJsonUrl) && previewActive && !(reduced && selected?.thumbnailUrl) && !stillKeys.has(previewKey)
   const current: PreviewEntry | null = live && model ? { key: previewKey, model, name: selected?.name || '아바타' } : null
   // The previous model fades out and is released before the chosen one mounts; meanwhile the chosen avatar's still
   // stands in (avatar-preview-state.ts). Never two avatars visible; at most two models exist at once.
@@ -115,19 +125,17 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
     ? failedPreview
     : null
   const previews = mountedPreviews(nextView).map(({ entry, leaving }) => ({ entry: !leaving && current && entry.key === current.key ? current : entry, leaving }))
-  const standIn = Boolean(current) && standInVisible(nextView)
-  // Waiting for the chosen model: only the light at first, a soft pulse after AVATAR_WAIT_PULSE_MS, and the avatar's
-  // still after AVATAR_STILL_FALLBACK_MS (a fallback; it fades out under the model when the model comes).
+  // Waiting for the chosen model: only the light (the same quiet place, nothing swapped in), a soft pulse after
+  // AVATAR_WAIT_PULSE_MS. Past AVATAR_STILL_FALLBACK_MS the model is given up and the still is fixed (`stillKeys`).
   const waitingKey = current && awaitingModel(nextView) ? current.key : null
-  const [wait, setWait] = useState<{ key: string; pulse: boolean; still: boolean } | null>(null)
+  const [pulseKey, setPulseKey] = useState<string | null>(null)
   useEffect(() => {
     if (!waitingKey) return
-    const pulse = setTimeout(() => setWait(previous => ({ key: waitingKey, pulse: true, still: previous?.key === waitingKey && previous.still })), AVATAR_WAIT_PULSE_MS)
-    const still = setTimeout(() => setWait({ key: waitingKey, pulse: true, still: true }), AVATAR_STILL_FALLBACK_MS)
+    const pulse = setTimeout(() => setPulseKey(waitingKey), AVATAR_WAIT_PULSE_MS)
+    const still = setTimeout(() => setStillKeys(previous => new Set(previous).add(waitingKey)), AVATAR_STILL_FALLBACK_MS)
     return () => { clearTimeout(pulse); clearTimeout(still) }
   }, [waitingKey])
-  const pulsing = Boolean(waitingKey) && wait?.key === waitingKey && wait.pulse
-  const stillFallback = Boolean(current) && wait?.key === current?.key && Boolean(wait?.still)
+  const pulsing = Boolean(waitingKey) && pulseKey === waitingKey
   const leavingKeys = nextView.leaving.map(entry => entry.key).join('|')
   useEffect(() => {
     if (!leavingKeys) return
@@ -253,10 +261,6 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
       <figure className="avatar-picker-figure" aria-labelledby={nameId}>
         {current
           ? <>
-            {/* The chosen avatar's still only when its model is slow (AVATAR_STILL_FALLBACK_MS), under the model. */}
-            {nextView.leaving.length === 0 && stillFallback && <div key={current.key} className="avatar-picker-still avatar-picker-stand-in" data-out={!standIn || undefined} data-avatar={current.key} aria-hidden="true">
-              <AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} />
-            </div>}
             {previews.map(({ entry, leaving }) => <AvatarModelPreview key={entry.key} avatarKey={entry.key} model={entry.model} leaving={leaving}
               still={leaving ? undefined : <AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} />}
               onShown={() => {
@@ -280,7 +284,9 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
       <AnimatePresence mode="wait" initial={false}>
         <motion.p key={selected?.id ?? 'none'} id={nameId} className="avatar-picker-name" title={selectedName}
           initial={reduced ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={reduced ? { opacity: 1 } : { opacity: 0, y: -4 }} transition={fade}>
-          {selectedName}
+          {loading
+            ? <span className="skeleton-line inline-block h-[0.9em] w-24 rounded-control align-middle" aria-hidden="true" />
+            : selectedName}
         </motion.p>
       </AnimatePresence>
       {greeting && <p className="avatar-picker-greeting">{greeting}</p>}
@@ -301,7 +307,9 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
         // The rail keeps its place: one empty slot where the choice would sit, the note under it.
         : <div className="avatar-arc" data-empty>
           <span className="avatar-arc-empty-slot" aria-hidden="true" />
-          <p className="avatar-picker-empty" role="status">{EMPTY_AVATARS}</p>
+          {loading
+            ? <p className="sr-only" role="status">{LOADING_AVATARS}</p>
+            : <p className="avatar-picker-empty" role="status">{EMPTY_AVATARS}</p>}
         </div>}
       <div
         ref={mainRef}
@@ -348,7 +356,9 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
           })}
         </div>
       </div>
-      : <div className="avatar-picker-rail" data-empty><p className="avatar-picker-empty" role="status">{EMPTY_AVATARS}</p></div>}
+      : <div className="avatar-picker-rail" data-empty>{loading
+        ? <p className="sr-only" role="status">{LOADING_AVATARS}</p>
+        : <p className="avatar-picker-empty" role="status">{EMPTY_AVATARS}</p>}</div>}
 
     {credit}
   </fieldset>

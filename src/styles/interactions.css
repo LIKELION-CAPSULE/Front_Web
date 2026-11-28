@@ -56,7 +56,6 @@
     min-height: 100dvh;
   }
   .page-skeleton .skeleton-line { background: var(--color-panel); }
-  .page-skeleton .welcome-copy .skeleton-line { background: var(--color-surface); }
   .skeleton-line {
     position: relative;
     overflow: hidden;

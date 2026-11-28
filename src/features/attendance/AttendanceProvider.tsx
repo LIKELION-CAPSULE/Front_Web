@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useAttendance } from './use-attendance'
 import { AttendanceContext, type AttendanceRunner } from './attendance-controller'
-import { holdCreditReward, landCreditReward } from './credit-reward'
-import { settleAttendanceHold, type AttendanceHold } from './attendance-service'
+import { holdCreditPending, holdCreditReward, landCreditReward } from './credit-reward'
+import { creditHoldPossible, settleAttendanceHold, type AttendanceHold } from './attendance-service'
 import { useBackend } from '@/features/backend/backend-context'
 import { businessDay } from '@/shared/lib/format'
 
@@ -30,6 +30,13 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
   const pendingCredit = attendance.state.checkedToday ? 0 : attendance.state.pendingCredit ?? 0
   const pendingDay = pendingCredit > 0 ? (attendance.state.pendingDay ?? businessDay()) : null
 
+  // Until the first read lands the chip cannot know whether 1,500 is held back: it waits (a placeholder) instead of
+  // showing the full balance and dropping when the read lands. Before paint, like the hold below.
+  const { isLoading } = attendance
+  useLayoutEffect(() => {
+    if (!isLoading || userId === undefined || !creditHoldPossible(userId)) return
+    return holdCreditPending()
+  }, [isLoading, userId])
   // Before paint, so the chip never shows today's credits before the button plays them.
   useLayoutEffect(() => {
     if (

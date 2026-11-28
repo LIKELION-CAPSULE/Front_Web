@@ -47,10 +47,17 @@ export function ProfileEditor({
   const { avatars, saveProfile, ensureAvatars, accountDetails, saveBetaProfile } = useBackend()
   const lowHeight = useLowHeight()
 
-  // Load avatar choices when the editor opens; without them only the current portrait is offered.
+  // Load avatar choices when the editor opens; without them only the current portrait is offered. Until the first
+  // answer the dial shows placeholders (no 「현재 아바타」 · 「아바타가 없어요」 that change a moment later).
+  const [avatarsRead, setAvatarsRead] = useState(false)
   useEffect(() => {
-    if (active) void ensureAvatars().catch(() => { /* Keep the current avatar. */ })
+    if (!active) return
+    let alive = true
+    const settle = () => { if (alive) setAvatarsRead(true) }
+    void ensureAvatars().then(settle, settle)
+    return () => { alive = false }
   }, [active, ensureAvatars])
+  const avatarsLoading = !avatarsRead && avatars.length === 0
 
   // Prefer server-provided state.profile.avatarId; fall back to matching the thumbnail URL in loaded choices.
   // If still unknown, PATCH /me omits avatarId — UpdateMeRequest allows avatarId?: number (optional) so
@@ -134,6 +141,7 @@ export function ProfileEditor({
               }}
               fallback={<AvatarIllustration settings={state.profile.avatar} />}
               greeting={greeting}
+              loading={avatarsLoading}
             />
           </div>
 

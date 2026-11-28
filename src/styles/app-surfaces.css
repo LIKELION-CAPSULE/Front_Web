@@ -1,4 +1,19 @@
 /* App presentation is isolated from /login, including the desktop comparison. */
+
+/*
+ * Frosted glass (docs/DESIGN_SYSTEM.md): the home speech bubble's and 내 메이트 blocks' material — `panel` 68% →
+ * `canvas` 62% at 135°, 18px backdrop blur, 140% saturation, no outline. Use it only inside
+ * `@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)))` over an opaque `panel` fallback.
+ * The login panel uses these; the older surfaces still write the same values out (my-mates.css, welcome.css).
+ */
+:root {
+  --frosted-glass: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-panel) 68%, transparent),
+    color-mix(in srgb, var(--color-canvas) 62%, transparent)
+  );
+  --frosted-glass-filter: blur(18px) saturate(140%);
+}
 .app-surface { min-height: 100dvh; background: var(--color-canvas); }
 .app-panel { min-width: 0; overflow: hidden; border: 0; border-radius: var(--radius-card); background: var(--color-panel); }
 .app-panel-heading { padding: 28px 28px 0; }
@@ -10,8 +25,6 @@
 .auth-panel-layout[data-app-header] { justify-content: flex-start; padding: 0 0 32px; }
 .auth-panel-layout[data-app-header] > .site-header { align-self: stretch; }
 .auth-panel-layout[data-app-header] > .auth-panel-content { max-width: calc(100% - 48px); }
-.app-surface .page-skeleton :is(.app-panel, .mate-card, .mate-welcome) .skeleton-line { background: var(--color-surface); }
-.app-surface .page-skeleton .mate-card-image { height: auto; }
 
 /* Temporary adapter for pages awaiting their own redesign. Keep their layout and actions. */
 .app-surface .desktop-window {

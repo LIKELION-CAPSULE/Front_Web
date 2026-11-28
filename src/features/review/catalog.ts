@@ -2,10 +2,18 @@ import type { SkeletonScreen } from '../../shared/lib/loading-screen.ts'
 import { WITHDRAWAL_CONFIRMATION } from '../auth/withdrawal-confirmation.ts'
 import type { FocusTotals } from '../demo/types.ts'
 
+/**
+ * One automatic step of a scenario (ReviewSetup.tsx). `optional`: when the element is not on screen right now the step
+ * is skipped at once instead of waiting (e.g. 「채팅 열기」 exists only where the chat starts closed). `wait` with a
+ * `selector` waits for that element (any text when `wait` is empty).
+ */
 export type ReviewStep =
-  | { click: string; selector?: string; includes?: boolean }
+  | { click: string; selector?: string; includes?: boolean; optional?: boolean }
   | { fill: string; value: string }
-  | { wait: string }
+  | { wait: string; selector?: string }
+
+/** A width the workbench opens the scenario at (its size presets, ReviewWorkbench.tsx). */
+export type ReviewWidth = '1440' | '1280' | '960' | '900' | '720' | '640' | 'mobile'
 
 export type ReviewScenario = {
   id: string
@@ -16,7 +24,6 @@ export type ReviewScenario = {
   guest?: boolean
   onboarding?: boolean
   empty?: boolean
-  returning?: boolean
   session?: 'recover' | 'study' | 'unknown'
   reports?: number[]
   cameraFocus?: FocusTotals
@@ -29,19 +36,27 @@ export type ReviewScenario = {
   /** Optional dedicated farewell line for connection leave dialog review. */
   farewellLine?: string
   fault?: string
+  /** Whose connections the seeded records are (`reports`): 채린 unless this names 서도현 (server name 「서진」). */
+  recordMate?: 'dohyun'
+  /**
+   * The login mate's own motion is what is reviewed (dozing, waking, following the cursor): the local Live2D model is
+   * kept when local-assets/ has it. Every other preview shows the stills (no /__local-assets request).
+   */
+  liveMate?: boolean
+  /** The call's 60-second heartbeat comes every few seconds instead (review only), so its answer shows at once. */
+  fastHeartbeat?: boolean
   loading?: SkeletonScreen | 'auth' | 'credits' | 'invite' | 'my-mates' | 'records'
   loginNext?: string
   /** A Kakao sign-up ticket in the preview's session storage (the consent screen's entry): live, or already expired. */
   kakaoSignup?: 'active' | 'expired'
   steps?: ReviewStep[]
-  /** Modal/popup design draft (dialog-design/). Renders over the real page; never part of the product. */
-  dialogDesign?: 'a' | 'b' | 'c' | 'b2' | 'b3' | 'toast'
-  /** Call-screen UI draft (call-ui/). Mounted on its own instead of the app; never part of the product. */
-  callUi?: 'c1' | 'c2' | 'c3'
-  /** Call-screen chat panel draft (chat-panel/): the C1 stage with the real dialogue box and a draft panel. Review only. */
-  chatPanel?: 'p1' | 'p2' | 'p3'
-  /** A phone-only screen (the mobile access notice, SCR-40): the workbench opens it at the phone width. */
-  phone?: boolean
+  /** The shared component showcase (ComponentShowcase.tsx): the real Dialog and NotificationStack, no app. */
+  showcase?: boolean
+  /**
+   * The width the workbench switches to when this scenario is chosen (the phone-only mobile notice, a narrow-window
+   * layout); others keep the width the reviewer picked.
+   */
+  defaultWidth?: ReviewWidth
 }
 
 const click = (text: string): ReviewStep => ({ click: text })
@@ -56,6 +71,12 @@ const account = [click('계정 설정 열기')] satisfies ReviewStep[]
 const security = [...account, click('보안')] satisfies ReviewStep[]
 // The withdrawal confirmation is open from the start on the security tab (no button to unfold it).
 const withdraw = [...security, fill('input[name="withdrawalConfirmation"]', WITHDRAWAL_CONFIRMATION)] satisfies ReviewStep[]
+/**
+ * The call's chat opened: it starts open above 960px and closed at 960px and below (ConnectionPage), so wait for the
+ * dock and press 「채팅 열기」 only when it is there.
+ */
+const openChat = [{ wait: '', selector: 'button[aria-label="채팅 열기"], button[aria-label="채팅 닫기"]' }, { click: '채팅 열기', optional: true }] satisfies ReviewStep[]
+const connectWithChat = [click('연결하기'), ...openChat] satisfies ReviewStep[]
 const resetMenu = [click('채린 메뉴'), click('대화 초기화')] satisfies ReviewStep[]
 const passwordRequest = [...security, fill('input[name="email"]', 'review@example.invalid'), click('재설정 링크 받기')] satisfies ReviewStep[]
 
@@ -63,8 +84,8 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'welcome', group: '로그인·가입', title: '로그인 시작', path: '/login', guest: true, note: '카카오·이메일 선택. 동의 화면 경로(KAKAO_SIGNUP_CONSENT_SCREEN=true)라 카카오 버튼 아래 약관 고지 없음' },
   { id: 'welcome-kakao-notice', group: '로그인·가입', title: '로그인 시작 · 약관 고지(현재 운영)', path: '/login', guest: true, fault: 'kakao-consent-off', note: 'KAKAO_SIGNUP_CONSENT_SCREEN=false(백엔드 a′ 배포 전, 지금 운영): 「시작하면 [이용약관]과 [개인정보 처리방침]에 동의해요.」 고지' },
   { id: 'login', group: '로그인·가입', title: '이메일 로그인', path: '/login?mode=login', guest: true, note: '기본 입력·비밀번호 찾기' },
-  { id: 'login-doze', group: '로그인·가입', title: '로그인 · 졸고 있는 채린', path: '/login', guest: true, note: '노트북 앞에서 꾸벅꾸벅 조는 채린(큰 Z, 「채린을 눌러 깨워 보세요」 안내). 다가가거나 누르거나 키를 누르면, 또는 10초 뒤 스스로 깸' },
-  { id: 'login-doze-awake', group: '로그인·가입', title: '로그인 · 깬 채린', path: '/login?doze=awake', guest: true, note: '깨어나 웃으며 「앗, 왔어? 기다리고 있었어.」라고 인사한 상태(다시 보기 버튼 포함). Live2D가 있으면 커서를 따라봄' },
+  { id: 'login-doze', group: '로그인·가입', title: '로그인 · 졸고 있는 채린', path: '/login', guest: true, liveMate: true, note: '노트북 앞에서 꾸벅꾸벅 조는 채린(큰 Z, 「채린을 눌러 깨워 보세요」 안내). 다가가거나 누르거나 키를 누르면, 또는 10초 뒤 스스로 깸' },
+  { id: 'login-doze-awake', group: '로그인·가입', title: '로그인 · 깬 채린', path: '/login?doze=awake', guest: true, liveMate: true, note: '깨어나 웃으며 「앗, 왔어? 기다리고 있었어.」라고 인사한 상태(다시 보기 버튼 포함). Live2D가 있으면 커서를 따라봄' },
   { id: 'login-doze-static', group: '로그인·가입', title: '로그인 · 정지 이미지 경로', path: '/login?static=1', guest: true, note: 'Live2D 없이 조는 모습 → 하품 → 웃음 정지 이미지 크로스페이드. 운영(로그인 메이트 API 전)과 움직임 줄이기에서 보이는 화면' },
   { id: 'login-error', group: '로그인·가입', title: '로그인 실패', path: '/login?mode=login', guest: true, fault: 'login', steps: login, note: '잘못된 인증정보 안내' },
   { id: 'login-locked', group: '로그인·가입', title: '로그인 잠금', path: '/login?mode=login', guest: true, fault: 'locked', steps: login, note: '반복 실패·5분 뒤 재시도' },
@@ -114,17 +135,16 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'onboarding-error', group: '온보딩·홈', title: '온보딩 저장 실패', path: '/onboarding', onboarding: true, accountContract: true, fault: 'profile', steps: [...fillBirthDate('2000-01-01'), click('다음'), click('시작하기')], note: '신규 계정 계약 모의 포트: 저장 실패·입력 유지' },
   { id: 'home-first', group: '온보딩·홈', title: '홈 · 첫 방문', path: '/', note: '캡슐 메이트 탐색·서버 출시 메이트 목록' },
   { id: 'home-tutorial', group: '온보딩·홈', title: '홈 · 새 3단계 사용법', path: '/?tutorial=1', note: '최종 문서의 메이트 고르기·연결하기·연결 기록. 임의 대사와 미연동 기능 안내 없음' },
-  { id: 'home-return', group: '온보딩·홈', title: '홈 · 재방문', path: '/', returning: true, note: '오늘 연결 시간·메이트 탐색' },
   { id: 'home-resume', group: '온보딩·홈', title: '홈 · 다시 연결', path: '/', session: 'recover', note: '진행 중인 연결이 있는 홈' },
-  { id: 'home-empty', group: '온보딩·홈', title: '홈 · 메이트 없음', path: '/', empty: true, note: '서버 목록을 로컬 룸으로 채우지 않는 빈 상태' },
-  { id: 'home-live2d-fallback', group: '온보딩·홈', title: '홈 · Live2D 대체 이미지', path: '/', note: '모델 없음 → 정적 포트레이트' },
-  { id: 'home-lowpower', group: '온보딩·홈', title: '홈 · 저전력 정적 배경', path: '/', note: '저전력/WebGL2 미지원 → 정적 배경' },
+  { id: 'home-empty', group: '온보딩·홈', title: '홈 · 메이트 없음', path: '/', empty: true, note: '11 mates가 빈 응답: 메이트 자리에 「메이트를 불러오지 못했어요」·「다시 시도」 카드(로컬 룸이나 가짜 카드로 채우지 않음)' },
   { id: 'mate-detail', group: '메이트·연결', title: '메이트 상세', path: '/mates/chaerin', note: '세계관·내 역할·인트로와 직접 연결' },
+  { id: 'mate-detail-dohyun', group: '메이트·연결', title: '메이트 상세 · 서도현', path: '/mates/dohyun', note: '공개된 2번 메이트: 서도현의 메이트 색(230° 블루바이올렛)·떠다니는 캡슐·네온 링과 직접 연결. 채린 상세와 색 대비' },
   { id: 'connection-entry', group: '메이트·연결', title: '연결 · 직접 방문', path: '/connect/chaerin', note: '주소 방문만으로 세션을 만들지 않고 연결 버튼 제공' },
-  { id: 'connection-active', group: '메이트·연결', title: '연결 중 · 채린', path: '/connect/chaerin', steps: [click('연결하기')], note: '준비·목표 시간 없이 기본 채팅·카메라·보기 전환' },
+  { id: 'connection-active', group: '메이트·연결', title: '연결 중 · 채린', path: '/connect/chaerin', steps: [click('연결하기')], note: '준비·목표 시간 없이 기본 채팅·카메라·보기 전환·머리 세계관 칩 「EP.03 주말 오후의 카페」(친밀도 3단계에서 열린 가장 최근 세계관, 1100px 이하 숨김)' },
+  { id: 'connection-active-dohyun', group: '메이트·연결', title: '연결 중 · 서도현', path: '/connect/dohyun', steps: [click('연결하기')], note: '서도현 통화: 블루바이올렛 포인트(대사창·채팅·도크)·헤더 관계 문구 「오랜 소꿉친구」·친밀도 칩. 900px은 채팅이 닫힌 채 시작·세계관 칩 「EP.03 커피 한 잔」' },
   { id: 'connection-start-error', group: '메이트·연결', title: '연결 · 시작 오류', path: '/connect/chaerin', fault: 'start', steps: [click('연결하기')], note: '서버 연결 실패와 재시도' },
   { id: 'connection-record', group: '메이트·연결', title: '연결 기록', path: '/connections/9001', cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '연결 끊음 창·함께한 시간(연결 시간)·카메라로 함께한 시간·친밀도와 다시 연결' },
-  { id: 'connection-record-levelup', group: '메이트·연결', title: '연결 기록 · 친밀도 단계 상승', path: '/connections/9001', cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '친밀도 단계 상승(아는 사이 → 친구)·다음 단계 진행 막대·「새 세계관이 열렸어요 · EP.03 도서관」과 「세계관 보기」(내 메이트로)' },
+  { id: 'connection-record-levelup', group: '메이트·연결', title: '연결 기록 · 친밀도 단계 상승', path: '/connections/9001', cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '친밀도 단계 상승(아는 사이 → 친구)·다음 단계 진행 막대·「새 세계관이 열렸어요 · EP.03 주말 오후의 카페」와 「세계관 보기」(내 메이트로)' },
   { id: 'connection-record-nocam', group: '메이트·연결', title: '연결 기록 · 카메라 없음', path: '/connections/9001', note: '카메라 측정 없음·마무리 대사 없음·친밀도 값 없음 숨김 확인' },
   { id: 'connection-record-loading', group: '메이트·연결', title: '연결 기록 · 불러오는 중', path: '/connections/9001', fault: 'report-pending', loading: 'connection-record', note: '연결 끊음 창 스켈레톤' },
   { id: 'connection-record-credit-out', group: '메이트·연결', title: '연결 기록 · 크레딧 소진 안내', path: '/connections/9001', cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '오늘 크레딧 소진 시 친구 초대 안내 표시' },
@@ -132,28 +152,31 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'connection-model-missing', group: '메이트·연결', title: '연결 · 모델 없음', path: '/connect/chaerin', fault: 'model-missing', steps: [click('연결하기')], note: '다른 모델이나 사진으로 연결 성공을 대신하지 않음' },
   { id: 'connection-model-ended-retry', group: '메이트·연결', title: '연결 · 모델 실패 뒤 서버 종료', path: '/connect/chaerin', fault: 'model-ended-retry', steps: [click('연결하기')], note: '모델 실패 뒤 재개하면 SESSION_ENDED. 종료된 임시 연결 제거·기록 조회·새 ID로 연결' },
   { id: 'connection-camera-error', group: '메이트·연결', title: '연결 · 카메라 거절', path: '/connect/chaerin', steps: [click('연결하기'), click('카메라 켜기')], note: '카메라 권한 거절 후 연결 유지' },
-  { id: 'connection-chat-history', group: '메이트·연결', title: '연결 · 지난 대화 불러오기', path: '/connect/chaerin', fault: 'chat-history', steps: [click('연결하기')], note: '32: 채팅을 열면 지난 대화 첫 페이지(20줄), 맨 위로 올리면 이전 페이지. 답장에 마우스를 올리면 👍·👎·신고' },
-  { id: 'connection-chat-empty', group: '메이트·연결', title: '연결 · 채팅 빈 상태', path: '/connect/chaerin', empty: true, steps: [click('연결하기')], note: '2026-11-28 채팅 P1: 처음 만난 메이트(지난 대화 없음). 캡슐·별 장식과 「채린에게 먼저 말 걸어 볼까요?」, 첫마디 칩(빠른 답장이 입력창 위에서 이리로 옮겨 옴). 첫마디를 누르면 내 말·사각 점 3개 답장 대기·머리 「입력 중」' },
-  { id: 'connection-reply-report', group: '메이트·연결', title: '연결 · 답장 신고', path: '/connect/chaerin', fault: 'chat-history', steps: [click('연결하기'), { click: '신고', selector: '.reply-action' }], note: '41: 사유 4개(기타는 300자 이하 직접 입력)·이미 신고한 답장은 409 뒤 접힘 처리' },
-  { id: 'connection-credit-short', group: '메이트·연결', title: '연결 · 고급 모드 크레딧 부족', path: '/connect/chaerin', fault: 'credit-short', steps: [click('연결하기'), { click: '고급 ·', includes: true }, fill('textarea', '검토 메시지'), click('메시지 보내기')], note: '409 CREDIT_INSUFFICIENT: 「크레딧이 부족해요」·기본 모드로 계속(입력 그대로 다시 보냄)·친구 초대로 받기' },
+  { id: 'connection-chat-history', group: '메이트·연결', title: '연결 · 지난 대화 불러오기', path: '/connect/chaerin', fault: 'chat-history', steps: connectWithChat, note: '32: 채팅을 열면 지난 대화 첫 페이지(20줄), 맨 위로 올리면 이전 페이지. 답장에 마우스를 올리면 👍·👎·신고' },
+  { id: 'connection-chat-empty', group: '메이트·연결', title: '연결 · 채팅 빈 상태', path: '/connect/chaerin', empty: true, steps: connectWithChat, note: '2026-11-28 채팅 P1: 처음 만난 메이트(지난 대화 없음). 캡슐·별 장식과 「채린에게 먼저 말 걸어 볼까요?」, 첫마디 칩(빠른 답장이 입력창 위에서 이리로 옮겨 옴). 첫마디를 누르면 내 말·사각 점 3개 답장 대기·머리 「입력 중」' },
+  { id: 'connection-chat-typing', group: '메이트·연결', title: '연결 · 답장 대기(입력 중)', path: '/connect/chaerin', fault: 'message-pending', steps: [...connectWithChat, fill('textarea', '검토 메시지'), click('메시지 보내기')], note: '보낸 메시지의 답장이 오지 않는 동안: 내 말 아래 사각 점 3개(답장 대기)와 채팅 머리 「입력 중」이 그대로 머묾(28 응답 대기 고정)' },
+  { id: 'connection-reply-report', group: '메이트·연결', title: '연결 · 답장 신고', path: '/connect/chaerin', fault: 'chat-history', steps: [...connectWithChat, { click: '신고', selector: '.reply-action' }], note: '41: 사유 4개(기타는 300자 이하 직접 입력)·이미 신고한 답장은 409 뒤 접힘 처리' },
+  { id: 'connection-credit-short', group: '메이트·연결', title: '연결 · 고급 모드 크레딧 부족', path: '/connect/chaerin', fault: 'credit-short', steps: [...connectWithChat, { click: '고급 ·', includes: true }, fill('textarea', '검토 메시지'), click('메시지 보내기')], note: '409 CREDIT_INSUFFICIENT: 「크레딧이 부족해요」·기본 모드로 계속(입력 그대로 다시 보냄)·친구 초대로 받기' },
   { id: 'connection-voice-off', group: '메이트·연결', title: '연결 · 메이트 음성 꺼짐(기본)', path: '/connect/chaerin', steps: [click('연결하기')], note: '서버 voiceEnabled 기본값이 켜짐이어도 직접 켜기 전엔 꺼짐: 도크 「메이트 음성 켜기」(헤드폰, aria-pressed false), 메시지는 tts: false' },
   { id: 'connection-voice-on', group: '메이트·연결', title: '연결 · 메이트 음성 켬', path: '/connect/chaerin', steps: [click('연결하기'), click('메이트 음성 켜기')], note: '도크로 켬: 「메이트 음성 끄기」(aria-pressed true), 처음 한 번 「메이트 목소리로 답해요 · 답장마다 20 크레딧」 안내, 설정 스위치도 같은 값' },
-  { id: 'connection-voice-reply', group: '메이트·연결', title: '연결 · 음성 답장', path: '/connect/chaerin', steps: [click('연결하기'), click('메이트 음성 켜기'), fill('textarea', '검토 메시지'), click('메시지 보내기')], note: '28 tts: 가짜 음성(테스트 톤 mp3 조각 3개)을 끊김 없이 이어 재생, 입 모양이 음량을 따라감. 브라우저가 소리를 막으면 오른쪽 위 「소리 켜기」' },
-  { id: 'connection-voice-fallback', group: '메이트·연결', title: '연결 · 음성 크레딧 부족', path: '/connect/chaerin', fault: 'voice-short', steps: [click('연결하기'), click('메이트 음성 켜기'), fill('textarea', '검토 메시지'), click('메시지 보내기')], note: '음성을 요청했지만 크레딧이 모자라 글로만 온 답장(done.voice false): 「크레딧이 모자라 이번 답장은 글로만 보여 드려요.」 한 번' },
-  { id: 'connection-message-error', group: '메이트·연결', title: '연결 · 답장 실패', path: '/connect/chaerin', fault: 'message', steps: [click('연결하기'),fill('textarea','검토 메시지'),click('메시지 보내기')], note: '입력 유지·재시도' },
+  { id: 'connection-voice-reply', group: '메이트·연결', title: '연결 · 음성 답장', path: '/connect/chaerin', steps: [...connectWithChat, click('메이트 음성 켜기'), fill('textarea', '검토 메시지'), click('메시지 보내기')], note: '28 tts: 가짜 음성(테스트 톤 mp3 조각 3개)을 끊김 없이 이어 재생, 입 모양이 음량을 따라감. 브라우저가 소리를 막으면 오른쪽 위 「소리 켜기」' },
+  { id: 'connection-voice-fallback', group: '메이트·연결', title: '연결 · 음성 크레딧 부족', path: '/connect/chaerin', fault: 'voice-short', steps: [...connectWithChat, click('메이트 음성 켜기'), fill('textarea', '검토 메시지'), click('메시지 보내기')], note: '음성을 요청했지만 크레딧이 모자라 글로만 온 답장(done.voice false): 「크레딧이 모자라 이번 답장은 글로만 보여 드려요.」 한 번' },
+  { id: 'connection-message-error', group: '메이트·연결', title: '연결 · 답장 실패', path: '/connect/chaerin', fault: 'message', steps: [...connectWithChat,fill('textarea','검토 메시지'),click('메시지 보내기')], note: '입력 유지·재시도' },
   { id: 'connection-finish', group: '메이트·연결', title: '연결 · 끊기 확인', path: '/connect/chaerin', steps: [click('연결하기'),click('연결 끊기')], note: '끊기·계속하기 (전용 끊기 멘트 없음)' },
   { id: 'connection-finish-with-line', group: '메이트·연결', title: '연결 · 끊기 확인(전용 멘트)', path: '/connect/chaerin', farewellLine: '잠깐 쉬고 와도 괜찮아. 여기서 기다리고 있을게.', steps: [click('연결하기'),click('연결 끊기')], note: '전용 끊기 멘트 필드가 있을 때만 말풍선 표시' },
   { id: 'connection-finish-error', group: '메이트·연결', title: '연결 · 종료 실패', path: '/connect/chaerin', fault: 'end', steps: [click('연결하기'),click('연결 끊기'),{click:'연결 끊기',selector:'.app-dialog button'}], note: '실패 후 연결 유지·재시도' },
+  { id: 'connection-record-after-call', group: '메이트·연결', title: '연결 끊은 직후 · 연결 기록', path: '/connect/chaerin', steps: [click('연결하기'), click('연결 끊기'), { click: '연결 끊기', selector: '.app-dialog button' }, { wait: '', selector: '.capsule-record-card' }], note: '통화에서 「연결 끊기」로 나온 화면(hangup 진입): 사이트 헤더(빵부스러기·계정) 없이 화면 전체가 기록, 나가는 길은 카드의 「홈으로」(불러오는 중에도 표시)·「다시 연결하기」. 내 기록에서 연 기록(connection-record)은 헤더 유지. 새로고침하면 진입 정보가 없어 헤더가 돌아옴' },
   { id: 'connection-ended-heartbeat', group: '메이트·연결', title: '연결 · 서버 종료 알림', path: '/connect/chaerin', fault: 'server-ended-heartbeat', steps: [click('연결하기')], note: '다음 heartbeat에서 기존 SESSION_ENDED 응답. 중복 종료 없이 실제 보고서 조회로 전환' },
   { id: 'connection-ended-event', group: '메이트·연결', title: '연결 · 상태 전송 중 서버 종료', path: '/connect/chaerin', fault: 'server-ended-event', steps: [click('연결하기')], note: '상태 이벤트의 SESSION_ENDED 뒤 연결 상태·모델·미디어 정리' },
   { id: 'connection-ended-message', group: '메이트·연결', title: '연결 · 메시지 HTTP 종료 응답', path: '/connect/chaerin', fault: 'server-ended-message', steps: [click('연결하기')], note: '메시지를 보내면 409 SESSION_ENDED. 실패한 메시지 캐시는 제거' },
-  { id: 'connection-stage-up', group: '메이트·연결', title: '연결 · 통화 중 친밀도 단계 상승', path: '/connect/chaerin', fault: 'stage-up', steps: [click('연결하기')], note: '16 relation 2단계(이름 없음)로 시작: 위 친밀도 칩 「아는 사이」. 첫 heartbeat(약 60초 뒤) 응답의 stageUp(Lv.3): 채팅이 열려 있으면 로그의 친밀도 줄, 닫혀 있으면 오른쪽 위 알림 「친밀도 3단계 · 친구 / 새 세계관이 열렸어요 · EP.03 도서관」·위 친밀도 칩도 바로 「친구」. 통화 배경·의상은 그대로' },
+  { id: 'connection-stage-up', group: '메이트·연결', title: '연결 · 통화 중 친밀도 단계 상승', path: '/connect/chaerin', fault: 'stage-up', steps: [click('연결하기')], note: '16 relation 2단계(이름 없음)로 시작: 위 친밀도 칩 「아는 사이」. 첫 heartbeat(약 60초 뒤) 응답의 stageUp(Lv.3): 채팅이 열려 있으면 로그의 친밀도 줄, 닫혀 있으면 오른쪽 위 알림 「친밀도 3단계 · 친구 / 새 세계관이 열렸어요 · EP.03 주말 오후의 카페」·위 친밀도 칩도 바로 「친구」. 통화 배경·의상은 그대로' },
+  { id: 'connection-stage-up-now', group: '메이트·연결', title: '연결 · 친밀도 상승 바로 보기', path: '/connect/chaerin', fault: 'stage-up', fastHeartbeat: true, steps: [click('연결하기'), { wait: '', selector: '.chat-log-stage-up, .connection-stage-up' }], note: 'connection-stage-up을 60초 기다리지 않고: heartbeat를 몇 초마다 보내(리뷰 전용) 첫 응답의 stageUp(Lv.3 친구)을 바로 반영. 1440은 채팅 로그의 분홍 친밀도 줄 「친밀도가 올랐어요 · 3단계 친구 / 새 세계관이 열렸어요 · EP.03 주말 오후의 카페」, 900(채팅 닫힘)은 오른쪽 위 알림 「친밀도 3단계 · 친구 / 새 세계관이 열렸어요 · EP.03 주말 오후의 카페」. 머리 세계관 칩도 「EP.02 단둘이 남은 야자실」 → 「EP.03 주말 오후의 카페」로 바뀜(1440)' },
   { id: 'connection-ended-stream', group: '메이트·연결', title: '연결 · SSE 도중 종료 응답', path: '/connect/chaerin', fault: 'server-ended-stream', steps: [click('연결하기')], note: 'HTTP 200 SSE error의 SESSION_ENDED도 연결 기록으로 전환' },
   { id: 'connection-ended-finish', group: '메이트·연결', title: '연결 · 끊기 요청 전 서버 종료', path: '/connect/chaerin', fault: 'server-ended-finish', steps: [click('연결하기')], note: '종료 요청이 이미 종료됨을 알리면 다시 /end를 보내지 않고 기록 조회' },
   { id: 'connection-ended-resume', group: '메이트·연결', title: '연결 · 이어가기 전 서버 종료', path: '/connect/chaerin', session: 'recover', fault: 'server-ended-resume', note: '진행 중 요약이 오래됐을 때 /resume의 종료 응답을 반영하고 보고서 조회' },
   { id: 'connection-ended-report', group: '메이트·연결', title: '연결 · 서버 종료 후 기록 조회 실패', path: '/connect/chaerin', fault: 'server-ended-report', steps: [click('연결하기')], note: '이미 끝난 연결을 복구하지 않고 기록 화면에서 조회 재시도' },
   { id: 'records', group: '내 기록', title: '내 기록 · 5주 기록(12건)', path: '/records', reports: [9001,9002,9003,9004,9005,9006,9007,9008,9009,9010,9011,9012], cameraFocus: {observedMs:1500000,focusedMs:1380000,returns:2}, note: '채린 기록 12건(최근 5주·이번 주 3일/하루 2회·카메라 꺼짐 2건·단계 상승 1건)·기본 보기 2D 잔디(주 7칸)' },
-  { id: 'records-two-mates', group: '내 기록', title: '내 기록 · 메이트 2명 칩 필터', path: '/records', reports: [9001,9002,9003,9004,9005,9006,9007,9008,9009,9010,9011,9012], cameraFocus: {observedMs:1500000,focusedMs:1380000,returns:2}, note: '로컬 미리보기용: 채린·남학생 기록으로 2명 이상 메이트 칩 필터와 요약 확인' },
+  { id: 'records-two-mates', group: '내 기록', title: '내 기록 · 메이트 2명 칩 필터', path: '/records', reports: [9001,9002,9003,9004,9005,9006,9007,9008,9009,9010,9011,9012], cameraFocus: {observedMs:1500000,focusedMs:1380000,returns:2}, note: '채린 8건·서도현 4건(세 번째마다 서도현)으로 2명 이상일 때의 메이트 칩 필터와 요약 확인' },
   { id: 'records-camoff', group: '내 기록', title: '내 기록 · 카메라 꺼짐 전용', path: '/records', reports: [9001,9002,9003,9004], note: '모든 기록이 카메라 꺼짐(함께한 시간 0)일 때 연결 시간 대체 요약과 안내 표시' },
   { id: 'records-past-empty', group: '내 기록', title: '내 기록 · 지난주 기록 없음', path: '/records?period=week&offset=-1', reports: [9001,9002], cameraFocus: {observedMs:1500000,focusedMs:1380000,returns:2}, note: '기록이 없는 지난주로 이동한 상태·날짜 이동과 이번 주로 복귀 유지' },
   { id: 'records-grid-month', group: '내 기록', title: '내 기록 · 2D 잔디 월', path: '/records?period=month', reports: [9001,9002,9003,9004,9005,9006,9007,9008,9009,9010,9011,9012], cameraFocus: {observedMs:1500000,focusedMs:1380000,returns:2}, note: '월 달력 7열 잔디·칸 진하기 = 그날 함께한 시간(없음/30분 미만/30분+/1시간+/2시간+)·오늘은 점·「적음 ▢ 많음」 범례' },
@@ -161,18 +184,20 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'records-25d-year', group: '내 기록', title: '내 기록 · 2.5D 연(유리 기둥)', path: '/records?period=year', reports: [9001,9002,9003,9004,9005,9006,9007,9008,9009,9010,9011,9012], cameraFocus: {observedMs:1500000,focusedMs:1380000,returns:2}, steps: [click('2.5D')], note: '연 2.5D도 주·월과 같은 유리 기둥(기간의 가장 긴 날 기준 높이)·달을 누르면 그 달' },
   { id: 'records-loading', group: '내 기록', title: '내 기록 · 불러오는 중', path: '/records', loading: 'records', note: '로컬 미리보기용: 창 내부 스켈레톤 상태' },
   { id: 'my-mates', group: '내 메이트', title: '내 메이트 · 기본(연결 1번)', path: '/mates/me', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '위에서 내려다본 캡슐 바닥 장면(캡슐이 쏟아진 뒤 카드가 떨어져 내려앉음)과 오른쪽 함께한 시간 열·서버 보고서 1개(연결 1번 = 캡슐 여러 개)·해금 정보 없음: 개발에서는 샘플 친밀도·세계관(기획 예시), 운영(api)은 서버 단계·세계관 「준비 중」, ?features=off는 개발에서 카드 없는 모습' },
-  { id: 'my-mates-full', group: '내 메이트', title: '내 메이트 · 전체(연결 7번·세계관 3/5)', path: '/mates/me', mateContract: true, reports: [9001, 9002, 9003, 9004, 9005, 9006, 9007], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '서버 계약 전 디자인 확인용: 연결 7번(연결 시간만큼 캡슐 묶음)·누운 한 면 카드(이름·처음 만난 날)·친밀도와 세계관 한 카드(Lv.3·세계관 3/5)·오른쪽 열(함께한 시간·12시간 고리·최근 캡슐)·보이스 대사는 숨김' },
+  { id: 'my-mates-full', group: '내 메이트', title: '내 메이트 · 전체(연결 7번·세계관 3/5)', path: '/mates/me', mateContract: true, reports: [9001, 9002, 9003, 9004, 9005, 9006, 9007], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '서버 계약 전 디자인 확인용: 연결 7번(연결 시간만큼 캡슐 묶음)·누운 한 면 카드(이름·처음 만난 날)·오른쪽 열의 함께한 시간·친밀도 카드(Lv.3)·세계관 카드(3/5)·최근 캡슐(열 높이에 맞춰 1440×900·1280×800은 1줄, 나머지는 「나머지 N개 · 목록 보기」)·보이스 대사는 숨김' },
+  { id: 'my-mates-dohyun', group: '내 메이트', title: '내 메이트 · 서도현', path: '/mates/me?mate=dohyun', recordMate: 'dohyun', reports: [9001, 9002, 9003], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '서도현과 연결 3번: 서도현 색 캡슐 바닥(파란빛)·카드·함께한 시간 열·세계관. 채린과 색 대비' },
+  { id: 'my-mates-short-connection', group: '내 메이트', title: '내 메이트 · 1분 미만 연결', path: '/mates/me', reports: [9001, 9002], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '연결 2번 중 하나가 45초(「0분」, 시작 직후 취소): 그 연결은 캡슐 0개·최근 캡슐 목록에서 빠지고, 25분 연결의 캡슐만 바닥에 쌓임(2026-11-28 1분 미만 규칙)' },
   // 세계관 (mate-worlds.ts): the stage opens the five places; development shows the planning examples, api mode 「준비 중」.
-  { id: 'my-mates-world-0', group: '내 메이트', title: '내 메이트 · 세계관 0/5(연결 전)', path: '/mates/me', empty: true, note: '연결 0번: 아직 만나지 않아 다섯 세계관 모두 잠김·EP.01 학교 「Lv.1에서 열려요」' },
-  { id: 'my-mates-world-3', group: '내 메이트', title: '내 메이트 · 세계관 3/5', path: '/mates/me?affinity=3', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: 'Lv.3: EP.03 도서관부터 보여 줌(배경 자리·대사 예시)·점 다섯 개 중 현재 단계 점이 길게' },
-  { id: 'my-mates-world-5', group: '내 메이트', title: '내 메이트 · 세계관 5/5', path: '/mates/me?affinity=5', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: 'Lv.5: 다섯 세계관 모두 열림(EP.05 채린이네 집)·다음 화살표 비활성' },
-  { id: 'my-mates-world-first', group: '내 메이트', title: '내 메이트 · 세계관 EP.01(배경·의상 있음)', path: '/mates/me?affinity=3', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, steps: [click('이전 세계관'), click('이전 세계관')], note: '「이전 세계관」 두 번: EP.01 학교(교실 배경 썸네일)·처음 칸에서 이전 화살표 비활성' },
-  { id: 'my-mates-world-locked', group: '내 메이트', title: '내 메이트 · 잠긴 세계관', path: '/mates/me?affinity=3', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, steps: [click('다음 세계관')], note: 'Lv.3에서 「다음 세계관」: EP.04 카페 잠김(흐린 배경 자리·자물쇠·「Lv.4에서 열려요」)' },
-  { id: 'my-mates-world-detail', group: '내 메이트', title: '내 메이트 · 세계관 상세', path: '/mates/me?affinity=3', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, steps: [click('이전 세계관'), click('이전 세계관'), { click: '세계관 자세히 보기', selector: 'button.mate-world-tile', includes: true }], note: 'EP.01 학교 상세: 배경 크게·의상 미리보기(전신 정지 그림)·장소·대사 예시' },
+  { id: 'my-mates-world-0', group: '내 메이트', title: '내 메이트 · 세계관 0/5(연결 전)', path: '/mates/me', empty: true, note: '연결 0번: 아직 만나지 않아 다섯 세계관 모두 잠김·「EP.01 · 노을 진 방과 후 교실」 「첫 연결 후 열려요」' },
+  { id: 'my-mates-world-3', group: '내 메이트', title: '내 메이트 · 세계관 3/5', path: '/mates/me?affinity=3', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: 'Lv.3: 「EP.03 · 주말 오후의 카페」부터 보여 줌(카페 배경 썸네일·대사 예시 「이 집 딸기라떼 진짜 맛있거든? …」)·점 다섯 개 중 현재 단계 점이 길게' },
+  { id: 'my-mates-world-5', group: '내 메이트', title: '내 메이트 · 세계관 5/5', path: '/mates/me?affinity=5', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: 'Lv.5: 다섯 세계관 모두 열림(「EP.05 · 하얀 채린의 방」, 세계관마다 배경 그림)·다음 화살표 비활성' },
+  { id: 'my-mates-world-first', group: '내 메이트', title: '내 메이트 · 세계관 EP.01(배경·의상 있음)', path: '/mates/me?affinity=3', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, steps: [click('이전 세계관'), click('이전 세계관')], note: '「이전 세계관」 두 번: 「EP.01 · 노을 진 방과 후 교실」(노을 교실 배경 썸네일·「창밖 좀 봐. …노을 지네. 뭐, 그렇다고.」)·처음 칸에서 이전 화살표 비활성' },
+  { id: 'my-mates-world-locked', group: '내 메이트', title: '내 메이트 · 잠긴 세계관', path: '/mates/me?affinity=3', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, steps: [click('다음 세계관')], note: 'Lv.3에서 「다음 세계관」: 「EP.04 · 불 켜진 학교 도서관」 잠김(도서관 배경을 흐리게·자물쇠·「4단계에서 열려요」)' },
+  { id: 'my-mates-world-detail', group: '내 메이트', title: '내 메이트 · 세계관 상세', path: '/mates/me?affinity=3', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, steps: [click('이전 세계관'), click('이전 세계관'), { click: '세계관 자세히 보기', selector: 'button.mate-world-tile', includes: true }], note: '「EP.01 · 노을 진 방과 후 교실」 상세: 노을 교실 배경 크게와 전신 정지 그림(교복)·한 줄 소개(수업이 모두 끝난 교실에서 …)·장소 교실·의상 교복·「이런 말을 해요」 대사 예시' },
   { id: 'mate-reset-confirm', group: '내 메이트', title: '내 메이트 · 대화 초기화 확인', path: '/mates/me', mateContract: true, mateHistory: true, reports: [9001], steps: resetMenu, note: '⋯ 메뉴 → 대화 초기화(47): 지워지는 것(대화 기록·대화 맥락)·남는 것(친밀도·세계관·연결 기록·크레딧)·되돌릴 수 없음 안내' },
   { id: 'mate-reset-error', group: '내 메이트', title: '내 메이트 · 대화 초기화 실패', path: '/mates/me', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-reset', steps: [...resetMenu, click('초기화하기')], note: '503: 창 안 오류 안내·메시지 캐시 보존·다시 누르면 성공' },
   { id: 'mate-reset-conflict', group: '내 메이트', title: '내 메이트 · 연결 중이라 초기화 불가', path: '/mates/me', mateContract: true, mateHistory: true, reports: [9001], fault: 'mate-conflict', steps: [...resetMenu, click('초기화하기')], note: '47의 409 CONNECTION_IN_PROGRESS(다른 기기 연결 포함): 경고 톤 「지금 채린과 연결 중이라 초기화할 수 없어요. 다른 탭이나 기기의 연결까지 끝낸 뒤 다시 눌러 주세요.」' },
-  { id: 'my-mates-empty', group: '내 메이트', title: '내 메이트 · 연결 기록 없음', path: '/mates/me', note: '연결 0번: 빈 바닥 위 카드와 「첫 캡슐을 모아 볼까?」 안내·오른쪽 열의 만나러 가기 버튼(메이트 목록이 비면 홈 이동)' },
+  { id: 'my-mates-empty', group: '내 메이트', title: '내 메이트 · 연결 기록 없음', path: '/mates/me', empty: true, note: '연결 0번(서버 보고서 없음): 함께한 시간 0분·연결 0회·캡슐 0개, 친밀도 1단계 · 처음 만남, 세계관 「EP.01 · 노을 진 방과 후 교실」 잠김 「첫 연결 후 열려요」, 최근 캡슐 빈 상태 「연결을 마치면 캡슐이 여기에 쌓여요.」와 「채린 만나러 가기」' },
   { id: 'my-mates-loading', group: '내 메이트', title: '내 메이트 · 불러오는 중', path: '/mates/me', loading: 'my-mates', note: '로컬 미리보기용: 창 내부 장면 스켈레톤' },
   { id: 'mate-preview', group: '메이트·연결', title: '메이트 상세 · 미리보기·목소리', path: '/mates/chaerin', mateContract: true, note: '신규 계약 모의 포트: 이미지 모델과 무음 WAV로 UI만 검토. 실제 제작물/서버 연동 아님' },
   { id: 'mate-load-error', group: '메이트·연결', title: '메이트 상세 · 조회 실패', path: '/mates/chaerin', mateContract: true, fault: 'mate-load', note: '조회 실패·다시 시도, 연결 자동 생성 없음' },
@@ -183,7 +208,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'home-coming-soon', group: '온보딩·홈', title: '홈 · 공개 예정 메이트 카드', path: '/', fault: 'coming-soon', note: '11 comingSoon: 「곧 만나요」, 연결 화살표 닫힘(상세로는 이동)' },
   { id: 'credits', group: '크레딧·초대', title: '내 크레딧 · 불러오기 실패', path: '/credits', fault: 'credits-error', note: '33 /credits 500: 오류·「다시 시도」' },
   { id: 'credits-filled', group: '크레딧·초대', title: '내 크레딧 · 내역 있음', path: '/credits', note: '33·34 로컬 서버: 남은 3,500(출석 1,500·초대 2,000), 최근 6일 중 4일 출석·사용·소멸·초대 내역. 내역 문구는 서버 그대로(「보이스 대화」만 「메이트 음성」으로 표시)' },
-  { id: 'credits-more', group: '크레딧·초대', title: '내 크레딧 · 더 보기(커서)', path: '/credits', steps: [click('더 보기')], note: '34 내역 45건 = 20·20·5 세 쪽. 「더 보기」로 다음 커서 쪽을 이어 붙임' },
+  { id: 'credits-more', group: '크레딧·초대', title: '내 크레딧 · 더 많은 활동 기록(커서)', path: '/credits', steps: [click('더 많은 활동 기록 보기')], note: '34 내역 45건 = 20·20·5 세 쪽. 「더 많은 활동 기록 보기」로 다음 커서 쪽을 이어 붙임(한 번 누른 상태: 40건)' },
   { id: 'credits-empty', group: '크레딧·초대', title: '내 크레딧 · 내역 없음', path: '/credits', note: '33 잔액 있음·34 items 0건: 빈 상태 문구' },
   { id: 'credits-activity-error', group: '크레딧·초대', title: '내 크레딧 · 내역 실패', path: '/credits', fault: 'credits-activity-error', note: '33은 정상, 34만 500: 내역 칸 안 오류·「다시 시도」' },
   { id: 'credits-loading', group: '크레딧·초대', title: '내 크레딧 · 불러오는 중', path: '/credits', fault: 'credits-pending', loading: 'credits', note: '33 응답 대기: 창 내부 스켈레톤' },
@@ -207,13 +232,17 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'home-attendance-api-done', group: '크레딧·초대', title: '출석 · 출석 API 체크 후', path: '/', fault: 'attendance-api', steps: [click('출석하고 크레딧 받기')], note: 'POST 201 → 5일차·칩이 응답 credits로 갱신' },
   { id: 'app-loading', group: '온보딩·홈', title: '앱 로딩', path: '/', fault: 'bootstrap-pending', loading: 'auth', note: '로그인 상태 확인 전: 로고·공통 로딩' },
   { id: 'home-loading', group: '온보딩·홈', title: '홈 데이터 로딩', path: '/', fault: 'home-pending', loading: 'home', note: '홈으로 이동할 계정임을 확인한 뒤의 데이터 대기' },
+  // Route skeletons (PageSkeleton.tsx), held: start-up waits for /home, so RouteLoading draws the address's screen.
+  ...([['my-mates', '/mates/me', '내 메이트'], ['records', '/records', '내 기록'], ['credits', '/credits', '내 크레딧'], ['invite', '/credits/invite', '친구 초대'],
+    ['mate', '/mates/chaerin', '메이트 상세'], ['connection', '/connect/chaerin', '통화'], ['connection-record', '/connections/9001', '연결 기록']] as const)
+    .map(([screen, path, name]): ReviewScenario => ({ id: `route-skeleton-${screen}`, group: '화면 전환 스켈레톤', title: `${name} · 스켈레톤`, path, fault: 'home-pending', loading: screen, note: '화면 전환·새로고침 때의 라우트 스켈레톤(고정)' })),
   { id: 'app-error', group: '온보딩·홈', title: '앱 연결 실패', path: '/', fault: 'bootstrap', note: '홈 화면·연결 실패 알림·다시 연결하기' },
   { id: 'account-profile', group: '계정·공통', title: '계정 설정 · 프로필', path: '/', steps: account, note: '좌측 아바타·닉네임·메뉴와 우측 프로필 편집' },
   { id: 'account-profile-saved', group: '계정·공통', title: '계정 설정 · 프로필 저장', path: '/', steps: [...account, fill('dialog.account-settings-dialog input[name="nickname"]', '설정에서 저장한 이름'), click('프로필 저장')], note: '프로필 저장 후 좌측 닉네임 갱신' },
   { id: 'account-profile-error', group: '계정·공통', title: '계정 설정 · 프로필 저장 실패', path: '/', fault: 'profile', steps: [...account, fill('dialog.account-settings-dialog input[name="nickname"]', '설정에서 변경한 이름'), click('프로필 저장')], note: '오류 안내·작성 내용 유지·재시도' },
   { id: 'account-profile-beta', group: '계정·공통', title: '계정 설정 · 나에 대해', path: '/', accountContract: true, steps: account, note: '신규 계정 계약 모의 포트: 닉네임·나에 대해 입력/저장(호칭은 2026-11-26 결정으로 없앰)·실제 신규 API 아님' },
   { id: 'account-profile-nocontract', group: '계정·공통', title: '계정 설정 · 프로필(계약 없음)', path: '/', steps: account, note: 'saveBetaProfile 없음: 나에 대해 숨김' },
-  { id: 'account-narrow', group: '계정·공통', title: '계정 설정 · 좁은 창 가로 탭', path: '/', accountContract: true, steps: account, note: '720px 미만 컨테이너에서 가로 탭·프로필 하단 로그아웃 전환' },
+  { id: 'account-narrow', group: '계정·공통', title: '계정 설정 · 좁은 창 가로 탭', path: '/', defaultWidth: '640', accountContract: true, steps: account, note: '720px 미만 컨테이너에서 가로 탭·프로필 하단 로그아웃 전환' },
   { id: 'account-settings', group: '계정·공통', title: '계정 설정 · 설정', path: '/?account=settings', note: '메이트와 대화·메이트 음성(기본 꺼짐·켜면 답장마다 20 크레딧 안내·볼륨·속도)·마이크 · 카메라·PIP. 장치 목록 조회 시 권한 요청 없음' },
   { id: 'account-security', group: '계정·공통', title: '계정 설정 · 보안', path: '/', steps: security, note: '이메일 미리 채움·처음부터 펼친 회원탈퇴 확인 카드(포커스는 입력칸으로 가지 않음)' },
   { id: 'account-password-edit', group: '계정·공통', title: '보안 · 재설정 이메일 입력', path: '/', steps: security, note: '보안 탭에서 바로 보이는 이메일 입력·재설정 링크 요청' },
@@ -233,21 +262,10 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'notifications-empty', group: '계정·공통', title: '알림 · 없음', path: '/', fault: 'notifications-empty', steps: [click('알림')], note: '알림 0개: 점 없음·빈 상태 문구' },
   { id: 'notifications-error', group: '계정·공통', title: '알림 · 불러오기 실패', path: '/', fault: 'notifications-error', steps: [click('알림')], note: '43 실패: 오류 안내·다시 시도' },
   { id: 'not-found', group: '계정·공통', title: '없는 주소 · 홈 안내', path: '/review-not-found', note: '홈으로 이동·우측 상단 알림·한 번만 안내' },
-  { id: 'dialog-design-a', group: '디자인 시안', title: '모달 시안 A · 캡슐 유리', path: '/', dialogDesign: 'a', note: '2026-11-26 시안: 위쪽 캡슐 알약이 열리며 빛이 쏟아지고 창이 펼쳐짐. 확인·안내(크레딧 부족·세계관 열림)·토스트·큰 창 머리. 아래 막대로 전환·다시 재생(?dd=confirm|credit|unlock|toast|large|all)' },
-  { id: 'dialog-design-b', group: '디자인 시안', title: '모달 시안 B · 밤하늘', path: '/', dialogDesign: 'b', note: '2026-11-26 시안: 어두운 보라 그라데이션 위 픽셀 별·눈송이(내 메이트 PixelSnow 스프라이트), 위쪽 가장자리를 흐르는 빛' },
-  { id: 'dialog-design-b2', group: '디자인 시안', title: '모달 시안 B2 · 픽셀 프레임', path: '/', dialogDesign: 'b2', note: '2026-11-26 B 발전안: 계단형 픽셀 모서리(clip-path, 선 없음)·디더링 머리 띠·8비트 로고 캡슐·머리 띠 안에서만 천천히 내리는 픽셀 눈·steps() 5단계로 차오르는 등장. 세계관 열림은 「새 세계관이 열렸어요 · EP.03 도서관」' },
-  { id: 'dialog-design-b3', group: '디자인 시안', title: '모달 시안 B3 · 픽셀 액센트', path: '/', dialogDesign: 'b3', note: '2026-11-26 B 발전안(절제): 둥근 모서리 유지, 픽셀은 제목 앞 아이콘·머리 아래 한 줄 별자리·주요 버튼 hover 반짝임 세 곳만. 본문은 차분하게' },
-  { id: 'dialog-design-toast', group: '디자인 시안', title: '토스트 후보 · 픽셀 프레임', path: '/', dialogDesign: 'toast', note: '2026-11-26 앱 전체 B2 적용 때 토스트 후보 3개 비교: T1 위쪽 디더링 줄(운영 적용)·T2 왼쪽 세로 픽셀 띠·T3 아이콘 밤하늘 타일. 실제 NotificationStack 사용' },
-  { id: 'dialog-design-c', group: '디자인 시안', title: '모달 시안 C · 메이트와 함께', path: '/', dialogDesign: 'c', note: '2026-11-26 시안: 모서리에서 메이트 얼굴(정지 이미지)이 고개를 내밀고 말풍선 꼬리로 안내. 확인 창은 버튼에 따라 표정이 바뀜' },
-  { id: 'call-ui-c1', group: '디자인 시안', title: '통화 화면 시안 C1 · 대사창', path: '/connect/chaerin', callUi: 'c1', note: '2026-11-27 시안: 무대 아래 게임식 대사창(계단형 픽셀 모서리·디더링 띠·이름표에 「말하는 중」), 채팅이 열려 있어도 자막 표시. 채팅은 기록 보관용 「대화 기록」. 아래 막대나 ?cu-scene=idle|speaking|waiting|unread·cu-chat=open|closed로 전환' },
-  { id: 'call-ui-c2', group: '디자인 시안', title: '통화 화면 시안 C2 · 말풍선 무대', path: '/connect/chaerin', callUi: 'c2', note: '2026-11-27 시안: 머리 옆 말풍선(계단형 꼬리)과 후광, 채팅이 닫혀 있을 때만. 채팅은 무대 위 반투명 오버레이, 상단 정보는 무대 위에 떠 있음' },
-  { id: 'call-ui-c3', group: '디자인 시안', title: '통화 화면 시안 C3 · 분할 정돈', path: '/connect/chaerin', callUi: 'c3', note: '2026-11-27 시안(보수안): 지금 배치 유지. 무대 아래 자막 띠(채팅 열림이면 한 줄), 무대 초록 테두리·이름 칩, 묶음 말풍선·한 줄 정보 바·도크 그룹' },
-  { id: 'chat-panel-p1', group: '디자인 시안', title: '채팅 패널 시안 P1 · 픽셀 대화 기록', path: '/connect/chaerin', chatPanel: 'p1', note: '2026-11-27 시안(규칙 확장 필요: 계단형 모서리를 채팅 말풍선까지): 대사창과 같은 계단형 모서리 패널·말풍선과 픽셀 꼬리, 디더링 머리 띠, 「오늘 23:39」 구분선, 메이트 이름표. 아래 막대나 ?cp-state=empty|few|long로 비어 있음·대화 몇 개·긴 대화' },
-  { id: 'chat-panel-p2', group: '디자인 시안', title: '채팅 패널 시안 P2 · 무드 패널', path: '/connect/chaerin', chatPanel: 'p2', note: '2026-11-27 시안: 패널 뒤에 방 그림을 흐리게 이어 방 조명처럼, 빈 상태는 캡슐·별과 「채린에게 먼저 말 걸어 볼까요?」·첫마디 버튼, 새 말풍선이 떠오르는 등장, 친밀도·함께한 시간 시스템 줄(?cp-state=empty|few|long)' },
-  { id: 'chat-panel-p3', group: '디자인 시안', title: '채팅 패널 시안 P3 · 메신저형 정돈', path: '/connect/chaerin', chatPanel: 'p3', note: '2026-11-27 시안: 머리에 메이트 미니 프로필(상태 점·「통화 중」/「입력 중」), 묶음마다 시각 한 번, 내 마지막 말에 「읽음」, 빠른 답장은 입력창 위 가로 스크롤, 보내기 버튼 강조(?cp-state=empty|few|long)' },
-  { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대 링크', path: '/?ref=CAP-7K2Q', phone: true, note: '휴대폰 접속 시 안내(시안 M2 「스크롤 소개」 적용, 2026-11-27). 초대 링크로 들어온 상태: 첫 화면 버튼 위 초대 카드 「초대 코드 CAP-7K2Q가 저장됐어요 · PC에서 가입하고 첫 연결을 마치면 둘 다 1,000 크레딧」. 내려서 첫 화면 버튼이 사라지면 아래 고정 막대(PC로 링크 보내기·복사 아이콘). 기능 카드 아래 「PC에서 이렇게 시작해요」 3단계, 초대 링크라 3단계에 「초대 코드는 자동으로 들어가요」' },
-  { id: 'mobile-notice-plain', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/', phone: true, note: '휴대폰 접속 시 안내: 조는 채린 장면·헤드라인·소개·「PC로 링크 보내기」·「링크 복사」, 「캡슐 둘러보기」로 기능 카드 3장·「PC에서 이렇게 시작해요」 3단계(초대 문구 없음)·약관(모달)·AI 고지. 스크롤하면 아래 고정 막대. 공유 기능이 없는 브라우저는 「링크 복사」만' },
-  { id: 'mobile-notice-inviter', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대한 사람 이름', path: '/?ref=CAP-7K2Q&inviter=민수', phone: true, note: '초대한 사람 이름을 아는 초대 링크: 「민수님의 초대 코드가 저장됐어요」와 코드 한 줄. 3단계에 「초대 코드는 자동으로 들어가요」' },
+  { id: 'component-showcase', group: '공용 컴포넌트', title: '공용 컴포넌트 · 확인 창·알림', path: '/', showcase: true, note: '실제 공용 Dialog(톤 없음·danger·info·credit·celebrate)와 NotificationStack(성공·안내·주의·오류)을 한 화면에서. 버튼으로 창을 열고, ?dialog=plain|danger|info|credit|celebrate로 처음부터 연 상태로 공유. 2026-11-28 모달 시안(dialog-design-*)·토스트 후보를 대신함' },
+  { id: 'mobile-notice', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대 링크', path: '/?ref=CAP-7K2Q', defaultWidth: 'mobile', note: '휴대폰 접속 시 안내(시안 M2 「스크롤 소개」 적용, 2026-11-27). 초대 링크로 들어온 상태: 첫 화면 버튼 위 초대 카드 「초대 코드 CAP-7K2Q가 저장됐어요 · PC에서 가입하고 첫 연결을 마치면 둘 다 1,000 크레딧」. 내려서 첫 화면 버튼이 사라지면 아래 고정 막대(PC로 링크 보내기·복사 아이콘). 기능 카드 아래 「PC에서 이렇게 시작해요」 3단계, 초대 링크라 3단계에 「초대 코드는 자동으로 들어가요」' },
+  { id: 'mobile-notice-plain', group: '계정·공통', title: '모바일 접속 안내 (SCR-40)', path: '/', defaultWidth: 'mobile', note: '휴대폰 접속 시 안내: 조는 채린 장면·헤드라인·소개·「PC로 링크 보내기」·「링크 복사」, 「캡슐 둘러보기」로 기능 카드 3장·「PC에서 이렇게 시작해요」 3단계(초대 문구 없음)·약관(모달)·AI 고지. 스크롤하면 아래 고정 막대. 공유 기능이 없는 브라우저는 「링크 복사」만' },
+  { id: 'mobile-notice-inviter', group: '계정·공통', title: '모바일 접속 안내 (SCR-40) · 초대한 사람 이름', path: '/?ref=CAP-7K2Q&inviter=민수', defaultWidth: 'mobile', note: '초대한 사람 이름을 아는 초대 링크: 「민수님의 초대 코드가 저장됐어요」와 코드 한 줄. 3단계에 「초대 코드는 자동으로 들어가요」' },
 ]
 
 // Saved review links of retired scenarios open the current screen instead.
@@ -270,6 +288,23 @@ const restoredReviewIds: Readonly<Record<string, string>> = {
   'mobile-gate-m1-invite': 'mobile-notice',
   'mobile-gate-m2': 'mobile-notice-plain',
   'mobile-gate-m2-invite': 'mobile-notice',
+  // 2026-11-28: three home states had no branch of their own (the home has no Live2D / WebGL background any more).
+  'home-return': 'home-first',
+  'home-live2d-fallback': 'home-first',
+  'home-lowpower': 'home-first',
+  // 2026-11-28: the applied design drafts are gone (call C1 · chat panel P1–P3 · modal B2 · toast T1 are the real screens).
+  'call-ui-c1': 'connection-active',
+  'call-ui-c2': 'connection-active',
+  'call-ui-c3': 'connection-active',
+  'chat-panel-p1': 'connection-active',
+  'chat-panel-p2': 'connection-chat-empty',
+  'chat-panel-p3': 'connection-active',
+  'dialog-design-a': 'component-showcase',
+  'dialog-design-b': 'component-showcase',
+  'dialog-design-b2': 'component-showcase',
+  'dialog-design-b3': 'component-showcase',
+  'dialog-design-c': 'component-showcase',
+  'dialog-design-toast': 'component-showcase',
 }
 
 const reviewGroupOrder = [
@@ -281,7 +316,7 @@ const reviewGroupOrder = [
   '내 기록',
   '크레딧·초대',
   '계정·공통',
-  '디자인 시안',
+  '공용 컴포넌트',
 ] as const
 
 export const reviewGroups = [...new Set(reviewScenarios.map(scenario => scenario.group))].sort((a, b) => {
@@ -293,8 +328,18 @@ export function findReviewScenario(id: string | null) {
   const currentId = id ? restoredReviewIds[id] ?? id : null
   return reviewScenarios.find(scenario => scenario.id === currentId) ?? reviewScenarios[0]!
 }
-export function reviewPreviewUrl(scenario: ReviewScenario) {
+/**
+ * Preview state a workbench link may carry into its preview frame (`/__review?case=…&dialog=danger`): the showcase's open
+ * dialog and the slow chat history (`chatDelay`, fixtures.ts). Other workbench parameters stay with the workbench.
+ */
+export const reviewStateParams = ['dialog', 'chatDelay'] as const
+
+export function reviewPreviewUrl(scenario: ReviewScenario, state?: URLSearchParams) {
   const url = new URL(scenario.path, 'http://review.local')
   url.searchParams.set('__review', scenario.id)
+  for (const key of reviewStateParams) {
+    const value = state?.get(key)
+    if (value) url.searchParams.set(key, value)
+  }
   return url.pathname + url.search + url.hash
 }

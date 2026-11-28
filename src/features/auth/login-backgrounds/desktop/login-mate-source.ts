@@ -58,10 +58,12 @@ const LAST_MATE_STORAGE_KEY = 'capsule-login-last-mate:v1'
 
 /**
  * The local Live2D models (dev server only). `import.meta.env.DEV` is a build-time constant: in production this is
- * `return null` and the local URLs are dropped from the bundle.
+ * `return null` and the local URLs are dropped from the bundle. The UI review preview shows the stills instead unless its
+ * scenario asks for the live mate (review/bootstrap.tsx `data-review-still-mates`).
  */
 function localModels(): Pick<LoginMateProfile, 'model' | 'v2Model'> | null {
   if (!import.meta.env.DEV) return null
+  if (typeof document !== 'undefined' && document.documentElement.dataset.reviewStillMates) return null
   return {
     model: { modelJsonUrl: LOCAL_MODEL_URL, scale: 1.54, offsetX: 0, offsetY: 20 },
     v2Model: {

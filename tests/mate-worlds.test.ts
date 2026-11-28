@@ -12,6 +12,8 @@ import {
   worldCount,
   worldLabel,
   worldLockedCaption,
+  worldName,
+  serverItemsFromUnlocked,
   worldOpenedAt,
   worldStageUpLine,
   type ServerUnlockItem,
@@ -72,8 +74,8 @@ test('세계관: production has no content — 「준비 중」 places, no pictu
   }
   assert.equal(worldLabel(worlds[1]!), 'EP.02')
   assert.equal(worldStageUpLine(worlds[1]!), '새 세계관이 열렸어요 · EP.02')
-  // No story text or prompt fields on the model.
-  for (const key of ['title', 'summary', 'body', 'prompt']) assert.ok(!(key in worlds[0]!), key)
+  // No name, introduction, story text or prompt on a placeholder (and never a prompt field at all).
+  for (const key of ['title', 'outfit', 'summary', 'body', 'prompt']) assert.ok(!(key in worlds[0]!), key)
 })
 
 test('세계관 adapter: EXPRESSION / VOICE_LINE (and unknown types) are ignored, not errors; the world type maps by episode', () => {
@@ -107,24 +109,81 @@ test('세계관: a stage-up names the world of the new level (server first, then
   assert.equal(worldOpenedAt(3)?.episode, 3)
   assert.equal(worldOpenedAt(3)?.unlocked, true)
   assert.equal(worldStageUpLine(worldOpenedAt(3)!), '새 세계관이 열렸어요 · EP.03')
-  assert.equal(worldStageUpLine(worldOpenedAt(3, undefined, sampleMateWorlds('chaerin', '채린'))!), '새 세계관이 열렸어요 · EP.03 도서관')
+  assert.equal(worldStageUpLine(worldOpenedAt(3, undefined, sampleMateWorlds('chaerin'))!), '새 세계관이 열렸어요 · EP.03 주말 오후의 카페')
+  assert.equal(worldStageUpLine(worldOpenedAt(2, undefined, sampleMateWorlds('dohyun'))!), '새 세계관이 열렸어요 · EP.02 나 알바 중인데')
   // 21 · 22 · 23 `unlocked[]` of the old kinds change nothing.
   assert.equal(worldOpenedAt(4, [{ type: 'EXPRESSION', title: '웃음', unlockStage: 4 }])?.placeholder, true)
   assert.equal(worldOpenedAt(0), null)
   assert.equal(worldOpenedAt(6), null)
 })
 
-test('세계관 examples (development only): 채린 follows the planning table; 서도현 the same places with temporary lines', () => {
-  const chaerin = sampleMateWorlds('chaerin', '채린', { background: '/bg.webp', outfit: '/full.webp' })
-  assert.deepEqual(chaerin.map((world) => [episodeLabel(world.episode), world.place, world.sampleLine]), [
-    ['EP.01', '학교', '오늘 수업 내용 이해했어?'],
-    ['EP.02', '자습실', '조금만 더 공부하고 쉬자.'],
-    ['EP.03', '도서관', '여기서는 조용히 해야 돼.'],
-    ['EP.04', '카페', '공부 끝나면 디저트 먹고 싶다.'],
-    ['EP.05', '채린이네 집', '아, 그냥 침대에 눕고 싶다.'],
+test('세계관: a world name is its title (「EP.01 · 도서관에서」); without one, the place (「EP.03 · 도서관」)', () => {
+  const [first, , third] = mateWorldsForStage(3, {
+    content: [
+      { episode: 1, title: ' 도서관에서 ', place: '도서관', outfit: '후드티', summary: '조용한 통화.' },
+      { episode: 3, place: '도서관', title: '  ' },
+    ],
+  })
+  assert.deepEqual([first!.title, first!.place, first!.outfit, first!.summary], ['도서관에서', '도서관', '후드티', '조용한 통화.'])
+  assert.equal(worldLabel(first!), 'EP.01 · 도서관에서')
+  assert.equal(worldStageUpLine(first!), '새 세계관이 열렸어요 · EP.01 도서관에서')
+  assert.equal(worldName(first!), '도서관에서')
+  assert.equal('title' in third!, false)
+  assert.equal(worldLabel(third!), 'EP.03 · 도서관')
+  // A name without a place is not a world: the placeholder, named by its episode alone.
+  const [nameOnly] = mateWorldsForStage(1, { content: [{ episode: 1, title: '도서관에서', outfit: '후드티' }] })
+  assert.deepEqual([nameOnly!.placeholder, 'title' in nameOnly!, 'outfit' in nameOnly!, worldLabel(nameOnly!)], [true, false, false, 'EP.01'])
+})
+
+test('세계관 adapter: an item with its own place makes `title` the name; without one `title` stays the place', () => {
+  const named = worldContentFromServer(
+    [item({ id: '21', title: '도서관에서', place: '도서관', outfit: '후드티', summary: '조용한 통화.' }), item({ id: '22', title: '편의점', unlockStage: 2 })],
+    ['WORLD'],
+  )
+  assert.deepEqual(named, [
+    { id: '21', episode: 1, unlockStage: 1, place: '도서관', title: '도서관에서', outfit: '후드티', summary: '조용한 통화.' },
+    { id: '22', episode: 2, unlockStage: 2, place: '편의점' },
   ])
-  assert.deepEqual([chaerin[0]!.backgroundUrl, chaerin[0]!.outfitPreviewUrl, chaerin[1]!.backgroundUrl], ['/bg.webp', '/full.webp', undefined])
-  const dohyun = sampleMateWorlds('dohyun', '서도현')
-  assert.deepEqual(dohyun.map((world) => world.place), ['학교', '자습실', '도서관', '카페', '서도현이네 집'])
-  for (const world of dohyun) assert.match(world.sampleLine!, /^\(임시\) /)
+  assert.deepEqual(serverItemsFromUnlocked([{ type: 'WORLD', title: '도서관에서', unlockStage: 1, place: ' 도서관 ', outfit: 3, summary: '' }]), [
+    { id: 'unlocked-0', type: 'WORLD', title: '도서관에서', unlockStage: 1, assetUrl: null, unlocked: true, unlockedAt: null, place: '도서관' },
+  ])
+})
+
+test('세계관 examples (development only): 채린 and 서도현 follow their planning tables, each with its own places', () => {
+  const chaerin = sampleMateWorlds('chaerin', { outfit: '/full.webp' })
+  assert.deepEqual(chaerin.map((world) => [episodeLabel(world.episode), world.title, world.place, world.outfit, world.sampleLine]), [
+    ['EP.01', '노을 진 방과 후 교실', '교실', '교복', '창밖 좀 봐. …노을 지네. 뭐, 그렇다고.'],
+    ['EP.02', '단둘이 남은 야자실', '야자실', '체육복', '쉿, 감독 쌤 지나간다. …됐다, 갔어.'],
+    ['EP.03', '주말 오후의 카페', '카페', '연회색 후드티, 연청 데님', '이 집 딸기라떼 진짜 맛있거든? …커피는 왜 마시는지 모르겠어. 써.'],
+    ['EP.04', '불 켜진 학교 도서관', '학교 도서관', '트랙 져지', '쉿, 사서 쌤 쳐다본다. …너 때문에 웃음 참느라 죽는 줄.'],
+    ['EP.05', '하얀 채린의 방', '채린의 방', '아이보리 긴팔티, 트레이닝 팬츠', '뭐 봐? 아, 저 선반…. 됐어, 다 봤으니까 어쩔 수 없지. 귀엽긴 하잖아.'],
+  ])
+  // Every world has its own background (landscape + portrait); her full still (uniform) is EP.01 교실's outfit alone.
+  chaerin.forEach((world, index) => {
+    assert.match(world.backgroundUrl ?? '', new RegExp(`/assets/worlds/chaerin/ep0${index + 1}-landscape\\.webp$`))
+    assert.match(world.backgroundPortraitUrl ?? '', new RegExp(`/assets/worlds/chaerin/ep0${index + 1}-portrait\\.webp$`))
+  })
+  assert.deepEqual([chaerin[0]!.outfitPreviewUrl, chaerin[1]!.outfitPreviewUrl], ['/full.webp', undefined])
+
+  const dohyun = sampleMateWorlds('dohyun', { outfit: '/full.webp' })
+  assert.deepEqual(dohyun.map((world) => [episodeLabel(world.episode), world.title, world.place, world.outfit, world.sampleLine]), [
+    ['EP.01', '도서관에서', '도서관', '후드티', '아, 이 부분 왜 이렇게 안 읽히냐.'],
+    ['EP.02', '나 알바 중인데', '편의점', '편의점 유니폼 조끼, 검은 반팔', '이거 새로 들어온 건데 맛있으려나.'],
+    ['EP.03', '커피 한 잔', '카페', '아이보리 니트, 사복', '여기 케이크 맛있어 보이는데. 하나 시킬까.'],
+    ['EP.04', '한 판만 더', 'PC방', '검은 후드집업, 게이밍 헤드셋', '아니, 방금 그건 좀 억울한데. …라면이나 시킬까.'],
+    ['EP.05', '서도현의 방', '서도현의 방', '편안한 잠옷', '아, 뒤에 침대 있으니까 자꾸 눕고 싶다.'],
+  ])
+  // His own backgrounds; his still is a school uniform, which none of his worlds wears (no outfit preview).
+  dohyun.forEach((world, index) => {
+    assert.match(world.backgroundUrl ?? '', new RegExp(`/assets/worlds/dohyun/ep0${index + 1}-landscape\\.webp$`))
+    assert.equal(world.outfitPreviewUrl, undefined)
+  })
+  for (const world of [...chaerin, ...dohyun]) {
+    assert.ok(world.summary, `${world.title}: an introduction`)
+    for (const key of ['prompt', 'mood', 'time']) assert.ok(!(key in world), key)
+  }
+  // EP.N opens at Lv.N.
+  assert.deepEqual(mateWorldsForStage(2, { content: dohyun }).map((world) => world.unlocked), [true, true, false, false, false])
+  // A mate without examples gets none (「준비 중」), never another mate's worlds.
+  assert.deepEqual(sampleMateWorlds('someone-else'), [])
 })

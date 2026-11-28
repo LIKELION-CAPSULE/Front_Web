@@ -11,6 +11,7 @@ import { focusDetectedSeconds } from '@/features/session/focus'
 import { HeaderAccount } from '@/app/components/HeaderAccount'
 import { SiteHeader } from '@/app/components/SiteHeader'
 import { CapsuleRecordCard, CapsuleRecordLayout } from '@/features/reports/components/CapsuleRecordCard'
+import { ConnectionRecordCardSkeleton, ConnectionRecordLoadingActions } from '@/features/reports/components/ConnectionRecordSkeleton'
 import { recordAmountText, recordModeLabel } from '@/features/reports/capsule-record'
 import { reportSettlement } from '@/features/backend/adapters'
 import { formatNextStageCaption, resolveStageProgress } from '@/features/mates/affinity-progress'
@@ -30,6 +31,9 @@ export default function ConnectionRecordPage() {
   // Arriving from the call's hang-up motion: the card plays its entrance (connections.css).
   const location = useLocation()
   const entrance = (location.state as { hangup?: boolean } | null)?.hangup ? 'hangup' : undefined
+  // Right after hanging up the screen has no site header (user decision 2026-11-28): the card's 「홈으로」 is the way out.
+  // A record opened from 내 기록 · 캡슐 keeps it. (A reload has no state, so the header comes back: harmless.)
+  const bare = entrance === 'hangup'
   const backend = useBackend()
   const { state } = useDemo()
   const { record, error, retry, redirectTo } = useServerReport(connectionId)
@@ -70,7 +74,7 @@ export default function ConnectionRecordPage() {
     )
   }
 
-  const header = (
+  const header = bare ? null : (
     <SiteHeader
       sticky
       navigation={
@@ -97,7 +101,7 @@ export default function ConnectionRecordPage() {
     return (
       <>
         {header}
-        <main id="main-content" tabIndex={-1} className="connection-record-page focus:outline-none" data-entrance={entrance}>
+        <main id="main-content" tabIndex={-1} className="connection-record-page focus:outline-none" data-entrance={entrance} data-bare={bare || undefined}>
           <CapsuleRecordLayout mate={<div className="capsule-record-mate-skeleton" aria-hidden="true" />}>
             <section
               className="capsule-record-card connection-record-window"
@@ -117,13 +121,7 @@ export default function ConnectionRecordPage() {
                 <div aria-busy="true">
                   <h1 id="connection-record-title" className="sr-only">연결 기록</h1>
                   <span className="sr-only" role="status">연결 기록을 불러오고 있어요.</span>
-                  <div aria-hidden="true">
-                    <span className="skeleton-line capsule-record-skeleton" style={{ width: '58%', height: 40 }} />
-                    <span className="skeleton-line capsule-record-skeleton" style={{ width: '40%', height: 28, marginTop: 20 }} />
-                    <span className="skeleton-line capsule-record-skeleton" style={{ width: '100%', height: 92, marginTop: 28 }} />
-                    <span className="skeleton-line capsule-record-skeleton" style={{ width: '100%', height: 64, marginTop: 24 }} />
-                    <span className="skeleton-line capsule-record-skeleton" style={{ width: '100%', height: 56, marginTop: 24 }} />
-                  </div>
+                  <ConnectionRecordCardSkeleton actions={bare ? <ConnectionRecordLoadingActions /> : undefined} />
                 </div>
               )}
             </section>
@@ -163,7 +161,7 @@ export default function ConnectionRecordPage() {
   return (
     <>
       {header}
-      <main id="main-content" tabIndex={-1} className="connection-record-page focus:outline-none" data-entrance={entrance}>
+      <main id="main-content" tabIndex={-1} className="connection-record-page focus:outline-none" data-entrance={entrance} data-bare={bare || undefined}>
         <CapsuleRecordCard
           // Switching states (dev) remounts it, so the content plays its opening again.
           key={levelUp ? 'levelup' : 'record'}

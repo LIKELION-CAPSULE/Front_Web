@@ -14,6 +14,7 @@ import { formatTogether, totalCapsuleSeconds } from '@/features/mates/capsule-ja
 import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
 import type { CapsuleJarHandle } from '@/features/mates/capsule-jar/CapsuleJar'
 import { MateTimeColumn } from '@/features/mates/components/MateTimeColumn'
+import { MyMatesSkeletonBody } from '@/features/mates/components/MyMatesSkeleton'
 import { PixelSnow } from '@/features/mates/pixel-snow/PixelSnow'
 import { waistFraming } from '@/features/mates/my-mates-framing'
 import { capsuleJarTheme } from '@/features/mates/capsule-jar/capsule-jar-theme'
@@ -194,11 +195,7 @@ export default function MyMatesPage() {
           <span className="sr-only" role="status">
             내 메이트 정보를 불러오고 있어요.
           </span>
-          <div className="my-mates-skeleton-scene skeleton-line" aria-hidden="true" />
-          <div className="my-mates-skeleton-bar" aria-hidden="true">
-            <span className="skeleton-line" />
-            <span className="skeleton-line" />
-          </div>
+          <MyMatesSkeletonBody />
         </div>
       </MyMatesWindowFrame>
     )

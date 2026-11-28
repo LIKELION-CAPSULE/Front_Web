@@ -136,6 +136,19 @@ export function markAttendanceReceived(
   return true
 }
 
+/**
+ * Whether the home path may still hold today's credits back from the header chip (`credits` source, today not received
+ * yet in this browser). While the first attendance read is on its way the chip cannot know which number to show, so
+ * it waits instead of showing the full balance and dropping by 1,500 when the read lands.
+ */
+export function creditHoldPossible(
+  userId: number,
+  source: AttendanceSource = attendanceSource(),
+  now = Date.now(),
+): boolean {
+  return source === 'credits' && !devOverride.has(userId) && readReceived(userId) !== businessDay(now)
+}
+
 export type AttendanceHold = {
   amount: number
   userId: number

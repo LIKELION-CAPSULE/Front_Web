@@ -27,6 +27,8 @@ function waitForScreen(loading?: string) {
 }
 
 async function runStep(step: ReviewStep) {
+  // An optional step acts only on what is on screen now (the caller waits for the screen first).
+  if ('click' in step && step.optional && !findTarget(step)) return
   const element = await new Promise<HTMLElement>((resolve, reject) => {
     const existing = findTarget(step)
     if (existing) { resolve(existing); return }
