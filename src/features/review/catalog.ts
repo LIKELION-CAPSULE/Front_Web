@@ -38,6 +38,11 @@ export type ReviewScenario = {
   fault?: string
   /** Whose connections the seeded records are (`reports`): 채린 unless this names 서도현 (server name 「서진」). */
   recordMate?: 'dohyun'
+  /**
+   * The login mate's own motion is what is reviewed (dozing, waking, following the cursor): the local Live2D model is
+   * kept when local-assets/ has it. Every other preview shows the stills (no /__local-assets request).
+   */
+  liveMate?: boolean
   /** The call's 60-second heartbeat comes every few seconds instead (review only), so its answer shows at once. */
   fastHeartbeat?: boolean
   loading?: SkeletonScreen | 'auth' | 'credits' | 'invite' | 'my-mates' | 'records'
@@ -79,8 +84,8 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'welcome', group: '로그인·가입', title: '로그인 시작', path: '/login', guest: true, note: '카카오·이메일 선택. 동의 화면 경로(KAKAO_SIGNUP_CONSENT_SCREEN=true)라 카카오 버튼 아래 약관 고지 없음' },
   { id: 'welcome-kakao-notice', group: '로그인·가입', title: '로그인 시작 · 약관 고지(현재 운영)', path: '/login', guest: true, fault: 'kakao-consent-off', note: 'KAKAO_SIGNUP_CONSENT_SCREEN=false(백엔드 a′ 배포 전, 지금 운영): 「시작하면 [이용약관]과 [개인정보 처리방침]에 동의해요.」 고지' },
   { id: 'login', group: '로그인·가입', title: '이메일 로그인', path: '/login?mode=login', guest: true, note: '기본 입력·비밀번호 찾기' },
-  { id: 'login-doze', group: '로그인·가입', title: '로그인 · 졸고 있는 채린', path: '/login', guest: true, note: '노트북 앞에서 꾸벅꾸벅 조는 채린(큰 Z, 「채린을 눌러 깨워 보세요」 안내). 다가가거나 누르거나 키를 누르면, 또는 10초 뒤 스스로 깸' },
-  { id: 'login-doze-awake', group: '로그인·가입', title: '로그인 · 깬 채린', path: '/login?doze=awake', guest: true, note: '깨어나 웃으며 「앗, 왔어? 기다리고 있었어.」라고 인사한 상태(다시 보기 버튼 포함). Live2D가 있으면 커서를 따라봄' },
+  { id: 'login-doze', group: '로그인·가입', title: '로그인 · 졸고 있는 채린', path: '/login', guest: true, liveMate: true, note: '노트북 앞에서 꾸벅꾸벅 조는 채린(큰 Z, 「채린을 눌러 깨워 보세요」 안내). 다가가거나 누르거나 키를 누르면, 또는 10초 뒤 스스로 깸' },
+  { id: 'login-doze-awake', group: '로그인·가입', title: '로그인 · 깬 채린', path: '/login?doze=awake', guest: true, liveMate: true, note: '깨어나 웃으며 「앗, 왔어? 기다리고 있었어.」라고 인사한 상태(다시 보기 버튼 포함). Live2D가 있으면 커서를 따라봄' },
   { id: 'login-doze-static', group: '로그인·가입', title: '로그인 · 정지 이미지 경로', path: '/login?static=1', guest: true, note: 'Live2D 없이 조는 모습 → 하품 → 웃음 정지 이미지 크로스페이드. 운영(로그인 메이트 API 전)과 움직임 줄이기에서 보이는 화면' },
   { id: 'login-error', group: '로그인·가입', title: '로그인 실패', path: '/login?mode=login', guest: true, fault: 'login', steps: login, note: '잘못된 인증정보 안내' },
   { id: 'login-locked', group: '로그인·가입', title: '로그인 잠금', path: '/login?mode=login', guest: true, fault: 'locked', steps: login, note: '반복 실패·5분 뒤 재시도' },

@@ -6,6 +6,9 @@ import { createReviewStorage } from './storage'
 import { createReviewImageStage } from './image-stage'
 import { rememberReviewIdInWindowName } from '@/shared/lib/review-window-name'
 
+/** Whether local-assets/ holds 채린's model engine (checked by the dev server when it serves this module; nothing loads). */
+const hasLocalMateModel = Object.keys(import.meta.glob('/local-assets/chaerin-v3/engine/engine.js')).length > 0
+
 export async function mountReview(root: HTMLElement, id: string | null) {
   if (!id) {
     const { ReviewWorkbench } = await import('./ReviewWorkbench')
@@ -16,6 +19,8 @@ export async function mountReview(root: HTMLElement, id: string | null) {
   if (id !== scenario.id) history.replaceState(null, '', reviewPreviewUrl(scenario, new URLSearchParams(location.search)))
   rememberReviewIdInWindowName(scenario.id)
   document.documentElement.dataset.reviewScenario = scenario.id
+  // The login mate is a still (login-mate-source.ts) unless the scenario reviews its motion and the local model exists.
+  if (!scenario.liveMate || !hasLocalMateModel) document.documentElement.dataset.reviewStillMates = 'true'
   // The shared component showcase (review only): the product's Dialog and NotificationStack on their own; no app.
   if (scenario.showcase) {
     const { ComponentShowcase } = await import('./ComponentShowcase')
