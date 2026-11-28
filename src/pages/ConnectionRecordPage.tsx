@@ -30,6 +30,9 @@ export default function ConnectionRecordPage() {
   // Arriving from the call's hang-up motion: the card plays its entrance (connections.css).
   const location = useLocation()
   const entrance = (location.state as { hangup?: boolean } | null)?.hangup ? 'hangup' : undefined
+  // Right after hanging up the screen has no site header (user decision 2026-11-28): the card's 「홈으로」 is the way out.
+  // A record opened from 내 기록 · 캡슐 keeps it. (A reload has no state, so the header comes back: harmless.)
+  const bare = entrance === 'hangup'
   const backend = useBackend()
   const { state } = useDemo()
   const { record, error, retry, redirectTo } = useServerReport(connectionId)
@@ -70,7 +73,7 @@ export default function ConnectionRecordPage() {
     )
   }
 
-  const header = (
+  const header = bare ? null : (
     <SiteHeader
       sticky
       navigation={
@@ -97,7 +100,7 @@ export default function ConnectionRecordPage() {
     return (
       <>
         {header}
-        <main id="main-content" tabIndex={-1} className="connection-record-page focus:outline-none" data-entrance={entrance}>
+        <main id="main-content" tabIndex={-1} className="connection-record-page focus:outline-none" data-entrance={entrance} data-bare={bare || undefined}>
           <CapsuleRecordLayout mate={<div className="capsule-record-mate-skeleton" aria-hidden="true" />}>
             <section
               className="capsule-record-card connection-record-window"
@@ -124,6 +127,12 @@ export default function ConnectionRecordPage() {
                     <span className="skeleton-line capsule-record-skeleton" style={{ width: '100%', height: 64, marginTop: 24 }} />
                     <span className="skeleton-line capsule-record-skeleton" style={{ width: '100%', height: 56, marginTop: 24 }} />
                   </div>
+                  {/* Without the header the way home stays usable while the record loads. */}
+                  {bare && (
+                    <div className="capsule-record-actions capsule-record-loading-actions">
+                      <Link to="/" className="capsule-record-home"><Icon name="home" size={18} />홈으로</Link>
+                    </div>
+                  )}
                 </div>
               )}
             </section>
@@ -163,7 +172,7 @@ export default function ConnectionRecordPage() {
   return (
     <>
       {header}
-      <main id="main-content" tabIndex={-1} className="connection-record-page focus:outline-none" data-entrance={entrance}>
+      <main id="main-content" tabIndex={-1} className="connection-record-page focus:outline-none" data-entrance={entrance} data-bare={bare || undefined}>
         <CapsuleRecordCard
           // Switching states (dev) remounts it, so the content plays its opening again.
           key={levelUp ? 'levelup' : 'record'}
