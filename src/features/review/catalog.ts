@@ -36,6 +36,10 @@ export type ReviewScenario = {
   /** Optional dedicated farewell line for connection leave dialog review. */
   farewellLine?: string
   fault?: string
+  /** Whose connections the seeded records are (`reports`): 채린 unless this names 서도현 (server name 「서진」). */
+  recordMate?: 'dohyun'
+  /** The call's 60-second heartbeat comes every few seconds instead (review only), so its answer shows at once. */
+  fastHeartbeat?: boolean
   loading?: SkeletonScreen | 'auth' | 'credits' | 'invite' | 'my-mates' | 'records'
   loginNext?: string
   /** A Kakao sign-up ticket in the preview's session storage (the consent screen's entry): live, or already expired. */
@@ -129,8 +133,10 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'home-resume', group: '온보딩·홈', title: '홈 · 다시 연결', path: '/', session: 'recover', note: '진행 중인 연결이 있는 홈' },
   { id: 'home-empty', group: '온보딩·홈', title: '홈 · 메이트 없음', path: '/', empty: true, note: '11 mates가 빈 응답: 메이트 자리에 「메이트를 불러오지 못했어요」·「다시 시도」 카드(로컬 룸이나 가짜 카드로 채우지 않음)' },
   { id: 'mate-detail', group: '메이트·연결', title: '메이트 상세', path: '/mates/chaerin', note: '세계관·내 역할·인트로와 직접 연결' },
+  { id: 'mate-detail-dohyun', group: '메이트·연결', title: '메이트 상세 · 서도현', path: '/mates/dohyun', note: '공개된 2번 메이트: 서도현의 메이트 색(230° 블루바이올렛)·떠다니는 캡슐·네온 링과 직접 연결. 채린 상세와 색 대비' },
   { id: 'connection-entry', group: '메이트·연결', title: '연결 · 직접 방문', path: '/connect/chaerin', note: '주소 방문만으로 세션을 만들지 않고 연결 버튼 제공' },
   { id: 'connection-active', group: '메이트·연결', title: '연결 중 · 채린', path: '/connect/chaerin', steps: [click('연결하기')], note: '준비·목표 시간 없이 기본 채팅·카메라·보기 전환' },
+  { id: 'connection-active-dohyun', group: '메이트·연결', title: '연결 중 · 서도현', path: '/connect/dohyun', steps: [click('연결하기')], note: '서도현 통화: 블루바이올렛 포인트(대사창·채팅·도크)·헤더 관계 문구 「오랜 소꿉친구」·친밀도 칩. 900px은 채팅이 닫힌 채 시작' },
   { id: 'connection-start-error', group: '메이트·연결', title: '연결 · 시작 오류', path: '/connect/chaerin', fault: 'start', steps: [click('연결하기')], note: '서버 연결 실패와 재시도' },
   { id: 'connection-record', group: '메이트·연결', title: '연결 기록', path: '/connections/9001', cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '연결 끊음 창·함께한 시간(연결 시간)·카메라로 함께한 시간·친밀도와 다시 연결' },
   { id: 'connection-record-levelup', group: '메이트·연결', title: '연결 기록 · 친밀도 단계 상승', path: '/connections/9001', cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '친밀도 단계 상승(아는 사이 → 친구)·다음 단계 진행 막대·「새 세계관이 열렸어요 · EP.03 도서관」과 「세계관 보기」(내 메이트로)' },
@@ -143,6 +149,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'connection-camera-error', group: '메이트·연결', title: '연결 · 카메라 거절', path: '/connect/chaerin', steps: [click('연결하기'), click('카메라 켜기')], note: '카메라 권한 거절 후 연결 유지' },
   { id: 'connection-chat-history', group: '메이트·연결', title: '연결 · 지난 대화 불러오기', path: '/connect/chaerin', fault: 'chat-history', steps: connectWithChat, note: '32: 채팅을 열면 지난 대화 첫 페이지(20줄), 맨 위로 올리면 이전 페이지. 답장에 마우스를 올리면 👍·👎·신고' },
   { id: 'connection-chat-empty', group: '메이트·연결', title: '연결 · 채팅 빈 상태', path: '/connect/chaerin', empty: true, steps: connectWithChat, note: '2026-11-28 채팅 P1: 처음 만난 메이트(지난 대화 없음). 캡슐·별 장식과 「채린에게 먼저 말 걸어 볼까요?」, 첫마디 칩(빠른 답장이 입력창 위에서 이리로 옮겨 옴). 첫마디를 누르면 내 말·사각 점 3개 답장 대기·머리 「입력 중」' },
+  { id: 'connection-chat-typing', group: '메이트·연결', title: '연결 · 답장 대기(입력 중)', path: '/connect/chaerin', fault: 'message-pending', steps: [...connectWithChat, fill('textarea', '검토 메시지'), click('메시지 보내기')], note: '보낸 메시지의 답장이 오지 않는 동안: 내 말 아래 사각 점 3개(답장 대기)와 채팅 머리 「입력 중」이 그대로 머묾(28 응답 대기 고정)' },
   { id: 'connection-reply-report', group: '메이트·연결', title: '연결 · 답장 신고', path: '/connect/chaerin', fault: 'chat-history', steps: [...connectWithChat, { click: '신고', selector: '.reply-action' }], note: '41: 사유 4개(기타는 300자 이하 직접 입력)·이미 신고한 답장은 409 뒤 접힘 처리' },
   { id: 'connection-credit-short', group: '메이트·연결', title: '연결 · 고급 모드 크레딧 부족', path: '/connect/chaerin', fault: 'credit-short', steps: [...connectWithChat, { click: '고급 ·', includes: true }, fill('textarea', '검토 메시지'), click('메시지 보내기')], note: '409 CREDIT_INSUFFICIENT: 「크레딧이 부족해요」·기본 모드로 계속(입력 그대로 다시 보냄)·친구 초대로 받기' },
   { id: 'connection-voice-off', group: '메이트·연결', title: '연결 · 메이트 음성 꺼짐(기본)', path: '/connect/chaerin', steps: [click('연결하기')], note: '서버 voiceEnabled 기본값이 켜짐이어도 직접 켜기 전엔 꺼짐: 도크 「메이트 음성 켜기」(헤드폰, aria-pressed false), 메시지는 tts: false' },
@@ -157,6 +164,7 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'connection-ended-event', group: '메이트·연결', title: '연결 · 상태 전송 중 서버 종료', path: '/connect/chaerin', fault: 'server-ended-event', steps: [click('연결하기')], note: '상태 이벤트의 SESSION_ENDED 뒤 연결 상태·모델·미디어 정리' },
   { id: 'connection-ended-message', group: '메이트·연결', title: '연결 · 메시지 HTTP 종료 응답', path: '/connect/chaerin', fault: 'server-ended-message', steps: [click('연결하기')], note: '메시지를 보내면 409 SESSION_ENDED. 실패한 메시지 캐시는 제거' },
   { id: 'connection-stage-up', group: '메이트·연결', title: '연결 · 통화 중 친밀도 단계 상승', path: '/connect/chaerin', fault: 'stage-up', steps: [click('연결하기')], note: '16 relation 2단계(이름 없음)로 시작: 위 친밀도 칩 「아는 사이」. 첫 heartbeat(약 60초 뒤) 응답의 stageUp(Lv.3): 채팅이 열려 있으면 로그의 친밀도 줄, 닫혀 있으면 오른쪽 위 알림 「친밀도 3단계 · 친구 / 새 세계관이 열렸어요 · EP.03 도서관」·위 친밀도 칩도 바로 「친구」. 통화 배경·의상은 그대로' },
+  { id: 'connection-stage-up-now', group: '메이트·연결', title: '연결 · 친밀도 상승 바로 보기', path: '/connect/chaerin', fault: 'stage-up', fastHeartbeat: true, steps: [click('연결하기'), { wait: '', selector: '.chat-log-stage-up, .connection-stage-up' }], note: 'connection-stage-up을 60초 기다리지 않고: heartbeat를 몇 초마다 보내(리뷰 전용) 첫 응답의 stageUp(Lv.3 친구)을 바로 반영. 1440은 채팅 로그의 분홍 친밀도 줄, 900(채팅 닫힘)은 오른쪽 위 알림 「친밀도 3단계 · 친구 / 새 세계관이 열렸어요 · EP.03 도서관」' },
   { id: 'connection-ended-stream', group: '메이트·연결', title: '연결 · SSE 도중 종료 응답', path: '/connect/chaerin', fault: 'server-ended-stream', steps: [click('연결하기')], note: 'HTTP 200 SSE error의 SESSION_ENDED도 연결 기록으로 전환' },
   { id: 'connection-ended-finish', group: '메이트·연결', title: '연결 · 끊기 요청 전 서버 종료', path: '/connect/chaerin', fault: 'server-ended-finish', steps: [click('연결하기')], note: '종료 요청이 이미 종료됨을 알리면 다시 /end를 보내지 않고 기록 조회' },
   { id: 'connection-ended-resume', group: '메이트·연결', title: '연결 · 이어가기 전 서버 종료', path: '/connect/chaerin', session: 'recover', fault: 'server-ended-resume', note: '진행 중 요약이 오래됐을 때 /resume의 종료 응답을 반영하고 보고서 조회' },
@@ -171,6 +179,8 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'records-loading', group: '내 기록', title: '내 기록 · 불러오는 중', path: '/records', loading: 'records', note: '로컬 미리보기용: 창 내부 스켈레톤 상태' },
   { id: 'my-mates', group: '내 메이트', title: '내 메이트 · 기본(연결 1번)', path: '/mates/me', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '위에서 내려다본 캡슐 바닥 장면(캡슐이 쏟아진 뒤 카드가 떨어져 내려앉음)과 오른쪽 함께한 시간 열·서버 보고서 1개(연결 1번 = 캡슐 여러 개)·해금 정보 없음: 개발에서는 샘플 친밀도·세계관(기획 예시), 운영(api)은 서버 단계·세계관 「준비 중」, ?features=off는 개발에서 카드 없는 모습' },
   { id: 'my-mates-full', group: '내 메이트', title: '내 메이트 · 전체(연결 7번·세계관 3/5)', path: '/mates/me', mateContract: true, reports: [9001, 9002, 9003, 9004, 9005, 9006, 9007], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '서버 계약 전 디자인 확인용: 연결 7번(연결 시간만큼 캡슐 묶음)·누운 한 면 카드(이름·처음 만난 날)·친밀도와 세계관 한 카드(Lv.3·세계관 3/5)·오른쪽 열(함께한 시간·12시간 고리·최근 캡슐)·보이스 대사는 숨김' },
+  { id: 'my-mates-dohyun', group: '내 메이트', title: '내 메이트 · 서도현', path: '/mates/me?mate=dohyun', recordMate: 'dohyun', reports: [9001, 9002, 9003], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '서도현과 연결 3번: 서도현 색 캡슐 바닥(파란빛)·카드·함께한 시간 열·세계관. 채린과 색 대비' },
+  { id: 'my-mates-short-connection', group: '내 메이트', title: '내 메이트 · 1분 미만 연결', path: '/mates/me', reports: [9001, 9002], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: '연결 2번 중 하나가 45초(「0분」, 시작 직후 취소): 그 연결은 캡슐 0개·최근 캡슐 목록에서 빠지고, 25분 연결의 캡슐만 바닥에 쌓임(2026-11-28 1분 미만 규칙)' },
   // 세계관 (mate-worlds.ts): the stage opens the five places; development shows the planning examples, api mode 「준비 중」.
   { id: 'my-mates-world-0', group: '내 메이트', title: '내 메이트 · 세계관 0/5(연결 전)', path: '/mates/me', empty: true, note: '연결 0번: 아직 만나지 않아 다섯 세계관 모두 잠김·EP.01 학교 「Lv.1에서 열려요」' },
   { id: 'my-mates-world-3', group: '내 메이트', title: '내 메이트 · 세계관 3/5', path: '/mates/me?affinity=3', mateContract: true, reports: [9001], cameraFocus: { observedMs: 1500000, focusedMs: 1380000, returns: 2 }, note: 'Lv.3: EP.03 도서관부터 보여 줌(배경 자리·대사 예시)·점 다섯 개 중 현재 단계 점이 길게' },

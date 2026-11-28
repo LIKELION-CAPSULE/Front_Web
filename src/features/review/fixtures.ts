@@ -28,6 +28,7 @@ const PENDING: Partial<Record<NonNullable<ReviewScenario['fault']>, (method: str
   'start-pending': (method, path) => method === 'POST' && path === '/connections',
   'credits-pending': (method, path) => method === 'GET' && path === '/credits',
   'invite-pending': (method, path) => method === 'GET' && path === '/referrals/me',
+  'message-pending': (method, path) => method === 'POST' && /^\/connections\/\d+\/messages(?:\/stream)?$/.test(path),
 }
 
 /** 36 refusals the review shows on the code field (the code itself passes 39 first). */
@@ -98,7 +99,7 @@ function seedRecords(store: LocalBetaStore, scenario: ReviewScenario) {
     if (scenario.session && id === REVIEW_SESSION_ID) continue
     const { startedAt, seconds } = recordSlot(scenario, index, now)
     // Two mates: every third record is 서도현's (the server name 「서진」, mapped by the app).
-    const characterId = scenario.id === 'records-two-mates' && index % 3 === 1 ? LOCAL_DOHYUN_CHARACTER_ID : LOCAL_CHARACTER_ID
+    const characterId = scenario.recordMate === 'dohyun' || scenario.id === 'records-two-mates' && index % 3 === 1 ? LOCAL_DOHYUN_CHARACTER_ID : LOCAL_CHARACTER_ID
     store.data.nextSessionId = id
     store.start(characterId).startedAt = startedAt
     const camera = camOff(id) ? 0 : Math.round(seconds * 0.92)

@@ -67,6 +67,12 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     )
   }
   if (scenario.session !== 'unknown') local.setItem(`capsule-presence:${REVIEW_USER_ID}:${REVIEW_SESSION_ID}`, JSON.stringify({ studySeconds: 65, presentSeconds: 55, known: true }))
+  // 친밀도 상승 바로 보기: the call's 60-second heartbeat (use-session-sync.ts) every 2.5 s in this preview only.
+  if (scenario.fastHeartbeat) {
+    const setInterval = window.setInterval.bind(window)
+    window.setInterval = ((handler: TimerHandler, timeout?: number, ...rest: unknown[]) =>
+      setInterval(handler, timeout === 60_000 ? 2_500 : timeout, ...rest)) as typeof window.setInterval
+  }
   // Install before importing App: ApiClient captures fetch when its singleton is constructed.
   globalThis.fetch = createReviewTransport(scenario, globalThis.fetch.bind(globalThis))
   if (navigator.mediaDevices) Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
