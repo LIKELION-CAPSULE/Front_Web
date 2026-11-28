@@ -17,7 +17,8 @@ const CREDITS_REFRESH_MS = 60_000
  * server's summary (server-credits.ts: 8 `/me`, 16, 19, 20 · 28, 33; the local mock answers the same paths). Today's
  * attendance grant is held back while the home path is about to play it, and counts up when it lands
  * (credit-reward.ts). `null` while there is no balance to show. Shown on another screen first, that grant counts as
- * received, so the home page does not take it back out of the chip later (attendance-service.ts).
+ * received, so the home page does not take it back out of the chip later (attendance-service.ts). `pending` while the
+ * home page still reads whether to hold it back (the number is not known yet; the chip waits rather than dropping).
  */
 export function useCreditDisplay() {
   const { me } = useBackend()
@@ -30,7 +31,7 @@ export function useCreditDisplay() {
     if (userId === undefined || !shown) return
     if (balanceShownAwayFromHome(pathname, touring, serverCreditsAge(userId))) markAttendanceReceived(userId)
   }, [userId, shown, pathname, touring, server])
-  const { held, landing } = useCreditReward()
+  const { held, landing, pending } = useCreditReward()
   const base = server?.todayRemaining ?? null
   const total = base === null ? null : Math.max(0, base - held)
   const [counting, setCounting] = useState<number | null>(null)
@@ -53,7 +54,8 @@ export function useCreditDisplay() {
     }
   }, [total, landing, reduced])
 
-  return { value: total === null ? null : counting ?? total, landing }
+  // `pending`: the home page has not read yet whether today's grant is held back; the chip shows a placeholder.
+  return { value: total === null ? null : counting ?? total, landing, pending: pending && total !== null }
 }
 
 /**

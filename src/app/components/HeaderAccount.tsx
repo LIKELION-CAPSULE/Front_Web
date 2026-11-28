@@ -31,7 +31,7 @@ function AccountSettingsLoading({ onClose }: { onClose: () => void }) {
  * Its name carries the balance, so a screen reader hears the number and not only "크레딧". An attendance reward
  * landing here counts the number up and bounces the icon.
  */
-function CreditChip({ value, landing }: ReturnType<typeof useCreditDisplay>) {
+function CreditChip({ value, landing, pending }: ReturnType<typeof useCreditDisplay>) {
   const icon = useRef<HTMLSpanElement>(null)
   const reduced = useReducedMotion()
   const bounced = useRef(landing?.id)
@@ -41,9 +41,13 @@ function CreditChip({ value, landing }: ReturnType<typeof useCreditDisplay>) {
     const bounce = animate(icon.current, { scale: [1, 1.32, 1] }, { type: 'spring', stiffness: 520, damping: 14 })
     return () => bounce.stop()
   }, [landing, reduced])
-  return <Link to="/credits" className="credit-chip" aria-label={`남은 크레딧 ${number(value ?? 0)}`} title="남은 크레딧" data-tour="credits">
+  // While the home page still reads whether today's grant is held back, a placeholder the width of the number (no
+  // full balance that then drops by 1,500).
+  return <Link to="/credits" className="credit-chip" aria-label={pending ? '남은 크레딧 불러오는 중' : `남은 크레딧 ${number(value ?? 0)}`} aria-busy={pending || undefined} title="남은 크레딧" data-tour="credits">
     <span ref={icon} data-credit-target className="credit-coin inline-flex"><Icon name="coin" size={17} /></span>
-    <span className="font-sans tabular-nums text-label font-semibold text-ink">{number(value ?? 0)}</span>
+    {pending
+      ? <span className="skeleton-line inline-block h-4 w-10 rounded-control" data-credit-pending aria-hidden="true" />
+      : <span className="font-sans tabular-nums text-label font-semibold text-ink">{number(value ?? 0)}</span>}
   </Link>
 }
 
