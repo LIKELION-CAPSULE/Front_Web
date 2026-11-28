@@ -20,7 +20,7 @@ const DIALOGS: readonly DialogSample[] = [
     body: `지워지는 것: ${MATE_RESET_CLEARS.join(', ')} · 그대로 남는 것: ${MATE_RESET_KEEPS.join(', ')}`, actions: ['취소', '초기화하기'] },
   { key: 'info', label: 'info · 안내', tone: 'info', title: '카메라 사용 안내', body: '정보 아이콘(info) 톤. 안내 창은 확인 버튼 하나로도 써요.', actions: ['닫기', '확인'] },
   { key: 'credit', label: 'credit · 크레딧', tone: 'credit', title: CREDIT_NOTICE_COPY.title, body: CREDIT_NOTICE_COPY.body, actions: [CREDIT_NOTICE_COPY.invite, CREDIT_NOTICE_COPY.basic] },
-  { key: 'celebrate', label: 'celebrate · 축하', tone: 'celebrate', title: '새 세계관이 열렸어요 · EP.03 도서관', body: '축하 톤은 머리 띠의 픽셀 눈이 더 촘촘하고 반짝임이 붙어요.', actions: ['나중에', '보러 가기'] },
+  { key: 'celebrate', label: 'celebrate · 축하', tone: 'celebrate', title: '새 세계관이 열렸어요 · EP.03 주말 오후의 카페', body: '축하 톤은 머리 띠의 픽셀 눈이 더 촘촘하고 반짝임이 붙어요.', actions: ['나중에', '보러 가기'] },
 ]
 
 const TOASTS: NotificationItem[] = [
