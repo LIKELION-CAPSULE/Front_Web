@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { formatCapsuleShortDate, formatTogether, partOfDay } from '@/features/mates/capsule-jar/capsule-jar-data'
 import { capsulesForConnection } from '@/features/mates/capsule-jar/capsule-floor-layout'
 import type { CapsuleJarTheme, CapsuleRecord } from '@/features/mates/capsule-jar/capsule-jar-types'
@@ -11,6 +11,7 @@ import { AnimatedDuration } from '@/shared/ui/number-counter/AnimatedDuration'
 import { CapsuleEmptyState } from '@/shared/ui/CapsuleEmptyState'
 import { AffinityCard, WorldCard } from './AffinityWorldCard'
 import { BlockLabel } from './BlockLabel'
+import { fitRecentRows } from './recent-rows'
 import { CapsuleGlyph } from './game-glyphs'
 import './mate-time-column.css'
 
@@ -30,23 +31,23 @@ const RECENT_MAX = 10
 const MAX_NEW = 2
 
 
-/** Rows of `rowSelector` that fit in the element (measured; the element's height never depends on its rows). */
+/** The rows that fit in the element and their height (measured; the element's height never depends on its rows). */
 function useFittingRows(fallback: number) {
   const ref = useRef<HTMLDivElement>(null)
-  const [rows, setRows] = useState(fallback)
+  const [fit, setFit] = useState({ rows: fallback, height: 40 })
   useEffect(() => {
     const room = ref.current
     if (!room || typeof ResizeObserver === 'undefined') return
     const measure = () => {
-      const row = room.querySelector('li')?.getBoundingClientRect().height || 40
-      setRows(Math.max(1, Math.min(RECENT_MAX, Math.floor((room.clientHeight + 1) / row))))
+      const next = fitRecentRows(room.clientHeight, RECENT_MAX)
+      setFit(previous => previous.rows === next.rows && previous.height === next.height ? previous : next)
     }
     const observer = new ResizeObserver(measure)
     observer.observe(room)
     measure()
     return () => observer.disconnect()
   }, [])
-  return [ref, rows] as const
+  return [ref, fit] as const
 }
 
 /**
@@ -104,9 +105,12 @@ export function MateTimeColumn({
   actions: ReactNode
 }) {
   const [pointed, setPointed] = useState<string | null>(null)
-  const [roomRef, limit] = useFittingRows(3)
+  const [roomRef, { rows: limit, height: rowHeight }] = useFittingRows(3)
   const recent = connections.slice(-limit).reverse()
-  const total = connectionCount ?? connections.length
+  // The title's count is the list's own (connections that left capsules: the rows plus 「나머지 N개」), not the
+  // server's connection count (37 `connectionCount` also counts starts under a minute, which leave no capsule; the
+  // 「연결 N회」 line above keeps it).
+  const listed = connections.length
   // Keepsakes (milestones of the time together) by connection, the same rule as the capsules in the scene.
   const keepsakes = useMemo(() => capsuleKeepsakes(connections, capsulesForConnection), [connections])
   // NEW: the newest two connections since the last visit, not every one of them.
@@ -138,9 +142,9 @@ export function MateTimeColumn({
         <BlockLabel
           id="my-mates-recent-label"
           icon="sparkle"
-          // The count right after the title (all connections, not only the newest listed); the toggle alone at the far right.
-          count={total > 0 ? total : undefined}
-          countLabel={`전체 ${total}개`}
+          // The count right after the title (every listed connection, not only the rows shown); the toggle alone at the far right.
+          count={listed > 0 ? listed : undefined}
+          countLabel={`전체 ${listed}개`}
           note={listToggle?.(connections.length - recent.length)}
         >
           최근 캡슐
@@ -154,7 +158,7 @@ export function MateTimeColumn({
               action={emptyAction}
             />
           ) : (
-            <ul className="mate-game-inventory">
+            <ul className="mate-game-inventory" style={{ '--slot-h': `${rowHeight}px` } as CSSProperties}>
               {recent.map((connection) => {
                 const { weekday, hour } = seoulWeekdayHour(connection.startedAt)
                 const isNew = fresh.has(connection.id)
