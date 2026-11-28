@@ -106,7 +106,10 @@ export function MateTimeColumn({
   const [pointed, setPointed] = useState<string | null>(null)
   const [roomRef, limit] = useFittingRows(3)
   const recent = connections.slice(-limit).reverse()
-  const total = connectionCount ?? connections.length
+  // The title's count is the list's own (connections that left capsules: the rows plus 「나머지 N개」), not the
+  // server's connection count (37 `connectionCount` also counts starts under a minute, which leave no capsule; the
+  // 「연결 N회」 line above keeps it).
+  const listed = connections.length
   // Keepsakes (milestones of the time together) by connection, the same rule as the capsules in the scene.
   const keepsakes = useMemo(() => capsuleKeepsakes(connections, capsulesForConnection), [connections])
   // NEW: the newest two connections since the last visit, not every one of them.
@@ -138,9 +141,9 @@ export function MateTimeColumn({
         <BlockLabel
           id="my-mates-recent-label"
           icon="sparkle"
-          // The count right after the title (all connections, not only the newest listed); the toggle alone at the far right.
-          count={total > 0 ? total : undefined}
-          countLabel={`전체 ${total}개`}
+          // The count right after the title (every listed connection, not only the rows shown); the toggle alone at the far right.
+          count={listed > 0 ? listed : undefined}
+          countLabel={`전체 ${listed}개`}
           note={listToggle?.(connections.length - recent.length)}
         >
           최근 캡슐
