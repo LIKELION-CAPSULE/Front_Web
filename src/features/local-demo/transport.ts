@@ -499,7 +499,7 @@ type LocalNotification = { id: number; type: string; title: string; body: string
 function localNotifications(now: number): LocalNotification[] {
   const MINUTE = 60_000
   const fresh: Omit<LocalNotification, 'id'>[] = [
-    { type: 'STAGE_UP', title: '채린과 한 걸음 가까워졌어요', body: '새 세계관이 열렸어요 · EP.03 도서관', link: '/mates/me', read: false, createdAt: now - 4 * MINUTE },
+    { type: 'STAGE_UP', title: '채린과 한 걸음 가까워졌어요', body: '새 세계관이 열렸어요 · EP.03 주말 오후의 카페', link: '/mates/me', read: false, createdAt: now - 4 * MINUTE },
     { type: 'ATTENDANCE', title: '출석 보상 100 크레딧을 받았어요', body: null, link: '/credits', read: false, createdAt: now - 3 * 60 * MINUTE },
     { type: 'REFERRAL_REWARD', title: '친구가 첫 연결을 마쳤어요', body: '초대 보상 1,000 크레딧이 들어왔어요.', link: '/credits/invite', read: true, createdAt: now - 26 * 60 * MINUTE },
     { type: 'NOTICE', title: '바깥 링크는 열리지 않아요', body: '앱 밖 주소가 담긴 알림은 눌러도 이동하지 않아요.', link: 'https://example.com', read: true, createdAt: now - 3 * 24 * 60 * MINUTE },

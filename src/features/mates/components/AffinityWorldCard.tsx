@@ -65,7 +65,7 @@ export function AffinityWorldCard({
     (affinity.nextStageName ? `다음 단계: ${affinity.nextStageName}` : affinity.isLast ? '가장 가까운 사이가 됐어요' : null)
   const position = world ? `${index + 1} / ${list.length}` : ''
   const announcement = current?.moved && world
-    ? `${WORLD_COPY.title} ${position}, ${worldLabel(world)}, ${world.unlocked ? (world.sampleLine ?? '열림') : worldLockedCaption(world.unlockStage)}`
+    ? `${WORLD_COPY.title} ${position}, ${worldLabel(world)}${world.title ? `, ${world.place}` : ''}, ${world.unlocked ? (world.sampleLine ?? '열림') : worldLockedCaption(world.unlockStage)}`
     : ''
 
   return (

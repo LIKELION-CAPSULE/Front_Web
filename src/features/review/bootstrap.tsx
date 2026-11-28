@@ -6,6 +6,9 @@ import { createReviewStorage } from './storage'
 import { createReviewImageStage } from './image-stage'
 import { rememberReviewIdInWindowName } from '@/shared/lib/review-window-name'
 
+/** Whether local-assets/ holds 채린's model engine (checked by the dev server when it serves this module; nothing loads). */
+const hasLocalMateModel = Object.keys(import.meta.glob('/local-assets/chaerin-v3/engine/engine.js')).length > 0
+
 export async function mountReview(root: HTMLElement, id: string | null) {
   if (!id) {
     const { ReviewWorkbench } = await import('./ReviewWorkbench')
@@ -13,20 +16,15 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     return
   }
   const scenario = findReviewScenario(id)
-  if (id !== scenario.id) history.replaceState(null, '', reviewPreviewUrl(scenario))
+  if (id !== scenario.id) history.replaceState(null, '', reviewPreviewUrl(scenario, new URLSearchParams(location.search)))
   rememberReviewIdInWindowName(scenario.id)
   document.documentElement.dataset.reviewScenario = scenario.id
-  // Call-screen drafts (review only): a stand-alone copy of the call screen, so the app is not mounted at all.
-  if (scenario.callUi) {
-    const { CallUiPreview } = await import('./call-ui/CallUiPreview')
-    createRoot(root).render(<StrictMode><CallUiPreview variant={scenario.callUi} /></StrictMode>)
-    parent.postMessage({ type: 'capsule-review:ready', id: scenario.id }, location.origin)
-    return
-  }
-  // Chat panel drafts (review only): the call stage with the real dialogue box and a draft panel; no app.
-  if (scenario.chatPanel) {
-    const { ChatPanelPreview } = await import('./chat-panel/ChatPanelPreview')
-    createRoot(root).render(<StrictMode><ChatPanelPreview variant={scenario.chatPanel} /></StrictMode>)
+  // The login mate is a still (login-mate-source.ts) unless the scenario reviews its motion and the local model exists.
+  if (!scenario.liveMate || !hasLocalMateModel) document.documentElement.dataset.reviewStillMates = 'true'
+  // The shared component showcase (review only): the product's Dialog and NotificationStack on their own; no app.
+  if (scenario.showcase) {
+    const { ComponentShowcase } = await import('./ComponentShowcase')
+    createRoot(root).render(<StrictMode><ComponentShowcase /></StrictMode>)
     parent.postMessage({ type: 'capsule-review:ready', id: scenario.id }, location.origin)
     return
   }
@@ -74,6 +72,12 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     )
   }
   if (scenario.session !== 'unknown') local.setItem(`capsule-presence:${REVIEW_USER_ID}:${REVIEW_SESSION_ID}`, JSON.stringify({ studySeconds: 65, presentSeconds: 55, known: true }))
+  // 친밀도 상승 바로 보기: the call's 60-second heartbeat (use-session-sync.ts) every 2.5 s in this preview only.
+  if (scenario.fastHeartbeat) {
+    const setInterval = window.setInterval.bind(window)
+    window.setInterval = ((handler: TimerHandler, timeout?: number, ...rest: unknown[]) =>
+      setInterval(handler, timeout === 60_000 ? 2_500 : timeout, ...rest)) as typeof window.setInterval
+  }
   // Install before importing App: ApiClient captures fetch when its singleton is constructed.
   globalThis.fetch = createReviewTransport(scenario, globalThis.fetch.bind(globalThis))
   if (navigator.mediaDevices) Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
@@ -112,14 +116,6 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     if (scenario.id === 'my-mates-full' || scenario.id === 'connection-record-levelup') return port({ attendance: 980, invitation: 200, usedToday: 320 })
     return undefined
   })()
-  // Modal design drafts (review only): drawn over the real page, never imported by the product entry.
-  const design = scenario.dialogDesign
-  const DialogDesign = design && design !== 'toast' ? (await import('./dialog-design/DialogDesignPreview')).DialogDesignPreview : undefined
-  const ToastCandidates = design === 'toast' ? (await import('./dialog-design/ToastCandidates')).ToastCandidates : undefined
-  const extra = <>
-    <ReviewSetup scenario={scenario} />
-    {DialogDesign && design && design !== 'toast' && <DialogDesign variant={design} />}
-    {ToastCandidates && <ToastCandidates />}
-  </>
+  const extra = <ReviewSetup scenario={scenario} />
   mountApp(root, extra, scenario.session && scenario.session !== 'recover' ? <ReviewStudyGate /> : undefined, createReviewImageStage, accountPort, matePort, featurePort)
 }

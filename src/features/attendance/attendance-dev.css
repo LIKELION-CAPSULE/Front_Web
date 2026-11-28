@@ -15,4 +15,6 @@
   .att-dev div { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
   .att-dev button { border-radius: 6px; background: var(--color-control); padding: 2px 7px; color: var(--color-ink); }
   .att-dev button[aria-pressed='true'] { background: var(--color-primary); }
+  /* The UI review preview (/__review) shows the screen as users see it. */
+  html[data-review-scenario] .att-dev { display: none; }
 }

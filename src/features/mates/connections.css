@@ -244,6 +244,7 @@
   display: inline-flex;
   height: 24px;
   min-width: 0;
+  max-width: 220px;
   flex: 0 1 auto;
   align-items: center;
   overflow: hidden;
@@ -257,6 +258,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* A long world name (「EP.01 노을 진 방과 후 교실」) ends in 「…」 (the whole name is the chip's title). */
+.connection-titlebar-world-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Narrow windows: the chips on the right need the room; the world chip goes first, then the tag. */
 @media (max-width: 1100px) {
   .connection-titlebar-world { display: none; }
@@ -461,7 +464,7 @@
 }
 /* 통화 중 친밀도 단계 상승 (StageUpNotice): the line and a small 「닫기」. */
 .connection-stage-up { display: flex; align-items: center; gap: 12px; max-width: 380px; }
-.connection-stage-up-copy { display: grid; gap: 2px; }
+.connection-stage-up-copy { display: grid; gap: 2px; word-break: keep-all; }
 .connection-stage-up-copy strong { color: var(--color-ink); font-weight: 700; }
 .connection-stage-up-close {
   flex: none;
