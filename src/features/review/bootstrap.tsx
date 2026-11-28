@@ -13,7 +13,7 @@ export async function mountReview(root: HTMLElement, id: string | null) {
     return
   }
   const scenario = findReviewScenario(id)
-  if (id !== scenario.id) history.replaceState(null, '', reviewPreviewUrl(scenario))
+  if (id !== scenario.id) history.replaceState(null, '', reviewPreviewUrl(scenario, new URLSearchParams(location.search)))
   rememberReviewIdInWindowName(scenario.id)
   document.documentElement.dataset.reviewScenario = scenario.id
   // The shared component showcase (review only): the product's Dialog and NotificationStack on their own; no app.

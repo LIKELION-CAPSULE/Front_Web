@@ -318,8 +318,18 @@ export function findReviewScenario(id: string | null) {
   const currentId = id ? restoredReviewIds[id] ?? id : null
   return reviewScenarios.find(scenario => scenario.id === currentId) ?? reviewScenarios[0]!
 }
-export function reviewPreviewUrl(scenario: ReviewScenario) {
+/**
+ * Preview state a workbench link may carry into its preview frame (`/__review?case=…&dialog=danger`): the showcase's open
+ * dialog and the slow chat history (`chatDelay`, fixtures.ts). Other workbench parameters stay with the workbench.
+ */
+export const reviewStateParams = ['dialog', 'chatDelay'] as const
+
+export function reviewPreviewUrl(scenario: ReviewScenario, state?: URLSearchParams) {
   const url = new URL(scenario.path, 'http://review.local')
   url.searchParams.set('__review', scenario.id)
+  for (const key of reviewStateParams) {
+    const value = state?.get(key)
+    if (value) url.searchParams.set(key, value)
+  }
   return url.pathname + url.search + url.hash
 }

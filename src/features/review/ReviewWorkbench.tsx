@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { findReviewScenario, reviewGroups, reviewPreviewUrl, reviewScenarios } from './catalog'
+import { findReviewScenario, reviewGroups, reviewPreviewUrl, reviewScenarios, reviewStateParams } from './catalog'
 import './workbench.css'
 import { ReviewMessagesPanel } from './ReviewMessagesPanel'
 import { reviewMessageTones } from './messages'
@@ -25,6 +25,8 @@ const sizePresets: readonly SizePreset[] = [
   { key: '640', width: 640, label: '640 · 반쪽 화면' },
   { key: 'mobile', width: 390, label: '휴대폰 · 접속 안내', scenarioId: 'mobile-notice' },
 ]
+/** One-click widths; the others stay in the menu next to them. */
+const quickSizes = [['1440', '1440'], ['1280', '1280'], ['900', '900'], ['mobile', '모바일']] as const
 
 function resolvePreset(raw: string | null): SizePreset {
   if (raw === 'mobile' || raw === '390') return sizePresets[sizePresets.length - 1]!
@@ -41,7 +43,13 @@ function savedChecks(): Set<string> {
 
 export function ReviewWorkbench() {
   const [selected, setSelected] = useState(() => findReviewScenario(params().get('case')).id)
-  const [sizeKey, setSizeKey] = useState(() => resolvePreset(params().get('width')).key)
+  // A link without a width opens the scenario at its own width (the mobile notice at the phone width).
+  const [sizeKey, setSizeKey] = useState(() => resolvePreset(params().get('width') ?? findReviewScenario(params().get('case')).defaultWidth ?? null).key)
+  /** The width the reviewer chose last; a scenario's own width (defaultWidth) gives way to it on the next scenario. */
+  const chosenSize = useRef(params().get('width') && sizeKey !== 'mobile' && sizeKey !== findReviewScenario(params().get('case')).defaultWidth ? sizeKey : '1280')
+  /** Preview state from the link (reviewStateParams), for the first scenario only. */
+  const [previewState, setPreviewState] = useState(() => new URLSearchParams(location.search))
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set())
   const activePreset = sizePresets.find((preset) => preset.key === sizeKey) ?? sizePresets[1]!
   const width = activePreset.width
   const [tab, setTab] = useState<Tab>('preview')
@@ -62,30 +70,43 @@ export function ReviewWorkbench() {
   const frame = useRef<HTMLIFrameElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const scenario = findReviewScenario(selected)
-  const index = reviewScenarios.findIndex(item => item.id === selected)
   const scale = Math.min(1, Math.max(0.15, (available - 48) / width))
   const height = width < 768 ? 844 : 900
-  const filtered = reviewScenarios.filter(item => `${item.title} ${item.group} ${item.note} ${item.path}`.toLowerCase().includes(search.toLowerCase().trim()))
+  const query = search.toLowerCase().trim()
+  const filtered = reviewScenarios.filter(item => `${item.id} ${item.title} ${item.group} ${item.note} ${item.path}`.toLowerCase().includes(query))
+  // ← / → walk the list as filtered (a search narrows it).
+  const index = filtered.findIndex(item => item.id === selected)
+  const previous = index > 0 ? filtered[index - 1] : undefined
+  const next = index < 0 ? filtered[0] : filtered[index + 1]
   const matches = useMemo(() => (entries ?? []).filter(entry => `${entry.text} ${entry.file} ${entry.kind}`.toLowerCase().includes(copySearch.toLowerCase().trim())), [entries, copySearch])
+  const previewUrl = reviewPreviewUrl(scenario, previewState)
   const pageCount = Math.max(1, Math.ceil(matches.length / 60))
   const currentPage = Math.min(page, pageCount - 1)
 
   function select(id: string) {
     setSelected(id); setRevision(value => value + 1); setReady(false); setNotice(''); setTexts([]); setMessages([]); setRequests([]); setPath(''); setTab('preview')
-    // The mobile access notice is a phone screen: open it at the phone width.
-    const nextSize = findReviewScenario(id).defaultWidth ?? sizeKey
+    setPreviewState(new URLSearchParams())
+    const group = findReviewScenario(id).group
+    setCollapsed(value => value.has(group) ? new Set([...value].filter(item => item !== group)) : value)
+    // A scenario with its own width (the phone-only notice, a narrow window) opens at it; the next one goes back to the
+    // width the reviewer chose.
+    const nextSize = findReviewScenario(id).defaultWidth ?? chosenSize.current
     if (nextSize !== sizeKey) setSizeKey(nextSize)
     const url = new URL(location.href)
     url.searchParams.set('case', id); url.searchParams.set('width', nextSize)
+    for (const key of reviewStateParams) url.searchParams.delete(key)
     history.replaceState(null, '', url)
+    requestAnimationFrame(() => document.querySelector(`[data-review-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest' }))
   }
   function resize(nextKey: string) {
     const preset = resolvePreset(nextKey)
     setSizeKey(preset.key)
+    if (preset.key !== 'mobile') chosenSize.current = preset.key
     const url = new URL(location.href)
     url.searchParams.set('width', preset.key)
     // The phone preset opens the mobile notice, unless one of its states is already on screen.
     if (preset.scenarioId && findReviewScenario(selected).defaultWidth !== 'mobile') {
+      setPreviewState(new URLSearchParams())
       setSelected(preset.scenarioId)
       setRevision(value => value + 1)
       setReady(false)
@@ -165,15 +186,23 @@ export function ReviewWorkbench() {
       <aside className="review-sidebar" aria-label="검토할 화면">
         <div className="review-sidebar-top">
           <div className="review-sidebar-title"><h1>화면과 상태</h1><span>{reviewScenarios.length}개</span></div>
-          <label className="review-search"><span className="sr-only">화면 검색</span><input type="search" placeholder="화면·문구·경로 검색" value={search} onChange={event => setSearch(event.target.value)} /></label>
+          <label className="review-search"><span className="sr-only">화면 검색</span><input type="search" placeholder="화면·ID·문구·경로 검색" value={search} onChange={event => setSearch(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setSearch('') }} /></label>
+          {query && <p className="review-search-count" role="status">{filtered.length}개 화면</p>}
           <div className="review-progress"><span>검토 완료 {checked.size} / {reviewScenarios.length}</span><progress value={checked.size} max={reviewScenarios.length} aria-label="화면 검토 진행률" /></div>
         </div>
         <nav className="review-scenarios">
           {reviewGroups.map(group => {
             const items = filtered.filter(item => item.group === group)
+            // A search shows every match; otherwise a group can be folded away.
+            const open = Boolean(query) || !collapsed.has(group)
             return items.length ? <section key={group}>
-              <h2>{group}</h2>
-              {items.map(item => <button key={item.id} type="button" className={`review-scenario${selected === item.id ? ' is-selected' : ''}`} aria-current={selected === item.id ? 'true' : undefined} onClick={() => select(item.id)}>
+              <h2><button type="button" className="review-group-toggle" aria-expanded={open} onClick={() => setCollapsed(value => {
+                const nextValue = new Set(value)
+                if (nextValue.has(group)) nextValue.delete(group)
+                else nextValue.add(group)
+                return nextValue
+              })}><span aria-hidden="true">{open ? '▾' : '▸'}</span>{group}<span className="review-group-count">{items.filter(item => checked.has(item.id)).length} / {items.length}</span></button></h2>
+              {open && items.map(item => <button key={item.id} type="button" data-review-id={item.id} className={`review-scenario${selected === item.id ? ' is-selected' : ''}`} aria-current={selected === item.id ? 'true' : undefined} onClick={() => select(item.id)}>
                 <span className="review-check" aria-label={checked.has(item.id) ? '검토 완료' : '미검토'}>{checked.has(item.id) ? '✓' : '○'}</span>
                 <span>{item.title}</span>
               </button>)}
@@ -186,9 +215,9 @@ export function ReviewWorkbench() {
         <div className="review-heading">
           <div><p>{scenario.group}</p><h2>{scenario.title}</h2><span>{scenario.note}</span></div>
           <div className="review-heading-actions">
-            <button className="review-button" onClick={() => select(reviewScenarios[index - 1]!.id)} disabled={index === 0} aria-label="이전 화면">←</button>
-            <span className="review-muted">{index + 1} / {reviewScenarios.length}</span>
-            <button className="review-button" onClick={() => select(reviewScenarios[index + 1]!.id)} disabled={index === reviewScenarios.length - 1} aria-label="다음 화면">→</button>
+            <button className="review-button" onClick={() => { if (previous) select(previous.id) }} disabled={!previous} aria-label="이전 화면">←</button>
+            <span className="review-muted">{index < 0 ? '–' : index + 1} / {filtered.length}{query ? ' (검색)' : ''}</span>
+            <button className="review-button" onClick={() => { if (next) select(next.id) }} disabled={!next} aria-label="다음 화면">→</button>
             <button className={`review-button${checked.has(selected) ? ' is-checked' : ''}`} aria-pressed={checked.has(selected)} onClick={toggleCheck}>✓ 검토 완료</button>
           </div>
         </div>
@@ -204,16 +233,20 @@ export function ReviewWorkbench() {
             {([['preview', '화면'], ['messages', `상태 문구${messages.length ? ` ${messages.length}` : ''}`], ['visible', `현재 문구 ${texts.length}`], ['source', '전체 문구 검색'], ['requests', `가상 요청 ${requests.length}`]] as const).map(([id, title]) => <button key={id} role="tab" tabIndex={tab === id ? 0 : -1} aria-selected={tab === id} aria-controls={`review-panel-${id}`} id={`review-tab-${id}`} onClick={() => changeTab(id)}>{title}</button>)}
           </div>
           <div className="review-size-controls">
+            <div className="review-size-quick" role="group" aria-label="자주 쓰는 너비">
+              {quickSizes.map(([key, label]) => <button key={key} type="button" aria-pressed={sizeKey === key} onClick={() => resize(key)}>{label}</button>)}
+            </div>
             <label><span className="sr-only">미리보기 너비</span><select value={sizeKey} onChange={event => resize(event.target.value)}>{sizePresets.map(preset => <option value={preset.key} key={preset.key}>{preset.label}</option>)}</select></label>
             <button className="review-button" onClick={reload}>상태 초기화</button>
             <button className="review-button" onClick={() => { void copy(location.href) }}>링크 복사</button>
+            <a className="review-button" href={previewUrl} target="_blank" rel="noopener noreferrer" title="워크벤치 없이 미리보기만 실제 크기로 열어요(1:1 캡처용)">미리보기만 새 탭 ↗</a>
           </div>
         </div>
         {notice && <div role="status" className="review-notice"><span>{notice}</span><button aria-label="안내 닫기" onClick={() => setNotice('')}>×</button></div>}
         <div className="review-preview" ref={stage} hidden={tab !== 'preview'} role="tabpanel" id="review-panel-preview" aria-labelledby="review-tab-preview">
           <div className="review-preview-meta"><code>{path || scenario.path}</code><span>{width} × {height} · {Math.round(scale * 100)}%{ready ? ' · 준비 완료' : ' · 상태 준비 중'}</span></div>
           <div className="review-frame-area"><div className="review-frame-shell" style={{ width: width * scale, height: height * scale }}>
-            <iframe ref={frame} key={`${selected}:${revision}`} name={`capsule-ui-review:${selected}`} title={`${scenario.title} 미리보기`} src={reviewPreviewUrl(scenario)} width={width} height={height}
+            <iframe ref={frame} key={`${selected}:${revision}`} name={`capsule-ui-review:${selected}`} title={`${scenario.title} 미리보기`} src={previewUrl} width={width} height={height}
               style={{ transform: `scale(${scale})` }} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" allow="camera 'none'; microphone 'none'" />
           </div></div>
           <p className="review-preview-tip">미리보기 안에서 버튼·입력·스크롤을 직접 확인할 수 있어요. 초기 상태로 돌아가려면 ‘상태 초기화’를 눌러 주세요.</p>
