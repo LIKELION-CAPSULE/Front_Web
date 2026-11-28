@@ -64,6 +64,27 @@ test('Vercel SPA fallback includes app deep links and excludes every API route',
   }
 })
 
+test('Vercel: hashed /assets files are cached for a year, and a missing one is a 404, never the SPA page', () => {
+  type Rule = { source: string; destination?: string; headers?: { key: string; value: string }[] }
+  const config = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8')) as { rewrites: Rule[]; headers: Rule[] }
+  const pattern = (source: string) => new RegExp(`^${source.replace(/\(\.\*\)$/, '(.*)')}$`)
+  // An old chunk gone after a deploy must not get index.html (with a year of `immutable` on it).
+  for (const path of ['/assets/index-old123.js', '/assets/chaerin-v2-doze-old.webp', '/assets/']) {
+    assert.equal(config.rewrites.some(rule => pattern(rule.source).test(path)), false, path)
+  }
+  for (const path of ['/', '/login', '/mates/me', '/assetsfoo', '/live2d/model.json']) {
+    assert.ok(config.rewrites.some(rule => rule.destination === '/index.html' && pattern(rule.source).test(path)), path)
+  }
+  const cache = config.headers.filter(rule => rule.headers?.some(header => header.key === 'Cache-Control'))
+  assert.deepEqual(cache.map(rule => rule.source), ['/assets/(.*)'])
+  assert.equal(cache[0]!.headers![0]!.value, 'public, max-age=31536000, immutable')
+  // The page itself (and every other path) keeps the default revalidation; Referrer-Policy still covers everything.
+  for (const path of ['/', '/login', '/index.html', '/live2d/model.json', '/og/og-default.jpg']) {
+    assert.equal(cache.some(rule => pattern(rule.source).test(path)), false, path)
+  }
+  assert.ok(config.headers.some(rule => rule.source === '/(.*)' && rule.headers?.some(header => header.key === 'Referrer-Policy')))
+})
+
 test('unknown Vercel API paths return a JSON 404 without contacting an upstream', async t => {
   const fetch = t.mock.method(globalThis, 'fetch')
   const response = await gateway.fetch(new Request(origin + '/api/unknown'))

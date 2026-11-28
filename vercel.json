@@ -9,10 +9,11 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/router" },
     { "source": "/i/:code", "destination": "/api/router" },
-    { "source": "/((?!api(?:/|$)).+)", "has": [{ "type": "query", "key": "ref" }], "destination": "/api/router" },
-    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
+    { "source": "/((?!api(?:/|$)|assets/).+)", "has": [{ "type": "query", "key": "ref" }], "destination": "/api/router" },
+    { "source": "/((?!api(?:/|$)|assets/).*)", "destination": "/index.html" }
   ],
   "headers": [
-    { "source": "/(.*)", "headers": [{ "key": "Referrer-Policy", "value": "no-referrer" }] }
+    { "source": "/(.*)", "headers": [{ "key": "Referrer-Policy", "value": "no-referrer" }] },
+    { "source": "/assets/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] }
   ]
 }
