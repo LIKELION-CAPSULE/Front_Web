@@ -64,7 +64,7 @@ export function HeaderAccount() {
     requestAnimationFrame(() => trigger.current?.focus({ preventScroll: true }))
   }
   return <>
-    <div className="header-account ml-auto flex shrink-0 items-center gap-2 sm:gap-3.5">
+    <div className="header-account ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
       {credits.value !== null && <CreditChip {...credits} />}
       <NotificationBell />
       <button ref={trigger} type="button" data-tour="profile" aria-label="계정 설정 열기" aria-haspopup="dialog" aria-expanded={open} className="header-avatar-btn flex items-center justify-center rounded-full" onClick={() => setOpen(true)}><Avatar size="sm" /></button>
