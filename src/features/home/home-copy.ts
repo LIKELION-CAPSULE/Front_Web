@@ -7,6 +7,8 @@ export const HOME_COPY = {
   heroSubDone: '오늘 출석 완료! 친구를 초대하면 크레딧을 더 받아요.',
   ctaCheckIn: '출석하고 크레딧 받기',
   ctaInvite: '친구 초대하고 크레딧 받기',
+  /** Read while the hero's line and button wait for today's attendance. */
+  attendanceLoading: '오늘 출석 정보를 불러오고 있어요.',
   matesTitle: '오늘은 누구와 함께할까요?',
   available: '연결 가능',
   /** A mate shown but not open yet (11 `comingSoon`): its page offers 「공개 알림 받기」 (46). */

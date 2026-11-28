@@ -9,6 +9,9 @@ import { Icon } from '@/shared/ui/Icon'
 import { QuarterRingSpinner } from '@/shared/ui/QuarterRingSpinner'
 import { number } from '@/shared/lib/format'
 import { useCreditDisplay, useServerCreditsRefresh } from '@/features/attendance/use-credit-display'
+import { useBackend } from '@/features/backend/backend-context'
+import { useDemo } from '@/features/demo/demo-context'
+import { canPrefetchModels, prefetchModels } from '@/features/live2d/model-prefetch'
 import { NotificationBell } from './NotificationBell'
 import '@/features/profile/components/account-settings.css'
 
@@ -31,7 +34,7 @@ function AccountSettingsLoading({ onClose }: { onClose: () => void }) {
  * Its name carries the balance, so a screen reader hears the number and not only "크레딧". An attendance reward
  * landing here counts the number up and bounces the icon.
  */
-function CreditChip({ value, landing }: ReturnType<typeof useCreditDisplay>) {
+function CreditChip({ value, landing, pending }: ReturnType<typeof useCreditDisplay>) {
   const icon = useRef<HTMLSpanElement>(null)
   const reduced = useReducedMotion()
   const bounced = useRef(landing?.id)
@@ -41,10 +44,41 @@ function CreditChip({ value, landing }: ReturnType<typeof useCreditDisplay>) {
     const bounce = animate(icon.current, { scale: [1, 1.32, 1] }, { type: 'spring', stiffness: 520, damping: 14 })
     return () => bounce.stop()
   }, [landing, reduced])
-  return <Link to="/credits" className="credit-chip" aria-label={`남은 크레딧 ${number(value ?? 0)}`} title="남은 크레딧" data-tour="credits">
+  // While the home page still reads whether today's grant is held back, a placeholder the width of the number (no
+  // full balance that then drops by 1,500).
+  return <Link to="/credits" className="credit-chip" aria-label={pending ? '남은 크레딧 불러오는 중' : `남은 크레딧 ${number(value ?? 0)}`} aria-busy={pending || undefined} title="남은 크레딧" data-tour="credits">
     <span ref={icon} data-credit-target className="credit-coin inline-flex"><Icon name="coin" size={17} /></span>
-    <span className="font-sans tabular-nums text-label font-semibold text-ink">{number(value ?? 0)}</span>
+    {pending
+      ? <span className="skeleton-line inline-block h-4 w-10 rounded-control" data-credit-pending aria-hidden="true" />
+      : <span className="font-sans tabular-nums text-label font-semibold text-ink">{number(value ?? 0)}</span>}
   </Link>
+}
+
+/**
+ * The account settings' avatar model, fetched before the dialog opens (2026-11-28): on the profile button's pointer
+ * enter, focus or (touch) pointer down, once, the current avatar's model files go into the HTTP cache
+ * (live2d/model-prefetch.ts: no model, WebGL context or texture is made), so the settings stage waits less for it. The
+ * avatar list (11 /avatars) is read first when it is not loaded yet. Not with reduced motion (the settings show the
+ * still) nor when data is saved or the device is low-end (`canPrefetchModels`).
+ */
+function useAvatarWarmUp() {
+  const { avatars, ensureAvatars } = useBackend()
+  const { state } = useDemo()
+  const reduced = useReducedMotion()
+  const [wanted, setWanted] = useState(false)
+  const done = useRef<string | null>(null)
+  const current = state.profile.avatarId ?? avatars.find(avatar => avatar.thumbnailUrl === state.profile.profileImage)?.id
+  const modelUrl = avatars.find(avatar => avatar.id === current)?.model?.modelJsonUrl ?? null
+  useEffect(() => {
+    if (!wanted || !modelUrl || done.current === modelUrl) return
+    done.current = modelUrl
+    prefetchModels([modelUrl])
+  }, [wanted, modelUrl])
+  return () => {
+    if (wanted || reduced || !canPrefetchModels()) return
+    setWanted(true)
+    if (!avatars.length) void ensureAvatars().catch(() => { /* The settings load them again when opened. */ })
+  }
 }
 
 export function HeaderAccount() {
@@ -58,16 +92,17 @@ export function HeaderAccount() {
   const tourOwned = requested !== null && new URLSearchParams(location.search).has('tour')
   const open = localOpen || requested !== null
   const trigger = useRef<HTMLButtonElement>(null)
+  const warm = useAvatarWarmUp()
   function close() {
     setOpen(false)
     if (requested) navigate({ pathname: location.pathname, search: closeAccountRequest(location.search), hash: location.hash }, { replace: true, preventScrollReset: true })
     requestAnimationFrame(() => trigger.current?.focus({ preventScroll: true }))
   }
   return <>
-    <div className="header-account ml-auto flex shrink-0 items-center gap-2 sm:gap-3.5">
+    <div className="header-account ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
       {credits.value !== null && <CreditChip {...credits} />}
       <NotificationBell />
-      <button ref={trigger} type="button" data-tour="profile" aria-label="계정 설정 열기" aria-haspopup="dialog" aria-expanded={open} className="header-avatar-btn flex items-center justify-center rounded-full" onClick={() => setOpen(true)}><Avatar size="sm" /></button>
+      <button ref={trigger} type="button" data-tour="profile" aria-label="계정 설정 열기" aria-haspopup="dialog" aria-expanded={open} className="header-avatar-btn flex items-center justify-center rounded-full" onClick={() => setOpen(true)} onPointerEnter={warm} onPointerDown={warm} onFocus={warm}><Avatar size="sm" /></button>
     </div>
     {open && <Suspense fallback={<AccountSettingsLoading onClose={close} />}><AccountSettingsDialog key={requested?.view ?? 'local'} initialView={requested?.view} locked={tourOwned} onClose={close} /></Suspense>}
   </>

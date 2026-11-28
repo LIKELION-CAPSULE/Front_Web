@@ -215,12 +215,6 @@
   color: var(--color-text-accent);
 }
 
-.credits-activity-skeleton {
-  display: grid;
-  gap: 10px;
-  margin-top: 20px;
-}
-
 .credits-activity-error {
   display: grid;
   justify-items: center;
@@ -410,42 +404,6 @@
   color: var(--color-ink);
 }
 
-.credits-skeleton-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.credits-skeleton-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.credits-skeleton-hero {
-  height: 200px;
-  border-radius: 24px;
-}
-
-.credits-skeleton-card {
-  height: 140px;
-  border-radius: 20px;
-}
-
-.credits-skeleton-line {
-  height: 22px;
-  border-radius: 8px;
-}
-
-.credits-skeleton-line--wide {
-  width: 100%;
-  height: 48px;
-}
-
-.credits-skeleton-line--mid {
-  width: 65%;
-}
-
 @media (max-width: 1100px) {
   .credits-top {
     grid-template-columns: 1fr;
@@ -460,10 +418,6 @@
 
   .credits-window--dashboard > .credits-window-body {
     padding: 4px 0 26px;
-  }
-
-  .credits-skeleton-row {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -512,4 +466,40 @@
   .credits-entry-unit {
     display: none;
   }
+}
+
+/* ─── Loading (CreditsSkeleton.tsx): the balance card, the activity rows and the invite art at their own sizes ─── */
+.credits-skeleton-balance {
+  height: 265px;
+  border-radius: 20px;
+}
+
+.credits-skeleton-days {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+  padding-left: 32px;
+}
+
+.credits-skeleton-day {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.credits-skeleton-entry {
+  height: 64px;
+  border-radius: 14px;
+}
+
+.credits-skeleton-art {
+  height: 360px;
+  border-radius: 28px;
+}
+
+@media (max-width: 680px) {
+  .credits-skeleton-balance { height: 340px; }
+  .credits-skeleton-days { padding-left: 26px; }
+  .credits-skeleton-art { height: 220px; }
 }

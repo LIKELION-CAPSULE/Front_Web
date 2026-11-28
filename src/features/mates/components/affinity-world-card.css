@@ -1,7 +1,7 @@
 /*
- * 친밀도 + 세계관 card (AffinityWorldCard). Base rules (docs/DESIGN_SYSTEM.md): no outlines, no gold; violet only for
- * the progress (the current stage) — the arrows and dots are neutral. The surface comes from the caller (내 메이트
- * gives it the column's glass block).
+ * 친밀도 card and 세계관 card (AffinityWorldCard.tsx: AffinityCard, WorldCard; separate again since 2026-11-28). Base
+ * rules (docs/DESIGN_SYSTEM.md): no outlines, no gold; violet only for the progress (the current stage) — the arrows and
+ * dots are neutral. The surface comes from the caller (내 메이트 gives both the column's glass block).
  */
 
 /* ── 친밀도: the stage, one progress bar, what is left ── */
@@ -25,12 +25,11 @@
 }
 .mate-game-level-caption { margin: 0; color: var(--color-muted); font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums lining-nums; }
 
-/* ── 세계관: one world at a time under the affinity (the tile itself: mate-world.css) ── */
-.affinity-world { margin-top: 14px; }
-.affinity-world-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.affinity-world-head > .mate-game-label { margin: 0; }
-.affinity-world-nav { display: inline-flex; flex: none; align-items: center; gap: 4px; }
-.affinity-world-arrow {
+/* ── 세계관: one world at a time (the tile itself: mate-world.css) ── */
+.world-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.world-card-head > .mate-game-label { margin: 0; }
+.world-card-nav { display: inline-flex; flex: none; align-items: center; gap: 4px; }
+.world-card-arrow {
   display: inline-grid;
   place-items: center;
   width: 28px;
@@ -43,41 +42,51 @@
   cursor: pointer;
   transition: background-color 160ms ease, color 160ms ease;
 }
-.affinity-world-arrow--prev svg { transform: scaleX(-1); }
-.affinity-world-arrow:hover { background: rgb(255 255 255 / 0.08); color: var(--color-ink); }
-.affinity-world-arrow:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
-.affinity-world-arrow[aria-disabled='true'] { color: var(--color-subtle); opacity: 0.45; cursor: default; }
-.affinity-world-arrow[aria-disabled='true']:hover { background: transparent; color: var(--color-subtle); }
+.world-card-arrow--prev svg { transform: scaleX(-1); }
+.world-card-arrow:hover { background: rgb(255 255 255 / 0.08); color: var(--color-ink); }
+.world-card-arrow:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+.world-card-arrow[aria-disabled='true'] { color: var(--color-subtle); opacity: 0.45; cursor: default; }
+.world-card-arrow[aria-disabled='true']:hover { background: transparent; color: var(--color-subtle); }
 
 /* Five dots: open ones filled, locked ones faint, the shown one bright, the current stage's one longer. */
-.affinity-world-dots { display: inline-flex; align-items: center; gap: 5px; }
-.affinity-world-dot {
+.world-card-dots { display: inline-flex; align-items: center; gap: 5px; }
+.world-card-dot {
   width: 6px;
   height: 6px;
   border-radius: 999px;
   background: rgb(255 255 255 / 0.14);
   transition: background-color 180ms ease, width 180ms ease;
 }
-.affinity-world-dot[data-open] { background: rgb(255 255 255 / 0.4); }
-.affinity-world-dot[data-stage] { width: 14px; }
-.affinity-world-dot[data-shown] { background: var(--color-ink); }
+.world-card-dot[data-open] { background: rgb(255 255 255 / 0.4); }
+.world-card-dot[data-stage] { width: 14px; }
+.world-card-dot[data-shown] { background: var(--color-ink); }
 
-.affinity-world-slide { position: relative; }
-.affinity-world-slide[data-moved] { animation: affinity-world-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-@keyframes affinity-world-in {
+.world-card-slide { position: relative; }
+.world-card-slide[data-moved] { animation: world-card-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes world-card-in {
   from { opacity: 0; transform: translateX(var(--world-from, 10px)); }
 }
 
 /* Short windows (1280×720 and the like): a tighter card so the recent list keeps its rows. */
 @media (min-width: 960px) and (max-height: 800px) {
   .mate-game-progress { margin: 8px 0 6px; }
-  .affinity-world { margin-top: 8px; }
-  .affinity-world-head { margin-bottom: 2px; }
-  .affinity-world-arrow { width: 26px; height: 26px; }
+  .world-card-head { margin-bottom: 2px; }
+  .world-card-arrow { width: 26px; height: 26px; }
+}
+/* Very short windows (1280×720): the two cards side by side would not fit, so each gets tighter — the stage and what
+   is left on one line, a smaller world thumbnail — and the column (and 「만나러 가기」) stays in the window. */
+@media (min-width: 960px) and (max-height: 760px) {
+  .affinity-card { display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 10px; }
+  .affinity-card > .mate-game-label,
+  .affinity-card > .mate-game-progress { grid-column: 1 / -1; }
+  .affinity-card > .mate-game-progress { margin: 6px 0 0; order: 3; }
+  .affinity-card > .mate-game-level-caption { justify-self: end; }
+  .world-card .mate-world-tile--row { padding: 3px 6px; }
+  .world-card .mate-world-tile--row .mate-world-thumb { width: 64px; height: 40px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .affinity-world-slide[data-moved] { animation: none; }
-  .affinity-world-dot,
-  .affinity-world-arrow { transition: none; }
+  .world-card-slide[data-moved] { animation: none; }
+  .world-card-dot,
+  .world-card-arrow { transition: none; }
 }

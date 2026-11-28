@@ -125,6 +125,14 @@
   width: 100%;
 }
 
+/* Right after hanging up there is no site header (ConnectionRecordPage `data-bare`): the frame is the whole screen. */
+.connection-record-page[data-bare] .capsule-record {
+  --capsule-record-height: max(640px, 100dvh);
+}
+.connection-record-page[data-bare] .capsule-record-mate {
+  top: 0;
+}
+
 /* ─── Result column ─── */
 .capsule-record-result {
   position: relative;
@@ -722,12 +730,7 @@
   }
 }
 
-/* Loading and error share the frame. */
-.capsule-record-skeleton {
-  display: block;
-  border-radius: 10px;
-}
-
+/* Loading (ConnectionRecordSkeleton.tsx) and error share the frame. */
 .capsule-record-error-actions {
   display: flex;
   gap: 12px;

@@ -21,6 +21,7 @@ import {
 } from '@/features/auth/components/ReferralCodeField'
 import { clearStoredReferralCode, normalizeReferralCode, readStoredReferralCode } from '@/features/auth/referral-code'
 import '@/features/credits/invite.css'
+import { InviteSkeletonBody } from '@/features/credits/components/CreditsSkeleton'
 
 /** 35 `friends[].status` as the list says it. */
 function friendStatus(friend: ReferralFriendView) {
@@ -96,17 +97,10 @@ export default function InvitePage() {
   if (loading) {
     return (
       <CreditsAppWindow page="invite" loadingScreen="invite" dashboard>
-        <div className="credits-skeleton-stack" aria-busy="true">
-          <span className="sr-only" role="status">
-            초대 정보를 불러오고 있어요.
-          </span>
-          <span className="skeleton-line credits-skeleton-hero" aria-hidden="true" />
-          <span className="skeleton-line credits-skeleton-line credits-skeleton-line--wide" aria-hidden="true" />
-          <div className="credits-skeleton-row" aria-hidden="true">
-            <span className="skeleton-line credits-skeleton-card" />
-            <span className="skeleton-line credits-skeleton-card" />
-          </div>
-        </div>
+        <span className="sr-only" role="status" aria-busy="true">
+          초대 정보를 불러오고 있어요.
+        </span>
+        <InviteSkeletonBody />
       </CreditsAppWindow>
     )
   }

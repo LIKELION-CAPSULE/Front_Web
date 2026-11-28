@@ -1,10 +1,37 @@
-@layer components {
-  .skeleton-block { height: 20px; }
-  .onboarding-skeleton-inner { display: flex; flex-direction: column; gap: 12px; }
-  .onboarding-skeleton-dial { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 6px 0 4px; }
-  .onboarding-skeleton-avatar { width: 152px; height: 152px; }
-  .onboarding-skeleton-thumbs { display: flex; align-items: center; justify-content: center; gap: 14px; }
-  @media (max-height: 820px) {
-    .onboarding-skeleton-avatar { width: 132px; height: 132px; }
-  }
+/*
+ * Unlayered, like the screens' own CSS: the shapes here must out-rank the bars' default `rounded-control` utility.
+ */
+/* On a card that already has the panel colour: the lighter surface colour, so the bar still shows. */
+.skeleton-line.skeleton-line--raised,
+.page-skeleton .skeleton-line.skeleton-line--raised { background: var(--color-surface); }
+
+/* 홈: the title's two lines at the title's own size, the path's art box, the mate cards at the cards' size. */
+.page-skeleton-title > span { display: block; height: 1lh; padding-block: 0.14em; }
+.page-skeleton-title .skeleton-line { height: 100%; border-radius: 0.18em; }
+.page-skeleton-path { position: relative; aspect-ratio: 835 / 522; }
+.page-skeleton-path > .skeleton-line { position: absolute; inset: 9% 13% 13% 10%; border-radius: 40px; opacity: 0.6; }
+.page-skeleton-mate-card { width: 100%; aspect-ratio: 2 / 3; border-radius: 20px; }
+
+/* 메이트 상세: the portrait's place, the two tiles. */
+.page-skeleton-portrait { position: absolute; inset: 10% 8% 0 14%; border-radius: 48px 48px 0 0; opacity: 0.6; }
+.page-skeleton-tile { width: 138px; height: 138px; border-radius: 24px; }
+
+/* 통화: the stage with the dock over its foot, the chat column. */
+.page-skeleton-stage { flex: 1; min-height: 0; border-radius: 20px; }
+.page-skeleton-dock { position: absolute; bottom: 16px; left: 50%; width: min(447px, 80%); height: 64px; border-radius: 999px; translate: -50% 0; }
+.page-skeleton-chat { display: flex; min-height: 0; flex-direction: column; gap: 16px; padding: 18px 16px; border-radius: 20px; background: var(--color-panel); }
+
+/* 온보딩: three stills on the arc's middle, the avatar's figure on the stage. */
+.page-skeleton-arc { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+.page-skeleton-avatar { position: absolute; inset: 14% 30% 33%; border-radius: 50% 50% 28px 28px; }
+
+@media (max-width: 1023px) {
+  .page-skeleton-tile { width: 124px; height: 124px; }
 }
+@media (max-width: 820px) {
+  .page-skeleton-portrait { inset: 6% 20% 0; }
+}
+
+/* The real screens' entrance motion (mate-detail.css, unlayered) is for the content, not for its placeholders. */
+.page-skeleton .mate-hero-figure,
+.page-skeleton .mate-hero-copy > * { animation: none; }

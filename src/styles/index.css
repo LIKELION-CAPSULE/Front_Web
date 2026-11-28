@@ -152,6 +152,13 @@
   .credit-chip:hover {
     color: var(--color-ink);
   }
+  /* Header right cluster: the boxes sit close (hover backgrounds stay apart) and the avatar gets a left margin that
+     makes the visible ink gaps credit→bell and bell→avatar equal (credit chip pad 13 + bell icon inset ~10.5). */
+  .header-avatar-btn {
+    min-width: 40px;
+    min-height: 40px;
+    margin-left: 7px; /* 40px hit area insets the 28px avatar by 6px */
+  }
   /* The credit coin in the header and call screen chips: credit gold (DESIGN_SYSTEM.md exception 2, `warning` #F4B95F). */
   .credit-coin {
     color: var(--color-warning);
@@ -455,6 +462,7 @@
   .header-avatar-btn {
     min-width: 44px;
     min-height: 44px;
+    margin-left: 5px; /* the 44px button already insets the 28px avatar by 8px */
   }
   .site-header-account { grid-column: 2; grid-row: 1; }
   .site-header .brand-wordmark {

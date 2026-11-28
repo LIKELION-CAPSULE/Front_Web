@@ -13,6 +13,8 @@ type Listener = () => void
 type Landing = { id: number; amount: number }
 
 let held = 0
+/** How many screens are still finding out whether to hold an amount back (the chip waits instead of guessing). */
+let pending = 0
 let landing: Landing | null = null
 let sequence = 0
 const listeners = new Set<Listener>()
@@ -32,6 +34,22 @@ export function holdCreditReward(amount: number) {
   }
 }
 
+/**
+ * The chip's number is not known yet: the home page is still reading whether today's credits are to be held back. The
+ * chip shows a placeholder until the returned release runs, instead of the full balance that would then drop.
+ */
+export function holdCreditPending() {
+  pending += 1
+  emit()
+  let released = false
+  return () => {
+    if (released) return
+    released = true
+    pending = Math.max(0, pending - 1)
+    emit()
+  }
+}
+
 /** The reward reached the chip: the held amount is released and the chip counts up by `amount`. */
 export function landCreditReward(amount: number, release?: () => void) {
   release?.()
@@ -47,7 +65,8 @@ function subscribe(listener: Listener) {
 export function useCreditReward() {
   const currentHeld = useSyncExternalStore(subscribe, () => held, () => 0)
   const currentLanding = useSyncExternalStore(subscribe, () => landing, () => null)
-  return { held: currentHeld, landing: currentLanding }
+  const currentPending = useSyncExternalStore(subscribe, () => pending > 0, () => false)
+  return { held: currentHeld, landing: currentLanding, pending: currentPending }
 }
 
 /** The element rewards fly to, if the header is showing credits. */

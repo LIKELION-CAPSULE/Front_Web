@@ -124,7 +124,7 @@ export function PixelSnow({ stage, glowBehind }: { stage: number | null | undefi
       return glow
     }
     /** Glass boxes in art px, relative to the canvas. */
-    let glass: { x0: number; y0: number; x1: number; y1: number }[] = []
+    let glass: { x0: number; y0: number; x1: number; y1: number; radius: number }[] = []
     let artCss = ART_PIXEL_CSS
     let glassMeasuredAt = 0
     const measureGlass = () => {
@@ -141,6 +141,8 @@ export function PixelSnow({ stage, glowBehind }: { stage: number | null | undefi
           y0: (rect.top - origin.top) / artCss,
           x1: (rect.right - origin.left) / artCss,
           y1: (rect.bottom - origin.top) / artCss,
+          // The block's rounded corners: the glow is clipped to them, or it shows outside the corner as a light wedge.
+          radius: (parseFloat(getComputedStyle(element).borderTopLeftRadius) || 0) / artCss,
         }
       })
     }
@@ -207,7 +209,13 @@ export function PixelSnow({ stage, glowBehind }: { stage: number | null | undefi
         // Soft lights for the particles behind glass, clipped to it.
         context.save()
         context.beginPath()
-        for (const box of glass) context.rect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0)
+        // Rounded like the block and one art px inside it: the canvas is coarse (pixelated), so a clip on the edge
+        // itself would still step out past the block's smooth corner.
+        for (const box of glass) {
+          if (box.radius > 0 && typeof context.roundRect === 'function') {
+            context.roundRect(box.x0 + 1, box.y0 + 1, box.x1 - box.x0 - 2, box.y1 - box.y0 - 2, Math.max(0, box.radius - 1))
+          } else context.rect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0)
+        }
         context.clip()
         for (const particle of particles) {
           const look = particleLook(particle, reduced ? 0 : t)
