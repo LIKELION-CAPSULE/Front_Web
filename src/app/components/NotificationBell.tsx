@@ -43,6 +43,12 @@ export function NotificationBell() {
   const [list, setList] = useState<{ items: NotificationView[]; nextBefore: number | null; status: 'loading' | 'ready' | 'error'; fresh: ReadonlySet<number> }>({
     items: [], nextBefore: null, status: 'loading', fresh: new Set(),
   })
+  /**
+   * The first page is being marked read (opening reads what it shows). 「모두 읽음」 waits for it: shown while the list
+   * loads, it would vanish a moment later once the shown items are read; afterwards it stays only for unread ones
+   * further down the list.
+   */
+  const [autoReading, setAutoReading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   /** "Now" for the relative times, taken when the list opens. */
   const [now, setNow] = useState(0)
@@ -85,14 +91,17 @@ export function NotificationBell() {
 
   const loadFirst = useCallback(async () => {
     setList({ items: [], nextBefore: null, status: 'loading', fresh: new Set() })
+    setAutoReading(true)
     const ticket = gate.next()
     try {
       const page = notificationPage(await getNotifications(api, { size: PAGE_SIZE }))
       if (gate.accept(ticket)) setUnread({ userId, count: page.unreadCount })
       setList({ items: page.items, nextBefore: page.nextBefore, status: 'ready', fresh: new Set(unreadIds(page.items)) })
-      void markShownRead(page.items)
+      await markShownRead(page.items)
     } catch {
       setList(current => ({ ...current, status: 'error' }))
+    } finally {
+      setAutoReading(false)
     }
   }, [userId, gate, markShownRead])
 
@@ -176,7 +185,7 @@ export function NotificationBell() {
           <div className="notification-panel-head">
             <h2 className="notification-panel-title">{NOTIFICATION_COPY.title}</h2>
             <div className="notification-panel-actions">
-              {list.items.some(item => !item.read) || count > 0 ? (
+              {list.status !== 'loading' && !autoReading && (list.items.some(item => !item.read) || count > 0) ? (
                 <button type="button" className="notification-read-all" onClick={() => void readAll()}>{NOTIFICATION_COPY.readAll}</button>
               ) : null}
               <button ref={closeButton} type="button" className="notification-close" aria-label="알림 닫기" onClick={close}>
