@@ -23,11 +23,19 @@ test('verified onboarding requirements take priority over the originally request
 test('verified destinations use their screen, with retired account URLs loading the home background', () => {
   for (const [path, screen] of Object.entries({
     '/': 'home', '/?source=login': 'home', '/?account=profile': 'home', '/?account=schedule': 'home', '/onboarding': 'onboarding', '/mypage': 'home',
-    '/mates/chaerin':'mate','/connect/chaerin':'connection','/connections/9001':'connection-record','/mypage#schedule': 'home', '/mypage?add=1': 'home', '/rooms/101': 'mate',
-    '/rooms/101/prepare': 'mate', '/study/9001?chat=1': 'connection', '/reports/9001': 'connection-record', '/capsules/9001': 'connection-record',
+    '/mates/chaerin': 'mate', '/connect/chaerin': 'connection', '/connections/9001': 'connection-record', '/mypage#schedule': 'home', '/mypage?add=1': 'home',
+    '/mates/me': 'my-mates', '/mates/me/': 'my-mates', '/records': 'records', '/records?range=month': 'records', '/credits': 'credits',
+    '/credits/invite': 'invite', '/credits/charge': 'invite', '/invite': 'invite',
   })) {
     assert.equal(resolveLoadingScreen(path, identified), screen)
     assert.equal(resolveLoadingScreen(path, ready), screen)
+  }
+})
+
+test('retired beta addresses only redirect: they keep the common loading screen', () => {
+  for (const path of ['/rooms/101', '/rooms/101/prepare', '/study/9001?chat=1', '/reports/9001', '/capsules/9001', '/characters', '/characters/3']) {
+    assert.equal(resolveLoadingScreen(path, identified), null)
+    assert.equal(resolveLoadingScreen(path, ready), null)
   }
 })
 

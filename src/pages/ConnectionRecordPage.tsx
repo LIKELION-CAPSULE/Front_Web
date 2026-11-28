@@ -11,6 +11,7 @@ import { focusDetectedSeconds } from '@/features/session/focus'
 import { HeaderAccount } from '@/app/components/HeaderAccount'
 import { SiteHeader } from '@/app/components/SiteHeader'
 import { CapsuleRecordCard, CapsuleRecordLayout } from '@/features/reports/components/CapsuleRecordCard'
+import { ConnectionRecordCardSkeleton } from '@/features/reports/components/ConnectionRecordSkeleton'
 import { recordAmountText, recordModeLabel } from '@/features/reports/capsule-record'
 import { reportSettlement } from '@/features/backend/adapters'
 import { formatNextStageCaption, resolveStageProgress } from '@/features/mates/affinity-progress'
@@ -117,13 +118,7 @@ export default function ConnectionRecordPage() {
                 <div aria-busy="true">
                   <h1 id="connection-record-title" className="sr-only">연결 기록</h1>
                   <span className="sr-only" role="status">연결 기록을 불러오고 있어요.</span>
-                  <div aria-hidden="true">
-                    <span className="skeleton-line capsule-record-skeleton" style={{ width: '58%', height: 40 }} />
-                    <span className="skeleton-line capsule-record-skeleton" style={{ width: '40%', height: 28, marginTop: 20 }} />
-                    <span className="skeleton-line capsule-record-skeleton" style={{ width: '100%', height: 92, marginTop: 28 }} />
-                    <span className="skeleton-line capsule-record-skeleton" style={{ width: '100%', height: 64, marginTop: 24 }} />
-                    <span className="skeleton-line capsule-record-skeleton" style={{ width: '100%', height: 56, marginTop: 24 }} />
-                  </div>
+                  <ConnectionRecordCardSkeleton />
                 </div>
               )}
             </section>

@@ -722,12 +722,7 @@
   }
 }
 
-/* Loading and error share the frame. */
-.capsule-record-skeleton {
-  display: block;
-  border-radius: 10px;
-}
-
+/* Loading (ConnectionRecordSkeleton.tsx) and error share the frame. */
 .capsule-record-error-actions {
   display: flex;
   gap: 12px;

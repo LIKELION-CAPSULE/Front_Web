@@ -19,6 +19,7 @@ import { RecordsEmptyJar } from '@/features/records/empty-jar/RecordsEmptyJar'
 import { ContributionGrid, ContributionLegend } from '@/features/records/ContributionGrid'
 import { BoardViewSwitch } from '@/features/records/BoardViewSwitch'
 import { SatinBackdrop } from '@/features/records/satin-backdrop/SatinBackdrop'
+import { RecordsSkeletonBody } from '@/features/reports/components/RecordsSkeleton'
 import { buildCapsuleBoard, offsetContaining } from '@/features/records/capsule-board/capsule-board-layout'
 import {
   boardViewSlot,
@@ -333,16 +334,11 @@ export default function RecordsPage() {
   if (loading) {
     return (
       <RecordsWindowFrame loadingScreen="records">
-        <div className="records-skeleton-stack" aria-busy="true">
+        <div aria-busy="true">
           <span className="sr-only" role="status">
             함께한 기록을 불러오고 있어요.
           </span>
-          <div className="records-skeleton-cards" aria-hidden="true">
-            <span className="skeleton-line records-skeleton-card" />
-            <span className="skeleton-line records-skeleton-card" />
-            <span className="skeleton-line records-skeleton-card" />
-          </div>
-          <span className="skeleton-line records-skeleton-panel" aria-hidden="true" />
+          <RecordsSkeletonBody />
         </div>
       </RecordsWindowFrame>
     )
