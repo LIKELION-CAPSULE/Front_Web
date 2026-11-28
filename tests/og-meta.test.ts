@@ -178,7 +178,7 @@ test('?ref=<code> on a page path is an invite link too; /?ref= is answered by th
 test('vercel.json routes only invite links to the function, before the SPA fallback', () => {
   type Rule = { source: string; destination: string; has?: { type: string; key: string }[] }
   const config = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8')) as { rewrites: Rule[] }
-  assert.deepEqual(config.rewrites.map(rule => rule.source), ['/api/(.*)', '/i/:code', '/((?!api(?:/|$)).+)', '/((?!api(?:/|$)).*)'])
+  assert.deepEqual(config.rewrites.map(rule => rule.source), ['/api/(.*)', '/i/:code', '/((?!api(?:/|$)|assets/).+)', '/((?!api(?:/|$)|assets/).*)'])
   assert.equal(config.rewrites[1]!.destination, '/api/router')
   assert.equal(config.rewrites[2]!.destination, '/api/router')
   assert.deepEqual(config.rewrites[2]!.has, [{ type: 'query', key: 'ref' }])
