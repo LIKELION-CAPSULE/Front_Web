@@ -8,6 +8,8 @@
 
 수화기는 똑바로 든 📞 자세로 렌더링되어 있다. 화면에서는 CSS가 시계 방향으로 약 135° 돌려 내려놓은 ⌒ 자세로 만든다.
 
+스피커는 아홉 개 구멍이 뚫린 bevel extrusion과 뒤쪽 벽으로 실제 깊이를 만든다. 컵과 손잡이 사이에는 lathe collar를 두어 이음을 둥글게 잇는다. 답장 대기용 미적용 에셋은 [capsule-clock/README.md](capsule-clock/README.md)를 참고한다.
+
 ## 다시 렌더링하기
 
 개발 서버(`npm run dev`, 3000번)를 켠 뒤 다음을 실행한다. `color`와 `angle` 쿼리로 색과 자세를 바꿀 수 있다.

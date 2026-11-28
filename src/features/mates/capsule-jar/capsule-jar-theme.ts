@@ -1,16 +1,19 @@
+import { BRAND_CAPSULE_COLORS } from '../../../shared/three/capsule-shape.ts'
 import type { CapsuleJarTheme } from './capsule-jar-types.ts'
 import type { TimeBand } from './capsule-moments.ts'
+import { launchMateId } from '../catalog.ts'
 
 /**
  * 채린 follows the two tones of the logo v2 capsule (design/brand/capsule-logo-2026-11-22-v2/README.md: white → #D4C3FA
- * body, #B397FC → #8053F2 seam) as frosted and pale violet glass, glowing from a core inside.
+ * body, #B397FC → #8053F2 seam) as frosted and pale violet glass, glowing from a core inside. Its glass tones are the
+ * brand capsule every other screen draws (BRAND_CAPSULE_COLORS).
  */
 export const CHAERIN_JAR_THEME: CapsuleJarTheme = {
-  lightHalf: '#EEE9FF',
+  lightHalf: BRAND_CAPSULE_COLORS.lightHalf,
   lightHalfShade: '#D9CEFB',
-  tintHalf: '#C4B0FF',
+  tintHalf: BRAND_CAPSULE_COLORS.tintHalf,
   tintHalfShade: '#9878F6',
-  glow: '#B9A3FB',
+  glow: BRAND_CAPSULE_COLORS.glow,
   rim: '#C4B9F3',
 }
 
@@ -61,17 +64,29 @@ const MATE_JAR_THEMES: Readonly<Record<string, CapsuleJarTheme>> = {
   dohyun: mateThemeFromHue(230),
 }
 
-/** Hues for mates without a registered colour: inside the range and clear of 채린's violet. */
-export const MATE_FALLBACK_HUES = [230, 284, 298, 312] as const
+/** Hues for mates without a registered colour: inside the range and clear of 채린 (~255°) and 서도현 (230°). */
+export const MATE_FALLBACK_HUES = [284, 298, 312] as const
 
 /**
  * Returns the mate's colours: the registered ones, else a calm tint from `MATE_FALLBACK_HUES` picked by the mate's id,
  * so every mate keeps its own colour without anyone hand-picking it first — and never leaves the violet family.
  */
-export function capsuleJarTheme(mateId: string | undefined): CapsuleJarTheme {
-  if (mateId && MATE_JAR_THEMES[mateId]) return MATE_JAR_THEMES[mateId]
-  const hue = MATE_FALLBACK_HUES[hashString(mateId ?? 'mate') % MATE_FALLBACK_HUES.length]!
+export function capsuleJarTheme(mateId: string | undefined, mateName?: string): CapsuleJarTheme {
+  const catalogId = launchMateId({ id: mateId, name: mateName ?? mateId })
+  if (catalogId && MATE_JAR_THEMES[catalogId]) return MATE_JAR_THEMES[catalogId]
+  const hue = MATE_FALLBACK_HUES[hashString(mateId ?? mateName ?? 'mate') % MATE_FALLBACK_HUES.length]!
   return mateThemeFromHue(hue)
+}
+
+/** Decorative accents only; action and semantic status tokens keep their own colours. */
+export function mateColorStyle(mateId: string, mateName?: string) {
+  const theme = capsuleJarTheme(mateId, mateName)
+  const brandHue = hexToHsl(CHAERIN_JAR_THEME.tintHalf).hue
+  return {
+    '--mate-tint': theme.tintHalfShade,
+    '--mate-glow': theme.glow,
+    '--mate-color-rotation': `${hexToHsl(theme.tintHalf).hue - brandHue}deg`,
+  }
 }
 
 function hexToHsl(hex: string) {
@@ -95,7 +110,9 @@ function hexToHsl(hex: string) {
  * apart side by side, never a different colour. Saturation stays at most 86 (no gold, no rainbow, no glare).
  */
 export const TIME_BAND_SHIFT: Readonly<Record<TimeBand, { hue: number; saturation: number; lightness: number }>> = {
-  dawn: { hue: -20, saturation: -4, lightness: -3 },
+  // -20° made 채린's dawn ~236°, nearly the same blue as 서도현 (230°).
+  // Keep the darker dawn glass, with only a small move inside her violet identity.
+  dawn: { hue: -6, saturation: -4, lightness: -3 },
   morning: { hue: -6, saturation: 0, lightness: 4 },
   day: { hue: 0, saturation: -10, lightness: 6 },
   evening: { hue: 18, saturation: 2, lightness: 0 },

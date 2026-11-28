@@ -34,18 +34,6 @@ const seoulMonthDayFormatter = new Intl.DateTimeFormat('ko-KR', {
   day: 'numeric',
 })
 
-const seoulTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
-  timeZone: 'Asia/Seoul',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-})
-
-/** Formats a timestamp as HH:MM in Asia/Seoul (e.g. "01:06"). */
-export function formatSeoulTime(timestamp: number): string {
-  return seoulTimeFormatter.format(timestamp)
-}
-
 /**
  * Groups credit ledger entries by calendar date (Asia/Seoul) while preserving entry order.
  */

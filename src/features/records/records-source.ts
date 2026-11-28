@@ -1,8 +1,9 @@
 import type { StudyRecord } from '../demo/types.ts'
 import type { RecordsRange, ReportResponse } from '../../shared/api/types.ts'
-import type { RecordsConnectionView, RecordsView } from '../backend/records-adapters.ts'
+import { mergeRecords, type RecordsConnectionView, type RecordsView } from '../backend/records-adapters.ts'
 import type { RecordRange } from '../reports/record-period.ts'
 import { connectionDayKey } from './connection-day.ts'
+import { leavesCapsules } from '../mates/capsule-jar/capsule-floor-layout.ts'
 
 /**
  * 38 내 기록 → what the records page draws. 38 gives sums, a bucket per day (a YEAR answer: per month, so the year is
@@ -55,6 +56,21 @@ export function recordsRequests(range: RecordRange): { range: RecordsRange; date
   return months.length ? months : [{ range: 'MONTH', date: range.startDay }]
 }
 
+/** An empty 38 view for a range when the user has not met any launch mate yet. */
+export function emptyRecordsView(range: RecordRange): RecordsView {
+  return {
+    from: range.startDay,
+    to: range.endDay,
+    totalPresentSeconds: 0,
+    totalConnectedSeconds: 0,
+    connectedDays: 0,
+    connectionCount: 0,
+    buckets: [],
+    mates: [],
+    recent: [],
+  }
+}
+
 const NOON = 'T12:00:00+09:00'
 
 function report(mate: RecordsMate | undefined, values: { connectionId?: number; startedAt: number; endedAt: number; connectedSeconds: number; presentSeconds: number }): ReportResponse {
@@ -103,6 +119,8 @@ export function boardRecords(parts: readonly { mate: RecordsMate; view: RecordsV
     const left = new Map(view.buckets.filter(bucket => bucket.key.length === 10).map(bucket => [bucket.key, { connected: bucket.connectedSeconds, present: bucket.presentSeconds, real: 0 }]))
     for (const item of recent) {
       if (item.characterIds[0] !== mate.characterId) continue
+      // Under a minute (「0분」, a start cancelled at once): no capsule, not listed (CAPSULE_COUNT.minSeconds).
+      if (!leavesCapsules(item.studySeconds)) continue
       const day = left.get(connectionDayKey(item))
       // No bucket (another range) or no room for it there (the server counted it on another day): its time is in the
       // buckets already, so it is not shown on its own. One second of slack for the server's rounding.
@@ -113,12 +131,46 @@ export function boardRecords(parts: readonly { mate: RecordsMate; view: RecordsV
       result.push(item)
     }
     for (const [key, day] of left) {
-      // The day's time beyond its listed connections (older ones of the same day). A rounding second is not a capsule.
-      if (!(day.connected > 0) || (day.connected < 60 && day.real)) continue
+      // The day's time beyond its listed connections (older ones of the same day). Under a minute is not a capsule.
+      if (!leavesCapsules(day.connected)) continue
       result.push(record(`day:${mate.id}:${key}`, mate, Date.parse(`${key}${NOON}`), day.connected, day.present))
     }
   }
   return result.sort((a, b) => a.startedAt - b.startedAt || a.id.localeCompare(b.id))
+}
+
+/**
+ * Loads the records scope strictly from launch mates (never an unfiltered `/records` read without `mateId`), so
+ * non-launch server mates (such as legacy test entries) can never leak into 「전체」 totals, buckets or recent items.
+ */
+export async function loadRecordsScope(
+  range: RecordRange,
+  mates: readonly RecordsMate[],
+  selected: RecordsMate | null,
+  readMate: (mate: RecordsMate) => Promise<RecordsView>,
+): Promise<RecordsData> {
+  const scopeMates = selected ? [selected] : mates
+  const parts = await Promise.all(scopeMates.map(async mate => ({ mate, view: await readMate(mate) })))
+  const totals = parts.length === 0
+    ? emptyRecordsView(range)
+    : parts.length === 1
+      ? parts[0]!.view
+      : mergeRecords(parts.map(part => part.view), { samePeriod: true })
+  const mateOf = (serverId: number) => scopeMates.find(mate => mate.serverIds.includes(serverId))
+  const recent = totals.recent
+    .map(connection => {
+      const mate = mateOf(connection.mateId)
+      return mate ? connectionRecord(connection, mate) : null
+    })
+    .filter((item): item is StudyRecord => item !== null)
+  return {
+    range,
+    mateId: selected?.id ?? null,
+    totals,
+    records: boardRecords(parts, recent),
+    matesInRange: parts.filter(part => part.view.totalConnectedSeconds > 0).length,
+    views: Object.fromEntries(parts.map(part => [part.mate.id, part.view])),
+  }
 }
 
 /** The summary row of the records page from 38's sums. */

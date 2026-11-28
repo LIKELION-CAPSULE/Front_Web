@@ -3,7 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Link, useSearchParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useDemo } from '@/features/demo/demo-context'
-import { availableMates, type AvailableMate } from '@/features/mates/catalog'
+import { availableMates, selectedCatalogMate, type AvailableMate } from '@/features/mates/catalog'
 import { chaerinArtwork, mateArtwork, matePortrait } from '@/features/mates/artwork'
 import { formatFirstMetDate } from '@/features/mates/my-mates-utils'
 import { capsulesFromConnections, estimatedCapsuleCount, useMyMates } from '@/features/mates/use-my-mates'
@@ -25,6 +25,7 @@ import type { StudySettlement } from '@/shared/api/types'
 import { capsuleVisitKey } from '@/features/mates/capsule-jar/capsule-jar-visit'
 import { useCapsuleVisit } from '@/features/mates/capsule-jar/use-capsule-visit'
 import { Button, ButtonLink } from '@/shared/ui/Button'
+import { CapsuleEmptyState } from '@/shared/ui/CapsuleEmptyState'
 import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { useConnectMate } from '@/features/mates/use-connect-mate'
 import { MateMenu } from '@/features/mates/components/MateMenu'
@@ -118,7 +119,7 @@ export default function MyMatesPage() {
 
   const requestedMateId = searchParams.get('mate')
   const previewMate = import.meta.env.DEV ? previewMates?.find((mate) => mate.id === requestedMateId) : undefined
-  const selectedMate = (requestedMateId ? mates.find((mate) => mate.id === requestedMateId) : undefined) ?? mates[0]
+  const selectedMate = selectedCatalogMate(requestedMateId, mates) ?? mates[0]
   const selectedId = previewMate?.id ?? selectedMate?.id
   const detail = selectedMate ? mateDetails[selectedMate.id] : undefined
   const mine = selectedMate ? server.byMate.get(selectedMate.id) : undefined
@@ -217,10 +218,11 @@ export default function MyMatesPage() {
   if (!selectedMate || !selectedId) {
     return (
       <MyMatesWindowFrame>
-        <div className="my-mates-empty-box">
-          <p className="my-mates-empty-title">아직 만날 수 있는 메이트가 없어요.</p>
-          <ButtonLink to="/">홈으로 가기</ButtonLink>
-        </div>
+        <CapsuleEmptyState
+          className="my-mates-empty-box"
+          message="아직 만날 수 있는 메이트가 없어요."
+          action={<ButtonLink to="/">홈으로 가기</ButtonLink>}
+        />
       </MyMatesWindowFrame>
     )
   }
@@ -232,16 +234,17 @@ export default function MyMatesPage() {
   // Affinity: the server's stage when it sends one, sample data in development (mate-features.ts decides). Production
   // without a server stage: a mate never met starts at 「1단계 · 처음 만남」 with every world locked; a mate met but
   // sent no stage shows no card (nothing is guessed).
-  // The stage is put on the one stage table (affinity-stages.ts) by its name.
+  // The stage is put on the one stage table (affinity-stages.ts) by its name; a stage sent without names (37 `stageName:
+  // null`) takes the table's names, its times and progress staying the server's.
   // Development only: `?affinity=1…5` puts the page at that stage with sample progress (the local mock tool sets it).
-  const serverStage = normalizeAffinityStage(mine?.relation?.stage, mine?.relation?.stageName)
+  const serverStage = normalizeAffinityStage(mine?.relation?.stage, mine?.relation?.stageName, mine?.relation?.nextStageName)
   const devStage = import.meta.env.DEV ? Number(searchParams.get('affinity')) : Number.NaN
   const neverMet = !previewMate && (mine?.connectionCount ?? 0) === 0
   const relation: (Partial<StudySettlement> & { stage: number; stageName: string }) | null = features.affinity
     ? import.meta.env.DEV && devSamples && Number.isInteger(devStage) && devStage >= 1 && devStage <= 5
       ? devSamples.sampleRelation(devSamples.sampleSecondsForStage(devStage))
       : serverStage && !previewMate
-      ? { ...mine?.relation, ...serverStage }
+      ? { ...mine?.relation, ...serverStage, nextStageName: serverStage.nextStageName ?? undefined }
       : import.meta.env.DEV
         ? (devSamples?.sampleRelation(totalSeconds) ?? null)
         : neverMet
@@ -369,10 +372,10 @@ export default function MyMatesPage() {
           worlds={worlds}
           worldKey={`${selectedId}:${relation?.stage ?? 0}`}
           mateName={mateName}
-          theme={capsuleJarTheme(selectedId)}
+          theme={capsuleJarTheme(selectedId, mateName)}
           onOpen={(id) => jarRef.current?.openCapsule(id)}
           onPoint={(id) => jarRef.current?.highlight(id)}
-          listToggle={listToggle}
+          listToggle={capsules.length > 0 || listView ? listToggle : undefined}
           actions={actions}
         />
       </div>

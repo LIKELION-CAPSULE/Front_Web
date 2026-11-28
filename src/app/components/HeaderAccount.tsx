@@ -3,6 +3,7 @@ import { animate, useReducedMotion } from 'motion/react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { accountRequest, closeAccountRequest } from '@/features/profile/account-location'
 import { Avatar } from '@/shared/ui/Avatar'
+import { CloseButton } from '@/shared/ui/CloseButton'
 import { Dialog } from '@/shared/ui/Dialog'
 import { Icon } from '@/shared/ui/Icon'
 import { QuarterRingSpinner } from '@/shared/ui/QuarterRingSpinner'
@@ -20,7 +21,7 @@ function AccountSettingsLoading({ onClose }: { onClose: () => void }) {
       <div className="account-settings-loading"><QuarterRingSpinner /></div>
     </div>
     <span role="status" data-account-loading className="sr-only">계정 설정을 불러오고 있어요.</span>
-    <button type="button" className="account-settings-close" aria-label="계정 설정 닫기" onClick={onClose}><Icon name="close" size={20} /></button>
+    <CloseButton className="account-settings-close" label="계정 설정 닫기" onClick={onClose} />
   </Dialog>
 }
 

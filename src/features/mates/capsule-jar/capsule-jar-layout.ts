@@ -4,10 +4,8 @@
  * is the mate's affinity stage (affinity-progress.ts), not a time scale of the scene.
  */
 
-/** Logo v2 capsule: thickness / length = 159.90 / 364.04. */
-export const CAPSULE_ASPECT = 159.9 / 364.04
-/** Logo v2 seam: ellipse centre sits 21.34 of 182.02 along the axis from the centre, toward the short half. */
-export const CAPSULE_SEAM_OFFSET = 21.34 / 182.02
+/** Logo v2 proportions, shared with every capsule scene (src/shared/three/capsule-shape.ts). */
+export { CAPSULE_ASPECT, CAPSULE_SEAM_OFFSET } from '../../../shared/three/capsule-shape.ts'
 
 export type CapsulePlacement = {
   id: string

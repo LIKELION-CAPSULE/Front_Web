@@ -58,6 +58,7 @@ export class AlivingSessionStage implements SessionModelStage {
   private view: AlivingView | null = null
   private tracking = false
   private trackingWindow: Window | null = null
+  private trackingHost: HTMLElement | null = null
   private frame: number | null = null
   private pendingPointer: { x: number; y: number } | null = null
   /** Eased gaze: where it is, where it is heading, and when the pointer last moved. */
@@ -192,6 +193,7 @@ export class AlivingSessionStage implements SessionModelStage {
     const view = computeCallView(width, height)
     this.view = view
     this.renderer.setView(view.zoom, view.cx, view.cy)
+    if (host === this.trackingHost && this.pendingPointer) this.scheduleGaze()
   }
 
   setTracking(enabled: boolean) {
@@ -207,25 +209,42 @@ export class AlivingSessionStage implements SessionModelStage {
   private syncTracking() {
     const host = this.hosts.at(-1)
     const win = this.tracking && !this.reduced && !this.degraded && host ? host.ownerDocument?.defaultView ?? null : null
-    if (win === this.trackingWindow) return
+    if (win === this.trackingWindow && host === this.trackingHost) return
     if (this.trackingWindow) {
       this.trackingWindow.removeEventListener('pointermove', this.onPointerMove)
-      this.trackingWindow.document.removeEventListener('mouseout', this.onPointerOut)
-      if (this.frame !== null) (this.frameWindow ?? this.trackingWindow).cancelAnimationFrame(this.frame)
-      this.frame = null
-      this.pendingPointer = null
-      this.gaze = { x: 0, y: 0 }
-      this.gazeTarget = { x: 0, y: 0 }
-      this.renderer.lookAt(0, 0)
+      this.trackingWindow.document.removeEventListener('pointerout', this.onPointerOut)
+      this.trackingWindow.removeEventListener('blur', this.resetGazeTarget)
+      this.trackingWindow.document.removeEventListener('visibilitychange', this.onTrackingVisibility)
     }
+    if (this.frame !== null) this.frameWindow?.cancelAnimationFrame(this.frame)
+    this.frame = null
+    this.frameWindow = null
+    this.pendingPointer = null
+    this.gaze = { x: 0, y: 0 }
+    this.gazeTarget = { x: 0, y: 0 }
+    this.renderer.lookAt(0, 0)
+    this.lastGazeFrame = 0
+    this.lastPointerAt = 0
+    this.nodAt = -Infinity
+    this.trackingHost = host ?? null
     this.trackingWindow = win
     win?.addEventListener('pointermove', this.onPointerMove, { passive: true })
-    win?.document.addEventListener('mouseout', this.onPointerOut)
+    win?.document.addEventListener('pointerout', this.onPointerOut)
+    win?.addEventListener('blur', this.resetGazeTarget)
+    win?.document.addEventListener('visibilitychange', this.onTrackingVisibility)
   }
 
   /** The pointer left the window: ease back to the front. */
   private onPointerOut = (event: MouseEvent) => {
     if (event.relatedTarget) return
+    this.resetGazeTarget()
+  }
+
+  private onTrackingVisibility = () => {
+    if (this.trackingWindow?.document.hidden) this.resetGazeTarget()
+  }
+
+  private resetGazeTarget = () => {
     this.pendingPointer = null
     this.gazeTarget = { x: 0, y: 0 }
     this.scheduleGaze()
@@ -247,10 +266,13 @@ export class AlivingSessionStage implements SessionModelStage {
     this.scheduleGaze()
   }
 
-  private flushGaze = (at: number) => {
+  private flushGaze = () => {
+    // RAF timestamps belong to the scheduling window; PiP has a different time origin.
+    // All gaze, idle and nod times use the stage realm's monotonic clock.
+    const at = performance.now()
     this.frame = null
+    // Keep the current window's point so resizes reproject it against fresh bounds.
     const point = this.pendingPointer
-    this.pendingPointer = null
     const host = this.hosts.at(-1)
     const view = this.view
     if (point && host && view) {
@@ -271,7 +293,7 @@ export class AlivingSessionStage implements SessionModelStage {
     }
     // Resting pointer: back to the front, slowly.
     if (at - this.lastPointerAt > GAZE_REST_MS) this.gazeTarget = { x: 0, y: 0 }
-    const dt = this.lastGazeFrame ? Math.min(0.1, (at - this.lastGazeFrame) / 1000) : 1 / 60
+    const dt = this.lastGazeFrame ? Math.max(0, Math.min(0.1, (at - this.lastGazeFrame) / 1000)) : 1 / 60
     this.lastGazeFrame = at
     const ease = 1 - Math.exp(-GAZE_EASE * dt)
     this.gaze = { x: this.gaze.x + (this.gazeTarget.x - this.gaze.x) * ease, y: this.gaze.y + (this.gazeTarget.y - this.gaze.y) * ease }

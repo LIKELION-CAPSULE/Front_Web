@@ -5,12 +5,6 @@
  * state. Moving parts animate transform / opacity only, in steps (pixel set); nothing moves under reduced motion.
  */
 .call-dialogue-slot {
-  --call-dialogue-steps: polygon(
-    0 12px, 4px 12px, 4px 8px, 8px 8px, 8px 4px, 12px 4px, 12px 0,
-    calc(100% - 12px) 0, calc(100% - 12px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 12px, 100% 12px,
-    100% calc(100% - 12px), calc(100% - 4px) calc(100% - 12px), calc(100% - 4px) calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) calc(100% - 4px), calc(100% - 12px) calc(100% - 4px), calc(100% - 12px) 100%,
-    12px 100%, 12px calc(100% - 4px), 8px calc(100% - 4px), 8px calc(100% - 8px), 4px calc(100% - 8px), 4px calc(100% - 12px), 0 calc(100% - 12px)
-  );
   container: call-dialogue / inline-size;
   position: absolute;
   z-index: 24;
@@ -39,16 +33,26 @@
 }
 
 .call-dialogue {
+  --call-dialogue-steps: polygon(
+    0 12px, 4px 12px, 4px 8px, 8px 8px, 8px 4px, 12px 4px, 12px 0,
+    calc(100% - 12px) 0, calc(100% - 12px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 12px, 100% 12px,
+    100% calc(100% - 12px), calc(100% - 4px) calc(100% - 12px), calc(100% - 4px) calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) calc(100% - 4px), calc(100% - 12px) calc(100% - 4px), calc(100% - 12px) 100%,
+    12px 100%, 12px calc(100% - 4px), 8px calc(100% - 4px), 8px calc(100% - 8px), 4px calc(100% - 8px), 4px calc(100% - 12px), 0 calc(100% - 12px)
+  );
   position: relative;
   isolation: isolate;
   width: min(760px, 100%);
   /* Room for the name tag that stands 16px over the top edge. */
   margin-top: 16px;
-  padding: 30px 52px 18px 28px;
+  padding: 36px 52px 18px 28px;
   color: var(--color-ink);
   cursor: pointer;
   contain: layout;
   pointer-events: auto;
+}
+.call-dialogue--passive {
+  padding-right: 28px;
+  cursor: default;
 }
 .call-dialogue[data-phase='waiting'] { width: auto; min-width: 260px; cursor: default; pointer-events: none; }
 .call-dialogue-frame {
@@ -125,7 +129,8 @@
 
 /* A narrow stage (≈ 900px window with the chat open): a little smaller (call-dialogue.ts `dialogueCapacity`). */
 @container call-dialogue (max-width: 559px) {
-  .call-dialogue { padding: 28px 44px 16px 22px; }
+  .call-dialogue { padding: 34px 44px 16px 22px; }
+  .call-dialogue--passive { padding-right: 22px; }
   .call-dialogue-text { min-height: 56px; font-size: 17px; line-height: 28px; }
 }
 /* ≤ 860px the dock leaves the stage (below it): the box sits on the stage's bottom edge. */

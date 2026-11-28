@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Capsule clock</title><style>html,body{margin:0;background:transparent}canvas{display:block}</style></head><body><script type="module">
+import * as THREE from 'three'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { capsuleGeometry, BRAND_CAPSULE_COLORS, CAPSULE_SEAM_X, CAPSULE_ASPECT } from '/src/shared/three/capsule-model.ts'
+const query = new URLSearchParams(location.search)
+const stage = query.get('stage') ?? 'optimization-pass'
+const frame = Number(query.get('frame') ?? 0)
+const renderer = new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true})
+renderer.setSize(256,180);renderer.setPixelRatio(1);renderer.setClearColor(0,0)
+renderer.toneMapping = THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.92
+document.body.append(renderer.domElement)
+const scene = new THREE.Scene()
+const environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),.04)
+scene.environment=environment.texture
+if(['lighting-pass','interaction-pass','optimization-pass'].includes(stage)) {
+ scene.environmentIntensity=.65
+ renderer.toneMappingExposure=.85
+}
+const camera = new THREE.PerspectiveCamera(28,256/180,.1,100)
+const yaw = Number(query.get('yaw') ?? 8)*Math.PI/180
+camera.position.set(Math.sin(yaw)*4.4,.82,Math.cos(yaw)*4.4);camera.lookAt(0,-.05,0)
+for(const [x,y,z,intensity] of [[-3,4,5,2.2],[3,1,4,1],[2,3,-3,2]]){const light=new THREE.DirectionalLight('#e7dcff',intensity);light.position.set(x,y,z);scene.add(light)}
+const root=new THREE.Group();scene.add(root)
+const shell=new THREE.MeshPhysicalMaterial({color:'#7443bf',roughness:.32,clearcoat:.8,metalness:0})
+const glass=new THREE.MeshPhysicalMaterial({color:'#c8adfa',roughness:.12,transparent:true,opacity:.20,depthWrite:false,clearcoat:1,side:THREE.DoubleSide})
+if(!['blockout','structural-pass','form-refinement'].includes(stage)) {
+ glass.color.set('#956bda');glass.opacity=.32;glass.envMapIntensity=.35;glass.roughness=.2
+ shell.roughness=.4;shell.envMapIntensity=.7
+}
+if(!['blockout','structural-pass','form-refinement','material-pass'].includes(stage)) {
+ // Independent roughness locality: no albedo pixels reused as normals or roughness.
+ shell.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\n roughnessFactor *= 0.94 + 0.06 * sin(vViewPosition.x * 8.0);')}
+ shell.customProgramCacheKey=()=> 'clock-roughness-v1'
+}
+const seam=CAPSULE_SEAM_X
+const add=(name,geometry,material)=>{const mesh=new THREE.Mesh(geometry,material);mesh.name=name;root.add(mesh);return mesh}
+// Canonical profile and seam ratio; the larger transparent chamber follows logo v2.
+const pale=new THREE.Color(BRAND_CAPSULE_COLORS.lightHalf),violet=new THREE.Color(BRAND_CAPSULE_COLORS.tintHalf)
+add('glass-shell',capsuleGeometry(-.5,seam,pale,violet,24),glass).scale.setScalar(2.8)
+add('violet-shell',capsuleGeometry(seam,.5,pale,violet,24),shell).scale.setScalar(2.8)
+for(const x of [-.85,.85]){const foot=add(x<0?'foot-left':'foot-right',new THREE.CapsuleGeometry(.13,.14,4,12),shell);foot.position.set(x,-.58,0)}
+if(stage !== 'blockout') {
+ const beads=new THREE.InstancedMesh(new THREE.SphereGeometry(.062,10,6),new THREE.MeshPhysicalMaterial({color:'#ad67f4',emissive:'#7324bf',emissiveIntensity:.5,roughness:.18,clearcoat:1}),20)
+ beads.name='hourglass-orbs';root.add(beads)
+ let index=0;const matrix=new THREE.Matrix4()
+ for(const [row,count] of [5,4,1,1,4,5].entries())for(let col=0;col<count;col++){
+  const falling=['interaction-pass','optimization-pass'].includes(stage) && (row===2||row===3)
+  const y=falling ? .17-((frame/12+(row-2)*.5)%1)*.34 : .36-row*.144
+  matrix.makeTranslation(-.55+(col-(count-1)/2)*.155,y,.25)
+  beads.setMatrixAt(index++,matrix)
+ }
+}
+if(!['blockout','structural-pass'].includes(stage)) {
+ for(const [name,offset,tube] of [['seam-bevel',0,.018],['inner-rim',-.04,.01]]) {
+  const rimMaterial=['blockout','structural-pass','form-refinement'].includes(stage)?glass:new THREE.MeshPhysicalMaterial({color:'#ba98ec',roughness:.2,clearcoat:1,transparent:true,opacity:.7})
+  const optimized=stage==='optimization-pass'
+  const rim=add(name,new THREE.TorusGeometry(2.8*CAPSULE_ASPECT/2,tube,optimized?4:6,optimized?24:32),rimMaterial)
+  rim.rotation.y=Math.PI/2;rim.position.x=seam*2.8+offset
+ }
+}
+root.userData.sculptRuntime={nodes:Object.fromEntries(root.children.map(x=>[x.name,x])),meshes:Object.fromEntries(root.children.map(x=>[x.name,x])),sockets:{},colliders:{},destructionGroups:{shell:root.children}}
+const rest=root.children.map(mesh=>({mesh,position:mesh.position.clone(),center:new THREE.Box3().setFromObject(mesh).getCenter(new THREE.Vector3())}))
+for(const part of rest){const box=new THREE.Box3().setFromObject(part.mesh);root.userData.sculptRuntime.colliders[part.mesh.name]={type:'box',center:box.getCenter(new THREE.Vector3()).toArray(),size:box.getSize(new THREE.Vector3()).toArray()}}
+root.userData.sculptRuntime.sockets={'foot-left':[-.85,-.58,0],'foot-right':[.85,-.58,0],'hourglass-neck':[-.55,0,.25]}
+root.userData.explode=amount=>{for(const part of rest)part.mesh.position.copy(part.position).addScaledVector(part.center,amount)}
+root.userData.pick=raycaster=>raycaster.intersectObjects(root.children,false)[0]?.object.name??null
+renderer.render(scene,camera)
+window.__clock={root,scene,camera,renderer,stage,frame,triangles:renderer.info.render.triangles}
+document.title='ready'
+</script></body></html>

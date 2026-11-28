@@ -34,7 +34,6 @@ interface XIconProps extends Omit<
  | "onAnimationIteration"
 > {
  size?: number;
- duration?: number;
  isAnimated?: boolean;
  color?: string;
 }
@@ -46,7 +45,6 @@ const XIcon = forwardRef<XIconHandle, XIconProps>(
    onMouseLeave,
    className,
    size = 24,
-   duration = 1,
    isAnimated = true,
    color,
    ...props
@@ -83,14 +81,10 @@ const XIcon = forwardRef<XIconHandle, XIconProps>(
    [controls, onMouseLeave],
   );
 
-  const crossVariants: Variants = {
-   normal: { rotate: 0, scale: 1, transition: { duration: 0 } },
-   animate: {
-    rotate: [0, 90],
-    scale: [1, 1.2, 1],
-    transition: { duration: 0.5 * duration, ease: "easeInOut" },
-   },
-  };
+  // CAPSULE: close icons stay still on hover/focus (no quarter turn 2026-11-27, no scale pulse 2026-11-28); the
+  // button's colour and background hover is the feedback. Both states are the resting pose.
+  const resting = { rotate: 0, scale: 1, transition: { duration: 0 } };
+  const crossVariants: Variants = { normal: resting, animate: resting };
 
   return (
    <LazyMotion features={domMin} strict>

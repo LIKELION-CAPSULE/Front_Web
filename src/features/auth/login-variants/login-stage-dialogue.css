@@ -1,0 +1,14 @@
+/* C1 supplies the frame, roof, name tag, and typography. Login retains its passive, single-line timed lifecycle. */
+.login-stage-dialogue.call-dialogue {
+  cursor: default;
+  pointer-events: none;
+  animation: login-dialogue-in 220ms ease-out both;
+}
+.login-stage-dialogue[data-leaving] {
+  animation: login-dialogue-out 180ms ease-in both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-stage-dialogue.call-dialogue {
+    animation: none;
+  }
+}

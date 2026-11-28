@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { capsuleLogo } from '@/shared/design/brand-logo'
 import { Icon } from '@/shared/ui/Icon'
 import { ProgressRing } from '@/shared/ui/ProgressRing'
+import { StageDialogueBox } from '@/features/mates/components/StageDialogueBox'
 import {
   CAPSULE_RECORD_COPY as COPY,
   recordAmount,
@@ -28,9 +29,10 @@ export function CapsuleRecordCard(props: CapsuleRecordCardProps) {
           <div className="capsule-record-mate-art">{portrait}</div>
           <MateDecor levelUp={levelUp} />
           {quote && (
-            <figure className="capsule-record-quote" {...reveal(5)}>
-              <figcaption><Icon name="chat" size={16} />{mateName}</figcaption>
-              <blockquote><p>{quote}</p></blockquote>
+            <figure className="capsule-record-quote" aria-label={`${mateName}의 마무리 한마디`} {...reveal(5)}>
+              <StageDialogueBox name={mateName} passive data-calm="true">
+                {quote}
+              </StageDialogueBox>
             </figure>
           )}
         </>
@@ -120,7 +122,7 @@ function RecordHeader({ titleId, mateName, modeLabel, endedAt, levelUp, stats }:
         </p>
         {ratio !== null && (
           <div className="capsule-record-ring">
-            <ProgressRing value={ratio} label={`${COPY.togetherRing} 비율`} size={64} />
+            <ProgressRing value={ratio} label={COPY.togetherRing} size={64} />
             <span>{COPY.togetherRing}</span>
           </div>
         )}

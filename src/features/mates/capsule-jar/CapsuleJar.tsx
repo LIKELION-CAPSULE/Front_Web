@@ -15,6 +15,8 @@ import { capsuleBandTheme, capsuleJarTheme } from './capsule-jar-theme.ts'
 import { keepsakeTitle } from './capsule-moments.ts'
 import type { CapsuleJarTheme, CapsuleRecord } from './capsule-jar-types.ts'
 import type { JarBenchmark, JarSceneController, JarScenePoint } from './capsule-jar-scene.ts'
+import { Button } from '@/shared/ui/Button'
+import { CapsuleEmptyState } from '@/shared/ui/CapsuleEmptyState'
 import { CapsuleRecordCard } from './CapsuleRecordCard.tsx'
 import './capsule-jar.css'
 
@@ -115,7 +117,7 @@ export default function CapsuleJar({
   onListViewChange,
   ref,
 }: CapsuleJarProps) {
-  const theme = useMemo(() => themeOverride ?? capsuleJarTheme(mateId), [themeOverride, mateId])
+  const theme = useMemo(() => themeOverride ?? capsuleJarTheme(mateId, mateName), [themeOverride, mateId, mateName])
   const systemReduced = useMediaQuery('(prefers-reduced-motion: reduce)')
   const reducedMotion = forceReducedMotion || systemReduced
   // The pile spans the panel's width (in scene units, the panel is PILE.viewHeight high): measured from the stage.
@@ -135,6 +137,7 @@ export default function CapsuleJar({
   const stageRef = useRef<HTMLDivElement>(null)
   const hostRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<JarSceneController | null>(null)
+  const appliedLayoutRef = useRef<FloorLayout | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const hoveredRef = useRef<string | null>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
@@ -226,9 +229,11 @@ export default function CapsuleJar({
     let cancelled = false
     let loading = false
     let visible = false
+    let devHook: { inspectBodies: () => ReturnType<JarSceneController['inspectBodies']> } | null = null
     const updateRunning = () => sceneRef.current?.setRunning(visible && !document.hidden)
     const observer = new IntersectionObserver((entries) => {
-      visible = entries.some((entry) => entry.isIntersecting)
+      const latestEntry = entries[entries.length - 1]
+      if (latestEntry) visible = latestEntry.isIntersecting
       if (visible && !sceneRef.current && !loading) {
         loading = true
         Promise.all([
@@ -265,6 +270,11 @@ export default function CapsuleJar({
               },
             })
             sceneRef.current = scene
+            appliedLayoutRef.current = current.layout
+            if (import.meta.env.DEV) {
+              devHook = { inspectBodies: () => scene.inspectBodies() }
+              ;(window as unknown as { __capsuleJar?: typeof devHook }).__capsuleJar = devHook
+            }
             scene.setOccluder(mateCovers)
             scene.setLayout(current.layout)
             for (const id of current.dropIds) pouredIds.current.add(id)
@@ -290,9 +300,14 @@ export default function CapsuleJar({
       generation.current++
       observer.disconnect()
       document.removeEventListener('visibilitychange', updateRunning)
+      if (import.meta.env.DEV && devHook) {
+        const win = window as unknown as { __capsuleJar?: typeof devHook }
+        if (win.__capsuleJar === devHook) delete win.__capsuleJar
+      }
       // Settles a pending opening (null) before the scene goes.
       sceneRef.current?.dispose()
       sceneRef.current = null
+      appliedLayoutRef.current = null
     }
     // The scene is rebuilt only for a different mate colour; layout and motion updates go through the controller.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -301,7 +316,10 @@ export default function CapsuleJar({
   useEffect(() => {
     const scene = sceneRef.current
     if (!scene) return
-    scene.setLayout(layout)
+    if (appliedLayoutRef.current !== layout) {
+      appliedLayoutRef.current = layout
+      scene.setLayout(layout)
+    }
     // Connections that arrive while the page is open fall in on their own.
     const fresh = dropIds.filter((id) => !pouredIds.current.has(id))
     if (fresh.length === 0) return
@@ -461,7 +479,15 @@ export default function CapsuleJar({
         {listView && (
           <div className="capsule-jar-list">
             {days.length === 0 ? (
-              <p className="capsule-jar-list-empty">아직 기록이 없어요.</p>
+              <CapsuleEmptyState
+                className="capsule-jar-list-empty"
+                message="아직 모인 캡슐이 없어요."
+                action={
+                  <Button size="sm" variant="secondary" onClick={() => setListView(false)}>
+                    장면으로 돌아가기
+                  </Button>
+                }
+              />
             ) : (
               days.map((group) => (
                 <section key={group.day} className="capsule-jar-list-day" aria-label={group.day}>

@@ -5,8 +5,9 @@ import {
   ShaderMaterial, SRGBColorSpace, TorusGeometry, Vector2, Vector3, WebGLRenderer,
 } from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
-import { capsuleGeometry, capsuleRadiusAt, coreMaterial, haloMaterial, shellMaterial } from '../../mates/capsule-jar/capsule-jar-scene.ts'
-import { CAPSULE_ASPECT, CAPSULE_SEAM_OFFSET } from '../../mates/capsule-jar/capsule-jar-layout.ts'
+import {
+  CAPSULE_ASPECT, CAPSULE_SEAM_OFFSET, capsuleGeometry, capsuleRadiusAt, coreMaterial, forAlphaCanvas, haloMaterial, shellMaterial,
+} from '../../../shared/three/capsule-model.ts'
 import { CHAERIN_JAR_THEME } from '../../mates/capsule-jar/capsule-jar-theme.ts'
 import { BOARD, boardRiseTiming, isMonthSelectable, type BoardCapsule, type BoardLabel, type BoardTile, type CapsuleBoardModel } from './capsule-board-layout.ts'
 import {
@@ -92,9 +93,6 @@ export type BoardSceneController = {
   benchmark(durationMs: number): Promise<BoardBenchmark>
   dispose(): void
 }
-
-/** Clear colour: the glass block's colour over the page (the canvas edges fade into the block with a CSS mask). */
-const CLEAR = '#13121B'
 
 /** View direction per period (degrees): azimuth from +z towards +x, elevation. 2D is straight above (0°, 90°). */
 const VIEW = {
@@ -193,7 +191,12 @@ function floorLightMaterial(kind: 'round' | 'streak') {
           float a = pow(max(0.0, 1.0 - across), 1.6) * smoothstep(0.0, 0.08, vUv.x) * smoothstep(1.0, 0.92, vUv.x);
           a += exp(-across * across * 40.0) * 0.6;
         #endif
-        gl_FragColor = vec4(vLight.rgb * a * vLight.a, 1.0);
+        vec3 rgb = vLight.rgb * a * vLight.a;
+        #ifdef CAPSULE_ALPHA_CANVAS
+          gl_FragColor = vec4(rgb, clamp(max(max(rgb.r, rgb.g), rgb.b), 0.0, 1.0));
+        #else
+          gl_FragColor = vec4(rgb, 1.0);
+        #endif
       }
     `,
     transparent: false,
@@ -243,7 +246,12 @@ function pillarMaterial(kind: 'glass' | 'fill' | 'cap') {
         #else
           float a = 0.6 + 0.6 * facing;
         #endif
-        gl_FragColor = vec4(vLight.rgb * a * vLight.a * (gl_FrontFacing ? 1.0 : 0.55), 1.0);
+        vec3 rgb = vLight.rgb * a * vLight.a * (gl_FrontFacing ? 1.0 : 0.55);
+        #ifdef CAPSULE_ALPHA_CANVAS
+          gl_FragColor = vec4(rgb, clamp(max(max(rgb.r, rgb.g), rgb.b), 0.0, 1.0));
+        #else
+          gl_FragColor = vec4(rgb, 1.0);
+        #endif
       }
     `,
     transparent: false,
@@ -270,7 +278,12 @@ function guideLineMaterial() {
       void main() {
         float across = abs(vUv.y - 0.5) * 2.0;
         float a = (1.0 - across) * smoothstep(0.0, 0.06, vUv.x) * smoothstep(1.0, 0.94, vUv.x);
-        gl_FragColor = vec4(vec3(0.72, 0.66, 0.98) * a * uStrength, 1.0);
+        vec3 rgb = vec3(0.72, 0.66, 0.98) * a * uStrength;
+        #ifdef CAPSULE_ALPHA_CANVAS
+          gl_FragColor = vec4(rgb, clamp(max(max(rgb.r, rgb.g), rgb.b), 0.0, 1.0));
+        #else
+          gl_FragColor = vec4(rgb, 1.0);
+        #endif
       }
     `,
     transparent: false,
@@ -342,9 +355,9 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   const canvas = document.createElement('canvas')
   canvas.setAttribute('aria-hidden', 'true')
   canvas.className = 'capsule-board-canvas'
-  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' })
+  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' })
   host.appendChild(canvas)
-  renderer.setClearColor(CLEAR, 1)
+  renderer.setClearColor(0x000000, 0)
   renderer.outputColorSpace = SRGBColorSpace
   renderer.toneMapping = NoToneMapping
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
@@ -369,31 +382,31 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   const labelGeometry = flatGeometry()
   const poolGeometry = flatGeometry()
   const beamGeometry = flatGeometry()
-  const poolShader = floorLightMaterial('round')
-  const beamShader = floorLightMaterial('streak')
+  const poolShader = forAlphaCanvas(floorLightMaterial('round'))
+  const beamShader = forAlphaCanvas(floorLightMaterial('streak'))
   const theme = CHAERIN_JAR_THEME
   const glowColor = new Color(theme.glow)
   const fullShellGeometry = capsuleGeometry(-0.5, 0.5, new Color(theme.lightHalf), new Color(theme.tintHalf))
   const lightShellGeometry = lightCapsuleGeometry(new Color(theme.lightHalf), new Color(theme.tintHalf))
   let shellGeometry = fullShellGeometry
-  const shellShader = shellMaterial(true, glowColor)
+  const shellShader = forAlphaCanvas(shellMaterial(true, glowColor))
   const coreGeometry = new PlaneGeometry(1, 1)
-  const coreShader = coreMaterial(glowColor)
+  const coreShader = forAlphaCanvas(coreMaterial(glowColor))
   coreShader.uniforms.uBreath!.value = 0
   coreShader.uniforms.uStrength!.value = 0.95
   const haloGeometry = new PlaneGeometry(1, 1)
-  const haloShader = haloMaterial(glowColor)
+  const haloShader = forAlphaCanvas(haloMaterial(glowColor))
   haloShader.uniforms.strength!.value = 0.1
 
   // Glass pillars (every period): the tube (open, base at y = 0, unit radius and height), the fill inside it, the top ring.
   const tubeGeometry = new CylinderGeometry(1, 1, 1, 28, 1, true).translate(0, 0.5, 0)
   const fillGeometry = new CylinderGeometry(0.84, 0.84, 1, 24, 1, false).translate(0, 0.5, 0)
   const capGeometry = new TorusGeometry(1, 0.055, 6, 32).rotateX(Math.PI / 2)
-  const tubeShader = pillarMaterial('glass')
-  const fillShader = pillarMaterial('fill')
-  const capShader = pillarMaterial('cap')
+  const tubeShader = forAlphaCanvas(pillarMaterial('glass'))
+  const fillShader = forAlphaCanvas(pillarMaterial('fill'))
+  const capShader = forAlphaCanvas(pillarMaterial('cap'))
   const guideGeometry = new PlaneGeometry(1, 1)
-  const guideShader = guideLineMaterial()
+  const guideShader = forAlphaCanvas(guideLineMaterial())
 
   let tileMesh: InstancedMesh | null = null
   let labelMesh: InstancedMesh | null = null
@@ -529,7 +542,13 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   }
   function pillarLayoutOf(tile: BoardTile) {
     const { maxHeight, radius } = dims()
-    return pillarLayout(tile.capsules, tile.day.connectionSeconds, { scaleHours: scaleHours(), maxHeight, radius })
+    const year = mode() === 'year'
+    // The overview has 365 tiles: give a recorded day a visible floor, while preserving
+    // the time ordering above it. Week/month retain their exact linear scale.
+    const seconds = year && tile.day.connectionSeconds > 0
+      ? Math.max(tile.day.connectionSeconds, scaleHours() * 3600 * 0.24)
+      : tile.day.connectionSeconds
+    return pillarLayout(tile.capsules, seconds, { scaleHours: scaleHours(), maxHeight: year ? 2.8 : maxHeight, radius })
   }
 
   /** Strength the guide lines are drawn at now (before the 2D share), 0 without lines. */
@@ -1053,6 +1072,14 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
     const pad = 1.12
     const upp = Math.max(((maxX - minX) * pad) / width, ((maxY - minY) * pad) / height, 1e-4)
     const center = right.clone().multiplyScalar((minX + maxX) / 2).add(up.clone().multiplyScalar((minY + maxY) / 2))
+    if (mode() === 'year' && targetFlat < 1) {
+      const recorded = model.tiles.filter((tile) => tile.day.connectionSeconds > 0)
+      if (recorded.length) {
+        const focus = recorded.reduce((sum, tile) => sum.add(new Vector3(tile.x, columnHeight(tile) / 2, tile.z)), new Vector3()).divideScalar(recorded.length)
+        // A slight optical bias, keeping every month in view and selectable.
+        center.lerp(focus, 0.045 * (1 - targetFlat))
+      }
+    }
     return { azimuth, elevation, center, upp }
   }
 
@@ -1116,6 +1143,9 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
             ? TILE_COLOR.emptyYear
             : TILE_COLOR.empty
       color.copy(base)
+      if (mode() === 'year' && !tile.capsules.length && !tile.day.isFuture) {
+        color.lerp(TILE_COLOR.filled, 0.035 + (tile.month % 3) * 0.035)
+      }
       if (entry.emphasis > 0.01) color.lerp(TILE_COLOR.emphasis, entry.emphasis)
       if (entry.key === selectedKey && mode() !== 'year') color.copy(TILE_COLOR.selected)
       else if (isLit(entry, hovered) || isLit(entry, active)) color.lerp(TILE_COLOR.hover, 0.85)
@@ -1532,8 +1562,8 @@ export function createCapsuleBoardScene(options: BoardSceneOptions): BoardSceneC
   const onContextRestored = () => {
     contextLost = false
     window.clearTimeout(contextTimer)
-    // three.js resets its GL state on restore (the clear colour back to black): set ours again.
-    renderer.setClearColor(CLEAR, 1)
+    // three.js resets its GL state on restore: keep the clear colour transparent.
+    renderer.setClearColor(0x000000, 0)
     updateTileColors()
     schedule()
   }

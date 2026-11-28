@@ -1,9 +1,10 @@
-import { startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { mateColorStyle } from '@/features/mates/capsule-jar/capsule-jar-theme'
+import { startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { useBackend } from '@/features/backend/backend-context'
 import { useSessionSync } from '@/features/backend/use-session-sync'
-import { StageUpNotice } from '@/features/mates/components/StageUpNotice'
-import type { EndType } from '@/shared/api/types'
+import { StageUpLine, StageUpNotice } from '@/features/mates/components/StageUpNotice'
+import type { EndType, StageUp } from '@/shared/api/types'
 import { useMinorLimit } from '@/features/mates/minor-limit'
 import { ConnectionNotice } from '@/features/mates/components/ConnectionNotice'
 import { useDemo } from '@/features/demo/demo-context'
@@ -46,6 +47,7 @@ import { AFFINITY_STAGE_COUNT, resolveMateFeatures } from '@/features/mates/mate
 import { normalizeAffinityStage } from '@/features/mates/affinity-stages'
 import { DevicePrivacyInfo } from '@/features/media/components/DevicePrivacyInfo'
 import { Brand } from '@/shared/ui/Brand'
+import { CloseButton } from '@/shared/ui/CloseButton'
 import { MateTap, onMate } from '@/features/mates/mate-tap'
 import { playHangup, whenRendered, type HangupPlayback } from '@/features/mates/hangup-sequence'
 import { takePickup } from '@/features/mates/pickup-sequence'
@@ -53,9 +55,12 @@ import { useChatHistory } from '@/features/mates/use-chat-history'
 import { ChatHistoryStatus } from '@/features/mates/components/ChatHistoryStatus'
 import { ChatLogGroups } from '@/features/mates/components/ChatLogGroups'
 import { CallDialogueBox } from '@/features/mates/components/CallDialogueBox'
+import { CallMateTitle } from '@/features/mates/components/CallMateTitle'
+import { callWorld } from '@/features/mates/call-world'
+import { callIntimacy, recallCallIntimacy, rememberCallIntimacy } from '@/features/mates/call-intimacy'
 import { pickStageLine } from '@/features/mates/call-dialogue'
 import { unreadArrivals } from '@/features/mates/chat-groups'
-import { PixelRoofStrip } from '@/shared/ui/pixel/PixelFrame'
+import { PixelImage, PixelRoofStrip } from '@/shared/ui/pixel/PixelFrame'
 import { ReplyActions, ReportedReply } from '@/features/mates/components/ReplyActions'
 import { CreditShortNotice } from '@/features/mates/components/CreditShortNotice'
 import { CREDIT_NOTICE_COPY, creditShortage, shouldNoteVoiceFallback } from '@/features/mates/credit-notice'
@@ -96,6 +101,9 @@ function SttPrivacy({ onShown }: { onShown: () => void }) {
   useEffect(() => { onShown() }, [onShown])
   return <p className="connection-stt-privacy">{PUSH_TO_TALK_TEXT.privacy}</p>
 }
+
+/** A stage-up of this call, logged as a chat note where it arrived (StageUpLine). */
+type StageNote = { id: string; at: number; stage: number; stageName: string; unlocked?: StageUp['unlocked'] }
 
 /** Connections whose starting mode (T-7) was applied in this page load (a reload or remount keeps the call's mode). */
 /** 메이트 음성 when this browser could not prepare the audio (the dock's tooltip and the call's notice). */
@@ -442,6 +450,27 @@ export default function ConnectionPage() {
     hasConversation: mate ? backend.mateDetails[mate.id]?.hasConversation : undefined,
   })
   const messages = chat.messages
+  // 21 `stageUp` arriving during this call: one chat note per stage, at the time it came (the log shows it in order).
+  const [stageNotes, setStageNotes] = useState<StageNote[]>([])
+  const reachedNow = active && sync.stageUp ? normalizeAffinityStage(sync.stageUp.stage, sync.stageUp.stageName) : null
+  const reachedId = active && reachedNow ? `stage:${active.id}:${reachedNow.stage}` : null
+  if (reachedId && reachedNow && !stageNotes.some(note => note.id === reachedId)) {
+    setStageNotes([...stageNotes, { id: reachedId, at: now, stage: reachedNow.stage, stageName: reachedNow.stageName, unlocked: sync.stageUp?.unlocked }])
+  }
+  const callNotes = active ? stageNotes.filter(note => note.id.startsWith(`stage:${active.id}:`)) : []
+  // The titlebar's intimacy chip (친밀도 1–5, call-intimacy.ts): this connection's 16 `relation`, raised by a 21
+  // `stageUp` at once (the same stage as the log's line and the stage's card). 20 / 28 `affinity` (호감도) is not used.
+  // 17 resume has no relation: the stage this tab last showed for the connection (session storage) keeps the chip.
+  const visuals = backend.visuals
+  const startRelation = active && visuals && 'relation' in visuals && String(visuals.connectionId) === active.id ? visuals.relation : null
+  const liveIntimacy = active ? callIntimacy(startRelation, sync.stageUp) : null
+  const relation = active ? callIntimacy(liveIntimacy, recallCallIntimacy(active.id)) : null
+  const relationStage = relation?.stage ?? 0
+  const relationName = relation?.stageName
+  const activeId = active?.id
+  useEffect(() => {
+    if (activeId && relationStage && relationName) rememberCallIntimacy(activeId, { stage: relationStage, stageName: relationName })
+  }, [activeId, relationStage, relationName])
   /**
    * Reached the top of the chat: the older page. The first line in view stays where it was when the page lands (lines
    * can land above it and, out of order, below it). Lines are found by `article[data-message-id]` (ChatLogGroups puts
@@ -660,11 +689,12 @@ export default function ConnectionPage() {
   // The affinity chip follows the affinity feature; with no server stage it shows 「—」 and no lit steps.
   const mateFeatures = resolveMateFeatures(import.meta.env.DEV, null)
   const showAffinity = mateFeatures.affinity
-  // A stage reached during this call (21 `stageUp`) shows in the chip at once, with its notice, not after the next
-  // relation refresh: the chip never says less than the notice next to it.
-  const savedRelation = backend.affinities[Number(mate.characterId)]
-  const reached = sync.stageUp ? normalizeAffinityStage(sync.stageUp.stage, sync.stageUp.stageName) : null
-  const relation = reached && reached.stage > (savedRelation?.stage ?? 0) ? reached : savedRelation
+  const mateFace = mateAvatar(mate.id, mate.image)
+  // The chat head's status: the call timer's minutes, or 「입력 중」 while her reply is on its way or typing in.
+  const callMinutes = Math.floor(sessionStudySeconds(shown, ending?.at ?? now) / 60)
+  const replyOnItsWay = (sending || speaking) && !ending
+  // The empty chat: nothing said and nothing on its way, once the first read is done (or failed: the status says so).
+  const chatEmpty = messages.length === 0 && !sending && !chat.room.failed && !(chat.room.loading.latest && !chat.room.loaded)
   const isAdvanced = backend.connectionMode === 'advanced'
   const canSwitchMode = !finishing
   const credits = creditDisplay.value
@@ -789,6 +819,7 @@ export default function ConnectionPage() {
       id="main-content"
       tabIndex={-1}
       className="connection-page focus:outline-none"
+      style={mateColorStyle(mate.id, mate.name) as CSSProperties}
       data-hangup={ending ? '' : undefined}
     >
       <ConnectionNotice />
@@ -799,13 +830,13 @@ export default function ConnectionPage() {
         <div className="connection-titlebar-left">
           <span className="connection-titlebar-brand"><Brand /></span>
           <span className="connection-titlebar-divider" aria-hidden="true" />
-          <span className="desktop-mate-dot" aria-hidden="true" title="연결 중" />
-          <h1>{mate.name}<span className="sr-only"> · 연결 중</span></h1>
+          {/* Her name, a short relation line and the world the call is in (when it is known: call-world.ts). */}
+          <CallMateTitle name={mate.name} tag={mate.callTag} world={callWorld()} dotTitle="연결 중" />
         </div>
 
         {/* The info bar, all open (no 「⋯」, user decision 2026-11-27): ? | 친밀도 · 대화 모드 · 남은 크레딧 | 연결 시간.
-            Narrow windows (≤ 1100px) shorten the chips to their icons (the full words stay in the tooltip and for screen
-            readers); the mode is always shown. */}
+            Mid-width windows (≤ 1100px, incl. 900px) keep affinity stage name and paid cost visible while trimming only
+            redundant captions; narrow windows (≤ 760px) shorten the rest (full words stay sr-only and in title). */}
         <div className="connection-titlebar-right">
           <DevicePrivacyInfo label="연결 화면 안내" className="connection-titlebar-help">
             <ConnectionHelpNote />
@@ -831,7 +862,7 @@ export default function ConnectionPage() {
               // The mode itself is free; her voice (the dock's button) is counted apart, so say so while it is on.
               title={voiceOn ? `기본 모드는 크레딧 없이 대화해요. 메이트 음성은 답장마다 ${CREDIT_PRICING.voice} 크레딧이 따로 들어요` : '기본 모드 · 크레딧 없음'}
             >
-              <span>기본<span className="connection-mode-detail"> · 크레딧 없음</span></span>
+              <span>기본<span className="connection-mode-detail connection-mode-detail--free"> · 크레딧 없음</span></span>
             </button>
             <button
               type="button"
@@ -1008,7 +1039,8 @@ export default function ConnectionPage() {
                   소리 켜기
                 </button>
               )}
-              {showAffinity && <StageUpNotice stageUp={sync.stageUp} world={mateFeatures.world} mateId={mate.id} mateName={mate.name} />}
+              {/* With the chat open, the log's stage-up line says it (the card would repeat it next to the panel). */}
+              {showAffinity && <StageUpNotice stageUp={sync.stageUp} world={mateFeatures.world} mateId={mate.id} mateName={mate.name} inLog={chatOpen} />}
               {creditInsufficient && (
                 <div className="connection-notice-card">
                   <FeedbackMessage tone="warning">크레딧이 부족해요. 기본 대화로 계속할 수 있어요.</FeedbackMessage>
@@ -1034,22 +1066,29 @@ export default function ConnectionPage() {
 
         {chatOpen && (
           <aside id="connection-chat" className="connection-chat desktop-window" aria-labelledby="connection-chat-title">
-            {/* The pixel set's dithered roof strip and capsule over the chat's head (shared with the modals). */}
-            <header className="desktop-window-titlebar mate-window-titlebar-static connection-chat-head">
+            {/* P1 「픽셀 대화 기록」 (2026-11-28): the dithered roof and capsule, her mini profile (face, the call's green dot,
+                「통화 중 · 함께 N분」 from the call timer, 「입력 중」 while her reply is on its way) and a still close X. */}
+            <header className="connection-chat-head">
               <PixelRoofStrip />
-              <div className="desktop-window-title-left">
-                <h2 id="connection-chat-title">{withParticle(mate.name, '과', '와')} 대화</h2>
+              <span className="connection-chat-avatar" aria-hidden="true">
+                {mateFace ? <img src={mateFace} width={36} height={36} alt="" draggable={false} /> : <Icon name="user" size={18} />}
+                <span className="connection-chat-status-dot" />
+              </span>
+              <div className="connection-chat-who">
+                <h2 id="connection-chat-title">{mate.name}<span className="sr-only">{withParticle(mate.name, '과', '와').slice(mate.name.length)} 대화</span></h2>
+                <p className="connection-chat-status">
+                  {replyOnItsWay
+                    ? <><span className="connection-chat-typing" aria-hidden="true"><span /><span /><span /></span>입력 중</>
+                    : `통화 중 · ${callMinutes < 1 ? '방금 시작' : `함께 ${callMinutes}분`}`}
+                </p>
               </div>
-              <div className="desktop-window-title-right">
-                <Button variant="ghost" size="sm" onClick={() => setChatOpen(false)} aria-label="대화창 닫기" className="connection-chat-close">
-                  <Icon name="close" size={16} />
-                </Button>
-              </div>
+              <CloseButton onClick={() => setChatOpen(false)} label="채팅 닫기" className="connection-chat-close" />
             </header>
             <div className="connection-log-wrap">
             <div
               ref={messageList}
               className="connection-messages"
+              data-empty={chatEmpty || undefined}
               role="log"
               aria-label={`${withParticle(mate.name, '과', '와')} 대화`}
               aria-live="polite"
@@ -1062,11 +1101,31 @@ export default function ConnectionPage() {
               }}
             >
               <ChatHistoryStatus room={chat.room} onRetry={chat.retry} />
+              {/* Nothing said yet: one short line and the first words (the quick replies, moved up from the composer). */}
+              {chatEmpty && (
+                <div className="connection-chat-empty">
+                  <span className="connection-chat-empty-art" aria-hidden="true">
+                    <PixelImage name="capsule" scale={3} />
+                    <PixelImage name="spark" className="connection-chat-empty-star" />
+                    <PixelImage name="snowDotLilac" className="connection-chat-empty-star" />
+                    <PixelImage name="spark" scale={1} className="connection-chat-empty-star" />
+                  </span>
+                  <p className="connection-chat-empty-text">{mate.name}에게 먼저 말 걸어 볼까요?</p>
+                  <div className="connection-chat-starters" role="group" aria-label="첫마디">
+                    {QUICK_REPLIES.map(text => (
+                      <button key={text} type="button" disabled={sending || speaking || finishing} onClick={() => { void send(text, 'QUICK') }}>{text}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <ChatLogGroups
                 lines={messages}
                 mateName={mate.name}
-                mateFace={mateAvatar(mate.id, mate.image)}
+                mateFace={mateFace}
                 userName={state.profile.name}
+                now={now}
+                notes={showAffinity ? callNotes : undefined}
+                renderNote={note => <StageUpLine stage={note.stage} stageName={note.stageName} unlocked={note.unlocked} world={mateFeatures.world} mateId={mate.id} mateName={mate.name} />}
                 typing={sending && messages.at(-1)?.sender !== 'character'}
                 renderText={message => (
                   message.sender === 'character' && message.requestId && chat.room.reported.has(message.requestId) ? (
@@ -1124,7 +1183,7 @@ export default function ConnectionPage() {
               sendDisabled={sending || speaking || finishing}
               waiting={sending}
               hint
-              quickReplies={QUICK_REPLIES}
+              quickReplies={chatEmpty ? undefined : QUICK_REPLIES}
               onQuickReply={(text) => { void send(text, 'QUICK') }}
               // The same 누르고 말하기 as the dock's button (one press at a time, usePushToTalk).
               talk={{

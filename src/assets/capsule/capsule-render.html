@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Capsule still render</title>
+<style>
+  html, body { margin: 0; background: #14111f; color: #ddd; font: 12px system-ui, sans-serif; }
+  body { display: grid; gap: 12px; padding: 12px; justify-items: start; }
+  /* The matte result over a checkerboard and over the page colour, to judge the edges. */
+  .preview { display: flex; gap: 12px; }
+  .preview canvas { display: block; background: repeating-conic-gradient(#2a2733 0 25%, #1c1a24 0 50%) 0 0 / 16px 16px; }
+  .preview canvas + canvas { background: #f4f1ff; }
+  #gl { position: absolute; left: -9999px; }
+</style>
+</head>
+<body>
+<!--
+  Source of the capsule stills (src/assets/capsule/*.webp). The canonical capsule of src/shared/three/capsule-model.ts —
+  the same lathe, glass shell, inner light and halo as 내 메이트 — rendered once and kept as transparent WebP for
+  screens that only need a picture. See README.md in this folder for the queries and the render script.
+-->
+<div class="preview"><canvas id="out"></canvas><canvas id="light"></canvas></div>
+<canvas id="gl"></canvas>
+<script type="module">
+import { AdditiveBlending, AmbientLight, Box3, CanvasTexture, Color, DirectionalLight, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, SphereGeometry, Sprite, SpriteMaterial, TorusGeometry, Group, NoToneMapping, PerspectiveCamera, Scene, SRGBColorSpace, Vector3, WebGLRenderer } from 'three'
+import { BRAND_CAPSULE_COLORS, CAPSULE_SEAM_X, CAPSULE_ASPECT, createCapsuleFigure } from '/src/shared/three/capsule-model.ts'
+
+const params = new URLSearchParams(location.search)
+const number = (key, fallback) => (params.has(key) ? Number(params.get(key)) : fallback)
+const state = params.get('state') ?? 'filled'
+const width = number('w', 480)
+const height = number('h', 480)
+/** Axis direction on screen: 0 = lying with the tinted half to the right, 90 = upright with the tinted half on top. */
+const roll = number('roll', 90)
+/** Turn of the axis toward the viewer (degrees) and the view from above (degrees). */
+const yaw = number('yaw', 0)
+const pitch = number('pitch', 0)
+/** Capsule length as a share of the shorter canvas side, the light (1 = normal) and the colour kept (1 = as given). */
+const fill = number('fill', 0.78)
+const glow = number('glow', 1)
+const saturation = number('sat', 1)
+/** Open pose amount (state=open). */
+const open = number('open', 1)
+const rewardTime = params.has('rewardTime') ? number('rewardTime', 0) : null
+const rewardDecor = params.has('rewardDecor')
+
+const glCanvas = document.getElementById('gl')
+glCanvas.width = width
+glCanvas.height = height
+const renderer = new WebGLRenderer({ canvas: glCanvas, antialias: true, alpha: false, preserveDrawingBuffer: true })
+renderer.setPixelRatio(1)
+renderer.setSize(width, height, false)
+renderer.outputColorSpace = SRGBColorSpace
+renderer.toneMapping = NoToneMapping
+
+const scene = new Scene()
+const camera = new PerspectiveCamera(22, width / height, 0.1, 100)
+camera.position.set(0, 0, 10)
+camera.lookAt(0, 0, 0)
+// Length that spans `fill` of the shorter side at the capsule's distance.
+const viewHeight = 2 * Math.tan((camera.fov * Math.PI) / 360) * 10
+const length = fill * Math.min(viewHeight, viewHeight * camera.aspect)
+
+const figure = createCapsuleFigure({ state, length, colors: BRAND_CAPSULE_COLORS, saturation })
+figure.setGlow(glow)
+figure.setOpen(rewardTime === null ? open : Math.min(1, rewardTime * 2))
+figure.setTime(0, 0)
+const holder = figure.group
+// Turn order: around the view axis (roll), then toward the viewer (yaw), then the whole view from above (pitch).
+holder.rotation.order = 'XYZ'
+holder.rotation.set((pitch * Math.PI) / 180, (yaw * Math.PI) / 180, (roll * Math.PI) / 180)
+scene.add(holder)
+// Centre what is drawn (the open pose leans its lifted half to one side).
+holder.updateMatrixWorld(true)
+const centre = new Box3().setFromObject(holder).getCenter(new Vector3())
+holder.position.set(-centre.x, -centre.y, 0)
+if (rewardDecor) {
+  // Let the four-point star keep its shape instead of disappearing in a white core hotspot.
+  for (const child of holder.children) if (child.renderOrder === 2 && child.material?.uniforms?.uStrength) child.material.uniforms.uStrength.value *= 0.32
+  scene.add(new AmbientLight('#b9a4f0', 1.2))
+  const key = new DirectionalLight('#fff3da', 3); key.position.set(-3, 4, 5); scene.add(key)
+  const ring = new Mesh(new TorusGeometry(length * CAPSULE_ASPECT / 2 + 0.018, length * 0.017, 12, 64), new MeshPhysicalMaterial({color:'#ddb56b',metalness:.65,roughness:.23,clearcoat:1}))
+  ring.rotation.y = Math.PI / 2; ring.position.x = CAPSULE_SEAM_X * length; holder.add(ring)
+  const texture = (star) => {
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 128
+    const ctx = canvas.getContext('2d'); const glow = ctx.createRadialGradient(64,64,0,64,64,64)
+    glow.addColorStop(0,star?'#fff9e8':'#ae7dff');glow.addColorStop(.15,star?'#ffe8ae':'#9464f0');glow.addColorStop(1,'#00000000')
+    ctx.fillStyle=glow;ctx.fillRect(0,0,128,128)
+    if(star){ctx.fillStyle='#fff9e8';ctx.beginPath();for(let i=0;i<8;i++){const a=i*Math.PI/4-Math.PI/2,r=i%2?10:43;const x=64+Math.cos(a)*r,y=64+Math.sin(a)*r;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.closePath();ctx.fill()}
+    return new CanvasTexture(canvas)
+  }
+  const starTexture=texture(true),glowTexture=texture(false)
+  const sprite=(map,x,y,size,opacity=1)=>{const mesh=new Sprite(new SpriteMaterial({map,transparent:true,opacity,depthTest:false,blending:AdditiveBlending}));mesh.position.set(x,y,1);mesh.scale.set(size,size,1);mesh.renderOrder=6;scene.add(mesh);return mesh}
+  const progress=rewardTime??0
+  sprite(starTexture,-.08,.03,length*.18,.7-progress*.45)
+  for(let i=0;i<5;i++){const angle=i*2.4;const x=Math.cos(angle)*length*.33,y=Math.sin(angle)*length*.38; sprite(starTexture,x,y,length*(i%2?.085:.12),.75)}
+  const floor=sprite(glowTexture,0,-length*.43,length*.62,.7);floor.scale.y=length*.12
+}
+if (rewardTime !== null) {
+  const particles = new Group()
+  for (let i = 0; i < 14; i++) {
+    const p = Math.max(0, (rewardTime - 0.18) / 0.82)
+    const sparkle = i % 3 === 0
+    const mesh = new Mesh(new SphereGeometry(sparkle ? 0.025 : 0.055, 12, 8), new MeshBasicMaterial({ color: sparkle ? '#f5f1ff' : '#ae7dff', transparent: true, opacity: Math.sin(p * Math.PI) }))
+    const angle = i * 2.39996
+    mesh.position.set(Math.cos(angle) * p * 0.8, 0.1 + p * (0.7 + (i % 4) * 0.22), Math.sin(angle) * p * 0.2 + 0.3)
+    if (sparkle) mesh.scale.set(0.45, 2.8, 0.45)
+    particles.add(mesh)
+  }
+  scene.add(particles)
+}
+
+/** One frame on a flat background, read back top row first. */
+function frame(background) {
+  renderer.setClearColor(new Color(background), 1)
+  renderer.render(scene, camera)
+  const gl = renderer.getContext()
+  const pixels = new Uint8Array(width * height * 4)
+  gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+  const flipped = new Uint8Array(pixels.length)
+  const row = width * 4
+  for (let y = 0; y < height; y++) flipped.set(pixels.subarray(y * row, (y + 1) * row), (height - 1 - y) * row)
+  return flipped
+}
+
+// Matte: what covers the background (black vs white frame) plus the light itself (its brightest channel over black).
+const black = frame('#000000')
+const white = frame('#ffffff')
+const out = document.getElementById('out')
+out.width = width
+out.height = height
+const context = out.getContext('2d')
+const image = context.createImageData(width, height)
+for (let index = 0; index < black.length; index += 4) {
+  const cover = 1 - ((white[index] - black[index]) + (white[index + 1] - black[index + 1]) + (white[index + 2] - black[index + 2])) / (3 * 255)
+  const light = Math.max(black[index], black[index + 1], black[index + 2]) / 255
+  const alpha = Math.min(1, Math.max(cover, light))
+  if (alpha < 1 / 255) continue
+  for (let channel = 0; channel < 3; channel++) image.data[index + channel] = Math.min(255, Math.round(black[index + channel] / alpha))
+  image.data[index + 3] = Math.round(alpha * 255)
+}
+context.putImageData(image, 0, 0)
+const light = document.getElementById('light')
+light.width = width
+light.height = height
+light.getContext('2d').putImageData(image, 0, 0)
+
+window.__capsuleStill = { webp: out.toDataURL('image/webp', number('quality', 0.92)), width, height }
+document.title = 'ready'
+figure.dispose()
+renderer.dispose()
+</script>
+</body>
+</html>

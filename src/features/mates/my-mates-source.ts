@@ -1,7 +1,7 @@
 import { mergeMyMates, type MyMateConnection, type MyMateView } from '../backend/records-adapters.ts'
 import type { AvailableMate } from './catalog.ts'
 import { frontMateOf } from './connected-mate.ts'
-import { CAPSULE_COUNT, capsulesForConnection } from './capsule-jar/capsule-floor-layout.ts'
+import { CAPSULE_COUNT, capsulesForConnection, leavesCapsules } from './capsule-jar/capsule-floor-layout.ts'
 import type { CapsuleRecord } from './capsule-jar/capsule-jar-types.ts'
 
 /** 37 내 메이트 → the my-mates page (use-my-mates.ts reads it). Pure, so the tests import it directly. */
@@ -19,9 +19,11 @@ export function myMatesByLaunchMate(views: readonly MyMateView[], mates: readonl
 /**
  * 37 `recent[]` as the capsule jar's capsules, oldest first (it stacks them in time order). The start is the server's
  * when sent (`startedAt`, requested), else estimated as the end minus the connected time (cut-off time is not in it).
+ * A connection under a minute (「0분」, e.g. a start cancelled at once) leaves no capsule and is left out.
  */
 export function capsulesFromConnections(connections: readonly MyMateConnection[]): CapsuleRecord[] {
   return connections
+    .filter(connection => leavesCapsules(connection.connectedSeconds))
     .map(connection => ({
       id: connection.connectionId,
       startedAt: connection.startedAt ?? connection.endedAt - connection.connectedSeconds * 1000,

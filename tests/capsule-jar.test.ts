@@ -155,7 +155,13 @@ test('a connection becomes a bundle: one capsule per 10 minutes, 3 to 18', () =>
     [5, 30, 60, 75, 120, 180, 400].map((minutes) => capsulesForConnection(minutes * 60)),
     [3, 3, 6, 8, 12, 18, 18],
   )
-  assert.deepEqual(CAPSULE_COUNT, { minutesPerCapsule: 10, min: 3, max: 18 })
+  assert.deepEqual(CAPSULE_COUNT, { minSeconds: 60, minutesPerCapsule: 10, min: 3, max: 18 })
+})
+
+test('a connection under a minute (「0분」, e.g. cancelled at once) leaves no capsule', () => {
+  assert.deepEqual([0, 1, 30, 59, 60, 61].map(capsulesForConnection), [0, 0, 0, 0, 3, 3])
+  assert.equal(capsulesForConnection(NaN), 0)
+  assert.equal(capsulesForConnection(-5), 0)
 })
 
 test('pile: bundles by connection, flat in the screen plane, inside the panel and inside one bin each, most beside the mate', () => {
@@ -247,8 +253,8 @@ test('affinity stages: one table of five stage names and conditions', () => {
   assert.equal(affinityStageLabel(3, '친구'), '3단계 · 친구')
   assert.equal(affinityUnlockCondition(4), '4단계 · 친한 친구에서 열려요')
   // A source counting from another base is put on the table by the stage name.
-  assert.deepEqual(normalizeAffinityStage(2, '친구'), { stage: 3, stageName: '친구' })
-  assert.deepEqual(normalizeAffinityStage(7, '새 단계'), { stage: 7, stageName: '새 단계' })
+  assert.deepEqual(normalizeAffinityStage(2, '친구'), { stage: 3, stageName: '친구', nextStageName: '친한 친구' })
+  assert.deepEqual(normalizeAffinityStage(7, '새 단계'), { stage: 7, stageName: '새 단계', nextStageName: null })
   assert.equal(normalizeAffinityStage(undefined, undefined), null)
 })
 

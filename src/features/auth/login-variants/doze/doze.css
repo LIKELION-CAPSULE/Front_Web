@@ -301,13 +301,28 @@
   z-index: 7;
   left: var(--login-stage-corner-x, 28px);
   bottom: var(--login-stage-corner-y, 22px);
+  min-width: var(--login-replay-width, 76px);
+  min-height: 30px;
+  border: 1px solid rgba(250, 250, 253, 0.16);
   border-radius: 999px;
-  background: rgba(15, 14, 23, 0.56);
-  padding: 5px 12px;
+  background: rgba(34, 32, 52, 0.82);
+  padding: 5px 14px;
   backdrop-filter: blur(10px);
-  color: rgba(250, 250, 253, 0.72);
+  color: rgba(250, 250, 253, 0.88);
   font-size: 12px;
   font-weight: 500;
+  line-height: 18px;
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+.doze-replay-btn:hover {
+  color: #fff;
+  background: rgba(48, 45, 72, 0.9);
+  border-color: rgba(250, 250, 253, 0.28);
+}
+.doze-replay-btn:focus-visible {
+  outline: 2px solid #b9a3ff;
+  outline-offset: 2px;
 }
 /* "Tap her" bubble on her chest: a glass pill with a small tail pointing up at her, breathing softly. */
 .doze-call {
@@ -383,20 +398,6 @@
     transform: translateY(-3px) rotate(-6deg);
   }
 }
-.doze-replay-btn {
-  min-width: var(--login-replay-width, 76px);
-  border: 0;
-  cursor: pointer;
-  transition: color 150ms ease, background-color 150ms ease;
-}
-.doze-replay-btn:hover {
-  color: #fff;
-  background: rgba(15, 14, 23, 0.78);
-}
-.doze-replay-btn:focus-visible {
-  outline: 2px solid #b9a3ff;
-  outline-offset: 2px;
-}
 @keyframes doze-fade-in {
   from {
     opacity: 0;
@@ -415,8 +416,10 @@
     mask-image: linear-gradient(180deg, #000 calc(100% - 60px), transparent);
   }
   .doze-replay-btn {
-    left: 14px;
-    bottom: 48px;
+    top: 14px;
+    right: 14px;
+    left: auto;
+    bottom: auto;
   }
 }
 

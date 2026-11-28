@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { useWindupString } from 'windups'
 import { reactionBubbleDurationMs } from '@/features/auth/login-backgrounds/desktop/mate-reactions'
 import { speechPace } from '@/features/session/speech-pace'
+import { StageDialogueBox } from '@/features/mates/components/StageDialogueBox'
 import './mate-dialogue.css'
+import './login-stage-dialogue.css'
 
-/** Length of the `login-dialogue-out` animation in login-variants.css. */
+/** Length of the shared `login-dialogue-out` animation in mate-dialogue.css. */
 const LEAVE_MS = 180
 
 /**
@@ -21,6 +23,7 @@ export function MateDialogue({
   text,
   reducedMotion,
   onDone,
+  appearance = 'rounded',
 }: {
   id: number
   name: string
@@ -28,6 +31,8 @@ export function MateDialogue({
   reducedMotion: boolean
   /** Stable callback; receives this line's `id` once it has left. */
   onDone: (id: number) => void
+  /** Only the login stage shares C1's frame; home keeps the rounded glass. */
+  appearance?: 'rounded' | 'stage'
 }) {
   const [typed, { isFinished }] = useWindupString(text, { pace: speechPace, skipped: reducedMotion })
   const [leaving, setLeaving] = useState(false)
@@ -45,6 +50,24 @@ export function MateDialogue({
     const done = window.setTimeout(() => onDone(id), reducedMotion ? 0 : LEAVE_MS)
     return () => window.clearTimeout(done)
   }, [leaving, reducedMotion, onDone, id])
+
+  if (appearance === 'stage') {
+    return (
+      <StageDialogueBox
+        name={name}
+        passive
+        className="login-stage-dialogue"
+        aria-hidden="true"
+        data-calm="true"
+        data-leaving={leaving || undefined}
+        data-typing={!isFinished || undefined}
+      >
+        {/* The full line reserves the final size so the box does not grow while typing. */}
+        <span className="call-dialogue-measure">{text}</span>
+        <span className="call-dialogue-typed">{typed}</span>
+      </StageDialogueBox>
+    )
+  }
 
   return (
     <div className="login-dialogue" aria-hidden="true" data-leaving={leaving || undefined} data-typing={!isFinished || undefined}>

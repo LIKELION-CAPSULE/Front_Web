@@ -52,6 +52,7 @@ function seedCredits(store: LocalBetaStore, scenario: ReviewScenario) {
   }
   if (scenario.id === 'invite-full') { invitation.invitedCount = 10; invitation.rewardedCredits = 10000; invitation.joinedCount = 0; invitation.canRedeem = false; wallet.invitation = 10000 }
   if (scenario.id === 'invite-empty') { invitation.invitedCount = 0; invitation.rewardedCredits = 0; invitation.joinedCount = 0 }
+  if (scenario.id === 'invite-three') { invitation.invitedCount = 3; invitation.rewardedCredits = 3000; wallet.invitation = 3000 }
   if (scenario.id === 'connection-record-credit-out') { wallet.attendance = 0; wallet.invitation = 0; wallet.entries = [] }
   // The home path, server as it is: today's 1,500 already granted; 「received」 already pressed in this browser.
   if (scenario.id === 'home-attendance-done') {
@@ -199,8 +200,11 @@ export function createReviewTransport(scenario: ReviewScenario, original: typeof
     log(response.status)
     // The call stage of the review is a still image (image-stage.ts), not the dev model bundle.
     if (method === 'POST' && path === '/connections' && response.ok || operation === 'resume' && response.ok) {
-      const wire = await response.json() as { data: { mate?: { id: number; name: string; profileImageUrl?: string | null } } }
+      const wire = await response.json() as { data: { mate?: { id: number; name: string; profileImageUrl?: string | null }; relation?: { stage?: number; stageName?: string | null } } }
       const mate = wire.data.mate
+      // The stage-up preview starts the call at 16 `relation` 2단계 · 아는 사이 (name left out, as 37 sends it), so the
+      // titlebar chip reads 「아는 사이」 and moves to 「친구」 with the heartbeat's stageUp.
+      if (fault === 'stage-up' && wire.data.relation) wire.data.relation = { stage: 2, stageName: null }
       if (mate) {
         const id = LOCAL_MATES.find(value => value.characterId === mate.id)?.mateId ?? 'chaerin'
         const still = mateHeroPortrait(id)

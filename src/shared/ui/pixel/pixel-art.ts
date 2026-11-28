@@ -115,6 +115,12 @@ const SPARK: PixelArt = {
   palette: { a: '#D9D5F1', w: '#FFFFFF' },
 }
 
+/** A pixel heart in the affection pink (the call chat's stage-up line; DESIGN_SYSTEM: 호감도·친밀도 = pink). */
+const HEART: PixelArt = {
+  rows: ['.aa.aa.', 'awaaaaa', 'aaaaaaa', '.aaaaa.', '..aaa..', '...a...'],
+  palette: { a: '#F971B3', w: '#F4A9C9' },
+}
+
 /** One row of the dotted constellation (B3), tiled horizontally: dots every 4 art px, a small cross star now and then. */
 const CONSTELLATION_WIDTH = 80
 const CONSTELLATION_STARS = [20, 62]
@@ -142,6 +148,7 @@ export const PIXEL_ART = {
   star: STAR,
   check: CHECK,
   spark: SPARK,
+  heart: HEART,
   constellation: CONSTELLATION,
 } satisfies Record<string, PixelArt>
 

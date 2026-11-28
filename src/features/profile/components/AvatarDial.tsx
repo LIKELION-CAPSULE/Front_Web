@@ -101,8 +101,19 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   // The previous model fades out and is released before the chosen one mounts; meanwhile the chosen avatar's still
   // stands in (avatar-preview-state.ts). Never two avatars visible; at most two models exist at once.
   const [view, setView] = useState<PreviewView<PreviewEntry>>(() => emptyPreview(current))
+  const [failedPreview, setFailedPreview] = useState<{ key: string; generation: number; retry: () => void } | null>(null)
   const nextView = choosePreview(view, current, reduced)
-  if (nextView !== view) setView(nextView)
+  if (nextView !== view) {
+    setView(nextView)
+    if (failedPreview) setFailedPreview(null)
+  }
+  const previewGeneration = nextView.generation
+  const currentFailed = current
+    && nextView.leaving.length === 0
+    && failedPreview?.key === current.key
+    && failedPreview.generation === previewGeneration
+    ? failedPreview
+    : null
   const previews = mountedPreviews(nextView).map(({ entry, leaving }) => ({ entry: !leaving && current && entry.key === current.key ? current : entry, leaving }))
   const standIn = Boolean(current) && standInVisible(nextView)
   // Waiting for the chosen model: only the light at first, a soft pulse after AVATAR_WAIT_PULSE_MS, and the avatar's
@@ -138,6 +149,21 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
   const hasLive2D = choices.some(avatar => avatar.model?.modelJsonUrl)
   const root = useRef<HTMLFieldSetElement>(null)
   const rail = useRef<HTMLDivElement>(null)
+  const mainRef = useRef<HTMLDivElement>(null)
+  const [arcSize, setArcSize] = useState<{ w: number; h: number } | null>(null)
+  useEffect(() => {
+    const node = mainRef.current
+    if (layout !== 'arc' || !node || typeof ResizeObserver === 'undefined') return
+    const measure = () => {
+      const w = node.clientWidth
+      const h = node.clientHeight
+      if (w > 0 && h > 0) setArcSize(prev => prev && prev.w === w && prev.h === h ? prev : { w, h })
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [layout])
   // Every choice in one row when the row is wide enough (the choice just grows); otherwise a carousel that slides the
   // choice to the centre.
   const [fits, setFits] = useState(true)
@@ -231,13 +257,21 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
             {nextView.leaving.length === 0 && stillFallback && <div key={current.key} className="avatar-picker-still avatar-picker-stand-in" data-out={!standIn || undefined} data-avatar={current.key} aria-hidden="true">
               <AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} />
             </div>}
-            {previews.map(({ entry, leaving }) => <AvatarModelPreview key={entry.key} avatarKey={entry.key} model={entry.model} name={entry.name} leaving={leaving}
+            {previews.map(({ entry, leaving }) => <AvatarModelPreview key={entry.key} avatarKey={entry.key} model={entry.model} leaving={leaving}
               still={leaving ? undefined : <AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} />}
-              onShown={() => setView(previous => previewShown(previous, entry.key))}
-              onFailed={() => setView(previous => previewFailed(previous, entry.key))} />)}
+              onShown={() => {
+                if (leaving) return
+                setFailedPreview(previous => previous?.key === entry.key && previous.generation === previewGeneration ? null : previous)
+                setView(previous => previewShown(previous, entry.key))
+              }}
+              onFailed={retry => {
+                if (leaving) return
+                setFailedPreview({ key: entry.key, generation: previewGeneration, retry })
+                setView(previous => previewFailed(previous, entry.key))
+              }} />)}
           </>
           : <>
-            {previews.map(({ entry }) => <AvatarModelPreview key={entry.key} avatarKey={entry.key} model={entry.model} name={entry.name} leaving />)}
+            {previews.map(({ entry }) => <AvatarModelPreview key={entry.key} avatarKey={entry.key} model={entry.model} leaving />)}
             {!previews.length && <div className="avatar-picker-still" aria-hidden="true"><AvatarPortrait avatar={selected} fallback={<div className="avatar-picker-fallback">{fallback}</div>} /></div>}
           </>}
       </figure>
@@ -250,6 +284,10 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
         </motion.p>
       </AnimatePresence>
       {greeting && <p className="avatar-picker-greeting">{greeting}</p>}
+      {currentFailed && <div className="avatar-picker-model-status" data-failed="true" role="status">
+        <span>움직이는 모습을 불러오지 못했어요.</span>
+        <button type="button" className="avatar-picker-retry" aria-label={`${selectedName} 다시 불러오기`} onClick={() => { setFailedPreview(null); currentFailed.retry() }}>다시 시도</button>
+      </div>}
     </div>
   const credit = hasLive2D && <p className="avatar-picker-credit">{LIVE2D_CREDIT}</p>
 
@@ -265,7 +303,14 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
           <span className="avatar-arc-empty-slot" aria-hidden="true" />
           <p className="avatar-picker-empty" role="status">{EMPTY_AVATARS}</p>
         </div>}
-      <div className="avatar-picker-main">
+      <div
+        ref={mainRef}
+        className="avatar-picker-main"
+        style={arcSize ? {
+          '--arc-stage-w': `${Math.min(arcSize.w, arcSize.h * 0.8)}px`,
+          '--arc-stage-h': `${Math.min(arcSize.h, arcSize.w * 1.25)}px`,
+        } as CSSProperties : undefined}
+      >
         {stage}
         {caption}
         {credit}

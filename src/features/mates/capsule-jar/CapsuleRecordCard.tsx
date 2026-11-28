@@ -165,7 +165,10 @@ export function CapsuleRecordCard({
   }, [capsule.id, phase])
 
   // The mate's colours in this connection's time band (the same tint as its capsules in the pile).
-  const theme = capsuleBandTheme(capsuleJarTheme(mateId ?? 'chaerin'), capsuleBand(capsule))
+  const theme = capsuleBandTheme(
+    capsuleJarTheme(mateId, mateName),
+    capsuleBand(capsule),
+  )
   const themeStyle = {
     '--jar-glow': theme.glow,
     '--jar-light': theme.lightHalf,

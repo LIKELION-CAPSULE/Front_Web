@@ -37,7 +37,7 @@
    The column is as tall as the panel and never scrolls: every block keeps its height and the recent list takes
    what is left (its row count is measured from this room, MateTimeColumn). */
 .mate-game > * { flex: none; }
-.mate-game > .mate-game-recent { display: flex; flex: 1 1 0; min-height: 96px; flex-direction: column; overflow: hidden; }
+.mate-game > .mate-game-recent { display: flex; flex: 1 1 0; min-height: 96px; flex-direction: column; overflow: hidden; container-type: inline-size; }
 .mate-game-inventory-room { flex: 1 1 0; min-height: 0; overflow: hidden; }
 .mate-game-inventory { margin: 0 -10px; padding: 0; list-style: none; }
 .mate-game-inventory > li + li { border-top: 1px solid rgb(255 255 255 / 0.06); }
@@ -64,9 +64,24 @@
 .mate-game-slot-item { display: grid; flex: none; place-items: center; width: 26px; height: 26px; }
 .mate-game-slot-text { display: flex; flex: 1; min-width: 0; align-items: baseline; justify-content: space-between; gap: 8px; }
 .mate-game-slot-date { overflow: hidden; color: var(--color-muted); font-size: 13px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums lining-nums; }
-.mate-game-slot-end { display: inline-flex; flex: none; align-items: baseline; gap: 8px; }
+.mate-game-slot-end { display: inline-flex; flex: none; align-items: baseline; gap: 6px; }
 .mate-game-slot-time { color: var(--color-ink); font-size: 13px; line-height: 18px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums lining-nums; }
 .mate-game-slot-count { color: var(--color-subtle); font-weight: 500; }
+
+/* Keep the date legible when keepsake + NEW tags share the row on tighter columns (drop optional suffixes in order). */
+@container (max-width: 390px) {
+  .mate-game-slot[data-badges='2'] .mate-game-slot-part { display: none; }
+}
+@container (max-width: 340px) {
+  .mate-game-slot[data-badges='2'] .mate-game-slot-weekday { display: none; }
+}
+@container (max-width: 305px) {
+  .mate-game-slot[data-badges='1'] .mate-game-slot-part { display: none; }
+}
+@container (max-width: 295px) {
+  .mate-game-slot[data-badges='2'] .mate-game-slot-count { display: none; }
+  .mate-game-slot[data-badges='1'] .mate-game-slot-weekday { display: none; }
+}
 /* New since the last visit (the newest two): a small violet text tag. */
 .mate-game-new {
   padding: 0 6px;
@@ -89,7 +104,7 @@
   font-weight: 700;
   white-space: nowrap;
 }
-.mate-game-empty { margin: 0; font-size: 13px; line-height: 18px; color: var(--color-subtle); }
+.mate-game-empty-state { height: 100%; padding: 4px 0; }
 
 /* Short windows (1280×720 and the like): tighter blocks so the recent list still gets two or three rows. */
 @media (min-width: 960px) and (max-height: 800px) {
@@ -97,6 +112,7 @@
   .mate-game-block { padding: 10px 16px; }
   .mate-game-total-value { font-size: 22px; line-height: 28px; }
   .mate-game-slot { height: 34px; }
+  .mate-game-empty-state .capsule-empty-state-art { width: 40px; height: 40px; }
 }
 
 /* Narrow screens: the column follows its content; the list gets room for four rows. */
