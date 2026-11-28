@@ -68,9 +68,6 @@
   .avatar-picker-stage[data-waiting] .avatar-picker-halo { animation: avatar-halo-wait 1.2s ease-in-out infinite alternate; }
   /* The previous model leaves quickly before the next one mounts (AVATAR_LEAVE_MS): never two avatars at once. */
   .avatar-picker-model[data-leaving] { opacity: 0; pointer-events: none; transition: opacity 150ms ease-in; }
-  /* The chosen avatar's still while its model loads: soft, under the model, gone as the model fades in. */
-  .avatar-picker-stand-in { opacity: 0.88; animation: avatar-stand-in-in 220ms ease-out backwards; transition: opacity 280ms ease-out; }
-  .avatar-picker-stand-in[data-out] { opacity: 0; }
   /* Failed: one quiet inline line below the avatar name (never covering the silhouette or still). */
   .avatar-picker-model-status[data-failed] {
     display: flex;
@@ -425,10 +422,6 @@
   to { opacity: 0.6; }
 }
 
-@keyframes avatar-stand-in-in {
-  from { opacity: 0; }
-}
 @media (prefers-reduced-motion: reduce) {
-  .avatar-picker-model[data-leaving],
-  .avatar-picker-stand-in { animation: none; transition: none; }
+  .avatar-picker-model[data-leaving] { animation: none; transition: none; }
 }
