@@ -83,10 +83,11 @@ button.mate-world-tile:focus-visible { outline: 2px solid var(--color-focus-ring
   background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-canvas) 55%, transparent));
   pointer-events: none;
 }
+.mate-world-summary { margin: 0 0 14px; color: var(--color-muted); font-size: 15px; line-height: 1.6; word-break: keep-all; }
 .mate-world-facts { display: grid; gap: 12px; margin: 0; }
 .mate-world-facts > div { display: grid; gap: 2px; }
 .mate-world-facts dt { color: var(--color-subtle); font-size: 13px; line-height: 18px; font-weight: 600; }
-.mate-world-facts dd { margin: 0; color: var(--color-ink); font-size: 16px; line-height: 24px; font-weight: 600; }
+.mate-world-facts dd { margin: 0; color: var(--color-ink); font-size: 16px; line-height: 24px; font-weight: 600; word-break: keep-all; }
 .mate-world-quote { font-weight: 500; }
 .mate-world-dialog-note { margin: 0; color: var(--color-muted); font-size: 15px; line-height: 1.6; }
 

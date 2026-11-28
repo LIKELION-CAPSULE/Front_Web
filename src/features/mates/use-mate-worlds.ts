@@ -42,7 +42,7 @@ export function useMateWorldContent({
 }): MateWorldContent[] | null {
   const module = useWorldSamples(enabled && samples)
   if (!import.meta.env.DEV || !enabled || !samples || !module || !mateId || !mateName) return null
-  return module.sampleMateWorlds(mateId, mateName, {
+  return module.sampleMateWorlds(mateId, {
     outfit: mateArtwork(mateId)?.full ?? mateHeroPortrait(mateId, mateImage ?? undefined),
     background: mateArtwork(mateId)?.callBackground.landscape,
   })

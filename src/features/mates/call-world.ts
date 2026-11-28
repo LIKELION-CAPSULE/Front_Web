@@ -1,7 +1,7 @@
 import { worldLabel, type MateWorld } from './mate-worlds.ts'
 
-/** What the call header needs of a world: 「EP.05 채린이네 집」. */
-export type CallWorld = Pick<MateWorld, 'episode' | 'place' | 'placeholder'>
+/** What the call header needs of a world: 「EP.05 하얀 채린의 방」 (its name; 「EP.05 채린의 방」 by its place without one). */
+export type CallWorld = Pick<MateWorld, 'episode' | 'place' | 'placeholder' | 'title'>
 
 /**
  * The world the call is in, for the header chip (2026-11-28). The one place that decides it; null hides the chip.
@@ -11,7 +11,7 @@ export type CallWorld = Pick<MateWorld, 'episode' | 'place' | 'placeholder'>
  *   arrives, pass it here and the header follows.
  * - The call's room picture is NOT a world. Every launch mate uses the same bundled picture (artwork.ts
  *   `sharedCallBackground`, 서도현 included, whose world is a study room); its manifest says 「학생 방 또는 공부 공간」,
- *   the code calls it the classroom, and the dev samples put it on EP.01 학교. None of these is a fixed mapping, and
+ *   the code calls it the classroom, and the dev samples put it on 채린's EP.01 교실 only. None of these is a fixed mapping, and
  *   the server's 16 · 17 `background` code is not tied to a world either, so the background alone shows no chip.
  */
 export function callWorld({ selected }: { selected?: CallWorld | null } = {}): CallWorld | null {
@@ -20,5 +20,5 @@ export function callWorld({ selected }: { selected?: CallWorld | null } = {}): C
   return selected
 }
 
-/** 「EP.05 채린이네 집」 */
+/** 「EP.05 하얀 채린의 방」 */
 export const callWorldLabel = (world: CallWorld) => worldLabel(world, ' ')
