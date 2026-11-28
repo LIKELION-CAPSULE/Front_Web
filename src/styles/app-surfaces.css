@@ -1,4 +1,19 @@
 /* App presentation is isolated from /login, including the desktop comparison. */
+
+/*
+ * Frosted glass (docs/DESIGN_SYSTEM.md): the home speech bubble's and 내 메이트 blocks' material — `panel` 68% →
+ * `canvas` 62% at 135°, 18px backdrop blur, 140% saturation, no outline. Use it only inside
+ * `@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)))` over an opaque `panel` fallback.
+ * The login panel uses these; the older surfaces still write the same values out (my-mates.css, welcome.css).
+ */
+:root {
+  --frosted-glass: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-panel) 68%, transparent),
+    color-mix(in srgb, var(--color-canvas) 62%, transparent)
+  );
+  --frosted-glass-filter: blur(18px) saturate(140%);
+}
 .app-surface { min-height: 100dvh; background: var(--color-canvas); }
 .app-panel { min-width: 0; overflow: hidden; border: 0; border-radius: var(--radius-card); background: var(--color-panel); }
 .app-panel-heading { padding: 28px 28px 0; }

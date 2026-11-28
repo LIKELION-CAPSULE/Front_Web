@@ -44,6 +44,10 @@
     ),
     linear-gradient(90deg, rgba(15, 14, 23, 0) 30%, rgba(15, 14, 23, 0.62) 54%, rgba(15, 14, 23, 0.9) 100%),
     linear-gradient(0deg, rgba(15, 14, 23, 0.55) 0%, rgba(15, 14, 23, 0) 28%);
+  /* Only the lower part of the screen keeps it (2026-11-28 user decision, design D): the glass panel above shows the
+     scene through, while the desk's edge still fades out under the panel instead of ending at its bottom. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 50%, #000 78%);
+  mask-image: linear-gradient(to bottom, transparent 50%, #000 78%);
 }
 
 /* Room behind the stage: blurred and dimmed so the mate and the form read first. */
@@ -153,8 +157,9 @@
 .login-variant-panel-wrap > * {
   pointer-events: auto;
 }
-/* No outline (DESIGN_SYSTEM.md §4.2, UX review 10-1): the panel is a `panel` surface over the page's dark scrim, the
-   same face as the other large groups. */
+/* No outline (DESIGN_SYSTEM.md §4.2, UX review 10-1). Frosted glass over the scene (2026-11-28 user decision: where
+   the panel overlaps the mate, 1100–960px, her hair shows through softly instead of being cut off); an opaque `panel`
+   where backdrop-filter is missing (DESIGN_SYSTEM.md, 반투명 표면 예외). */
 .login-variant-panel {
   position: relative;
   display: flex;
@@ -166,6 +171,13 @@
   border-radius: 20px;
   background: var(--color-panel);
   user-select: text;
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .login-variant-panel {
+    background: var(--frosted-glass);
+    -webkit-backdrop-filter: var(--frosted-glass-filter);
+    backdrop-filter: var(--frosted-glass-filter);
+  }
 }
 
 /* The scroller sits inside the panel so the panel's own outline / shape never scrolls (or fades) with the content.
@@ -294,6 +306,9 @@
   }
   .login-variant-scrim {
     background: linear-gradient(0deg, rgba(15, 14, 23, 0.94) 0%, rgba(15, 14, 23, 0.72) 42%, rgba(15, 14, 23, 0) 64%);
+    /* Stacked: the form sits under the stage on this bottom fade as before (no mask). */
+    -webkit-mask-image: none;
+    mask-image: none;
   }
   .login-variant-bg-media {
     object-position: center 30%;
