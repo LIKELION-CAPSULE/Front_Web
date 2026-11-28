@@ -277,6 +277,27 @@
 .my-mates-skeleton-panel { height: 100%; border-radius: 28px; }
 .my-mates-skeleton-info { display: flex; flex-direction: column; gap: 14px; }
 .my-mates-skeleton-block { flex: none; border-radius: 18px; }
+/* The real blocks' heights (mate-time-column.css · affinity-world-card.css), window by window. 최근 캡슐 takes the rest
+   of the column like the real card (at least 96px; its rows share that room); narrow screens: its four-row room. */
+.my-mates-skeleton-total { height: 108px; }
+.my-mates-skeleton-affinity { height: 120px; }
+.my-mates-skeleton-world { height: 126px; }
+.my-mates-skeleton-recent { flex: 1 1 0; min-height: 96px; }
+/* 「만나러 가기」 (48) and the 「프로필 보기」 row (30). */
+.my-mates-skeleton-actions { grid-template-rows: 48px 30px; align-items: center; }
+@media (min-width: 960px) and (max-height: 800px) {
+  .my-mates-skeleton-info { gap: 8px; }
+  .my-mates-skeleton-total { height: 68px; }
+  .my-mates-skeleton-affinity { height: 100px; }
+  .my-mates-skeleton-world { height: 110px; }
+}
+@media (min-width: 960px) and (max-height: 760px) {
+  .my-mates-skeleton-affinity { height: 74px; }
+  .my-mates-skeleton-world { height: 94px; }
+}
+@media (max-width: 959px) {
+  .my-mates-skeleton-recent { flex: none; height: 227px; }
+}
 .my-mates-skeleton-actions { display: grid; gap: 14px; margin-top: auto; }
 
 /* Narrow screens: the panel (lower), then the column (mate picker first). */
