@@ -31,9 +31,9 @@ test('채린 keeps the logo violet (my-mates colours unchanged)', () => {
     glow: '#B9A3FB',
     rim: '#C4B9F3',
   })
-  // The time-band tints of 채린 are the same as before the palette limit.
+  // Time-band tints of 채린 stay inside her violet identity (dawn keeps clear of 서도현's 230° blue-violet).
   const expected = {
-    dawn: ['#A7AEF8', '#6D77F2', '#979FF7'],
+    dawn: ['#B4A7F8', '#816DF2', '#A697F7'],
     morning: ['#D0C9FB', '#9C8CF6', '#C2B9FA'],
     day: ['#DDD2FC', '#B19AF2', '#D1C4F9'],
     evening: ['#DBB6F9', '#BE79F5', '#D3A6F8'],
@@ -43,6 +43,7 @@ test('채린 keeps the logo violet (my-mates colours unchanged)', () => {
     const theme = capsuleBandTheme(CHAERIN_JAR_THEME, band as keyof typeof expected)
     assert.deepEqual([theme.tintHalf, theme.tintHalfShade, theme.glow], [tint, shade, glow], band)
   }
+  assert.ok(Math.abs(hue(capsuleBandTheme(CHAERIN_JAR_THEME, 'dawn').tintHalfShade)! - 230) >= 15)
 })
 
 test('every other mate stays between blue-violet and pink-violet — never gold, green or a rainbow', () => {

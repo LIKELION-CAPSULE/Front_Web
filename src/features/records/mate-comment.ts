@@ -305,6 +305,8 @@ export function days(count: number) {
   return count >= 1 && count <= 2 ? NATIVE_DAYS[count]! : `${count}일`
 }
 
+export type CommentScope = 'mate' | 'all'
+
 export type CommentContext = PeriodFacts & {
   /** Period with its topic particle: "이번 주는", "이번 달은". */
   periodTopic: string
@@ -312,6 +314,8 @@ export type CommentContext = PeriodFacts & {
   longestDuration: string
   /** Present or past form depending on whether the period is the current one. */
   tense: (present: string, past: string) => string
+  /** 'all' when the page shows all mates' totals while one mate speaks about their own numbers. */
+  scope?: CommentScope
 }
 
 /** A line, optionally with what it speaks about (`none` when it is a plain string). */
@@ -321,6 +325,9 @@ const about = (focus: CommentFocus, text: string): CommentLine => ({ text, focus
 
 /** Night and dawn together are "늦은 시간"; a single band is named. */
 const lateWord = (c: CommentContext) => (c.lateMixed || !c.lateBand ? '늦은 시간' : timeBandLabels[c.lateBand])
+/** Subject prefix when the summary shows every mate's totals so the speaker's own numbers never look contradictory. */
+const withMe = (c: CommentContext) => (c.scope === 'all' ? '나랑 ' : '')
+const withMeTopic = (c: CommentContext) => (c.scope === 'all' ? '나랑은 ' : '')
 export type MateVoice = { id: string; templates: Readonly<Record<MateCommentKind, readonly CommentTemplate[]>> }
 
 /** Default friendly 반말 voice (Chaerin). Other mates can register their own voice with the same kinds. */
@@ -341,21 +348,21 @@ export const chaerinVoice: MateVoice = {
     firstPeriod: [
       (c) =>
         c.sessions >= 2
-          ? about('first', c.tense(`${c.periodWord}에 처음 만났지! 벌써 ${times(c.sessions)}이나 와 줘서 고마워.`, `${c.periodWord}에 처음 만났지! 그때 ${times(c.sessions)}이나 와 줬었어.`))
-          : about('first', c.tense(`${c.periodWord}에 처음 만났지! 와 줘서 고마워. 자주 보자!`, `${c.periodWord}에 처음 만났었지! 그때 와 줘서 고마웠어.`)),
-      (c) => about('first', `우리 ${c.periodWord}부터 시작${c.tense('이네', '이었지')}. ${c.total} 같이 있었어, 출발 좋다!`),
-      (c) => (c.activeDays >= 2 ? about('active', `첫 ${c.period === 'week' ? '주' : '달'}부터 ${days(c.activeDays)}이나 ${c.tense('왔네', '왔었지')}! 이 기세 그대로 가 보자.`) : null),
+          ? about('first', c.tense(`${c.periodWord}에 ${withMe(c)}처음 만났지! 벌써 ${times(c.sessions)}이나 와 줘서 고마워.`, `${c.periodWord}에 ${withMe(c)}처음 만났지! 그때 ${times(c.sessions)}이나 와 줬었어.`))
+          : about('first', c.tense(`${c.periodWord}에 ${withMe(c)}처음 만났지! 와 줘서 고마워. 자주 보자!`, `${c.periodWord}에 ${withMe(c)}처음 만났었지! 그때 와 줘서 고마웠어.`)),
+      (c) => about('first', `우리 ${c.periodWord}부터 시작${c.tense('이네', '이었지')}. ${withMeTopic(c)}${c.total} 같이 있었어, 출발 좋다!`),
+      (c) => (c.activeDays >= 2 ? about('active', `첫 ${c.period === 'week' ? '주' : '달'}부터 ${withMe(c)}${days(c.activeDays)}이나 ${c.tense('왔네', '왔었지')}! 이 기세 그대로 가 보자.`) : null),
     ],
     long: [
-      (c) => about('longest', `${c.longest!.dayLabel}엔 ${c.longestDuration}이나 같이 있었어! 안 힘들었어?`),
-      (c) => about('longest', `${c.periodWord} 제일 길었던 건 ${c.longest!.dayLabel}, ${c.longestDuration}! 진짜 대단했어.`),
-      (c) => (c.longSessions >= 2 ? about('long', `2시간 넘게 같이 있었던 게 ${times(c.longSessions)}이야! 무리하진 마.`) : null),
+      (c) => about('longest', `${c.longest!.dayLabel}엔 ${withMe(c)}${c.longestDuration}이나 같이 있었어! 안 힘들었어?`),
+      (c) => about('longest', `${c.periodWord} ${withMe(c)}제일 길었던 건 ${c.longest!.dayLabel}, ${c.longestDuration}! 진짜 대단했어.`),
+      (c) => (c.longSessions >= 2 ? about('long', `${withMe(c)}2시간 넘게 같이 있었던 게 ${times(c.longSessions)}이야! 무리하진 마.`) : null),
     ],
     steady: [
-      (c) => (c.isCurrent && c.streakDays >= 3 ? about('streak', `벌써 ${c.streakDays}일 연속이야! 매일 보니까 나도 좋다.`) : null),
-      (c) => (c.activeDays === c.elapsedDays ? about('allDays', `${c.periodTopic} 하루도 안 빠졌어! ${days(c.activeDays)} 내내 와 줘서 고마워.`) : null),
-      (c) => (c.activeDays >= 3 ? about('active', `${c.periodWord}만 ${days(c.activeDays)}이나 ${c.tense('왔네', '왔었지')}! 꾸준한 거 진짜 멋있다.`) : null),
-      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, 합쳐서 ${c.total}! 꾸준함은 네가 최고야.`),
+      (c) => (c.isCurrent && c.streakDays >= 3 ? about('streak', `${withMeTopic(c)}벌써 ${c.streakDays}일 연속이야! 매일 보니까 나도 좋다.`) : null),
+      (c) => (c.activeDays === c.elapsedDays ? about('allDays', `${c.periodTopic} ${withMe(c)}하루도 안 빠졌어! ${days(c.activeDays)} 내내 와 줘서 고마워.`) : null),
+      (c) => (c.activeDays >= 3 ? about('active', `${c.periodWord}만 ${withMe(c)}${days(c.activeDays)}이나 ${c.tense('왔네', '왔었지')}! 꾸준한 거 진짜 멋있다.`) : null),
+      (c) => about('active', `${c.periodWord} ${withMeTopic(c)}${times(c.sessions)}, 합쳐서 ${c.total}! 꾸준함은 네가 최고야.`),
     ],
     late: [
       (c) => about('late', `${c.periodWord}엔 주로 ${lateWord(c)}에 만났네. 늦게까지 고생 많았어.`),
@@ -374,20 +381,20 @@ export const chaerinVoice: MateVoice = {
           : null,
     ],
     light: [
-      (c) => (c.sessions === 1 && c.longest ? about('longest', `${c.periodWord}엔 한 번 왔네. ${c.longest.dayLabel}에 ${c.longestDuration} 같이 있었지!`) : null),
-      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, ${c.total} 같이 있었어. 다음엔 조금 더 자주 보자!`),
+      (c) => (c.sessions === 1 && c.longest ? about('longest', `${c.periodWord}엔 ${withMe(c)}한 번 왔네. ${c.longest.dayLabel}에 ${c.longestDuration} 같이 있었지!`) : null),
+      (c) => about('active', `${c.periodWord} ${withMeTopic(c)}${times(c.sessions)}, ${c.total} 같이 있었어. 다음엔 조금 더 자주 보자!`),
       (c) => (c.previousSessions !== null && c.previousSessions > c.sessions ? about('active', `${c.previousWord}보단 적었지만 괜찮아. ${times(c.sessions)}이라도 와 줘서 고마워.`) : null),
     ],
     less: [
       (c) => about('active', `${c.periodTopic} ${c.previousWord}보다 조금 뜸했네. 바빴어? 와 줘서 고마워.`),
-      (c) => `${c.periodWord} ${c.total} 같이 있었어. ${c.previousWord}보단 적어도 괜찮아, 천천히 가자.`,
+      (c) => `${c.periodWord} ${withMeTopic(c)}${c.total} 같이 있었어. ${c.previousWord}보단 적어도 괜찮아, 천천히 가자.`,
     ],
     regular: [
-      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, 합쳐서 ${c.total} 같이 있었어. 수고 많았어!`),
-      (c) => (c.longest ? about('longest', `${c.periodWord} ${days(c.activeDays)} 만났네. 제일 길었던 건 ${c.longest.dayLabel} ${c.longestDuration}!`) : null),
+      (c) => about('active', `${c.periodWord} ${withMeTopic(c)}${times(c.sessions)}, 합쳐서 ${c.total} 같이 있었어. 수고 많았어!`),
+      (c) => (c.longest ? about('longest', `${c.periodWord} ${withMe(c)}${days(c.activeDays)} 만났네. 제일 길었던 건 ${c.longest.dayLabel} ${c.longestDuration}!`) : null),
       (c) =>
         c.dominantBand && c.dominantBand.share >= 0.5
-          ? about('band', `${c.periodWord}엔 주로 ${timeBandLabels[c.dominantBand.band]}에 만났지? ${times(c.sessions)} 와 줘서 고마워.`)
+          ? about('band', `${c.periodWord}엔 주로 ${timeBandLabels[c.dominantBand.band]}에 만났지? ${withMe(c)}${times(c.sessions)} 와 줘서 고마워.`)
           : null,
     ],
   },
@@ -410,17 +417,17 @@ export const dohyunVoice: MateVoice = {
       (c) => `${c.periodWord}엔 아직이네. 자리 비워 둘게.`,
     ],
     firstPeriod: [
-      (c) => about('first', c.tense(`${c.periodWord}부터 같이 했네. ${times(c.sessions)}이면 시작은 괜찮다.`, `${c.periodWord}부터 같이 했었지. 그때 ${times(c.sessions)} 왔었고.`)),
-      (c) => about('first', `처음치고 ${c.total}이면 나쁘지 않네.`),
+      (c) => about('first', c.tense(`${c.periodWord}부터 ${withMe(c)}같이 했네. ${times(c.sessions)}이면 시작은 괜찮다.`, `${c.periodWord}부터 ${withMe(c)}같이 했었지. 그때 ${times(c.sessions)} 왔었고.`)),
+      (c) => about('first', `${withMe(c)}처음치고 ${c.total}이면 나쁘지 않네.`),
     ],
     long: [
-      (c) => about('longest', `${c.longest!.dayLabel}엔 ${c.longestDuration}이나 붙어 있었네. 안 힘들었냐?`),
-      (c) => (c.longSessions >= 2 ? about('long', `2시간 넘긴 게 ${times(c.longSessions)}이야. 쉬면서 해.`) : null),
+      (c) => about('longest', `${c.longest!.dayLabel}엔 ${withMe(c)}${c.longestDuration}이나 붙어 있었네. 안 힘들었냐?`),
+      (c) => (c.longSessions >= 2 ? about('long', `${withMe(c)}2시간 넘긴 게 ${times(c.longSessions)}이야. 쉬면서 해.`) : null),
     ],
     steady: [
-      (c) => (c.isCurrent && c.streakDays >= 3 ? about('streak', `${c.streakDays}일 연속이네. …원래 이 정도는 했잖아.`) : null),
-      (c) => (c.activeDays === c.elapsedDays ? about('allDays', `${c.periodTopic} 하루도 안 빠졌네. 꽤 하는데?`) : null),
-      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, 합쳐서 ${c.total}. 수고했어.`),
+      (c) => (c.isCurrent && c.streakDays >= 3 ? about('streak', `${withMeTopic(c)}${c.streakDays}일 연속이네. …원래 이 정도는 했잖아.`) : null),
+      (c) => (c.activeDays === c.elapsedDays ? about('allDays', `${c.periodTopic} ${withMe(c)}하루도 안 빠졌네. 꽤 하는데?`) : null),
+      (c) => about('active', `${c.periodWord} ${withMeTopic(c)}${times(c.sessions)}, 합쳐서 ${c.total}. 수고했어.`),
     ],
     late: [
       (c) => about('late', `${c.periodWord}엔 거의 ${lateWord(c)}에 왔네. 잠은 자면서 해.`),
@@ -431,16 +438,16 @@ export const dohyunVoice: MateVoice = {
       (c) => (c.previousSessions !== null ? about('active', `${c.previousWord} ${times(c.previousSessions)}, ${c.periodWord} ${times(c.sessions)}. ${c.tense('늘었네.', '그때 늘었지.')}`) : null),
     ],
     light: [
-      (c) => (c.sessions === 1 && c.longest ? about('longest', `${c.periodWord}엔 한 번. ${c.longest.dayLabel}에 ${c.longestDuration} 했지.`) : null),
-      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, ${c.total}. 다음엔 좀 더 와.`),
+      (c) => (c.sessions === 1 && c.longest ? about('longest', `${c.periodWord}엔 ${withMe(c)}한 번. ${c.longest.dayLabel}에 ${c.longestDuration} 했지.`) : null),
+      (c) => about('active', `${c.periodWord} ${withMeTopic(c)}${times(c.sessions)}, ${c.total}. 다음엔 좀 더 와.`),
     ],
     less: [
       (c) => about('active', `${c.periodTopic} ${c.previousWord}보다 뜸했네. 바빴냐?`),
-      (c) => `${c.periodWord} ${c.total}. 적어도 괜찮아, 천천히 해.`,
+      (c) => `${c.periodWord} ${withMeTopic(c)}${c.total}. 적어도 괜찮아, 천천히 해.`,
     ],
     regular: [
-      (c) => about('active', `${c.periodWord} ${times(c.sessions)}, 합쳐서 ${c.total}. 고생했네.`),
-      (c) => (c.longest ? about('longest', `${c.periodWord} 제일 길었던 건 ${c.longest.dayLabel} ${c.longestDuration}. 그날 좀 했지.`) : null),
+      (c) => about('active', `${c.periodWord} ${withMeTopic(c)}${times(c.sessions)}, 합쳐서 ${c.total}. 고생했네.`),
+      (c) => (c.longest ? about('longest', `${c.periodWord} ${withMe(c)}제일 길었던 건 ${c.longest.dayLabel} ${c.longestDuration}. 그날 좀 했지.`) : null),
     ],
   },
 }
@@ -462,13 +469,14 @@ export function seedHash(value: string) {
   return hash >>> 0
 }
 
-export function commentContext(facts: PeriodFacts): CommentContext {
+export function commentContext(facts: PeriodFacts, scope: CommentScope = 'mate'): CommentContext {
   return {
     ...facts,
     periodTopic: withParticle(facts.periodWord, '은', '는'),
     total: duration(facts.totalSeconds),
     longestDuration: facts.longest ? duration(facts.longest.seconds) : '',
     tense: (present, past) => (facts.isCurrent ? present : past),
+    scope,
   }
 }
 
@@ -504,10 +512,13 @@ export function buildMateComment(input: MateCommentInput): MateComment | null {
 }
 
 /** The line for facts already collected (from connections, or from 38's sums: `collectRecordsFacts`). */
-export function mateCommentFromFacts(facts: PeriodFacts, { range, seedKey, voice = chaerinVoice }: Pick<MateCommentInput, 'range' | 'seedKey' | 'voice'>): MateComment | null {
+export function mateCommentFromFacts(
+  facts: PeriodFacts,
+  { range, seedKey, voice = chaerinVoice, scope = 'mate' }: Pick<MateCommentInput, 'range' | 'seedKey' | 'voice'> & { scope?: CommentScope },
+): MateComment | null {
   const kind = classifyPeriod(facts)
   if (!kind) return null
-  const context = commentContext(facts)
+  const context = commentContext(facts, scope)
   const candidates = voice.templates[kind]
     .map((template) => template(context))
     .filter((line): line is CommentLine => Boolean(line))

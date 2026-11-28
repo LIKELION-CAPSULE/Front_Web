@@ -1,0 +1,485 @@
+/*
+ * Call-screen chat panel drafts P1 / P2 / P3 (2026-11-27, review catalog only; ChatPanelPreview.tsx). The stage is the
+ * C1 draft's (call-ui.css) with the product's CallDialogueBox. No outlines: surfaces and spacing separate things.
+ * Violet only for actions and choices (the ready send button, a chosen quick reply) and the focus ring. Gold only on
+ * the credit coin. Pink only on the affinity line (P2, DESIGN_SYSTEM: 호감도). The close X never turns.
+ * Stepped pixel corners are drawn on pseudo-element frames (clip-path), so focus rings are never clipped.
+ * Moving parts animate transform / opacity only; everything stops under reduced motion (call-ui.css + below).
+ */
+@layer components {
+  .cp-root {
+    --cp-steps-8: polygon(
+      0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0, calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px,
+      100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%,
+      8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px)
+    );
+    --cp-steps-4: polygon(
+      0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+      100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+    );
+  }
+  .cp-info-pad { width: 6px; }
+
+  /* ── Shared panel frame ─────────────────────────────────────────────────────────────────────────────── */
+  .cp-panel {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    color: var(--color-ink);
+    animation: cu-chat-in 260ms cubic-bezier(.2, .8, .2, 1) backwards;
+  }
+  .cp-panel h2 { margin: 0; font-size: 15px; font-weight: 700; line-height: 22px; }
+  .cp-log {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 16px 14px 8px;
+  }
+  .cp-log > * { flex: none; }
+  /* A short log sits by the composer (as a messenger), so no hole opens between the last line and the input. */
+  .cp-log > :first-child { margin-top: auto; }
+  .cp-log:focus-visible { outline-offset: -2px; }
+  /* Lines fade under the head as they scroll away (no divider line). */
+  .cp1-log, .cp3-log { mask-image: linear-gradient(180deg, transparent 0, black 14px); }
+  .cp-close {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--color-muted);
+    transition: background-color 140ms ease, color 140ms ease;
+  }
+  .cp-close:hover { background: var(--color-control); color: var(--color-ink); }
+  .cp-hint { margin: 0; padding: 0 4px; color: var(--color-subtle); font-size: 11.5px; line-height: 18px; }
+  .cp-hint kbd { border-radius: 4px; padding: 0 4px; background: var(--color-surface); color: var(--color-muted); font-family: inherit; font-size: 11.5px; }
+  .cp-panel textarea {
+    min-height: 36px;
+    flex: 1;
+    resize: none;
+    border: 0;
+    padding: 7px 4px;
+    background: transparent;
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 14px;
+    line-height: 22px;
+    outline: none;
+  }
+  .cp-panel textarea::placeholder { color: var(--color-placeholder); }
+  .cp-send-icon { transform: rotate(-90deg); }
+  .cp-send-spinner { width: 18px; height: 18px; }
+  .cp-panel :is(p, article) { margin: 0; }
+
+  /* ── P1 「픽셀 대화 기록」: the dialogue box's language in the log (rule widening needed) ───────────────── */
+  .cp1 {
+    --cp1-mate: color-mix(in srgb, var(--color-dialog-roof) 34%, var(--color-surface));
+    --cp1-mine: var(--color-control);
+  }
+  /* The panel itself in the dialogue box's material and corners. */
+  .cp1-frame {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
+    clip-path: var(--cu-steps);
+  }
+  .cp1-head { position: relative; z-index: 2; flex: none; }
+  /* Dithered roof: roof → night → 50 % → 25 % checker, the capsule in the middle (the modal roof, 28px tall). */
+  .cp1-roof {
+    position: relative;
+    display: block;
+    height: 28px;
+    background:
+      linear-gradient(var(--color-dialog-roof) 0 10px, var(--px-night) 10px 18px, transparent 18px) 0 0 / 100% 100% no-repeat,
+      var(--px-dither-50) 0 18px / 4px 4px repeat-x,
+      var(--px-dither-25) 0 22px / 4px 4px repeat-x;
+    clip-path: polygon(0 12px, 4px 12px, 4px 8px, 8px 8px, 8px 4px, 12px 4px, 12px 0, calc(100% - 12px) 0, calc(100% - 12px) 4px, calc(100% - 8px) 4px, calc(100% - 8px) 8px, calc(100% - 4px) 8px, calc(100% - 4px) 12px, 100% 12px, 100% 100%, 0 100%);
+  }
+  .cp1-roof > .px-image { position: absolute; top: 4px; left: 50%; margin-left: -20px; }
+  .cp1-title-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px 8px 18px; }
+  .cp1-title-row > h2 { flex: 1; }
+  .cp1-close { border-radius: 4px; }
+
+  .cp1-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 16px;
+    color: var(--color-muted);
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 20px;
+    font-variant-numeric: tabular-nums;
+  }
+  .cp1-divider::before, .cp1-divider::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-ink) 22%, transparent) 0 2px, transparent 2px 6px);
+  }
+  .cp1-divider > span { position: relative; isolation: isolate; padding: 0 8px; }
+  .cp1-divider > span::before { content: ''; position: absolute; z-index: -1; inset: 0; background: color-mix(in srgb, var(--color-dialog-roof) 48%, var(--color-panel)); clip-path: var(--cp-steps-4); }
+
+  .cp1-group { display: flex; gap: 10px; margin-bottom: 16px; }
+  .cp1-group[data-sender='user'] { flex-direction: row-reverse; }
+  .cp1-face {
+    position: relative;
+    isolation: isolate;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    margin-top: 20px;
+    overflow: hidden;
+    clip-path: var(--cp-steps-4);
+    background: var(--color-control);
+  }
+  .cp1-face > img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+  .cp1-group-body { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .cp1-group[data-sender='user'] .cp1-group-body { align-items: flex-end; }
+  /* Her name tag: the dialogue box's roof tag, small (top corners stepped). */
+  .cp1-name {
+    height: 20px;
+    margin-bottom: 2px;
+    padding: 0 8px;
+    background: var(--color-dialog-roof);
+    clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% 100%, 0 100%);
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 20px;
+  }
+  .cp1-msg { display: flex; max-width: 100%; align-items: flex-end; gap: 6px; }
+  .cp1-group[data-sender='user'] .cp1-msg { flex-direction: row-reverse; }
+  .cp1-bubble {
+    --cp1-fill: var(--cp1-mate);
+    position: relative;
+    isolation: isolate;
+    width: fit-content;
+    max-width: min(100%, 280px);
+    min-width: 0;
+    padding: 9px 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .cp1-group[data-sender='user'] .cp1-bubble { --cp1-fill: var(--cp1-mine); }
+  .cp1-bubble::before { content: ''; position: absolute; z-index: -1; inset: 0; background: var(--cp1-fill); clip-path: var(--cp-steps-8); }
+  /* The pixel tail on a run's first bubble (two steps, pointing to the face / to my side). */
+  .cp1-bubble[data-first]::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: 8px;
+    left: -6px;
+    width: 8px;
+    height: 8px;
+    background: var(--cp1-fill);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 100%, 50% 50%, 0 50%);
+  }
+  .cp1-group[data-sender='user'] .cp1-bubble[data-first]::after { right: -6px; left: auto; clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 50%, 50% 100%, 0 100%); }
+  .cp1-bubble--typing { padding: 12px 16px; color: var(--color-muted); }
+  .cp1-dots { display: inline-flex; align-items: center; gap: 5px; height: 14px; }
+  .cp1-dots > span { width: 6px; height: 6px; background: currentColor; animation: cu-dot 900ms steps(2, jump-none) infinite; }
+  .cp1-dots > span:nth-child(2) { animation-delay: 150ms; }
+  .cp1-dots > span:nth-child(3) { animation-delay: 300ms; }
+  .cp1-time { flex: none; color: var(--color-subtle); font-size: 11px; line-height: 18px; font-variant-numeric: tabular-nums; }
+
+  .cp1-empty { display: flex; margin: auto; flex-direction: column; align-items: center; gap: 6px; padding: 16px; text-align: center; }
+  .cp1-empty-art { margin-bottom: 10px; }
+  .cp1-empty-title { font-size: 15px; font-weight: 700; line-height: 22px; }
+  .cp1-empty-text { color: var(--color-muted); font-size: 13px; line-height: 20px; }
+
+  .cp1-composer { position: relative; z-index: 1; display: grid; flex: none; gap: 8px; padding: 6px 12px 14px; }
+  .cp1-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cp1-quick > button {
+    position: relative;
+    isolation: isolate;
+    height: 30px;
+    padding: 0 12px;
+    color: var(--color-ink);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .cp1-quick > button::before { content: ''; position: absolute; z-index: -1; inset: 0; background: var(--color-surface); clip-path: var(--cp-steps-4); }
+  .cp1-quick > button:hover:not(:disabled, [aria-pressed='true'])::before { background: var(--color-control); }
+  .cp1-quick > button[aria-pressed='true'] { color: var(--color-on-solid); }
+  .cp1-quick > button[aria-pressed='true']::before { background: var(--color-primary); }
+  .cp1-quick > button:disabled:not([aria-pressed='true']) { color: var(--color-text-disabled); }
+  .cp1-input { position: relative; isolation: isolate; display: flex; align-items: flex-end; gap: 4px; padding: 4px; }
+  .cp1-input::before { content: ''; position: absolute; z-index: -1; inset: 0; background: var(--color-canvas); clip-path: var(--cp-steps-8); }
+  /* Focus: a stepped 2px ring inside the frame (the corners' steps stay open, as a pixel ring). */
+  .cp1-input:focus-within::before { box-shadow: inset 0 0 0 2px var(--color-focus-ring); }
+  .cp1-mic, .cp1-send { position: relative; isolation: isolate; display: grid; width: 36px; height: 36px; flex: none; place-items: center; }
+  .cp1-mic { color: var(--color-muted); }
+  .cp1-mic:hover:not(:disabled) { color: var(--color-ink); }
+  .cp1-mic:disabled { color: var(--color-text-disabled); }
+  .cp1-send::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--cp-steps-4); }
+  .cp1-send[data-state='ready'] { color: var(--color-on-solid); }
+  .cp1-send[data-state='ready']::before { background: var(--color-primary); }
+  .cp1-send[data-state='ready']:hover::before { background: var(--color-primary-hover); }
+  .cp1-send[data-state='disabled'] { color: var(--color-text-disabled); }
+  .cp1-send[data-state='disabled']::before { background: var(--color-disabled); }
+  .cp1-send[data-state='sending'] { color: var(--color-text-accent); }
+  .cp1-send[data-state='sending']::before { background: var(--color-primary-soft); }
+
+  /* ── P2 「무드 패널」: the room's light behind the panel ──────────────────────────────────────────────── */
+  .cp2 { overflow: hidden; border-radius: 20px; background: var(--color-canvas); }
+  .cp2-mood { position: absolute; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; }
+  /* The room picture's right side (what lies past the stage's edge), blurred into light. */
+  .cp2-mood > img {
+    position: absolute;
+    inset: -48px;
+    width: calc(100% + 96px);
+    max-width: none;
+    height: calc(100% + 96px);
+    object-fit: cover;
+    object-position: 100% 50%;
+    filter: blur(24px) saturate(150%) brightness(0.95);
+  }
+  .cp2-mood::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(120% 55% at 100% 0%, rgb(150 109 252 / 22%) 0%, transparent 70%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-canvas) 30%, transparent) 0%, color-mix(in srgb, var(--color-canvas) 52%, transparent) 45%, color-mix(in srgb, var(--color-canvas) 86%, transparent) 100%);
+  }
+  .cp2-head { position: relative; z-index: 2; display: flex; flex: none; align-items: center; justify-content: space-between; padding: 28px 10px 6px 18px; }
+  .cp2-log {
+    padding-top: 12px;
+    mask-image: linear-gradient(180deg, transparent 0, black 18px, black calc(100% - 8px), transparent);
+  }
+  .cp2-divider { align-self: center; margin: 4px 0 14px; color: var(--color-muted); font-size: 11.5px; font-weight: 600; line-height: 18px; font-variant-numeric: tabular-nums; }
+  .cp2-system {
+    display: inline-flex;
+    align-self: center;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 16px;
+    border-radius: 999px;
+    padding: 5px 12px;
+    background: color-mix(in srgb, var(--color-canvas) 64%, transparent);
+    backdrop-filter: blur(12px) saturate(140%);
+    color: var(--color-muted);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+  }
+  .cp2-system[data-kind='affinity'] { color: var(--color-affection-text); }
+  .cp2-system[data-kind='affinity'] .cp2-system-icon { color: var(--color-affection); }
+  .cp2-system[data-kind='time'] .cp2-system-icon { color: var(--color-subtle); }
+
+  .cp2-group { display: flex; gap: 8px; margin-bottom: 16px; }
+  .cp2-group[data-sender='user'] { flex-direction: row-reverse; }
+  .cp2-face { width: 32px; height: 32px; flex: none; margin-top: 22px; border-radius: 50%; background: var(--color-control); object-fit: cover; object-position: center top; }
+  .cp2-group-body { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; gap: 3px; }
+  .cp2-group[data-sender='user'] .cp2-group-body { align-items: flex-end; }
+  .cp2-name { margin-bottom: 2px; color: var(--color-muted); font-size: 12px; font-weight: 600; line-height: 18px; }
+  .cp2-msg { display: flex; max-width: 100%; align-items: flex-end; gap: 6px; transform-origin: 0 100%; }
+  .cp2-group[data-sender='user'] .cp2-msg { flex-direction: row-reverse; transform-origin: 100% 100%; }
+  .cp2-bubble {
+    width: fit-content;
+    max-width: min(100%, 280px);
+    min-width: 0;
+    border-radius: 6px 18px 18px 6px;
+    padding: 9px 14px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-panel) 80%, transparent) 0%, color-mix(in srgb, var(--color-canvas) 72%, transparent) 100%);
+    backdrop-filter: blur(16px) saturate(140%);
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .cp2-msg[data-first] .cp2-bubble { border-top-left-radius: 18px; }
+  .cp2-msg[data-last] .cp2-bubble { border-bottom-left-radius: 18px; }
+  .cp2-group[data-sender='user'] .cp2-bubble { border-radius: 18px 6px 6px 18px; background: color-mix(in srgb, var(--color-control) 84%, transparent); }
+  .cp2-group[data-sender='user'] .cp2-msg[data-first] .cp2-bubble { border-top-right-radius: 18px; }
+  .cp2-group[data-sender='user'] .cp2-msg[data-last] .cp2-bubble { border-bottom-right-radius: 18px; }
+  .cp2-bubble--typing { border-radius: 18px; padding: 6px 14px; }
+  .cp2-time { flex: none; color: var(--color-muted); font-size: 11px; line-height: 18px; font-variant-numeric: tabular-nums; opacity: 0; transition: opacity 120ms ease; }
+  .cp2-msg:is(:hover, :focus-within) .cp2-time { opacity: 1; }
+
+  .cp2-empty { display: flex; margin: auto; flex-direction: column; align-items: center; gap: 6px; padding: 8px 6px 16px; text-align: center; }
+  .cp2-empty-art { position: relative; display: grid; width: 176px; height: 112px; margin-bottom: 8px; place-items: center; }
+  .cp2-empty-art::before { content: ''; position: absolute; inset: 8px 24px; border-radius: 50%; background: radial-gradient(closest-side, rgb(255 255 255 / 12%), transparent); }
+  .cp2-capsule { position: relative; }
+  .cp2-star { position: absolute; opacity: 0.7; }
+  .cp2-empty-title { font-size: 16px; font-weight: 700; line-height: 24px; }
+  .cp2-empty-text { color: var(--color-muted); font-size: 13px; line-height: 20px; }
+  .cp2-starters { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
+
+  .cp2-composer { position: relative; z-index: 2; display: grid; flex: none; gap: 8px; padding: 4px 12px 14px; }
+  .cp2-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cp2-quick > button, .cp2-starters > button {
+    height: 32px;
+    border-radius: 999px;
+    padding: 0 13px;
+    background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+    backdrop-filter: blur(14px) saturate(140%);
+    color: var(--color-ink);
+    font-size: 13px;
+    font-weight: 600;
+    transition: background-color 140ms ease;
+  }
+  .cp2-starters > button { height: 36px; padding: 0 16px; font-size: 13.5px; }
+  .cp2-quick > button:hover:not(:disabled, [aria-pressed='true']), .cp2-starters > button:hover:not(:disabled, [aria-pressed='true']) { background: var(--color-control); }
+  .cp2-quick > button[aria-pressed='true'], .cp2-starters > button[aria-pressed='true'] { background: var(--color-primary); color: var(--color-on-solid); }
+  .cp2-quick > button:disabled:not([aria-pressed='true']), .cp2-starters > button:disabled:not([aria-pressed='true']) { color: var(--color-text-disabled); }
+  .cp2-input {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    border-radius: 18px;
+    padding: 4px;
+    background: color-mix(in srgb, var(--color-canvas) 84%, transparent);
+    backdrop-filter: blur(16px) saturate(140%);
+  }
+  .cp2-input:focus-within { box-shadow: 0 0 0 2px var(--color-focus-ring); }
+  .cp2-mic, .cp2-send { display: grid; width: 36px; height: 36px; flex: none; place-items: center; border-radius: 50%; }
+  .cp2-mic { color: var(--color-muted); }
+  .cp2-mic:hover:not(:disabled) { background: var(--color-control); color: var(--color-ink); }
+  .cp2-mic:disabled { color: var(--color-text-disabled); }
+  .cp2-send[data-state='ready'], .cp3-send[data-state='ready'] { background: var(--color-primary); color: var(--color-on-solid); }
+  .cp2-send[data-state='ready']:hover, .cp3-send[data-state='ready']:hover { background: var(--color-primary-hover); }
+  .cp2-send[data-state='disabled'] { background: var(--color-disabled); color: var(--color-text-disabled); }
+  .cp2-send[data-state='sending'], .cp3-send[data-state='sending'] { background: var(--color-primary-soft); color: var(--color-text-accent); }
+  .cp2-hint { color: var(--color-muted); }
+
+  /* ── P3 「메신저형 정돈」 ─────────────────────────────────────────────────────────────────────────────── */
+  .cp3 { overflow: hidden; border-radius: 16px; background: var(--color-panel); }
+  .cp3-head { position: relative; z-index: 2; display: flex; flex: none; align-items: center; gap: 10px; padding: 26px 10px 10px 14px; }
+  .cp3-head > :not(.px-roof-strip) { position: relative; z-index: 1; }
+  .cp3-avatar { position: relative; width: 36px; height: 36px; flex: none; }
+  .cp3-avatar > img { width: 36px; height: 36px; border-radius: 50%; background: var(--color-control); object-fit: cover; object-position: center top; }
+  /* The status dot: green while the call is on (its ring is the panel's colour: a cut-out, not an outline). */
+  .cp3-status-dot { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 50%; background: var(--color-success); box-shadow: 0 0 0 2px var(--color-panel); }
+  .cp3-who { display: grid; min-width: 0; flex: 1; }
+  .cp3-who > h2 { line-height: 20px; }
+  .cp3-status { display: flex; align-items: center; gap: 6px; color: var(--color-muted); font-size: 12px; line-height: 18px; white-space: nowrap; }
+  .cp3-status-typing { display: inline-flex; gap: 3px; color: var(--color-success); }
+  .cp3-status-typing > span { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: cu-dot 900ms steps(2, jump-none) infinite; }
+  .cp3-status-typing > span:nth-child(2) { animation-delay: 150ms; }
+  .cp3-status-typing > span:nth-child(3) { animation-delay: 300ms; }
+
+  .cp3-log { padding-top: 8px; }
+  .cp3-divider { align-self: center; margin: 6px 0 14px; }
+  .cp3-divider > span { display: block; border-radius: 999px; padding: 2px 10px; background: var(--color-control-active); color: var(--color-muted); font-size: 11.5px; font-weight: 600; line-height: 18px; font-variant-numeric: tabular-nums; }
+  .cp3-group { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 14px; }
+  .cp3-group[data-sender='user'] { flex-direction: row-reverse; }
+  /* Her face at the bottom of the run (next to its last line), as a messenger does. */
+  .cp3-face { width: 28px; height: 28px; flex: none; margin-bottom: 2px; border-radius: 50%; background: var(--color-control); object-fit: cover; object-position: center top; }
+  .cp3-group-body { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; gap: 2px; }
+  .cp3-group[data-sender='user'] .cp3-group-body { align-items: flex-end; }
+  .cp3-name { margin: 0 0 2px 2px; color: var(--color-subtle); font-size: 12px; font-weight: 600; line-height: 18px; }
+  .cp3-msg { display: flex; width: 100%; align-items: flex-end; gap: 6px; }
+  .cp3-group[data-sender='user'] .cp3-msg { flex-direction: row-reverse; }
+  .cp3-bubble {
+    width: fit-content;
+    max-width: min(calc(100% - 52px), 260px);
+    min-width: 0;
+    border-radius: 4px 16px 16px 4px;
+    padding: 8px 13px;
+    background: var(--color-surface);
+    font-size: 14px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .cp3-msg[data-first] .cp3-bubble { border-top-left-radius: 16px; }
+  .cp3-msg[data-last] .cp3-bubble { border-bottom-left-radius: 16px; }
+  .cp3-group[data-sender='user'] .cp3-bubble { border-radius: 16px 4px 4px 16px; background: var(--color-control); }
+  .cp3-group[data-sender='user'] .cp3-msg[data-first] .cp3-bubble { border-top-right-radius: 16px; }
+  .cp3-group[data-sender='user'] .cp3-msg[data-last] .cp3-bubble { border-bottom-right-radius: 16px; }
+  .cp3-bubble--typing { border-radius: 16px; padding: 6px 13px; }
+  .cp3-meta { display: grid; flex: none; color: var(--color-subtle); font-size: 11px; line-height: 15px; white-space: nowrap; }
+  .cp3-group[data-sender='user'] .cp3-meta { justify-items: end; }
+  .cp3-read { color: var(--color-subtle); font-weight: 600; }
+  .cp3-read[data-read] { color: var(--color-muted); }
+
+  .cp3-empty { display: flex; margin: auto; flex-direction: column; align-items: center; gap: 4px; padding: 16px; text-align: center; }
+  .cp3-empty-face { width: 56px; height: 56px; margin-bottom: 8px; border-radius: 50%; background: var(--color-control); object-fit: cover; object-position: center top; }
+  .cp3-empty-title { font-size: 15px; font-weight: 700; line-height: 22px; }
+  .cp3-empty-text { color: var(--color-muted); font-size: 13px; line-height: 20px; }
+
+  .cp3-composer { position: relative; z-index: 2; display: grid; flex: none; gap: 8px; padding: 4px 12px 12px; }
+  /* Quick replies: one row that scrolls sideways (wheel, trackpad, Tab), fading at the right edge. */
+  .cp3-quick {
+    display: flex;
+    gap: 6px;
+    margin: 0 -12px;
+    overflow-x: auto;
+    padding: 2px 12px;
+    scrollbar-width: none;
+    mask-image: linear-gradient(90deg, transparent 0, black 12px, black calc(100% - 32px), transparent);
+  }
+  .cp3-quick::-webkit-scrollbar { display: none; }
+  .cp3-quick > button {
+    height: 32px;
+    flex: none;
+    border-radius: 999px;
+    padding: 0 12px;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background-color 140ms ease;
+  }
+  .cp3-quick > button:hover:not(:disabled, [aria-pressed='true']) { background: var(--color-control); }
+  .cp3-quick > button[aria-pressed='true'] { background: var(--color-primary); color: var(--color-on-solid); }
+  .cp3-quick > button:disabled:not([aria-pressed='true']) { color: var(--color-text-disabled); }
+  .cp3-quick > button:focus-visible { outline-offset: -2px; }
+  .cp3-input { display: flex; align-items: flex-end; gap: 6px; }
+  .cp3-input > textarea { border-radius: 20px; padding: 9px 14px; background: var(--color-canvas); min-height: 40px; }
+  .cp3-input > textarea:focus-visible { box-shadow: 0 0 0 2px var(--color-focus-ring); }
+  .cp3-mic, .cp3-send { display: grid; width: 40px; height: 40px; flex: none; place-items: center; border-radius: 50%; }
+  .cp3-mic { color: var(--color-muted); }
+  .cp3-mic:hover:not(:disabled) { background: var(--color-control); color: var(--color-ink); }
+  .cp3-mic:disabled { color: var(--color-text-disabled); }
+  /* The send button stands out: always a full circle, violet once there is something to send. */
+  .cp3-send[data-state='disabled'] { background: var(--color-surface); color: var(--color-text-disabled); }
+  .cp3-send[data-state='ready'] { box-shadow: 0 6px 18px color-mix(in srgb, var(--color-primary) 35%, transparent); }
+  /* The key hint shows while the text box has focus (it stays its description for screen readers). Its line is always
+     reserved: growing the composer on focus moved the chips between mousedown and mouseup, and clicks were lost. */
+  .cp3-hint { opacity: 0; transition: opacity 120ms ease; }
+  .cp3-composer:has(textarea:focus) .cp3-hint { opacity: 1; }
+
+  /* ── Motion ───────────────────────────────────────────────────────────────────────────────────────── */
+  @media (prefers-reduced-motion: no-preference) {
+    .cp2-msg[data-new], .cp2-system[data-new] { animation: cp2-rise 360ms cubic-bezier(.2, .8, .2, 1) backwards; }
+    .cp2-system[data-new] { transform-origin: 50% 100%; }
+    .cp2-capsule { animation: cp2-bob 2.4s steps(4, jump-none) infinite alternate; }
+    .cp2-star { animation: cp2-twinkle 2.6s steps(3, jump-none) infinite alternate; }
+    .cp2-empty > :not(.cp2-empty-art) { animation: cp2-rise 420ms cubic-bezier(.2, .8, .2, 1) 120ms backwards; }
+    .cp1-group:last-child, .cp1-divider:last-child { animation: cp1-step-in 200ms steps(3, jump-end) backwards; }
+    .cp3-meta .cp3-read { transition: color 160ms ease; }
+  }
+  @keyframes cp2-rise { from { opacity: 0; transform: translateY(10px) scale(0.96); } }
+  @keyframes cp2-bob { from { transform: translateY(2px); } to { transform: translateY(-4px); } }
+  @keyframes cp2-twinkle { from { opacity: 0.2; } to { opacity: 0.95; } }
+  @keyframes cp1-step-in { from { opacity: 0; transform: translateY(8px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .cp-panel, .cp-panel * { animation: none !important; transition: none !important; }
+  }
+
+  /* ── Widths: 900 → a 300px panel ─────────────────────────────────────────────────────────────────── */
+  @media (max-width: 960px) {
+    .cp-log { padding-inline: 12px; }
+    .cp1-bubble, .cp2-bubble { max-width: min(100%, 236px); }
+    .cp3-bubble { max-width: min(calc(100% - 52px), 220px); }
+    .cp2-empty-art { width: 152px; height: 100px; }
+  }
+}

@@ -14,7 +14,7 @@ export const CAPSULE_RECORD_COPY = {
   summaryAfter: ' 동안 같이 있었어요.',
   completed: '완료',
   together: '함께한 시간',
-  togetherRing: '함께한 시간(캠)',
+  togetherRing: '카메라로 함께한 비율',
   togetherOff: '이번엔 캠 없이 함께했어요',
   togetherNone: '캠에 함께 잡힌 시간이 없어요',
   connection: '연결 시간',

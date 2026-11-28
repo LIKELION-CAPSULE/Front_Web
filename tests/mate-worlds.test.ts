@@ -52,13 +52,13 @@ test('세계관: starts at the current level, or EP.01 when none is open', () =>
   assert.equal(initialWorldIndex([]), 0)
 })
 
-test('세계관 copy: 「EP.03 · 도서관」, 「Lv.4에서 열려요」, 「새 세계관이 열렸어요 · EP.03 도서관」', () => {
+test('세계관 copy: 「EP.03 · 도서관」, 「4단계에서 열려요」, 「첫 연결 후 열려요」, 「새 세계관이 열렸어요 · EP.03 도서관」', () => {
   assert.equal(episodeLabel(3), 'EP.03')
   const [library] = mateWorldsForStage(3, { content: [{ episode: 3, place: '도서관' }] }).slice(2)
   assert.equal(worldLabel(library!), 'EP.03 · 도서관')
   assert.equal(worldStageUpLine(library!), '새 세계관이 열렸어요 · EP.03 도서관')
-  assert.equal(worldLockedCaption(4), 'Lv.4에서 열려요')
-  assert.equal(worldLockedCaption(1), 'Lv.1에서 열려요')
+  assert.equal(worldLockedCaption(4), '4단계에서 열려요')
+  assert.equal(worldLockedCaption(1), '첫 연결 후 열려요')
 })
 
 test('세계관: production has no content — 「준비 중」 places, no pictures or lines, never a made-up world', () => {

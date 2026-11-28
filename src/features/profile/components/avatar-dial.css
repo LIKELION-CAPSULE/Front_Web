@@ -71,34 +71,31 @@
   /* The chosen avatar's still while its model loads: soft, under the model, gone as the model fades in. */
   .avatar-picker-stand-in { opacity: 0.88; animation: avatar-stand-in-in 220ms ease-out backwards; transition: opacity 280ms ease-out; }
   .avatar-picker-stand-in[data-out] { opacity: 0; }
-  .avatar-picker-model-status {
-    position: absolute;
-    inset: auto 0 18%;
+  /* Failed: one quiet inline line below the avatar name (never covering the silhouette or still). */
+  .avatar-picker-model-status[data-failed] {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
-    padding: 0 16px;
+    justify-content: center;
+    gap: 2px 6px;
+    max-width: 100%;
+    margin-top: 4px;
     color: var(--color-subtle);
     font-size: var(--text-caption);
     line-height: var(--text-caption--line-height);
     text-align: center;
+    pointer-events: auto;
   }
-  .avatar-picker-model-status p { margin: 0; }
-  /* Failed: over the avatar's still, above the waist fade so it stays readable. */
-  .avatar-picker-model-status[data-failed] {
-    inset: auto 50% 30% auto;
-    width: max-content;
-    max-width: calc(100% - 24px);
-    gap: 2px;
-    border-radius: 16px;
-    background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
-    padding: 10px 14px 4px;
-    color: var(--color-muted);
-    transform: translateX(50%);
+  .avatar-picker-retry {
+    min-height: 28px;
+    border-radius: 999px;
+    padding: 2px 10px;
+    color: var(--color-text-accent);
+    font-weight: 600;
+    cursor: pointer;
   }
-  .avatar-picker-retry { min-height: 44px; border-radius: var(--radius-control); padding: 4px 14px; color: var(--color-text-accent); cursor: pointer; }
   .avatar-picker-retry:hover { background: var(--color-primary-soft); }
+  .avatar-picker-retry:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 
   /* Still (reduced motion, hidden tab, no model): the thumbnail as a bust, centred at the face height. */
   .avatar-picker-still { position: absolute; inset: 0; display: grid; justify-items: center; align-content: start; padding-top: 9%; }
@@ -315,7 +312,6 @@
   /* The big stage: as tall as the area allows (the login's dozing mate is the reference), 4:5, centred. */
   .avatar-picker-main {
     position: relative;
-    container-type: size;
     display: flex;
     min-width: 0;
     min-height: 0;
@@ -324,22 +320,18 @@
     justify-content: center;
   }
   .avatar-picker[data-layout='arc'] .avatar-picker-stage {
-    width: min(100cqw, 100cqh * 0.8);
+    width: var(--arc-stage-w, min(100%, 634px));
   }
   .avatar-picker[data-layout='arc'] .avatar-picker-halo { top: 2%; width: 118%; }
   /*
    * Name and greeting on the avatar's legs (user decision 2026-11-26; onboarding and the account settings profile tab
    * alike): 22% of the stage height below its centre, i.e. at 72% of the stage — the knees of a full-body avatar, the
-   * faded lower body of a waist-up one. The stage is `min(100cqh, 125cqw)` tall, so the place follows its size; the
-   * Live2D credit stays at the very bottom, well apart. The stage's fade reaches the name earlier here, and a neutral
-   * scrim of the page colour behind the two lines keeps them readable on a light outfit (UX review 1-3: DESIGN_SYSTEM.md
-   * §7, text over an image gets a neutral scrim; 4.5:1 for the greeting on the lightest cardigan): dense right behind
-   * the words, fading out well before the edges so it reads as shade, not a box.
+   * faded lower body of a waist-up one. The Live2D credit stays at the very bottom, well apart.
    */
   .avatar-picker[data-layout='arc'] .avatar-picker-caption {
     position: absolute;
     z-index: 2;
-    top: calc(50% + 0.22 * min(100cqh, 125cqw));
+    top: calc(50% + 0.22 * var(--arc-stage-h, 792px));
     right: 0;
     left: 0;
     margin: 0;

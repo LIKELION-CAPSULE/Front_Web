@@ -1,3 +1,4 @@
+import { mateColorStyle } from '@/features/mates/capsule-jar/capsule-jar-theme'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react'
 import { useBackend } from '@/features/backend/backend-context'
@@ -15,6 +16,7 @@ import { FeedbackMessage } from '@/shared/ui/FeedbackMessage'
 import { MatePreview } from '@/features/mates/components/MatePreview'
 import { VoiceSampleButton } from '@/features/mates/components/VoiceSampleButton'
 import NotFoundPage from './NotFoundPage'
+import capsuleOpen from '@/assets/capsule/capsule-open.webp'
 import '@/features/auth/login-backgrounds/desktop/desktop.css'
 import '@/features/mates/mates.css'
 import '@/features/mates/mate-detail.css'
@@ -113,7 +115,7 @@ export default function MateDetailPage() {
           )
         }
       />
-      <main id="main-content" tabIndex={-1} className="mate-hero focus:outline-none">
+      <main id="main-content" tabIndex={-1} className="mate-hero focus:outline-none" style={mateColorStyle(mate.id, mate.name) as CSSProperties}>
         {/* Space backdrop: soft nebulae, faint stars, and the mate's name set huge in outline behind everything. */}
         <div className="mate-hero-backdrop" aria-hidden="true" style={{ '--outline-count': nameLetters.length } as CSSProperties}>
           {nameLetters.map((letter, index) => (
@@ -131,10 +133,14 @@ export default function MateDetailPage() {
         {/* The mate, large and floating: Live2D that only follows the cursor (still portrait until it loads). */}
         <div className="mate-hero-figure">
           <div className="mate-hero-glow" aria-hidden="true" />
-          <svg className="mate-hero-capsules" viewBox="0 0 220 220" aria-hidden="true">
-            <rect className="mate-hero-capsule mate-hero-capsule--a" x="62" y="20" width="96" height="180" rx="48" />
-            <rect className="mate-hero-capsule mate-hero-capsule--b" x="62" y="20" width="96" height="180" rx="48" />
-          </svg>
+          {/* Luminous capsule orbits surround the canonical capsule render. */}
+          <div className="mate-hero-capsules" aria-hidden="true">
+            <svg className="mate-hero-orbits" viewBox="0 0 220 220">
+              <rect className="mate-hero-orbit mate-hero-orbit--a" x="62" y="20" width="96" height="180" rx="48" />
+              <rect className="mate-hero-orbit mate-hero-orbit--b" x="62" y="20" width="96" height="180" rx="48" />
+            </svg>
+            <img src={capsuleOpen} width={500} height={500} alt="" draggable={false} />
+          </div>
           <div className="mate-hero-stage">
             <MatePreview
               mateId={mate.id}

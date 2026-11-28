@@ -102,11 +102,28 @@
   pointer-events: none;
   transform: translate(-50%, calc(-100% - 6px));
 }
-/* The year: in the board's top-left corner (over the stage's faded edge, clear of the months), not over the day. */
+/* The year: in the board's top-left corner (over the stage's faded edge, clear of the months), not over the day.
+   Detached from its pillar, so a quiet translucent caption pill avoids reading as a clickable primary CTA button. */
 .capsule-board-marker--corner {
   top: 12px;
   left: 12px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--color-text-accent) 28%, transparent);
+  background: color-mix(in srgb, var(--color-panel) 84%, transparent);
+  box-shadow: none;
+  color: var(--color-text-accent);
+  font-weight: 600;
   transform: none;
+}
+
+/* 900px split: the stacked summary card above is taller, so trim the year board cap slightly to keep 12월 clear of the viewport bottom. */
+@media (max-width: 960px) {
+  .capsule-board[data-mode='year'][data-view='2.5d'] {
+    padding-bottom: 12px;
+  }
+  .capsule-board[data-mode='year'][data-view='2.5d'] .capsule-board-stage {
+    max-height: min(520px, max(320px, calc(100vh - 440px)));
+  }
 }
 
 .capsule-board--fallback {

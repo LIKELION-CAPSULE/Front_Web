@@ -90,14 +90,21 @@
   color: var(--color-ink);
 }
 
+/* One space around the bar's row: above the chips, below them to the stage and chat, and at the sides (the logo
+   lines up with the stage's left edge, the timer with the chat's right edge). The content adds no top padding. The
+   `.app-surface` form out-ranks the app surface's titlebar (app-surfaces.css: min-height 64px, padding 16px 24px),
+   which used to leave 16px above the 32px chips but 16 + 14 = 30px below, and the logo 8px in from the stage. */
 .connection-titlebar.desktop-window-titlebar {
   flex: none;
-  height: 41px;
-  padding: 0 16px;
+  height: auto;
+  min-height: 0;
+  padding: 16px;
   gap: 12px;
   border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
   background: color-mix(in srgb, var(--color-panel) 94%, transparent);
 }
+/* Only the spacing out-ranks the app surface; its look (no rule under the bar, no fill) stays. */
+.app-surface .connection-titlebar.desktop-window-titlebar { min-height: 0; padding: 16px; }
 
 .connection-titlebar-left,
 .connection-titlebar-right {
@@ -218,7 +225,45 @@
 
 /* The 「?」 note (DevicePrivacyInfo): a small button in the bar, the note below it. */
 .connection-titlebar-help > button { width: 32px; height: 32px; }
-.connection-titlebar-left h1 { display: inline-flex; align-items: center; line-height: 20px; }
+.connection-titlebar-left h1 { display: inline-flex; flex: none; align-items: center; line-height: 20px; }
+/* Next to her name (CallMateTitle): a short relation line in quiet text, then the world the call is in as a small
+   night-violet chip (the dialogue box's roof tone: the world is her place, not an action). One line, no outline; both
+   give way before the name does. */
+.connection-titlebar-tag {
+  min-width: 0;
+  margin-left: -4px;
+  overflow: hidden;
+  color: var(--color-subtle);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.connection-titlebar-world {
+  display: inline-flex;
+  height: 24px;
+  min-width: 0;
+  flex: 0 1 auto;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: color-mix(in srgb, var(--color-dialog-roof) 72%, transparent);
+  color: var(--color-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Narrow windows: the chips on the right need the room; the world chip goes first, then the tag. */
+@media (max-width: 1100px) {
+  .connection-titlebar-world { display: none; }
+}
+@media (max-width: 720px) {
+  .connection-titlebar-tag { display: none; }
+}
 .connection-titlebar-help .device-privacy-tooltip { width: min(360px, calc(100vw - 32px)); }
 .connection-help-note { display: grid; gap: 8px; }
 .connection-help-note > p { margin: 0; color: var(--color-muted); font-size: 13px; line-height: 20px; word-break: keep-all; }
@@ -230,7 +275,7 @@
   gap: 0;
   flex: 1;
   min-height: 0;
-  padding: 14px 16px 16px;
+  padding: 0 16px 16px;
 }
 
 .connection-content[data-chat] {
@@ -463,41 +508,100 @@
   z-index: 25;
 }
 
-/* Right Chat Desktop Window */
+/*
+ * Right chat panel (2026-11-28): P1 「픽셀 대화 기록」 toned down to pixel points (user decision). The body is a plain
+ * round card (the stage card's 16px radius, the dialogue box's material, no border or shadow); only the dithered roof
+ * with the capsule over its top edge stays pixel, clipped by the same radius. Her mini profile, round quick replies, box
+ * and send button. Lines in runs: chat-log.css.
+ */
 .connection-chat.desktop-window {
   position: relative;
   left: auto;
   top: auto;
+  isolation: isolate;
   width: 100%;
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+  border: 0;
   border-radius: 16px;
-  background: var(--color-surface);
+  background: linear-gradient(180deg, var(--color-dialog-surface) 0%, var(--color-panel) 100%);
+  box-shadow: none;
 }
 
+/* Head: the shared 30px PixelRoofStrip and her mini profile under it. The panel's 16px corners clip the roof only
+   through its two solid bands (0-18px), so the curve never cuts the dither rows under them. */
+.connection-chat-head {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 10px 10px 14px;
+}
+.connection-chat-avatar {
+  position: relative;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-control);
+  color: var(--color-muted);
+}
+.connection-chat-avatar > img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+}
+/* The call is on: the round green dot, cut out of the panel by its own background. */
+.connection-chat-status-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-success);
+  box-shadow: 0 0 0 2px var(--color-dialog-surface);
+}
+.connection-chat-who { display: grid; min-width: 0; flex: 1; }
 .connection-chat h2 {
   margin: 0;
-  font-size: 13.5px;
-  font-weight: 600;
+  overflow: hidden;
   color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-.connection-chat-close.ui-button {
-  min-height: 28px;
-  width: 28px;
-  padding: 0;
+.connection-chat-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
 }
-
-.connection-chat-head.desktop-window-titlebar {
-  position: relative;
-  padding-top: 14px;
+.connection-chat-typing { display: inline-flex; gap: 3px; color: var(--color-success); }
+.connection-chat-typing > span { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+@media (prefers-reduced-motion: no-preference) {
+  .connection-chat-typing > span { animation: chat-log-dot 900ms steps(2, jump-none) infinite; }
+  .connection-chat-typing > span:nth-child(2) { animation-delay: 150ms; }
+  .connection-chat-typing > span:nth-child(3) { animation-delay: 300ms; }
 }
-/* The roof strip sits on the panel's top edge (border radius clips it with the panel). */
-.connection-chat-head .px-roof-strip { z-index: 0; }
-.connection-chat-head > :not(.px-roof-strip) { position: relative; z-index: 1; }
+.connection-chat-close {
+  margin: -3px -4px -3px 0;
+}
 
 .connection-log-wrap {
   position: relative;
@@ -507,15 +611,38 @@
   flex-direction: column;
 }
 
+/* A short log sits by the composer (an empty top, not a hole above the input); a long one scrolls as before. Lines fade
+   under the head as they scroll away (no divider line). */
 .connection-messages {
+  display: flex;
   flex: 1;
   min-height: 0;
+  flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 18px 14px;
+  padding: 16px 14px 8px;
+  mask-image: linear-gradient(180deg, transparent 0, black 14px);
 }
+.connection-messages::before { content: ''; flex: 1 0 0; }
+.connection-messages[data-empty]::before { flex: 1.35 0 0; }
+.connection-messages[data-empty]::after { content: ''; flex: 0.85 0 0; }
+.connection-messages > * { flex: none; }
 
-/* Lines in runs: chat-log.css (ChatLogGroups). */
+/* Nothing said yet: the pixel capsule with a few quiet stars (a pixel point), one line, the first words (round chips). */
+.connection-chat-empty { display: grid; justify-items: center; gap: 10px; padding: 12px 4px; text-align: center; }
+.connection-chat-empty-art { position: relative; display: grid; width: 120px; height: 64px; place-items: center; }
+.connection-chat-empty-star { position: absolute; opacity: 0.7; }
+.connection-chat-empty-star:nth-child(2) { top: 6px; left: 10px; }
+.connection-chat-empty-star:nth-child(3) { top: 2px; right: 14px; }
+.connection-chat-empty-star:nth-child(4) { right: 4px; bottom: 8px; }
+.connection-chat-empty-text { margin: 0; color: var(--color-ink); font-size: 14px; font-weight: 700; line-height: 22px; }
+.connection-chat-starters { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+@media (prefers-reduced-motion: no-preference) {
+  .connection-chat-empty-star { animation: connection-chat-twinkle 2.6s steps(3, jump-none) infinite alternate; }
+  .connection-chat-empty-star:nth-child(3) { animation-delay: -0.9s; }
+  .connection-chat-empty-star:nth-child(4) { animation-delay: -1.7s; }
+}
+@keyframes connection-chat-twinkle { from { opacity: 0.2; } to { opacity: 0.9; } }
 
 /* 「새 메시지 ↓」: her new lines while the chat is scrolled up; one click goes to the newest. */
 .connection-new-pill {
@@ -539,7 +666,7 @@
 .connection-new-pill:hover { background: var(--color-floating-hover); }
 .connection-new-pill:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 @media (prefers-reduced-motion: no-preference) {
-  .connection-new-pill { animation: connection-new-pill-in 220ms steps(3, jump-end) backwards; }
+  .connection-new-pill { animation: connection-new-pill-in 220ms ease-out backwards; }
 }
 @keyframes connection-new-pill-in { from { opacity: 0; transform: translate(-50%, 6px); } }
 
@@ -547,11 +674,28 @@
   flex: none;
   padding: 0 12px 6px;
 }
-
-/* The chat box (ChatComposer): quick replies, the box with 누르고 말하기 inside, the key hint. */
+/* The chat box (ChatComposer, shared with the study screen: styled here for the call only): round quick replies (and the
+   empty state's first words, the same chips), the round box with 누르고 말하기 inside, the round send button, the key hint. */
 .connection-chat .session-chat-composer-wrap {
   flex: none;
-  padding: 6px 12px 12px;
+  padding: 6px 12px 14px;
+}
+.connection-chat :is(.session-chat-quick, .connection-chat-starters) > button {
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 140ms ease;
+}
+.connection-chat :is(.session-chat-quick, .connection-chat-starters) > button:not(:disabled):hover { background: var(--color-control); }
+.connection-chat :is(.session-chat-quick, .connection-chat-starters) > button:disabled { color: var(--color-text-disabled); }
+.connection-chat-starters > button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .connection-chat-starters > button { transition: none; }
 }
 .connection-chat .session-chat-composer {
   background: var(--color-canvas);
@@ -559,6 +703,8 @@
 }
 .connection-chat .session-chat-composer:focus-within { box-shadow: 0 0 0 2px var(--color-focus-ring); }
 .connection-chat .session-chat-composer:has(button:focus-visible) { box-shadow: none; }
+.connection-chat .session-chat-hint { padding: 0 4px; font-size: 11.5px; }
+.connection-chat .session-chat-hint kbd { background: var(--color-surface); }
 
 /* Leave Confirmation Mate Quote */
 .connection-leave-quote {
@@ -657,12 +803,11 @@
   }
 }
 
-/* ≤ 1100px (900 included): the info bar keeps one line by shortening — the affinity chip to its heart and steps, the
-   credit chip to the coin and the number, the mode to 「기본 · 고급」. The words stay for screen readers (sr-only, not
-   display: none) and in the tooltip (title). */
+/* ≤ 1100px (900 included): keep affinity stage name and paid advanced cost visible while trimming only redundant
+   captions (「남은」, 「· 크레딧 없음」) so the info bar stays on one line with room to spare. */
 @media (max-width: 1100px) {
-  .connection-titlebar-right .connection-chip-long,
-  .connection-mode-detail {
+  .connection-credit-chip .connection-chip-long,
+  .connection-mode-detail--free {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -674,21 +819,34 @@
   .connection-timer { font-size: 17px; min-width: max-content; padding-left: 10px; white-space: nowrap; }
 }
 
+/* ≤ 760px: shorten the remaining chip labels when horizontal space actually runs tight. Full words stay for screen
+   readers (sr-only, not display: none) and in the tooltip (title). */
+@media (max-width: 760px) {
+  .connection-titlebar-right .connection-chip-long,
+  .connection-mode-detail {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 /* 861px ~ 960px (960 half-screen): chat sits side-by-side without covering stage or dock;
    GlassDock switches to compact mode (⋯) automatically when stage width < 700px. */
 @media (max-width: 960px) {
-  .connection-titlebar.desktop-window-titlebar {
-    height: auto;
-    min-height: 41px;
+  .connection-titlebar.desktop-window-titlebar,
+  .app-surface .connection-titlebar.desktop-window-titlebar {
     flex-wrap: wrap;
-    padding: 5px 12px;
+    padding: 12px;
     gap: 8px;
   }
   .connection-content {
     position: relative;
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
-    padding: 10px 12px 12px;
+    padding: 0 12px 12px;
   }
   .connection-content[data-chat] {
     grid-template-columns: minmax(0, 1fr) clamp(280px, 31vw, 312px);
@@ -704,7 +862,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 10px 12px 12px;
+    padding: 0 12px 12px;
   }
   .connection-stage-wrap {
     flex: 1 1 0;
@@ -1123,3 +1281,15 @@
 .connection-stt-dismiss { background: color-mix(in srgb, var(--color-canvas) 82%, transparent); color: var(--color-muted); }
 .connection-stt-retry:focus-visible,
 .connection-stt-dismiss:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+
+/* Identity accents; action, semantic status, and dialog modal colours keep their semantic tokens. */
+.connection-page .connection-chat-head > .px-roof-strip > .px-image,
+.connection-page .call-dialogue-frame > .px-roof-strip > .px-image {
+  filter: hue-rotate(var(--mate-color-rotation, 0deg));
+}
+.connection-page .call-dialogue-name {
+  background: color-mix(in srgb, var(--mate-tint, var(--color-primary)) 24%, var(--color-dialog-roof));
+}
+.connection-page .connection-chat-avatar {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mate-glow, var(--color-text-accent)) 60%, transparent);
+}

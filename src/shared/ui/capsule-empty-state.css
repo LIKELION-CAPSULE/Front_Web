@@ -1,0 +1,70 @@
+/* Shared empty state (CapsuleEmptyState): capsule still + one quiet line + one action, no outlines. */
+@layer components {
+  .capsule-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .capsule-empty-state-art {
+    width: 72px;
+    height: 72px;
+    flex: none;
+    object-fit: contain;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .capsule-empty-state-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .capsule-empty-state-message {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 14px;
+    line-height: 22px;
+    word-break: keep-all;
+  }
+
+  .capsule-empty-state-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Compact variant for short panels (e.g. 내 메이트 최근 캡슐 when 0 connections). */
+  .capsule-empty-state--sm {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .capsule-empty-state--sm .capsule-empty-state-art {
+    width: 48px;
+    height: 48px;
+  }
+
+  .capsule-empty-state--sm .capsule-empty-state-body {
+    flex: 1;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .capsule-empty-state--sm .capsule-empty-state-message {
+    font-size: 13px;
+    line-height: 18px;
+  }
+
+  .capsule-empty-state--sm .capsule-empty-state-action {
+    justify-content: flex-start;
+  }
+}

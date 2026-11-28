@@ -235,6 +235,7 @@ export default function LoginVariantLayout() {
         <div className="login-dialogue-layer">
           {reactions.speech && (
             <MateDialogue
+              appearance="stage"
               key={reactions.speech.id}
               id={reactions.speech.id}
               name={mate.name}

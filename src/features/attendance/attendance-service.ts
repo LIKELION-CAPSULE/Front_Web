@@ -66,7 +66,7 @@ const creditsAdapter: Adapter = {
   },
   async checkIn(client, userId, today, current) {
     if (current.checkedToday) throw new Error('오늘은 이미 출석했어요.')
-    let credit = current.pendingCredit ?? 0
+    let credit = current.pendingDay && current.pendingDay !== today ? 0 : (current.pendingCredit ?? 0)
     if (!credit) {
       // Today was never granted (the page stayed open past 05:00): only a credit read grants it (4.5).
       noteServerCredits(await getCredits(client), userId)
@@ -115,6 +115,63 @@ const ADAPTERS: Record<AttendanceSource, Adapter> = { credits: creditsAdapter, '
 
 // ── Development override (AttendanceDevPanel): any point of the cycle, nothing sent ──
 const devOverride = new Map<number, StoredAttendance>()
+
+/**
+ * `credits` source only: today's 1,500 counts as received without the button — the header has shown the full balance
+ * (the home page was left while it held the amount back, or another screen showed it first; use-credit-display.ts).
+ * The server granted it on the day's first credit read, so this only stops the home path from holding it back again:
+ * coming back home the same day shows today 「받음」. Nothing is sent. The attendance API has its own check-in, so
+ * nothing happens there. Returns whether it was recorded.
+ */
+export function markAttendanceReceived(
+  userId: number,
+  source: AttendanceSource = attendanceSource(),
+  now = Date.now(),
+  day = businessDay(now),
+): boolean {
+  if (source !== 'credits' || devOverride.has(userId)) return false
+  if (day !== businessDay(now)) return false
+  if (readReceived(userId) === day) return false
+  writeReceived(userId, day)
+  return true
+}
+
+export type AttendanceHold = {
+  amount: number
+  userId: number
+  day: string
+  release: () => void
+}
+
+/**
+ * Releases a home-page credit hold on unmount. When still on the hold's business day, marks that exact day as
+ * received for the hold's owner and lands the chip animation; if 05:00 has passed, only releases the stale hold.
+ */
+export function settleAttendanceHold(
+  hold: AttendanceHold | null,
+  land: (amount: number, release?: () => void) => void,
+  options: { now?: number; source?: AttendanceSource } = {},
+): 'none' | 'landed' | 'released' {
+  if (!hold) return 'none'
+  const now = options.now ?? Date.now()
+  if (hold.day !== businessDay(now)) {
+    hold.release()
+    return 'released'
+  }
+  markAttendanceReceived(hold.userId, options.source, now, hold.day)
+  land(hold.amount, hold.release)
+  return 'landed'
+}
+
+/**
+ * Another screen than home shows a balance read today (`creditsAgeMs` ago): it already includes today's grant
+ * (granted on the day's first credit read), so the home path must not hold it back later (`markAttendanceReceived`).
+ * Not during the service tour, which reads no credits.
+ */
+export function balanceShownAwayFromHome(pathname: string, touring: boolean, creditsAgeMs: number, now = Date.now()): boolean {
+  if (pathname === '/' || touring || !Number.isFinite(creditsAgeMs) || creditsAgeMs < 0) return false
+  return businessDay(now - creditsAgeMs) === businessDay(now)
+}
 
 export async function fetchAttendance(client: Client, userId: number): Promise<AttendanceState> {
   const today = businessDay()

@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router'
 import { useDemo } from '@/features/demo/demo-context'
 import { useBackend } from '@/features/backend/backend-context'
 import type { StudyRecord } from '@/features/demo/types'
-import { availableMates } from '@/features/mates/catalog'
+import { availableMates, launchMateId } from '@/features/mates/catalog'
 import { useMyMates } from '@/features/mates/use-my-mates'
 import { useRecordsData } from '@/features/records/use-records-data'
 import { isDayRecord, recordsSummary, type RecordsMate } from '@/features/records/records-source'
@@ -15,6 +15,7 @@ import { CapsuleDayDetail, DayRemainderRow, RecordConnectionRow } from '@/featur
 import { defaultCapsuleDay, selectCapsuleDay } from '@/features/records/capsule-calendar'
 import { connectionDayKey } from '@/features/records/connection-day'
 import { CapsuleBoard } from '@/features/records/capsule-board/CapsuleBoard'
+import { RecordsEmptyJar } from '@/features/records/empty-jar/RecordsEmptyJar'
 import { ContributionGrid, ContributionLegend } from '@/features/records/ContributionGrid'
 import { BoardViewSwitch } from '@/features/records/BoardViewSwitch'
 import { SatinBackdrop } from '@/features/records/satin-backdrop/SatinBackdrop'
@@ -111,6 +112,9 @@ export default function RecordsPage() {
   const [boardViews, setBoardViews] = useState<StoredBoardViews>(readStoredBoardViews)
   const [stageWidth, setStageWidth] = useState(0)
   const [boardFallback, setBoardFallback] = useState(() => !supportsWebGL())
+  // The empty page's capsule hops when 「메이트 만나러 가기」 is pointed at or focused.
+  const [emptyHop, setEmptyHop] = useState(0)
+  const hopEmptyCapsule = useCallback(() => setEmptyHop((count) => count + 1), [])
   const emphasisControl = useRef<BoardEmphasisControl | null>(null)
   const onEmphasisControl = useCallback((control: BoardEmphasisControl | null) => {
     emphasisControl.current = control
@@ -204,18 +208,23 @@ export default function RecordsPage() {
 
   // The board: mate colours with 「전체」 (mate by mate in a column), the chosen mate's time-band tints otherwise.
   const yearColumns = yearColumnsFor(stageWidth || 1200)
-  const mateIdByCharId = useMemo(() => new Map((connectedMates ?? []).map((mate) => [mate.characterId, mate.id])), [connectedMates])
+  // Records are already launch mates only (records-source.ts `loadRecordsScope`); unknown ids keep their own key.
+  const mateIdOf = useCallback(
+    (record: StudyRecord, name?: string) =>
+      launchMateId({ id: record.characterIds[0], name: name ?? record.characterName ?? record.serverReport?.mate?.name }, connectedMates ?? []),
+    [connectedMates],
+  )
   const board = useMemo(
     () =>
       buildCapsuleBoard(periodRecords, shownRange, {
         keepsakes,
-        mateOf: (record: StudyRecord) => mateIdByCharId.get(record.characterIds[0] ?? '') ?? 'chaerin',
+        mateOf: (record: StudyRecord) => mateIdOf(record) ?? (record.characterIds[0] || 'unknown'),
         mateOrder: (connectedMates ?? []).map((mate) => mate.id),
         mateNames: new Map((connectedMates ?? []).map((mate) => [mate.id, mate.name])),
         colorMode: shownMate ? 'band' : 'mate',
         yearColumns,
       }),
-    [shownMate, connectedMates, keepsakes, mateIdByCharId, periodRecords, shownRange, yearColumns],
+    [shownMate, connectedMates, keepsakes, mateIdOf, periodRecords, shownRange, yearColumns],
   )
   const capsuleCalendar = board.calendar
 
@@ -248,7 +257,9 @@ export default function RecordsPage() {
   const dayCardRecords = dayCard && selectedDay?.day.key === dayCard.key ? selectedDay.records.filter((record) => !isDayRecord(record)) : []
   const dayCardRecord = dayCard ? dayCardRecords[Math.min(dayCard.index, dayCardRecords.length - 1)] : undefined
   const dayCardCapsule = dayCardRecord ? capsuleFromStudyRecord(dayCardRecord) : null
-  const dayCardMateId = dayCardRecord ? mateIdByCharId.get(dayCardRecord.characterIds[0] ?? '') : undefined
+  const dayCardMateId = dayCardRecord
+    ? mateIdOf(dayCardRecord, mateNameOf(dayCardRecord))
+    : undefined
   // The same keepsakes as the mate's capsules in 내 메이트: milestones of all that mate's connections.
   const dayCardKeepsake = dayCardCapsule ? keepsakes.get(dayCardCapsule.id)?.hours : undefined
   const dayCardView = dayCard && dayCardRecord && dayCardCapsule && (
@@ -256,7 +267,7 @@ export default function RecordsPage() {
       key={dayCard.key}
       capsule={dayCardCapsule}
       mateName={mateNameOf(dayCardRecord) ?? '메이트'}
-      mateId={dayCardMateId ?? 'chaerin'}
+      mateId={dayCardMateId}
       keepsakeHours={dayCardKeepsake}
       placement="center"
       phase={dayCard.phase}
@@ -290,10 +301,11 @@ export default function RecordsPage() {
     })()
   const speakerCatalog = speaker ? catalogMates.find((m) => m.characterId === speaker.characterId) : undefined
   const speakerMet = speaker ? myMates.byMate.get(speaker.id) : undefined
+  const commentScope = !activeMate && (summary?.mates ?? 0) >= 2 ? 'all' : 'mate'
   const mateComment = speaker && data.data && !stale
     ? mateCommentFromFacts(
         collectRecordsFacts({ range, offset, view: views?.[speaker.id] ?? null, met: Boolean(speakerMet), firstMetAt: speakerMet?.firstMetAt ?? null }),
-        { range, seedKey: `${state.profile.userId ?? 'guest'}|${speaker.characterId}`, voice: voiceFor(speakerCatalog?.id) },
+        { range, seedKey: `${state.profile.userId ?? 'guest'}|${speaker.characterId}`, voice: voiceFor(speakerCatalog?.id), scope: commentScope },
       )
     : null
   const onCommentProgress = useCallback((progress: number, finished: boolean) => {
@@ -352,9 +364,10 @@ export default function RecordsPage() {
       <RecordsWindowFrame>
         {mateCommentView}
         <div className="records-block records-empty-box">
+          <RecordsEmptyJar hop={emptyHop} />
           <p className="records-empty-title">아직 함께한 기록이 없어요.</p>
           <p className="records-empty-sub">메이트와 연결하면 여기에 쌓여요.</p>
-          <ButtonLink to="/">메이트 만나러 가기</ButtonLink>
+          <ButtonLink to="/" onPointerEnter={hopEmptyCapsule} onFocus={hopEmptyCapsule}>메이트 만나러 가기</ButtonLink>
         </div>
       </RecordsWindowFrame>
     )
@@ -482,7 +495,11 @@ export default function RecordsPage() {
             <section className="records-stat-card records-stat-card--primary">
               <BlockTitle icon="clock">{summary.primaryLabel}</BlockTitle>
               <p className="records-stat-value">{stat(duration(summary.primarySeconds))}</p>
-              {!stale && summary.cameraSeconds > 0 && <p className="records-stat-sub">카메라로 함께한 시간 {duration(summary.cameraSeconds)}</p>}
+              {!stale && summary.cameraSeconds > 0 && (
+                <p className="records-stat-sub">
+                  카메라로 함께한 시간 <span className="records-stat-sub-value">{duration(summary.cameraSeconds)}</span>
+                </p>
+              )}
             </section>
             <section className="records-stat-card">
               <BlockTitle icon="check">함께한 날</BlockTitle>

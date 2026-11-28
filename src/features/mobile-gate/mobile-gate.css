@@ -4,6 +4,8 @@
  * 「1,000 크레딧」 (credit display exception). Pixel points: stepped corners (clip-path) on the invite card, the feature
  * cards and their icon tiles, the 8-bit capsule and coin, the pixel feature icons, the stepped step numbers with
  * pixel digits and their dotted track, a stepped scroll cue.
+ * Stepped corners are a design-system exception for this screen only (user decision 2026-11-28): docs/DESIGN_SYSTEM.md
+ * 「모바일 접속 안내 화면 · 2026-11-28」 (with 4.1 모달 픽셀 프레임). Do not copy them to cards or buttons elsewhere.
  * The scene itself (still, desk, z z Z, nod) uses the login screen's doze.css classes.
  */
 @layer components {

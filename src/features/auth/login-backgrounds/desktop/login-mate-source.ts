@@ -133,7 +133,7 @@ export function loginV2ModelsFromServer(response: LoginMatesResponse | null | un
 
 /**
  * The login mate (채린 only: user decision) completed with API 48. The entry whose server name is the mate's own name
- * wins over another name mapped to her (the old 「말포이」 entry, id 1). Its v2 model replaces the default only when 48
+ * wins over another name mapped to her (non-launch entries such as 「말포이」 map to none). Its v2 model replaces the default only when 48
  * has a usable one (Aliving2D with an engine URL; 2026-11-25 production sends none, so the dozing stills stay); its
  * card image becomes the portrait. No entry, or a malformed answer: the mate as she was.
  */

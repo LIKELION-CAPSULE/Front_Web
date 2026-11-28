@@ -10,17 +10,27 @@ import './scroll-more-hint.css'
  * and screen readers skip it (the fields below are reached by Tab, which scrolls them into view). Place it in a
  * positioned box around the area; it sits at that box's bottom centre.
  */
-export function ScrollMoreHint({ target, label = '아래로 더 있어요' }: { target: RefObject<HTMLElement | null>; label?: string }) {
-  const { below } = useScrollHint(target)
+export function ScrollMoreHint({
+  target,
+  label = '아래로 더 있어요',
+  placement = 'floating',
+}: {
+  target: RefObject<HTMLElement | null>
+  label?: string
+  /** `floating`: overlaid at the bottom of the positioned parent. `footer`: own flex row below the scroll area, never covering content. */
+  placement?: 'floating' | 'footer'
+}) {
+  const { above, below } = useScrollHint(target)
   const reduced = useReducedMotion()
-  if (!below) return null
-  return (
+  const button = (
     <button
       type="button"
       className="scroll-more-hint"
+      data-placement={placement}
       tabIndex={-1}
       aria-hidden="true"
       data-scroll-more-hint
+      disabled={!below}
       onClick={() => {
         const node = target.current
         node?.scrollBy({ top: Math.round(node.clientHeight * 0.7), behavior: reduced ? 'auto' : 'smooth' })
@@ -30,4 +40,14 @@ export function ScrollMoreHint({ target, label = '아래로 더 있어요' }: { 
       <Icon name="chevron" size={14} className="scroll-more-hint-icon" />
     </button>
   )
+  if (placement === 'footer') {
+    if (!above && !below) return null
+    return (
+      <div className="scroll-more-hint-footer" data-hidden={!below || undefined}>
+        {button}
+      </div>
+    )
+  }
+  if (!below) return null
+  return button
 }

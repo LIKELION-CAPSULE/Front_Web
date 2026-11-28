@@ -2,13 +2,27 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createScriptLoader, type ScriptLike } from '../src/features/mate-render/script-loader.ts'
 import { toV2ExpressionName } from '../src/features/mate-render/expression-map.ts'
+import { computePointerGaze, computeCallView, modelPointToScreen, CHAERIN_V2_LANDMARKS } from '../src/features/mate-render/aliving-view.ts'
+
+test('gaze normalization uses each resized viewport bounds, offsets and face projection', () => {
+  for (const [width, height, left, top] of [[800, 600, 120, 70], [320, 420, 0, 0], [480, 300, 20, 40]]) {
+    const face = modelPointToScreen(CHAERIN_V2_LANDMARKS.centerX, CHAERIN_V2_LANDMARKS.eyesY, width!, height!, computeCallView(width!, height!))
+    const base = { faceX: left! + face.x, faceY: top! + face.y, stageWidth: width!, stageHeight: height! }
+    assert.deepEqual(computePointerGaze({ ...base, pointerX: base.faceX, pointerY: base.faceY }), { x: 0, y: 0 })
+    const gaze = computePointerGaze({ ...base, pointerX: base.faceX + width! * 0.3, pointerY: base.faceY - height! * 0.3 })
+    assert.ok(Math.abs(gaze.x - 0.5) < 1e-9 && Math.abs(gaze.y - 0.5) < 1e-9)
+    assert.deepEqual(computePointerGaze({ ...base, pointerX: Infinity, pointerY: 0 }), { x: 0, y: 0 })
+    assert.deepEqual(computePointerGaze({ ...base, stageWidth: 0, pointerX: 1, pointerY: 1 }), { x: 0, y: 0 })
+  }
+})
 
 /**
  * DOM-free fakes for the v2 renderer: windows with their own requestAnimationFrame and ResizeObserver, documents,
  * hosts, a canvas and a player. They check the renderer's bookkeeping (which window drives frames, what is released);
  * real WebGL drawing is covered by the dev-server checks, not here.
  */
-class FakeWindow {
+class FakeWindow extends EventTarget {
+  document!: FakeDocument
   readonly name: string
   frames = new Map<number, (now: number) => void>()
   next = 1
@@ -16,6 +30,7 @@ class FakeWindow {
   observers: { observed: unknown[]; disconnected: boolean; fire: () => void }[] = []
   ResizeObserver: unknown
   constructor(name: string) {
+    super()
     this.name = name
     const observers = this.observers
     this.ResizeObserver = class {
@@ -51,14 +66,14 @@ class FakeElement {
   getContext() { return { getExtension: () => ({ loseContext: () => { this.lost++ } }) } }
 }
 
-class FakeDocument {
+class FakeDocument extends EventTarget {
   hidden = false
   defaultView: FakeWindow
   listeners = new Set<() => void>()
-  constructor(view: FakeWindow) { this.defaultView = view }
+  constructor(view: FakeWindow) { super(); this.defaultView = view; view.document = this }
   createElement(tag: string) { return new FakeElement(tag, this) }
-  addEventListener(_type: string, listener: () => void) { this.listeners.add(listener) }
-  removeEventListener(_type: string, listener: () => void) { this.listeners.delete(listener) }
+  override addEventListener(...args: Parameters<EventTarget['addEventListener']>) { super.addEventListener(...args); if (args[0] === 'visibilitychange') this.listeners.add(args[1] as () => void) }
+  override removeEventListener(...args: Parameters<EventTarget['removeEventListener']>) { super.removeEventListener(...args); this.listeners.delete(args[1] as () => void) }
 }
 
 class FakeHost {
@@ -72,17 +87,17 @@ class FakeHost {
 }
 
 function fakePlayer(main: FakeWindow) {
-  const calls = { frames: 0, destroyed: 0, talks: [] as number[], stops: 0, expressions: [] as string[] }
+  const calls = { frames: 0, frameTimes: [] as number[], looks: [] as { x: number; y: number }[], destroyed: 0, talks: [] as number[], stops: 0, expressions: [] as string[] }
   let throwOnFrame = false
   const player = {
     model: { background: [1, 1, 1, 1] as [number, number, number, number], setView() {}, draw() {} },
     running: true, raf: 0, last: 0,
-    frame() { if (throwOnFrame) throw new Error('GL lost'); calls.frames++ },
+    frame(now: number) { if (throwOnFrame) throw new Error('GL lost'); calls.frames++; calls.frameTimes.push(now) },
     setExpression(name: string) { calls.expressions.push(name); return true },
     playMotion() { return true },
     talk(ms: number) { calls.talks.push(ms); return true },
     stopMotion() { calls.stops++ },
-    lookAt() {}, setView() {},
+    lookAt(x: number, y: number) { calls.looks.push({ x, y }) }, setView() {},
     tracked: [] as Record<string, number>[],
     track(params: Record<string, number>) { player.tracked.push(params) },
     destroy() { calls.destroyed++; player.running = false },
@@ -108,6 +123,61 @@ async function setup() {
 
 const source = { kind: 'aliving' as const, modelUrl: '/m/model.json', engineUrl: '/e/engine.js', playerUrl: '/e/player.js' }
 const settle = () => new Promise(resolve => setTimeout(resolve, 0))
+
+test('gaze rebinds main → PiP → main, clears pending input, ignores foreign RAF clocks and releases listeners', async (t) => {
+  const env = await setup()
+  let now = 100_000
+  t.mock.method(performance, 'now', () => now)
+  const pointer = (win: FakeWindow, x: number, y: number) => {
+    win.dispatchEvent(Object.assign(new Event('pointermove'), { pointerType: 'mouse', clientX: x, clientY: y }))
+  }
+  try {
+    const made = fakePlayer(env.main)
+    const stage = new env.AlivingSessionStage(source, { loadScript: async () => {}, getPlayer: () => ({ create: async () => made.player as never }) })
+    await settle()
+    const mainHost = new FakeHost(env.mainDoc), pipHost = new FakeHost(env.pipDoc)
+    stage.attach(mainHost as never)
+    stage.setTracking(true)
+    pointer(env.main, 800, 0)
+    now += 16
+    env.main.flush(100_016)
+    assert.ok(made.calls.looks.at(-1)!.x > 0)
+    pointer(env.main, 0, 600) // must not be interpreted in PiP
+    stage.attach(pipHost as never)
+    assert.deepEqual(made.calls.looks.at(-1), { x: 0, y: 0 })
+    const count = made.calls.looks.length
+    pointer(env.main, 800, 0)
+    env.main.flush()
+    assert.equal(made.calls.looks.length, count, 'old window has no pointer listener or pending gaze frame')
+    pointer(env.pip, 800, 0)
+    now += 16
+    env.pip.flush(16) // new document's time origin
+    const first = made.calls.looks.at(-1)!
+    assert.ok(first.x > 0 && first.x < 0.75 && Number.isFinite(first.y))
+    now += 16
+    env.pip.flush(32)
+    assert.ok(made.calls.looks.at(-1)!.x > first.x, 'tracking continues despite PiP clock being much smaller')
+    assert.equal(made.calls.frameTimes.at(-1), now, 'player frames use the original realm clock too')
+    env.pip.dispatchEvent(new Event('blur'))
+    const beforeBlur = made.calls.looks.at(-1)!.x
+    now += 100
+    env.pip.flush(132)
+    assert.ok(made.calls.looks.at(-1)!.x < beforeBlur, 'blur eases to front')
+    stage.detach(pipHost as never)
+    assert.deepEqual(made.calls.looks.at(-1), { x: 0, y: 0 })
+    pointer(env.main, 0, 600)
+    now += 16
+    env.main.flush(200_000)
+    assert.ok(made.calls.looks.at(-1)!.x < 0, 'main tracking resumes')
+    stage.destroy()
+    const finalCount = made.calls.looks.length
+    pointer(env.main, 800, 0)
+    pointer(env.pip, 800, 0)
+    env.main.flush(); env.pip.flush()
+    assert.equal(made.calls.looks.length, finalCount, 'destroy releases both sources')
+    assert.equal(env.main.frames.size + env.pip.frames.size, 0)
+  } finally { env.restore() }
+})
 
 test('the canvas moves to a PiP window and back on one player: frames and resize observation follow the host window', async () => {
   const env = await setup()
