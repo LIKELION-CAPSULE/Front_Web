@@ -601,25 +601,28 @@
   word-break: keep-all;
 }
 
-.records-skeleton-stack {
+/* Loading (RecordsSkeleton.tsx): the overview and the board at their own sizes. */
+.records-skeleton-comment {
   display: flex;
-  flex-direction: column;
+  align-items: flex-end;
   gap: 12px;
+  min-width: 0;
 }
 
-.records-skeleton-cards {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.records-skeleton-card {
-  height: 96px;
+.records-skeleton-bubble {
+  flex: 1;
+  height: 70px;
+  max-width: 460px;
   border-radius: 18px;
 }
 
-.records-skeleton-panel {
-  height: 240px;
+.records-skeleton-summary {
+  height: 92px;
+  border-radius: 18px;
+}
+
+.records-skeleton-board {
+  height: 306px;
   border-radius: 18px;
 }
 
@@ -636,8 +639,7 @@
   }
 
   .records-summary-grid,
-  .records-summary-grid[data-cols='3'],
-  .records-skeleton-cards {
+  .records-summary-grid[data-cols='3'] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     row-gap: 12px;
   }

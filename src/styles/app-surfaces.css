@@ -10,8 +10,6 @@
 .auth-panel-layout[data-app-header] { justify-content: flex-start; padding: 0 0 32px; }
 .auth-panel-layout[data-app-header] > .site-header { align-self: stretch; }
 .auth-panel-layout[data-app-header] > .auth-panel-content { max-width: calc(100% - 48px); }
-.app-surface .page-skeleton :is(.app-panel, .mate-card, .mate-welcome) .skeleton-line { background: var(--color-surface); }
-.app-surface .page-skeleton .mate-card-image { height: auto; }
 
 /* Temporary adapter for pages awaiting their own redesign. Keep their layout and actions. */
 .app-surface .desktop-window {

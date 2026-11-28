@@ -232,6 +232,10 @@ export const reviewScenarios: ReviewScenario[] = [
   { id: 'home-attendance-api-done', group: '크레딧·초대', title: '출석 · 출석 API 체크 후', path: '/', fault: 'attendance-api', steps: [click('출석하고 크레딧 받기')], note: 'POST 201 → 5일차·칩이 응답 credits로 갱신' },
   { id: 'app-loading', group: '온보딩·홈', title: '앱 로딩', path: '/', fault: 'bootstrap-pending', loading: 'auth', note: '로그인 상태 확인 전: 로고·공통 로딩' },
   { id: 'home-loading', group: '온보딩·홈', title: '홈 데이터 로딩', path: '/', fault: 'home-pending', loading: 'home', note: '홈으로 이동할 계정임을 확인한 뒤의 데이터 대기' },
+  // Route skeletons (PageSkeleton.tsx), held: start-up waits for /home, so RouteLoading draws the address's screen.
+  ...([['my-mates', '/mates/me', '내 메이트'], ['records', '/records', '내 기록'], ['credits', '/credits', '내 크레딧'], ['invite', '/credits/invite', '친구 초대'],
+    ['mate', '/mates/chaerin', '메이트 상세'], ['connection', '/connect/chaerin', '통화'], ['connection-record', '/connections/9001', '연결 기록']] as const)
+    .map(([screen, path, name]): ReviewScenario => ({ id: `route-skeleton-${screen}`, group: '화면 전환 스켈레톤', title: `${name} · 스켈레톤`, path, fault: 'home-pending', loading: screen, note: '화면 전환·새로고침 때의 라우트 스켈레톤(고정)' })),
   { id: 'app-error', group: '온보딩·홈', title: '앱 연결 실패', path: '/', fault: 'bootstrap', note: '홈 화면·연결 실패 알림·다시 연결하기' },
   { id: 'account-profile', group: '계정·공통', title: '계정 설정 · 프로필', path: '/', steps: account, note: '좌측 아바타·닉네임·메뉴와 우측 프로필 편집' },
   { id: 'account-profile-saved', group: '계정·공통', title: '계정 설정 · 프로필 저장', path: '/', steps: [...account, fill('dialog.account-settings-dialog input[name="nickname"]', '설정에서 저장한 이름'), click('프로필 저장')], note: '프로필 저장 후 좌측 닉네임 갱신' },

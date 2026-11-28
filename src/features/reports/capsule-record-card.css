@@ -730,17 +730,7 @@
   }
 }
 
-/* Loading and error share the frame. While loading without the header, 「홈으로」 sits under the skeleton. */
-.capsule-record-loading-actions {
-  grid-template-columns: max-content;
-}
-
-/* Loading and error share the frame. */
-.capsule-record-skeleton {
-  display: block;
-  border-radius: 10px;
-}
-
+/* Loading (ConnectionRecordSkeleton.tsx) and error share the frame. */
 .capsule-record-error-actions {
   display: flex;
   gap: 12px;

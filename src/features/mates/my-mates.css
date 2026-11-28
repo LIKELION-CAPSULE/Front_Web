@@ -270,9 +270,14 @@
   text-align: center;
 }
 .my-mates-empty-title { margin: 0; font-size: 17px; font-weight: 600; color: var(--color-ink); word-break: keep-all; }
-.my-mates-skeleton-scene { display: block; height: clamp(460px, calc(100dvh - 160px), 820px); border-radius: 28px; }
-.my-mates-skeleton-bar { display: flex; gap: 12px; margin-top: 16px; }
-.my-mates-skeleton-bar > span { display: block; height: 40px; flex: 1; border-radius: 12px; }
+/* Loading (MyMatesSkeleton.tsx): the panel, the two mate cards and the column's blocks at their own sizes. */
+.my-mates-skeleton-switcher { display: flex; align-items: flex-start; gap: 0; height: 116px; padding-left: 4px; }
+.my-mates-skeleton-card { width: 78px; height: 110px; border-radius: 12px; }
+.my-mates-skeleton-card + .my-mates-skeleton-card { width: 74px; height: 100px; margin: 12px 0 0 -6px; }
+.my-mates-skeleton-panel { height: 100%; border-radius: 28px; }
+.my-mates-skeleton-info { display: flex; flex-direction: column; gap: 14px; }
+.my-mates-skeleton-block { flex: none; border-radius: 18px; }
+.my-mates-skeleton-actions { display: grid; gap: 14px; margin-top: auto; }
 
 /* Narrow screens: the panel (lower), then the column (mate picker first). */
 @media (max-width: 959px) {
@@ -285,7 +290,6 @@
     height: auto;
   }
   .my-mates-info { overflow: visible; }
-  .my-mates-skeleton-scene { height: clamp(380px, 56vh, 520px); }
   .my-mates-caption-name { font-size: 22px; line-height: 28px; }
 }
 @media (max-width: 640px) {

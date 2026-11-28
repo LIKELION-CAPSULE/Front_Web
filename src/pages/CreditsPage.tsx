@@ -6,6 +6,7 @@ import { CREDIT_FILTERS, type CreditEntry, type CreditKind } from '@/features/cr
 import { useCreditActivity, useCreditSummary } from '@/features/credits/use-credits'
 import type { CreditTransactionFilter } from '@/shared/api/types'
 import { useCreditDisplay } from '@/features/attendance/use-credit-display'
+import { CreditActivitySkeleton, CreditsSkeletonBody } from '@/features/credits/components/CreditsSkeleton'
 import { useNow } from '@/features/session/use-now'
 import { Button, ButtonLink } from '@/shared/ui/Button'
 import { CapsuleEmptyState } from '@/shared/ui/CapsuleEmptyState'
@@ -53,15 +54,10 @@ export default function CreditsPage() {
   if (loading) {
     return (
       <CreditsAppWindow page="credits" loadingScreen="credits" dashboard>
-        <div className="credits-skeleton-stack" aria-busy="true">
-          <span className="sr-only" role="status">
-            크레딧 정보를 불러오고 있어요.
-          </span>
-          <span className="skeleton-line credits-skeleton-hero" aria-hidden="true" />
-          <span className="skeleton-line credits-skeleton-line credits-skeleton-line--wide" aria-hidden="true" />
-          <span className="skeleton-line credits-skeleton-line credits-skeleton-line--wide" aria-hidden="true" />
-          <span className="skeleton-line credits-skeleton-line credits-skeleton-line--mid" aria-hidden="true" />
-        </div>
+        <span className="sr-only" role="status" aria-busy="true">
+          크레딧 정보를 불러오고 있어요.
+        </span>
+        <CreditsSkeletonBody />
       </CreditsAppWindow>
     )
   }
@@ -136,11 +132,7 @@ export default function CreditsPage() {
         <Tabs label="크레딧 활동 필터" size="sm" value={filter} onChange={value => setFilter(value as CreditTransactionFilter)} options={CREDIT_FILTERS} />
 
         {activity.status === 'loading' ? (
-          <div className="credits-activity-skeleton" aria-hidden="true">
-            <span className="skeleton-line credits-skeleton-line credits-skeleton-line--wide" />
-            <span className="skeleton-line credits-skeleton-line credits-skeleton-line--wide" />
-            <span className="skeleton-line credits-skeleton-line credits-skeleton-line--mid" />
-          </div>
+          <CreditActivitySkeleton />
         ) : activity.status === 'error' ? (
           <div className="credits-empty-box credits-activity-error" role="alert">
             <p>크레딧 내역을 불러오지 못했어요.</p>

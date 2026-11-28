@@ -1,5 +1,7 @@
 export type LoadingStage = 'auth' | 'onboarding' | 'page'
-export type SkeletonScreen = 'home' | 'onboarding' | 'mate' | 'connection' | 'connection-record'
+/** One per app screen (PageSkeleton.tsx draws each on that screen's own layout). */
+export type SkeletonScreen =
+  | 'home' | 'my-mates' | 'records' | 'credits' | 'invite' | 'onboarding' | 'mate' | 'connection' | 'connection-record'
 
 /** A screen preview is shown only after the server has resolved the account's destination. */
 export function resolveLoadingScreen(destination: string | null, state: {
@@ -21,13 +23,14 @@ export function resolveLoadingScreen(destination: string | null, state: {
     if (!state.loggedIn) return null
     if (!state.onboarded) return 'onboarding'
   }
-  if (path === '/' || path === '/mypage' || path === '/mates/me' || path.startsWith('/characters')) return 'home'
+  // /mypage opens the account settings over home. The retired beta addresses (/rooms, /study, /reports, /capsules,
+  // /characters) only redirect (BetaLegacyRedirect): the common loading screen, not a screen they never show.
+  if (path === '/' || path === '/mypage') return 'home'
+  if (path === '/mates/me') return 'my-mates'
+  if (path === '/records') return 'records'
+  if (path === '/credits') return 'credits'
+  if (path === '/credits/invite' || path === '/credits/charge' || path === '/invite') return 'invite'
   if (path === '/onboarding') return 'onboarding'
-  if (/^\/rooms\/[^/]+\/prepare$/.test(path)) return 'mate'
-  if (/^\/rooms\/[^/]+$/.test(path)) return 'mate'
-  if (/^\/study\/[^/]+$/.test(path)) return 'connection'
-  if (/^\/reports\/[^/]+$/.test(path)) return 'connection-record'
-  if (/^\/capsules\/[^/]+$/.test(path)) return 'connection-record'
   if (/^\/mates\/[^/]+$/.test(path)) return 'mate'
   if (/^\/connect\/[^/]+$/.test(path)) return 'connection'
   if (/^\/connections\/[^/]+$/.test(path)) return 'connection-record'

@@ -24,6 +24,8 @@ import './avatar-dial.css'
 /** Shown wherever the Live2D sample avatars can be picked (Live2D free material license, attribution duty). */
 /** No avatar to choose (an empty `GET /avatars`): the server gives the default avatar. */
 const EMPTY_AVATARS = '선택할 수 있는 아바타가 없어요. 기본 아바타로 시작해요.'
+/** While `GET /avatars` is on its way (read by screen readers only; the rail keeps its empty place). */
+const LOADING_AVATARS = '고를 수 있는 아바타를 불러오고 있어요.'
 
 export const LIVE2D_CREDIT = '본 서비스의 아바타 캐릭터에는 주식회사 Live2D의 저작물이 이용되었습니다.'
 
@@ -66,7 +68,7 @@ function AvatarPortrait({ avatar, fallback, className = 'avatar-picker-image' }:
  * - The model itself is never recoloured, filtered or reshaped (license); only the light behind it and the fade at
  *   the bottom edge belong to the stage.
  */
-export function AvatarDial({ avatars, value, onChange, disabled = false, size = 'large', layout = 'row', previewActive = true, fallback, greeting, railHint = false }: {
+export function AvatarDial({ avatars, value, onChange, disabled = false, size = 'large', layout = 'row', previewActive = true, fallback, greeting, railHint = false, loading = false }: {
   avatars: readonly AvatarItem[]
   value?: number
   onChange: (id: number) => void
@@ -88,6 +90,11 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
    * a few seconds or at the first change (onboarding, where the arc is met first).
    */
   railHint?: boolean
+  /**
+   * The choices are still being read (account settings opens before `GET /avatars` answers): the name is a placeholder
+   * and an empty list is not called empty yet (no 「선택할 수 있는 아바타가 없어요」 that turns into the list).
+   */
+  loading?: boolean
 }) {
   const reduced = useReducedMotion()
   const choices = avatars.filter((avatar): avatar is AvatarItem & { id: number } => typeof avatar.id === 'number')
@@ -277,7 +284,9 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
       <AnimatePresence mode="wait" initial={false}>
         <motion.p key={selected?.id ?? 'none'} id={nameId} className="avatar-picker-name" title={selectedName}
           initial={reduced ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={reduced ? { opacity: 1 } : { opacity: 0, y: -4 }} transition={fade}>
-          {selectedName}
+          {loading
+            ? <span className="skeleton-line inline-block h-[0.9em] w-24 rounded-control align-middle" aria-hidden="true" />
+            : selectedName}
         </motion.p>
       </AnimatePresence>
       {greeting && <p className="avatar-picker-greeting">{greeting}</p>}
@@ -298,7 +307,9 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
         // The rail keeps its place: one empty slot where the choice would sit, the note under it.
         : <div className="avatar-arc" data-empty>
           <span className="avatar-arc-empty-slot" aria-hidden="true" />
-          <p className="avatar-picker-empty" role="status">{EMPTY_AVATARS}</p>
+          {loading
+            ? <p className="sr-only" role="status">{LOADING_AVATARS}</p>
+            : <p className="avatar-picker-empty" role="status">{EMPTY_AVATARS}</p>}
         </div>}
       <div
         ref={mainRef}
@@ -345,7 +356,9 @@ export function AvatarDial({ avatars, value, onChange, disabled = false, size = 
           })}
         </div>
       </div>
-      : <div className="avatar-picker-rail" data-empty><p className="avatar-picker-empty" role="status">{EMPTY_AVATARS}</p></div>}
+      : <div className="avatar-picker-rail" data-empty>{loading
+        ? <p className="sr-only" role="status">{LOADING_AVATARS}</p>
+        : <p className="avatar-picker-empty" role="status">{EMPTY_AVATARS}</p>}</div>}
 
     {credit}
   </fieldset>

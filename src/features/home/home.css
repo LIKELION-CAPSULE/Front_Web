@@ -110,6 +110,11 @@
     transition: opacity 0.35s ease;
   }
   .home-hero-sub > span[data-active] { opacity: 1; }
+  /* Until today's attendance is read: one bar where the line goes (the hidden lines keep the box's height). */
+  .home-hero-sub-pending { pointer-events: none; }
+  .home-hero-sub-pending > .skeleton-line { display: block; width: min(100%, 19em); height: 0.9em; margin-top: 0.35em; border-radius: 6px; }
+  /* The CTA's place while attendance is read: the 「출석하고 크레딧 받기」 button's size, nothing to press. */
+  .home-hero-cta-pending { display: block; width: 222px; }
   .home-hero-sub {
     max-width: 30em;
     margin: calc(var(--hero-path-height) * 0.05) 0 0;
